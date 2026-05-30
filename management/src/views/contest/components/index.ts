@@ -2,7 +2,7 @@
 // Re-export all components and types
 
 export { default as ContestStatusBadge } from './ContestStatusBadge.vue'
-export type { ContestStatus } from './ContestStatusBadge.vue'
+export type { ContestUiStatus } from './ContestStatusBadge.vue'
 
 export { default as ContestTimer } from './ContestTimer.vue'
 

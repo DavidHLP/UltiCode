@@ -166,7 +166,7 @@ class ProblemVersionServiceTest {
         when(problemExampleMapper.findByProblemIdOrderByOrder(PROBLEM_ID)).thenReturn(List.of(createProblemExample(1)));
         when(problemLanguageMapper.findByProblemId(PROBLEM_ID)).thenReturn(List.of(createProblemLanguage()));
         when(problemMapper.selectTagsByProblemIds(anyList())).thenReturn(
-                List.of(new ProblemMapper.ProblemTagDTO(PROBLEM_ID, createProblemTag().getLabel()))
+                List.of(new ProblemMapper.ProblemTagDTO(PROBLEM_ID, createProblemTag().getId(), createProblemTag().getLabel()))
         );
     }
 

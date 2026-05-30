@@ -289,19 +289,6 @@ class ContestDtoAlignmentTest {
     }
 
     @Nested
-    @DisplayName("RatingHistoryVO alignment")
-    class RatingHistoryVOAlignmentTests {
-
-        @Test
-        @DisplayName("should have required fields")
-        void ratingHistoryVO_hasRequiredFields() {
-            Set<String> fields = getFieldNames(RatingHistoryVO.class);
-            assertThat(fields).contains("contestId", "title", "slug", "ratingChange",
-                    "newRating", "oldRating", "ratedAt", "performance");
-        }
-    }
-
-    @Nested
     @DisplayName("LiveRankingEntryVO alignment")
     class LiveRankingEntryVOAlignmentTests {
 

@@ -7,7 +7,6 @@ import type {
   VirtualContestSession,
   GlobalRankingEntry,
   UserContestHistory,
-  RatingHistoryEntry,
 } from "@/types/contest";
 import {
   fetchUpcomingContests,
@@ -22,7 +21,6 @@ import {
   finishVirtualContest as apiFinishVirtual,
   fetchUserContests as apiFetchUserContests,
   fetchUserContestHistory,
-  fetchUserRatingHistory,
   fetchGlobalRankings,
 } from "@/api/contest";
 
@@ -45,7 +43,6 @@ export const useContestStore = defineStore("contest", () => {
   const participatedContests = ref<ContestListItem[]>([]);
   const virtualContests = ref<ContestListItem[]>([]);
   const contestHistory = ref<UserContestHistory[]>([]);
-  const ratingHistory = ref<RatingHistoryEntry[]>([]);
 
   const globalRankings = ref<GlobalRankingEntry[]>([]);
 
@@ -130,11 +127,19 @@ export const useContestStore = defineStore("contest", () => {
     }
   }
 
-  async function loadGlobalRankings() {
+  async function loadGlobalRankings(options?: {
+    page?: number;
+    limit?: number;
+    country?: string;
+  }) {
     loadingRankings.value = true;
     error.value = null;
     try {
-      const result = await fetchGlobalRankings({ page: 1, limit: 10 });
+      const result = await fetchGlobalRankings({
+        page: options?.page ?? 1,
+        limit: options?.limit ?? 10,
+        country: options?.country,
+      });
       globalRankings.value = result.items;
     } catch (err) {
       error.value =
@@ -257,17 +262,26 @@ export const useContestStore = defineStore("contest", () => {
   // ACTIONS — USER CONTESTS
   // =========================================================================
 
-  async function loadUserContests() {
+  async function loadUserContests(
+    type?: "registered" | "participated" | "virtual",
+  ) {
     error.value = null;
     try {
-      const [registered, participated, virtual] = await Promise.all([
-        apiFetchUserContests("registered"),
-        apiFetchUserContests("participated"),
-        apiFetchUserContests("virtual"),
-      ]);
-      registeredContests.value = registered;
-      participatedContests.value = participated;
-      virtualContests.value = virtual;
+      if (type) {
+        const result = await apiFetchUserContests(type);
+        if (type === "registered") registeredContests.value = result;
+        if (type === "participated") participatedContests.value = result;
+        if (type === "virtual") virtualContests.value = result;
+      } else {
+        const [registered, participated, virtual] = await Promise.all([
+          apiFetchUserContests("registered"),
+          apiFetchUserContests("participated"),
+          apiFetchUserContests("virtual"),
+        ]);
+        registeredContests.value = registered;
+        participatedContests.value = participated;
+        virtualContests.value = virtual;
+      }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to load user contests";
@@ -282,17 +296,6 @@ export const useContestStore = defineStore("contest", () => {
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to load contest history";
-      throw err;
-    }
-  }
-
-  async function loadRatingHistory() {
-    error.value = null;
-    try {
-      ratingHistory.value = await fetchUserRatingHistory();
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load rating history";
       throw err;
     }
   }
@@ -354,7 +357,6 @@ export const useContestStore = defineStore("contest", () => {
     participatedContests.value = [];
     virtualContests.value = [];
     contestHistory.value = [];
-    ratingHistory.value = [];
     globalRankings.value = [];
     loading.value = false;
     loadingContests.value = false;
@@ -376,7 +378,6 @@ export const useContestStore = defineStore("contest", () => {
     participatedContests,
     virtualContests,
     contestHistory,
-    ratingHistory,
     globalRankings,
     loading,
     loadingContests,
@@ -402,7 +403,6 @@ export const useContestStore = defineStore("contest", () => {
     finishVirtualContest,
     loadUserContests,
     loadContestHistory,
-    loadRatingHistory,
     startCountdownTimer,
     stopCountdownTimer,
     getCountdown,

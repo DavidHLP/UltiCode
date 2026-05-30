@@ -221,6 +221,52 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
 
     /**
+     * Find ranked participants by contest ID with user data joined, paginated.
+     *
+     * @param contestId the contest ID
+     * @param limit     maximum number of participants to return
+     * @param offset    number of participants to skip
+     * @return paginated list of ranked participants with user data
+     */
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "contest_id", property = "contestId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "final_rank", property = "finalRank"),
+            @Result(column = "total_score", property = "totalScore"),
+            @Result(column = "total_penalty", property = "totalPenalty"),
+            @Result(column = "total_time", property = "totalTime"),
+            @Result(column = "attempt_count", property = "attemptCount"),
+            @Result(column = "registered_at", property = "registeredAt"),
+            @Result(column = "updated_at", property = "updatedAt"),
+            @Result(column = "virtual_session_id", property = "virtualSessionId"),
+            @Result(column = "username", property = "username"),
+            @Result(column = "name", property = "name"),
+            @Result(column = "avatar", property = "avatar")
+    })
+    @Select("SELECT cp.*, u.username, u.name, u.avatar " +
+            "FROM contest_participants cp " +
+            "LEFT JOIN users u ON cp.user_id = u.id " +
+            "WHERE cp.contest_id = #{contestId} AND cp.final_rank IS NOT NULL " +
+            "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC " +
+            "LIMIT #{limit} OFFSET #{offset}")
+    List<ContestParticipantWithUser> selectParticipantsWithUserByContestIdPaginated(
+            @Param("contestId") String contestId,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    /**
+     * Count ranked participants for a contest.
+     *
+     * @param contestId the contest ID
+     * @return count of participants with a final rank
+     */
+    @Select("SELECT COUNT(*) FROM contest_participants " +
+            "WHERE contest_id = #{contestId} AND final_rank IS NOT NULL")
+    long countRankedParticipantsByContestId(@Param("contestId") String contestId);
+
+    /**
      * Find all participants for a list of contest IDs.
      * Used by ContestScheduler to find participants for reminder notifications.
      *

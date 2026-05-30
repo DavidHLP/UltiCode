@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -14,6 +15,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,13 +27,21 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.modules.contest.dto.ContestListVO;
+import com.ulticode.modules.contest.entity.enums.ContestStatus;
+
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,6 +85,11 @@ class ContestServiceImplTest {
                 contestAnnouncementMapper,
                 contestSubmissionMapper
         );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     private void setAdminAuthentication() {
@@ -223,6 +238,202 @@ class ContestServiceImplTest {
 
             assertThat(result.getEndTime()).isEqualTo(startTime.plusMinutes(120));
             clearAuthentication();
+        }
+    }
+
+    @Nested
+    @DisplayName("findUpcoming")
+    class FindUpcomingTests {
+
+        @Test
+        @DisplayName("should use database pagination with correct filters")
+        void findUpcoming_usesSelectPage() {
+            Contest contest = new Contest();
+            contest.setId("c1");
+            contest.setSlug("upcoming-1");
+            contest.setTitle("Upcoming Contest");
+            contest.setStatus(ContestStatus.UPCOMING.name());
+            contest.setStartTime(LocalDateTime.now().plusDays(1));
+            contest.setEndTime(LocalDateTime.now().plusDays(1).plusMinutes(120));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(0);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 20);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            PageResult<ContestListVO> result = contestService.findUpcoming(REGULAR_USER_ID, 1, 20);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getTotal()).isEqualTo(1);
+            assertThat(result.getItems()).hasSize(1);
+            assertThat(result.getItems().get(0).title()).isEqualTo("Upcoming Contest");
+            assertThat(result.getItems().get(0).status()).isEqualTo(ContestStatus.UPCOMING.name());
+
+            verify(contestMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
+        }
+
+        @Test
+        @DisplayName("should clamp page size to max 50")
+        void findUpcoming_clampsPageSize() {
+            Contest contest = new Contest();
+            contest.setId("c1");
+            contest.setSlug("upcoming-1");
+            contest.setTitle("Upcoming Contest");
+            contest.setStatus(ContestStatus.UPCOMING.name());
+            contest.setStartTime(LocalDateTime.now().plusDays(1));
+            contest.setEndTime(LocalDateTime.now().plusDays(1).plusMinutes(120));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(0);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 50);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            // Request 100, should be clamped to 50
+            PageResult<ContestListVO> result = contestService.findUpcoming(REGULAR_USER_ID, 1, 100);
+
+            assertThat(result.getPageSize()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("should default page to 1 and pageSize to 20 when called with no-args overload")
+        void findUpcoming_defaultsPagination() {
+            Contest contest = new Contest();
+            contest.setId("c1");
+            contest.setSlug("upcoming-1");
+            contest.setTitle("Upcoming Contest");
+            contest.setStatus(ContestStatus.UPCOMING.name());
+            contest.setStartTime(LocalDateTime.now().plusDays(1));
+            contest.setEndTime(LocalDateTime.now().plusDays(1).plusMinutes(120));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(0);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 20);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            // Calls findUpcoming(userId) which delegates to findUpcoming(userId, 1, 20)
+            PageResult<ContestListVO> result = contestService.findUpcoming(REGULAR_USER_ID);
+
+            assertThat(result.getPage()).isEqualTo(1);
+            assertThat(result.getPageSize()).isEqualTo(20);
+        }
+    }
+
+    @Nested
+    @DisplayName("findRunning")
+    class FindRunningTests {
+
+        @Test
+        @DisplayName("should use database pagination with correct filters")
+        void findRunning_usesSelectPage() {
+            Contest contest = new Contest();
+            contest.setId("c2");
+            contest.setSlug("running-1");
+            contest.setTitle("Running Contest");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setStartTime(LocalDateTime.now().minusMinutes(30));
+            contest.setEndTime(LocalDateTime.now().plusMinutes(90));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(5);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 20);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            PageResult<ContestListVO> result = contestService.findRunning(REGULAR_USER_ID, 1, 20);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getTotal()).isEqualTo(1);
+            assertThat(result.getItems()).hasSize(1);
+            assertThat(result.getItems().get(0).title()).isEqualTo("Running Contest");
+            assertThat(result.getItems().get(0).status()).isEqualTo(ContestStatus.RUNNING.name());
+
+            verify(contestMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
+        }
+
+        @Test
+        @DisplayName("should clamp page size to max 50")
+        void findRunning_clampsPageSize() {
+            Contest contest = new Contest();
+            contest.setId("c2");
+            contest.setSlug("running-1");
+            contest.setTitle("Running Contest");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setStartTime(LocalDateTime.now().minusMinutes(30));
+            contest.setEndTime(LocalDateTime.now().plusMinutes(90));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(5);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 50);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            // Request 100, should be clamped to 50
+            PageResult<ContestListVO> result = contestService.findRunning(REGULAR_USER_ID, 1, 100);
+
+            assertThat(result.getPageSize()).isEqualTo(50);
+        }
+
+        @Test
+        @DisplayName("should default page to 1 and pageSize to 20 when called with no-args overload")
+        void findRunning_defaultsPagination() {
+            Contest contest = new Contest();
+            contest.setId("c2");
+            contest.setSlug("running-1");
+            contest.setTitle("Running Contest");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setStartTime(LocalDateTime.now().minusMinutes(30));
+            contest.setEndTime(LocalDateTime.now().plusMinutes(90));
+            contest.setDurationMinutes(120);
+            contest.setParticipantCount(5);
+            contest.setIsVisible(true);
+            contest.setIsDeleted(false);
+
+            Page<Contest> pageResult = new Page<>(1, 20);
+            pageResult.setRecords(List.of(contest));
+            pageResult.setTotal(1);
+
+            when(contestMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(pageResult);
+            when(contestProblemMapper.countByContestIds(anyList())).thenReturn(List.of());
+            when(participantMapper.findByContestIdsAndUserId(anyList(), eq(REGULAR_USER_ID))).thenReturn(List.of());
+
+            // Calls findRunning(userId) which delegates to findRunning(userId, 1, 20)
+            PageResult<ContestListVO> result = contestService.findRunning(REGULAR_USER_ID);
+
+            assertThat(result.getPage()).isEqualTo(1);
+            assertThat(result.getPageSize()).isEqualTo(20);
         }
     }
 }

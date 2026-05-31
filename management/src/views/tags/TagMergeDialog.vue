@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconGitMerge, IconLoader } from '@tabler/icons-vue'
-import { sanitizeI18nHtml } from '@/utils/sanitize'
 import {
   Dialog,
   DialogContent,
@@ -42,8 +41,8 @@ const tagsStore = useTagsStore()
 const loading = ref(false)
 const targetTagId = ref<string>('')
 
-const mergeDescriptionHtml = computed(() =>
-  sanitizeI18nHtml(t('tags.merge.description', { source: props.sourceTagName })),
+const mergeDescription = computed(() =>
+  t('tags.merge.description', { source: props.sourceTagName }),
 )
 
 // Filter out the source tag from available targets
@@ -83,7 +82,7 @@ async function handleMerge() {
           {{ t('tags.merge.title') }}
         </DialogTitle>
         <DialogDescription>
-          <span v-html="mergeDescriptionHtml"></span>
+          <span>{{ mergeDescription }}</span>
         </DialogDescription>
       </DialogHeader>
 

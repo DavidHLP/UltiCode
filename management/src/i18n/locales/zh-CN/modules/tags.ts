@@ -37,17 +37,21 @@ export default {
     slug: '标签别名',
     slugPlaceholder: 'url-friendly-name',
     color: '颜色',
+    colorHex: '颜色',
     colorPlaceholder: '#3b82f6',
     description: '描述',
     descriptionPlaceholder: '输入标签描述（可选）',
+    saveChanges: '保存更改',
+    createTag: '创建标签',
   },
 
   merge: {
     title: '合并标签',
-    description:
-      '将标签 <strong>{source}</strong> 合并到以下目标标签。所有使用该标签的内容将转移到目标标签。',
+    description: '将标签 "{source}" 合并到以下目标标签。所有使用该标签的内容将转移到目标标签。',
     targetLabel: '目标标签',
     targetPlaceholder: '选择目标标签',
+    targetTag: '目标标签',
+    targetTagPlaceholder: '选择目标标签',
     confirm: '确认合并',
     success: '标签合并成功',
     failed: '标签合并失败',

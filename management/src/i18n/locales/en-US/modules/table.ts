@@ -12,6 +12,9 @@ const tableTranslations = {
   goToNextPage: 'Next page',
   goToLastPage: 'Go to last page',
 
+  // Selection
+  selected: '{count} selected',
+
   // Empty state
   emptyTitle: 'No data',
   emptyDescription: 'There is no data to display',

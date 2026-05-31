@@ -81,7 +81,7 @@ watch(
         <div
           class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
-          <span class="terminal-comment">user_profile</span>
+          <span class="terminal-comment">{{ t('users.drawer.sections.profile') }}</span>
         </div>
 
         <div class="p-4">
@@ -120,11 +120,11 @@ watch(
               <div class="flex flex-wrap gap-2">
                 <SemanticBadge
                   :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
-                  :label="entity.role.replace('_', ' ')"
+                  :label="t(`users.filters.role.${entity.role}`)"
                 />
                 <SemanticBadge
                   :color="entity.isBanned ? 'error' : entity.isActive ? 'success' : 'neutral'"
-                  :label="entity.isBanned ? 'BANNED' : entity.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  :label="entity.isBanned ? t('users.status.banned') : entity.isActive ? t('users.status.active') : t('users.status.inactive')"
                   :dot="entity.isActive"
                   :pulse="entity.isActive"
                 />
@@ -142,7 +142,7 @@ watch(
         <div
           class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
-          <span class="terminal-comment">performance_stats</span>
+          <span class="terminal-comment">{{ t('users.drawer.sections.performance') }}</span>
         </div>
 
         <div class="p-4 space-y-4">
@@ -223,7 +223,7 @@ watch(
         <div
           class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
-          <span class="terminal-comment">account_info</span>
+          <span class="terminal-comment">{{ t('users.drawer.sections.account') }}</span>
         </div>
 
         <div class="p-4">

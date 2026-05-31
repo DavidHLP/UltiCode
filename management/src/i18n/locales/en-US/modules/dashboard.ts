@@ -120,6 +120,8 @@ export default {
       BAN: 'Ban',
       UNBAN: 'Unban',
       MODERATE: 'Moderate',
+      MODERATE_APPROVE: 'Moderate Approve',
+      MODERATE_REJECT: 'Moderate Reject',
       PIN: 'Pin',
       UNPIN: 'Unpin',
       LOCK: 'Lock',

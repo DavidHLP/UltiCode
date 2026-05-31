@@ -36,8 +36,20 @@ export default {
     },
   },
 
+  // Status Badge
+  status: {
+    active: 'Active',
+    inactive: 'Inactive',
+    banned: 'Banned',
+  },
+
   // Form fields
   form: {
+    sections: {
+      general: 'General Information',
+      accessControl: 'Access Control',
+      securityAccess: 'Security & Access',
+    },
     username: 'Username',
     usernamePlaceholder: 'johndoe',
     email: 'Email',
@@ -72,6 +84,10 @@ export default {
     solved: 'Solved',
     streak: 'Streak',
     never: 'Never',
+    solutions: 'Solutions',
+    submissions: 'Submissions',
+    accepted: 'Accepted',
+    acceptanceRate: 'Acceptance Rate',
   },
 
   // Actions
@@ -140,6 +156,14 @@ export default {
     title: 'User Details',
     description: 'View comprehensive information about the user',
     notFound: 'User not found',
+  },
+
+  drawer: {
+    sections: {
+      profile: 'User Profile',
+      performance: 'Performance Stats',
+      account: 'Account Info',
+    },
   },
 
   clearSelection: 'Clear Selection',

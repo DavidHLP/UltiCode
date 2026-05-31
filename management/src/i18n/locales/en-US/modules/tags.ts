@@ -6,6 +6,7 @@ export default {
   forumTags: 'Forum Tags',
   createTag: 'Create Tag',
   bulkDelete: 'Bulk Delete',
+  tagManagement: 'tag management',
   selected: '{count} tags selected',
   clearSelection: 'Clear Selection',
   retry: 'Retry',

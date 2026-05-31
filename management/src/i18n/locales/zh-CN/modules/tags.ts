@@ -6,6 +6,7 @@ export default {
   forumTags: '论坛标签',
   createTag: '创建标签',
   bulkDelete: '批量删除',
+  tagManagement: '标签管理',
   selected: '已选择 {count} 个标签',
   clearSelection: '清除选择',
   retry: '重试',

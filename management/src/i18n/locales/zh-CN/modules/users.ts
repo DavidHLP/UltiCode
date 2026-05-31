@@ -36,8 +36,20 @@ export default {
     },
   },
 
+  // 状态 Badge
+  status: {
+    active: '活跃',
+    inactive: '未激活',
+    banned: '已封禁',
+  },
+
   // 表单
   form: {
+    sections: {
+      general: '基本信息',
+      accessControl: '访问控制',
+      securityAccess: '安全与访问',
+    },
     username: '用户名',
     usernamePlaceholder: 'zhangsan',
     email: '邮箱',
@@ -72,6 +84,10 @@ export default {
     solved: '已解决',
     streak: '连续天数',
     never: '从未',
+    solutions: '题解数',
+    submissions: '提交数',
+    accepted: '通过数',
+    acceptanceRate: '通过率',
   },
 
   // 操作
@@ -139,6 +155,14 @@ export default {
     title: '用户详情',
     description: '查看用户的完整信息',
     notFound: '未找到用户',
+  },
+
+  drawer: {
+    sections: {
+      profile: '用户资料',
+      performance: '性能统计',
+      account: '账户信息',
+    },
   },
 
   clearSelection: '清除选择',

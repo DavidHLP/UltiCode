@@ -120,6 +120,8 @@ export default {
       BAN: '封禁',
       UNBAN: '解封',
       MODERATE: '审核',
+      MODERATE_APPROVE: '审核通过',
+      MODERATE_REJECT: '审核拒绝',
       PIN: '置顶',
       UNPIN: '取消置顶',
       LOCK: '锁定',

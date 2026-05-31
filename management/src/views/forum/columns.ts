@@ -34,17 +34,17 @@ export interface ForumPostActions {
   confirmDelete: (post: ForumPost) => void
 }
 
-function renderStatusBadge(post: ForumPost) {
-  if (post.isDeleted) return badge({ color: 'error', label: 'DELETED' })
-  if (post.isFlagged) return badge({ color: 'error', label: 'FLAGGED', pulse: true })
-  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
+function renderStatusBadge(post: ForumPost, t: (key: string) => string) {
+  if (post.isDeleted) return badge({ color: 'error', label: t('forum.status.deleted') })
+  if (post.isFlagged) return badge({ color: 'error', label: t('forum.status.flagged'), pulse: true })
+  return badge({ color: 'success', label: t('forum.status.active'), dot: true, pulse: true })
 }
 
-function renderPinLockBadge(post: ForumPost) {
+function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
   const badges: ReturnType<typeof h>[] = []
-  if (post.isPinned) badges.push(badge({ color: 'info', label: 'PIN', size: 'xs', icon: IconPin }))
+  if (post.isPinned) badges.push(badge({ color: 'info', label: t('forum.actions.pin'), size: 'xs', icon: IconPin }))
   if (post.isLocked)
-    badges.push(badge({ color: 'warning', label: 'LOCK', size: 'xs', icon: IconLock }))
+    badges.push(badge({ color: 'warning', label: t('forum.actions.lock'), size: 'xs', icon: IconLock }))
   return badges.length > 0 ? h('div', { class: 'flex items-center gap-1.5' }, badges) : null
 }
 
@@ -103,7 +103,7 @@ export function createColumns(
         return h('div', { class: 'flex flex-col gap-1.5 py-1' }, [
           h('div', { class: 'flex items-center gap-2' }, [
             h('span', { class: 'font-medium text-sm text-[var(--foreground)]' }, post.title),
-            renderPinLockBadge(post),
+            renderPinLockBadge(post, t),
           ]),
           h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
             h(IconUser, { class: 'h-3 w-3' }),
@@ -150,7 +150,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const post = row.original
-        return renderStatusBadge(post)
+        return renderStatusBadge(post, t)
       },
     },
     {

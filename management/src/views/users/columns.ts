@@ -32,16 +32,18 @@ export interface UserActions {
 }
 
 // Terminal-style role badge renderer
-function renderRoleBadge(role: string) {
-  const displayRole = role.replace('_', ' ')
+function renderRoleBadge(role: string, t: (key: string) => string) {
+  // Try i18n translation first (e.g., 'users.filters.role.SUPER_ADMIN')
+  const i18nKey = `users.filters.role.${role}` as const
+  const displayRole = t(i18nKey) !== i18nKey ? t(i18nKey) : role.replace('_', ' ')
   return badge({ color: USER_ROLE_COLOR_MAP[role] ?? 'neutral', label: displayRole })
 }
 
 // Terminal-style status badge renderer
-function renderStatusBadge(isBanned: boolean, isActive: boolean) {
-  if (isBanned) return badge({ color: 'error', label: 'BANNED', pulse: true })
-  if (!isActive) return badge({ color: 'neutral', label: 'INACTIVE' })
-  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
+function renderStatusBadge(isBanned: boolean, isActive: boolean, t: (key: string) => string) {
+  if (isBanned) return badge({ color: 'error', label: t('users.status.banned'), pulse: true })
+  if (!isActive) return badge({ color: 'neutral', label: t('users.status.inactive') })
+  return badge({ color: 'success', label: t('users.status.active'), dot: true, pulse: true })
 }
 
 export function createColumns(
@@ -159,7 +161,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const role = row.getValue('role') as string
-        return renderRoleBadge(role)
+        return renderRoleBadge(role, t)
       },
     },
     {
@@ -172,7 +174,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const user = row.original
-        return renderStatusBadge(user.isBanned, user.isActive)
+        return renderStatusBadge(user.isBanned, user.isActive, t)
       },
     },
     {

@@ -12,6 +12,9 @@ const tableTranslations = {
   goToNextPage: '下一页',
   goToLastPage: '跳转到最后一页',
 
+  // 多选相关
+  selected: '{count} 项已选择',
+
   // 空状态
   emptyTitle: '没有数据',
   emptyDescription: '当前没有可显示的数据',

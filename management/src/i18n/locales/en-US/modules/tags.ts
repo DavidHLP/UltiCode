@@ -37,17 +37,22 @@ export default {
     slug: 'Slug',
     slugPlaceholder: 'url-friendly-name',
     color: 'Color',
+    colorHex: 'Color (Hex)',
     colorPlaceholder: '#3b82f6',
     description: 'Description',
     descriptionPlaceholder: 'Enter tag description (optional)',
+    saveChanges: 'Save Changes',
+    createTag: 'Create Tag',
   },
 
   merge: {
     title: 'Merge Tags',
     description:
-      'Merge tag <strong>{source}</strong> into the target tag below. All content using this tag will be transferred to the target tag.',
+      'Merge tag "{source}" into the target tag below. All content using this tag will be transferred to the target tag.',
     targetLabel: 'Target Tag',
     targetPlaceholder: 'Select target tag',
+    targetTag: 'Target Tag',
+    targetTagPlaceholder: 'Select target tag',
     confirm: 'Confirm Merge',
     success: 'Tags merged successfully',
     failed: 'Failed to merge tags',

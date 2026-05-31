@@ -37,6 +37,16 @@ export default {
     RUNNING: 'Running',
     FINISHED: 'Finished',
     CANCELLED: 'Cancelled',
+    draft: 'Draft',
+    published: 'Published',
+    registering: 'Registering',
+    upcoming: 'Upcoming',
+    ongoing: 'Ongoing',
+    running: 'Running',
+    freezing: 'Freezing',
+    finished: 'Finished',
+    cancelled: 'Cancelled',
+    archived: 'Archived',
   },
 
   // Filters
@@ -129,7 +139,7 @@ export default {
     durationDescription: 'How long the contest will last',
     publishImmediately: 'Publish Immediately',
     publishImmediatelyDescription: 'Make the contest visible to users right away',
-    minutes: 'minutes',
+    minutes: '{minutes} minutes',
     notSet: 'Not set',
   },
 

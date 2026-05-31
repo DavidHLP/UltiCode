@@ -96,10 +96,15 @@ function formatDate(date: Date | string): string {
 }
 
 function formatAction(action: string): string {
-  return action
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase())
+  const key = `audit.actionTypes.${action}`
+  const translated = t(key)
+  if (translated === key) {
+    return action
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase())
+  }
+  return translated
 }
 
 
@@ -219,7 +224,7 @@ onMounted(() => {
                 {{ formatAction(log.action) }}
               </Badge>
               <Badge v-if="log.entityType" variant="outline" class="text-xs px-1.5 py-0">
-                {{ log.entityType }}
+                {{ t(`audit.entityTypes.${log.entityType}`) }}
               </Badge>
               <span class="text-xs text-[var(--silver-500)] font-data tabular-nums truncate">
                 {{ formatDate(log.createdAt) }}
@@ -266,8 +271,12 @@ onMounted(() => {
           <div class="space-y-2">
             <!-- Performer info -->
             <div v-if="log.performer" class="flex items-center gap-2 text-xs">
-              <Badge variant="outline" class="text-xs">{{ log.performer.role }}</Badge>
-              <span class="font-medium">{{ log.performer.name || log.performer.username }}</span>
+              <Badge variant="secondary" class="text-xs">
+                {{ t(`users.filters.role.${log.performer.role}`) }}
+              </Badge>
+              <span class="font-medium text-[var(--silver-700)] dark:text-[var(--silver-300)]">{{
+                log.performer.name || log.performer.username
+              }}</span>
             </div>
 
             <!-- Changes section -->

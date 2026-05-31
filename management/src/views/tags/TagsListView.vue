@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -39,6 +39,7 @@ import { useAuthStore } from '@/stores/auth'
 import { TagType, type Tag } from '@/api/admin/tags'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import TagEditDialog from './TagEditDialog.vue'
 import TagMergeDialog from './TagMergeDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
@@ -57,6 +58,25 @@ const deleteDialogOpen = ref(false)
 const mergeDialogOpen = ref(false)
 
 const bulkActionLoading = ref(false)
+
+const isLoaded = ref(false)
+
+// Stats
+const stats = computed(() => ({
+  problemTags: tagsStore.tags.filter((t) => t.type === TagType.PROBLEM).length,
+  forumTags: tagsStore.tags.filter((t) => t.type === TagType.FORUM).length,
+}))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: tagTypeFilter.value,
+    placeholder: t('tags.tagType'),
+    options: [
+      { value: TagType.PROBLEM, label: t('tags.problemTags') },
+      { value: TagType.FORUM, label: t('tags.forumTags') },
+    ],
+  },
+])
 
 const canManageTags = computed(
   () =>
@@ -91,6 +111,12 @@ const {
     limit,
   }),
   autoLoad: true,
+})
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
 })
 
 function openCreateDialog() {
@@ -300,89 +326,143 @@ const columns: ColumnDef<Tag>[] = [
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="py-4 flex items-center justify-between">
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('tags.title') }}
+        </h1>
+        <Button
+          v-if="canManageTags"
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          @click="openCreateDialog"
+        >
+          <IconPlus class="h-4 w-4 mr-1.5" />
+          <span class="uppercase tracking-wider">{{ t('tags.createTag') }}</span>
+        </Button>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div
+        class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">problem:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.problemTags
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">forum:</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.forumTags
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconTag class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('tags.tagManagement') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar - Terminal Style -->
     <div
       v-if="selectedRows.length > 0"
-      class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+      :class="[
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'animate-in fade-in slide-in-from-top-2 duration-200',
+      ]"
     >
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">
-          {{ t('tags.selected', { count: selectedRows.length }) }}
-        </span>
-        <Separator orientation="vertical" class="h-4" />
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-data text-sm text-[var(--terminal-amber)]">
+            &gt; SELECTED:{{ selectedRows.length }}
+          </span>
+        </div>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
         <div class="flex items-center gap-2">
           <Button
             v-if="canManageTags"
-            variant="destructive"
+            variant="terminal"
             size="sm"
-            class="h-8 text-xs"
+            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
-            <IconTrash class="h-3.5 w-3.5 mr-1" />
-            {{ t('tags.bulkDelete') }}
+            <IconTrash class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('tags.bulkDelete') }}</span>
           </Button>
         </div>
       </div>
-      <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        {{ t('tags.clearSelection') }}
+      <Button
+        variant="terminal"
+        size="sm"
+        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        @click="selectedRows = []"
+      >
+        [ESC] {{ t('tags.clearSelection') }}
       </Button>
     </div>
 
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      v-model:selected-rows="selectedRows"
-      @update:pagination="tablePagination = $event"
-    >
-      <template #toolbar-left>
-        <Input
-          v-model="searchQuery"
-          :placeholder="t('tags.searchPlaceholder')"
-          class="min-w-[200px] w-[260px]"
+    <!-- Main Content Area -->
+    <div class="flex-1 py-4">
+      <DataTable
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        v-model:selected-rows="selectedRows"
+        @update:pagination="tablePagination = $event"
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('tags.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="(index, value) => index === 0 ? (tagTypeFilter = value as TagType) : null"
+            :loading="loading"
+            :on-refresh="loadTags"
+          />
+        </template>
+      </DataTable>
+
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
+          @click="loadTags()"
         >
-          <template #trailing>
-            <button
-              v-if="searchQuery"
-              @click="searchQuery = ''"
-              class="rounded-sm opacity-70 hover:opacity-100"
-            >
-              <IconCircleXFilled class="h-4 w-4" />
-            </button>
-          </template>
-        </Input>
-        <Select v-model="tagTypeFilter">
-          <SelectTrigger class="w-[150px]">
-            <SelectValue :placeholder="t('tags.tagType')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="TagType.PROBLEM">{{ t('tags.problemTags') }}</SelectItem>
-            <SelectItem :value="TagType.FORUM">{{ t('tags.forumTags') }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" @click="loadTags()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+          {{ t('common.retry') }}
         </Button>
-      </template>
-
-      <template #extra-actions>
-        <Button v-if="canManageTags" variant="outline" size="sm" @click="openCreateDialog">
-          <IconPlus />
-          <span class="hidden lg:inline">{{ t('tags.createTag') }}</span>
-        </Button>
-      </template>
-    </DataTable>
-
-    <!-- Error state -->
-    <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadTags()">{{ t('tags.retry') }}</Button>
+      </div>
     </div>
   </div>
 

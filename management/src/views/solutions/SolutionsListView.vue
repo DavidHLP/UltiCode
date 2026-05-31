@@ -160,7 +160,7 @@ async function handleFlagSolution(id: string | number, reason?: string) {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="py-4 flex items-center justify-between">
         <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
           {{ t('solutions.title') }}
         </h1>

@@ -31,14 +31,14 @@ const acceptanceRate = computed(() => {
 
 const progressFilled = computed(() => {
   const percent = acceptanceRate.value
-  const filledCount = Math.round((percent / 100) * 40)
+  const filledCount = Math.round((percent / 100) * 24)
   return '█'.repeat(filledCount)
 })
 
 const progressEmpty = computed(() => {
   const percent = acceptanceRate.value
-  const filledCount = Math.round((percent / 100) * 40)
-  return '░'.repeat(40 - filledCount)
+  const filledCount = Math.round((percent / 100) * 24)
+  return '░'.repeat(24 - filledCount)
 })
 
 async function loadUser() {
@@ -208,7 +208,7 @@ watch(
                 >{{ acceptanceRate }}%</span
               >
             </div>
-            <div class="ascii-progress">
+            <div class="ascii-progress text-[10px]">
               <span class="text-[var(--terminal-green)]">{{ progressFilled }}</span>
               <span class="ascii-progress-track">{{ progressEmpty }}</span>
             </div>
@@ -232,7 +232,7 @@ watch(
             <DataBlock :label="$t('users.columns.role')">
               <SemanticBadge
                 :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
-                :label="entity.role.replace('_', ' ')"
+                :label="t(`users.filters.role.${entity.role}`)"
               />
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">

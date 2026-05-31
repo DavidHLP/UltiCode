@@ -188,7 +188,7 @@ const columns: ColumnDef<AuditLog>[] = [
         h(
           'span',
           { class: 'terminal-badge terminal-badge-info w-fit text-xs scale-90 origin-left' },
-          performer.role.replace('_', ' '),
+          t(`users.filters.role.${performer.role}`),
         ),
       ])
     },

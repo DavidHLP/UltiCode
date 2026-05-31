@@ -68,6 +68,27 @@ export default {
   },
 
   actionTypes: {
+    // Generic action types (backend sends these generic forms)
+    CREATE: '创建',
+    UPDATE: '更新',
+    DELETE: '删除',
+    MODERATE: '审核',
+    MODERATE_APPROVE: '审核通过',
+    MODERATE_REJECT: '审核拒绝',
+    GRANT: '授予',
+    REVOKE: '撤销',
+    BAN: '封禁',
+    UNBAN: '解封',
+    FLAG: '标记',
+    UNFLAG: '取消标记',
+    PIN: '置顶',
+    UNPIN: '取消置顶',
+    LOCK: '锁定',
+    UNLOCK: '解锁',
+    REQUEUE: '重新排队',
+    RESET: '重置',
+
+    // Entity-specific action types
     CREATE_USER: '创建用户',
     UPDATE_USER: '更新用户',
     DELETE_USER: '删除用户',

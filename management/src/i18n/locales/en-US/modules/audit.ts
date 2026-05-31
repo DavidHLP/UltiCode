@@ -68,6 +68,27 @@ export default {
   },
 
   actionTypes: {
+    // Generic action types (backend sends these generic forms)
+    CREATE: 'Create',
+    UPDATE: 'Update',
+    DELETE: 'Delete',
+    MODERATE: 'Moderate',
+    MODERATE_APPROVE: 'Moderate Approve',
+    MODERATE_REJECT: 'Moderate Reject',
+    GRANT: 'Grant',
+    REVOKE: 'Revoke',
+    BAN: 'Ban',
+    UNBAN: 'Unban',
+    FLAG: 'Flag',
+    UNFLAG: 'Unflag',
+    PIN: 'Pin',
+    UNPIN: 'Unpin',
+    LOCK: 'Lock',
+    UNLOCK: 'Unlock',
+    REQUEUE: 'Requeue',
+    RESET: 'Reset',
+
+    // Entity-specific action types
     CREATE_USER: 'Create User',
     UPDATE_USER: 'Update User',
     DELETE_USER: 'Delete User',

@@ -217,7 +217,11 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         vo.setCurrentParticipants(contest.getParticipantCount());
         vo.setIsPremium(false);
         vo.setIsPublished(contest.getIsVisible());
-        vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        try {
+            vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        } catch (NumberFormatException e) {
+            vo.setCreatedById(null);
+        }
         if (userId != null && !userId.isBlank()) {
             Optional<?> participantOpt = participantMapper.findByContestIdAndUserId(contest.getId(), userId);
             if (participantOpt.isPresent()) {

@@ -55,7 +55,7 @@ async function handleSubmit(data: ProblemFormData) {
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <Button
             variant="terminal"

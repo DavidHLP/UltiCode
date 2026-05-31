@@ -334,15 +334,9 @@ const columns: ColumnDef<ScoringRule>[] = [
     >
       <!-- Title Row -->
       <div class="py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">scoring-rules</span>
-            <span class="terminal-cursor" />
-          </div>
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('scoringRules.title') }}
-          </h1>
-        </div>
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('scoringRules.title') }}
+        </h1>
         <Button
           v-if="canManageRules"
           variant="terminal"

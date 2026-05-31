@@ -50,6 +50,7 @@ export default {
     accepted: 'Accepted',
     acceptedRate: 'AC Rate',
     topLanguage: 'Top Language',
+    submissionManagement: 'submission management',
   },
 
   // Actions

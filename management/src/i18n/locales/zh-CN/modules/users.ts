@@ -88,6 +88,7 @@ export default {
     submissions: '提交数',
     accepted: '通过数',
     acceptanceRate: '通过率',
+    userManagement: '用户管理',
   },
 
   // 操作

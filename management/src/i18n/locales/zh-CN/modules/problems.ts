@@ -78,6 +78,11 @@ export default {
     export: '导出',
   },
 
+  // 统计
+  stats: {
+    problemManagement: '题目管理',
+  },
+
   // 筛选器
   filters: {
     allDifficulty: '全部难度',

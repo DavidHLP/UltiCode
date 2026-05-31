@@ -109,10 +109,7 @@ function retryFetch() {
           </Button>
 
           <div v-if="headerData" class="flex items-center gap-3 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="terminal-prompt text-sm">problem</span>
-              <span class="terminal-cursor" />
-            </div>
+            <div class="flex items-center gap-2"></div>
             <h1 class="text-sm font-medium text-[var(--foreground)] truncate">
               {{ headerData.title }}
             </h1>

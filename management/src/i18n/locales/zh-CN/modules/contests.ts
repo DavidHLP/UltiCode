@@ -73,6 +73,11 @@ export default {
     },
   },
 
+  // 统计
+  stats: {
+    contestManagement: '比赛管理',
+  },
+
   // 操作
   actions: {
     view: '查看',

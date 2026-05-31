@@ -28,7 +28,7 @@ const mockT = (key: string) => {
 describe('getErrorContext', () => {
   describe('when error is ApiError with status code', () => {
     it('should return validation context for 400 status', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const error = new ApiError('Invalid field', 400, {
         data: { message: 'Invalid field' },
       } as any)

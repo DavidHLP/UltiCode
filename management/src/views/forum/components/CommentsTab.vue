@@ -110,16 +110,16 @@ async function unflagComment(comment: Comment) {
   }
 }
 
-function renderStatusBadge(comment: Comment) {
+function renderStatusBadge(comment: Comment, t: (key: string) => string) {
   if (comment.isDeleted) {
-    return badge({ color: 'error', label: 'DELETED', size: 'sm' })
+    return badge({ color: 'error', label: t('comments.status.deleted'), size: 'sm' })
   }
 
   if (comment.isFlagged) {
-    return badge({ color: 'error', label: 'FLAGGED', size: 'sm', pulse: true })
+    return badge({ color: 'error', label: t('comments.status.flagged'), size: 'sm', pulse: true })
   }
 
-  return badge({ color: 'success', label: 'ACTIVE', size: 'sm', dot: true, pulse: true })
+  return badge({ color: 'success', label: t('comments.status.active'), size: 'sm', dot: true, pulse: true })
 }
 
 const columns: ColumnDef<Comment>[] = [
@@ -212,7 +212,7 @@ const columns: ColumnDef<Comment>[] = [
       ),
     cell: ({ row }) => {
       const comment = row.original
-      return renderStatusBadge(comment)
+      return renderStatusBadge(comment, t)
     },
   },
   {

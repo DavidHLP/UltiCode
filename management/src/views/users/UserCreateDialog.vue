@@ -116,7 +116,7 @@ async function handleSubmit() {
         <div class="max-h-[50vh] overflow-y-auto p-4 space-y-6">
           <!-- Section: General Information -->
           <div>
-            <div class="terminal-comment mb-3">// General Information</div>
+            <div class="terminal-comment mb-3">{{ t('users.form.sections.general') }}</div>
             <div class="space-y-4">
               <div class="space-y-1.5">
                 <label class="terminal-label block">{{ t('users.form.fullName') }}</label>
@@ -163,7 +163,7 @@ async function handleSubmit() {
 
           <!-- Section: Security & Access -->
           <div>
-            <div class="terminal-comment mb-3">// Security & Access</div>
+            <div class="terminal-comment mb-3">{{ t('users.form.sections.securityAccess') }}</div>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">

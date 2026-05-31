@@ -140,7 +140,7 @@ async function handleSubmit() {
         <div class="max-h-[50vh] overflow-y-auto p-4 space-y-6">
           <!-- Section: General Information -->
           <div>
-            <div class="terminal-comment mb-3">// General Information</div>
+            <div class="terminal-comment mb-3">{{ t('users.form.sections.general') }}</div>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
@@ -183,7 +183,7 @@ async function handleSubmit() {
 
           <!-- Section: Access Control -->
           <div>
-            <div class="terminal-comment mb-3">// Access Control</div>
+            <div class="terminal-comment mb-3">{{ t('users.form.sections.accessControl') }}</div>
             <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
@@ -193,10 +193,10 @@ async function handleSubmit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USER" class="font-data">USER</SelectItem>
-                      <SelectItem value="MODERATOR" class="font-data">MODERATOR</SelectItem>
-                      <SelectItem value="ADMIN" class="font-data">ADMIN</SelectItem>
-                      <SelectItem value="SUPER_ADMIN" class="font-data">SUPER_ADMIN</SelectItem>
+                      <SelectItem value="USER" class="font-data">{{ t('users.filters.role.USER') }}</SelectItem>
+                      <SelectItem value="MODERATOR" class="font-data">{{ t('users.filters.role.MODERATOR') }}</SelectItem>
+                      <SelectItem value="ADMIN" class="font-data">{{ t('users.filters.role.ADMIN') }}</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" class="font-data">{{ t('users.filters.role.SUPER_ADMIN') }}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -213,7 +213,7 @@ async function handleSubmit() {
                       class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                     />
                     <label for="edit-isActive" class="font-data text-xs cursor-pointer">
-                      {{ form.isActive ? 'ACTIVE' : 'INACTIVE' }}
+                      {{ form.isActive ? t('users.status.active') : t('users.status.inactive') }}
                     </label>
                   </div>
                 </div>

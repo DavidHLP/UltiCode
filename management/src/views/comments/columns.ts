@@ -37,11 +37,11 @@ function renderTypeBadge(type: CommentType) {
   return badge({ color, label: type, icon })
 }
 
-function renderStatusBadge(comment: Comment) {
-  if (comment.isDeleted) return badge({ color: 'error', label: 'DELETED', dot: true, pulse: true })
+function renderStatusBadge(comment: Comment, t: (key: string) => string) {
+  if (comment.isDeleted) return badge({ color: 'error', label: t('comments.status.deleted'), dot: true, pulse: true })
   if (comment.isFlagged)
-    return badge({ color: 'warning', label: 'FLAGGED', dot: true, pulse: true })
-  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
+    return badge({ color: 'warning', label: t('comments.status.flagged'), dot: true, pulse: true })
+  return badge({ color: 'success', label: t('comments.status.active'), dot: true, pulse: true })
 }
 
 export function createColumns(
@@ -153,7 +153,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const comment = row.original
-        return renderStatusBadge(comment)
+        return renderStatusBadge(comment, t)
       },
     },
     {

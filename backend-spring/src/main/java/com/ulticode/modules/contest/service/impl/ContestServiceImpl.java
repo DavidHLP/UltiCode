@@ -331,7 +331,11 @@ public class ContestServiceImpl implements ContestService {
         vo.setCurrentParticipants(contest.getParticipantCount());
         vo.setIsPremium(false);
         vo.setIsPublished(contest.getIsVisible());
-        vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        try {
+            vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        } catch (NumberFormatException e) {
+            vo.setCreatedById(null);
+        }
         vo.setContestType(contest.getContestType());
         vo.setIsVisible(contest.getIsVisible());
         vo.setParticipantCount(contest.getParticipantCount());

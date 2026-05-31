@@ -287,7 +287,7 @@ async function confirmBulkDelete() {
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconUsers class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">user management</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('users.stats.userManagement') }}</span>
         </div>
       </div>
     </div>

@@ -135,10 +135,7 @@ function handleFlagSuccess() {
           </Button>
 
           <div v-if="comment" class="flex items-center gap-3 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="terminal-prompt text-sm">comment</span>
-              <span class="terminal-cursor" />
-            </div>
+            <div class="flex items-center gap-2"></div>
             <h1 class="text-base font-medium text-[var(--foreground)] truncate">
               {{ t('comments.detail.title') }}
             </h1>

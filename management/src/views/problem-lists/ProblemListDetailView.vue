@@ -71,10 +71,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
             @click="back"
           >
             <ArrowLeft :size="18" />
-          </Button>
-          <span class="terminal-prompt">{{ isCreate ? 'new_list' : 'edit_list' }}</span>
-          <span class="terminal-cursor" />
-          <h1 class="text-sm font-semibold text-[var(--foreground)]">
+          </Button><h1 class="text-sm font-semibold text-[var(--foreground)]">
             {{ isCreate ? t('problemLists.createList') : list?.name || t('problemLists.editList') }}
           </h1>
         </div>

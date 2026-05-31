@@ -200,15 +200,9 @@ const columns = createColumns(t, {
     >
       <!-- Title Row -->
       <div class="py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">submissions</span>
-            <span class="terminal-cursor" />
-          </div>
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('submissions.title') }}
-          </h1>
-        </div>
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('submissions.title') }}
+        </h1>
         <Button
           variant="terminal"
           size="sm"
@@ -250,7 +244,7 @@ const columns = createColumns(t, {
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">submission management</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('submissions.stats.submissionManagement') }}</span>
         </div>
       </div>
     </div>
@@ -351,7 +345,7 @@ const columns = createColumns(t, {
         class="border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-4"
       >
         <DialogTitle class="flex items-center gap-2">
-          <span class="terminal-prompt text-sm">detail</span>
+          
           <span class="text-lg font-medium">{{ t('submissions.detail') }}</span>
         </DialogTitle>
         <DialogDescription
@@ -427,7 +421,7 @@ const columns = createColumns(t, {
     <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          <span class="terminal-prompt text-sm">rejudge</span>
+          
           <span class="text-lg font-medium">{{ t('submissions.rejudgeTitle') }}</span>
         </DialogTitle>
         <DialogDescription class="text-[var(--silver-500)]">
@@ -462,7 +456,7 @@ const columns = createColumns(t, {
     <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          <span class="terminal-prompt text-sm">batch_rejudge</span>
+          
           <span class="text-lg font-medium">{{ t('submissions.batchRejudgeTitle') }}</span>
         </DialogTitle>
         <DialogDescription class="text-[var(--silver-500)]">

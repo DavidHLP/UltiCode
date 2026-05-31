@@ -166,15 +166,9 @@ function navigateToAppeals() {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-          <span class="terminal-prompt text-base">dashboard</span>
-          <span class="terminal-cursor" />
-        </div>
-        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-          {{ t('moderation.stats.title') }}
-        </h1>
-      </div>
+      <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        {{ t('moderation.stats.title') }}
+      </h1>
       <Button
         variant="terminal"
         size="sm"

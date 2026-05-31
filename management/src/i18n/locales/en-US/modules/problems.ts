@@ -78,6 +78,11 @@ export default {
     export: 'Export',
   },
 
+  // Stats
+  stats: {
+    problemManagement: 'problem management',
+  },
+
   // Filters
   filters: {
     allDifficulty: 'All Difficulties',

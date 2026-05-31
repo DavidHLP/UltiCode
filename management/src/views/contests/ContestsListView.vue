@@ -189,15 +189,9 @@ async function handleDeleteContest(id: string | number) {
     >
       <!-- Title Row -->
       <div class="py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">contests</span>
-            <span class="terminal-cursor" />
-          </div>
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('contests.title') }}
-          </h1>
-        </div>
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('contests.title') }}
+        </h1>
         <Button
           v-if="canCreate"
           type="button"
@@ -241,7 +235,7 @@ async function handleDeleteContest(id: string | number) {
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconTrophy class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">contest management</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('contests.stats.contestManagement') }}</span>
         </div>
       </div>
     </div>

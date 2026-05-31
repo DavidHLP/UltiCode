@@ -166,7 +166,7 @@ async function handleSubmit() {
         class="px-6 py-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-3">
-          <span class="terminal-prompt text-sm">create</span>
+          
           <DialogTitle class="font-data text-sm uppercase tracking-wider">
             {{ t('contests.wizard.createContest') }}
           </DialogTitle>

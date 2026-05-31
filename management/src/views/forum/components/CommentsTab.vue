@@ -341,7 +341,7 @@ const columns: ColumnDef<Comment>[] = [
       >
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-sm">comments</span>
+            
             <span class="terminal-cursor" />
           </div>
           <IconMessage class="h-4 w-4 text-[var(--terminal-cyan)]" />

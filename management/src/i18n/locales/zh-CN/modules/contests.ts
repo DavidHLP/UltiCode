@@ -47,9 +47,16 @@ export default {
     RUNNING: '进行中',
     FINISHED: '已结束',
     CANCELLED: '已取消',
-    running: '进行中',
+    draft: '草稿',
+    published: '已发布',
+    registering: '报名中',
     upcoming: '即将开始',
+    ongoing: '进行中',
+    running: '进行中',
+    freezing: '冻结中',
     finished: '已结束',
+    cancelled: '已取消',
+    archived: '已归档',
   },
 
   // 筛选器
@@ -142,7 +149,7 @@ export default {
     durationDescription: '比赛持续的时长',
     publishImmediately: '立即发布',
     publishImmediatelyDescription: '立即使比赛对用户可见',
-    minutes: '分钟',
+    minutes: '{minutes} 分钟',
     notSet: '未设置',
   },
 

@@ -88,6 +88,7 @@ export default {
     submissions: 'Submissions',
     accepted: 'Accepted',
     acceptanceRate: 'Acceptance Rate',
+    userManagement: 'user management',
   },
 
   // Actions

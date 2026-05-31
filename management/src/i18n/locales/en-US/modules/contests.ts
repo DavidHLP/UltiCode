@@ -60,6 +60,11 @@ export default {
     },
   },
 
+  // Stats
+  stats: {
+    contestManagement: 'contest management',
+  },
+
   // Actions
   actions: {
     view: 'View',

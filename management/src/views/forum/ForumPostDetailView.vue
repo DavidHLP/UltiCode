@@ -174,10 +174,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
           </Button>
 
           <div v-if="post" class="flex items-center gap-3 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="terminal-prompt text-sm">post</span>
-              <span class="terminal-cursor" />
-            </div>
+            <div class="flex items-center gap-2"></div>
             <h1 class="text-base font-medium text-[var(--foreground)] truncate">
               {{ post.title }}
             </h1>

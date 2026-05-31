@@ -66,10 +66,7 @@ async function handleSubmit(data: ProblemFormData) {
             <IconArrowLeft class="h-4 w-4" />
           </Button>
           <div class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">problems</span>
-            <span class="terminal-cursor" />
-          </div>
+          <div class="flex items-center gap-2"></div>
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('problems.create.title') }}
           </h1>

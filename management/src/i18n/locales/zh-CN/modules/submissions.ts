@@ -50,6 +50,7 @@ export default {
     accepted: '已通过',
     acceptedRate: '通过率',
     topLanguage: '热门语言',
+    submissionManagement: '提交记录',
   },
 
   // 操作

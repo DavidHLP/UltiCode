@@ -126,7 +126,7 @@ const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL)
 // Cast to any to handle axios version mismatch between auth-core (1.16.0) and management (1.14.0)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 service.interceptors.request.use(csrfInterceptors.requestInterceptor as any)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 service.interceptors.response.use(
   csrfInterceptors.responseInterceptor as any,
   csrfInterceptors.errorInterceptor as any,

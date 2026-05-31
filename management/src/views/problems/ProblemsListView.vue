@@ -234,15 +234,9 @@ watch(
       ]"
     >
       <div class="py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">problems</span>
-            <span class="terminal-cursor" />
-          </div>
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('problems.title') }}
-          </h1>
-        </div>
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('problems.title') }}
+        </h1>
         <Button
           v-if="canCreateProblem"
           variant="terminal"
@@ -284,7 +278,7 @@ watch(
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">problem management</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('problems.stats.problemManagement') }}</span>
         </div>
       </div>
     </div>

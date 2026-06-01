@@ -1,6 +1,5 @@
 import { h, type VNode } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariant } from './user'
+import { badge, type SemanticColor } from '@/components/ui/terminal'
 import { IconCircleCheckFilled, IconEye, IconEyeOff } from '@tabler/icons-vue'
 
 /**
@@ -8,20 +7,10 @@ import { IconCircleCheckFilled, IconEye, IconEyeOff } from '@tabler/icons-vue'
  */
 export type SolutionVisibility = 'PUBLIC' | 'PRIVATE' | 'HIDDEN'
 
-/**
- * Returns the badge variant for a solution visibility
- */
-export function getSolutionVisibilityBadgeVariant(visibility: SolutionVisibility): BadgeVariant {
-  switch (visibility) {
-    case 'PUBLIC':
-      return 'default'
-    case 'PRIVATE':
-      return 'secondary'
-    case 'HIDDEN':
-      return 'outline'
-    default:
-      return 'outline'
-  }
+const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
+  PUBLIC: 'success',
+  PRIVATE: 'warning',
+  HIDDEN: 'neutral',
 }
 
 /**
@@ -48,19 +37,10 @@ export function getSolutionVisibilityBadge(
   visibility: SolutionVisibility,
   t: (key: string, fallback?: string) => string,
 ): VNode {
-  const variant = getSolutionVisibilityBadgeVariant(visibility)
-  return h(Badge, { variant }, () =>
-    t(`solutions.visibility.${visibility.toLowerCase()}`, visibility),
-  )
-}
-
-/**
- * Returns the badge variant for solution approval status
- */
-export function getSolutionApprovalBadgeVariant(isApproved: boolean | null): BadgeVariant {
-  if (isApproved === true) return 'default'
-  if (isApproved === false) return 'destructive'
-  return 'secondary'
+  return badge({
+    color: VISIBILITY_COLOR_MAP[visibility] ?? 'neutral',
+    label: t(`solutions.visibility.${visibility.toLowerCase()}`, visibility),
+  })
 }
 
 /**
@@ -71,14 +51,7 @@ export function getSolutionApprovalBadge(
   isApproved: boolean | null,
   t: (key: string) => string,
 ): VNode {
-  if (isApproved === true) {
-    return h(Badge, { variant: 'default' }, () => [
-      h(IconCircleCheckFilled, { class: 'mr-1 h-3 w-3' }),
-      t('solutions.approval.approved'),
-    ])
-  }
-  if (isApproved === false) {
-    return h(Badge, { variant: 'destructive' }, () => t('solutions.approval.rejected'))
-  }
-  return h(Badge, { variant: 'secondary' }, () => t('solutions.approval.pending'))
+  if (isApproved === true) return badge({ color: 'success', label: t('solutions.approval.approved'), icon: IconCircleCheckFilled })
+  if (isApproved === false) return badge({ color: 'error', label: t('solutions.approval.rejected') })
+  return badge({ color: 'warning', label: t('solutions.approval.pending') })
 }

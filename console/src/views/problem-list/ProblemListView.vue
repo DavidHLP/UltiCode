@@ -15,8 +15,6 @@ import {
   Plus,
   Bookmark,
   BookmarkCheck,
-  Globe,
-  Lock,
   FolderInput,
   BookmarkMinus,
   ListX,
@@ -39,6 +37,7 @@ import {
   EmptyMedia,
 } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
+import { SemanticBadge } from "@/components/ui/terminal";
 import { Separator } from "@/components/ui/separator";
 import { useI18n } from "vue-i18n";
 import ProblemListAnalytics from "./ProblemListAnalytics.vue";
@@ -114,22 +113,18 @@ function openAddProblemsDialog() {
             <Badge variant="outline" class="rounded-none px-2.5 py-0.5">{{
               t("problem.problemList.detail.listBadge")
             }}</Badge>
-            <Badge
+            <SemanticBadge
               v-if="currentList?.isPublic"
-              variant="secondary"
-              class="gap-1 text-xs"
-            >
-              <Globe class="h-3 w-3" />
-              {{ t("problem.problemList.listCard.public") }}
-            </Badge>
-            <Badge
+              color="success"
+              :label="t('problem.problemList.listCard.public', 'Public')"
+              size="sm"
+            />
+            <SemanticBadge
               v-else
-              variant="outline"
-              class="gap-1 text-xs text-muted-foreground"
-            >
-              <Lock class="h-3 w-3" />
-              {{ t("problem.problemList.listCard.private") }}
-            </Badge>
+              color="warning"
+              :label="t('problem.problemList.listCard.private', 'Private')"
+              size="sm"
+            />
           </div>
           <h1
             class="text-3xl font-bold tracking-tight sm:text-4xl text-foreground/90"

@@ -1,17 +1,7 @@
 import { h, type VNode } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariant } from './user'
+import { badge } from '@/components/ui/terminal'
 import { IconFlag, IconTrash, IconMessage, IconFileText } from '@tabler/icons-vue'
 import { type CommentType } from '@/api/admin/comments'
-
-/**
- * Returns the badge variant for a comment type
- */
-export function getCommentTypeBadgeVariant(type: CommentType): BadgeVariant {
-  // All comment types use the same outline variant
-  void type
-  return 'outline'
-}
 
 /**
  * Returns the badge component for a comment type
@@ -21,9 +11,7 @@ export function getCommentTypeBadge(
   type: CommentType,
   t: (key: string, fallback?: string) => string,
 ): VNode {
-  return h(Badge, { variant: getCommentTypeBadgeVariant(type) }, () =>
-    t(`comments.type.${type}`, type),
-  )
+  return badge({ color: 'neutral', label: t(`comments.type.${type}`, type) })
 }
 
 /**
@@ -36,14 +24,6 @@ export function getCommentTypeIcon(type: CommentType): VNode {
 }
 
 /**
- * Returns the badge variant for a comment status
- */
-export function getCommentStatusBadgeVariant(isFlagged: boolean, isDeleted: boolean): BadgeVariant {
-  if (isDeleted || isFlagged) return 'destructive'
-  return 'default'
-}
-
-/**
  * Returns the badge component for a comment status
  * @param t - i18n translation function
  */
@@ -52,19 +32,7 @@ export function getCommentStatusBadge(
   isDeleted: boolean,
   t: (key: string) => string,
 ): VNode {
-  if (isDeleted) {
-    return h(Badge, { variant: 'destructive' }, () => [
-      h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-      t('comments.status.deleted'),
-    ])
-  }
-
-  if (isFlagged) {
-    return h(Badge, { variant: 'destructive' }, () => [
-      h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-      t('comments.status.flagged'),
-    ])
-  }
-
-  return h(Badge, { variant: 'default' }, () => t('comments.status.active'))
+  if (isDeleted) return badge({ color: 'error', label: t('comments.status.deleted'), icon: IconTrash })
+  if (isFlagged) return badge({ color: 'error', label: t('comments.status.flagged'), icon: IconFlag })
+  return badge({ color: 'success', label: t('comments.status.active') })
 }

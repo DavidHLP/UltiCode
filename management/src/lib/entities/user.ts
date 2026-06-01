@@ -1,18 +1,7 @@
 import { h, type VNode } from 'vue'
-import {
-  IconUser,
-  IconShield,
-  IconCircleCheckFilled,
-  IconCircleXFilled,
-  IconLoader,
-} from '@tabler/icons-vue'
-import { Badge } from '@/components/ui/badge'
+import { IconUser, IconShield, IconCircleCheckFilled, IconCircleXFilled, IconLoader } from '@tabler/icons-vue'
+import { badge } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
-
-export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
-
-// Re-export getRoleBadgeVariant from the centralized location
-export { getRoleBadgeVariant } from '@/lib/ui/roles'
 
 /**
  * Returns the icon component for a user's status
@@ -32,13 +21,9 @@ export function getStatusIcon(user: User): VNode {
  * @param t - i18n translation function
  */
 export function getStatusBadge(user: User, t: (key: string) => string): VNode {
-  if (user.isBanned) {
-    return h(Badge, { variant: 'destructive' }, () => t('users.status.banned'))
-  }
-  if (user.isActive) {
-    return h(Badge, { variant: 'default' }, () => t('users.status.active'))
-  }
-  return h(Badge, { variant: 'secondary' }, () => t('users.status.inactive'))
+  if (user.isBanned) return badge({ color: 'error', label: t('users.status.banned'), pulse: true })
+  if (!user.isActive) return badge({ color: 'neutral', label: t('users.status.inactive') })
+  return badge({ color: 'success', label: t('users.status.active'), dot: true, pulse: true })
 }
 
 /**

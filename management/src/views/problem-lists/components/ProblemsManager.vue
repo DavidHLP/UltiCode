@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
 import { formatDateByLocale } from '@/i18n/utils'
-import { DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
+import { SemanticBadge, DIFFICULTY_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
 import ContestProblemPicker from '@/views/contests/components/ContestProblemPicker.vue'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import type { ProblemListDetail, ProblemListProblem } from '@/api/admin/problem-lists'
@@ -96,7 +96,7 @@ async function saveProblems() {
   }
 }
 
-function difficultyColor(difficulty: string): string {
+function difficultyColor(difficulty: string): SemanticColor {
   return DIFFICULTY_COLOR_MAP[difficulty?.toUpperCase()] ?? 'neutral'
 }
 </script>
@@ -197,14 +197,11 @@ function difficultyColor(difficulty: string): string {
               </div>
             </TableCell>
             <TableCell>
-              <span
-                :class="[
-                  'terminal-badge inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5',
-                  `terminal-badge-${difficultyColor(problem.difficulty)}`,
-                ]"
-              >
-                {{ problem.difficulty?.toUpperCase() || 'UNKNOWN' }}
-              </span>
+              <SemanticBadge
+                :color="difficultyColor(problem.difficulty)"
+                :label="problem.difficulty?.toUpperCase() || 'UNKNOWN'"
+                size="xs"
+              />
             </TableCell>
             <TableCell>
               <span class="font-data text-xs text-[var(--silver-400)]">

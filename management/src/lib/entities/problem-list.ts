@@ -1,6 +1,5 @@
 import { h, type VNode } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariant } from './user'
+import { badge, type SemanticColor } from '@/components/ui/terminal'
 import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
 
 /**
@@ -8,22 +7,10 @@ import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
  */
 export type ProblemListVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED'
 
-/**
- * Returns the badge variant for a problem list visibility
- */
-export function getProblemListVisibilityBadgeVariant(
-  visibility: ProblemListVisibility,
-): BadgeVariant {
-  switch (visibility) {
-    case 'PUBLIC':
-      return 'default'
-    case 'PRIVATE':
-      return 'secondary'
-    case 'UNLISTED':
-      return 'outline'
-    default:
-      return 'outline'
-  }
+const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
+  PUBLIC: 'success',
+  PRIVATE: 'warning',
+  UNLISTED: 'neutral',
 }
 
 /**
@@ -50,8 +37,8 @@ export function getProblemListVisibilityBadge(
   visibility: ProblemListVisibility,
   t: (key: string, fallback?: string) => string,
 ): VNode {
-  const variant = getProblemListVisibilityBadgeVariant(visibility)
-  return h(Badge, { variant }, () =>
-    t(`problemLists.visibility.${visibility.toLowerCase()}`, visibility),
-  )
+  return badge({
+    color: VISIBILITY_COLOR_MAP[visibility] ?? 'neutral',
+    label: t(`problemLists.visibility.${visibility.toLowerCase()}`, visibility),
+  })
 }

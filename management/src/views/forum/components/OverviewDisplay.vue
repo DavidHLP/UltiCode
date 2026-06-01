@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TerminalCard, TerminalBadge, DataBlock } from '@/components/ui/terminal'
 import {
@@ -27,7 +28,7 @@ const authorInitials = computed(() => {
 })
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString()
+  return formatDateTimeByLocale(dateStr)
 }
 </script>
 

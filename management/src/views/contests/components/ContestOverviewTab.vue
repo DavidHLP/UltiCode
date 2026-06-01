@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { IconCalendar, IconClock, IconTrophy, IconUsers } from '@tabler/icons-vue'
 import type { Contest } from '@/api/admin/contests'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 
 defineProps<{
   contest: Contest
@@ -68,7 +69,7 @@ defineProps<{
                 }}</span>
               </div>
               <span class="font-data text-sm tabular-nums">
-                {{ new Date(contest.startTime).toLocaleString() }}
+                {{ formatDateTimeByLocale(contest.startTime) }}
               </span>
             </div>
             <div

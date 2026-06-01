@@ -78,6 +78,53 @@ export function formatNumberByLocale(number: number, options?: Intl.NumberFormat
 }
 
 /**
+ * Format a date and time according to current locale
+ */
+export function formatDateTimeByLocale(
+  date: Date | string,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const locale = getActiveLocale()
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    ...options,
+  }
+
+  return dateObj.toLocaleString(locale, defaultOptions)
+}
+
+/**
+ * Format a number in compact notation
+ * English: 1.2K, 3.4M
+ * Chinese: 1.2万, 3.4万 (uses 万 at ≥10000, no 千)
+ */
+export function formatCompactNumber(num: number): string {
+  const locale = getActiveLocale()
+  const isZh = locale.startsWith('zh')
+
+  if (isZh) {
+    if (num >= 10_000) {
+      return (num / 10_000).toLocaleString(locale, { maximumFractionDigits: 1 }) + '万'
+    }
+    return num.toLocaleString(locale)
+  }
+
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toLocaleString(locale, { maximumFractionDigits: 1 }) + 'M'
+  }
+  if (num >= 1_000) {
+    return (num / 1_000).toLocaleString(locale, { maximumFractionDigits: 1 }) + 'K'
+  }
+  return num.toLocaleString(locale)
+}
+
+/**
  * Format a relative time (e.g., "2 hours ago")
  */
 export function formatRelativeTime(date: Date | string): string {

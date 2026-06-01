@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
 import { backupApi } from '@/api/admin/backup'
 import type { Backup, BackupStatus } from '@/api/admin/backup'
@@ -147,7 +148,7 @@ function formatBytes(bytes: number): string {
 
 function formatDate(date: string | null): string {
   if (!date) return '-'
-  return new Date(date).toLocaleString()
+  return formatDateTimeByLocale(date)
 }
 
 function getStatusIcon(status: BackupStatus) {

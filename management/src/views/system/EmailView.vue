@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
 import { emailApi } from '@/api/admin/email'
 import type { EmailLog, EmailTemplate, EmailStats } from '@/api/admin/email'
@@ -189,7 +190,7 @@ async function deleteTemplate(template: EmailTemplate) {
 }
 
 function formatDate(date: string): string {
-  return new Date(date).toLocaleString()
+  return formatDateTimeByLocale(date)
 }
 
 function getStatusIcon(status: string) {

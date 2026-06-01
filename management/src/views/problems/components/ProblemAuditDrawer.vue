@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconClock, IconUser, IconInfoCircle, IconArrowRight, IconChevronDown, IconChevronRight } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 import { auditApi, type AuditLog } from '@/api/admin/audit'
@@ -181,7 +182,7 @@ function formatJson(val: any): string {
                 </div>
                 <span class="font-data text-xs text-[var(--silver-500)] tabular-nums flex items-center gap-1 shrink-0">
                   <IconClock class="h-3 w-3" />
-                  {{ new Date(log.createdAt).toLocaleString() }}
+                  {{ formatDateTimeByLocale(log.createdAt) }}
                 </span>
               </div>
 

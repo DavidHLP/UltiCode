@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { monitoringApi } from '@/api/admin/monitoring'
 import type {
   SystemInfo,
@@ -196,7 +197,7 @@ onUnmounted(() => {
             </Badge>
             <span class="text-sm text-muted-foreground">
               {{ t('system.monitoring.lastChecked') }}:
-              {{ healthStatus ? new Date(healthStatus.timestamp).toLocaleString() : '-' }}
+              {{ healthStatus ? formatDateTimeByLocale(healthStatus.timestamp) : '-' }}
             </span>
           </div>
 

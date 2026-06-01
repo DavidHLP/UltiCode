@@ -5,16 +5,16 @@
 -- ============================================================
 
 -- ────────────────────────────────────────────────────────────
--- 1. Forum Users (独立于主 users 表)
+-- 1. Forum Users (映射到真实 users 表)
 -- ────────────────────────────────────────────────────────────
 INSERT IGNORE INTO forum_users (id, username, avatar, karma) VALUES
-('fu-admin-001',    'admin',           'https://api.dicebear.com/7.x/bottts/svg?seed=admin',   1250),
-('fu-alice-001',    'alice_coder',     'https://api.dicebear.com/7.x/avataaars/svg?seed=alice', 890),
-('fu-bob-002',      'bob_algo',        'https://api.dicebear.com/7.x/avataaars/svg?seed=bob',   720),
-('fu-carol-003',    'carol_dev',       'https://api.dicebear.com/7.x/avataaars/svg?seed=carol', 650),
-('fu-david-004',    'david_systems',   'https://api.dicebear.com/7.x/avataaars/svg?seed=david', 430),
-('fu-eva-005',      'eva_ml',          'https://api.dicebear.com/7.x/avataaars/svg?seed=eva',   310),
-('fu-frank-006',    'frank_ops',       'https://api.dicebear.com/7.x/avataaars/svg?seed=frank', 180);
+('u-admin-001',    'admin',       'https://api.dicebear.com/7.x/shapes/svg?seed=admin',      1250),
+('user-alice-001', 'alice_coder', 'https://api.dicebear.com/7.x/avataaars/svg?seed=alice',    890),
+('user-bob-002',   'bob_dev',     'https://api.dicebear.com/7.x/avataaars/svg?seed=bob',      720),
+('user-carol-003', 'carol_wu',    'https://api.dicebear.com/7.x/avataaars/svg?seed=carol',    650),
+('user-david-004', 'david_chen',  'https://api.dicebear.com/7.x/avataaars/svg?seed=david',    430),
+('user-eva-005',   'eva_zhang',   'https://api.dicebear.com/7.x/avataaars/svg?seed=eva',      310),
+('user-frank-006', 'frank_lee',   'https://api.dicebear.com/7.x/avataaars/svg?seed=frank',    180);
 
 -- ────────────────────────────────────────────────────────────
 -- 2. Forum Communities
@@ -60,7 +60,7 @@ INSERT IGNORE INTO forum_community_tags (community_id, tag_id, is_featured) VALU
 INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, flair_type, flair_label, tags, excerpt, media, recommendation, vote_state, is_saved, impressions, is_pinned, is_locked, created_at, stats, views, is_flagged, flagged_reason, flagged_at, is_deleted, deleted_at, deleted_by) VALUES
 
 -- ▸ pinned 帖子 (2)
-('post-001', 'comm-general',    'fu-admin-001', '/general/welcome',
+('post-001', 'comm-general',    'u-admin-001', '/general/welcome',
  'Welcome to UltiCode Community!',
  'announcement', 'Official',
  '["announcement","community"]',
@@ -69,7 +69,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 10 DAY),
  '{"upvotes":45,"downvotes":1,"comments":12}', 5200, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-002', 'comm-algorithms', 'fu-admin-001', '/algorithms/weekly-challenge',
+('post-002', 'comm-algorithms', 'u-admin-001', '/algorithms/weekly-challenge',
  'Weekly Algorithm Challenge #42 - Sliding Window',
  'announcement', 'Challenge',
  '["algorithm","leetcode"]',
@@ -79,7 +79,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":38,"downvotes":2,"comments":25}', 3100, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ locked 帖子 (2)
-('post-003', 'comm-general', 'fu-david-004', '/general/old-announcement',
+('post-003', 'comm-general', 'user-david-004', '/general/old-announcement',
  'Legacy Contest Results (Archived)',
  'discussion', 'Archived',
  '["announcement"]',
@@ -88,7 +88,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 8 DAY),
  '{"upvotes":22,"downvotes":0,"comments":8}', 1800, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-004', 'comm-algorithms', 'fu-carol-003', '/algorithms/dp-masterclass',
+('post-004', 'comm-algorithms', 'user-carol-003', '/algorithms/dp-masterclass',
  'DP Masterclass Thread - All Questions Here',
  'question', 'Megathread',
  '["dp","algorithm"]',
@@ -98,7 +98,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":30,"downvotes":1,"comments":42}', 2400, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ flagged 帖子 (3)
-('post-005', 'comm-general', 'fu-frank-006', '/general/spam-post',
+('post-005', 'comm-general', 'user-frank-006', '/general/spam-post',
  'FREE IPHONE CLICK HERE >>>>',
  NULL, NULL, '["spam"]',
  'Congratulations! You have been selected to receive a FREE iPhone 16 Pro Max! Click the link below to claim your prize now!!!',
@@ -106,7 +106,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 2 DAY),
  '{"upvotes":0,"downvotes":15,"comments":3}', 50, 1, 'Spam / scam content - not related to programming', DATE_SUB(NOW(3), INTERVAL 2 DAY), 0, NULL, NULL),
 
-('post-006', 'comm-career', 'fu-frank-006', '/career/offtopic-rant',
+('post-006', 'comm-career', 'user-frank-006', '/career/offtopic-rant',
  'Why I Quit Programming Forever',
  NULL, NULL, '["offtopic"]',
  'A long rant about personal frustrations that is not constructive for the community. Flagged by multiple users for being off-topic and potentially misleading.',
@@ -114,7 +114,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 1 DAY),
  '{"upvotes":2,"downvotes":8,"comments":6}', 120, 1, 'Off-topic / not constructive content', DATE_SUB(NOW(3), INTERVAL 1 DAY), 0, NULL, NULL),
 
-('post-007', 'comm-languages', 'fu-bob-002', '/languages/java-sucks',
+('post-007', 'comm-languages', 'user-bob-002', '/languages/java-sucks',
  'Java is Dead, Long Live Rust',
  'discussion', NULL,
  '["java","rust"]',
@@ -124,25 +124,25 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":12,"downvotes":18,"comments":35}', 890, 1, 'Inflammatory / clickbait title', DATE_SUB(NOW(3), INTERVAL 3 DAY), 0, NULL, NULL),
 
 -- ▸ deleted (soft-deleted) 帖子 (2)
-('post-008', 'comm-general', 'fu-frank-006', '/general/deleted-post-1',
+('post-008', 'comm-general', 'user-frank-006', '/general/deleted-post-1',
  'Offensive Content Removed',
  NULL, NULL, '[]',
  'This post contained offensive content and has been removed by a moderator.',
  NULL, NULL, 'neutral', 0, 30, 0, 0,
  DATE_SUB(NOW(3), INTERVAL 6 DAY),
- '{"upvotes":0,"downvotes":5,"comments":0}', 30, 0, NULL, NULL, 1, DATE_SUB(NOW(3), INTERVAL 6 DAY), 'fu-admin-001'),
+ '{"upvotes":0,"downvotes":5,"comments":0}', 30, 0, NULL, NULL, 1, DATE_SUB(NOW(3), INTERVAL 6 DAY), 'u-admin-001'),
 
-('post-009', 'comm-career', 'fu-david-004', '/career/duplicate-post',
+('post-009', 'comm-career', 'user-david-004', '/career/duplicate-post',
  '[Duplicate] How to Prepare for FAANG Interviews',
  'question', NULL,
  '["interview"]',
  'Duplicate of an existing thread. Removed by moderator to keep the forum clean.',
  NULL, NULL, 'neutral', 0, 15, 0, 0,
  DATE_SUB(NOW(3), INTERVAL 7 DAY),
- '{"upvotes":0,"downvotes":0,"comments":0}', 15, 0, NULL, NULL, 1, DATE_SUB(NOW(3), INTERVAL 5 DAY), 'fu-admin-001'),
+ '{"upvotes":0,"downvotes":0,"comments":0}', 15, 0, NULL, NULL, 1, DATE_SUB(NOW(3), INTERVAL 5 DAY), 'u-admin-001'),
 
 -- ▸ normal posts - discussion (3)
-('post-010', 'comm-languages', 'fu-alice-001', '/languages/java-21-features',
+('post-010', 'comm-languages', 'user-alice-001', '/languages/java-21-features',
  'Java 21 Features That Changed How I Code',
  'discussion', 'Deep Dive',
  '["java","tutorial"]',
@@ -151,7 +151,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 4 DAY),
  '{"upvotes":35,"downvotes":2,"comments":18}', 1650, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-011', 'comm-algorithms', 'fu-carol-003', '/algorithms/graph-theory-intro',
+('post-011', 'comm-algorithms', 'user-carol-003', '/algorithms/graph-theory-intro',
  'Graph Theory for Beginners: A Visual Approach',
  'tutorial', 'Tutorial',
  '["algorithm","tutorial"]',
@@ -160,7 +160,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 7 DAY),
  '{"upvotes":52,"downvotes":1,"comments":22}', 2800, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-012', 'comm-general', 'fu-eva-005', '/general/monthly-review',
+('post-012', 'comm-general', 'user-eva-005', '/general/monthly-review',
  'May 2026 Community Highlights',
  'discussion', NULL,
  '["community"]',
@@ -170,7 +170,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":28,"downvotes":0,"comments":14}', 950, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ normal posts - question (4)
-('post-013', 'comm-algorithms', 'fu-alice-001', '/algorithms/lis-nlogn',
+('post-013', 'comm-algorithms', 'user-alice-001', '/algorithms/lis-nlogn',
  'How does the O(n log n) LIS algorithm work?',
  'question', NULL,
  '["algorithm","dp"]',
@@ -179,7 +179,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 3 DAY),
  '{"upvotes":24,"downvotes":0,"comments":15}', 1320, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-014', 'comm-languages', 'fu-david-004', '/languages/python-gil',
+('post-014', 'comm-languages', 'user-david-004', '/languages/python-gil',
  'Is Python GIL still a problem in 2026?',
  'question', 'Discussion',
  '["python"]',
@@ -188,7 +188,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 2 DAY),
  '{"upvotes":18,"downvotes":1,"comments":20}', 780, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-015', 'comm-algorithms', 'fu-bob-002', '/algorithms/two-sum-variants',
+('post-015', 'comm-algorithms', 'user-bob-002', '/algorithms/two-sum-variants',
  'All Two Sum Variants Explained',
  'question', 'Guide',
  '["leetcode","algorithm"]',
@@ -197,7 +197,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 6 DAY),
  '{"upvotes":42,"downvotes":3,"comments":28}', 2100, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-016', 'comm-ml', 'fu-eva-005', '/ml/transformer-attention',
+('post-016', 'comm-ml', 'user-eva-005', '/ml/transformer-attention',
  'Understanding Multi-Head Attention from Scratch',
  'question', NULL,
  '["python","algorithm"]',
@@ -207,7 +207,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":33,"downvotes":1,"comments":16}', 1450, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ normal posts - showcase (2)
-('post-017', 'comm-general', 'fu-alice-001', '/general/leetcode-tracker',
+('post-017', 'comm-general', 'user-alice-001', '/general/leetcode-tracker',
  'I built a LeetCode progress tracker with Vue 3',
  'showcase', 'Show & Tell',
  '["leetcode","tutorial"]',
@@ -216,7 +216,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 9 DAY),
  '{"upvotes":67,"downvotes":2,"comments":31}', 3200, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-018', 'comm-algorithms', 'fu-carol-003', '/algorithms/visualizer-tool',
+('post-018', 'comm-algorithms', 'user-carol-003', '/algorithms/visualizer-tool',
  'Algorithm Visualizer - Open Source Tool',
  'showcase', 'Project',
  '["algorithm","tutorial"]',
@@ -226,7 +226,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":41,"downvotes":0,"comments":19}', 1890, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ normal posts - hiring (1)
-('post-019', 'comm-career', 'fu-admin-001', '/career/junior-dev-opening',
+('post-019', 'comm-career', 'u-admin-001', '/career/junior-dev-opening',
  '[Hiring] Junior Backend Developer - Remote',
  'hiring', 'Remote',
  '["interview","java"]',
@@ -236,7 +236,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":15,"downvotes":0,"comments":8}', 1560, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ 时间分布：最近 24 小时 (4 帖子)
-('post-020', 'comm-algorithms', 'fu-bob-002', '/algorithms/segment-tree-guide',
+('post-020', 'comm-algorithms', 'user-bob-002', '/algorithms/segment-tree-guide',
  'Segment Tree Explained: Range Query Mastery',
  'tutorial', 'Tutorial',
  '["algorithm","cpp"]',
@@ -245,7 +245,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 6 HOUR),
  '{"upvotes":12,"downvotes":0,"comments":5}', 320, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-021', 'comm-languages', 'fu-carol-003', '/languages/rust-lifetime',
+('post-021', 'comm-languages', 'user-carol-003', '/languages/rust-lifetime',
  'Rust Lifetimes: The Visual Guide Everyone Needs',
  'discussion', NULL,
  '["tutorial"]',
@@ -254,7 +254,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 4 HOUR),
  '{"upvotes":8,"downvotes":0,"comments":3}', 180, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-022', 'comm-career', 'fu-alice-001', '/career/salary-negotiation',
+('post-022', 'comm-career', 'user-alice-001', '/career/salary-negotiation',
  'Tips for Salary Negotiation as a New Grad',
  'discussion', NULL,
  '["interview"]',
@@ -263,7 +263,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  DATE_SUB(NOW(3), INTERVAL 2 HOUR),
  '{"upvotes":5,"downvotes":0,"comments":2}', 95, 0, NULL, NULL, 0, NULL, NULL),
 
-('post-023', 'comm-general', 'fu-david-004', '/general/study-group',
+('post-023', 'comm-general', 'user-david-004', '/general/study-group',
  'Looking for LeetCode Study Group Partners',
  'question', NULL,
  '["leetcode"]',
@@ -273,7 +273,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":3,"downvotes":0,"comments":1}', 45, 0, NULL, NULL, 0, NULL, NULL),
 
 -- ▸ pinned + flagged 组合
-('post-024', 'comm-general', 'fu-frank-006', '/general/controversial-take',
+('post-024', 'comm-general', 'user-frank-006', '/general/controversial-take',
  'Hot Take: Competitive Programming is Overrated',
  'discussion', 'Controversial',
  '["algorithm","interview"]',
@@ -283,7 +283,7 @@ INSERT IGNORE INTO forum_posts (id, community_id, user_id, permalink, title, fla
  '{"upvotes":55,"downvotes":40,"comments":89}', 4500, 1, 'Content may be divisive - pinned for discussion', DATE_SUB(NOW(3), INTERVAL 3 DAY), 0, NULL, NULL),
 
 -- ▸ locked + flagged 组合
-('post-025', 'comm-career', 'fu-frank-006', '/career/fake-job-offers',
+('post-025', 'comm-career', 'user-frank-006', '/career/fake-job-offers',
  'WARNING: Fake Job Offers Circulating',
  'discussion', 'Alert',
  '["interview"]',
@@ -333,61 +333,61 @@ INSERT IGNORE INTO forum_post_tag_relations (post_id, tag_id) VALUES
 INSERT IGNORE INTO forum_comments (id, post_id, parent_id, author_id, body, markdown, created_at, edited_at, is_pinned, is_locked, is_flagged, flagged_reason, flagged_at, is_deleted, deleted_at, deleted_by) VALUES
 
 -- post-001 下的评论 (Welcome)
-('cmt-001', 'post-001', NULL,        'fu-alice-001', 'Thanks for the warm welcome! Excited to be here.',       NULL, DATE_SUB(NOW(3), INTERVAL 9 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-002', 'post-001', 'cmt-001',   'fu-admin-001', 'Glad to have you! Feel free to ask questions anytime.',  NULL, DATE_SUB(NOW(3), INTERVAL 9 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-003', 'post-001', NULL,        'fu-bob-002',   'Great community so far. Love the algorithm challenges.',  NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-001', 'post-001', NULL,        'user-alice-001', 'Thanks for the warm welcome! Excited to be here.',       NULL, DATE_SUB(NOW(3), INTERVAL 9 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-002', 'post-001', 'cmt-001',   'u-admin-001', 'Glad to have you! Feel free to ask questions anytime.',  NULL, DATE_SUB(NOW(3), INTERVAL 9 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-003', 'post-001', NULL,        'user-bob-002',   'Great community so far. Love the algorithm challenges.',  NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-002 下的评论 (Weekly Challenge)
-('cmt-004', 'post-002', NULL,        'fu-carol-003', 'Used a monotonic deque approach for the sliding window max. O(n) time!', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-005', 'post-002', 'cmt-004',   'fu-alice-001', 'Nice! I used a heap-based approach but it was O(n log k). Your solution is better.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-006', 'post-002', NULL,        'fu-david-004', 'Can someone explain the second problem? I keep getting TLE.', NULL, DATE_SUB(NOW(3), INTERVAL 1 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-004', 'post-002', NULL,        'user-carol-003', 'Used a monotonic deque approach for the sliding window max. O(n) time!', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-005', 'post-002', 'cmt-004',   'user-alice-001', 'Nice! I used a heap-based approach but it was O(n log k). Your solution is better.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-006', 'post-002', NULL,        'user-david-004', 'Can someone explain the second problem? I keep getting TLE.', NULL, DATE_SUB(NOW(3), INTERVAL 1 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-011 下的评论 (Graph Theory)
-('cmt-007', 'post-011', NULL,        'fu-david-004', 'The visualizations are incredibly helpful. Bookmarked!',  NULL, DATE_SUB(NOW(3), INTERVAL 6 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-008', 'post-011', 'cmt-007',   'fu-carol-003', 'Thanks! I used D3.js for the interactive graphs. Source code is on my GitHub.', NULL, DATE_SUB(NOW(3), INTERVAL 6 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-009', 'post-011', NULL,        'fu-eva-005',   'Would love to see a follow-up on network flow algorithms!', NULL, DATE_SUB(NOW(3), INTERVAL 5 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-007', 'post-011', NULL,        'user-david-004', 'The visualizations are incredibly helpful. Bookmarked!',  NULL, DATE_SUB(NOW(3), INTERVAL 6 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-008', 'post-011', 'cmt-007',   'user-carol-003', 'Thanks! I used D3.js for the interactive graphs. Source code is on my GitHub.', NULL, DATE_SUB(NOW(3), INTERVAL 6 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-009', 'post-011', NULL,        'user-eva-005',   'Would love to see a follow-up on network flow algorithms!', NULL, DATE_SUB(NOW(3), INTERVAL 5 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-013 下的评论 (LIS question)
-('cmt-010', 'post-013', NULL,        'fu-bob-002',   'Think of it this way: the tails array maintains the smallest possible tail element for each LIS length. Binary search finds where the current element fits.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-011', 'post-013', 'cmt-010',   'fu-alice-001', 'That makes so much more sense now! The tails array is essentially a "best candidates" list.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-010', 'post-013', NULL,        'user-bob-002',   'Think of it this way: the tails array maintains the smallest possible tail element for each LIS length. Binary search finds where the current element fits.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-011', 'post-013', 'cmt-010',   'user-alice-001', 'That makes so much more sense now! The tails array is essentially a "best candidates" list.', NULL, DATE_SUB(NOW(3), INTERVAL 2 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-015 下的评论 (Two Sum variants)
-('cmt-012', 'post-015', NULL,        'fu-carol-003', 'Don''t forget the "Two Sum II - Input Array Is Sorted" variant. Two pointers is the key there!', NULL, DATE_SUB(NOW(3), INTERVAL 5 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-012', 'post-015', NULL,        'user-carol-003', 'Don''t forget the "Two Sum II - Input Array Is Sorted" variant. Two pointers is the key there!', NULL, DATE_SUB(NOW(3), INTERVAL 5 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-017 下的评论 (LeetCode tracker)
-('cmt-013', 'post-017', NULL,        'fu-eva-005',   'This is amazing! Does it support exporting progress as CSV?', NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-014', 'post-017', 'cmt-013',   'fu-alice-001', 'Yes! CSV and JSON export are both supported. Check the Settings page.', NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-015', 'post-017', NULL,        'fu-frank-006', 'Can you add dark mode support?', NULL, DATE_SUB(NOW(3), INTERVAL 7 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-013', 'post-017', NULL,        'user-eva-005',   'This is amazing! Does it support exporting progress as CSV?', NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-014', 'post-017', 'cmt-013',   'user-alice-001', 'Yes! CSV and JSON export are both supported. Check the Settings page.', NULL, DATE_SUB(NOW(3), INTERVAL 8 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-015', 'post-017', NULL,        'user-frank-006', 'Can you add dark mode support?', NULL, DATE_SUB(NOW(3), INTERVAL 7 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- post-024 下的评论 (Controversial - pinned + flagged)
-('cmt-016', 'post-024', NULL,        'fu-bob-002',   'I partially agree. CP helps with problem-solving speed, but system design matters more in industry.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-017', 'post-024', 'cmt-016',   'fu-carol-003', 'Fair point, but CP also teaches you to think under pressure. That''s valuable everywhere.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-018', 'post-024', NULL,        'fu-admin-001', 'Keeping this pinned for discussion. Please keep the debate respectful and constructive.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 1, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-016', 'post-024', NULL,        'user-bob-002',   'I partially agree. CP helps with problem-solving speed, but system design matters more in industry.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-017', 'post-024', 'cmt-016',   'user-carol-003', 'Fair point, but CP also teaches you to think under pressure. That''s valuable everywhere.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-018', 'post-024', NULL,        'u-admin-001', 'Keeping this pinned for discussion. Please keep the debate respectful and constructive.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 1, 0, 0, NULL, NULL, 0, NULL, NULL),
 
 -- deleted comment
-('cmt-019', 'post-024', NULL,        'fu-frank-006', '[Removed by moderator]', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 1, 'Offensive language', DATE_SUB(NOW(3), INTERVAL 3 DAY), 1, DATE_SUB(NOW(3), INTERVAL 3 DAY), 'fu-admin-001'),
+('cmt-019', 'post-024', NULL,        'user-frank-006', '[Removed by moderator]', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 1, 'Offensive language', DATE_SUB(NOW(3), INTERVAL 3 DAY), 1, DATE_SUB(NOW(3), INTERVAL 3 DAY), 'u-admin-001'),
 
 -- post-010 下的评论 (Java 21)
-('cmt-020', 'post-010', NULL,        'fu-david-004', 'Virtual threads are a game changer for IO-bound services. We migrated our API gateway and saw 3x throughput improvement.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-021', 'post-010', 'cmt-020',   'fu-alice-001', 'That''s impressive! Did you have to change much code or was it mostly a drop-in replacement?', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
-('cmt-022', 'post-010', 'cmt-021',   'fu-david-004', 'Mostly drop-in. The main change was removing our thread pool executor. Structured concurrency is the next step.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL);
+('cmt-020', 'post-010', NULL,        'user-david-004', 'Virtual threads are a game changer for IO-bound services. We migrated our API gateway and saw 3x throughput improvement.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-021', 'post-010', 'cmt-020',   'user-alice-001', 'That''s impressive! Did you have to change much code or was it mostly a drop-in replacement?', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL),
+('cmt-022', 'post-010', 'cmt-021',   'user-david-004', 'Mostly drop-in. The main change was removing our thread pool executor. Structured concurrency is the next step.', NULL, DATE_SUB(NOW(3), INTERVAL 3 DAY), NULL, 0, 0, 0, NULL, NULL, 0, NULL, NULL);
 
 -- ────────────────────────────────────────────────────────────
 -- 8. Community Members (核心成员)
 -- ────────────────────────────────────────────────────────────
 INSERT IGNORE INTO forum_community_members (id, community_id, user_id, role, joined_at) VALUES
-('mem-001', 'comm-general',    'fu-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
-('mem-002', 'comm-general',    'fu-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 25 DAY)),
-('mem-003', 'comm-general',    'fu-bob-002',    'MEMBER',     DATE_SUB(NOW(3), INTERVAL 20 DAY)),
-('mem-004', 'comm-algorithms', 'fu-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
-('mem-005', 'comm-algorithms', 'fu-carol-003',  'MODERATOR',  DATE_SUB(NOW(3), INTERVAL 28 DAY)),
-('mem-006', 'comm-algorithms', 'fu-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 22 DAY)),
-('mem-007', 'comm-algorithms', 'fu-bob-002',    'MEMBER',     DATE_SUB(NOW(3), INTERVAL 18 DAY)),
-('mem-008', 'comm-languages',  'fu-alice-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 28 DAY)),
-('mem-009', 'comm-languages',  'fu-david-004',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 20 DAY)),
-('mem-010', 'comm-languages',  'fu-carol-003',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 15 DAY)),
-('mem-011', 'comm-career',     'fu-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
-('mem-012', 'comm-career',     'fu-alice-001',  'MODERATOR',  DATE_SUB(NOW(3), INTERVAL 25 DAY)),
-('mem-013', 'comm-career',     'fu-david-004',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 18 DAY)),
-('mem-014', 'comm-ml',         'fu-eva-005',    'OWNER',      DATE_SUB(NOW(3), INTERVAL 26 DAY)),
-('mem-015', 'comm-ml',         'fu-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 15 DAY));
+('mem-001', 'comm-general',    'u-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
+('mem-002', 'comm-general',    'user-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 25 DAY)),
+('mem-003', 'comm-general',    'user-bob-002',    'MEMBER',     DATE_SUB(NOW(3), INTERVAL 20 DAY)),
+('mem-004', 'comm-algorithms', 'u-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
+('mem-005', 'comm-algorithms', 'user-carol-003',  'MODERATOR',  DATE_SUB(NOW(3), INTERVAL 28 DAY)),
+('mem-006', 'comm-algorithms', 'user-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 22 DAY)),
+('mem-007', 'comm-algorithms', 'user-bob-002',    'MEMBER',     DATE_SUB(NOW(3), INTERVAL 18 DAY)),
+('mem-008', 'comm-languages',  'user-alice-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 28 DAY)),
+('mem-009', 'comm-languages',  'user-david-004',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 20 DAY)),
+('mem-010', 'comm-languages',  'user-carol-003',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 15 DAY)),
+('mem-011', 'comm-career',     'u-admin-001',  'OWNER',      DATE_SUB(NOW(3), INTERVAL 30 DAY)),
+('mem-012', 'comm-career',     'user-alice-001',  'MODERATOR',  DATE_SUB(NOW(3), INTERVAL 25 DAY)),
+('mem-013', 'comm-career',     'user-david-004',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 18 DAY)),
+('mem-014', 'comm-ml',         'user-eva-005',    'OWNER',      DATE_SUB(NOW(3), INTERVAL 26 DAY)),
+('mem-015', 'comm-ml',         'user-alice-001',  'MEMBER',     DATE_SUB(NOW(3), INTERVAL 15 DAY));

@@ -193,7 +193,7 @@ onUnmounted(() => {
               :variant="overallStatus === 'healthy' ? 'default' : 'destructive'"
               class="text-lg px-4 py-2"
             >
-              {{ t(`system.monitoring.status.${overallStatus}`) }}
+              {{ t(`system.monitoring.status.${overallStatus}`, overallStatus) }}
             </Badge>
             <span class="text-sm text-muted-foreground">
               {{ t('system.monitoring.lastChecked') }}:

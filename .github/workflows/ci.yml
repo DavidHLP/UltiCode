@@ -356,6 +356,41 @@ jobs:
         working-directory: ${{ matrix.app }}
         run: pnpm test
 
+  # --- Frontend: i18n Check (management only) ---
+  frontend-i18n-check:
+    name: i18n Check (management)
+    needs: changes
+    if: needs.changes.outputs.management == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Enable pnpm via corepack
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: management/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: management
+        env:
+          CI: "false"
+          GITHUB_ACTIONS: "false"
+        run: pnpm install
+
+      - name: Run i18n completeness check
+        working-directory: management
+        run: pnpm check:i18n --json
+
+      - name: Run i18n tests
+        working-directory: management
+        run: pnpm vitest run -- src/i18n/__tests__/
+
   # --- Docker Build Verification ---
   docker-verify:
     name: Docker Build (${{ matrix.service.name }})

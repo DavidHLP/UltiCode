@@ -72,8 +72,11 @@ export function getDifficultyIcon(difficulty: Difficulty): VNode {
  * Returns the badge component for a problem difficulty
  * @param t - i18n translation function
  */
-export function getDifficultyBadge(difficulty: Difficulty, t: (key: string) => string): VNode {
+export function getDifficultyBadge(
+  difficulty: Difficulty,
+  t: (key: string, fallback?: string) => string,
+): VNode {
   return h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
-    t(`problems.difficulty.${difficulty.toLowerCase()}`),
+    t(`problems.difficulty.${difficulty.toLowerCase()}`, difficulty),
   )
 }

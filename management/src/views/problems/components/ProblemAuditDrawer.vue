@@ -171,7 +171,7 @@ function formatJson(val: any): string {
               <div class="flex items-center justify-between gap-2 mb-1.5">
                 <div class="flex items-center gap-2">
                   <span :class="['terminal-badge', getActionBadgeClass(log.action)]">
-                    {{ t(`audit.actionTypes.${log.action}`) || log.action.replace('_', ' ') }}
+                    {{ t(`audit.actionTypes.${log.action}`, log.action) || log.action.replace('_', ' ') }}
                   </span>
                   <span
                     v-if="log.oldValues || log.newValues"
@@ -195,7 +195,7 @@ function formatJson(val: any): string {
                   v-if="log.performer?.role"
                   class="terminal-badge terminal-badge-info text-xs scale-90 origin-left"
                 >
-                  {{ t(`users.filters.role.${log.performer.role}`) }}
+                  {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
                 </span>
               </div>
 

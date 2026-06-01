@@ -189,7 +189,7 @@ const columns: ColumnDef<AuditLog>[] = [
         h(
           'span',
           { class: 'terminal-badge terminal-badge-info w-fit text-xs scale-90 origin-left' },
-          t(`users.filters.role.${performer.role}`),
+          t(`users.filters.role.${performer.role}`, performer.role),
         ),
       ])
     },
@@ -358,7 +358,7 @@ const columns: ColumnDef<AuditLog>[] = [
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
                 <SelectGroup v-for="group in AUDIT_ACTION_GROUPS" :key="group">
-                  <SelectLabel>{{ t(`audit.entityGroups.${group}`) }}</SelectLabel>
+                  <SelectLabel>{{ t(`audit.entityGroups.${group}`, group) }}</SelectLabel>
                   <SelectItem
                     v-for="action in AUDIT_ACTIONS_BY_ENTITY[group]"
                     :key="action"

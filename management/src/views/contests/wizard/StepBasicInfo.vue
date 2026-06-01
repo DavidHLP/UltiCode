@@ -89,7 +89,7 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
             :value="fmt"
             class="font-data text-xs cursor-pointer"
           >
-            {{ t(`contests.basics.types.${fmt}`) }}
+            {{ t(`contests.basics.types.${fmt}`, fmt) }}
           </SelectItem>
         </SelectContent>
       </Select>

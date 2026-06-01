@@ -403,7 +403,7 @@ function handleClose() {
             </SelectContent>
           </Select>
           <p class="text-xs text-muted-foreground">
-            {{ t(`problems.import.strategyDescriptions.${onConflict}`) }}
+            {{ t(`problems.import.strategyDescriptions.${onConflict}`, onConflict) }}
           </p>
         </div>
 

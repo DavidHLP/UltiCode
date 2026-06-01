@@ -122,7 +122,7 @@ export function useProblemColumns(
         const difficulty = row.getValue('difficulty') as Difficulty
         return badge({
           color: DIFFICULTY_COLOR_MAP[difficulty] ?? 'neutral',
-          label: t(`problems.difficulty.${difficulty.toUpperCase()}`),
+          label: t(`problems.difficulty.${difficulty.toUpperCase()}`, difficulty),
           dot: true,
           icon: getDifficultyIcon(difficulty),
         })

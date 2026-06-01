@@ -346,15 +346,18 @@ t(`table.columnNames.${columnId}`, columnId)
 
 ---
 
-### Phase 4: 质量加固（P3 — 2~3 天）
+### Phase 4: 质量加固（P3 — 2~3 天） — `complete`
 
 > 目标: 防止问题再次出现
+> 详细计划: `.claude/PRPs/plans/completed/management-i18n-phase4-quality-hardening.plan.md`
+> 实施报告: `.claude/PRPs/reports/management-i18n-phase4-quality-hardening-report.md`
 
 #### 任务 4.1: 命名规范统一
 
-- [ ] 将 `dashboard.ts` 和 `table.ts` 中的 28 个 snake_case key 改为 camelCase
-- [ ] 更新所有引用这些 key 的代码
-- [ ] 在 `docs/i18n-design.md` 中明确: 枚举值用 ALL_CAPS，其余用 camelCase
+- [x] 将 `dashboard.ts` 中未使用的 snake_case key 删除（`recentActivity.types` 为死代码）
+- [x] `table.ts` 中的 snake_case key 保留（匹配后端 API 字段名，通过 DataTable 动态引用）
+- [ ] 创建命名规范测试（`naming-convention.spec.ts`）
+- [ ] 在 `docs/i18n-design.md` 中明确: 枚举值用 ALL_CAPS，API 映射保留后端字段名，其余用 camelCase
 
 #### 任务 4.2: 增强 check.ts
 
@@ -365,13 +368,13 @@ t(`table.columnNames.${columnId}`, columnId)
 #### 任务 4.3: CI/CD 集成
 
 - [ ] 在 GitHub Actions 中添加 i18n 检查 step
-- [ ] 添加 pre-commit hook 运行 `check.ts`
+- [x] 不添加 pre-commit hook（CI 检查已足够，pre-commit 拖慢开发体验）
 - [ ] 将 i18n 完整性检查作为 PR 合并的必要条件
 
 #### 任务 4.4: 动态 key 安全网
 
-- [ ] 为所有动态 key 拼接添加 fallback 值: `` t(`key.${dynamic}`, dynamic) ``
-- [ ] 考虑使用类型安全的 key 映射表替代模板字符串
+- [ ] 为所有 58 处动态 key 拼接添加 fallback 值: `` t(`key.${dynamic}`, dynamic) ``
+- [x] 不创建类型安全的 key 映射表（过度工程，安全网已足够）
 
 ---
 

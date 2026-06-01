@@ -170,7 +170,7 @@ function handleTabChange(value: string | number) {
                 <div class="flex items-center gap-2 mt-1">
                   <SemanticBadge
                     :color="CONTEST_TYPE_COLOR_MAP[contest.contestType] ?? 'neutral'"
-                    :label="t(`contests.type.${contest.contestType}`)"
+                    :label="t(`contests.type.${contest.contestType}`, contest.contestType)"
                     size="sm"
                   />
                   <SemanticBadge

@@ -140,7 +140,7 @@ const hintsList = computed(() => {
           class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted text-xs"
           :class="difficultyClass"
         >
-          {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`) }}
+          {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`, problem.difficulty) }}
         </div>
 
         <!-- Tags Button -->

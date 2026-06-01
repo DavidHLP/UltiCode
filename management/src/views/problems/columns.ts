@@ -42,11 +42,14 @@ export interface ProblemActions {
   confirmDelete: (problem: Problem) => void
 }
 
-function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => string) {
+function renderDifficultyBadge(
+  difficulty: Difficulty,
+  t: (key: string, fallback?: string) => string,
+) {
   const normalized = (String(difficulty).toUpperCase() || 'EASY') as Difficulty
   return badge({
     color: DIFFICULTY_COLOR_MAP[normalized] ?? 'neutral',
-    label: t(`problems.difficulty.${normalized}`),
+    label: t(`problems.difficulty.${normalized}`, normalized),
     dot: true,
   })
 }
@@ -67,16 +70,17 @@ function renderPublishedBadge(
   return badge({ color: 'neutral', label: t('problems.published.draft') })
 }
 
-function renderProblemStatusBadge(status: string, t: (key: string) => string) {
+function renderProblemStatusBadge(status: string, t: (key: string, fallback?: string) => string) {
   const isSolved = status === 'solved'
   const isAttempted = status === 'attempted'
-  const label = t(`problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`)
+  const statusKey = isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'
+  const label = t(`problems.status.${statusKey}`, statusKey)
   const color: SemanticColor = isSolved ? 'success' : isAttempted ? 'warning' : 'neutral'
   return badge({ color, label, dot: true, pulse: isSolved })
 }
 
 export function createColumns(
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
   actions: ProblemActions,
   canUpdateProblem: () => boolean,
   canDeleteProblem: () => boolean,

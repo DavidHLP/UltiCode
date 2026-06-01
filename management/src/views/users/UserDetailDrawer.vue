@@ -121,7 +121,7 @@ watch(
               <div class="flex flex-wrap gap-2">
                 <SemanticBadge
                   :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
-                  :label="t(`users.filters.role.${entity.role}`)"
+                  :label="t(`users.filters.role.${entity.role}`, entity.role)"
                 />
                 <SemanticBadge
                   :color="entity.isBanned ? 'error' : entity.isActive ? 'success' : 'neutral'"
@@ -233,7 +233,7 @@ watch(
             <DataBlock :label="$t('users.columns.role')">
               <SemanticBadge
                 :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
-                :label="t(`users.filters.role.${entity.role}`)"
+                :label="t(`users.filters.role.${entity.role}`, entity.role)"
               />
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">

@@ -43,15 +43,6 @@ export default {
     title: '最近活动',
     noActivity: '暂无最近活动',
     viewAll: '查看全部',
-    types: {
-      user_registered: '新用户注册',
-      problem_created: '题目创建',
-      problem_updated: '题目更新',
-      contest_started: '比赛开始',
-      contest_ended: '比赛结束',
-      submission_accepted: '提交通过',
-      flag_created: '内容标记',
-    },
   },
 
   // 系统状态

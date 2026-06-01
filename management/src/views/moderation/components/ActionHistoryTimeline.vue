@@ -170,7 +170,7 @@ function getRelativeTime(date: Date | string): string {
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1">
                 <p class="text-sm font-medium">
-                  {{ t(`moderation.actions.${action.action}`) }}
+                  {{ t(`moderation.actions.${action.action}`, action.action) }}
                 </p>
                 <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
                   <IconUser class="h-3 w-3" />

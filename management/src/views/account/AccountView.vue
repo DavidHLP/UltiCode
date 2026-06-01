@@ -343,7 +343,7 @@ onMounted(() => {
             <div class="space-y-1">
               <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
               <div>
-                <Badge>{{ profile.role }}</Badge>
+                <Badge>{{ t(`users.filters.role.${profile.role}`) !== `users.filters.role.${profile.role}` ? t(`users.filters.role.${profile.role}`) : profile.role }}</Badge>
               </div>
             </div>
             <div class="space-y-1">

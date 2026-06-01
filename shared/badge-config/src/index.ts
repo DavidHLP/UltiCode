@@ -1,4 +1,4 @@
-// Re-export from shared badge-config module
+export type { SemanticColor, BadgeOptions } from './semantic-colors'
 export {
   DIFFICULTY_COLOR_MAP,
   USER_STATUS_COLOR_MAP,
@@ -9,5 +9,6 @@ export {
   SUBMISSION_STATUS_COLOR_MAP,
   NOTIFICATION_TYPE_COLOR_MAP,
   CONTENT_FLAG_COLOR_MAP,
+  PROBLEM_LIST_VISIBILITY_COLOR_MAP,
   getAuditActionColor,
-} from '@/shared/badge-config/src/color-maps'
+} from './color-maps'

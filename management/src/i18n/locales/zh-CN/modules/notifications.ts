@@ -83,6 +83,13 @@ export default {
     userIdsPlaceholder: '输入用户 ID，以逗号分隔',
     atLeastOneUserId: '请至少输入一个用户 ID',
   },
+  stats: {
+    total: '总计',
+    system: '系统',
+    contest: '比赛',
+    submission: '提交',
+    badge: '系统公告',
+  },
   toast: {
     sentSuccessfully: '通知发送成功',
     updateSuccess: '通知更新成功',

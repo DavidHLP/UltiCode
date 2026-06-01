@@ -5,8 +5,11 @@
  * GitHub 图标，边框按钮样式，悬停效果
  */
 import type { HTMLAttributes } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Github } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -27,7 +30,7 @@ function handleOAuth() {
   <button type="button" :class="cn('oauth-button', props.class)" @click="handleOAuth">
     <Github class="oauth-button__icon" />
     <span class="oauth-button__text">
-      <slot>Continue with GitHub</slot>
+      <slot>{{ t('auth.login.continueWithGithub') }}</slot>
     </span>
   </button>
 </template>

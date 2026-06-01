@@ -210,7 +210,11 @@
 
 ## 变更计划
 
-### Phase 0: 共享层提取
+### Phase 0: 共享层提取 ✅ COMPLETE
+
+> **Status**: ✅ Complete (2026-06-01)
+> **Report**: `.claude/PRPs/reports/badge-unification-phase0-shared-report.md`
+> **Changes**: 8 files (4 new shared, 4 updated re-exports)
 
 在 `shared/` 中新建 `badge-config` 模块，建立唯一的枚举→语义映射：
 

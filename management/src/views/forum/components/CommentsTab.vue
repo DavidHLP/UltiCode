@@ -13,6 +13,7 @@ import {
   IconUser,
 } from '@tabler/icons-vue'
 import { badge } from '@/components/ui/terminal'
+import { formatDateByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -198,7 +199,7 @@ const columns: ColumnDef<Comment>[] = [
       return h(
         'span',
         { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
-        date.toLocaleDateString(),
+        formatDateByLocale(date),
       )
     },
   },

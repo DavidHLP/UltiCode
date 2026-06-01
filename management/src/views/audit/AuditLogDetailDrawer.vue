@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Separator } from '@/components/ui/separator'
 import { IconDatabase, IconUser, IconTerminal, IconEye, IconClock } from '@tabler/icons-vue'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -56,7 +57,7 @@ const emit = defineEmits<{
           <p class="text-sm text-[var(--silver-500)] flex items-center gap-1">
             <IconClock class="h-3.5 w-3.5" />
             <span class="font-data tabular-nums">{{
-              new Date(entity.createdAt).toLocaleString()
+              formatDateTimeByLocale(entity.createdAt)
             }}</span>
           </p>
           <div class="flex flex-wrap gap-2 mt-1">

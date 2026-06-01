@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
   IconCheck,
   IconX,
@@ -93,8 +94,7 @@ function getActionConfig(actionType: ModerationActionType) {
 }
 
 function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+  return formatDateTimeByLocale(date)
 }
 
 function getRelativeTime(date: Date | string): string {

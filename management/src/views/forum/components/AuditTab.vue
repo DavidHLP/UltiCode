@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TerminalBadge } from '@/components/ui/terminal'
 import {
@@ -80,7 +81,7 @@ function getActionConfig(action: string) {
 }
 
 function formatDate(dateStr: string | Date) {
-  return new Date(dateStr).toLocaleString()
+  return formatDateTimeByLocale(dateStr)
 }
 
 function getChangesText(entry: AuditLog): string | null {

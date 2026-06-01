@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconCalculator } from '@tabler/icons-vue'
 import { badge, DIFFICULTY_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
@@ -50,7 +51,7 @@ watch(() => props.formData.scoringRuleId, fetchScoringRule, { immediate: true })
 
 const formattedDate = computed(() => {
   if (!props.formData.startTime) return t('contests.scheduleStep.notSet')
-  return new Date(props.formData.startTime).toLocaleString()
+  return formatDateTimeByLocale(props.formData.startTime)
 })
 
 function renderDifficultyBadge(difficulty: string) {

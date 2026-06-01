@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -134,7 +135,7 @@ const columns: ColumnDef<AuditLog>[] = [
       return h(
         'span',
         { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },
-        date.toLocaleString(),
+        formatDateTimeByLocale(date),
       )
     },
   },

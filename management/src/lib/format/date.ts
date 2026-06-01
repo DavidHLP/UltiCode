@@ -1,13 +1,15 @@
+import { getActiveLocale } from '@/i18n'
+
 /**
  * Format a date to locale date string
  * @param date - Date string, Date object, or null/undefined
- * @param locale - Locale string (default: 'en-US')
+ * @param locale - Locale string (default: current active locale)
  * @param options - Intl.DateTimeFormatOptions
  * @returns Formatted date string or placeholder
  */
 export function formatDate(
   date: string | Date | null | undefined,
-  locale: string = 'en-US',
+  locale?: string,
   options: Intl.DateTimeFormatOptions = {},
 ): string {
   if (!date) return '-'
@@ -15,7 +17,7 @@ export function formatDate(
   const dateObj = typeof date === 'string' ? new Date(date) : date
   if (isNaN(dateObj.getTime())) return '-'
 
-  return dateObj.toLocaleDateString(locale, {
+  return dateObj.toLocaleDateString(locale ?? getActiveLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -26,13 +28,13 @@ export function formatDate(
 /**
  * Format a date to locale date and time string
  * @param date - Date string, Date object, or null/undefined
- * @param locale - Locale string (default: 'en-US')
+ * @param locale - Locale string (default: current active locale)
  * @param options - Intl.DateTimeFormatOptions
  * @returns Formatted date and time string or placeholder
  */
 export function formatDateTime(
   date: string | Date | null | undefined,
-  locale: string = 'en-US',
+  locale?: string,
   options: Intl.DateTimeFormatOptions = {},
 ): string {
   if (!date) return '-'
@@ -40,7 +42,7 @@ export function formatDateTime(
   const dateObj = typeof date === 'string' ? new Date(date) : date
   if (isNaN(dateObj.getTime())) return '-'
 
-  return dateObj.toLocaleString(locale, {
+  return dateObj.toLocaleString(locale ?? getActiveLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -68,7 +70,7 @@ export function formatRelativeTime(date: string | Date | null | undefined): stri
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
 
-  const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' })
+  const rtf = new Intl.RelativeTimeFormat(getActiveLocale(), { numeric: 'auto' })
 
   if (diffSecs < 60) {
     return rtf.format(-diffSecs, 'second')
@@ -93,19 +95,16 @@ export function formatRelativeTime(date: string | Date | null | undefined): stri
 /**
  * Format a date to short time string (e.g., "2:30 PM")
  * @param date - Date string, Date object, or null/undefined
- * @param locale - Locale string (default: 'en-US')
+ * @param locale - Locale string (default: current active locale)
  * @returns Formatted time string or placeholder
  */
-export function formatTime(
-  date: string | Date | null | undefined,
-  locale: string = 'en-US',
-): string {
+export function formatTime(date: string | Date | null | undefined, locale?: string): string {
   if (!date) return '-'
 
   const dateObj = typeof date === 'string' ? new Date(date) : date
   if (isNaN(dateObj.getTime())) return '-'
 
-  return dateObj.toLocaleTimeString(locale, {
+  return dateObj.toLocaleTimeString(locale ?? getActiveLocale(), {
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -114,19 +113,16 @@ export function formatTime(
 /**
  * Format a date to short date string without year (e.g., "Jan 15")
  * @param date - Date string, Date object, or null/undefined
- * @param locale - Locale string (default: 'en-US')
+ * @param locale - Locale string (default: current active locale)
  * @returns Formatted short date string or placeholder
  */
-export function formatShortDate(
-  date: string | Date | null | undefined,
-  locale: string = 'en-US',
-): string {
+export function formatShortDate(date: string | Date | null | undefined, locale?: string): string {
   if (!date) return '-'
 
   const dateObj = typeof date === 'string' ? new Date(date) : date
   if (isNaN(dateObj.getTime())) return '-'
 
-  return dateObj.toLocaleDateString(locale, {
+  return dateObj.toLocaleDateString(locale ?? getActiveLocale(), {
     month: 'short',
     day: 'numeric',
   })

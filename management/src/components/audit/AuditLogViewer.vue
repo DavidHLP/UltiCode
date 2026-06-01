@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -92,7 +93,7 @@ function handleNextPage() {
 }
 
 function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleString()
+  return formatDateTimeByLocale(date)
 }
 
 function formatAction(action: string): string {

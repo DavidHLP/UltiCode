@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
   IconCode,
   IconFileText,
@@ -61,8 +62,7 @@ const truncatedContent = computed(() => {
 })
 
 function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+  return formatDateTimeByLocale(date)
 }
 </script>
 

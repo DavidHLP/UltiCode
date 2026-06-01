@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 import { DataBlock, SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
+import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 
 const { t } = useI18n()
 
@@ -237,12 +238,12 @@ watch(
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">
               <span class="font-data text-sm tabular-nums">
-                {{ new Date(entity.joinedAt).toLocaleDateString() }}
+                {{ formatDateByLocale(entity.joinedAt) }}
               </span>
             </DataBlock>
             <DataBlock :label="$t('users.columns.lastLogin')">
               <span v-if="entity.lastLoginAt" class="font-data text-sm tabular-nums">
-                {{ new Date(entity.lastLoginAt).toLocaleDateString() }}
+                {{ formatDateByLocale(entity.lastLoginAt) }}
               </span>
               <span v-else class="text-[var(--silver-400)] italic">{{
                 $t('users.stats.never')
@@ -273,7 +274,7 @@ watch(
             <span class="font-data text-sm tabular-nums text-[var(--terminal-red)]">
               {{
                 entity.bannedUntil
-                  ? new Date(entity.bannedUntil).toLocaleString()
+                  ? formatDateTimeByLocale(entity.bannedUntil)
                   : $t('users.form.unknown')
               }}
             </span>

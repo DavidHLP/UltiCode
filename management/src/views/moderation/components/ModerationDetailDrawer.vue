@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconX, IconUser, IconFlag, IconClock, IconAlertTriangle } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -63,8 +64,7 @@ const categoryColors: Record<ReportCategory, string> = {
 }
 
 function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+  return formatDateTimeByLocale(date)
 }
 
 function getPriorityLabel(priority: number): string {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { accountApi, type Subscription } from '@/api/admin/account'
+import { formatDateByLocale } from '@/i18n/utils'
 import {
   IconCreditCard,
   IconCalendar,
@@ -66,7 +67,7 @@ async function loadSubscription() {
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
+  return formatDateByLocale(dateStr)
 }
 
 onMounted(() => {

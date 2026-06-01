@@ -225,7 +225,7 @@ onMounted(() => {
                 {{ formatAction(log.action) }}
               </Badge>
               <Badge v-if="log.entityType" variant="outline" class="text-xs px-1.5 py-0">
-                {{ t(`audit.entityTypes.${log.entityType}`) }}
+                {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>
               <span class="text-xs text-[var(--silver-500)] font-data tabular-nums truncate">
                 {{ formatDate(log.createdAt) }}
@@ -273,7 +273,7 @@ onMounted(() => {
             <!-- Performer info -->
             <div v-if="log.performer" class="flex items-center gap-2 text-xs">
               <Badge variant="secondary" class="text-xs">
-                {{ t(`users.filters.role.${log.performer.role}`) }}
+                {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
               </Badge>
               <span class="font-medium text-[var(--silver-700)] dark:text-[var(--silver-300)]">{{
                 log.performer.name || log.performer.username

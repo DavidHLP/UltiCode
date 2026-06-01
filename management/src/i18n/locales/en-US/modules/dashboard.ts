@@ -43,15 +43,6 @@ export default {
     title: 'Recent Activity',
     noActivity: 'No recent activity',
     viewAll: 'View All',
-    types: {
-      user_registered: 'New user registered',
-      problem_created: 'Problem created',
-      problem_updated: 'Problem updated',
-      contest_started: 'Contest started',
-      contest_ended: 'Contest ended',
-      submission_accepted: 'Submission accepted',
-      flag_created: 'Content flagged',
-    },
   },
 
   // System status

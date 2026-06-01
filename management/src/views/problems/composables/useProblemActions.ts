@@ -195,14 +195,14 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
         toast.success(
           t('problems.bulk.success', {
             count: successCount,
-            action: t(`problems.bulk.${bulkActionType.value}`),
+            action: t(`problems.bulk.${bulkActionType.value}`, bulkActionType.value),
           }),
         )
       } else if (successCount === 0) {
         toast.error(
           t('problems.bulk.failed', {
             count: failedCount,
-            action: t(`problems.bulk.${bulkActionType.value}`),
+            action: t(`problems.bulk.${bulkActionType.value}`, bulkActionType.value),
           }),
         )
       } else {
@@ -210,7 +210,7 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
           t('problems.bulk.partial', {
             success: successCount,
             failed: failedCount,
-            action: t(`problems.bulk.${bulkActionType.value}`),
+            action: t(`problems.bulk.${bulkActionType.value}`, bulkActionType.value),
           }),
         )
       }

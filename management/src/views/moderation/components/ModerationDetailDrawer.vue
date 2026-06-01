@@ -123,7 +123,7 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
                   statusColors[item.status],
                 ]"
               >
-                {{ t(`moderation.status.${item.status}`) }}
+                {{ t(`moderation.status.${item.status}`, item.status) }}
               </Badge>
               <div class="flex items-center gap-1.5">
                 <IconFlag :class="['h-3.5 w-3.5', getPriorityColor(item.priority)]" />
@@ -156,7 +156,7 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
                 {{ t('moderation.columns.category') }}:
               </span>
               <span :class="['text-sm font-data', categoryColors[item.primaryCategory]]">
-                {{ t(`moderation.categories.${item.primaryCategory}`) }}
+                {{ t(`moderation.categories.${item.primaryCategory}`, item.primaryCategory) }}
               </span>
             </div>
             <div class="flex items-center gap-2">

@@ -245,7 +245,7 @@ function navigateToAppeals() {
           <div v-else class="space-y-3">
             <div v-for="item in categoryData" :key="item.category" class="space-y-1">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-data">{{ t(`moderation.categories.${item.category}`) }}</span>
+                <span class="font-data">{{ t(`moderation.categories.${item.category}`, item.category) }}</span>
                 <span class="font-data tabular-nums text-[var(--silver-400)]">
                   {{ item.count }} ({{ item.percentage }}%)
                 </span>
@@ -284,7 +284,7 @@ function navigateToAppeals() {
                   :is="entityTypeIcons[entityType] || IconFileText"
                   :class="['h-4 w-4', entityTypeColors[entityType] || 'text-[var(--silver-500)]']"
                 />
-                <span class="text-sm">{{ t(`moderation.entityTypes.${entityType}`) }}</span>
+                <span class="text-sm">{{ t(`moderation.entityTypes.${entityType}`, entityType) }}</span>
               </div>
               <span class="font-data text-sm tabular-nums">{{ count }}</span>
             </div>

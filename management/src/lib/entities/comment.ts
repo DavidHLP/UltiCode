@@ -17,8 +17,13 @@ export function getCommentTypeBadgeVariant(type: CommentType): BadgeVariant {
  * Returns the badge component for a comment type
  * @param t - i18n translation function
  */
-export function getCommentTypeBadge(type: CommentType, t: (key: string) => string): VNode {
-  return h(Badge, { variant: getCommentTypeBadgeVariant(type) }, () => t(`comments.type.${type}`))
+export function getCommentTypeBadge(
+  type: CommentType,
+  t: (key: string, fallback?: string) => string,
+): VNode {
+  return h(Badge, { variant: getCommentTypeBadgeVariant(type) }, () =>
+    t(`comments.type.${type}`, type),
+  )
 }
 
 /**

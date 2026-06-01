@@ -83,18 +83,21 @@ const entityTypeColors: Record<ModeratableEntityType, string> = {
 
 // ========== Renderers ==========
 
-function renderStatusBadge(status: ReportStatus, t: (key: string) => string) {
+function renderStatusBadge(status: ReportStatus, t: (key: string, fallback?: string) => string) {
   return badge({
     color: REPORT_STATUS_COLOR_MAP[status] ?? 'neutral',
-    label: t(`moderation.reportStatus.${status}`),
+    label: t(`moderation.reportStatus.${status}`, status),
     icon: REPORT_STATUS_ICON_MAP[status],
   })
 }
 
-function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
+function renderCategoryBadge(
+  category: ReportCategory,
+  t: (key: string, fallback?: string) => string,
+) {
   return badge({
     color: CATEGORY_COLOR_MAP[category] ?? 'neutral',
-    label: t(`moderation.categories.${category}`),
+    label: t(`moderation.categories.${category}`, category),
     icon: CATEGORY_ICON_MAP[category],
     size: 'sm',
   })
@@ -109,7 +112,7 @@ function truncateText(text: string, maxLength: number): string {
  * Creates column definitions for the reports DataTable.
  */
 export function createReportsColumns(
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
   actions: ReportActions,
 ): ColumnDef<Report>[] {
   return [
@@ -190,7 +193,7 @@ export function createReportsColumns(
         return h(
           'span',
           { class: ['font-data text-xs', entityTypeColors[entityType]] },
-          t(`moderation.entityTypes.${entityType}`),
+          t(`moderation.entityTypes.${entityType}`, entityType),
         )
       },
     },

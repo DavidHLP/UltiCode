@@ -204,7 +204,7 @@ async function handleSubmit() {
                     : 'text-[var(--silver-400)]',
                 ]"
               >
-                {{ t(`contests.wizard.${step.title.toLowerCase()}`) }}
+                {{ t(`contests.wizard.${step.title.toLowerCase()}`, step.title) }}
               </span>
               <StepperSeparator
                 v-if="step.step !== steps.length"

@@ -101,7 +101,7 @@ onMounted(() => {
             </div>
             <Badge v-if="subscription" :variant="statusColor">
               <component v-if="statusIcon" :is="statusIcon" class="h-3 w-3 mr-1" />
-              {{ t(`billing.status.${subscription.status}`) }}
+              {{ t(`billing.status.${subscription.status}`, subscription.status) }}
             </Badge>
             <Badge v-else variant="secondary">
               <IconCheck class="h-3 w-3 mr-1" />
@@ -113,7 +113,7 @@ onMounted(() => {
           <!-- Plan Name -->
           <div>
             <h3 class="text-2xl font-semibold">
-              {{ subscription ? t(`billing.plans.${subscription.plan}`) : t('billing.plans.FREE') }}
+              {{ subscription ? t(`billing.plans.${subscription.plan}`, subscription.plan) : t('billing.plans.FREE') }}
             </h3>
             <p class="text-muted-foreground mt-1">
               {{
@@ -130,7 +130,7 @@ onMounted(() => {
           <div v-if="subscription" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-1">
               <p class="text-sm text-muted-foreground">{{ t('billing.statusLabel') }}</p>
-              <p class="font-medium">{{ t(`billing.status.${subscription.status}`) }}</p>
+              <p class="font-medium">{{ t(`billing.status.${subscription.status}`, subscription.status) }}</p>
             </div>
             <div class="space-y-1">
               <p class="text-sm text-muted-foreground">{{ t('billing.startedAt') }}</p>

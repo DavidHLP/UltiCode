@@ -109,7 +109,7 @@ function navigateToDetail() {
               <div class="flex flex-wrap gap-2">
                 <SemanticBadge
                   :color="CONTEST_TYPE_COLOR_MAP[entity.contestType] ?? 'neutral'"
-                  :label="t(`contests.type.${entity.contestType}`)"
+                  :label="t(`contests.type.${entity.contestType}`, entity.contestType)"
                   size="sm"
                 />
                 <SemanticBadge

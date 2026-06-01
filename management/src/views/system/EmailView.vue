@@ -352,7 +352,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <Badge :variant="getStatusVariant(log.status)">
-                  {{ t(`system.email.status.${log.status}`) }}
+                  {{ t(`system.email.status.${log.status}`, log.status) }}
                 </Badge>
               </div>
             </div>

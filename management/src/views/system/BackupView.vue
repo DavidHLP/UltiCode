@@ -292,7 +292,7 @@ onMounted(() => {
 
             <div class="flex items-center gap-2">
               <Badge :variant="getStatusVariant(backup.status)">
-                {{ t(`system.backup.status.${backup.status}`) }}
+                {{ t(`system.backup.status.${backup.status}`, backup.status) }}
               </Badge>
 
               <Button

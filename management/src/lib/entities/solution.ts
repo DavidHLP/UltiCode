@@ -46,10 +46,12 @@ export function getSolutionVisibilityIcon(visibility: SolutionVisibility): VNode
  */
 export function getSolutionVisibilityBadge(
   visibility: SolutionVisibility,
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
 ): VNode {
   const variant = getSolutionVisibilityBadgeVariant(visibility)
-  return h(Badge, { variant }, () => t(`solutions.visibility.${visibility.toLowerCase()}`))
+  return h(Badge, { variant }, () =>
+    t(`solutions.visibility.${visibility.toLowerCase()}`, visibility),
+  )
 }
 
 /**

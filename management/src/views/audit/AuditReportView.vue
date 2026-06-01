@@ -107,7 +107,7 @@ onMounted(() => {
             <Input v-model="endDate" type="date" />
           </div>
           <div class="space-y-2">
-            <Label>{{ t('auditReport.performerId') }}</Label>
+            <Label>{{ t('auditReport.performer') }}</Label>
             <Input v-model="performerFilter" :placeholder="t('auditReport.performerPlaceholder')" />
           </div>
           <div class="space-y-2">

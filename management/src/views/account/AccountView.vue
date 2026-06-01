@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
 import { toast } from 'vue-sonner'
 import {
@@ -348,7 +349,7 @@ onMounted(() => {
             <div class="space-y-1">
               <Label class="text-muted-foreground">{{ t('account.fields.joinedAt') }}</Label>
               <div class="text-sm">
-                {{ new Date(profile.joined_at).toLocaleDateString() }}
+                {{ formatDateByLocale(profile.joined_at) }}
               </div>
             </div>
           </div>
@@ -360,7 +361,7 @@ onMounted(() => {
           <div v-if="profile.last_login_at" class="space-y-1">
             <Label class="text-muted-foreground">{{ t('account.fields.lastLogin') }}</Label>
             <div class="text-sm">
-              {{ new Date(profile.last_login_at).toLocaleString() }}
+              {{ formatDateTimeByLocale(profile.last_login_at) }}
             </div>
           </div>
         </CardContent>

@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import type { ApiError } from '@/utils/request'
+import { formatNumberByLocale, formatCompactNumber } from '@/i18n/utils'
 import {
   analyticsApi,
   type UserActivityReport,
@@ -65,17 +66,15 @@ export function useAnalyticsReports() {
 
   // Format utilities
   function formatNumber(num: number): string {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-    return num.toFixed(0)
+    return formatCompactNumber(num)
   }
 
   function formatPercent(num: number): string {
-    return num.toFixed(1) + '%'
+    return formatNumberByLocale(num / 100, { style: 'percent', maximumFractionDigits: 1 })
   }
 
   function formatCurrency(num: number): string {
-    return '$' + num.toFixed(2)
+    return formatNumberByLocale(num, { style: 'currency', currency: 'USD' })
   }
 
   function formatUptime(seconds: number): string {

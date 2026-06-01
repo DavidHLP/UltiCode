@@ -48,8 +48,10 @@ export function getProblemListVisibilityIcon(visibility: ProblemListVisibility):
  */
 export function getProblemListVisibilityBadge(
   visibility: ProblemListVisibility,
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
 ): VNode {
   const variant = getProblemListVisibilityBadgeVariant(visibility)
-  return h(Badge, { variant }, () => t(`problemLists.visibility.${visibility.toLowerCase()}`))
+  return h(Badge, { variant }, () =>
+    t(`problemLists.visibility.${visibility.toLowerCase()}`, visibility),
+  )
 }

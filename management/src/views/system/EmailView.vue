@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
 import { emailApi } from '@/api/admin/email'
 import type { EmailLog, EmailTemplate, EmailStats } from '@/api/admin/email'
@@ -76,7 +77,7 @@ async function loadData() {
     stats.value = statsRes
   } catch (error) {
     console.error('Failed to load email data:', error)
-    toast.error(t('email.toast.loadFailed'))
+    toast.error(t('system.email.toast.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -94,7 +95,7 @@ function openSendDialog(template?: EmailTemplate) {
 
 async function sendEmail() {
   if (!sendForm.value.to || !sendForm.value.subject) {
-    toast.error(t('email.validation.required'))
+    toast.error(t('system.email.validation.required'))
     return
   }
 
@@ -106,12 +107,12 @@ async function sendEmail() {
       html: sendForm.value.html,
       templateId: sendForm.value.templateId || undefined,
     })
-    toast.success(t('email.toast.sendSuccess'))
+    toast.success(t('system.email.toast.sendSuccess'))
     showSendDialog.value = false
     await loadData()
   } catch (error) {
     console.error('Failed to send email:', error)
-    toast.error(t('email.toast.sendFailed'))
+    toast.error(t('system.email.toast.sendFailed'))
   } finally {
     sending.value = false
   }
@@ -141,7 +142,7 @@ function openEditTemplateDialog(template: EmailTemplate) {
 
 async function saveTemplate() {
   if (!templateForm.value.name || !templateForm.value.subject || !templateForm.value.body) {
-    toast.error(t('email.validation.required'))
+    toast.error(t('system.email.validation.required'))
     return
   }
 
@@ -159,37 +160,37 @@ async function saveTemplate() {
 
     if (editingTemplate.value) {
       await emailApi.updateTemplate(editingTemplate.value.id, data)
-      toast.success(t('email.toast.updateSuccess'))
+      toast.success(t('system.email.toast.updateSuccess'))
     } else {
       await emailApi.createTemplate(data)
-      toast.success(t('email.toast.createSuccess'))
+      toast.success(t('system.email.toast.createSuccess'))
     }
 
     showTemplateDialog.value = false
     await loadData()
   } catch (error) {
     console.error('Failed to save template:', error)
-    toast.error(t('email.toast.saveFailed'))
+    toast.error(t('system.email.toast.saveFailed'))
   } finally {
     savingTemplate.value = false
   }
 }
 
 async function deleteTemplate(template: EmailTemplate) {
-  if (!confirm(t('email.deleteConfirm', { name: template.name }))) return
+  if (!confirm(t('system.email.deleteConfirm', { name: template.name }))) return
 
   try {
     await emailApi.deleteTemplate(template.id)
-    toast.success(t('email.toast.deleteSuccess'))
+    toast.success(t('system.email.toast.deleteSuccess'))
     await loadData()
   } catch (error) {
     console.error('Failed to delete template:', error)
-    toast.error(t('email.toast.deleteFailed'))
+    toast.error(t('system.email.toast.deleteFailed'))
   }
 }
 
 function formatDate(date: string): string {
-  return new Date(date).toLocaleString()
+  return formatDateTimeByLocale(date)
 }
 
 function getStatusIcon(status: string) {
@@ -240,8 +241,8 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('email.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('email.description') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">{{ t('system.email.title') }}</h1>
+        <p class="text-muted-foreground">{{ t('system.email.description') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="loading" @click="loadData">
@@ -251,7 +252,7 @@ onMounted(() => {
         </Button>
         <Button @click="openSendDialog()">
           <IconSend class="h-4 w-4 mr-1" />
-          {{ t('email.sendEmail') }}
+          {{ t('system.email.sendEmail') }}
         </Button>
       </div>
     </div>
@@ -261,7 +262,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('email.stats.total') }}
+            {{ t('system.email.stats.total') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -271,7 +272,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('email.stats.sent') }}
+            {{ t('system.email.stats.sent') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -281,7 +282,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('email.stats.pending') }}
+            {{ t('system.email.stats.pending') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -291,7 +292,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('email.stats.failed') }}
+            {{ t('system.email.stats.failed') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -305,11 +306,11 @@ onMounted(() => {
       <TabsList>
         <TabsTrigger value="logs">
           <IconMail class="h-4 w-4 mr-1" />
-          {{ t('email.tabs.logs') }}
+          {{ t('system.email.tabs.logs') }}
         </TabsTrigger>
         <TabsTrigger value="templates">
           <IconFileText class="h-4 w-4 mr-1" />
-          {{ t('email.tabs.templates') }}
+          {{ t('system.email.tabs.templates') }}
         </TabsTrigger>
       </TabsList>
 
@@ -317,7 +318,7 @@ onMounted(() => {
       <TabsContent value="logs" class="mt-4">
         <Card>
           <CardHeader>
-            <CardTitle>{{ t('email.logs.title') }}</CardTitle>
+            <CardTitle>{{ t('system.email.logs.title') }}</CardTitle>
           </CardHeader>
           <CardContent>
             <div v-if="loading" class="flex items-center justify-center py-8">
@@ -325,7 +326,7 @@ onMounted(() => {
             </div>
 
             <div v-else-if="logs.length === 0" class="text-center py-8 text-muted-foreground">
-              {{ t('email.logs.noLogs') }}
+              {{ t('system.email.logs.noLogs') }}
             </div>
 
             <div v-else class="space-y-4">
@@ -342,7 +343,7 @@ onMounted(() => {
                   <div>
                     <div class="font-medium">{{ log.subject }}</div>
                     <div class="text-sm text-muted-foreground">
-                      {{ t('email.to') }}: {{ log.recipient }} | {{ t('email.createdAt') }}:
+                      {{ t('system.email.to') }}: {{ log.recipient }} | {{ t('system.email.createdAt') }}:
                       {{ formatDate(log.created_at) }}
                     </div>
                     <div v-if="log.error" class="text-sm text-red-500 mt-1">
@@ -351,7 +352,7 @@ onMounted(() => {
                   </div>
                 </div>
                 <Badge :variant="getStatusVariant(log.status)">
-                  {{ t(`email.status.${log.status}`) }}
+                  {{ t(`system.email.status.${log.status}`, log.status) }}
                 </Badge>
               </div>
             </div>
@@ -363,10 +364,10 @@ onMounted(() => {
       <TabsContent value="templates" class="mt-4">
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
-            <CardTitle>{{ t('email.templates.title') }}</CardTitle>
+            <CardTitle>{{ t('system.email.templates.title') }}</CardTitle>
             <Button size="sm" @click="openCreateTemplateDialog">
               <IconPlus class="h-4 w-4 mr-1" />
-              {{ t('email.templates.create') }}
+              {{ t('system.email.templates.create') }}
             </Button>
           </CardHeader>
           <CardContent>
@@ -375,7 +376,7 @@ onMounted(() => {
             </div>
 
             <div v-else-if="templates.length === 0" class="text-center py-8 text-muted-foreground">
-              {{ t('email.templates.noTemplates') }}
+              {{ t('system.email.templates.noTemplates') }}
             </div>
 
             <div v-else class="space-y-4">
@@ -415,22 +416,22 @@ onMounted(() => {
     <Dialog v-model:open="showSendDialog">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{{ t('email.sendEmail') }}</DialogTitle>
+          <DialogTitle>{{ t('system.email.sendEmail') }}</DialogTitle>
         </DialogHeader>
         <div class="space-y-4 py-4">
           <div>
-            <Label>{{ t('email.form.to') }}</Label>
+            <Label>{{ t('system.email.form.to') }}</Label>
             <Input v-model="sendForm.to" type="email" placeholder="user@example.com" />
           </div>
           <div>
-            <Label>{{ t('email.form.subject') }}</Label>
-            <Input v-model="sendForm.subject" :placeholder="t('email.form.subjectPlaceholder')" />
+            <Label>{{ t('system.email.form.subject') }}</Label>
+            <Input v-model="sendForm.subject" :placeholder="t('system.email.form.subjectPlaceholder')" />
           </div>
           <div>
-            <Label>{{ t('email.form.body') }}</Label>
+            <Label>{{ t('system.email.form.body') }}</Label>
             <Textarea
               v-model="sendForm.html"
-              :placeholder="t('email.form.bodyPlaceholder')"
+              :placeholder="t('system.email.form.bodyPlaceholder')"
               class="min-h-[200px] font-mono"
             />
           </div>
@@ -442,7 +443,7 @@ onMounted(() => {
           <Button :disabled="sending" @click="sendEmail">
             <IconLoader2 v-if="sending" class="h-4 w-4 mr-1 animate-spin" />
             <IconSend v-else class="h-4 w-4 mr-1" />
-            {{ t('email.send') }}
+            {{ t('system.email.send') }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -453,37 +454,37 @@ onMounted(() => {
       <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {{ editingTemplate ? t('email.templates.edit') : t('email.templates.create') }}
+            {{ editingTemplate ? t('system.email.templates.edit') : t('system.email.templates.create') }}
           </DialogTitle>
         </DialogHeader>
         <div class="space-y-4 py-4">
           <div>
-            <Label>{{ t('email.form.name') }}</Label>
-            <Input v-model="templateForm.name" :placeholder="t('email.form.namePlaceholder')" />
+            <Label>{{ t('system.email.form.name') }}</Label>
+            <Input v-model="templateForm.name" :placeholder="t('system.email.form.namePlaceholder')" />
           </div>
           <div>
-            <Label>{{ t('email.form.subject') }}</Label>
+            <Label>{{ t('system.email.form.subject') }}</Label>
             <Input
               v-model="templateForm.subject"
-              :placeholder="t('email.form.subjectPlaceholder')"
+              :placeholder="t('system.email.form.subjectPlaceholder')"
             />
           </div>
           <div>
-            <Label>{{ t('email.form.body') }}</Label>
+            <Label>{{ t('system.email.form.body') }}</Label>
             <Textarea
               v-model="templateForm.body"
-              :placeholder="t('email.form.bodyPlaceholder')"
+              :placeholder="t('system.email.form.bodyPlaceholder')"
               class="min-h-[200px] font-mono"
             />
           </div>
           <div>
-            <Label>{{ t('email.form.variables') }}</Label>
+            <Label>{{ t('system.email.form.variables') }}</Label>
             <Input
               v-model="templateForm.variables"
-              :placeholder="t('email.form.variablesPlaceholder')"
+              :placeholder="t('system.email.form.variablesPlaceholder')"
             />
             <p class="text-xs text-muted-foreground mt-1">
-              {{ t('email.form.variablesHelp') }}
+              {{ t('system.email.form.variablesHelp') }}
             </p>
           </div>
         </div>

@@ -59,7 +59,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
       <div class="flex flex-wrap items-center gap-2">
         <SemanticBadge
           :color="difficultyColor"
-          :label="t(`problems.difficulty.${normalizedDifficulty}`)"
+          :label="t(`problems.difficulty.${normalizedDifficulty}`, normalizedDifficulty)"
           size="sm"
         />
         <Badge

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { AnalyticsMetricCard, AnalyticsBarList } from '@/components/analytics'
 import type { MetricData, BarListItem } from '@/components/analytics'
 import type { RevenueReport } from '@/api/admin/analytics'
+import { formatNumberByLocale } from '@/i18n/utils'
 
 const { t } = useI18n()
 
@@ -19,15 +20,13 @@ const metrics = computed<MetricData[]>(() => {
   return [
     {
       title: t('analytics.revenue.mrr'),
-      value: props.formatCurrency(r.mrr),
+      value: formatNumberByLocale(r.mrr, { style: 'currency', currency: 'USD' }),
       trend: 'up',
-      prefix: '$',
     },
     {
       title: t('analytics.revenue.arr'),
-      value: props.formatCurrency(r.arr),
+      value: formatNumberByLocale(r.arr, { style: 'currency', currency: 'USD' }),
       trend: 'up',
-      prefix: '$',
     },
     {
       title: t('analytics.revenue.subscribers'),

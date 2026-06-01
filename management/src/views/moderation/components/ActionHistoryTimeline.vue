@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
   IconCheck,
   IconX,
@@ -93,8 +94,7 @@ function getActionConfig(actionType: ModerationActionType) {
 }
 
 function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+  return formatDateTimeByLocale(date)
 }
 
 function getRelativeTime(date: Date | string): string {
@@ -170,7 +170,7 @@ function getRelativeTime(date: Date | string): string {
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1">
                 <p class="text-sm font-medium">
-                  {{ t(`moderation.actions.${action.action}`) }}
+                  {{ t(`moderation.actions.${action.action}`, action.action) }}
                 </p>
                 <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
                   <IconUser class="h-3 w-3" />

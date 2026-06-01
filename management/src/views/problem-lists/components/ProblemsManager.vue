@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
+import { formatDateByLocale } from '@/i18n/utils'
 import { DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import ContestProblemPicker from '@/views/contests/components/ContestProblemPicker.vue'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
@@ -212,7 +213,7 @@ function difficultyColor(difficulty: string): string {
             </TableCell>
             <TableCell>
               <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-                {{ problem.addedAt ? new Date(problem.addedAt).toLocaleDateString() : '-' }}
+                {{ problem.addedAt ? formatDateByLocale(problem.addedAt) : '-' }}
               </span>
             </TableCell>
             <TableCell>

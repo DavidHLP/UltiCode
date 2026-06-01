@@ -44,10 +44,10 @@ const APPEAL_STATUS_COLOR_MAP: Record<AppealStatus, SemanticColor> = {
   REJECTED: 'error',
 }
 
-function renderStatusBadge(status: AppealStatus, t: (key: string) => string) {
+function renderStatusBadge(status: AppealStatus, t: (key: string, fallback?: string) => string) {
   return badge({
     color: APPEAL_STATUS_COLOR_MAP[status],
-    label: t(`moderation.appealStatus.${status}`),
+    label: t(`moderation.appealStatus.${status}`, status),
     icon: APPEAL_STATUS_ICON_MAP[status],
   })
 }
@@ -61,7 +61,7 @@ function truncateText(text: string, maxLength: number): string {
  * Creates column definitions for the appeals DataTable.
  */
 export function createAppealsColumns(
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
   actions: AppealActions,
 ): ColumnDef<Appeal>[] {
   return [

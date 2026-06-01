@@ -91,4 +91,39 @@ export default {
     invalidOperation: 'Invalid operation',
     dependencyError: 'Dependency exists, cannot perform this operation',
   },
+
+  // Error types (used by error.ts getErrorContext)
+  errorType: {
+    validation: {
+      title: 'Validation Error',
+      default: 'Please check your input data',
+      suggestion: 'Please verify the format and range of your input',
+    },
+    unauthorized: {
+      title: 'Unauthorized',
+      message: 'Please log in to continue',
+      suggestion: 'Please check your login status or log in again',
+    },
+    forbidden: {
+      title: 'Access Denied',
+      message: 'You do not have permission to perform this action',
+      suggestion: 'Please contact an administrator for the required permissions',
+    },
+    notFound: {
+      title: 'Resource Not Found',
+      message: 'The requested resource does not exist',
+      suggestion: 'Please verify the requested resource exists',
+    },
+    serverError: {
+      title: 'Server Error',
+      message: 'Internal server error, please try again later',
+      suggestion: 'Please try again later. Contact support if the problem persists',
+    },
+    network: {
+      title: 'Network Error',
+      suggestion: 'Please check your network connection and try again',
+    },
+  },
+
+  apiErrorCanceled: 'Request canceled',
 } as const

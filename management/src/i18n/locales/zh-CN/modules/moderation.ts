@@ -115,6 +115,7 @@ export default {
 
   // ========== 审核队列 ==========
   queue: {
+    pageTitle: '内容审核',
     title: '审核队列',
     description: '审核和管理被举报的内容',
     emptyTitle: '队列为空',
@@ -185,10 +186,12 @@ export default {
     confirmAction: '确认操作',
     confirming: '处理中...',
     warning: '此操作将被记录，无法撤销。',
+    days: '天',
   },
 
   // ========== 申诉视图 ==========
   appeals: {
+    pageTitle: '申诉管理',
     title: '申诉管理',
     description: '审核用户对审核决定的申诉',
     emptyTitle: '暂无申诉',
@@ -210,6 +213,7 @@ export default {
 
   // ========== 举报视图 ==========
   reports: {
+    pageTitle: '举报管理',
     title: '举报管理',
     description: '查看所有内容举报',
     emptyTitle: '暂无举报',

@@ -12,7 +12,7 @@ import type {
   SystemHealth,
 } from '@/api/admin/monitoring'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { SemanticBadge } from '@/components/ui/terminal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   IconRefresh,
@@ -189,12 +189,11 @@ onUnmounted(() => {
         </CardHeader>
         <CardContent>
           <div class="flex items-center gap-4 mb-4">
-            <Badge
-              :variant="overallStatus === 'healthy' ? 'default' : 'destructive'"
+            <SemanticBadge
+              :color="overallStatus === 'healthy' ? 'success' : 'error'"
+              :label="t(`system.monitoring.status.${overallStatus}`, overallStatus)"
               class="text-lg px-4 py-2"
-            >
-              {{ t(`system.monitoring.status.${overallStatus}`, overallStatus) }}
-            </Badge>
+            />
             <span class="text-sm text-muted-foreground">
               {{ t('system.monitoring.lastChecked') }}:
               {{ healthStatus ? formatDateTimeByLocale(healthStatus.timestamp) : '-' }}
@@ -336,11 +335,10 @@ onUnmounted(() => {
             <div class="space-y-2 text-sm">
               <div class="flex justify-between items-center">
                 <span class="text-muted-foreground">{{ t('system.monitoring.status.status') }}</span>
-                <Badge :variant="redisStats?.connected ? 'default' : 'destructive'">
-                  {{
-                    redisStats?.connected ? t('system.monitoring.connected') : t('system.monitoring.disconnected')
-                  }}
-                </Badge>
+                <SemanticBadge
+                  :color="redisStats?.connected ? 'success' : 'error'"
+                  :label="redisStats?.connected ? t('system.monitoring.connected') : t('system.monitoring.disconnected')"
+                />
               </div>
               <div v-if="redisStats?.version" class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('system.monitoring.version') }}</span>
@@ -370,9 +368,7 @@ onUnmounted(() => {
               <div v-for="queue in queueStats" :key="queue.name" class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">{{ queue.name }}</span>
-                  <Badge v-if="queue.paused" variant="secondary">
-                    {{ t('system.monitoring.paused') }}
-                  </Badge>
+                  <SemanticBadge v-if="queue.paused" color="warning" :label="t('system.monitoring.paused')" />
                 </div>
                 <div class="grid grid-cols-5 gap-2 text-xs">
                   <div class="text-center p-2 bg-muted rounded">

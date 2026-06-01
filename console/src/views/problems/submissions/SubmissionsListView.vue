@@ -24,6 +24,12 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty";
+import { SemanticBadge, SUBMISSION_STATUS_COLOR_MAP, type SemanticColor } from "@/components/ui/terminal";
+
+function getSubmissionColor(status: string): SemanticColor {
+  const normalized = status.toUpperCase().replace(/\s+/g, "_");
+  return SUBMISSION_STATUS_COLOR_MAP[normalized] ?? "neutral";
+}
 
 const props = defineProps<{
   submissions: SubmissionRecord[];
@@ -42,24 +48,6 @@ const decoratedSubmissions = computed(() => {
   return props.submissions;
 });
 
-const statusClass = (status: string) => {
-  const meta = props.statusMetaByKey[status];
-  const severity = meta?.severity ?? meta?.category;
-  switch (severity) {
-    case "success":
-      return "text-[var(--terminal-green)]";
-    case "error":
-      return "text-[var(--terminal-red)]";
-    case "warning":
-      return "text-[var(--terminal-amber)]";
-    case "info":
-      return "text-[var(--accent-electric)]";
-    default:
-      return status === "Accepted"
-        ? "text-[var(--terminal-green)]"
-        : "text-[var(--terminal-red)]";
-  }
-};
 
 const handleSelect = (submission: SubmissionRecord) => {
   emit("select", submission);
@@ -131,9 +119,11 @@ const showLoginPrompt = computed(
               @click="handleSelect(submission)"
             >
               <TableCell class="font-medium">
-                <div :class="statusClass(submission.status)">
-                  {{ submission.status }}
-                </div>
+                <SemanticBadge
+                  :color="getSubmissionColor(submission.status)"
+                  :label="submission.status"
+                  size="xs"
+                />
               </TableCell>
               <TableCell>{{ submission.language }}</TableCell>
               <TableCell class="text-center">

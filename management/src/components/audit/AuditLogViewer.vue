@@ -21,7 +21,8 @@ import {
   IconChevronUp,
 } from '@tabler/icons-vue'
 import { auditApi, type AuditLog } from '@/api/admin/audit'
-import { formatJson, getActionBadgeVariant as getBadgeVariant } from '@/views/audit/utils'
+import { formatJson } from '@/views/audit/utils'
+import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
 
 const { t } = useI18n()
 
@@ -221,9 +222,11 @@ onMounted(() => {
           <div class="flex items-center justify-between gap-2">
             <!-- Left: badges -->
             <div class="flex items-center gap-2 min-w-0 flex-1">
-              <Badge :variant="getBadgeVariant(log.action)" class="text-xs px-1.5 py-0">
-                {{ formatAction(log.action) }}
-              </Badge>
+              <SemanticBadge
+                :color="getAuditActionColor(log.action)"
+                :label="formatAction(log.action)"
+                size="sm"
+              />
               <Badge v-if="log.entityType" variant="outline" class="text-xs px-1.5 py-0">
                 {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>

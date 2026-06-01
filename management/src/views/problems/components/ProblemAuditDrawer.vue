@@ -8,8 +8,8 @@ import { auditApi, type AuditLog } from '@/api/admin/audit'
 import {
   getActionIcon,
   getActionIconColor,
-  getActionBadgeClass,
 } from '@/views/audit/utils'
+import { SemanticBadge, getAuditActionColor, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 
 const { t } = useI18n()
@@ -170,9 +170,10 @@ function formatJson(val: any): string {
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2 mb-1.5">
                 <div class="flex items-center gap-2">
-                  <span :class="['terminal-badge', getActionBadgeClass(log.action)]">
-                    {{ t(`audit.actionTypes.${log.action}`, log.action) || log.action.replace('_', ' ') }}
-                  </span>
+                  <SemanticBadge
+                    :color="getAuditActionColor(log.action)"
+                    :label="t(`audit.actionTypes.${log.action}`, log.action) || log.action.replace('_', ' ')"
+                  />
                   <span
                     v-if="log.oldValues || log.newValues"
                     class="text-xs text-[var(--silver-500)] font-data"
@@ -191,12 +192,12 @@ function formatJson(val: any): string {
                 <span class="text-[var(--silver-400)]">
                   {{ log.performer?.username || 'System' }}
                 </span>
-                <span
+                <SemanticBadge
                   v-if="log.performer?.role"
-                  class="terminal-badge terminal-badge-info text-xs scale-90 origin-left"
-                >
-                  {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
-                </span>
+                  :color="USER_ROLE_COLOR_MAP[log.performer.role] ?? 'neutral'"
+                  :label="t(`users.filters.role.${log.performer.role}`, log.performer.role)"
+                  size="sm"
+                />
               </div>
 
               <!-- IP & UA small -->

@@ -1,24 +1,7 @@
-import { h, type VNode } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariant } from './user'
+import { h, type VNode, type Component } from 'vue'
+import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import type { Difficulty } from '@/api/admin/problems'
 import { IconFlask, IconBrackets, IconSparkles } from '@tabler/icons-vue'
-
-/**
- * Returns the badge variant for a problem difficulty
- */
-export function getDifficultyBadgeVariant(difficulty: Difficulty): BadgeVariant {
-  switch (difficulty) {
-    case 'EASY':
-      return 'default'
-    case 'MEDIUM':
-      return 'secondary'
-    case 'HARD':
-      return 'destructive'
-    default:
-      return 'outline'
-  }
-}
 
 /**
  * Returns the color class for a problem difficulty
@@ -53,7 +36,23 @@ export function getDifficultyBgColor(difficulty: Difficulty): string {
 }
 
 /**
- * Returns the icon component for a problem difficulty
+ * Returns the icon component for a problem difficulty (raw Component for badge())
+ */
+export function getDifficultyIconComponent(difficulty: Difficulty): Component {
+  switch (difficulty) {
+    case 'EASY':
+      return IconFlask
+    case 'MEDIUM':
+      return IconBrackets
+    case 'HARD':
+      return IconSparkles
+    default:
+      return IconFlask
+  }
+}
+
+/**
+ * Returns the icon VNode for a problem difficulty (pre-rendered, for non-badge use)
  */
 export function getDifficultyIcon(difficulty: Difficulty): VNode {
   switch (difficulty) {
@@ -76,7 +75,10 @@ export function getDifficultyBadge(
   difficulty: Difficulty,
   t: (key: string, fallback?: string) => string,
 ): VNode {
-  return h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
-    t(`problems.difficulty.${difficulty.toLowerCase()}`, difficulty),
-  )
+  return badge({
+    color: DIFFICULTY_COLOR_MAP[difficulty?.toUpperCase()] ?? 'neutral',
+    label: t(`problems.difficulty.${difficulty?.toLowerCase()}`, difficulty),
+    icon: getDifficultyIconComponent(difficulty),
+    dot: true,
+  })
 }

@@ -7,11 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import type { AuditLog } from '@/api/admin/audit'
 import {
   formatJson,
-  getActionBadgeClass,
   getActionIcon,
   getActionIconColor,
   getEntityTypeIcon,
 } from './utils'
+import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 
 const { t } = useI18n()
@@ -61,10 +61,8 @@ const emit = defineEmits<{
             }}</span>
           </p>
           <div class="flex flex-wrap gap-2 mt-1">
-            <span :class="['terminal-badge', getActionBadgeClass(entity.action)]">
-              {{ entity.action }}
-            </span>
-            <span class="terminal-badge terminal-badge-info">ID: {{ entity.id.slice(0, 8) }}</span>
+            <SemanticBadge :color="getAuditActionColor(entity.action)" :label="entity.action" />
+            <SemanticBadge color="info" :label="`ID: ${entity.id.slice(0, 8)}`" />
           </div>
         </div>
       </div>

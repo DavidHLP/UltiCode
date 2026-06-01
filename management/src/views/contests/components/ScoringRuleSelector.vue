@@ -18,6 +18,7 @@ import {
   type ScoringRule,
   type CreateScoringRuleDto,
 } from '@/api/admin/scoring-rules'
+import { SemanticBadge } from '@/components/ui/terminal'
 
 const props = defineProps<{
   modelValue?: string
@@ -172,12 +173,12 @@ function cancelCreateNew() {
             >
               <div class="flex items-center gap-2">
                 <span>{{ rule.name }}</span>
-                <span
+                <SemanticBadge
                   v-if="rule.isDefault"
-                  class="terminal-badge-success text-[10px] px-1.5 py-0.5"
-                >
-                  {{ t('scoringRules.badges.default') }}
-                </span>
+                  color="success"
+                  :label="t('scoringRules.badges.default')"
+                  size="xs"
+                />
               </div>
             </SelectItem>
             <SelectItem
@@ -207,12 +208,12 @@ function cancelCreateNew() {
           <div class="flex items-center gap-2">
             <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
             <span class="terminal-comment">{{ selectedRule.name }}</span>
-            <span
+            <SemanticBadge
               v-if="selectedRule.isDefault"
-              class="terminal-badge-success text-[10px] px-1.5 py-0.5"
-            >
-              {{ t('scoringRules.badges.default') }}
-            </span>
+              color="success"
+              :label="t('scoringRules.badges.default')"
+              size="xs"
+            />
           </div>
         </div>
         <div class="p-4">

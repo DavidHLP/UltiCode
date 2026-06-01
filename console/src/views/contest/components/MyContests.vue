@@ -4,6 +4,7 @@ import { useContestStore } from "@/stores/contest";
 import { useRouter } from "vue-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import ContestStatusBadge from "./ContestStatusBadge.vue";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Trophy } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
@@ -72,15 +73,6 @@ function formatDate(isoString: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function getStatusBadge(status: string) {
-  const variants: Record<string, string> = {
-    UPCOMING: "default",
-    RUNNING: "destructive",
-    FINISHED: "secondary",
-  };
-  return variants[status] || "secondary";
 }
 
 function navigateToContest(slug: string) {
@@ -153,9 +145,7 @@ function navigateToContest(slug: string) {
                     >
                   </div>
                 </div>
-                <Badge :variant="getStatusBadge(contest.status) as any">
-                  {{ contest.status }}
-                </Badge>
+                <ContestStatusBadge :status="contest.status" size="sm" />
               </div>
             </div>
           </CardContent>

@@ -97,6 +97,13 @@ export default {
     cancel: '取消',
   },
 
+  // ========== 审批状态 ==========
+  approval: {
+    approved: '已通过',
+    rejected: '已拒绝',
+    pending: '审核中',
+  },
+
   // ========== 标记对话框 ==========
   flag: {
     title: '标记题解',

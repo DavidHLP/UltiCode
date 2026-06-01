@@ -156,6 +156,21 @@ export default {
     delete: 'delete',
     restore: 'restore',
     action: 'Bulk action',
+    publishTitle: 'Confirm Bulk Publish',
+    publishDescription: 'Are you sure you want to publish {count} selected problems?',
+    confirmPublish: 'Confirm Publish',
+    unpublishTitle: 'Confirm Bulk Unpublish',
+    unpublishDescription: 'Are you sure you want to unpublish {count} selected problems?',
+    confirmUnpublish: 'Confirm Unpublish',
+    deleteTitle: 'Confirm Bulk Delete',
+    deleteDescription:
+      'Are you sure you want to delete {count} selected problems? This action cannot be undone.',
+    confirmDelete: 'Confirm Delete',
+    restoreTitle: 'Confirm Bulk Restore',
+    restoreDescription: 'Are you sure you want to restore {count} selected problems?',
+    confirmRestore: 'Confirm Restore',
+    warning: 'Warning',
+    warningDescription: 'This action will affect all selected problems',
   },
 
   // Form fields

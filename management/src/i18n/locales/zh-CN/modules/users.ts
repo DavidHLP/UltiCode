@@ -106,6 +106,9 @@ export default {
     cancel: '取消',
     resetting: '重置中...',
     resetPasswordAction: '确认重置密码',
+    confirmBan: '确认封禁',
+    confirmUnban: '确认解封',
+    deleteUsers: '批量删除用户',
   },
 
   // 批量操作
@@ -168,4 +171,5 @@ export default {
 
   clearSelection: '清除选择',
   deleteConfirm: '确定要删除 {count} 个用户吗？',
+  typeToConfirm: '请输入 {text} 以确认',
 } as const

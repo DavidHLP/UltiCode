@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import {
   IconCode,
   IconFileText,
@@ -61,8 +62,7 @@ const truncatedContent = computed(() => {
 })
 
 function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+  return formatDateTimeByLocale(date)
 }
 </script>
 
@@ -93,7 +93,7 @@ function formatDate(date: Date | string): string {
         <div class="flex items-center gap-2">
           <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
           <span :class="['font-data', entityTypeColor]">
-            {{ t(`moderation.entityTypes.${entityType}`) }}
+            {{ t(`moderation.entityTypes.${entityType}`, entityType) }}
           </span>
         </div>
         <div class="flex items-center gap-2">

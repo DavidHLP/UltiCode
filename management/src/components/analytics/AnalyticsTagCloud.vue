@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatCompactNumber, formatNumberByLocale } from '@/i18n/utils'
 
 export interface TagItem {
   id: string | number
@@ -50,11 +51,9 @@ const displayTags = computed(() => {
 
 function formatValue(value: number): string {
   if (props.valueFormat === 'percent') {
-    return value.toFixed(1) + '%'
+    return formatNumberByLocale(value / 100, { style: 'percent', maximumFractionDigits: 1 })
   }
-  if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
-  if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
-  return value.toString()
+  return formatCompactNumber(value)
 }
 </script>
 

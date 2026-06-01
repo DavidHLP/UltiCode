@@ -97,6 +97,13 @@ export default {
     cancel: 'Cancel',
   },
 
+  // ========== Approval Status ==========
+  approval: {
+    approved: 'Approved',
+    rejected: 'Rejected',
+    pending: 'Pending',
+  },
+
   // ========== Flag Dialog ==========
   flag: {
     title: 'Flag Solution',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconClock, IconUser, IconInfoCircle, IconArrowRight, IconChevronDown, IconChevronRight } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 import { auditApi, type AuditLog } from '@/api/admin/audit'
@@ -170,7 +171,7 @@ function formatJson(val: any): string {
               <div class="flex items-center justify-between gap-2 mb-1.5">
                 <div class="flex items-center gap-2">
                   <span :class="['terminal-badge', getActionBadgeClass(log.action)]">
-                    {{ t(`audit.actionTypes.${log.action}`) || log.action.replace('_', ' ') }}
+                    {{ t(`audit.actionTypes.${log.action}`, log.action) || log.action.replace('_', ' ') }}
                   </span>
                   <span
                     v-if="log.oldValues || log.newValues"
@@ -181,7 +182,7 @@ function formatJson(val: any): string {
                 </div>
                 <span class="font-data text-xs text-[var(--silver-500)] tabular-nums flex items-center gap-1 shrink-0">
                   <IconClock class="h-3 w-3" />
-                  {{ new Date(log.createdAt).toLocaleString() }}
+                  {{ formatDateTimeByLocale(log.createdAt) }}
                 </span>
               </div>
 
@@ -194,7 +195,7 @@ function formatJson(val: any): string {
                   v-if="log.performer?.role"
                   class="terminal-badge terminal-badge-info text-xs scale-90 origin-left"
                 >
-                  {{ t(`users.filters.role.${log.performer.role}`) }}
+                  {{ t(`users.filters.role.${log.performer.role}`, log.performer.role) }}
                 </span>
               </div>
 

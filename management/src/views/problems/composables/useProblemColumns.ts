@@ -1,5 +1,6 @@
 import { h, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateByLocale } from '@/i18n/utils'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconAlertTriangle,
@@ -121,7 +122,7 @@ export function useProblemColumns(
         const difficulty = row.getValue('difficulty') as Difficulty
         return badge({
           color: DIFFICULTY_COLOR_MAP[difficulty] ?? 'neutral',
-          label: t(`problems.difficulty.${difficulty.toUpperCase()}`),
+          label: t(`problems.difficulty.${difficulty.toUpperCase()}`, difficulty),
           dot: true,
           icon: getDifficultyIcon(difficulty),
         })
@@ -255,7 +256,7 @@ export function useProblemColumns(
         h(
           'span',
           { class: 'text-muted-foreground text-sm' },
-          new Date(row.getValue('createdAt') as Date).toLocaleDateString(),
+          formatDateByLocale(row.getValue('createdAt') as Date),
         ),
     },
     {
@@ -359,7 +360,9 @@ export function useProblemColumns(
                                   {
                                     default: () =>
                                       h('div', { class: 'flex items-center gap-2' }, [
-                                        h(IconInfoCircle, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                                        h(IconInfoCircle, {
+                                          class: 'h-4 w-4 text-[var(--terminal-cyan)]',
+                                        }),
                                         t('audit.problemDrawer.button'),
                                       ]),
                                   },

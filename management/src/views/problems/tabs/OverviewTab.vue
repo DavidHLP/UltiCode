@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateByLocale } from '@/i18n/utils'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -139,7 +140,7 @@ const hintsList = computed(() => {
           class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted text-xs"
           :class="difficultyClass"
         >
-          {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`) }}
+          {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`, problem.difficulty) }}
         </div>
 
         <!-- Tags Button -->
@@ -258,21 +259,21 @@ const hintsList = computed(() => {
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.created') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.createdAt).toLocaleDateString()
+                      formatDateByLocale(problem.createdAt)
                     }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.updated') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.updatedAt).toLocaleDateString()
+                      formatDateByLocale(problem.updatedAt)
                     }}</span>
                   </div>
                   <div v-if="problem.publishedAt" class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.published') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.publishedAt).toLocaleDateString()
+                      formatDateByLocale(problem.publishedAt)
                     }}</span>
                   </div>
                 </div>

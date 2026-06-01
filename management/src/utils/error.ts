@@ -22,46 +22,46 @@ export function getErrorContext(
   switch (statusCode) {
     case 400:
       return {
-        title: t('errors.validation.title'),
-        message: errorMessage || t('errors.validation.default'),
-        suggestion: t('errors.validation.suggestion'),
+        title: t('errors.errorType.validation.title'),
+        message: errorMessage || t('errors.errorType.validation.default'),
+        suggestion: t('errors.errorType.validation.suggestion'),
         canRetry: false,
       }
     case 401:
       return {
-        title: t('errors.unauthorized.title'),
-        message: t('errors.unauthorized.message'),
-        suggestion: t('errors.unauthorized.suggestion'),
+        title: t('errors.errorType.unauthorized.title'),
+        message: t('errors.errorType.unauthorized.message'),
+        suggestion: t('errors.errorType.unauthorized.suggestion'),
         canRetry: false,
       }
     case 403:
       return {
-        title: t('errors.forbidden.title'),
-        message: t('errors.forbidden.message'),
-        suggestion: t('errors.forbidden.suggestion'),
+        title: t('errors.errorType.forbidden.title'),
+        message: t('errors.errorType.forbidden.message'),
+        suggestion: t('errors.errorType.forbidden.suggestion'),
         canRetry: false,
       }
     case 404:
       return {
-        title: t('errors.notFound.title'),
-        message: `${action} ${t('errors.notFound.message')}`,
-        suggestion: t('errors.notFound.suggestion'),
+        title: t('errors.errorType.notFound.title'),
+        message: `${action} ${t('errors.errorType.notFound.message')}`,
+        suggestion: t('errors.errorType.notFound.suggestion'),
         canRetry: false,
       }
     case 500:
     case 502:
     case 503:
       return {
-        title: t('errors.serverError.title'),
-        message: t('errors.serverError.message'),
-        suggestion: t('errors.serverError.suggestion'),
+        title: t('errors.errorType.serverError.title'),
+        message: t('errors.errorType.serverError.message'),
+        suggestion: t('errors.errorType.serverError.suggestion'),
         canRetry: true,
       }
     default:
       return {
-        title: t('errors.network.title'),
+        title: t('errors.errorType.network.title'),
         message: errorMessage,
-        suggestion: t('errors.network.suggestion'),
+        suggestion: t('errors.errorType.network.suggestion'),
         canRetry: true,
       }
   }

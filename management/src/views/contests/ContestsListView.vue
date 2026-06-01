@@ -210,25 +210,25 @@ async function handleDeleteContest(id: string | number) {
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('contests.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">running:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('contests.stats.running') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.running
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">upcoming:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('contests.stats.upcoming') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.upcoming
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">finished:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('contests.stats.finished') }}:</span>
           <span class="font-data text-sm text-[var(--silver-400)] tabular-nums">{{
             stats.finished
           }}</span>

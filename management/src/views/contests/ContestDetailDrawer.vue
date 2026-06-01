@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
 import { IconCalendar, IconClock, IconTrophy, IconUsers, IconExternalLink } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
@@ -108,7 +109,7 @@ function navigateToDetail() {
               <div class="flex flex-wrap gap-2">
                 <SemanticBadge
                   :color="CONTEST_TYPE_COLOR_MAP[entity.contestType] ?? 'neutral'"
-                  :label="t(`contests.type.${entity.contestType}`)"
+                  :label="t(`contests.type.${entity.contestType}`, entity.contestType)"
                   size="sm"
                 />
                 <SemanticBadge
@@ -190,7 +191,7 @@ function navigateToDetail() {
               <div class="flex items-center gap-2">
                 <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
                 <span class="font-data text-sm tabular-nums">
-                  {{ new Date(entity.startTime).toLocaleString() }}
+                  {{ formatDateTimeByLocale(entity.startTime) }}
                 </span>
               </div>
             </DataBlock>

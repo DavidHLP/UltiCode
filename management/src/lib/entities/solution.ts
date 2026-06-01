@@ -19,9 +19,9 @@ const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
 export function getSolutionVisibilityIcon(visibility: SolutionVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconEye, { class: 'h-4 w-4 text-emerald-500' })
+      return h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
     case 'PRIVATE':
-      return h(IconEyeOff, { class: 'h-4 w-4 text-amber-500' })
+      return h(IconEyeOff, { class: 'h-4 w-4 text-[var(--terminal-amber)]' })
     case 'HIDDEN':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:
@@ -51,7 +51,13 @@ export function getSolutionApprovalBadge(
   isApproved: boolean | null,
   t: (key: string) => string,
 ): VNode {
-  if (isApproved === true) return badge({ color: 'success', label: t('solutions.approval.approved'), icon: IconCircleCheckFilled })
-  if (isApproved === false) return badge({ color: 'error', label: t('solutions.approval.rejected') })
+  if (isApproved === true)
+    return badge({
+      color: 'success',
+      label: t('solutions.approval.approved'),
+      icon: IconCircleCheckFilled,
+    })
+  if (isApproved === false)
+    return badge({ color: 'error', label: t('solutions.approval.rejected') })
   return badge({ color: 'warning', label: t('solutions.approval.pending') })
 }

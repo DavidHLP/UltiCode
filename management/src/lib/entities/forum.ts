@@ -19,7 +19,8 @@ export function getForumPostStatusBadge(
 ): VNode {
   if (isDeleted) return badge({ color: 'error', label: t('forum.status.deleted'), icon: IconTrash })
   if (isLocked) return badge({ color: 'warning', label: t('forum.status.locked'), icon: IconLock })
-  if (isPinned) return badge({ color: 'success', label: t('forum.status.pinned'), icon: IconPinFilled })
+  if (isPinned)
+    return badge({ color: 'success', label: t('forum.status.pinned'), icon: IconPinFilled })
   return badge({ color: 'neutral', label: t('forum.status.active'), icon: IconMessage })
 }
 

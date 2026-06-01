@@ -124,4 +124,6 @@ export default {
       suggestion: 'Please check your network connection and try again',
     },
   },
+
+  apiErrorCanceled: 'Request canceled',
 } as const

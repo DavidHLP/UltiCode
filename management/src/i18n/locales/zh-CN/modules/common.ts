@@ -73,4 +73,5 @@ export default {
   clearSelection: '清除选择',
   reasonLabel: '标记原因',
   reasonPlaceholder: '请提供标记原因...',
+  noDataAvailable: '暂无数据',
 } as const

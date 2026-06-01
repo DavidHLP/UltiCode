@@ -52,9 +52,10 @@ export function watchLocale(callback: (locale: SupportedLocale) => void) {
  * Format a date according to current locale
  */
 export function formatDateByLocale(
-  date: Date | string,
+  date: Date | string | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
+  if (date == null) return ''
   const locale = getActiveLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
@@ -81,9 +82,10 @@ export function formatNumberByLocale(number: number, options?: Intl.NumberFormat
  * Format a date and time according to current locale
  */
 export function formatDateTimeByLocale(
-  date: Date | string,
+  date: Date | string | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
+  if (date == null) return ''
   const locale = getActiveLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
@@ -127,7 +129,8 @@ export function formatCompactNumber(num: number): string {
 /**
  * Format a relative time (e.g., "2 hours ago")
  */
-export function formatRelativeTime(date: Date | string): string {
+export function formatRelativeTime(date: Date | string | null | undefined): string {
+  if (date == null) return ''
   const locale = getActiveLocale()
   const dateObj = typeof date === 'string' ? new Date(date) : date
   const now = new Date()

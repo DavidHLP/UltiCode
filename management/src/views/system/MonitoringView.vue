@@ -159,8 +159,8 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('monitoring.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('monitoring.description') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">{{ t('system.monitoring.title') }}</h1>
+        <p class="text-muted-foreground">{{ t('system.monitoring.description') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="refreshing" @click="refresh">
@@ -183,7 +183,7 @@ onUnmounted(() => {
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <IconHeartbeat class="h-5 w-5" />
-            {{ t('monitoring.healthStatus') }}
+            {{ t('system.monitoring.healthStatus') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -192,10 +192,10 @@ onUnmounted(() => {
               :variant="overallStatus === 'healthy' ? 'default' : 'destructive'"
               class="text-lg px-4 py-2"
             >
-              {{ t(`monitoring.status.${overallStatus}`) }}
+              {{ t(`system.monitoring.status.${overallStatus}`) }}
             </Badge>
             <span class="text-sm text-muted-foreground">
-              {{ t('monitoring.lastChecked') }}:
+              {{ t('system.monitoring.lastChecked') }}:
               {{ healthStatus ? new Date(healthStatus.timestamp).toLocaleString() : '-' }}
             </span>
           </div>
@@ -226,25 +226,25 @@ onUnmounted(() => {
           <CardHeader class="pb-2">
             <CardTitle class="text-sm font-medium flex items-center gap-2">
               <IconServer class="h-4 w-4" />
-              {{ t('monitoring.systemInfo') }}
+              {{ t('system.monitoring.systemInfo') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.nodeVersion') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.nodeVersion') }}</span>
                 <span class="font-mono">{{ systemInfo?.nodeVersion }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.platform') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.platform') }}</span>
                 <span>{{ systemInfo?.platform }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.uptime') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.uptime') }}</span>
                 <span>{{ systemInfo ? formatUptime(systemInfo.uptime) : '-' }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.environment') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.environment') }}</span>
                 <span>{{ systemInfo?.env }}</span>
               </div>
             </div>
@@ -256,14 +256,14 @@ onUnmounted(() => {
           <CardHeader class="pb-2">
             <CardTitle class="text-sm font-medium flex items-center gap-2">
               <IconBrain class="h-4 w-4" />
-              {{ t('monitoring.memoryUsage') }}
+              {{ t('system.monitoring.memoryUsage') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-3">
               <div>
                 <div class="flex justify-between text-sm mb-1">
-                  <span>{{ t('monitoring.heapUsed') }}</span>
+                  <span>{{ t('system.monitoring.heapUsed') }}</span>
                   <span>{{ getMemoryPercent().toFixed(1) }}%</span>
                 </div>
                 <div class="h-2 bg-muted rounded-full overflow-hidden">
@@ -275,13 +275,13 @@ onUnmounted(() => {
               </div>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span class="text-muted-foreground">{{ t('monitoring.heapTotal') }}:</span>
+                  <span class="text-muted-foreground">{{ t('system.monitoring.heapTotal') }}:</span>
                   <span class="ml-1 font-mono">
                     {{ resourceUsage ? formatBytes(resourceUsage.memory.heapTotal) : '-' }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">{{ t('monitoring.rss') }}:</span>
+                  <span class="text-muted-foreground">{{ t('system.monitoring.rss') }}:</span>
                   <span class="ml-1 font-mono">
                     {{ resourceUsage ? formatBytes(resourceUsage.memory.rss) : '-' }}
                   </span>
@@ -296,25 +296,25 @@ onUnmounted(() => {
           <CardHeader class="pb-2">
             <CardTitle class="text-sm font-medium flex items-center gap-2">
               <IconDatabase class="h-4 w-4" />
-              {{ t('monitoring.database') }}
+              {{ t('system.monitoring.database') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.activeConnections') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.activeConnections') }}</span>
                 <span>{{ databaseStats?.activeConnections ?? 0 }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.maxConnections') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.maxConnections') }}</span>
                 <span>{{ databaseStats?.maxConnections ?? 0 }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.queryCount') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.queryCount') }}</span>
                 <span>{{ databaseStats?.queryCount ?? 0 }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.slowQueries') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.slowQueries') }}</span>
                 <span :class="{ 'text-red-500': (databaseStats?.slowQueries ?? 0) > 0 }">
                   {{ databaseStats?.slowQueries ?? 0 }}
                 </span>
@@ -334,19 +334,19 @@ onUnmounted(() => {
           <CardContent>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between items-center">
-                <span class="text-muted-foreground">{{ t('monitoring.status.status') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.status.status') }}</span>
                 <Badge :variant="redisStats?.connected ? 'default' : 'destructive'">
                   {{
-                    redisStats?.connected ? t('monitoring.connected') : t('monitoring.disconnected')
+                    redisStats?.connected ? t('system.monitoring.connected') : t('system.monitoring.disconnected')
                   }}
                 </Badge>
               </div>
               <div v-if="redisStats?.version" class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.version') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.version') }}</span>
                 <span>{{ redisStats.version }}</span>
               </div>
               <div v-if="redisStats?.usedMemory" class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('monitoring.usedMemory') }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.usedMemory') }}</span>
                 <span>{{ formatBytes(redisStats.usedMemory) }}</span>
               </div>
             </div>
@@ -358,41 +358,41 @@ onUnmounted(() => {
           <CardHeader class="pb-2">
             <CardTitle class="text-sm font-medium flex items-center gap-2">
               <IconListTree class="h-4 w-4" />
-              {{ t('monitoring.queues') }}
+              {{ t('system.monitoring.queues') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div v-if="queueStats.length === 0" class="text-sm text-muted-foreground">
-              {{ t('monitoring.noQueues') }}
+              {{ t('system.monitoring.noQueues') }}
             </div>
             <div v-else class="space-y-4">
               <div v-for="queue in queueStats" :key="queue.name" class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">{{ queue.name }}</span>
                   <Badge v-if="queue.paused" variant="secondary">
-                    {{ t('monitoring.paused') }}
+                    {{ t('system.monitoring.paused') }}
                   </Badge>
                 </div>
                 <div class="grid grid-cols-5 gap-2 text-xs">
                   <div class="text-center p-2 bg-muted rounded">
                     <div class="text-lg font-bold text-blue-500">{{ queue.waiting }}</div>
-                    <div class="text-muted-foreground">{{ t('monitoring.waiting') }}</div>
+                    <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>
                   </div>
                   <div class="text-center p-2 bg-muted rounded">
                     <div class="text-lg font-bold text-yellow-500">{{ queue.active }}</div>
-                    <div class="text-muted-foreground">{{ t('monitoring.active') }}</div>
+                    <div class="text-muted-foreground">{{ t('system.monitoring.active') }}</div>
                   </div>
                   <div class="text-center p-2 bg-muted rounded">
                     <div class="text-lg font-bold text-green-500">{{ queue.completed }}</div>
-                    <div class="text-muted-foreground">{{ t('monitoring.completed') }}</div>
+                    <div class="text-muted-foreground">{{ t('system.monitoring.completed') }}</div>
                   </div>
                   <div class="text-center p-2 bg-muted rounded">
                     <div class="text-lg font-bold text-red-500">{{ queue.failed }}</div>
-                    <div class="text-muted-foreground">{{ t('monitoring.failed') }}</div>
+                    <div class="text-muted-foreground">{{ t('system.monitoring.failed') }}</div>
                   </div>
                   <div class="text-center p-2 bg-muted rounded">
                     <div class="text-lg font-bold text-purple-500">{{ queue.delayed }}</div>
-                    <div class="text-muted-foreground">{{ t('monitoring.delayed') }}</div>
+                    <div class="text-muted-foreground">{{ t('system.monitoring.delayed') }}</div>
                   </div>
                 </div>
               </div>

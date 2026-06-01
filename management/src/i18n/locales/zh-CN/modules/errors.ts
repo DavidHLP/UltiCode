@@ -91,4 +91,37 @@ export default {
     invalidOperation: '无效的操作',
     dependencyError: '存在依赖关系，无法执行此操作',
   },
+
+  // 错误类型（用于 error.ts getErrorContext）
+  errorType: {
+    validation: {
+      title: '请求参数错误',
+      default: '请检查输入数据',
+      suggestion: '请检查输入数据的格式和范围',
+    },
+    unauthorized: {
+      title: '未授权',
+      message: '请先登录后再进行此操作',
+      suggestion: '请检查登录状态或重新登录',
+    },
+    forbidden: {
+      title: '禁止访问',
+      message: '您没有权限执行此操作',
+      suggestion: '请联系管理员获取相应权限',
+    },
+    notFound: {
+      title: '资源不存在',
+      message: '请求的资源不存在',
+      suggestion: '请检查请求的资源是否正确',
+    },
+    serverError: {
+      title: '服务器错误',
+      message: '服务器内部错误，请稍后重试',
+      suggestion: '请稍后重试，如问题持续请联系管理员',
+    },
+    network: {
+      title: '网络错误',
+      suggestion: '请检查网络连接后重试',
+    },
+  },
 } as const

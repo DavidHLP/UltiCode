@@ -32,7 +32,9 @@ export function getCommentStatusBadge(
   isDeleted: boolean,
   t: (key: string) => string,
 ): VNode {
-  if (isDeleted) return badge({ color: 'error', label: t('comments.status.deleted'), icon: IconTrash })
-  if (isFlagged) return badge({ color: 'error', label: t('comments.status.flagged'), icon: IconFlag })
+  if (isDeleted)
+    return badge({ color: 'error', label: t('comments.status.deleted'), icon: IconTrash })
+  if (isFlagged)
+    return badge({ color: 'error', label: t('comments.status.flagged'), icon: IconFlag })
   return badge({ color: 'success', label: t('comments.status.active') })
 }

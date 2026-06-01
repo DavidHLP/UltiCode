@@ -1,5 +1,5 @@
 import { h, type VNode } from 'vue'
-import { badge, type SemanticColor } from '@/components/ui/terminal'
+import { badge, PROBLEM_LIST_VISIBILITY_COLOR_MAP } from '@/components/ui/terminal'
 import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
 
 /**
@@ -7,21 +7,15 @@ import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
  */
 export type ProblemListVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED'
 
-const VISIBILITY_COLOR_MAP: Record<string, SemanticColor> = {
-  PUBLIC: 'success',
-  PRIVATE: 'warning',
-  UNLISTED: 'neutral',
-}
-
 /**
  * Returns the icon component for a problem list visibility
  */
 export function getProblemListVisibilityIcon(visibility: ProblemListVisibility): VNode {
   switch (visibility) {
     case 'PUBLIC':
-      return h(IconWorld, { class: 'h-4 w-4 text-emerald-500' })
+      return h(IconWorld, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
     case 'PRIVATE':
-      return h(IconLock, { class: 'h-4 w-4 text-amber-500' })
+      return h(IconLock, { class: 'h-4 w-4 text-[var(--terminal-amber)]' })
     case 'UNLISTED':
       return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
     default:
@@ -38,7 +32,7 @@ export function getProblemListVisibilityBadge(
   t: (key: string, fallback?: string) => string,
 ): VNode {
   return badge({
-    color: VISIBILITY_COLOR_MAP[visibility] ?? 'neutral',
+    color: PROBLEM_LIST_VISIBILITY_COLOR_MAP[visibility] ?? 'neutral',
     label: t(`problemLists.visibility.${visibility.toLowerCase()}`, visibility),
   })
 }

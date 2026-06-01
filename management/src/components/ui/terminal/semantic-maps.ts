@@ -9,5 +9,6 @@ export {
   SUBMISSION_STATUS_COLOR_MAP,
   NOTIFICATION_TYPE_COLOR_MAP,
   CONTENT_FLAG_COLOR_MAP,
+  PROBLEM_LIST_VISIBILITY_COLOR_MAP,
   getAuditActionColor,
 } from '@/shared/badge-config/src/color-maps'

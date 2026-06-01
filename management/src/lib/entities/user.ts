@@ -1,5 +1,11 @@
 import { h, type VNode } from 'vue'
-import { IconUser, IconShield, IconCircleCheckFilled, IconCircleXFilled, IconLoader } from '@tabler/icons-vue'
+import {
+  IconUser,
+  IconShield,
+  IconCircleCheckFilled,
+  IconCircleXFilled,
+  IconLoader,
+} from '@tabler/icons-vue'
 import { badge } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
 

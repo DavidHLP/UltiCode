@@ -158,6 +158,12 @@ export default {
     loading: 'Loading...',
   },
 
+  // ========== Stats ==========
+  stats: {
+    total: 'total',
+    featured: 'featured',
+  },
+
   // ========== Empty State ==========
   empty: {
     title: 'No Lists',

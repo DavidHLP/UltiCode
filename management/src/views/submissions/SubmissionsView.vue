@@ -162,10 +162,10 @@ async function batchRejudge() {
     const ids = selectedRows.value.map((r) => r.id)
     const result = await store.batchRejudge(ids)
     if (result.failed === 0) {
-      toast.success(t('submissions.batchRejudgeSuccess', { count: result.successful }))
+      toast.success(t('submissions.toast.batchRejudgeSuccess', { count: result.successful }))
     } else {
       toast.warning(
-        t('submissions.batchRejudgePartial', {
+        t('submissions.toast.batchRejudgePartial', {
           success: result.successful,
           failed: result.failed,
         }),
@@ -175,7 +175,7 @@ async function batchRejudge() {
     await loadSubmissions()
   } catch (error) {
     console.error('Failed to batch rejudge:', error)
-    toast.error(t('submissions.batchRejudgeError'))
+    toast.error(t('submissions.toast.batchRejudgeError'))
   } finally {
     batchRejudging.value = false
     batchRejudgeDialogOpen.value = false

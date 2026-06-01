@@ -106,6 +106,9 @@ export default {
     cancel: 'Cancel',
     resetting: 'Resetting...',
     resetPasswordAction: 'Confirm Reset Password',
+    confirmBan: 'Confirm Ban',
+    confirmUnban: 'Confirm Unban',
+    deleteUsers: 'Delete Users',
   },
 
   // Bulk actions
@@ -169,4 +172,5 @@ export default {
 
   clearSelection: 'Clear Selection',
   deleteConfirm: 'Are you sure you want to delete {count} users?',
+  typeToConfirm: 'Type {text} to confirm',
 } as const

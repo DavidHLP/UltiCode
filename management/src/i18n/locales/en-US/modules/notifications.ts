@@ -84,6 +84,13 @@ export default {
     userIdsPlaceholder: 'Enter user IDs, separated by commas',
     atLeastOneUserId: 'Please enter at least one user ID',
   },
+  stats: {
+    total: 'total',
+    system: 'system',
+    contest: 'contest',
+    submission: 'submission',
+    badge: 'system announcements',
+  },
   toast: {
     sentSuccessfully: 'Notification sent successfully',
     updateSuccess: 'Notification updated successfully',

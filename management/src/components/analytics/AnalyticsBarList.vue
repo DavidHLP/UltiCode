@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatCompactNumber } from '@/i18n/utils'
 
 export interface BarListItem {
   id: string | number
@@ -40,11 +41,7 @@ const displayItems = computed(() => {
   }))
 })
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-  return num.toString()
-}
+
 </script>
 
 <template>
@@ -86,7 +83,7 @@ function formatNumber(num: number): string {
                 v-if="showValue"
                 class="shrink-0 font-data text-sm tabular-nums text-foreground"
               >
-                {{ formatNumber(item.value) }}
+                {{ formatCompactNumber(item.value) }}
               </span>
             </div>
 

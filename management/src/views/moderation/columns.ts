@@ -100,10 +100,13 @@ function getPriorityStyle(priority: number): SemanticColor {
 
 // ========== Renderers ==========
 
-function renderStatusBadge(status: ModerationStatus, t: (key: string) => string) {
+function renderStatusBadge(
+  status: ModerationStatus,
+  t: (key: string, fallback?: string) => string,
+) {
   return badge({
     color: MODERATION_STATUS_COLOR_MAP[status] ?? 'neutral',
-    label: t(`moderation.status.${status}`),
+    label: t(`moderation.status.${status}`, status),
     icon: STATUS_ICON_MAP[status],
   })
 }
@@ -113,11 +116,14 @@ function renderEntityTypeBadge(entityType: ModeratableEntityType, t: (key: strin
   return badge({ color: config.color, label: t(config.label), icon: config.icon })
 }
 
-function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
+function renderCategoryBadge(
+  category: ReportCategory,
+  t: (key: string, fallback?: string) => string,
+) {
   const config = CATEGORY_CONFIG[category]
   return badge({
     color: config.color,
-    label: t(`moderation.categories.${category}`),
+    label: t(`moderation.categories.${category}`, category),
     icon: config.icon,
     size: 'sm',
   })
@@ -165,7 +171,7 @@ function truncateText(text: string, maxLength: number): string {
  * @returns Array of column definitions for @tanstack/vue-table
  */
 export function createColumns(
-  t: (key: string) => string,
+  t: (key: string, fallback?: string) => string,
   actions: ModerationActions,
 ): ColumnDef<ModerationQueueItem>[] {
   return [
@@ -335,7 +341,7 @@ export function createColumns(
         return h(
           'span',
           { class: `font-data text-xs ${colorClass}` },
-          t(`moderation.actions.${resolution}`),
+          t(`moderation.actions.${resolution}`, resolution as string),
         )
       },
     },

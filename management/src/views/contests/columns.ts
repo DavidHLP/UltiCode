@@ -42,22 +42,22 @@ const CONTEST_STATUS_ICON_MAP: Record<string, typeof IconCircleCheckFilled> = {
   CANCELLED: IconCircleCheckFilled,
 }
 
-function renderTypeBadge(type: string, t: (key: string) => string) {
+function renderTypeBadge(type: string, t: (key: string, fallback?: string) => string) {
   return badge({
     color: CONTEST_TYPE_COLOR_MAP[type] ?? 'neutral',
-    label: t(`contests.type.${type}`),
+    label: t(`contests.type.${type}`, type),
   })
 }
 
 function renderStatusBadge(
   status: string,
-  t: (key: string, params?: Record<string, unknown>) => string,
+  t: (key: string, params?: string | Record<string, unknown>) => string,
 ) {
   const color = CONTEST_STATUS_COLOR_MAP[status] ?? 'neutral'
   const icon = CONTEST_STATUS_ICON_MAP[status]
   return badge({
     color,
-    label: t(`contests.status.${status.toLowerCase()}`),
+    label: t(`contests.status.${status.toLowerCase()}`, status),
     icon,
     dot: status === 'RUNNING',
     pulse: status === 'RUNNING',
@@ -65,7 +65,7 @@ function renderStatusBadge(
 }
 
 export function createColumns(
-  t: (key: string, params?: Record<string, unknown>) => string,
+  t: (key: string, params?: string | Record<string, unknown>) => string,
   actions: ContestActions,
   canUpdate: () => boolean,
   canDelete: () => boolean,

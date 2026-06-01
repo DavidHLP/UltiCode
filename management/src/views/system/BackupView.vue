@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { formatDateTimeByLocale } from '@/i18n/utils'
 import { toast } from 'vue-sonner'
 import { backupApi } from '@/api/admin/backup'
 import type { Backup, BackupStatus } from '@/api/admin/backup'
@@ -57,7 +58,7 @@ async function loadBackups() {
     backups.value = response.items
   } catch (error) {
     console.error('Failed to load backups:', error)
-    toast.error(t('backup.toast.loadFailed'))
+    toast.error(t('system.backup.toast.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -67,11 +68,11 @@ async function createBackup() {
   creating.value = true
   try {
     await backupApi.createBackup({ type: 'FULL' })
-    toast.success(t('backup.toast.createSuccess'))
+    toast.success(t('system.backup.toast.createSuccess'))
     await loadBackups()
   } catch (error) {
     console.error('Failed to create backup:', error)
-    toast.error(t('backup.toast.createFailed'))
+    toast.error(t('system.backup.toast.createFailed'))
   } finally {
     creating.value = false
   }
@@ -80,10 +81,10 @@ async function createBackup() {
 async function downloadBackup(backup: Backup) {
   try {
     await backupApi.downloadBackup(backup.id)
-    toast.success(t('backup.toast.downloadSuccess'))
+    toast.success(t('system.backup.toast.downloadSuccess'))
   } catch (error) {
     console.error('Failed to download backup:', error)
-    toast.error(t('backup.toast.downloadFailed'))
+    toast.error(t('system.backup.toast.downloadFailed'))
   }
 }
 
@@ -104,11 +105,11 @@ async function confirmRestore() {
   restoring.value = true
   try {
     await backupApi.restoreBackup(selectedBackup.value.id)
-    toast.success(t('backup.toast.restoreSuccess'))
+    toast.success(t('system.backup.toast.restoreSuccess'))
     showRestoreDialog.value = false
   } catch (error) {
     console.error('Failed to restore backup:', error)
-    toast.error(t('backup.toast.restoreFailed'))
+    toast.error(t('system.backup.toast.restoreFailed'))
   } finally {
     restoring.value = false
   }
@@ -120,12 +121,12 @@ async function confirmDelete() {
   deleting.value = true
   try {
     await backupApi.deleteBackup(selectedBackup.value.id)
-    toast.success(t('backup.toast.deleteSuccess'))
+    toast.success(t('system.backup.toast.deleteSuccess'))
     showDeleteDialog.value = false
     await loadBackups()
   } catch (error) {
     console.error('Failed to delete backup:', error)
-    toast.error(t('backup.toast.deleteFailed'))
+    toast.error(t('system.backup.toast.deleteFailed'))
   } finally {
     deleting.value = false
   }
@@ -147,7 +148,7 @@ function formatBytes(bytes: number): string {
 
 function formatDate(date: string | null): string {
   if (!date) return '-'
-  return new Date(date).toLocaleString()
+  return formatDateTimeByLocale(date)
 }
 
 function getStatusIcon(status: BackupStatus) {
@@ -200,8 +201,8 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('backup.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('backup.description') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">{{ t('system.backup.title') }}</h1>
+        <p class="text-muted-foreground">{{ t('system.backup.description') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="loading" @click="loadBackups">
@@ -212,7 +213,7 @@ onMounted(() => {
         <Button :disabled="creating" @click="createBackup">
           <IconLoader2 v-if="creating" class="h-4 w-4 mr-1 animate-spin" />
           <IconPlus v-else class="h-4 w-4 mr-1" />
-          {{ t('backup.createBackup') }}
+          {{ t('system.backup.createBackup') }}
         </Button>
       </div>
     </div>
@@ -222,7 +223,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('backup.totalBackups') }}
+            {{ t('system.backup.totalBackups') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -232,7 +233,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('backup.completedBackups') }}
+            {{ t('system.backup.completedBackups') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -242,7 +243,7 @@ onMounted(() => {
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('backup.pendingBackups') }}
+            {{ t('system.backup.pendingBackups') }}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -256,7 +257,7 @@ onMounted(() => {
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <IconDatabase class="h-5 w-5" />
-          {{ t('backup.backupList') }}
+          {{ t('system.backup.backupList') }}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -265,7 +266,7 @@ onMounted(() => {
         </div>
 
         <div v-else-if="backups.length === 0" class="text-center py-8 text-muted-foreground">
-          {{ t('backup.noBackups') }}
+          {{ t('system.backup.noBackups') }}
         </div>
 
         <div v-else class="space-y-4">
@@ -282,8 +283,8 @@ onMounted(() => {
               <div>
                 <div class="font-medium">{{ backup.filename }}</div>
                 <div class="text-sm text-muted-foreground">
-                  {{ t('backup.type') }}: {{ backup.type }} | {{ t('backup.size') }}:
-                  {{ formatBytes(backup.size) }} | {{ t('backup.createdAt') }}:
+                  {{ t('system.backup.type') }}: {{ backup.type }} | {{ t('system.backup.size') }}:
+                  {{ formatBytes(backup.size) }} | {{ t('system.backup.createdAt') }}:
                   {{ formatDate(backup.created_at) }}
                 </div>
               </div>
@@ -291,7 +292,7 @@ onMounted(() => {
 
             <div class="flex items-center gap-2">
               <Badge :variant="getStatusVariant(backup.status)">
-                {{ t(`backup.status.${backup.status}`) }}
+                {{ t(`system.backup.status.${backup.status}`, backup.status) }}
               </Badge>
 
               <Button
@@ -338,15 +339,15 @@ onMounted(() => {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{{ t('backup.restoreBackup') }}</DialogTitle>
+          <DialogTitle>{{ t('system.backup.restoreBackup') }}</DialogTitle>
         </DialogHeader>
         <div class="py-4">
           <div class="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-lg text-yellow-600">
             <IconAlertTriangle class="h-5 w-5" />
-            <p class="text-sm">{{ t('backup.restoreWarning') }}</p>
+            <p class="text-sm">{{ t('system.backup.restoreWarning') }}</p>
           </div>
           <p class="mt-4 text-sm text-muted-foreground">
-            {{ t('backup.restoreConfirm', { filename: selectedBackup?.filename }) }}
+            {{ t('system.backup.restoreConfirm', { filename: selectedBackup?.filename }) }}
           </p>
           <div class="mt-4 space-y-2">
             <Label for="restore-confirm" class="text-sm text-destructive">
@@ -371,7 +372,7 @@ onMounted(() => {
           >
             <IconLoader2 v-if="restoring" class="h-4 w-4 mr-1 animate-spin" />
             <IconAlertTriangle v-else class="h-4 w-4 mr-1" />
-            {{ t('backup.restore') }}
+            {{ t('system.backup.restore') }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -381,11 +382,11 @@ onMounted(() => {
     <Dialog v-model:open="showDeleteDialog">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{{ t('backup.deleteBackup') }}</DialogTitle>
+          <DialogTitle>{{ t('system.backup.deleteBackup') }}</DialogTitle>
         </DialogHeader>
         <div class="py-4">
           <p class="text-sm text-muted-foreground">
-            {{ t('backup.deleteConfirm', { filename: selectedBackup?.filename }) }}
+            {{ t('system.backup.deleteConfirm', { filename: selectedBackup?.filename }) }}
           </p>
         </div>
         <DialogFooter>

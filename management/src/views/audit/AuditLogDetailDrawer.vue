@@ -88,7 +88,7 @@ const emit = defineEmits<{
                 {{ entity.performer?.username || t('audit.drawer.system') }}
               </span>
               <span class="text-xs text-[var(--silver-500)]">
-                {{ entity.performer?.role || 'SYSTEM' }}
+                {{ entity.performer?.role ? t(`users.filters.role.${entity.performer.role}`, entity.performer.role) : 'SYSTEM' }}
               </span>
             </div>
           </div>

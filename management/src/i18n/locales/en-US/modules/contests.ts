@@ -24,9 +24,19 @@ export default {
   // Contest types
   type: {
     all: 'All Types',
-    ICPC: 'ICPC',
+    biweekly: 'Biweekly',
+    weekly: 'Weekly',
+    RATED: 'Rated',
+    UNRATED: 'Unrated',
+    EDUCATIONAL: 'Educational',
+    MONTHLY: 'Monthly',
+    WEEKLY: 'Weekly',
     IOI: 'IOI',
+    ICPC: 'ICPC',
     CUSTOM: 'Custom',
+    PUBLIC: 'Public',
+    PRIVATE: 'Private',
+    VIRTUAL: 'Virtual',
   },
 
   // Contest status
@@ -34,6 +44,7 @@ export default {
     all: 'All Status',
     DRAFT: 'Draft',
     UPCOMING: 'Upcoming',
+    ONGOING: 'Ongoing',
     RUNNING: 'Running',
     FINISHED: 'Finished',
     CANCELLED: 'Cancelled',

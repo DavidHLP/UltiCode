@@ -42,6 +42,7 @@ export default {
   // 比赛状态
   status: {
     all: '全部状态',
+    DRAFT: '草稿',
     UPCOMING: '即将开始',
     ONGOING: '进行中',
     RUNNING: '进行中',

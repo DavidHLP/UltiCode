@@ -115,6 +115,7 @@ export default {
 
   // ========== Queue View ==========
   queue: {
+    pageTitle: 'Content Moderation',
     title: 'Moderation Queue',
     description: 'Review and manage reported content',
     emptyTitle: 'Queue is Empty',
@@ -185,10 +186,12 @@ export default {
     confirmAction: 'Confirm Action',
     confirming: 'Processing...',
     warning: 'This action will be logged and cannot be undone.',
+    days: 'days',
   },
 
   // ========== Appeals View ==========
   appeals: {
+    pageTitle: 'Appeals',
     title: 'Appeals',
     description: 'Review user appeals against moderation decisions',
     emptyTitle: 'No Appeals',
@@ -210,6 +213,7 @@ export default {
 
   // ========== Reports View ==========
   reports: {
+    pageTitle: 'Reports',
     title: 'Reports',
     description: 'View all content reports',
     emptyTitle: 'No Reports',

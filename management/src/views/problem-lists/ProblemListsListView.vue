@@ -162,13 +162,13 @@ const columns = createColumns(
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('problemLists.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">featured:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('problemLists.stats.featured') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.featured
           }}</span>

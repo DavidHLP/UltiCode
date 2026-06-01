@@ -84,6 +84,10 @@ export default {
   // Stats
   stats: {
     contestManagement: 'contest management',
+    total: 'total',
+    running: 'running',
+    upcoming: 'upcoming',
+    finished: 'finished',
   },
 
   // Actions
@@ -301,6 +305,8 @@ export default {
     contestNotFound: 'Contest not found',
     backToList: 'Back to List',
     hidden: 'Hidden',
+    statusPublished: 'PUBLISHED',
+    statusHidden: 'HIDDEN',
   },
 
   // Drawer

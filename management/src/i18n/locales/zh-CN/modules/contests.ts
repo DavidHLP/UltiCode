@@ -84,6 +84,10 @@ export default {
   // 统计
   stats: {
     contestManagement: '比赛管理',
+    total: '总计',
+    running: '进行中',
+    upcoming: '即将开始',
+    finished: '已结束',
   },
 
   // 操作
@@ -299,6 +303,8 @@ export default {
     contestNotFound: '未找到比赛',
     backToList: '返回列表',
     hidden: '隐藏',
+    statusPublished: '已发布',
+    statusHidden: '已隐藏',
   },
 
   // 抽屉

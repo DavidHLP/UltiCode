@@ -312,32 +312,32 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">system:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.system') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.system
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">contest:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.contest') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.contest
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">submission:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.submission') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.submission
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconBell class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">system announcements</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('notifications.stats.badge') }}</span>
         </div>
       </div>
     </div>

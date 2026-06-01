@@ -73,4 +73,5 @@ export default {
   clearSelection: 'Clear Selection',
   reasonLabel: 'Reason',
   reasonPlaceholder: 'Please provide a reason...',
+  noDataAvailable: 'No data available',
 } as const

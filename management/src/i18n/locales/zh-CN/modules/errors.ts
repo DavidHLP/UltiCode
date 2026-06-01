@@ -124,4 +124,6 @@ export default {
       suggestion: '请检查网络连接后重试',
     },
   },
+
+  apiErrorCanceled: '请求已取消',
 } as const

@@ -22,17 +22,7 @@ import {
 } from '@/api/admin/notifications'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 
-import { NOTIFICATION_TYPE_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
-
-const COLOR_TO_CLASS: Record<SemanticColor, string> = {
-  success: 'terminal-badge-success',
-  warning: 'terminal-badge-warning',
-  error: 'terminal-badge-error',
-  info: 'terminal-badge-info',
-  purple: 'terminal-badge-purple',
-  electric: 'terminal-badge-electric',
-  neutral: 'terminal-badge-neutral',
-}
+import { badge, NOTIFICATION_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -127,10 +117,6 @@ const toolbarFilters = computed<Filter[]>(() => [
   },
 ])
 
-function getTypeBadgeClass(type: string): string {
-  return COLOR_TO_CLASS[NOTIFICATION_TYPE_COLOR_MAP[type] ?? 'info']
-}
-
 function startDelete(notification: SystemAnnouncement) {
   selectedNotificationId.value = notification.id
   selectedNotificationTitle.value = notification.title
@@ -157,13 +143,10 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     accessorKey: 'type',
     header: () => t('notifications.columns.type'),
     cell: ({ row }) =>
-      h(
-        'span',
-        {
-          class: `terminal-badge ${getTypeBadgeClass(row.original.type)}`,
-        },
-        row.original.type,
-      ),
+      badge({
+        color: NOTIFICATION_TYPE_COLOR_MAP[row.original.type] ?? 'info',
+        label: row.original.type,
+      }),
   },
   {
     accessorKey: 'category',

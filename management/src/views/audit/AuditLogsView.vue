@@ -37,9 +37,7 @@ import { normalizeDateParams, type AuditLog } from '@/api/admin/audit'
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
 import {
-  getActionIcon,
-  getActionIconColor,
-  getActionBadgeClass,
+  getActionBadge,
   getEntityTypeIcon,
   AUDIT_ACTIONS_BY_ENTITY,
   AUDIT_ACTION_GROUPS,
@@ -48,6 +46,7 @@ import {
   actionTypeGroupToI18nKey,
   entityTypeToI18nKey,
 } from './utils'
+import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 
 const { t } = useI18n()
 const auditStore = useAuditStore()
@@ -144,13 +143,7 @@ const columns: ColumnDef<AuditLog>[] = [
     header: () => t('audit.columns.action'),
     cell: ({ row }) => {
       const action = row.getValue('action') as string
-      const icon = getActionIcon(action)
-      const color = getActionIconColor(action)
-      const badgeClass = getActionBadgeClass(action)
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: `h-4 w-4 ${color}` }),
-        h('span', { class: `terminal-badge ${badgeClass}` }, action),
-      ])
+      return getActionBadge(action)
     },
   },
   {
@@ -186,11 +179,11 @@ const columns: ColumnDef<AuditLog>[] = [
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
-        h(
-          'span',
-          { class: 'terminal-badge terminal-badge-info w-fit text-xs scale-90 origin-left' },
-          t(`users.filters.role.${performer.role}`, performer.role),
-        ),
+        badge({
+          color: USER_ROLE_COLOR_MAP[performer.role] ?? 'neutral',
+          label: t(`users.filters.role.${performer.role}`, performer.role),
+          size: 'sm',
+        }),
       ])
     },
   },

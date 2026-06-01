@@ -1,88 +1,46 @@
 <script setup lang="ts">
 /**
- * ContestStatusBadge - Displays contest status with appropriate styling
+ * ContestStatusBadge - Displays contest status with terminal-style colors
  *
- * Shows status badge with colors for each contest lifecycle stage:
- * - DRAFT: Gray (not ready)
- * - UPCOMING: Yellow (registered, waiting for start)
- * - RUNNING: Red (contest in progress)
- * - FINISHED: Gray (ended)
- * - CANCELLED: Muted (cancelled)
+ * Uses SemanticBadge for consistent terminal-badge styling.
  */
 import { computed } from "vue";
-import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
-import { ContestStatus } from "@/types/contest";
+import { SemanticBadge, CONTEST_STATUS_COLOR_MAP, type SemanticColor } from "@/components/ui/terminal";
 
 const props = defineProps<{
-  status: ContestStatus | string;
+  status: string;
   size?: "sm" | "md" | "lg";
 }>();
 
 const { t } = useI18n();
 
-type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "contest.status.draft",
+  UPCOMING: "contest.status.upcoming",
+  RUNNING: "contest.status.running",
+  FINISHED: "contest.status.finished",
+  CANCELLED: "contest.status.cancelled",
+};
 
-interface StatusConfig {
-  variant: BadgeVariant;
-  label: string;
-  customClass: string;
-}
+const color = computed<SemanticColor>(
+  () => CONTEST_STATUS_COLOR_MAP[props.status] ?? "neutral"
+);
 
-const statusConfig = computed((): StatusConfig => {
-  const defaultConfig: StatusConfig = {
-    variant: "secondary",
-    label: t("contest.status.draft", "Draft"),
-    customClass: "",
-  };
-
-  const configs: Record<string, StatusConfig> = {
-    DRAFT: defaultConfig,
-    UPCOMING: {
-      variant: "outline",
-      label: t("contest.status.upcoming", "Upcoming"),
-      customClass:
-        "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30",
-    },
-    RUNNING: {
-      variant: "outline",
-      label: t("contest.status.running", "Running"),
-      customClass:
-        "bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border-[var(--terminal-red)]/30 dark:bg-[var(--terminal-red)]/10 dark:text-[var(--terminal-red)] dark:border-[var(--terminal-red)]/30",
-    },
-    FINISHED: {
-      variant: "outline",
-      label: t("contest.status.finished", "Finished"),
-      customClass:
-        "bg-muted text-muted-foreground border-border",
-    },
-    CANCELLED: {
-      variant: "secondary",
-      label: t("contest.status.cancelled", "Cancelled"),
-      customClass: "",
-    },
-  };
-
-  return configs[props.status] ?? defaultConfig;
+const label = computed(() => {
+  const key = STATUS_LABELS[props.status];
+  return key ? t(key, props.status) : props.status;
 });
 
-const sizeClasses = computed(() => {
-  switch (props.size) {
-    case "sm":
-      return "text-[10px] px-1.5 py-0.5";
-    case "lg":
-      return "text-sm px-3 py-1";
-    default:
-      return "text-xs px-2 py-0.5";
-  }
+const pulse = computed(() => props.status === "RUNNING");
+
+const badgeSize = computed(() => {
+  if (props.size === "sm") return "xs" as const;
+  if (props.size === "lg") return "md" as const;
+  return "sm" as const;
 });
 </script>
 
 <template>
-  <Badge
-    :class="[sizeClasses, statusConfig.customClass]"
-    :variant="statusConfig.variant"
-  >
-    {{ statusConfig.label }}
-  </Badge>
+  <SemanticBadge :color="color" :label="label" :pulse="pulse" :size="badgeSize" />
 </template>

@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SemanticBadge } from "@/components/ui/terminal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +28,6 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Pin,
-  Lock,
   Plus,
   Loader2,
   Calendar,
@@ -159,22 +158,18 @@ onMounted(loadPosts);
                 </CardTitle>
 
                 <div class="flex flex-wrap items-center gap-2">
-                  <Badge
+                  <SemanticBadge
                     v-if="post.isPinned"
-                    variant="secondary"
-                    class="bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] gap-1 rounded-none h-5 text-[10px] font-semibold"
-                  >
-                    <Pin class="h-3 w-3" />
-                    {{ t("personal.forumPosts.pinned") }}
-                  </Badge>
-                  <Badge
+                    color="warning"
+                    :label="t('personal.forumPosts.pinned', 'Pinned')"
+                    size="xs"
+                  />
+                  <SemanticBadge
                     v-if="post.isLocked"
-                    variant="outline"
-                    class="gap-1 rounded-none h-5 text-[10px] font-semibold border-muted-foreground/30 text-muted-foreground"
-                  >
-                    <Lock class="h-3 w-3" />
-                    {{ t("personal.forumPosts.locked") }}
-                  </Badge>
+                    color="neutral"
+                    :label="t('personal.forumPosts.locked', 'Locked')"
+                    size="xs"
+                  />
                   <Badge
                     v-if="post.flair"
                     variant="secondary"

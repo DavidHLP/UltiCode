@@ -1,26 +1,11 @@
-import { h, type VNode } from 'vue'
-import { Badge } from '@/components/ui/badge'
-import type { BadgeVariant } from './user'
+import type { VNode } from 'vue'
+import { badge } from '@/components/ui/terminal'
 import { IconFlag, IconTrash, IconPinFilled, IconLock, IconMessage } from '@tabler/icons-vue'
 
 /**
  * Forum post status
  */
 export type ForumPostStatus = 'ACTIVE' | 'DELETED' | 'LOCKED' | 'PINNED'
-
-/**
- * Returns the badge variant for a forum post status
- */
-export function getForumPostStatusBadgeVariant(
-  isDeleted: boolean,
-  isLocked: boolean,
-  isPinned: boolean,
-): BadgeVariant {
-  if (isDeleted) return 'destructive'
-  if (isLocked) return 'secondary'
-  if (isPinned) return 'default'
-  return 'outline'
-}
 
 /**
  * Returns the badge component for a forum post status
@@ -32,31 +17,10 @@ export function getForumPostStatusBadge(
   isPinned: boolean,
   t: (key: string) => string,
 ): VNode {
-  if (isDeleted) {
-    return h(Badge, { variant: 'destructive' }, () => [
-      h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-      t('forum.status.deleted'),
-    ])
-  }
-
-  if (isLocked) {
-    return h(Badge, { variant: 'secondary' }, () => [
-      h(IconLock, { class: 'mr-1 h-3 w-3' }),
-      t('forum.status.locked'),
-    ])
-  }
-
-  if (isPinned) {
-    return h(Badge, { variant: 'default' }, () => [
-      h(IconPinFilled, { class: 'mr-1 h-3 w-3' }),
-      t('forum.status.pinned'),
-    ])
-  }
-
-  return h(Badge, { variant: 'outline' }, () => [
-    h(IconMessage, { class: 'mr-1 h-3 w-3' }),
-    t('forum.status.active'),
-  ])
+  if (isDeleted) return badge({ color: 'error', label: t('forum.status.deleted'), icon: IconTrash })
+  if (isLocked) return badge({ color: 'warning', label: t('forum.status.locked'), icon: IconLock })
+  if (isPinned) return badge({ color: 'success', label: t('forum.status.pinned'), icon: IconPinFilled })
+  return badge({ color: 'neutral', label: t('forum.status.active'), icon: IconMessage })
 }
 
 /**
@@ -68,9 +32,5 @@ export function getForumPostFlagBadge(
   t: (key: string) => string,
 ): VNode | null {
   if (!isFlagged) return null
-
-  return h(Badge, { variant: 'destructive' }, () => [
-    h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-    t('forum.status.flagged'),
-  ])
+  return badge({ color: 'error', label: t('forum.status.flagged'), icon: IconFlag, pulse: true })
 }

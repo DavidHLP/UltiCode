@@ -12,23 +12,13 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { useI18n } from "vue-i18n";
+import { SemanticBadge, DIFFICULTY_COLOR_MAP } from "@/components/ui/terminal";
 
 const props = defineProps<{
   problem: ProblemDetail;
 }>();
 
 const { t } = useI18n();
-
-/**
- * Difficulty color mapping
- */
-const difficultyClass = computed(() => {
-  const difficulty = props.problem.difficulty.toLowerCase();
-  if (difficulty === "easy") return "text-[var(--terminal-green)]";
-  if (difficulty === "medium") return "text-[var(--terminal-amber)]";
-  if (difficulty === "hard") return "text-[var(--terminal-red)]";
-  return "text-foreground";
-});
 
 const showTags = ref(false);
 const showCompanies = ref(false);
@@ -101,14 +91,11 @@ const problemDescription = computed<ProblemDescription>(() => ({
       <!-- Badges Row -->
       <div class="flex flex-wrap gap-1">
         <!-- Difficulty Badge -->
-        <div
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-xs font-[family-name:var(--font-mono)] uppercase tracking-wider"
-          :class="difficultyClass"
-        >
-          {{
-            t(`problem.difficulty.${props.problem.difficulty.toLowerCase()}`)
-          }}
-        </div>
+        <SemanticBadge
+          :color="DIFFICULTY_COLOR_MAP[props.problem.difficulty?.toUpperCase()] ?? 'neutral'"
+          :label="t(`problem.difficulty.${props.problem.difficulty.toLowerCase()}`)"
+          size="sm"
+        />
 
         <!-- Tags Button -->
         <button

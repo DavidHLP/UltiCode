@@ -1,3 +1,4 @@
+import type { VNode } from 'vue'
 import {
   IconCircleCheckFilled,
   IconDatabase,
@@ -13,7 +14,7 @@ import {
   IconUser,
   IconX,
 } from '@tabler/icons-vue'
-import { getAuditActionColor, type SemanticColor } from '@/components/ui/terminal'
+import { badge, getAuditActionColor, type SemanticColor } from '@/components/ui/terminal'
 
 // --- Audit action/entityType constants (mirrors AuditActionUtil.java) ---
 
@@ -110,53 +111,22 @@ export function actionTypeGroupToI18nKey(actionType: string): string {
   return `audit.actionTypeGroups.OTHER`
 }
 
-const COLOR_TO_CLASS: Record<SemanticColor, string> = {
-  success: 'terminal-badge-success',
-  warning: 'terminal-badge-warning',
-  error: 'terminal-badge-error',
-  info: 'terminal-badge-info',
-  purple: 'terminal-badge-purple',
-  electric: 'terminal-badge-electric',
-  neutral: 'terminal-badge-neutral',
-}
-
 export function formatJson(value: unknown): string {
   if (!value) return 'N/A'
   if (typeof value === 'string') return value
   return JSON.stringify(value, null, 2)
 }
 
-export function getActionBadgeVariant(
-  action: string,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const actionUpper = action.toUpperCase()
-  if (
-    actionUpper.includes('CREATE') ||
-    actionUpper.includes('GRANT') ||
-    actionUpper.includes('PUBLISH')
-  ) {
-    return 'default'
-  }
-  if (actionUpper.includes('UPDATE') || actionUpper.includes('UNBAN')) {
-    return 'secondary'
-  }
-  if (
-    actionUpper.includes('DELETE') ||
-    actionUpper.includes('BAN') ||
-    actionUpper.includes('REVOKE')
-  ) {
-    return 'destructive'
-  }
-  return 'outline'
-}
-
 /**
- * Get terminal badge class based on action type
- * @param action - The action string to determine badge style
- * @returns Terminal badge class name
+ * Returns a semantic badge VNode for an audit action.
+ * Replaces the old getActionBadgeVariant (shadcn) and getActionBadgeClass (CSS string).
  */
-export function getActionBadgeClass(action: string): string {
-  return COLOR_TO_CLASS[getAuditActionColor(action)]
+export function getActionBadge(action: string): VNode {
+  return badge({
+    color: getAuditActionColor(action),
+    label: action,
+    icon: getActionIcon(action),
+  })
 }
 
 export function getActionIcon(action: string) {

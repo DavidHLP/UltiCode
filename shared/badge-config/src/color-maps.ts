@@ -6,6 +6,10 @@ export const DIFFICULTY_COLOR_MAP: Record<string, SemanticColor> = {
   EASY: 'success',
   MEDIUM: 'warning',
   HARD: 'error',
+  // lowercase fallbacks for defensive lookup
+  easy: 'success',
+  medium: 'warning',
+  hard: 'error',
 }
 
 // ─── User Status ───────────────────────────────────────────

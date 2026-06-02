@@ -20,12 +20,12 @@
 --   SELECT id, action, entity_type, entity_id FROM audit_logs WHERE id LIKE 'audit-log-%';
 
 -- Insert test audit logs for PROBLEM entity
--- Routes: /admin/audit/logs?entityType=PROBLEM&entityId=1
+-- Routes: /admin/audit/log?entityType=PROBLEM&entityId=1
 -- Note: Assuming admin user exists with id 'u-admin-001' (from Insert_Admin_User migration)
 
 -- Audit log 1: Problem creation
 INSERT INTO `audit_logs` (`id`, `performer_id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_values`, `new_values`, `ip_address`, `user_agent`, `created_at`) VALUES
-('audit-log-001', 'u-admin-001', NULL, 'CREATE', 'PROBLEM', '1', NULL, '{"title":"Two Sum","difficulty":"Easy","status":"draft","isPublished":false}', '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', '2026-05-25 10:00:00.000')
+('audit-log-001', 'u-admin-001', NULL, 'CREATE', 'PROBLEM', '1', NULL, '{"title":"两数之和","difficulty":"Easy","status":"draft","isPublished":false}', '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', '2026-05-25 10:00:00.000')
 ON DUPLICATE KEY UPDATE `action` = VALUES(`action`);
 
 -- Audit log 2: Problem published
@@ -35,7 +35,7 @@ ON DUPLICATE KEY UPDATE `action` = VALUES(`action`);
 
 -- Audit log 3: Problem details updated
 INSERT INTO `audit_logs` (`id`, `performer_id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_values`, `new_values`, `ip_address`, `user_agent`, `created_at`) VALUES
-('audit-log-003', 'u-admin-001', NULL, 'UPDATE', 'PROBLEM', '1', '{"title":"Two Sum"}', '{"title":"Two Sum (Updated)"}', '192.168.1.100', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36', '2026-05-26 14:30:00.000')
+('audit-log-003', 'u-admin-001', NULL, 'UPDATE', 'PROBLEM', '1', '{"title":"两数之和"}', '{"title":"两数之和（已更新）"}', '192.168.1.100', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36', '2026-05-26 14:30:00.000')
 ON DUPLICATE KEY UPDATE `action` = VALUES(`action`);
 
 -- Audit log 4: Difficulty changed
@@ -45,7 +45,7 @@ ON DUPLICATE KEY UPDATE `action` = VALUES(`action`);
 
 -- Audit log 5: Content moderated - approved
 INSERT INTO `audit_logs` (`id`, `performer_id`, `user_id`, `action`, `entity_type`, `entity_id`, `old_values`, `new_values`, `ip_address`, `user_agent`, `created_at`) VALUES
-('audit-log-005', 'u-admin-001', NULL, 'MODERATE_APPROVE', 'PROBLEM', '1', '{"moderationStatus":"pending","moderationMessage":null}', '{"moderationStatus":"approved","moderationMessage":"All checks passed"}', '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', '2026-05-28 11:00:00.000')
+('audit-log-005', 'u-admin-001', NULL, 'MODERATE_APPROVE', 'PROBLEM', '1', '{"moderationStatus":"pending","moderationMessage":null}', '{"moderationStatus":"approved","moderationMessage":"所有检查已通过"}', '192.168.1.100', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', '2026-05-28 11:00:00.000')
 ON DUPLICATE KEY UPDATE `action` = VALUES(`action`);
 
 -- Audit log 6: Tags updated

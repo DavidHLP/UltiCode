@@ -12,3 +12,5 @@ export {
   PROBLEM_LIST_VISIBILITY_COLOR_MAP,
   getAuditActionColor,
 } from './color-maps'
+export { badge } from './useSemanticBadge'
+export { cn } from './utils/cn'

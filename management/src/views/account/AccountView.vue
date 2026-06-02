@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import { formatDateByLocale, formatDateTimeByLocale } from '@/i18n/utils'
 import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
 import { toast } from 'vue-sonner'
@@ -343,7 +343,10 @@ onMounted(() => {
             <div class="space-y-1">
               <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
               <div>
-                <Badge>{{ t(`users.filters.role.${profile.role}`) !== `users.filters.role.${profile.role}` ? t(`users.filters.role.${profile.role}`) : profile.role }}</Badge>
+                <SemanticBadge
+                  :color="USER_ROLE_COLOR_MAP[profile.role] || 'neutral'"
+                  :label="t(`users.filters.role.${profile.role}`) !== `users.filters.role.${profile.role}` ? t(`users.filters.role.${profile.role}`) : profile.role"
+                />
               </div>
             </div>
             <div class="space-y-1">

@@ -1,6 +1,13 @@
-export { default as SemanticBadge } from './SemanticBadge.vue'
-export { badge } from './useSemanticBadge'
-export type { SemanticColor, BadgeOptions } from './semantic-types'
+/**
+ * Terminal UI barrel — re-exports from the shared `shared/badge-config` module.
+ * The previous local SemanticBadge / useSemanticBadge / semantic-types copies
+ * have been removed; this barrel provides a single shared source for both
+ * console and management frontends.
+ */
+export { default as SemanticBadge } from '@/shared/badge-config/src/SemanticBadge.vue'
+export { badge } from '@/shared/badge-config/src/useSemanticBadge'
+export { cn } from '@/shared/badge-config/src/utils/cn'
+export type { SemanticColor, BadgeOptions } from '@/shared/badge-config/src/semantic-colors'
 export {
   DIFFICULTY_COLOR_MAP,
   USER_STATUS_COLOR_MAP,
@@ -9,4 +16,4 @@ export {
   CONTEST_TYPE_COLOR_MAP,
   SUBMISSION_STATUS_COLOR_MAP,
   PROBLEM_LIST_VISIBILITY_COLOR_MAP,
-} from './semantic-maps'
+} from '@/shared/badge-config/src/color-maps'

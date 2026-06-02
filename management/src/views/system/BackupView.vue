@@ -6,7 +6,7 @@ import { toast } from 'vue-sonner'
 import { backupApi } from '@/api/admin/backup'
 import type { Backup, BackupStatus } from '@/api/admin/backup'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { SemanticBadge, type SemanticColor } from '@/components/ui/terminal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
@@ -179,14 +179,14 @@ function getStatusColor(status: BackupStatus): string {
   }
 }
 
-function getStatusVariant(status: BackupStatus): 'default' | 'secondary' | 'destructive' {
+function getStatusBadgeColor(status: BackupStatus): SemanticColor {
   switch (status) {
     case 'COMPLETED':
-      return 'default'
+      return 'success'
     case 'FAILED':
-      return 'destructive'
+      return 'error'
     default:
-      return 'secondary'
+      return 'neutral'
   }
 }
 
@@ -291,9 +291,9 @@ onMounted(() => {
             </div>
 
             <div class="flex items-center gap-2">
-              <Badge :variant="getStatusVariant(backup.status)">
+              <SemanticBadge :color="getStatusBadgeColor(backup.status)">
                 {{ t(`system.backup.status.${backup.status}`, backup.status) }}
-              </Badge>
+              </SemanticBadge>
 
               <Button
                 v-if="backup.status === 'COMPLETED'"

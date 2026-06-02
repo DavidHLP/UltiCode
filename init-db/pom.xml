@@ -61,10 +61,8 @@
                     <locations>
                         <location>filesystem:${project.basedir}/migrations</location>
                     </locations>
-                    <baselineOnMigrate>true</baselineOnMigrate>
-                    <baselineVersion>20260530130501</baselineVersion>
-                    <baselineDescription>Initial baseline from existing database</baselineDescription>
-                    <outOfOrder>true</outOfOrder>
+                    <outOfOrder>false</outOfOrder>
+                    <validateOnMigrate>true</validateOnMigrate>
                 </configuration>
             </plugin>
         </plugins>

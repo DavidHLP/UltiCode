@@ -51,9 +51,9 @@ VALUES
 
 -- ============================================================
 -- 5. Forum Community Rules
--- columns: id, community_id, title, body, rule_order, created_at
+-- columns: id, community_id, title, body, sort_order, created_at
 -- ============================================================
-INSERT IGNORE INTO `forum_community_rules` (`id`, `community_id`, `title`, `body`, `rule_order`, `created_at`)
+INSERT IGNORE INTO `forum_community_rules` (`id`, `community_id`, `title`, `body`, `sort_order`, `created_at`)
 VALUES
 ('fcr-001', 'fc-algo', '尊重他人', '请保持友善和尊重，禁止人身攻击', 1, NOW(3)),
 ('fcr-002', 'fc-algo', '标明来源', '转载题目或题解请标明来源', 2, NOW(3)),
@@ -62,16 +62,16 @@ VALUES
 
 -- ============================================================
 -- 6. Forum Tags
--- columns: id, label, slug, color, description, usage_count, created_at, updated_at
+-- columns: id, name, slug, description, color, usage_count, created_at
 -- ============================================================
-INSERT IGNORE INTO `forum_tags` (`id`, `label`, `slug`, `color`, `description`, `usage_count`, `created_at`, `updated_at`)
+INSERT IGNORE INTO `forum_tags` (`id`, `name`, `slug`, `description`, `color`, `usage_count`, `created_at`)
 VALUES
-('ft-dp', '动态规划', 'dynamic-programming', '#3B82F6', '动态规划相关讨论', 45, NOW(3), NOW(3)),
-('ft-graph', '图论', 'graph-theory', '#10B981', '图论算法讨论', 32, NOW(3), NOW(3)),
-('ft-greedy', '贪心', 'greedy', '#F59E0B', '贪心算法讨论', 28, NOW(3), NOW(3)),
-('ft-string', '字符串', 'string', '#EF4444', '字符串处理算法', 51, NOW(3), NOW(3)),
-('ft-math', '数学', 'math', '#8B5CF6', '数学相关题目讨论', 22, NOW(3), NOW(3)),
-('ft-contest', '竞赛', 'contest', '#EC4899', '各类编程竞赛讨论', 38, NOW(3), NOW(3));
+('ft-dp', '动态规划', 'dynamic-programming', '动态规划相关讨论', '#3B82F6', 45, NOW(3)),
+('ft-graph', '图论', 'graph-theory', '图论算法讨论', '#10B981', 32, NOW(3)),
+('ft-greedy', '贪心', 'greedy', '贪心算法讨论', '#F59E0B', 28, NOW(3)),
+('ft-string', '字符串', 'string', '字符串处理算法', '#EF4444', 51, NOW(3)),
+('ft-math', '数学', 'math', '数学相关题目讨论', '#8B5CF6', 22, NOW(3)),
+('ft-contest', '竞赛', 'contest', '各类编程竞赛讨论', '#EC4899', 38, NOW(3));
 
 -- ============================================================
 -- 7. Forum Posts
@@ -88,16 +88,17 @@ VALUES
 
 -- ============================================================
 -- 8. Forum Post Tag Relations
+-- columns: post_id, tag_id (composite primary key, no id or created_at)
 -- ============================================================
-INSERT IGNORE INTO `forum_post_tag_relations` (`id`, `post_id`, `tag_id`, `created_at`)
+INSERT IGNORE INTO `forum_post_tag_relations` (`post_id`, `tag_id`)
 VALUES
-('fptr-001', 'fp-001', 'ft-dp', NOW(3)),
-('fptr-002', 'fp-002', 'ft-string', NOW(3)),
-('fptr-003', 'fp-003', 'ft-contest', NOW(3)),
-('fptr-004', 'fp-004', 'ft-contest', NOW(3)),
-('fptr-005', 'fp-004', 'ft-math', NOW(3)),
-('fptr-006', 'fp-005', 'ft-graph', NOW(3)),
-('fptr-007', 'fp-006', 'ft-greedy', NOW(3));
+('fp-001', 'ft-dp'),
+('fp-002', 'ft-string'),
+('fp-003', 'ft-contest'),
+('fp-004', 'ft-contest'),
+('fp-004', 'ft-math'),
+('fp-005', 'ft-graph'),
+('fp-006', 'ft-greedy');
 
 -- ============================================================
 -- 9. Forum Comments

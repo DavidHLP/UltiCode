@@ -28,9 +28,11 @@ export interface ProblemListActions {
   deleteList: (list: ProblemList) => void
 }
 
-function renderVisibilityBadge(isPublic: boolean) {
-  if (isPublic) return badge({ color: 'success', label: 'PUBLIC', icon: IconEye })
-  return badge({ color: 'neutral', label: 'PRIVATE', icon: IconEyeOff })
+function renderVisibilityBadge(isPublic: boolean, t: (key: string) => string) {
+  if (isPublic) {
+    return badge({ color: 'success', label: t('problemLists.visibility.public'), icon: IconEye })
+  }
+  return badge({ color: 'neutral', label: t('problemLists.visibility.private'), icon: IconEyeOff })
 }
 
 // Terminal-style featured badge renderer
@@ -137,7 +139,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const isPublic = row.getValue('isPublic') as boolean
-        return renderVisibilityBadge(isPublic)
+        return renderVisibilityBadge(isPublic, t)
       },
     },
     {

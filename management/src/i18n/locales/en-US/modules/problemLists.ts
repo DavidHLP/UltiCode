@@ -44,6 +44,13 @@ export default {
     total: 'Total',
   },
 
+  // ========== Visibility ==========
+  visibility: {
+    public: 'Public',
+    private: 'Private',
+    unlisted: 'Unlisted',
+  },
+
   // ========== Actions ==========
   actions: {
     view: 'View',

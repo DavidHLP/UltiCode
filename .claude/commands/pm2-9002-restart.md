@@ -1,5 +1,4 @@
-Restart ulticode-9002 (port 9002).
-
+Restart ulticode-9002 (Console Frontend).
 ```bash
-cd "/home/davidhlp/project/UltiCode" && pm2 restart ulticode-9002
+cd "/home/david/project/UltiCode-Public-Next" && pm2 restart ulticode-9002
 ```

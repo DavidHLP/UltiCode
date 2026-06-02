@@ -1,5 +1,4 @@
-Restart ulticode-9003 (port 9003).
-
+Restart ulticode-9003 (Management Frontend).
 ```bash
-cd "/home/davidhlp/project/UltiCode" && pm2 restart ulticode-9003
+cd "/home/david/project/UltiCode-Public-Next" && pm2 restart ulticode-9003
 ```

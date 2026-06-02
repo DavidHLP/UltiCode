@@ -1,5 +1,4 @@
-Stop ulticode-9001 (port 9001).
-
+Stop ulticode-9001 (Backend).
 ```bash
-cd "/home/davidhlp/project/UltiCode" && pm2 stop ulticode-9001
+cd "/home/david/project/UltiCode-Public-Next" && pm2 stop ulticode-9001
 ```

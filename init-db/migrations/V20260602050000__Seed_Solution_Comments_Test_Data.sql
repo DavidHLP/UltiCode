@@ -5,7 +5,7 @@
 -- ============================================================
 
 -- 用户映射 (与 forum_comments 一致):
---   u-admin-001    → admin (SUPER_ADMIN)
+--   admin-001    → admin (SUPER_ADMIN)
 --   user-alice-001 → alice_coder (Alice Johnson)
 --   user-bob-002   → bob_dev (Bob Smith)
 --   user-carol-003 → carol_wu (Carol Wu)
@@ -42,7 +42,7 @@ INSERT IGNORE INTO solution_comments (id, solution_id, parent_id, user_id, conte
 ('sc-014', 'sol-002', NULL,        'user-david-004', '直接从 LeetCode 讨论板复制粘贴的，不是原创。', DATE_SUB(NOW(3), INTERVAL 2 DAY), DATE_SUB(NOW(3), INTERVAL 2 DAY), 1, '指控缺乏证据，标记待审核', DATE_SUB(NOW(3), INTERVAL 2 DAY), 0, NULL, NULL),
 
 -- ▸ deleted 评论 (1 条)
-('sc-015', 'sol-003', NULL,        'user-frank-006', '[已被管理员删除]', DATE_SUB(NOW(3), INTERVAL 4 DAY), DATE_SUB(NOW(3), INTERVAL 4 DAY), 1, '垃圾信息 / 推广内容', DATE_SUB(NOW(3), INTERVAL 4 DAY), 1, DATE_SUB(NOW(3), INTERVAL 4 DAY), 'u-admin-001'),
+('sc-015', 'sol-003', NULL,        'user-frank-006', '[已被管理员删除]', DATE_SUB(NOW(3), INTERVAL 4 DAY), DATE_SUB(NOW(3), INTERVAL 4 DAY), 1, '垃圾信息 / 推广内容', DATE_SUB(NOW(3), INTERVAL 4 DAY), 1, DATE_SUB(NOW(3), INTERVAL 4 DAY), 'admin-001'),
 
 -- ▸ 最近 24 小时的评论 (3 条)
 ('sc-016', 'sol-004', NULL,        'user-alice-001', 'JavaScript 的 Map 解这道题特别优雅，解构赋值更是加分。', DATE_SUB(NOW(3), INTERVAL 6 HOUR), DATE_SUB(NOW(3), INTERVAL 6 HOUR), 0, NULL, NULL, 0, NULL, NULL),

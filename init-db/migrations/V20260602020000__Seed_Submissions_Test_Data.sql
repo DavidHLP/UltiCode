@@ -295,7 +295,7 @@ JSON_ARRAY(0,1,2,3,4,5,6,7,8,10),
 0),
 
 -- 管理员：管理员测试提交
-('sub-029', 1, 'u-admin-001', 'python3',
+('sub-029', 1, 'admin-001', 'python3',
 'def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]',
 'Accepted', 285, 14.0, '管理员测试',
 DATE_SUB(NOW(), INTERVAL 10 DAY), 10.0, 97.0,
@@ -305,7 +305,7 @@ JSON_ARRAY(0,50,100,150,200,250,280,300,350,400),
 0),
 
 -- 管理员：C++ 测试
-('sub-030', 1, 'u-admin-001', 'cpp17',
+('sub-030', 1, 'admin-001', 'cpp17',
 'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> m;\n        for (int i = 0; i < nums.size(); i++) {\n            if (m.count(target - nums[i]))\n                return {m[target - nums[i]], i};\n            m[nums[i]] = i;\n        }\n        return {};\n    }\n};',
 'Accepted', 3, 11.5, '管理员 C++ 测试',
 DATE_SUB(NOW(), INTERVAL 10 DAY) + INTERVAL 20 MINUTE, 98.0, 97.5,

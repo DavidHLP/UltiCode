@@ -233,9 +233,9 @@ async function copyToClipboard() {
     </div>
 
     <!-- Code Display -->
-    <div class="relative rounded-xl border bg-card overflow-hidden">
+    <div class="relative overflow-hidden border border-[var(--silver-200)] bg-[var(--card)] dark:border-[var(--silver-200)]">
       <!-- Code Header -->
-      <div class="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
+      <div class="flex items-center justify-between border-b border-[var(--silver-200)] bg-[var(--surface-sunken)] px-4 py-2.5 dark:border-[var(--silver-200)]">
         <div class="flex items-center gap-3">
           <Badge
             v-if="showLanguageSelector && hasLanguages"
@@ -264,7 +264,7 @@ async function copyToClipboard() {
       </div>
 
       <!-- Code Content -->
-      <div v-if="hasCode" class="p-4 overflow-x-auto bg-slate-100 border-t">
+      <div v-if="hasCode" class="code-viewer-surface overflow-x-auto border-t border-[var(--silver-100)] p-4 dark:border-[var(--silver-200)]">
         <pre class="text-sm font-mono whitespace-pre-wrap break-words"><code
           class="hljs"
           :class="`language-${getHighlightLanguage(displayLanguage)}`"

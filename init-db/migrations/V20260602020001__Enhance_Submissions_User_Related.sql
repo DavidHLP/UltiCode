@@ -10,7 +10,7 @@
 
 -- Problem 2: 反转链表（简单）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(2, 'reverse-linked-list', '反转链表', 'Easy', 72.50, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(2, 'reverse-linked-list', '反转链表', 'Easy', 72.50, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -25,7 +25,7 @@ ON DUPLICATE KEY UPDATE `starter_code` = VALUES(`starter_code`);
 
 -- Problem 3: 有效的括号（简单）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(3, 'valid-parentheses', '有效的括号', 'Easy', 40.80, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(3, 'valid-parentheses', '有效的括号', 'Easy', 40.80, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -40,7 +40,7 @@ ON DUPLICATE KEY UPDATE `starter_code` = VALUES(`starter_code`);
 
 -- Problem 4: 二叉树的中序遍历（中等）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(4, 'binary-tree-inorder', '二叉树的中序遍历', 'Medium', 72.10, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(4, 'binary-tree-inorder', '二叉树的中序遍历', 'Medium', 72.10, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -54,7 +54,7 @@ ON DUPLICATE KEY UPDATE `starter_code` = VALUES(`starter_code`);
 
 -- Problem 5: 合并两个有序链表（简单）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(5, 'merge-two-sorted-lists', '合并两个有序链表', 'Easy', 62.30, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(5, 'merge-two-sorted-lists', '合并两个有序链表', 'Easy', 62.30, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -68,7 +68,7 @@ ON DUPLICATE KEY UPDATE `starter_code` = VALUES(`starter_code`);
 
 -- Problem 10: 爬楼梯（简单）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(10, 'climbing-stairs', '爬楼梯', 'Easy', 51.50, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(10, 'climbing-stairs', '爬楼梯', 'Easy', 51.50, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -82,7 +82,7 @@ ON DUPLICATE KEY UPDATE `starter_code` = VALUES(`starter_code`);
 
 -- Problem 20: 买卖股票的最佳时机（简单）
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `published_at`, `published_by`, `created_at`, `updated_at`, `version`) VALUES
-(20, 'best-time-to-buy-sell-stock', '买卖股票的最佳时机', 'Easy', 54.20, 'todo', 0, 1, 1, NOW(), 'u-admin-001', NOW(), NOW(), 1)
+(20, 'best-time-to-buy-sell-stock', '买卖股票的最佳时机', 'Easy', 54.20, 'todo', 0, 1, 1, NOW(), 'admin-001', NOW(), NOW(), 1)
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
 
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `difficulty_rating`, `constraints_json`, `hints`, `updated_at`) VALUES
@@ -165,7 +165,7 @@ JSON_ARRAY(0,5,10,15,20,25,30,35,40,50),
 
 -- Alice P20: 买卖股票的最佳时机 - Python 一次遍历
 ('sub-a05', 20, 'user-alice-001', 'python3',
-'class Solution:\n    def maxProfit(self, prices):\n        min_price = float('inf')\n        max_profit = 0\n        for price in prices:\n            min_price = min(min_price, price)\n            max_profit = max(max_profit, price - min_price)\n        return max_profit',
+'class Solution:\n    def maxProfit(self, prices):\n        min_price = float(''inf'')\n        max_profit = 0\n        for price in prices:\n            min_price = min(min_price, price)\n            max_profit = max(max_profit, price - min_price)\n        return max_profit',
 'Accepted', 68, 22.0, '一次遍历，O(n) 时间 O(1) 空间',
 DATE_SUB(NOW(), INTERVAL 5 DAY), 93.0, 88.0,
 JSON_ARRAY(JSON_OBJECT('status', 'AC', 'time', 5, 'memory', 20.5)),
@@ -679,7 +679,7 @@ JSON_ARRAY(0,0,0,0,1,1,1,2,2,3),
 -- Admin: 管理员测试提交
 -- ============================================================
 
-('sub-x01', 1, 'u-admin-001', 'python3',
+('sub-x01', 1, 'admin-001', 'python3',
 'def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i+1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]',
 'Accepted', 285, 14.0, '管理员暴力测试',
 DATE_SUB(NOW(), INTERVAL 20 DAY), 10.0, 97.0,
@@ -688,7 +688,7 @@ JSON_ARRAY(0,1,2,4,6,8,9,10,11,12),
 JSON_ARRAY(0,50,100,150,200,250,280,300,350,400),
 0),
 
-('sub-x02', 1, 'u-admin-001', 'cpp17',
+('sub-x02', 1, 'admin-001', 'cpp17',
 'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        unordered_map<int, int> m;\n        for (int i = 0; i < nums.size(); i++) {\n            if (m.count(target - nums[i]))\n                return {m[target - nums[i]], i};\n            m[nums[i]] = i;\n        }\n        return {};\n    }\n};',
 'Accepted', 3, 11.5, '管理员 C++ 测试',
 DATE_SUB(NOW(), INTERVAL 20 DAY) + INTERVAL 20 MINUTE, 98.0, 97.5,

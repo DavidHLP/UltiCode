@@ -6,7 +6,7 @@ import { toast } from 'vue-sonner'
 import { emailApi } from '@/api/admin/email'
 import type { EmailLog, EmailTemplate, EmailStats } from '@/api/admin/email'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { SemanticBadge, type SemanticColor } from '@/components/ui/terminal'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -219,14 +219,14 @@ function getStatusColor(status: string): string {
   }
 }
 
-function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' {
+function getStatusBadgeColor(status: string): SemanticColor {
   switch (status) {
     case 'SENT':
-      return 'default'
+      return 'success'
     case 'FAILED':
-      return 'destructive'
+      return 'error'
     default:
-      return 'secondary'
+      return 'neutral'
   }
 }
 
@@ -351,9 +351,9 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                <Badge :variant="getStatusVariant(log.status)">
+                <SemanticBadge :color="getStatusBadgeColor(log.status)">
                   {{ t(`system.email.status.${log.status}`, log.status) }}
-                </Badge>
+                </SemanticBadge>
               </div>
             </div>
           </CardContent>

@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { SemanticBadge, type SemanticColor } from '@/components/ui/terminal'
 import { accountApi, type Subscription } from '@/api/admin/account'
 import { formatDateByLocale } from '@/i18n/utils'
 import {
@@ -20,19 +20,19 @@ const { t } = useI18n()
 const loading = ref(false)
 const subscription = ref<Subscription | null>(null)
 
-const statusColor = computed(() => {
-  if (!subscription.value) return 'default'
+const statusColor = computed<SemanticColor>(() => {
+  if (!subscription.value) return 'success'
   switch (subscription.value.status) {
     case 'ACTIVE':
-      return 'default'
+      return 'success'
     case 'CANCELLED':
-      return 'secondary'
+      return 'neutral'
     case 'EXPIRED':
-      return 'destructive'
+      return 'error'
     case 'PENDING':
-      return 'outline'
+      return 'warning'
     default:
-      return 'default'
+      return 'neutral'
   }
 })
 
@@ -99,14 +99,14 @@ onMounted(() => {
                 <CardDescription>{{ t('billing.planDetails') }}</CardDescription>
               </div>
             </div>
-            <Badge v-if="subscription" :variant="statusColor">
-              <component v-if="statusIcon" :is="statusIcon" class="h-3 w-3 mr-1" />
+            <SemanticBadge v-if="subscription" :color="statusColor">
+              <component v-if="statusIcon" :is="statusIcon" class="h-3 w-3" />
               {{ t(`billing.status.${subscription.status}`, subscription.status) }}
-            </Badge>
-            <Badge v-else variant="secondary">
-              <IconCheck class="h-3 w-3 mr-1" />
+            </SemanticBadge>
+            <SemanticBadge v-else color="success">
+              <IconCheck class="h-3 w-3" />
               {{ t('billing.status.ACTIVE') }}
-            </Badge>
+            </SemanticBadge>
           </div>
         </CardHeader>
         <CardContent class="space-y-6">

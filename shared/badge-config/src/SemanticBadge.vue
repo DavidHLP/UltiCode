@@ -2,10 +2,11 @@
 /**
  * SemanticBadge — Unified status/type badge with Solarized terminal colors.
  *
- * Uses .terminal-badge-{color} CSS classes from style.css for consistent styling.
+ * Shared between console and management frontends.
+ * Uses `.terminal-badge-{color}` CSS classes for consistent styling.
  */
-import type { SemanticColor } from './semantic-types'
-import { cn } from '@/lib/utils'
+import type { SemanticColor } from './semantic-colors'
+import { cn } from './utils/cn'
 
 withDefaults(
   defineProps<{

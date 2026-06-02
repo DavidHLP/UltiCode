@@ -1,6 +1,6 @@
 import { h, type VNode } from 'vue'
-import { cn } from '@/lib/utils'
-import type { BadgeOptions, SemanticColor } from './semantic-types'
+import { cn } from './utils/cn'
+import type { BadgeOptions, SemanticColor } from './semantic-colors'
 
 const COLOR_CLASS_MAP: Record<SemanticColor, string> = {
   success: 'terminal-badge-success',

@@ -7,6 +7,26 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./semantic-colors": {
+      "import": "./src/semantic-colors.ts",
+      "types": "./src/semantic-colors.ts"
+    },
+    "./color-maps": {
+      "import": "./src/color-maps.ts",
+      "types": "./src/color-maps.ts"
+    },
+    "./SemanticBadge.vue": {
+      "import": "./src/SemanticBadge.vue",
+      "types": "./src/SemanticBadge.vue"
+    },
+    "./useSemanticBadge": {
+      "import": "./src/useSemanticBadge.ts",
+      "types": "./src/useSemanticBadge.ts"
+    },
+    "./utils/cn": {
+      "import": "./src/utils/cn.ts",
+      "types": "./src/utils/cn.ts"
     }
   },
   "main": "./src/index.ts",

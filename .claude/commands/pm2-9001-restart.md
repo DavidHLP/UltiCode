@@ -1,5 +1,4 @@
-Restart ulticode-9001 (port 9001).
-
+Restart ulticode-9001 (Backend).
 ```bash
-cd "/home/davidhlp/project/UltiCode" && pm2 restart ulticode-9001
+cd "/home/david/project/UltiCode-Public-Next" && pm2 restart ulticode-9001
 ```

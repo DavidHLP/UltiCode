@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
 
 import { defineConfig, searchForWorkspaceRoot } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -10,6 +11,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // Shared `shared/badge-config/src/utils/cn.ts` imports clsx/tailwind-merge
+      // directly. The shared package has no node_modules, so we resolve these
+      // from the app's own node_modules.
+      clsx: path.resolve(fileURLToPath(new URL('.', import.meta.url)), 'node_modules/clsx'),
+      'tailwind-merge': path.resolve(
+        fileURLToPath(new URL('.', import.meta.url)),
+        'node_modules/tailwind-merge',
+      ),
     },
     dedupe: ['vue'],
   },
@@ -27,8 +36,10 @@ export default defineConfig({
         // Vite 7 requires manualChunks to be a function, not an object
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
-            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler')) return 'ui-vendor'
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router'))
+              return 'vue-vendor'
+            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler'))
+              return 'ui-vendor'
             if (id.includes('markdown-it')) return 'markdown'
           }
         },

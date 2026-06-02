@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+import { SemanticBadge, CONTENT_FLAG_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
 import type { Problem } from '@/api/admin/problems'
 import { formatDate } from '@/lib/format/date'
 
@@ -19,31 +19,9 @@ const { t } = useI18n()
 
 const flagStatus = computed(() => props.problem?.flagStatus || 'PENDING')
 
-const statusStyles = computed((): { bg: string; border: string; text: string } => {
-  const styles = {
-    PENDING: {
-      bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-      border: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-      text: 'text-[var(--terminal-red)]',
-    },
-    REVIEWED: {
-      bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-      border: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-      text: 'text-[var(--terminal-amber)]',
-    },
-    RESOLVED: {
-      bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-      border: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-      text: 'text-[var(--terminal-green)]',
-    },
-    DISMISSED: {
-      bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-      border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-      text: 'text-[var(--silver-500)]',
-    },
-  } as const
-  const status = (flagStatus.value || 'PENDING') as keyof typeof styles
-  return styles[status]
+const statusColor = computed((): SemanticColor => {
+  if (!flagStatus.value) return 'neutral'
+  return CONTENT_FLAG_COLOR_MAP[flagStatus.value] ?? 'neutral'
 })
 
 const statusLabel = computed(() => {
@@ -80,16 +58,13 @@ function handleClose(value: boolean) {
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.status') }}
           </span>
-          <Badge
-            :class="[
-              'font-data text-[10px] uppercase px-2 py-1 border',
-              statusStyles.bg,
-              statusStyles.border,
-              statusStyles.text,
-            ]"
+          <SemanticBadge
+            :color="statusColor"
+            size="sm"
+            class="font-data uppercase"
           >
             {{ statusLabel }}
-          </Badge>
+          </SemanticBadge>
         </div>
 
         <!-- Reason -->

@@ -12,7 +12,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
+import { SemanticBadge, MODERATION_STATUS_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
 import {
   type ModerationQueueItem,
   type ModerationStatus,
@@ -38,18 +38,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const statusColors: Record<ModerationStatus, string> = {
-  PENDING:
-    'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] text-[var(--terminal-amber)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-  UNDER_REVIEW:
-    'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)] text-[var(--terminal-cyan)] border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
-  RESOLVED:
-    'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)] text-[var(--terminal-green)] border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-  DISMISSED:
-    'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] text-[var(--terminal-red)] border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-  APPEAL_PENDING:
-    'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)] text-[var(--terminal-purple)] border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
-}
+const statusColors: Record<ModerationStatus, SemanticColor> = MODERATION_STATUS_COLOR_MAP
 
 const categoryColors: Record<ReportCategory, string> = {
   SPAM: 'text-[var(--terminal-amber)]',
@@ -117,14 +106,13 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <Badge
-                :class="[
-                  'font-data text-xs uppercase tracking-wider border',
-                  statusColors[item.status],
-                ]"
+              <SemanticBadge
+                :color="statusColors[item.status]"
+                size="sm"
+                class="font-data uppercase tracking-wider"
               >
                 {{ t(`moderation.status.${item.status}`, item.status) }}
-              </Badge>
+              </SemanticBadge>
               <div class="flex items-center gap-1.5">
                 <IconFlag :class="['h-3.5 w-3.5', getPriorityColor(item.priority)]" />
                 <span :class="['text-xs font-data', getPriorityColor(item.priority)]">

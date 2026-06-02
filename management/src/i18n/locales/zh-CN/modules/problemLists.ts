@@ -44,6 +44,13 @@ export default {
     total: '总计',
   },
 
+  // ========== 可见性 ==========
+  visibility: {
+    public: '公开',
+    private: '私有',
+    unlisted: '未列出',
+  },
+
   // ========== 操作 ==========
   actions: {
     view: '查看',

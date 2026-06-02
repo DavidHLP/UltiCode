@@ -20,7 +20,7 @@ INSERT INTO contests (
  120, 'FINISHED', 0, 'SCORE', 'NONE',
  6, 6, 38, 0,
  '用于练习的存档竞赛。所有提交都会被评测但不影响积分。',
- 'u-admin-001', 1,
+ 'admin-001', 1,
  '练习模式：提交会被评测但不影响积分。',
  NOW(), NOW(), 0, 0, NULL,
  DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 8 DAY)),
@@ -31,7 +31,7 @@ INSERT INTO contests (
  60, 'RUNNING', 0, 'SCORE', 'TOTAL_ATTEMPTS',
  4, 4, 12, 0,
  '快节奏编程挑战。60分钟10道题，按得分计分并含时间奖励。',
- 'u-admin-001', 1,
+ 'admin-001', 1,
  '速写赛规则：1. 10道难度递增的题目。2. 基础分加时间奖励。3. 无罚时。',
  NOW(), NOW(), 0, 0, 100, NULL, NULL),
 
@@ -41,7 +41,7 @@ INSERT INTO contests (
  120, 'UPCOMING', 300, 'ICPC', 'LAST_SOLVE_TIME',
  2, 0, 0, 1,
  '每周ICPC风格编程竞赛。尽可能多地解题，并尽量减少罚时。',
- 'u-admin-001', 1,
+ 'admin-001', 1,
  'ICPC规则：1. 每次错误提交加20分钟罚时。2. 评测结果为通过或拒绝。3. 按解题数排序，解题数相同则按罚时排序。',
  NOW(), NOW(), 0, 0, 100,
  DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(NOW(), INTERVAL 6 DAY)),
@@ -52,7 +52,7 @@ INSERT INTO contests (
  180, 'DRAFT', 0, 'IOI', 'NONE',
  0, 0, 0, 0,
  'IOI风格竞赛，采用积分制评分。每道题含多个测试点，支持部分得分。',
- 'u-admin-001', 0,
+ 'admin-001', 0,
  'IOI规则：1. 每道题有满分上限。2. 通过部分测试点可获得部分得分。3. 错误提交不计罚时。',
  NOW(), NOW(), 0, 0, 50,
  DATE_ADD(NOW(), INTERVAL 10 DAY), DATE_ADD(NOW(), INTERVAL 13 DAY)),
@@ -63,7 +63,7 @@ INSERT INTO contests (
  240, 'UPCOMING', 300, 'ICPC', 'LAST_SOLVE_TIME',
  4, 0, 0, 1,
  '为即将到来的ICPC区域赛准备的练习赛。完整规则，含排行榜封榜。',
- 'u-admin-001', 1,
+ 'admin-001', 1,
  '标准ICPC区域赛规则适用。最后一小时排行榜封榜。',
  NOW(), NOW(), 0, 0, 200,
  DATE_ADD(NOW(), INTERVAL 20 DAY), DATE_ADD(NOW(), INTERVAL 28 DAY));
@@ -83,7 +83,7 @@ INSERT INTO contest_problems (id, contest_id, problem_id, problem_index, score, 
 
 -- 往期竞赛存档：6名参赛者（全部真实用户，全部FINISHED）
 INSERT INTO contest_participants (id, contest_id, user_id, status, registered_at, started_at, finished_at, is_virtual, final_rank, total_penalty, total_score, total_attempts, last_solve_time, total_time, attempt_count, created_at, updated_at) VALUES
-('cpart-arc-01', 'c-archive-001', 'u-admin-001', 'FINISHED',
+('cpart-arc-01', 'c-archive-001', 'admin-001', 'FINISHED',
  DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY),
  DATE_ADD(DATE_SUB(NOW(), INTERVAL 7 DAY), INTERVAL 95 MINUTE),
  0, 1, 600, 300, 8, 5700, 5700, 8, NOW(), NOW()),
@@ -131,7 +131,7 @@ INSERT INTO contest_participants (id, contest_id, user_id, status, registered_at
  0, NULL, 0, 0, 0, NULL, 0, 0, NOW(), NOW()),
 
 -- ICPC区域赛热身赛：4名用户已报名 REGISTERED
-('cpart-reg-01', 'c-regional-warmup', 'u-admin-001', 'REGISTERED',
+('cpart-reg-01', 'c-regional-warmup', 'admin-001', 'REGISTERED',
  DATE_SUB(NOW(), INTERVAL 5 DAY), NULL, NULL,
  0, NULL, 0, 0, 0, NULL, 0, 0, NOW(), NOW()),
 ('cpart-reg-02', 'c-regional-warmup', 'user-alice-001', 'REGISTERED',
@@ -148,7 +148,7 @@ INSERT INTO contest_participants (id, contest_id, user_id, status, registered_at
 -- 4. CONTEST RANKINGS（已结束竞赛的排名）
 -- -----------------------------------------------------------------------------
 INSERT INTO contest_rankings (id, contest_id, user_id, `rank`, rating_before, rating_after, rating_change, is_virtual, solved_count, total_penalty, total_score, finish_time, total_attempts, is_frozen) VALUES
-('crank-arc-01', 'c-archive-001', 'u-admin-001', 1, 1500, 1500, 0, 0, 3, 600, 300, 5700, 8, 0),
+('crank-arc-01', 'c-archive-001', 'admin-001', 1, 1500, 1500, 0, 0, 3, 600, 300, 5700, 8, 0),
 ('crank-arc-02', 'c-archive-001', 'user-alice-001', 2, 1500, 1500, 0, 0, 2, 900, 250, 6000, 10, 0),
 ('crank-arc-03', 'c-archive-001', 'user-bob-002', 3, 1500, 1500, 0, 0, 2, 1200, 200, 6300, 12, 0),
 ('crank-arc-04', 'c-archive-001', 'user-carol-003', 4, 1500, 1500, 0, 0, 1, 1500, 150, 6600, 6, 0),

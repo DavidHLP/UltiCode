@@ -304,22 +304,32 @@
   margin: 1.5rem 0;
 }
 
+.code-viewer-surface {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-50) 70%, transparent);
+}
+
+.dark .code-viewer-surface {
+  background: color-mix(in oklch, var(--surface-sunken) 88%, var(--background));
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-200) 35%, transparent);
+}
+
 /* Highlight.js code block styles - Solarized Light Theme */
 .hljs {
   background: transparent;
-  color: #657b83;
+  color: var(--silver-600);
 }
 
 .hljs-comment,
 .hljs-quote {
-  color: #93a1a1;
+  color: var(--silver-400);
   font-style: italic;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-addition {
-  color: #859900;
+  color: var(--terminal-green);
 }
 
 .hljs-number,
@@ -328,7 +338,7 @@
 .hljs-literal,
 .hljs-doctag,
 .hljs-regexp {
-  color: #2aa198;
+  color: var(--terminal-cyan);
 }
 
 .hljs-title,
@@ -336,7 +346,7 @@
 .hljs-name,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-attribute,
@@ -345,7 +355,7 @@
 .hljs-template-variable,
 .hljs-class .hljs-title,
 .hljs-type {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-symbol,
@@ -356,16 +366,16 @@
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-link {
-  color: #cb4b16;
+  color: var(--terminal-amber);
 }
 
 .hljs-built_in,
 .hljs-deletion {
-  color: #dc322f;
+  color: var(--terminal-red);
 }
 
 .hljs-formula {
-  background: #eee8d5;
+  background: var(--surface-sunken);
 }
 
 .hljs-emphasis {
@@ -377,59 +387,59 @@
 }
 
 .hljs-function {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-params {
-  color: #657b83;
+  color: var(--silver-600);
 }
 
 .hljs-tag {
-  color: #859900;
+  color: var(--terminal-green);
 }
 
 .hljs-xml-tag {
-  color: #859900;
+  color: var(--terminal-green);
 }
 
 .hljs-xml-attr {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-xml-comment {
-  color: #93a1a1;
+  color: var(--silver-400);
 }
 
 /* Additional language-specific styles */
 .hljs-javascript .hljs-title,
 .hljs-typescript .hljs-title {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-python .hljs-decorator {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 .hljs-java .hljs-annotation {
-  color: #268bd2;
+  color: var(--accent-electric);
 }
 
 /* Highlight.js Dark Theme Override */
 .dark .hljs {
-  color: #839496;
+  color: var(--silver-600);
 }
 
 .dark .hljs-comment,
 .dark .hljs-quote {
-  color: #586e75;
+  color: var(--silver-300);
 }
 
 .dark .hljs-formula {
-  background: #073642;
+  background: var(--surface-sunken);
 }
 
 .dark .hljs-params {
-  color: #839496;
+  color: var(--silver-600);
 }
 
 /* Code tabs styles from markdown renderer */

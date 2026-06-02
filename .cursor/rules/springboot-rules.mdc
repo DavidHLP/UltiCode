@@ -1,0 +1,45 @@
+---
+description: UltiCode Spring Boot backend project rules
+alwaysApply: true
+globs: ["backend-spring/**/*.java"]
+---
+
+# UltiCode Spring Boot 项目规则
+
+## 架构分层
+
+项目遵循 `Controller → Service → Mapper (MyBatis-Plus) → Entity` 分层：
+
+```
+com.ulticode.modules.{module}/
+├── controller/      # REST 端点，参数校验
+├── service/         # 业务逻辑接口 + impl/
+├── mapper/          # MyBatis-Plus Mapper 接口
+├── entity/          # DO 类（与数据库表对应）
+└── dto/             # DTO/VO 类
+```
+
+## 响应封装
+
+所有 API 响应使用 `Result<T>`：
+- `Result.success(data)` / `Result.success()` — 成功
+- `throw new BusinessException(ErrorCode.XXX)` — 业务异常
+- `Result.error(code, message)` — 错误响应
+- 分页：`PageResult.of(list, total, page, limit)`
+
+Result 结构：`{ code: 0, message: "success", data: {}, traceId: "t-xxx" }`
+
+## 安全注解
+
+- `@RequireRole("ADMIN")` — 角色校验
+- `@CheckBan` — 封禁检查
+- `@RateLimit` — 速率限制
+- `@Audited` — 操作审计
+- `@CurrentUser` — 当前用户注入
+
+## Entity 约定
+
+- 主键 String (UUID)，必备字段 id/create_time/update_time
+- 逻辑删除：数据库 `is_deleted`，Entity 属性名 `deleted`
+- 布尔字段：数据库 `is_xxx`，Entity 属性名 `xxx`
+- 自定义查询用 `@Select/@Update` 注解，禁止 XML Mapper

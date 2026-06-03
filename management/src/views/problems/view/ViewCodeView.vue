@@ -43,7 +43,7 @@ onMounted(async () => {
 </i18n>
 
 <template>
-  <div class="relative flex flex-col gap-0 overflow-auto">
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
     <!-- Terminal Header (only visible on mobile or when not in parent view) -->
     <div
       :class="[

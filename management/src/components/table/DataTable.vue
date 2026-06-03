@@ -183,12 +183,12 @@ watch(
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+      <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar-left" :table="table" />
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar-actions" :table="table" />
 
         <DropdownMenu>
@@ -234,10 +234,10 @@ watch(
 
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="overflow-auto border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
+      class="w-full overflow-auto max-h-[calc(100vh-320px)] min-h-[200px] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
     >
       <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
-        <Table>
+        <Table :overflow="false">
           <colgroup>
             <col
               v-for="column in table.getVisibleFlatColumns()"

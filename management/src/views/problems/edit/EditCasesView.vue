@@ -74,7 +74,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 overflow-auto">
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
     <div
       :class="[
         'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',

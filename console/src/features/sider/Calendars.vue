@@ -42,23 +42,23 @@ const {
 
 <template>
   <!-- Action Buttons -->
-  <div class="px-4 py-2 space-y-1">
+  <div class="px-4 py-2 space-y-2">
     <Button
       variant="ghost"
       size="sm"
-      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground rounded-none border border-dashed border-silver/40 bg-[var(--surface-sunken)]/30 hover:border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/5 hover:text-foreground transition-all duration-200 font-data text-xs"
       @click="isCreateListOpen = true"
     >
-      <ListPlus class="h-4 w-4" />
+      <ListPlus class="h-3.5 w-3.5" />
       {{ t("sidebar.problemLists.newList") }}
     </Button>
     <Button
       variant="ghost"
       size="sm"
-      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground rounded-none border border-dashed border-silver/40 bg-[var(--surface-sunken)]/30 hover:border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/5 hover:text-foreground transition-all duration-200 font-data text-xs"
       @click="isCreateCategoryOpen = true"
     >
-      <Plus class="h-4 w-4" />
+      <Plus class="h-3.5 w-3.5" />
       {{ t("sidebar.problemLists.newCategory") }}
     </Button>
   </div>

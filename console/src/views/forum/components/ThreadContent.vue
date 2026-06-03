@@ -267,9 +267,13 @@ async function handleShare() {
     <div class="px-4 sm:px-6 pb-2 space-y-4">
       <section
         v-if="thread.excerpt"
-        class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
-        v-html="sanitizeHtml(renderMarkdown(thread.excerpt))"
-      ></section>
+        class="markdown-view"
+      >
+        <div
+          class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
+          v-html="sanitizeHtml(renderMarkdown(thread.excerpt))"
+        ></div>
+      </section>
 
       <section v-if="media" class="mt-4">
         <div
@@ -328,9 +332,13 @@ async function handleShare() {
 
           <div
             v-else-if="media.type === 'text'"
-            class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-            v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
-          ></div>
+            class="markdown-view"
+          >
+            <div
+              class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+              v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
+            ></div>
+          </div>
 
           <div v-else-if="media.type === 'video'" class="bg-black">
             <AspectRatio :ratio="16 / 9">

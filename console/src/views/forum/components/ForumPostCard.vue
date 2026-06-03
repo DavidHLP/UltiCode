@@ -285,9 +285,13 @@ async function handleSave() {
               post.excerpt &&
               !(media?.kind === 'image' || media?.kind === 'video')
             "
-            class="text-sm text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
-            v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
-          ></div>
+            class="markdown-view"
+          >
+            <div
+              class="text-sm text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+              v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
+            ></div>
+          </div>
 
           <!-- Media -->
           <div
@@ -349,9 +353,13 @@ async function handleSave() {
                 media.kind === 'text' ||
                 (media.markdown && media.markdown.length)
               "
-              class="prose prose-sm dark:prose-invert max-w-none p-3"
-              v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
-            ></div>
+              class="markdown-view"
+            >
+              <div
+                class="prose prose-sm dark:prose-invert max-w-none p-3"
+                v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
+              ></div>
+            </div>
           </div>
         </section>
 

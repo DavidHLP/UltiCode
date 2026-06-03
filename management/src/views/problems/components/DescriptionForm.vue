@@ -54,7 +54,7 @@ interface ProblemData {
     explanation?: string
     inputs?: Array<{
       name: string
-      value: unknown
+      value?: unknown
       label?: string
       fieldName?: string
     }>

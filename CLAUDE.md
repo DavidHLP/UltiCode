@@ -30,6 +30,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 发现问题 → 分析日志 → 修改代码/SQL → 容器/进程/数据库部署 → 验证结果
 
+## MySQL 容器化操作 (字符集)
+
+⚠️ **docker exec mysql 必须主动设置正确编码**
+
+`ulticode-mysql` 容器默认 `character_set_client=latin1`,直接 `docker exec mysql -e "INSERT 中文..."` 会导致双重 UTF-8 编码(应用读取后显示为 `æžå¨œ` 这类乱码)。
+
+**正确做法**:在 mysql 命令加 `--default-character-set=utf8mb4`,或在 SQL 开头执行 `SET NAMES utf8mb4;`
+
+```bash
+# ✅ 正确
+docker exec ulticode-mysql mysql --default-character-set=utf8mb4 \
+  -u ulticode -p'CHANGE_ME_strong_password' ulticode
+
+# ❌ 错误 (中文会被双重编码)
+docker exec ulticode-mysql mysql -u ulticode -p'...' -e "INSERT INTO t (name) VALUES ('王明')"
+
+# 验证存储字节是否正确 (标准 UTF-8)
+docker exec ulticode-mysql mysql --default-character-set=utf8mb4 -u ulticode -p'...' \
+  ulticode -e "SELECT HEX(name) FROM users WHERE username='xxx'"
+# 王明 应为 E78E8BE6988E (12 字节)
+```
+
+**注意**:后端 JDBC URL 已包含 `useUnicode=true&characterEncoding=UTF-8`,走 Spring Boot/Flyway 的应用连接字符正常,只有手工 `docker exec mysql` 路径有该问题。
+
+**修复已双重编码的数据**:
+```sql
+SET NAMES utf8mb4;
+UPDATE users SET name = '正确的姓名' WHERE id = '...';
+```
+
 ## 运行时调试 (Arthas)
 
 项目已安装 `arthas-boot.jar` (4.1.9) 于项目根目录,用于 Java 运行时诊断。

@@ -237,11 +237,11 @@ async function confirmBulkDelete() {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 w-full min-w-0">
+  <div class="relative flex flex-col gap-4 w-full min-w-0">
     <!-- Terminal Header -->
     <div
       :class="[
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -296,7 +296,7 @@ async function confirmBulkDelete() {
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
+        'mt-0 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
@@ -352,7 +352,7 @@ async function confirmBulkDelete() {
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 py-4">
+    <div class="flex-1">
       <DataTable
         :columns="columns"
         :data="data"

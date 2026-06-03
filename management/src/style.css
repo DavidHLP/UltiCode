@@ -122,7 +122,23 @@
   --scrollbar-thumb: oklch(0.6979 0.0159 196.8);
   --scrollbar-thumb-hover: oklch(0.5230 0.0283 219.1);
   --scrollbar-thumb-active: oklch(0.5230 0.0283 219.1);
+
+  /* Layout Spacing Variables */
+  --page-max-width: 1400px;
+  --page-padding-x: 1rem;
+  --page-padding-y: 1rem;
+  --header-padding-y: 0.75rem;    /* 12px vertical padding */
+  --stats-padding-y: 0.5rem;       /* 8px vertical padding */
+  --table-cell-padding-y: 0.5rem;  /* 8px vertical padding */
+  --table-cell-padding-x: 0.75rem; /* 12px horizontal padding */
 }
+
+@media (min-width: 1024px) {
+  :root {
+    --page-padding-x: 1.5rem;
+  }
+}
+
 
 .dark {
   /* Solarized Dark: base03 background, base0 body text */
@@ -1059,6 +1075,29 @@
   background: var(--surface-sunken);
 }
 
+/* Align first/last column cells with header/footer layout padding */
+.terminal-table th:first-child,
+.terminal-table td:first-child {
+  padding-left: 1rem !important; /* 16px */
+}
+
+.terminal-table th:last-child,
+.terminal-table td:last-child {
+  padding-right: 1rem !important; /* 16px */
+}
+
+@media (min-width: 1024px) {
+  .terminal-table th:first-child,
+  .terminal-table td:first-child {
+    padding-left: 1.5rem !important; /* 24px */
+  }
+
+  .terminal-table th:last-child,
+  .terminal-table td:last-child {
+    padding-right: 1.5rem !important; /* 24px */
+  }
+}
+
 /* Row number column */
 .terminal-row-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -1078,3 +1117,32 @@
   --surface-elevated: oklch(0.3092 0.0518 219.7);
   --surface-sunken: oklch(0.2673 0.0486 219.8);
 }
+
+/* ========================================
+   Global Backend Layout & Spacing Overrides
+   ======================================== */
+
+/* Page header title row compacting */
+.px-4.lg\:px-6.py-4.flex.items-center.justify-between {
+  padding-top: var(--header-padding-y) !important;
+  padding-bottom: var(--header-padding-y) !important;
+}
+
+/* Page header stats bar compacting */
+.px-4.lg\:px-6.py-2\.5.flex.items-center.gap-6.border-t {
+  padding-top: var(--stats-padding-y) !important;
+  padding-bottom: var(--stats-padding-y) !important;
+}
+
+/* View Main content container spacing */
+.flex-1.py-4 {
+  padding-top: 0.875rem !important; /* 14px */
+  padding-bottom: 0px !important;    /* 0px - let the layout wrapper handle page bottom padding */
+}
+
+/* Scrollbar gutter stabilization to prevent layout shifting and clipping */
+main.overflow-auto,
+.overflow-auto {
+  scrollbar-gutter: stable;
+}
+

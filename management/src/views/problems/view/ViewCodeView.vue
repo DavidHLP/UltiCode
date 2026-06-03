@@ -43,11 +43,11 @@ onMounted(async () => {
 </i18n>
 
 <template>
-  <div class="relative flex flex-col gap-0 w-full min-w-0">
+  <div class="relative flex flex-col gap-4 w-full min-w-0">
     <!-- Terminal Header (only visible on mobile or when not in parent view) -->
     <div
       :class="[
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] lg:hidden',
+        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] lg:hidden',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -68,7 +68,7 @@ onMounted(async () => {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 py-4">
+    <div class="flex-1">
       <div v-if="codeData" class="space-y-4">
         <CodeDisplay :languages="codeData.languages" />
       </div>

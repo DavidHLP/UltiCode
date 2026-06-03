@@ -11,6 +11,12 @@ export interface TestCaseExample {
   input: string
   output: string
   explanation?: string
+  inputs?: Array<{
+    name: string
+    value: unknown
+    label?: string
+    fieldName?: string
+  }>
 }
 
 const props = withDefaults(

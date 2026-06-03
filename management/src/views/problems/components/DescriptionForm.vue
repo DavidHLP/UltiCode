@@ -52,6 +52,12 @@ interface ProblemData {
     input: string
     output: string
     explanation?: string
+    inputs?: Array<{
+      name: string
+      value: unknown
+      label?: string
+      fieldName?: string
+    }>
   }>
   constraints?: string[]
   hints?: string[]
@@ -105,10 +111,11 @@ function updateForm(data?: ProblemData) {
     content: data.content || '',
     examples: data.examples?.length
       ? data.examples.map((ex) => ({
-          input: ex.input || '',
-          output: ex.output || '',
-          explanation: ex.explanation || '',
-        }))
+        input: ex.input || '',
+        output: ex.output || '',
+        explanation: ex.explanation || '',
+        inputs: ex.inputs,
+      }))
       : [],
     constraints: data.constraints?.length ? data.constraints : [],
     hints: data.hints?.length ? data.hints : [],

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { apiGet } from "@/utils/request";
-import { fetchProblemDetailById } from "@/api/problem-detail";
+import { fetchProblemDetailById, mapProblemDetail } from "@/api/problem-detail";
 
 vi.mock("@/utils/request", () => ({
   apiGet: vi.fn(),
@@ -69,5 +69,84 @@ describe("fetchProblemDetailById", () => {
     expect(apiGet).toHaveBeenCalledWith(
       "/problems/slug/two-sum?userId=user-456",
     );
+  });
+
+  it("maps structured example inputs into editable test case fields", () => {
+    const problem = mapProblemDetail({
+      ...mockBackendResponse,
+      examples: [
+        {
+          id: "pe-001-1",
+          input: "nums = [2,7,11,15], target = 9",
+          output: "[0,1]",
+          explanation: "nums[0] + nums[1] == 9",
+          inputs: [
+            { name: "nums", value: [2, 7, 11, 15] },
+            { name: "target", value: 9 },
+          ],
+        },
+      ],
+    });
+
+    expect(problem.testCases?.[0]?.inputs).toEqual([
+      {
+        id: "pe-001-1-input-0",
+        name: "nums",
+        fieldName: "nums",
+        label: "nums",
+        value: "[2,7,11,15]",
+      },
+      {
+        id: "pe-001-1-input-1",
+        name: "target",
+        fieldName: "target",
+        label: "target",
+        value: "9",
+      },
+    ]);
+  });
+
+  it("falls back to parsing input when structured example inputs are missing", () => {
+    const problem = mapProblemDetail({
+      ...mockBackendResponse,
+      examples: [
+        {
+          id: "pe-001-2",
+          input: "nums = [3,2,4], target = 6",
+          output: "[1,2]",
+          explanation: "nums[1] + nums[2] == 6",
+        },
+      ],
+    });
+
+    expect(problem.testCases?.[0]?.inputs?.map((input) => ({
+      name: input.name,
+      value: input.value,
+    }))).toEqual([
+      { name: "nums", value: "[3,2,4]" },
+      { name: "target", value: "6" },
+    ]);
+  });
+
+  it("keeps compatibility with legacy snake_case example fields", () => {
+    const problem = mapProblemDetail({
+      ...mockBackendResponse,
+      examples: [
+        {
+          id: "legacy-example",
+          input_text: "nums = [3,3], target = 6",
+          output_text: "[0,1]",
+          explanation: "legacy payload",
+        },
+      ],
+    });
+
+    expect(problem.examples).toEqual([
+      {
+        input: "nums = [3,3], target = 6",
+        output: "[0,1]",
+        explanation: "legacy payload",
+      },
+    ]);
   });
 });

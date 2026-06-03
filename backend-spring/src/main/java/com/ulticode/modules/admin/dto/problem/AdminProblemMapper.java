@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.dto.problem;
 
 import com.ulticode.modules.problem.entity.*;
+import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import org.mapstruct.*;
 
 import java.util.List;
@@ -31,7 +32,10 @@ public interface AdminProblemMapper {
 
     List<ProblemTagVO> toProblemTagVOList(List<ProblemTag> tags);
 
+    @Mapping(target = "input", source = "inputText")
+    @Mapping(target = "output", source = "outputText")
     @Mapping(target = "order", source = "exampleOrder")
+    @Mapping(target = "inputs", expression = "java(parseExampleInputs(example.getInputs()))")
     ProblemExampleVO toProblemExampleVO(ProblemExample example);
 
     List<ProblemExampleVO> toProblemExampleVOList(List<ProblemExample> examples);
@@ -44,6 +48,7 @@ public interface AdminProblemMapper {
     @Mapping(target = "input", source = "inputText")
     @Mapping(target = "output", source = "outputText")
     @Mapping(target = "order", source = "exampleOrder")
+    @Mapping(target = "inputs", expression = "java(parseExampleInputs(example.getInputs()))")
     CasesDataVO.ExampleInfo toExampleInfo(ProblemExample example);
 
     List<CasesDataVO.ExampleInfo> toExampleInfoList(List<ProblemExample> examples);
@@ -77,6 +82,18 @@ public interface AdminProblemMapper {
         try {
             return com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
                     .readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    default List<ProblemDetailPublicVO.InputData> parseExampleInputs(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
+                    .readValue(json, new com.fasterxml.jackson.core.type.TypeReference<List<ProblemDetailPublicVO.InputData>>() {});
         } catch (Exception e) {
             return null;
         }

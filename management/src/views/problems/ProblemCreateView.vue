@@ -33,6 +33,7 @@ async function handleSubmit(data: ProblemFormData) {
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation,
+        inputs: ex.inputs,
       })),
     })
     toast.success(t('problems.toast.createSuccess'))

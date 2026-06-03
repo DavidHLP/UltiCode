@@ -96,6 +96,25 @@ module.exports = {
       env: {
         NODE_ENV: 'development'
       }
+    },
+    {
+      // 数据库迁移服务: 一次性跑 Flyway migrate, 成功即退出 (exit 0)
+      // 启动顺序: 先 `pm2 start ulticode-init-db` 等 stopped, 再 `pm2 start ulticode-9001`
+      name: 'ulticode-init-db',
+      script: 'mvn',
+      args: 'flyway:migrate -Dflyway.configFiles=flyway.conf --no-transfer-progress -B',
+      cwd: './init-db',
+      interpreter: 'none',
+      autorestart: false,
+      ...logConfig('init-db'),
+      env: {
+        // flyway.conf 已包含完整 JDBC URL/用户/密码, 此处仅兜底
+        DB_HOST: 'localhost',
+        DB_PORT: '23306',
+        DB_USER: 'ulticode',
+        DB_PASSWORD: 'CHANGE_ME_strong_password',
+        DB_NAME: 'ulticode'
+      }
     }
   ]
 }

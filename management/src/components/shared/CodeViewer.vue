@@ -155,7 +155,7 @@ async function copyToClipboard() {
     v-if="showLanguageSelector && !hasLanguages"
     class="flex flex-col items-center justify-center py-16 px-4 text-center"
   >
-    <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+    <div class="w-16 h-16 rounded-none bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
     <h3 class="text-base font-semibold mb-2">
@@ -178,7 +178,7 @@ async function copyToClipboard() {
           v-for="lang in availableLanguages"
           :key="lang.id"
           :class="[
-            'px-3 py-1.5 rounded-lg text-sm font-mono font-medium transition-all border',
+            'px-3 py-1.5 rounded-none text-sm font-mono font-medium transition-all border',
             selectedLanguage.toLowerCase() === lang.language.toLowerCase()
               ? getLanguageColor(lang.language) + ' shadow-sm'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent',

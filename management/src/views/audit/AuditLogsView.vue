@@ -337,7 +337,7 @@ const columns: ColumnDef<AuditLog>[] = [
               <button
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm opacity-70 hover:opacity-100 text-[var(--silver-500)]"
+                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-none opacity-70 hover:opacity-100 text-[var(--silver-500)]"
               >
                 <IconX class="h-4 w-4" />
               </button>

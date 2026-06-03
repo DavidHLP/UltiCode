@@ -215,7 +215,7 @@ function handleCancel() {
         </div>
 
         <FormField v-slot="{ value, setValue }" name="isDefault">
-          <FormItem class="flex items-center justify-between rounded-lg border p-3">
+          <FormItem class="flex items-center justify-between rounded-none border p-3">
             <div class="space-y-0.5">
               <FormLabel class="text-base">{{ t('scoringRules.form.isDefault') }}</FormLabel>
               <p class="text-xs text-muted-foreground">

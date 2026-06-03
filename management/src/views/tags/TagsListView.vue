@@ -195,7 +195,7 @@ const columns: ColumnDef<Tag>[] = [
         h(
           'div',
           {
-            class: 'h-9 w-9 rounded-lg flex items-center justify-center',
+            class: 'h-9 w-9 rounded-none flex items-center justify-center',
             style: {
               backgroundColor: tag.color ? `${tag.color}20` : 'var(--primary-10)',
               color: tag.color || 'var(--primary)',

@@ -21,7 +21,7 @@ const defaultIcon = IconHash
 </script>
 
 <template>
-  <div class="rounded-xl border bg-card overflow-hidden shadow-sm">
+  <div class="rounded-none border bg-card overflow-hidden shadow-sm">
     <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
       <IconInfoCircle class="h-4 w-4 text-muted-foreground" />
       <h3 class="font-semibold text-sm">{{ title }}</h3>
@@ -34,7 +34,7 @@ const defaultIcon = IconHash
         </span>
         <p
           v-if="item.label === 'ID'"
-          class="font-mono text-xs bg-muted/50 p-1 rounded select-all truncate"
+          class="font-mono text-xs bg-muted/50 p-1 rounded-none select-all truncate"
         >
           {{ item.value }}
         </p>

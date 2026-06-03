@@ -248,7 +248,7 @@ watch(
         <!-- Compare Mode Banner -->
         <div
           v-if="compareMode"
-          class="mb-4 p-3 rounded-lg border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
+          class="mb-4 p-3 rounded-none border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
         >
           <div class="flex items-center justify-between">
             <span class="text-sm text-[var(--accent-electric)]">
@@ -262,7 +262,7 @@ watch(
 
         <!-- Loading State -->
         <div v-if="loading" class="space-y-3">
-          <Skeleton v-for="i in 5" :key="i" class="h-16 w-full rounded-lg" />
+          <Skeleton v-for="i in 5" :key="i" class="h-16 w-full rounded-none" />
         </div>
 
         <!-- Empty State -->
@@ -296,7 +296,7 @@ watch(
           <div
             v-for="version in versions"
             :key="version.id"
-            class="group p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+            class="group p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
             :class="{
               'border-[var(--accent-electric)]': compareFrom === version.id,
             }"
@@ -375,7 +375,7 @@ watch(
         </div>
 
         <!-- Version Detail Panel -->
-        <div v-if="selectedVersion" class="mt-4 p-4 rounded-lg border bg-muted/30">
+        <div v-if="selectedVersion" class="mt-4 p-4 rounded-none border bg-muted/30">
           <div class="flex items-center justify-between mb-3">
             <h4 class="font-medium text-sm">
               {{ t('problems.versionHistory.versionDetails') }} - v{{
@@ -407,7 +407,7 @@ watch(
         </div>
 
         <!-- Diff Result Panel -->
-        <div v-if="diffResult" class="mt-4 p-4 rounded-lg border bg-muted/30">
+        <div v-if="diffResult" class="mt-4 p-4 rounded-none border bg-muted/30">
           <div class="flex items-center justify-between mb-3">
             <h4 class="font-medium text-sm">
               {{ t('problems.versionHistory.compareVersions') }}
@@ -425,7 +425,7 @@ watch(
             <div
               v-for="(diff, index) in diffResult.diffs"
               :key="index"
-              class="p-3 rounded border bg-card"
+              class="p-3 rounded-none border bg-card"
             >
               <p class="font-medium text-sm mb-2">{{ formatFieldName(diff.field) }}</p>
               <div class="grid grid-cols-2 gap-4 text-xs">
@@ -434,7 +434,7 @@ watch(
                     {{ t('problems.versionHistory.oldValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 overflow-x-auto"
+                    class="p-2 rounded-none bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 overflow-x-auto"
                     >{{ JSON.stringify(diff.oldValue, null, 2) }}</pre
                   >
                 </div>
@@ -443,7 +443,7 @@ watch(
                     {{ t('problems.versionHistory.newValue') }}:
                   </p>
                   <pre
-                    class="p-2 rounded bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 overflow-x-auto"
+                    class="p-2 rounded-none bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 overflow-x-auto"
                     >{{ JSON.stringify(diff.newValue, null, 2) }}</pre
                   >
                 </div>

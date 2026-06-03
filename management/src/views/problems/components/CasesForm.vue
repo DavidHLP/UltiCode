@@ -162,7 +162,7 @@ defineExpose({
     <!-- Main Content -->
     <div class="lg:col-span-8 space-y-5">
       <!-- Test Cases Section -->
-      <section class="p-5 rounded-xl border bg-card">
+      <section class="p-5 rounded-none border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconFlask class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.casesForm.testCasesSection') }}</h2>
@@ -172,7 +172,7 @@ defineExpose({
       </section>
 
       <!-- Constraints & Hints Section -->
-      <section class="p-5 rounded-xl border bg-card">
+      <section class="p-5 rounded-none border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.casesForm.constraintsAndHints') }}</h2>
@@ -211,7 +211,7 @@ defineExpose({
               >
                 {{ constraint }}
                 <button
-                  class="hover:text-destructive text-muted-foreground rounded p-0.5 transition-colors"
+                  class="hover:text-destructive text-muted-foreground rounded-none p-0.5 transition-colors"
                   @click="removeConstraint(idx)"
                 >
                   <IconX class="h-3 w-3" />
@@ -251,7 +251,7 @@ defineExpose({
               <div
                 v-for="(hint, idx) in formData.hints"
                 :key="idx"
-                class="flex items-start justify-between p-3 rounded-lg bg-muted/20 border group"
+                class="flex items-start justify-between p-3 rounded-none bg-muted/20 border group"
               >
                 <div class="flex gap-2 text-sm">
                   <span class="font-mono text-xs text-muted-foreground mt-0.5">{{ idx + 1 }}.</span>
@@ -278,7 +278,7 @@ defineExpose({
     <!-- Sidebar -->
     <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 h-fit self-start">
       <!-- Tags Card -->
-      <div class="p-4 rounded-xl border bg-card">
+      <div class="p-4 rounded-none border bg-card">
         <div class="flex items-center gap-2 mb-3">
           <IconTag class="h-4 w-4 text-muted-foreground" />
           <h3 class="text-sm font-medium">{{ t('problems.casesForm.tags') }}</h3>
@@ -324,7 +324,7 @@ defineExpose({
       </div>
 
       <!-- Summary Card -->
-      <div class="p-4 rounded-xl border bg-card">
+      <div class="p-4 rounded-none border bg-card">
         <h3 class="text-sm font-medium mb-3">{{ t('problems.casesForm.configurationSummary') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
@@ -351,7 +351,7 @@ defineExpose({
       </div>
 
       <!-- Actions -->
-      <div class="p-4 rounded-xl border border-primary/20 bg-primary/5">
+      <div class="p-4 rounded-none border border-primary/20 bg-primary/5">
         <div class="flex flex-col gap-2">
           <Button class="w-full" :disabled="loading" @click="submit">
             <IconCheck v-if="!loading" class="h-4 w-4 mr-1" />

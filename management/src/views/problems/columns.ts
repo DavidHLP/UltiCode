@@ -313,7 +313,7 @@ export function createColumns(
               'span',
               {
                 class:
-                  'font-data text-[10px] uppercase px-1.5 py-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-600)] dark:text-[var(--silver-400)] rounded-sm',
+                  'font-data text-[10px] uppercase px-1.5 py-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-600)] dark:text-[var(--silver-400)] rounded-none',
               },
               tag.label,
             ),

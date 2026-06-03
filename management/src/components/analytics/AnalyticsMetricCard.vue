@@ -69,7 +69,7 @@ const sizeClasses = {
 
 <template>
   <div
-    class="group relative overflow-hidden rounded-lg border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-float precision-card"
+    class="group relative overflow-hidden rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-float precision-card"
     :class="sizeClasses[props.size].card"
   >
     <!-- Background decoration icon -->
@@ -113,7 +113,7 @@ const sizeClasses = {
       <!-- Trend badge -->
       <div v-if="props.metric.change" class="flex items-center gap-2">
         <span
-          class="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded border"
+          class="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-none border"
           :class="sizeClasses[props.size].change"
           :style="{
             color: getTrendColor(props.metric.trend || 'neutral'),

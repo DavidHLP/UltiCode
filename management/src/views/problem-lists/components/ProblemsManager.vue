@@ -132,7 +132,7 @@ function difficultyColor(difficulty: string): SemanticColor {
     </div>
 
     <!-- Table -->
-    <div class="border border-[var(--silver-200)] rounded-md">
+    <div class="border border-[var(--silver-200)] rounded-none">
       <Table>
         <TableHeader>
           <TableRow class="hover:bg-transparent">

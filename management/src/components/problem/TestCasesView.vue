@@ -52,7 +52,7 @@ const selectCase = (id: string) => {
           :key="testCase.id"
           :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
           size="sm"
-          class="h-8 rounded-md px-3 text-xs font-medium"
+          class="h-8 rounded-none px-3 text-xs font-medium"
           :class="
             testCase.id === activeId
               ? 'text-foreground shadow-none'
@@ -65,17 +65,17 @@ const selectCase = (id: string) => {
       </div>
 
       <!-- Active Case Content -->
-      <div v-if="activeCase" class="space-y-4 p-4 border rounded-lg bg-muted/10">
+      <div v-if="activeCase" class="space-y-4 p-4 border rounded-none bg-muted/10">
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Input</p>
-          <pre class="text-xs bg-muted p-3 rounded border overflow-x-auto whitespace-pre-wrap">{{
+          <pre class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap">{{
             activeCase.input
           }}</pre>
         </div>
 
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Output</p>
-          <pre class="text-xs bg-muted p-3 rounded border overflow-x-auto whitespace-pre-wrap">{{
+          <pre class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap">{{
             activeCase.output
           }}</pre>
         </div>

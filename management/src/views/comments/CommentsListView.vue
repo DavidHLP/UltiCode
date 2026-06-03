@@ -481,7 +481,7 @@ async function handleBulkDeleteConfirm() {
             t('comments.columns.content')
           }}</span>
           <p
-            class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3"
+            class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3"
           >
             {{ detailComment.content }}
           </p>

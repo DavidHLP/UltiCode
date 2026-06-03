@@ -135,7 +135,7 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
         :key="testCase.id"
         :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
         size="sm"
-        class="h-8 rounded-md px-3 text-xs font-medium"
+        class="h-8 rounded-none px-3 text-xs font-medium"
         :class="
           testCase.id === activeId
             ? 'text-foreground shadow-none'
@@ -147,7 +147,7 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
         <button
           v-if="testCase.id === activeId && canRemoveCases && !readonly"
           type="button"
-          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-md text-[10px] text-muted-foreground hover:text-foreground"
+          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-none text-[10px] text-muted-foreground hover:text-foreground"
           @click.stop="removeCase(testCase.id)"
         >
           <X :size="12" />
@@ -158,7 +158,7 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
         v-if="!readonly"
         variant="ghost"
         size="sm"
-        class="h-8 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground"
+        class="h-8 rounded-none px-2 text-xs text-muted-foreground hover:text-foreground"
         @click="addCase"
       >
         <Plus :size="14" class="mr-1" />

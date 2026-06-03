@@ -230,7 +230,7 @@ function formatJson(val: any): string {
             v-if="isExpanded(log.id) && (log.oldValues || log.newValues)"
             class="mt-3 ml-0 lg:ml-12"
           >
-            <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-lg overflow-hidden text-xs font-data">
+            <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none overflow-hidden text-xs font-data">
               <!-- Change rows -->
               <template v-if="getChanges(log.oldValues, log.newValues).length > 0">
                 <div
@@ -268,11 +268,11 @@ function formatJson(val: any): string {
                 <div class="p-3 space-y-3">
                   <div v-if="log.oldValues">
                     <div class="text-[var(--silver-500)] mb-1 text-[10px] uppercase tracking-wider">Old Values</div>
-                    <pre class="text-[var(--terminal-red)] opacity-80 whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.oldValues) }}</pre>
+                    <pre class="text-[var(--terminal-red)] opacity-80 whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.oldValues) }}</pre>
                   </div>
                   <div v-if="log.newValues">
                     <div class="text-[var(--silver-500)] mb-1 text-[10px] uppercase tracking-wider">New Values</div>
-                    <pre class="text-[var(--terminal-green)] whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.newValues) }}</pre>
+                    <pre class="text-[var(--terminal-green)] whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.newValues) }}</pre>
                   </div>
                 </div>
               </template>

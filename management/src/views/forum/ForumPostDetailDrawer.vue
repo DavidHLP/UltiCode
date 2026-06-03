@@ -115,7 +115,7 @@ function formatDate(dateStr: string) {
           <!-- Author & Community -->
           <TerminalCard :title="t('forum.drawer.authorCommunity')">
             <div class="flex items-center gap-3">
-              <Avatar class="h-9 w-9 rounded-sm border border-[var(--silver-300)]">
+              <Avatar class="h-9 w-9 rounded-none border border-[var(--silver-300)]">
                 <AvatarImage :src="post.author?.avatar || ''" :alt="post.author?.username" />
                 <AvatarFallback class="font-data text-xs bg-[var(--surface-sunken)]">{{
                   authorInitials

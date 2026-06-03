@@ -80,7 +80,7 @@ function formatDate(dateStr: string) {
 
       <!-- Author & Community -->
       <div class="flex items-center gap-3 mb-4">
-        <Avatar class="h-10 w-10 rounded-sm border border-[var(--silver-300)]">
+        <Avatar class="h-10 w-10 rounded-none border border-[var(--silver-300)]">
           <AvatarImage :src="post.author?.avatar || ''" :alt="post.author?.username" />
           <AvatarFallback class="font-data text-xs bg-[var(--surface-sunken)]">{{
             authorInitials

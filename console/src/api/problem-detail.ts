@@ -9,7 +9,9 @@ import { mapProblem } from "@/api/problem";
 
 interface BackendExampleInput {
   name: string;
-  value: string;
+  value: unknown;
+  label?: string;
+  fieldName?: string;
 }
 
 interface BackendExample {
@@ -18,8 +20,10 @@ interface BackendExample {
   inputs?: BackendExampleInput[];
   inputText?: string;
   input_text?: string;
+  input?: string;
   outputText?: string;
   output_text?: string;
+  output?: string;
 }
 
 interface BackendProblemDetail {
@@ -62,34 +66,123 @@ interface BackendLanguageOption {
 
 export async function fetchProblemDetailById(
   id: number | string,
+  userId?: string,
 ): Promise<ProblemDetail> {
   const isNumeric = typeof id === "number" || !isNaN(Number(id));
-  const endpoint = isNumeric ? `/problems/${id}` : `/problems/slug/${id}`;
+  const path = isNumeric ? `/problems/${id}` : `/problems/slug/${id}`;
+  const endpoint = userId
+    ? `${path}?userId=${encodeURIComponent(userId)}`
+    : path;
   const response = await apiGet<BackendProblemResponse>(endpoint);
   return mapProblemDetail(response);
 }
 
-const mapExamplesToTestCases = (
-  examples: BackendExample[],
-): ProblemTestCase[] =>
+const stringifyInputValue = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  return JSON.stringify(value);
+};
+
+const splitTopLevelAssignments = (inputText: string): string[] => {
+  const parts: string[] = [];
+  let current = "";
+  let depth = 0;
+  let quote: string | null = null;
+
+  for (const char of inputText) {
+    if (quote) {
+      current += char;
+      if (char === quote) quote = null;
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      current += char;
+      continue;
+    }
+
+    if (char === "[" || char === "{" || char === "(") {
+      depth += 1;
+    }
+    if (char === "]" || char === "}" || char === ")") {
+      depth = Math.max(0, depth - 1);
+    }
+
+    if (char === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+};
+
+const parseInputText = (inputText?: string): BackendExampleInput[] => {
+  if (!inputText?.trim()) return [];
+
+  return splitTopLevelAssignments(inputText)
+    .map((part) => {
+      const separator = part.indexOf("=");
+      if (separator === -1) {
+        return {
+          name: "input",
+          value: part.trim(),
+        };
+      }
+
+      return {
+        name: part.slice(0, separator).trim() || "input",
+        value: part.slice(separator + 1).trim(),
+      };
+    })
+    .filter((input) => input.value !== "");
+};
+
+const mapExampleInputs = (
+  example: BackendExample,
+): ProblemTestCase["inputs"] => {
+  const inputs =
+    Array.isArray(example.inputs) && example.inputs.length > 0
+      ? example.inputs
+      : parseInputText(getExampleInput(example));
+
+  return inputs.map((input, index) => {
+    const name =
+      input.name || input.label || input.fieldName || `input${index + 1}`;
+    return {
+      id: `${example.id || "case"}-input-${index}`,
+      name,
+      fieldName: input.fieldName ?? name,
+      value: stringifyInputValue(input.value),
+      label: input.label ?? name,
+    };
+  });
+};
+
+const getExampleInput = (example: BackendExample): string =>
+  example.input ?? example.inputText ?? example.input_text ?? "";
+
+const getExampleOutput = (example: BackendExample): string =>
+  example.output ?? example.outputText ?? example.output_text ?? "";
+
+const mapExamplesToTestCases = (examples: BackendExample[]): ProblemTestCase[] =>
   examples.map((ex, index) => ({
     id: ex.id || `case-${index}`,
     label: `Case ${index + 1}`,
     explanation: ex.explanation,
-    inputs: ex.inputs
-      ? ex.inputs.map((input: BackendExampleInput) => ({
-          name: input.name,
-          value: input.value,
-          label: input.name,
-        }))
-      : [],
-    output: ex.outputText ?? ex.output_text,
+    inputs: mapExampleInputs(ex),
+    output: getExampleOutput(ex),
   }));
 
 const mapExamplesToDescription = (examples: BackendExample[]) =>
   examples.map((ex) => ({
-    input: ex.inputText ?? ex.input_text ?? "",
-    output: ex.outputText ?? ex.output_text ?? "",
+    input: getExampleInput(ex),
+    output: getExampleOutput(ex),
     explanation: ex.explanation,
   }));
 

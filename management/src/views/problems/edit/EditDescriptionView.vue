@@ -77,6 +77,7 @@ const formattedProblem = computed(() => {
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation || '',
+        inputs: ex.inputs,
       })) || [],
     constraints: problem.detail?.constraintsJson || [],
     hints: problem.detail?.hints || [],

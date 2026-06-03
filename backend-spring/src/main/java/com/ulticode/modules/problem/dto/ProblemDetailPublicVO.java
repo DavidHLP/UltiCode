@@ -1,5 +1,7 @@
 package com.ulticode.modules.problem.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -86,23 +88,33 @@ public class ProblemDetailPublicVO {
     public static class ExampleData {
         private String id;
 
-        @JsonProperty("input_text")
-        private String inputText;
+        @JsonAlias({"inputText", "input_text"})
+        private String input;
 
-        @JsonProperty("output_text")
-        private String outputText;
+        @JsonAlias({"outputText", "output_text"})
+        private String output;
 
         private String explanation;
         private List<InputData> inputs;
 
-        @JsonProperty("input")
-        public void setInput(String input) {
-            this.inputText = input;
+        @JsonIgnore
+        public String getInputText() {
+            return input;
         }
 
-        @JsonProperty("output")
-        public void setOutput(String output) {
-            this.outputText = output;
+        @JsonIgnore
+        public void setInputText(String inputText) {
+            this.input = inputText;
+        }
+
+        @JsonIgnore
+        public String getOutputText() {
+            return output;
+        }
+
+        @JsonIgnore
+        public void setOutputText(String outputText) {
+            this.output = outputText;
         }
     }
 
@@ -110,7 +122,7 @@ public class ProblemDetailPublicVO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class InputData {
         private String name;
-        private String value;
+        private Object value;
     }
 
     @Data

@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.dto.problem;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import lombok.Data;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class CasesDataVO {
         private String input;
         private String output;
         private String explanation;
+        private List<ProblemDetailPublicVO.InputData> inputs;
         private Integer order;
     }
 

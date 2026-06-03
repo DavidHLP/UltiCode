@@ -9,6 +9,16 @@ export const exampleSchema = z.object({
   input: z.string(),
   output: z.string(),
   explanation: z.string().optional(),
+  inputs: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.unknown(),
+        label: z.string().optional(),
+        fieldName: z.string().optional(),
+      }),
+    )
+    .optional(),
 })
 
 export type Example = z.infer<typeof exampleSchema>

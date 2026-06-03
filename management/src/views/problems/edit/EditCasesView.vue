@@ -31,6 +31,7 @@ function mapExampleToTestCase(example: ProblemExample): CasesFormData['examples'
     input: example.input,
     output: example.output,
     explanation: example.explanation,
+    inputs: example.inputs,
   }
 }
 
@@ -42,6 +43,7 @@ async function handleSubmit(formData: CasesFormData) {
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation,
+        inputs: ex.inputs,
         order: idx,
       })),
       constraintsJson: formData.constraints,

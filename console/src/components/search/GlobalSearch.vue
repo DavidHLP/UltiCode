@@ -157,7 +157,7 @@ onUnmounted(() => {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-2xl overflow-hidden p-0">
+    <DialogContent class="max-w-2xl overflow-hidden p-0" hide-close>
       <!-- Search Input -->
       <div class="flex items-center border-b px-4">
         <Search class="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -170,7 +170,7 @@ onUnmounted(() => {
           @input="handleInputChange"
         />
         <kbd
-          class="hidden rounded border bg-muted px-2 py-0.5 text-xs text-muted-foreground sm:inline-block"
+          class="hidden rounded-none border border-silver bg-[var(--surface-sunken)] px-2 py-0.5 text-xs text-muted-foreground font-data sm:inline-block"
         >
           ESC
         </kbd>
@@ -180,7 +180,7 @@ onUnmounted(() => {
       <div class="max-h-96 overflow-y-auto">
         <!-- Loading state -->
         <div v-if="loading" class="p-4">
-          <Skeleton v-for="i in 3" :key="i" class="mb-2 h-14 rounded" />
+          <Skeleton v-for="i in 3" :key="i" class="mb-2 h-14 rounded-none" />
         </div>
 
         <!-- Results list -->
@@ -192,51 +192,22 @@ onUnmounted(() => {
             :class="
               cn(
                 'flex items-center gap-3 px-4 py-3 transition-colors',
-                selectedIndex === index ? 'bg-accent' : 'hover:bg-muted/50',
+                selectedIndex === index ? 'bg-accent font-bold' : 'hover:bg-muted/50',
               )
             "
             @click="searchHook.close()"
             @mouseenter="searchHook.selectedIndex.value = index"
           >
-            <!-- Type icon -->
-            <div
-              :class="
-                cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-none',
-                  getTypeColor(result.type),
-                )
-              "
-            >
-              <component :is="getTypeIcon(result.type)" class="h-5 w-5" />
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 overflow-hidden">
-              <div class="flex items-center gap-2">
-                <span class="truncate font-medium">{{ result.title }}</span>
-                <span
-                  class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs"
-                >
-                  {{ getTypeLabel(result.type) }}
-                </span>
-              </div>
-              <p
+            <component :is="getTypeIcon(result.type)" class="h-5 w-5 text-muted-foreground" />
+            <div class="flex flex-col">
+              <span class="text-sm font-medium">{{ result.title }}</span>
+              <span
                 v-if="result.description"
-                class="truncate text-sm text-muted-foreground"
+                class="text-xs text-muted-foreground"
               >
                 {{ result.description }}
-              </p>
+              </span>
             </div>
-
-            <!-- Arrow -->
-            <ArrowRight
-              :class="
-                cn(
-                  'h-4 w-4 shrink-0 text-muted-foreground transition-opacity',
-                  selectedIndex === index ? 'opacity-100' : 'opacity-0',
-                )
-              "
-            />
           </RouterLink>
         </div>
 
@@ -245,7 +216,7 @@ onUnmounted(() => {
           v-else-if="query && !loading"
           class="flex flex-col items-center justify-center py-12 text-center"
         >
-          <Search class="h-12 w-12 text-muted-foreground/50" />
+          <Search class="h-12 w-12 text-muted-foreground/30" />
           <p class="mt-4 text-sm text-muted-foreground">
             {{ t("common.search.noResults", { query }) }}
           </p>
@@ -261,8 +232,8 @@ onUnmounted(() => {
             Start typing to search...
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
-            <kbd class="rounded border bg-muted px-1.5 py-0.5">Cmd</kbd> +
-            <kbd class="rounded border bg-muted px-1.5 py-0.5">K</kbd>
+            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">Cmd</kbd> +
+            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">K</kbd>
             to open search
           </p>
         </div>
@@ -276,12 +247,12 @@ onUnmounted(() => {
         <span>{{ total }} results</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
-            <kbd class="rounded border bg-muted px-1.5 py-0.5">↑</kbd>
-            <kbd class="rounded border bg-muted px-1.5 py-0.5">↓</kbd>
+            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">↑</kbd>
+            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">↓</kbd>
             to navigate
           </span>
           <span class="flex items-center gap-1">
-            <kbd class="rounded border bg-muted px-1.5 py-0.5">Enter</kbd>
+            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">Enter</kbd>
             to select
           </span>
         </div>

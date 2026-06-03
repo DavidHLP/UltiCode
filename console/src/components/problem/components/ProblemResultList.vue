@@ -93,16 +93,18 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
     </template>
 
     <template #cell-acceptance="{ item: problem }">
-      {{
-        formatAcceptance(
-          (problem as EnrichedProblem).acceptanceRate ??
-            (problem as EnrichedProblem).acceptance_rate,
-        )
-      }}
+      <span class="font-data tabular-nums">
+        {{
+          formatAcceptance(
+            (problem as EnrichedProblem).acceptanceRate ??
+              (problem as EnrichedProblem).acceptance_rate,
+          )
+        }}
+      </span>
     </template>
 
     <template #cell-difficulty="{ item: problem }">
-      <span :class="difficultyClass((problem as EnrichedProblem).difficulty)">
+      <span class="font-data text-xs uppercase" :class="difficultyClass((problem as EnrichedProblem).difficulty)">
         {{
           t(
             "problem.difficulty." +
@@ -116,7 +118,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
       <Button
         variant="ghost"
         size="icon"
-        class="h-8 w-8 text-muted-foreground hover:text-destructive rounded-full"
+        class="h-8 w-8 text-muted-foreground hover:text-destructive rounded-none border border-transparent hover:border-destructive/30"
         @click="(e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)"
       >
         <Trash2 class="h-4 w-4" />

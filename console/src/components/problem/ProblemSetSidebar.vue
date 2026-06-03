@@ -47,12 +47,12 @@ onMounted(async () => {
             >
             <Badge
               variant="outline"
-              class="text-[10px] font-normal h-5 px-1.5 flex gap-1 items-center bg-background/50 rounded-none"
+              class="text-[10px] font-data font-normal h-5 px-1.5 flex gap-1 items-center bg-background/50 rounded-none border-silver"
             >
               <span
-                class="w-1.5 h-1.5 rounded-full bg-[var(--terminal-amber)] shadow-[0_0_5px_oklch(0.795_0.184_86.047/0.4)]"
+                class="w-1.5 h-1.5 bg-[var(--terminal-amber)] shadow-[0_0_4px_var(--terminal-amber)]"
               ></span>
-              {{ completedDates.length }}
+              <span class="tabular-nums">{{ completedDates.length }}</span>
             </Badge>
           </div>
         </CardTitle>

@@ -157,7 +157,7 @@ const getItemAtIndex = (index: number): T => {
                   (getItemAtIndex(virtualRow.index) as Identifiable).id ||
                   virtualRow.index
                 "
-                class="odd:bg-muted/30 even:bg-background hover:bg-muted/50 cursor-pointer transition-colors"
+                class="odd:bg-[var(--surface-sunken)] even:bg-background hover:bg-muted/40 cursor-pointer transition-colors"
                 :style="{
                   position: 'absolute',
                   top: 0,
@@ -243,7 +243,7 @@ const getItemAtIndex = (index: number): T => {
             <TableRow
               v-for="(item, index) in data"
               :key="(item as Identifiable).id || index"
-              class="odd:bg-muted/30 even:bg-background hover:bg-muted/50 cursor-pointer transition-colors"
+              class="odd:bg-[var(--surface-sunken)] even:bg-background hover:bg-muted/40 cursor-pointer transition-colors"
               @click="emit('row-click', item)"
             >
               <TableCell

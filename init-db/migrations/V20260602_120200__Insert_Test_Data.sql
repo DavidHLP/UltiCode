@@ -18,6 +18,14 @@
 -- Insert test problems
 -- Schema: problems (list summary) + problem_details (full content)
 -- Note: problems.id is bigint, difficulty enum is 'Easy','Medium','Hard' (capitalized)
+--
+-- 设计原则:每个难度(Easy/Medium/Hard)恰好 2 道题,共 6 道,便于开发环境测试筛选与分页。
+-- 保留 id=1, 2, 3, 4, 6, 7(均为 LeetCode 经典入门题);删除 id=5, 8, 9, 10。
+
+-- 幂等清理:删除已存在但不在新保留集合中的问题
+DELETE FROM `problem_details` WHERE `problem_id` IN (5, 8, 9, 10);
+DELETE FROM `problem_list_problem_relations` WHERE `problem_id` IN (5, 8, 9, 10);
+DELETE FROM `problems` WHERE `id` IN (5, 8, 9, 10);
 
 INSERT INTO `problems` (`id`, `slug`, `title`, `difficulty`, `acceptance_rate`, `status`, `is_premium`, `has_solution`, `is_published`, `created_at`, `updated_at`)
 VALUES
@@ -25,12 +33,15 @@ VALUES
 (2, 'add-two-numbers', '两数相加', 'Medium', 41.20, 'todo', 0, 1, 1, NOW(3), NOW(3)),
 (3, 'longest-substring-without-repeating-characters', '无重复字符的最长子串', 'Medium', 38.80, 'todo', 0, 1, 1, NOW(3), NOW(3)),
 (4, 'median-of-two-sorted-arrays', '寻找两个正序数组的中位数', 'Hard', 35.50, 'todo', 0, 0, 1, NOW(3), NOW(3)),
-(5, 'longest-palindromic-substring', '最长回文子串', 'Medium', 32.10, 'todo', 0, 1, 1, NOW(3), NOW(3)),
 (6, 'reverse-linked-list', '反转链表', 'Easy', 73.20, 'todo', 0, 1, 1, NOW(3), NOW(3)),
-(7, 'merge-k-sorted-lists', '合并K个升序链表', 'Hard', 28.40, 'todo', 0, 0, 1, NOW(3), NOW(3)),
-(8, 'valid-parentheses', '有效的括号', 'Easy', 60.80, 'todo', 0, 1, 1, NOW(3), NOW(3)),
-(9, 'merge-two-sorted-lists', '合并两个有序链表', 'Easy', 65.30, 'todo', 0, 1, 1, NOW(3), NOW(3)),
-(10, '3sum', '三数之和', 'Medium', 30.50, 'todo', 0, 1, 1, NOW(3), NOW(3));
+(7, 'merge-k-sorted-lists', '合并K个升序链表', 'Hard', 28.40, 'todo', 0, 0, 1, NOW(3), NOW(3))
+ON DUPLICATE KEY UPDATE
+  `slug` = VALUES(`slug`),
+  `title` = VALUES(`title`),
+  `difficulty` = VALUES(`difficulty`),
+  `acceptance_rate` = VALUES(`acceptance_rate`),
+  `is_published` = VALUES(`is_published`),
+  `updated_at` = NOW(3);
 
 -- Insert problem details
 INSERT INTO `problem_details` (`id`, `problem_id`, `slug`, `summary`, `content`, `constraints_json`, `hints`, `updated_at`)
@@ -161,19 +172,14 @@ FROM (
   SELECT 'list-concurrency' AS id, 1 AS problem_id, 3 AS sort_order, NOW() AS added_at UNION ALL
   SELECT 'list-concurrency', 3, 4, NOW() UNION ALL
   SELECT 'list-concurrency', 4, 2, NOW() UNION ALL
-  SELECT 'list-concurrency', 8, 1, NOW() UNION ALL
   SELECT 'list-database', 6, 1, NOW() UNION ALL
   SELECT 'list-database', 7, 2, NOW() UNION ALL
-  SELECT 'list-database', 8, 3, NOW() UNION ALL
   SELECT 'list-essentials', 1, 1, NOW() UNION ALL
   SELECT 'list-essentials', 4, 5, NOW() UNION ALL
   SELECT 'list-essentials', 6, 2, NOW() UNION ALL
   SELECT 'list-essentials', 7, 3, NOW() UNION ALL
-  SELECT 'list-essentials', 8, 4, NOW() UNION ALL
   SELECT 'list-graph-advanced', 3, 2, NOW() UNION ALL
   SELECT 'list-graph-advanced', 4, 3, NOW() UNION ALL
-  SELECT 'list-graph-advanced', 5, 1, NOW() UNION ALL
-  SELECT 'list-graph-dfs', 5, 10, NOW() UNION ALL
   SELECT 'list-hard-bench', 3, 12, NOW() UNION ALL
   SELECT 'list-hard-bench', 4, 11, NOW() UNION ALL
   SELECT 'list-intervals', 1, 9, NOW() UNION ALL

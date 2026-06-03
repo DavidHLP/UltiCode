@@ -157,7 +157,7 @@ function navigateToAppeals() {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto p-6">
+  <div class="relative flex flex-col gap-4 w-full min-w-0 p-6">
     <!-- Header -->
     <div
       :class="[

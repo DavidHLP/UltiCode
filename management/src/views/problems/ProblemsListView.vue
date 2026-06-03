@@ -224,7 +224,7 @@ watch(
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 overflow-auto">
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
     <!-- Terminal Header -->
     <div
       :class="[
@@ -324,7 +324,11 @@ watch(
           >
             <template #extra-actions>
               <Select v-model="sortBy">
-                <SelectTrigger class="h-8 w-[150px] font-data text-xs">
+                <SelectTrigger
+                  variant="terminal"
+                  size="sm"
+                  class="h-8 w-[150px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]"
+                >
                   <SelectValue :placeholder="t('problems.sort.title')" />
                 </SelectTrigger>
                 <SelectContent>

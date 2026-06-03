@@ -11,6 +11,7 @@ import {
   IconDatabase,
   IconChevronDown,
   IconChevronUp,
+  IconSearch,
 } from '@tabler/icons-vue'
 import { useI18n } from 'vue-i18n'
 
@@ -268,7 +269,7 @@ const columns: ColumnDef<AuditLog>[] = [
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 overflow-auto">
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
     <!-- Terminal Header -->
     <div
       :class="[
@@ -327,24 +328,28 @@ const columns: ColumnDef<AuditLog>[] = [
         class="terminal-table"
       >
         <template #toolbar-left>
-          <div class="flex items-center gap-3">
-            <div class="relative">
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="relative flex items-center min-w-[200px] w-[260px]">
+              <IconSearch class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none" />
               <Input
                 v-model="searchQuery"
+                variant="terminal"
                 :placeholder="t('audit.searchPlaceholder')"
-                class="terminal-input min-w-[200px] w-[260px] font-data text-sm"
+                class="h-8 pl-8 pr-8 !text-xs w-full bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)]"
               />
               <button
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-none opacity-70 hover:opacity-100 text-[var(--silver-500)]"
+                class="absolute right-2.5 opacity-70 hover:opacity-100 text-[var(--silver-500)] focus:outline-none transition-opacity"
               >
-                <IconX class="h-4 w-4" />
+                <IconX class="h-3.5 w-3.5" />
               </button>
             </div>
             <Select v-model="actionFilter">
               <SelectTrigger
-                class="terminal-input w-[200px] font-data text-xs uppercase tracking-wider"
+                variant="terminal"
+                size="sm"
+                class="h-8 w-[200px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
@@ -364,7 +369,9 @@ const columns: ColumnDef<AuditLog>[] = [
             </Select>
             <Select v-model="entityTypeFilter">
               <SelectTrigger
-                class="terminal-input w-[180px] font-data text-xs uppercase tracking-wider"
+                variant="terminal"
+                size="sm"
+                class="h-8 w-[180px] bg-[var(--surface-sunken)] border-[var(--silver-300)] dark:border-[var(--silver-300)] focus:border-[var(--accent-electric)] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allEntities')" />
               </SelectTrigger>
@@ -378,11 +385,11 @@ const columns: ColumnDef<AuditLog>[] = [
             <Button
               variant="terminal"
               size="icon"
-              class="h-9 w-9 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+              class="h-8 w-8 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
               @click="loadLogs()"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': auditStore.loading }" />
             </Button>
             <Button
               variant="terminal"

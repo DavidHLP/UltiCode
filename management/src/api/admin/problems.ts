@@ -61,7 +61,15 @@ export interface ProblemExample {
   input: string
   output: string
   explanation?: string
+  inputs?: ProblemExampleParam[]
   order: number
+}
+
+export interface ProblemExampleParam {
+  name: string
+  value: unknown
+  label?: string
+  fieldName?: string
 }
 
 export interface ProblemLanguage {
@@ -124,6 +132,7 @@ export interface CasesData {
     input: string
     output: string
     explanation?: string
+    inputs?: ProblemExampleParam[]
     order: number
   }>
   detail?: {
@@ -203,6 +212,7 @@ export interface ProblemExampleInput {
   input: string
   output: string
   explanation?: string
+  inputs?: ProblemExampleParam[]
   order?: number
 }
 
@@ -299,6 +309,7 @@ export interface ProblemVersionDetail {
     input: string
     output: string
     explanation?: string
+    inputs?: ProblemExampleParam[]
     order?: number
   }> | null
   languages: Array<{
@@ -352,6 +363,7 @@ export interface ImportProblemDto {
     input: string
     output: string
     explanation?: string
+    inputs?: ProblemExampleParam[]
   }>
   constraints?: string[]
   hints?: string[]

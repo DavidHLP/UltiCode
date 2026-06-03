@@ -54,6 +54,7 @@ function ensureExamples(examples?: TestCaseExample[]): TestCaseExample[] {
       input: ex.input || '',
       output: ex.output || '',
       explanation: ex.explanation || '',
+      inputs: ex.inputs,
     }))
   }
   return [{ id: crypto.randomUUID(), input: '', output: '', explanation: '' }]

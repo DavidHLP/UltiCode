@@ -228,8 +228,12 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
                 example.setId(UUID.randomUUID().toString());
                 example.setProblemId(problemId);
                 example.setExampleOrder(i + 1);
-                example.setInputText((String) exSnapshot.get("inputText"));
-                example.setOutputText((String) exSnapshot.get("outputText"));
+                example.setInputText((String) (exSnapshot.get("input") != null
+                        ? exSnapshot.get("input")
+                        : exSnapshot.get("inputText")));
+                example.setOutputText((String) (exSnapshot.get("output") != null
+                        ? exSnapshot.get("output")
+                        : exSnapshot.get("outputText")));
                 example.setExplanation((String) exSnapshot.get("explanation"));
                 Object inputs = exSnapshot.get("inputs");
                 if (inputs != null) {
@@ -333,8 +337,8 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
         List<Map<String, Object>> exampleSnapshots = new ArrayList<>();
         for (ProblemExample ex : examples) {
             Map<String, Object> exMap = new LinkedHashMap<>();
-            exMap.put("inputText", ex.getInputText());
-            exMap.put("outputText", ex.getOutputText());
+            exMap.put("input", ex.getInputText());
+            exMap.put("output", ex.getOutputText());
             exMap.put("explanation", ex.getExplanation());
             if (ex.getInputs() != null && !ex.getInputs().isBlank()) {
                 try {

@@ -279,7 +279,7 @@ const columns: ColumnDef<AuditLog>[] = [
       ]"
     >
       <!-- Title Row -->
-      <div class="py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
           {{ t('audit.title') }}
         </h1>

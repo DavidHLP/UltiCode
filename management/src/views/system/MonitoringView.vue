@@ -41,6 +41,7 @@ const databaseStats = ref<DatabaseStats | null>(null)
 const queueStats = ref<QueueStats[]>([])
 const redisStats = ref<RedisStats | null>(null)
 const healthStatus = ref<SystemHealth | null>(null)
+const isLoaded = ref(false)
 
 // Computed
 const overallStatus = computed(() => healthStatus.value?.status ?? 'unknown')
@@ -135,8 +136,9 @@ function getHealthColor(status: string): string {
 }
 
 // Lifecycle
-onMounted(() => {
-  loadAllStats()
+onMounted(async () => {
+  await loadAllStats()
+  isLoaded.value = true
 
   // Set up auto-refresh every 30 seconds
   if (autoRefresh.value) {
@@ -156,21 +158,46 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('system.monitoring.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('system.monitoring.description') }}</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <Button variant="outline" :disabled="refreshing" @click="refresh">
-          <IconLoader2 v-if="refreshing" class="h-4 w-4 mr-1 animate-spin" />
-          <IconRefresh v-else class="h-4 w-4 mr-1" />
-          {{ t('common.refresh') }}
-        </Button>
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('system.monitoring.title') }}
+          </h1>
+          <p class="text-xs text-[var(--silver-500)]">{{ t('system.monitoring.description') }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+            :disabled="refreshing"
+            @click="refresh"
+          >
+            <IconLoader2 v-if="refreshing" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            <IconRefresh v-else class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('common.refresh') }}</span>
+          </Button>
+        </div>
       </div>
     </div>
+
+    <!-- Main Content Area -->
+    <div
+      :class="[
+        'mt-6 space-y-6 transition-all duration-500 delay-100',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      ]"
+    >
 
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -398,5 +425,6 @@ onUnmounted(() => {
         </Card>
       </div>
     </template>
+    </div>
   </div>
 </template>

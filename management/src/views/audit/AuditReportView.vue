@@ -34,6 +34,7 @@ const userIdFilter = ref('')
 const entityTypeFilter = ref<string>('all')
 const actionFilter = ref<string>('all')
 const searchFilter = ref('')
+const isLoaded = ref(false)
 
 const entityTypeOptions = computed(() =>
   AUDIT_ENTITY_TYPES.map((type) => ({
@@ -80,16 +81,37 @@ function resetFilters() {
   searchFilter.value = ''
 }
 
-onMounted(() => {
-  loadStats()
+onMounted(async () => {
+  await loadStats()
+  isLoaded.value = true
 })
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">{{ t('auditReport.title') }}</h1>
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+          {{ t('auditReport.title') }}
+        </h1>
+      </div>
     </div>
+
+    <!-- Main Content Area -->
+    <div
+      :class="[
+        'mt-6 space-y-6 transition-all duration-500 delay-100',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      ]"
+    >
 
     <!-- Filters -->
     <Card>
@@ -237,6 +259,7 @@ onMounted(() => {
           <div v-else class="text-muted-foreground text-sm">{{ t('auditReport.noData') }}</div>
         </CardContent>
       </Card>
+    </div>
     </div>
   </div>
 </template>

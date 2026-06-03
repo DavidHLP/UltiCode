@@ -130,3 +130,4 @@ htmlcov/
 mempalace.yaml
 entities.json
 .antigravitycli
+.vscode

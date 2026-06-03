@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
   <div
     class="relative z-20 flex min-w-60 flex-1 items-center overflow-hidden pointer-events-auto"
   >
-    <div class="flex items-center overflow-hidden rounded focus:outline-none">
+    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
       <div class="relative group/nav-back flex items-center">
         <!-- Run button with HoverCard -->
         <HoverCard :open-delay="200">
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
               size="icon"
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="bottomPanelStore.isRunning"
-              class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-gray-600 w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-gray-100 overflow-hidden rounded-none"
+              class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-muted-foreground w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-[var(--surface-sunken)] border border-silver/30 overflow-hidden rounded-none"
               @click="handleRun"
             >
               <span
@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
                 :class="
                   bottomPanelStore.isRunning
                     ? 'text-primary animate-[spin_0.9s_linear]'
-                    : 'text-gray-700'
+                    : 'text-muted-foreground'
                 "
               />
             </Button>
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
 
         <Separator
           orientation="vertical"
-          class="h-7 w-px flex-none bg-gray-200"
+          class="h-7 w-px flex-none bg-[var(--border)]"
         />
 
         <!-- Submit button -->
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
               variant="ghost"
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 px-2 bg-gray-200 disabled:opacity-50"
+              class="group cursor-pointer gap-2 overflow-hidden hover:text-[var(--accent-electric)] flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground px-2 bg-[var(--surface-sunken)] border border-silver/30 disabled:opacity-50 rounded-none"
               @click="handleSubmit"
             >
               <CloudUpload
@@ -195,7 +195,7 @@ onBeforeUnmount(() => {
               />
               <div class="relative flex items-center gap-1 overflow-hidden">
                 <div
-                  class="truncate font-medium group-hover:text-lc-text-primary text-text-primary hover:text-text-primary"
+                  class="truncate font-medium group-hover:text-[var(--accent-electric)] text-foreground"
                 >
                   {{
                     isSubmitting

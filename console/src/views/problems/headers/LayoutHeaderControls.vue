@@ -77,7 +77,7 @@ const selectedLayout = computed({
 
 <template>
   <div class="flex min-w-60 flex-1 items-center justify-end overflow-hidden">
-    <div class="flex items-center overflow-hidden rounded focus:outline-none">
+    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
       <ProblemEdgeOperations :problem="problem" />
 
       <div class="relative group/nav-back flex items-center">
@@ -88,7 +88,7 @@ const selectedLayout = computed({
               variant="ghost"
               size="icon"
               :aria-label="t('problem.explorer.filters')"
-              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
             >
               <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -193,7 +193,7 @@ const selectedLayout = computed({
                       <!-- Check mark indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-[var(--accent-electric)] rounded-full flex items-center justify-center shadow-[var(--shadow-float)]"
+                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-[var(--accent-electric)] rounded-none flex items-center justify-center shadow-[var(--shadow-float)]"
                       >
                         <Check class="w-3 h-3 text-white" />
                       </div>
@@ -212,7 +212,7 @@ const selectedLayout = computed({
 
         <Separator
           orientation="vertical"
-          class="h-7 w-px flex-none bg-gray-200"
+          class="h-7 w-px flex-none bg-[var(--border)]"
         />
 
         <!-- Guest: show login button -->
@@ -221,7 +221,7 @@ const selectedLayout = computed({
             variant="ghost"
             size="icon"
             :aria-label="t('auth.login.submit')"
-            class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+            class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
           >
             <LogIn class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -234,7 +234,7 @@ const selectedLayout = computed({
               variant="ghost"
               size="icon"
               :aria-label="t('personal.profile.title')"
-              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
             >
               <User class="h-4 w-4" aria-hidden="true" />
             </Button>

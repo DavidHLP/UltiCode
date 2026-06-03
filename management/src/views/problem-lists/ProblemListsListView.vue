@@ -141,7 +141,7 @@ const columns = createColumns(
       ]"
     >
       <!-- Title Row -->
-      <div class="py-4 flex items-center justify-between">
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
           {{ t('problemLists.title') }}
         </h1>
@@ -159,7 +159,7 @@ const columns = createColumns(
 
       <!-- Stats Ticker -->
       <div
-        class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">{{ t('problemLists.stats.total') }}:</span>

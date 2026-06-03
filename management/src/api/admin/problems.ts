@@ -67,7 +67,7 @@ export interface ProblemExample {
 
 export interface ProblemExampleParam {
   name: string
-  value: unknown
+  value?: unknown
   label?: string
   fieldName?: string
 }

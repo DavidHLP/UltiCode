@@ -163,23 +163,24 @@ const htmlContent = computed(() => sanitizeHtml(renderMarkdown(markdownContent.v
 
 /* Inline Code - LeetCode Pill Style */
 .description-markdown :deep(.markdown-content code) {
-  font-family: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
+  font-family: "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
   font-size: 0.85em;
-  background-color: var(--muted); /* Use theme muted bg */
+  background-color: var(--surface-sunken); /* Use theme sunken bg */
   color: var(--foreground);
   padding: 0.125rem 0.375rem; /* Pill padding */
-  border-radius: 0.25rem; /* Rounded corners */
+  border-radius: 0; /* Sharp corners */
   white-space: pre-wrap; /* Allow wrapping in inline code */
   word-break: break-word;
 }
 
 /* Code Blocks */
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--muted);
-  border-radius: 0.5rem;
+  background-color: var(--surface-sunken);
+  border-radius: 0;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
+  border: 1px solid var(--border);
 }
 
 .description-markdown :deep(.markdown-content pre code) {
@@ -212,10 +213,5 @@ const htmlContent = computed(() => sanitizeHtml(renderMarkdown(markdownContent.v
   margin: 0.5rem 0;
   overflow-x: auto;
   overflow-y: hidden;
-}
-
-/* Dark mode tweaks if necessary */
-.dark .description-markdown :deep(.markdown-content code) {
-  background-color: oklch(0.95 0.01 250);
 }
 </style>

@@ -100,7 +100,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Tags Button -->
         <button
           v-if="props.problem.tags?.length"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-[family-name:var(--font-mono)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-data hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
           @click="scrollToSection((tagsSection as any).$el)"
         >
           <svg
@@ -122,7 +122,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             Array.isArray(props.problem.companies) &&
             props.problem.companies.length
           "
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs font-[family-name:var(--font-mono)] hover:border-[var(--terminal-amber)]"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs font-data hover:border-[var(--terminal-amber)]"
           @click="scrollToSection((companiesSection as any).$el)"
         >
           <span class="text-[var(--terminal-amber)]">{{
@@ -133,7 +133,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Hint Button -->
         <button
           v-if="props.problem.followUp || props.problem.starterNotes?.length"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-[family-name:var(--font-mono)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-data hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
           @click="scrollToSection((hintsSection as any)?.$el)"
         >
           <svg
@@ -158,7 +158,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="tag in props.problem.tags || []"
           :key="tag"
-          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] text-[var(--silver-500)] font-[family-name:var(--font-mono)]"
+          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] text-[var(--silver-500)] font-data"
         >
           {{ tag }}
         </span>
@@ -176,7 +176,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="company in props.problem.companies"
           :key="company.id"
-          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] font-medium text-[var(--silver-600)] font-[family-name:var(--font-mono)]"
+          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] font-medium text-[var(--silver-600)] font-data"
         >
           {{ company.name }}
         </span>
@@ -195,7 +195,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             <div class="text-xs text-muted-foreground">
               {{ t("personal.submissions.status") }}
             </div>
-            <div>
+            <div class="font-data tabular-nums">
               <span class="text-xs text-foreground">{{
                 reactionCounts.likes.toLocaleString()
               }}</span>
@@ -214,7 +214,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             <div class="text-xs text-muted-foreground">
               {{ t("problem.list.acceptanceRate") }}
             </div>
-            <div>
+            <div class="font-data tabular-nums">
               <span class="text-xs text-foreground">{{ acceptanceRate }}</span>
               <span class="ml-0.5 text-[10px] text-muted-foreground">%</span>
             </div>
@@ -251,7 +251,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="tag in props.problem.tags || []"
                   :key="tag"
-                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-500)] font-[family-name:var(--font-mono)]"
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-500)] font-data"
                 >
                   {{ tag }}
                 </span>
@@ -270,7 +270,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
           >
             <AccordionTrigger class="text-xs hover:no-underline">
               <div class="flex items-center gap-2">
-                <span class="text-[var(--terminal-amber)]">{{
+                <span class="text-[var(--terminal-amber)] font-data text-xs">{{
                   t("problem.detail.companies")
                 }}</span>
               </div>
@@ -280,7 +280,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="company in props.problem.companies"
                   :key="company.id"
-                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-600)] font-[family-name:var(--font-mono)]"
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-600)] font-data"
                 >
                   {{ company.name }}
                 </span>

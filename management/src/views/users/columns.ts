@@ -109,7 +109,7 @@ export function createColumns(
         const displayName = user.name || user.username
         const displayEmail = user.email ?? user.username
 
-        return h('div', { class: 'flex items-center gap-3 py-1' }, [
+        return h('div', { class: 'flex items-center gap-2.5 py-0.5' }, [
           // Avatar with ring
           h(
             'div',
@@ -126,7 +126,7 @@ export function createColumns(
             [
               h(
                 Avatar,
-                { class: 'h-10 w-10' },
+                { class: 'h-8 w-8' },
                 {
                   default: () => [
                     h(AvatarImage, { src: user.avatar ?? '' }),

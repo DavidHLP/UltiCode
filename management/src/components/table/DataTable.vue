@@ -182,8 +182,14 @@ watch(
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+  <!-- Unified Card Container (always visible) -->
+  <div
+    class="w-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] flex flex-col rounded-none"
+  >
+    <!-- Toolbar Row -->
+    <div
+      class="px-4 lg:px-6 py-2.5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+    >
       <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar-left" :table="table" />
       </div>
@@ -232,9 +238,10 @@ watch(
       </div>
     </div>
 
+    <!-- Table Body (Data/Loading State) -->
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="w-full overflow-auto max-h-[calc(100vh-320px)] min-h-[200px] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
+      class="w-full overflow-auto max-h-[calc(100vh-320px)] min-h-[200px]"
     >
       <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
         <Table :overflow="false">
@@ -291,9 +298,11 @@ watch(
         </Table>
       </DragDropProvider>
     </div>
+
+    <!-- Empty State -->
     <div
-      v-else-if="!loading"
-      class="flex h-96 items-center justify-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
+      v-else
+      class="flex h-96 items-center justify-center rounded-none bg-[var(--card)]"
     >
       <slot name="empty">
         <Empty class="border-none">
@@ -309,9 +318,11 @@ watch(
         </Empty>
       </slot>
     </div>
+
+    <!-- Pagination Footer -->
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="flex items-center justify-between px-4 lg:px-6 py-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      class="flex items-center justify-between px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
     >
       <div
         class="hidden flex-1 text-sm lg:flex items-center gap-2 font-data text-xs text-[var(--silver-500)]"

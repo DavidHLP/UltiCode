@@ -131,11 +131,11 @@ const columns = createColumns(
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 w-full min-w-0">
+  <div class="relative flex flex-col gap-4 w-full min-w-0">
     <!-- Terminal Header -->
     <div
       :class="[
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
         'transition-all duration-500',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -187,7 +187,7 @@ const columns = createColumns(
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 py-4">
+    <div class="flex-1">
       <DataTable
         :columns="columns"
         :data="data"

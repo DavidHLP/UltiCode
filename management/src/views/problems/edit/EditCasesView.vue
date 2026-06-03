@@ -74,10 +74,10 @@ function handleCancel() {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 w-full min-w-0">
+  <div class="relative flex flex-col gap-4 w-full min-w-0">
     <div
       :class="[
-        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
         'transition-all duration-500',
         isReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
@@ -130,7 +130,7 @@ function handleCancel() {
       </div>
     </div>
 
-    <div class="flex-1 py-4">
+    <div class="flex-1">
       <div v-if="loading" class="flex flex-col items-center justify-center py-24 text-center">
         <div
           class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] flex items-center justify-center mb-3"

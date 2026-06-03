@@ -106,11 +106,15 @@ const onPointerOver = (e: PointerEvent) => {
 };
 
 const activeTabStyle = computed(() => {
-  if (!props.isActive || !props.header.iconColor) return {};
-  return {
-    borderColor: props.header.iconColor,
-    backgroundColor: `color-mix(in oklch, ${props.header.iconColor} 8%, transparent)`,
+  if (!props.isActive) return {};
+  const styles: Record<string, string> = {
+    color: "var(--foreground)",
   };
+  if (props.header.iconColor) {
+    styles.borderColor = props.header.iconColor;
+    styles.backgroundColor = `color-mix(in oklch, ${props.header.iconColor} 8%, transparent)`;
+  }
+  return styles;
 });
 
 const onHeaderClick = () => {
@@ -146,8 +150,8 @@ const setRef = (el: unknown) => {
       class="relative h-7 rounded-none font-data uppercase tracking-widest terminal-tab"
       :class="[
         isActive
-          ? 'text-[var(--foreground)] border-b-2'
-          : 'text-[var(--silver-500)] hover:bg-[var(--silver-100)] border-b-2 border-transparent',
+          ? 'text-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent border-b-2'
+          : 'text-silver-500 hover:bg-silver-100 dark:hover:bg-silver-100 hover:text-silver-700 border-b-2 border-transparent',
       ]"
       :style="activeTabStyle"
       @click="onHeaderClick"

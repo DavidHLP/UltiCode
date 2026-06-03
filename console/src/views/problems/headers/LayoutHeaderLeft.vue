@@ -74,12 +74,12 @@ async function handleRandom() {
           <img :src="logoIcon" alt="Ulticode" class="h-5 w-5" />
         </div>
       </RouterLink>
-      <li class="h-4 w-px bg-gray-200"></li>
+      <li class="h-4 w-px bg-[var(--border)]"></li>
     </ul>
 
     <!-- Navigation menu composite component -->
     <div
-      class="flex items-center overflow-hidden rounded hover:bg-gray-200 focus:outline-none"
+      class="flex items-center overflow-hidden rounded-none hover:bg-[var(--surface-sunken)] focus:outline-none"
     >
       <div class="relative group/nav-back flex items-center">
         <!-- Main button HoverCard - Expand panel -->
@@ -87,7 +87,7 @@ async function handleRandom() {
           <HoverCardTrigger as-child>
             <Button
               variant="ghost"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-fill-quaternary text-gray-600 px-2"
+              class="group cursor-pointer gap-2 overflow-hidden hover:text-[var(--accent-electric)] flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground px-2 rounded-none"
               role="button"
               data-state="closed"
               @click="toggleSidePanel"
@@ -95,7 +95,7 @@ async function handleRandom() {
               <Indent class="h-4 w-4" />
               <div class="relative flex items-center gap-1 overflow-hidden">
                 <div
-                  class="truncate font-medium group-hover:text-lc-text-primary text-text-primary hover:text-text-primary"
+                  class="truncate font-medium group-hover:text-[var(--accent-electric)] text-foreground hover:text-[var(--accent-electric)]"
                 >
                   {{ t("problem.layout.problemSet") }}
                 </div>
@@ -123,10 +123,10 @@ async function handleRandom() {
               <RouterLink
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded no-underline -translate-x-3 hover:bg-gray-300 hover:text-gray-900 transition-colors duration-200"
+                class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none no-underline -translate-x-3 hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors duration-200"
                 :to="{ name: 'problemset' }"
               >
-                <ExternalLink class="h-3 w-3 text-gray-600" />
+                <ExternalLink class="h-3 w-3 text-muted-foreground" />
               </RouterLink>
             </div>
           </HoverCardTrigger>
@@ -139,7 +139,7 @@ async function handleRandom() {
       </div>
     </div>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-gray-200" />
+    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
 
     <!-- Previous problem button with HoverCard -->
     <HoverCard :open-delay="200">
@@ -147,7 +147,7 @@ async function handleRandom() {
         <Button
           variant="ghost"
           size="icon"
-          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
           :class="!adj.prev && 'opacity-50 pointer-events-none'"
         >
           <RouterLink
@@ -177,7 +177,7 @@ async function handleRandom() {
       </HoverCardContent>
     </HoverCard>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-gray-200" />
+    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
 
     <!-- Next problem button with HoverCard -->
     <HoverCard :open-delay="200">
@@ -185,7 +185,7 @@ async function handleRandom() {
         <Button
           variant="ghost"
           size="icon"
-          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
           :class="!adj.next && 'opacity-50 pointer-events-none'"
         >
           <RouterLink
@@ -215,7 +215,7 @@ async function handleRandom() {
       </HoverCardContent>
     </HoverCard>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-gray-200" />
+    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
 
     <!-- Random problem button with HoverCard -->
     <HoverCard :open-delay="200">
@@ -223,7 +223,7 @@ async function handleRandom() {
         <Button
           variant="ghost"
           size="icon"
-          class="flex-none cursor-pointer justify-center flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          class="flex-none cursor-pointer justify-center flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
           @click="handleRandom"
         >
           <Shuffle class="h-4 w-4" />

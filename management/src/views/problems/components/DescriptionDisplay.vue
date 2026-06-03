@@ -106,7 +106,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
 <template>
   <ContentWithSidebarLayout>
     <template #main-content>
-      <div class="rounded-xl border bg-card p-6 shadow-sm">
+      <div class="rounded-none border bg-card p-6 shadow-sm">
         <div class="flex flex-col gap-4 mb-6">
           <div class="space-y-1">
             <h1 class="text-2xl font-bold tracking-tight">
@@ -155,7 +155,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         :tags="problem.tags"
       />
 
-      <div v-if="hasHints" class="rounded-xl border bg-card overflow-hidden shadow-sm">
+      <div v-if="hasHints" class="rounded-none border bg-card overflow-hidden shadow-sm">
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconBulb class="h-4 w-4 text-muted-foreground" />
           <h3 class="font-semibold text-sm">{{ t('problems.display.hints') }}</h3>
@@ -166,10 +166,10 @@ const problemDescription = computed<ProblemDescription>(() => ({
             <li
               v-for="(hint, index) in hintsList"
               :key="index"
-              class="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30 flex items-start gap-2.5"
+              class="text-sm text-muted-foreground p-3 rounded-none bg-muted/30 flex items-start gap-2.5"
             >
               <span
-                class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded shrink-0 h-5 flex items-center justify-center"
+                class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded-none shrink-0 h-5 flex items-center justify-center"
               >
                 {{ index + 1 }}
               </span>

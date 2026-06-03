@@ -98,7 +98,7 @@ watch(
                     : '',
               ]"
             >
-              <Avatar class="h-16 w-16 rounded-sm">
+              <Avatar class="h-16 w-16 rounded-none">
                 <AvatarImage :src="entity.avatar ?? ''" :alt="entity.username" />
                 <AvatarFallback
                   class="font-data text-lg bg-[var(--silver-100)] dark:bg-[var(--silver-800)]"

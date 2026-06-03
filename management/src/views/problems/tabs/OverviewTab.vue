@@ -167,7 +167,7 @@ const hintsList = computed(() => {
       <!-- Problem Description with Markdown Rendering -->
       <div
         v-if="problemDescription.content || problemDescription.examples?.length"
-        class="p-4 rounded-lg border bg-muted/20"
+        class="p-4 rounded-none border bg-muted/20"
       >
         <DescriptionMarkdown :description="problemDescription" />
       </div>
@@ -229,13 +229,13 @@ const hintsList = computed(() => {
           <!-- Right: Metadata -->
           <div class="space-y-4">
             <!-- Metadata Card -->
-            <div class="p-4 rounded-lg border">
+            <div class="p-4 rounded-none border">
               <h3 class="text-xs font-medium mb-3">{{ t('problems.display.metadata') }}</h3>
               <div class="space-y-2 text-xs">
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <p class="text-muted-foreground mb-0.5">{{ t('problems.display.id') }}</p>
-                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
+                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded-none text-xs">
                       {{ problem.id.slice(0, 8) }}
                     </span>
                   </div>
@@ -281,7 +281,7 @@ const hintsList = computed(() => {
             </div>
 
             <!-- Languages -->
-            <div v-if="problem.languages?.length" class="p-4 rounded-lg border">
+            <div v-if="problem.languages?.length" class="p-4 rounded-none border">
               <h3 class="text-xs font-medium mb-3">{{ t('problems.form.languages') }}</h3>
               <div class="flex flex-wrap gap-1.5">
                 <Badge

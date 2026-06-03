@@ -102,7 +102,7 @@ const displayProblemLabels = computed(() => {
 
 <template>
   <div
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] rounded-sm overflow-hidden"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] rounded-none overflow-hidden"
   >
     <Table>
       <TableHeader class="bg-[var(--surface-sunken)]">
@@ -147,7 +147,7 @@ const displayProblemLabels = computed(() => {
         <template v-if="loading">
           <TableRow v-for="i in 5" :key="i">
             <TableCell v-for="j in 4 + displayProblemLabels.length" :key="j">
-              <div class="h-4 bg-[var(--silver-200)] animate-pulse rounded" />
+              <div class="h-4 bg-[var(--silver-200)] animate-pulse rounded-none" />
             </TableCell>
           </TableRow>
         </template>

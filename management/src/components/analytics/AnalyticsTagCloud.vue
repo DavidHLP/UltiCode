@@ -78,7 +78,7 @@ function formatValue(value: number): string {
         <span
           v-for="tag in displayTags"
           :key="tag.id"
-          class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
+          class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
           :style="{
             fontSize: tag.fontSize + 'rem',
             opacity: tag.opacity,

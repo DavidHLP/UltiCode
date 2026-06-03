@@ -19,7 +19,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="col-span-8 space-y-4">
-    <div class="p-4 rounded-lg border bg-card">
+    <div class="p-4 rounded-none border bg-card">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">Test Case Details</h4>
         <div class="flex items-center gap-4">

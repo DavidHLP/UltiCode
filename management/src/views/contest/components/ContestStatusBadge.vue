@@ -106,7 +106,7 @@ const showAnimatedDot = computed(() => props.showIcon && props.status === 'ongoi
   <span
     :class="
       cn(
-        'inline-flex items-center gap-1.5 font-data font-medium uppercase tracking-[0.05em] border rounded-sm',
+        'inline-flex items-center gap-1.5 font-data font-medium uppercase tracking-[0.05em] border rounded-none',
         config.bg,
         config.border,
         config.text,

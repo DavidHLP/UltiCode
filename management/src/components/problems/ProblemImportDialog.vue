@@ -319,7 +319,7 @@ function handleClose() {
         >
           <div
             :class="[
-              'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+              'border-2 border-dashed rounded-none p-8 text-center transition-colors',
               isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
               file ? 'bg-muted/50' : 'hover:border-primary/50 hover:bg-muted/30',
             ]"
@@ -420,7 +420,7 @@ function handleClose() {
         <div v-if="result" class="space-y-4">
           <!-- Summary -->
           <div class="grid grid-cols-4 gap-4">
-            <div class="rounded-lg border bg-card p-4 text-center">
+            <div class="rounded-none border bg-card p-4 text-center">
               <div
                 class="flex items-center justify-center gap-2 text-2xl font-bold text-emerald-600"
               >
@@ -431,7 +431,7 @@ function handleClose() {
                 {{ t('problems.import.created') }}
               </p>
             </div>
-            <div class="rounded-lg border bg-card p-4 text-center">
+            <div class="rounded-none border bg-card p-4 text-center">
               <div class="flex items-center justify-center gap-2 text-2xl font-bold text-blue-600">
                 <IconFile class="h-5 w-5" />
                 {{ result.updated }}
@@ -440,7 +440,7 @@ function handleClose() {
                 {{ t('problems.import.updated') }}
               </p>
             </div>
-            <div class="rounded-lg border bg-card p-4 text-center">
+            <div class="rounded-none border bg-card p-4 text-center">
               <div
                 class="flex items-center justify-center gap-2 text-2xl font-bold text-muted-foreground"
               >
@@ -451,7 +451,7 @@ function handleClose() {
                 {{ t('problems.import.skipped') }}
               </p>
             </div>
-            <div class="rounded-lg border bg-card p-4 text-center">
+            <div class="rounded-none border bg-card p-4 text-center">
               <div
                 class="flex items-center justify-center gap-2 text-2xl font-bold text-destructive"
               >
@@ -474,7 +474,7 @@ function handleClose() {
               <div
                 v-for="(error, index) in result.results.filter((r) => !r.success)"
                 :key="index"
-                class="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm"
+                class="rounded-none bg-destructive/10 border border-destructive/20 p-3 text-sm"
               >
                 <div class="flex items-start gap-2">
                   <IconX class="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />

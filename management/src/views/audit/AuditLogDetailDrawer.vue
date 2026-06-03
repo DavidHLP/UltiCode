@@ -162,9 +162,9 @@ const emit = defineEmits<{
               {{ t('audit.drawer.previousState') }}
             </span>
             <div
-              class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="relative rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
             >
-              <ScrollArea class="h-[200px] w-full rounded">
+              <ScrollArea class="h-[200px] w-full rounded-none">
                 <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
                   formatJson(entity.oldValues)
                 }}</pre>
@@ -177,9 +177,9 @@ const emit = defineEmits<{
               {{ t('audit.drawer.newState') }}
             </span>
             <div
-              class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              class="relative rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
             >
-              <ScrollArea class="h-[200px] w-full rounded">
+              <ScrollArea class="h-[200px] w-full rounded-none">
                 <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
                   formatJson(entity.newValues)
                 }}</pre>

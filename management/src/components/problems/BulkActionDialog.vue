@@ -111,7 +111,7 @@ function handleCancel() {
         </div>
       </DialogHeader>
 
-      <div class="rounded-md bg-muted p-4">
+      <div class="rounded-none bg-muted p-4">
         <div class="flex items-start gap-3">
           <IconAlertTriangle class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div class="flex-1">

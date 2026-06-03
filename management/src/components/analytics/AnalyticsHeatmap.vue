@@ -151,7 +151,7 @@ function handleMouseLeave() {
                 <div
                   v-for="(cell, colIndex) in row"
                   :key="colIndex"
-                  class="rounded-sm transition-all duration-150 cursor-default hover:ring-1 hover:ring-[var(--accent-primary)]"
+                  class="rounded-none transition-all duration-150 cursor-default hover:ring-1 hover:ring-[var(--accent-primary)]"
                   :style="{
                     width: cellSize + 'px',
                     height: cellSize + 'px',
@@ -177,7 +177,7 @@ function handleMouseLeave() {
               <div
                 v-for="i in 5"
                 :key="i"
-                class="rounded-sm"
+                class="rounded-none"
                 :style="{
                   width: '12px',
                   height: '12px',
@@ -205,7 +205,7 @@ function handleMouseLeave() {
         >
           <div
             v-if="hoveredCell && showTooltip"
-            class="fixed z-50 px-2 py-1 text-xs rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-lg pointer-events-none"
+            class="fixed z-50 px-2 py-1 text-xs rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-lg pointer-events-none"
             :style="{
               left: tooltipPosition.x + 'px',
               top: tooltipPosition.y - 8 + 'px',

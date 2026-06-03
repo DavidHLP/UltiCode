@@ -27,7 +27,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     "
   >
     <template v-if="props.withHandle">
-      <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-xs border">
+      <div class="bg-border z-10 flex h-4 w-3 items-center justify-center rounded-none border">
         <slot>
           <GripVertical class="size-2.5" />
         </slot>

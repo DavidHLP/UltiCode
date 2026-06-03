@@ -234,7 +234,7 @@ watch(
 
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="overflow-auto border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+      class="overflow-auto border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
     >
       <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
         <Table>
@@ -293,7 +293,7 @@ watch(
     </div>
     <div
       v-else-if="!loading"
-      class="flex h-96 items-center justify-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+      class="flex h-96 items-center justify-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
     >
       <slot name="empty">
         <Empty class="border-none">

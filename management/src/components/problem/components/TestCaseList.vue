@@ -29,7 +29,7 @@ const emit = defineEmits<{
     <div
       v-for="(testCase, index) in testCases"
       :key="testCase.id"
-      class="flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors"
+      class="flex items-center gap-2 p-2 rounded-none cursor-pointer transition-colors"
       :class="
         activeId === testCase.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
       "

@@ -181,7 +181,7 @@ const columns: ColumnDef<ScoringRule>[] = [
         h(
           'div',
           {
-            class: 'h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary',
+            class: 'h-9 w-9 rounded-none flex items-center justify-center bg-primary/10 text-primary',
           },
           [h(IconCalculator, { class: 'h-4 w-4' })],
         ),
@@ -398,13 +398,13 @@ const columns: ColumnDef<ScoringRule>[] = [
               <button
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
+                class="rounded-none opacity-70 hover:opacity-100"
               >
                 <IconCircleXFilled class="h-4 w-4" />
               </button>
             </template>
           </Input>
-          <div class="flex items-center gap-2 px-3 py-1.5 border rounded-sm">
+          <div class="flex items-center gap-2 px-3 py-1.5 border rounded-none">
             <Switch
               :checked="includeInactive"
               @update:checked="

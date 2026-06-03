@@ -119,7 +119,7 @@ const displayActivities = computed(() => {
               <div class="flex items-center justify-between gap-2">
                 <p class="text-sm leading-none truncate">
                   <span
-                    class="text-xs font-medium px-1.5 py-0.5 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] mr-1.5"
+                    class="text-xs font-medium px-1.5 py-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] mr-1.5"
                     :style="{
                       color: getIconColor(activity.action),
                       borderColor: getIconColor(activity.action) + '40',

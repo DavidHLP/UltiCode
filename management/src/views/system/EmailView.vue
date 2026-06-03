@@ -333,7 +333,7 @@ onMounted(() => {
               <div
                 v-for="log in logs"
                 :key="log.id"
-                class="flex items-center justify-between p-4 rounded-lg border bg-card"
+                class="flex items-center justify-between p-4 rounded-none border bg-card"
               >
                 <div class="flex items-center gap-4">
                   <component
@@ -383,7 +383,7 @@ onMounted(() => {
               <div
                 v-for="template in templates"
                 :key="template.id"
-                class="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                class="flex items-center justify-between p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
               >
                 <div>
                   <div class="font-medium">{{ template.name }}</div>

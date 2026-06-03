@@ -65,7 +65,7 @@ const displayItems = computed(() => {
         <div
           v-for="(item, index) in displayItems"
           :key="item.id"
-          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]/30 -mx-2 px-2 rounded"
+          class="group flex items-center gap-3 py-1.5 transition-colors duration-150 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]/30 -mx-2 px-2 rounded-none"
         >
           <!-- Rank number -->
           <span

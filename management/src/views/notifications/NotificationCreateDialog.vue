@@ -284,7 +284,7 @@ async function handleSubmit() {
                 <Field>
                   <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
                         'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
                           form.target === 'ALL',
@@ -296,7 +296,7 @@ async function handleSubmit() {
                       </FieldLabel>
                     </div>
                     <div
-                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
                         'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
                           form.target === 'USERS',

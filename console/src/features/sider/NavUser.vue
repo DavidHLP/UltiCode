@@ -149,9 +149,7 @@ async function handleLogout() {
               </RouterLink>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <div class="p-1">
-              <LanguageSwitcher />
-            </div>
+            <LanguageSwitcher />
           </DropdownMenuContent>
         </DropdownMenu>
       </template>
@@ -268,9 +266,7 @@ async function handleLogout() {
             {{ t("sidebar.personal.logout") }}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <div class="p-1">
-            <LanguageSwitcher />
-          </div>
+          <LanguageSwitcher />
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>

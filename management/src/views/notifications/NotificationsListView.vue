@@ -265,7 +265,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-0 overflow-auto">
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
     <!-- Terminal Header -->
     <div
       :class="[

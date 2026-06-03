@@ -237,12 +237,12 @@ function handleFlagSuccess() {
       <div v-else-if="isInitialLoad || commentsStore.loading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8 space-y-4">
-            <Skeleton class="h-12 w-3/4 rounded-sm" />
-            <Skeleton class="h-64 w-full rounded-sm" />
+            <Skeleton class="h-12 w-3/4 rounded-none" />
+            <Skeleton class="h-64 w-full rounded-none" />
           </div>
           <div class="lg:col-span-4 space-y-4">
-            <Skeleton class="h-32 w-full rounded-sm" />
-            <Skeleton class="h-32 w-full rounded-sm" />
+            <Skeleton class="h-32 w-full rounded-none" />
+            <Skeleton class="h-32 w-full rounded-none" />
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ function selectItem(id: string) {
       v-for="item in items || defaultItems"
       :key="item.id"
       @click="selectItem(item.id)"
-      class="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200"
+      class="group relative flex items-center gap-3 px-3 py-2.5 rounded-none text-left transition-all duration-200"
       :class="
         activeItem === item.id
           ? 'bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30'
@@ -46,12 +46,12 @@ function selectItem(id: string) {
       <!-- Active indicator -->
       <div
         v-if="activeItem === item.id"
-        class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r bg-[var(--accent-primary)]"
+        class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-none bg-[var(--accent-primary)]"
       />
 
       <!-- Icon -->
       <div
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors duration-200"
+        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-none border transition-colors duration-200"
         :class="
           activeItem === item.id
             ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'

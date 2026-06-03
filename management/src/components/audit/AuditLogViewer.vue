@@ -289,8 +289,8 @@ onMounted(() => {
                 <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
                   {{ t('audit.oldValues') }}
                 </span>
-                <div class="rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
-                  <ScrollArea class="h-[120px] w-full rounded">
+                <div class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+                  <ScrollArea class="h-[120px] w-full rounded-none">
                     <pre class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
                       formatJson(log.oldValues)
                     }}</pre>
@@ -302,8 +302,8 @@ onMounted(() => {
                 <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
                   {{ t('audit.newValues') }}
                 </span>
-                <div class="rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
-                  <ScrollArea class="h-[120px] w-full rounded">
+                <div class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+                  <ScrollArea class="h-[120px] w-full rounded-none">
                     <pre class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
                       formatJson(log.newValues)
                     }}</pre>

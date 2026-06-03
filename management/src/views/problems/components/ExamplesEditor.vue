@@ -58,7 +58,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
     <!-- Empty state -->
     <div
       v-if="fields.length === 0"
-      class="flex flex-col items-center justify-center py-10 border border-dashed border-border rounded-lg gap-4"
+      class="flex flex-col items-center justify-center py-10 border border-dashed border-border rounded-none gap-4"
     >
       <p class="text-sm text-muted-foreground">
         {{ t('problems.casesDisplay.noCasesDescription') }}
@@ -74,7 +74,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
       v-for="(field, index) in fields"
       :key="field.key"
       :default-open="true"
-      class="border border-border rounded-lg overflow-hidden"
+      class="border border-border rounded-none overflow-hidden"
     >
       <Card class="border-0 shadow-none gap-0 py-0">
         <CardHeader class="flex flex-row items-center justify-between py-3 px-4">

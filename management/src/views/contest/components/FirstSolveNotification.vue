@@ -117,7 +117,7 @@ onUnmounted(() => {
             'border border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
             'bg-gradient-to-r from-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] to-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
             'backdrop-blur-sm',
-            'rounded-lg shadow-lg',
+            'rounded-none shadow-lg',
             'p-4',
             isLeaving && 'opacity-0 translate-x-full',
           )
@@ -154,7 +154,7 @@ onUnmounted(() => {
 
           <!-- Close button -->
           <button
-            class="flex-shrink-0 p-1 rounded hover:bg-[var(--silver-200)] dark:hover:bg-[var(--silver-700)] transition-colors"
+            class="flex-shrink-0 p-1 rounded-none hover:bg-[var(--silver-200)] dark:hover:bg-[var(--silver-700)] transition-colors"
             @click="close"
           >
             <IconX class="h-4 w-4 text-[var(--silver-400)]" />

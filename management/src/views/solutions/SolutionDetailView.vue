@@ -242,8 +242,8 @@ function back() {
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || solutionsStore.loading" class="space-y-6">
         <div class="space-y-4">
-          <Skeleton class="h-12 w-1/3 rounded-lg" />
-          <Skeleton class="h-64 w-full rounded-xl" />
+          <Skeleton class="h-12 w-1/3 rounded-none" />
+          <Skeleton class="h-64 w-full rounded-none" />
         </div>
       </div>
 

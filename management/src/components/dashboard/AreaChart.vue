@@ -199,14 +199,14 @@ const getColors = () => {
 
       <!-- Time period selector - precision style -->
       <div
-        class="flex items-center gap-0.5 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-transparent p-0.5"
+        class="flex items-center gap-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-transparent p-0.5"
       >
         <Button
           v-for="period in timePeriods"
           :key="period.value"
           :variant="timePeriod === period.value ? 'default' : 'ghost'"
           :size="'sm'"
-          class="h-6 px-2.5 text-xs rounded-sm font-data"
+          class="h-6 px-2.5 text-xs rounded-none font-data"
           :class="
             timePeriod === period.value
               ? 'bg-foreground text-background'

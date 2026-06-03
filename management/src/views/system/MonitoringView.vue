@@ -204,7 +204,7 @@ onUnmounted(() => {
             <div
               v-for="check in healthStatus?.checks"
               :key="check.service"
-              class="flex items-center gap-2 p-3 rounded-lg bg-muted/50"
+              class="flex items-center gap-2 p-3 rounded-none bg-muted/50"
             >
               <component
                 :is="getHealthIcon(check.status)"
@@ -371,23 +371,23 @@ onUnmounted(() => {
                   <SemanticBadge v-if="queue.paused" color="warning" :label="t('system.monitoring.paused')" />
                 </div>
                 <div class="grid grid-cols-5 gap-2 text-xs">
-                  <div class="text-center p-2 bg-muted rounded">
+                  <div class="text-center p-2 bg-muted rounded-none">
                     <div class="text-lg font-bold text-blue-500">{{ queue.waiting }}</div>
                     <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>
                   </div>
-                  <div class="text-center p-2 bg-muted rounded">
+                  <div class="text-center p-2 bg-muted rounded-none">
                     <div class="text-lg font-bold text-yellow-500">{{ queue.active }}</div>
                     <div class="text-muted-foreground">{{ t('system.monitoring.active') }}</div>
                   </div>
-                  <div class="text-center p-2 bg-muted rounded">
+                  <div class="text-center p-2 bg-muted rounded-none">
                     <div class="text-lg font-bold text-green-500">{{ queue.completed }}</div>
                     <div class="text-muted-foreground">{{ t('system.monitoring.completed') }}</div>
                   </div>
-                  <div class="text-center p-2 bg-muted rounded">
+                  <div class="text-center p-2 bg-muted rounded-none">
                     <div class="text-lg font-bold text-red-500">{{ queue.failed }}</div>
                     <div class="text-muted-foreground">{{ t('system.monitoring.failed') }}</div>
                   </div>
-                  <div class="text-center p-2 bg-muted rounded">
+                  <div class="text-center p-2 bg-muted rounded-none">
                     <div class="text-lg font-bold text-purple-500">{{ queue.delayed }}</div>
                     <div class="text-muted-foreground">{{ t('system.monitoring.delayed') }}</div>
                   </div>

@@ -154,7 +154,7 @@ defineExpose({
     <!-- Main Content -->
     <div class="lg:col-span-8 space-y-5">
       <!-- Add Languages Section -->
-      <section class="p-5 rounded-xl border bg-card">
+      <section class="p-5 rounded-none border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
           <h2 class="font-semibold">{{ t('problems.codeForm.addLanguages') }}</h2>
@@ -168,7 +168,7 @@ defineExpose({
               v-for="lang in commonLanguages"
               :key="lang"
               :class="[
-                'px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all border shrink-0',
+                'px-2.5 py-1.5 rounded-none text-xs font-mono font-medium transition-all border shrink-0',
                 isLanguageAdded(lang)
                   ? 'bg-muted/50 text-muted-foreground border-transparent opacity-60 cursor-not-allowed'
                   : getLanguageColor(lang) + ' hover:shadow-sm',
@@ -204,7 +204,7 @@ defineExpose({
         <div
           v-for="(lang, index) in formData.languages"
           :key="index"
-          class="rounded-xl border bg-card overflow-hidden"
+          class="rounded-none border bg-card overflow-hidden"
         >
           <!-- Language Header -->
           <button
@@ -265,9 +265,9 @@ defineExpose({
       <!-- Empty State -->
       <div
         v-else
-        class="flex flex-col items-center justify-center py-12 px-4 text-center rounded-xl border border-dashed bg-muted/20"
+        class="flex flex-col items-center justify-center py-12 px-4 text-center rounded-none border border-dashed bg-muted/20"
       >
-        <div class="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
+        <div class="w-12 h-12 rounded-none bg-muted flex items-center justify-center mb-3">
           <IconBrackets class="h-6 w-6 text-muted-foreground" />
         </div>
         <h3 class="text-sm font-medium mb-1">{{ t('problems.codeForm.noLanguages') }}</h3>
@@ -280,7 +280,7 @@ defineExpose({
     <!-- Sidebar -->
     <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 h-fit self-start">
       <!-- Status Card -->
-      <div class="p-4 rounded-xl border bg-card">
+      <div class="p-4 rounded-none border bg-card">
         <h3 class="text-sm font-medium mb-3">{{ t('problems.codeForm.configuration') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
@@ -298,7 +298,7 @@ defineExpose({
       </div>
 
       <!-- Actions -->
-      <div class="p-4 rounded-xl border border-primary/20 bg-primary/5">
+      <div class="p-4 rounded-none border border-primary/20 bg-primary/5">
         <div class="flex flex-col gap-2">
           <Button
             class="w-full"

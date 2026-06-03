@@ -336,7 +336,7 @@ defineExpose({
               <li
                 v-for="(constraint, idx) in formData.constraints"
                 :key="idx"
-                class="flex items-center justify-between p-2 rounded-md bg-muted/50 border group text-sm font-mono"
+                class="flex items-center justify-between p-2 rounded-none bg-muted/50 border group text-sm font-mono"
               >
                 <span>{{ constraint }}</span>
                 <Button
@@ -376,7 +376,7 @@ defineExpose({
               <li
                 v-for="(hint, idx) in formData.hints"
                 :key="idx"
-                class="flex items-start justify-between p-2 rounded-md bg-muted/50 border group text-sm"
+                class="flex items-start justify-between p-2 rounded-none bg-muted/50 border group text-sm"
               >
                 <div class="flex gap-2">
                   <span class="text-muted-foreground font-mono text-xs mt-0.5">{{ idx + 1 }}.</span>
@@ -456,7 +456,7 @@ defineExpose({
 
           <div class="space-y-4 pt-2">
             <div
-              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-none border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.isPremium = !formData.isPremium"
             >
               <div class="space-y-0.5">
@@ -469,7 +469,7 @@ defineExpose({
             </div>
 
             <div
-              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-none border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.isPublished = !formData.isPublished"
             >
               <div class="space-y-0.5">

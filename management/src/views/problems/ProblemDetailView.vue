@@ -116,13 +116,13 @@ function retryFetch() {
             <div class="hidden sm:flex items-center gap-2">
               <span
                 v-if="!headerData.isPublished"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
+                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.published.draft') }}
               </span>
               <span
                 v-if="headerData.isPremium"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
+                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.badges.premium') }}
               </span>
@@ -275,12 +275,12 @@ function retryFetch() {
       <div v-else-if="isLoading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8 space-y-4">
-            <Skeleton class="h-12 w-3/4 rounded-lg" />
-            <Skeleton class="h-64 w-full rounded-xl" />
+            <Skeleton class="h-12 w-3/4 rounded-none" />
+            <Skeleton class="h-64 w-full rounded-none" />
           </div>
           <div class="lg:col-span-4 space-y-4">
-            <Skeleton class="h-32 w-full rounded-xl" />
-            <Skeleton class="h-32 w-full rounded-xl" />
+            <Skeleton class="h-32 w-full rounded-none" />
+            <Skeleton class="h-32 w-full rounded-none" />
           </div>
         </div>
       </div>

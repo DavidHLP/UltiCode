@@ -21,7 +21,7 @@ const hasCount = computed(() => props.count !== undefined)
 </script>
 
 <template>
-  <div class="rounded-xl border bg-card overflow-hidden shadow-sm">
+  <div class="rounded-none border bg-card overflow-hidden shadow-sm">
     <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
       <IconTag class="h-4 w-4 text-muted-foreground" />
       <h3 class="font-semibold text-sm">{{ title }}</h3>

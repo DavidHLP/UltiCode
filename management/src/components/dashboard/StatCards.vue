@@ -57,7 +57,7 @@ const getTrendStyles = (trend: string) => {
       v-for="(stat, index) in stats"
       :key="index"
       :href="stat.href"
-      class="group relative overflow-hidden rounded-lg border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card p-5 shadow-float precision-card"
+      class="group relative overflow-hidden rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card p-5 shadow-float precision-card"
       :class="{ 'cursor-pointer': stat.href }"
     >
       <!-- Background decoration icon -->
@@ -85,7 +85,7 @@ const getTrendStyles = (trend: string) => {
 
           <!-- Trend badge -->
           <span
-            class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border"
+            class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-none border"
             :class="getTrendStyles(stat.trend).badge"
           >
             <component

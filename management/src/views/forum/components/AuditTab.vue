@@ -127,11 +127,11 @@ function getChangesText(entry: AuditLog): string | null {
         class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
       >
         <div class="flex items-start gap-4">
-          <Skeleton class="h-10 w-10 rounded-sm" />
+          <Skeleton class="h-10 w-10 rounded-none" />
           <div class="flex-1 space-y-2">
-            <Skeleton class="h-4 w-32 rounded-sm" />
-            <Skeleton class="h-3 w-48 rounded-sm" />
-            <Skeleton class="h-3 w-24 rounded-sm" />
+            <Skeleton class="h-4 w-32 rounded-none" />
+            <Skeleton class="h-3 w-48 rounded-none" />
+            <Skeleton class="h-3 w-24 rounded-none" />
           </div>
         </div>
       </div>

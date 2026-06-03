@@ -73,7 +73,7 @@ function handleClose(value: boolean) {
             {{ t('problems.flagInfo.reason') }}
           </span>
           <p
-            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
           >
             {{ problem.flagReason || t('problems.flagInfo.noReason') }}
           </p>
@@ -125,7 +125,7 @@ function handleClose(value: boolean) {
             {{ t('problems.flagInfo.notes') }}
           </span>
           <p
-            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+            class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none"
           >
             {{ problem.flagNotes }}
           </p>

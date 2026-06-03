@@ -94,7 +94,7 @@ export function createColumns(
           'span',
           {
             class:
-              'font-data text-xs text-[var(--silver-500)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 rounded-sm',
+              'font-data text-xs text-[var(--silver-500)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 rounded-none',
           },
           row.original.language,
         ),

@@ -63,7 +63,7 @@ const hasAnyContent = computed(
     v-if="!hasAnyContent"
     class="flex flex-col items-center justify-center py-16 px-4 text-center"
   >
-    <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+    <div class="w-16 h-16 rounded-none bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
     <h3 class="text-base font-semibold mb-2">{{ t('problems.casesDisplay.noCases') }}</h3>
@@ -75,7 +75,7 @@ const hasAnyContent = computed(
   <!-- Content Grid -->
   <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Test Cases -->
-    <section v-if="hasExamples" class="lg:col-span-7 rounded-xl border bg-card overflow-hidden">
+    <section v-if="hasExamples" class="lg:col-span-7 rounded-none border bg-card overflow-hidden">
       <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
         <IconFlask class="h-4 w-4 text-muted-foreground" />
         <h3 class="font-semibold text-sm">{{ t('problems.casesDisplay.examples') }}</h3>
@@ -102,7 +102,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.input') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-lg bg-slate-100 text-slate-800 overflow-x-auto border"
+                class="text-sm font-mono p-3 rounded-none bg-slate-100 text-slate-800 overflow-x-auto border"
                 >{{ example.input }}</pre
               >
             </div>
@@ -113,7 +113,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.output') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-lg bg-slate-100 text-slate-800 overflow-x-auto border"
+                class="text-sm font-mono p-3 rounded-none bg-slate-100 text-slate-800 overflow-x-auto border"
                 >{{ example.output }}</pre
               >
             </div>

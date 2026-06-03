@@ -273,7 +273,7 @@ onMounted(() => {
           <div
             v-for="backup in backups"
             :key="backup.id"
-            class="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+            class="flex items-center justify-between p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
           >
             <div class="flex items-center gap-4">
               <component
@@ -342,7 +342,7 @@ onMounted(() => {
           <DialogTitle>{{ t('system.backup.restoreBackup') }}</DialogTitle>
         </DialogHeader>
         <div class="py-4">
-          <div class="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-lg text-yellow-600">
+          <div class="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-none text-yellow-600">
             <IconAlertTriangle class="h-5 w-5" />
             <p class="text-sm">{{ t('system.backup.restoreWarning') }}</p>
           </div>

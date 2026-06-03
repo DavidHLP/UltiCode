@@ -17,9 +17,11 @@ import { useI18n } from "vue-i18n";
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import type { SidebarSection } from "./sidebar.data";
+import { useRoute } from "vue-router";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
+const route = useRoute();
 
 const props = defineProps<{
   sections: SidebarSection[];
@@ -35,6 +37,20 @@ const visibleSections = computed(() => {
     }))
     .filter((section) => section.items.length > 0);
 });
+
+const isItemActive = (url?: string) => {
+  if (!url) return false;
+  if (
+    url === "/" ||
+    url === "/forum" ||
+    url === "/contest" ||
+    url === "/personal" ||
+    url === "/problemset"
+  ) {
+    return route.path === url;
+  }
+  return route.path.startsWith(url);
+};
 </script>
 
 <template>
@@ -63,7 +79,16 @@ const visibleSections = computed(() => {
         <CollapsibleContent>
           <SidebarMenu>
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
-              <SidebarMenuButton :tooltip="t(item.title)" as-child>
+              <SidebarMenuButton
+                :tooltip="t(item.title)"
+                :is-active="isItemActive(item.url)"
+                as-child
+                :class="[
+                  isItemActive(item.url)
+                    ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-foreground font-bold pl-1.5'
+                    : 'border-l-2 border-transparent'
+                ]"
+              >
                 <router-link :to="item.url || '#'">
                   <component :is="item.icon" v-if="item.icon" />
                   <span>{{ t(item.title) }}</span>
@@ -85,7 +110,16 @@ const visibleSections = computed(() => {
         <!-- Non-collapsible simpler group -->
         <SidebarMenu class="mt-2">
           <SidebarMenuItem v-for="item in section.items" :key="item.title">
-            <SidebarMenuButton :tooltip="t(item.title)" as-child>
+            <SidebarMenuButton
+              :tooltip="t(item.title)"
+              :is-active="isItemActive(item.url)"
+              as-child
+              :class="[
+                isItemActive(item.url)
+                  ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-foreground font-bold pl-1.5'
+                  : 'border-l-2 border-transparent'
+              ]"
+            >
               <router-link :to="item.url || '#'">
                 <component :is="item.icon" v-if="item.icon" />
                 <span>{{ t(item.title) }}</span>

@@ -184,7 +184,7 @@ function handleRefresh() {
         <Button
           variant="terminal"
           size="sm"
-          class="h-8 font-data text-xs border-[var(--silver-300)]"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
           @click="handleRefresh"
           :disabled="store.appealsLoading"
         >

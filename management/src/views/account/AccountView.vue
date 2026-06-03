@@ -46,6 +46,7 @@ const passwordData = ref({
 })
 
 const showPasswordForm = ref(false)
+const isLoaded = ref(false)
 
 const canSave = computed(() => {
   return Object.keys(formData.value).length > 0
@@ -111,18 +112,40 @@ function updateField<K extends keyof UpdateProfileDto>(key: K, value: UpdateProf
   formData.value[key] = value
 }
 
-onMounted(() => {
-  loadProfile()
+onMounted(async () => {
+  await loadProfile()
+  isLoaded.value = true
 })
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col gap-2">
-      <h1 class="text-3xl font-bold tracking-tight">{{ t('account.title') }}</h1>
-      <p class="text-muted-foreground">{{ t('account.subtitle') }}</p>
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('account.title') }}
+          </h1>
+          <p class="text-xs text-[var(--silver-500)]">{{ t('account.subtitle') }}</p>
+        </div>
+      </div>
     </div>
+
+    <!-- Main Content Area -->
+    <div
+      :class="[
+        'mt-6 space-y-6 transition-all duration-500 delay-100',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      ]"
+    >
 
     <div v-if="loading" class="flex items-center justify-center py-12">
       <IconUser class="h-8 w-8 animate-spin text-muted-foreground" />
@@ -389,6 +412,7 @@ onMounted(() => {
           {{ saving ? t('common.saving') : t('account.actions.save') }}
         </Button>
       </div>
+    </div>
     </div>
   </div>
 </template>

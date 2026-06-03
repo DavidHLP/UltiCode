@@ -40,6 +40,7 @@ const loading = ref(false)
 const saving = ref(false)
 const clearingCache = ref(false)
 const activeTab = ref('general')
+const isLoaded = ref(false)
 
 const settings = ref<AllSettings>({
   maintenance_mode: false,
@@ -126,18 +127,40 @@ async function resetToDefaults() {
   }
 }
 
-onMounted(() => {
-  loadSettings()
+onMounted(async () => {
+  await loadSettings()
+  isLoaded.value = true
 })
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col gap-2">
-      <h1 class="text-3xl font-bold tracking-tight">{{ t('settings.title') }}</h1>
-      <p class="text-muted-foreground">{{ t('settings.description') }}</p>
+  <div class="relative flex flex-col gap-0 w-full min-w-0">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="space-y-1">
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('settings.title') }}
+          </h1>
+          <p class="text-xs text-[var(--silver-500)]">{{ t('settings.description') }}</p>
+        </div>
+      </div>
     </div>
+
+    <!-- Main Content Area -->
+    <div
+      :class="[
+        'mt-6 space-y-6 transition-all duration-500 delay-100',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      ]"
+    >
 
     <div v-if="loading" class="flex items-center justify-center py-12">
       <IconSettings class="h-8 w-8 animate-spin text-muted-foreground" />
@@ -230,5 +253,6 @@ onMounted(() => {
         </CardContent>
       </Card>
     </Tabs>
+    </div>
   </div>
 </template>

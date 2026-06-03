@@ -23,16 +23,16 @@ const emit = defineEmits<{
       v-for="cat in categories"
       :key="cat.value"
       @click="emit('update:modelValue', cat.value)"
-      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200"
+      class="flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-medium transition-all duration-200 border"
       :class="
         modelValue === cat.value
-          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-          : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
+          ? 'bg-[var(--surface-sunken)] border-[var(--accent-electric)] text-[var(--accent-electric)] shadow-sm'
+          : 'border-silver bg-card text-muted-foreground hover:text-foreground hover:bg-[var(--surface-sunken)]'
       "
     >
       <div
-        class="p-0.5 rounded bg-popover shadow-sm"
-        :class="modelValue === cat.value ? 'text-primary' : 'text-zinc-400'"
+        class="p-0.5 rounded-none bg-[var(--surface-sunken)] border border-silver/30 shadow-sm"
+        :class="modelValue === cat.value ? 'text-[var(--accent-electric)]' : 'text-muted-foreground'"
       >
         <component :is="cat.icon" v-if="cat.icon" class="w-2.5 h-2.5" />
       </div>

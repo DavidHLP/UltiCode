@@ -37,10 +37,10 @@ function isTagSelected(tag: string, currentTags: string[]) {
       <Badge
         v-for="tag in popularTags"
         :key="tag"
-        :variant="isTagSelected(tag, modelValue) ? 'default' : 'outline'"
-        class="cursor-pointer px-2 py-0.5 text-[11px] hover:bg-primary/80 hover:text-primary-foreground transition-colors rounded-none"
+        variant="outline"
+        class="cursor-pointer px-2 py-0.5 text-[11px] border-silver text-muted-foreground hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors rounded-none"
         :class="{
-          'bg-primary text-primary-foreground hover:bg-primary/90':
+          'bg-[var(--accent-electric)] text-[var(--background)] border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 hover:text-[var(--background)]':
             isTagSelected(tag, modelValue),
         }"
         @click="toggleTag(tag, modelValue)"
@@ -64,9 +64,9 @@ function isTagSelected(tag: string, currentTags: string[]) {
           v-for="tag in otherTags"
           :key="tag"
           variant="outline"
-          class="cursor-pointer px-2 py-0.5 text-[10px] font-normal border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-none"
+          class="cursor-pointer px-2 py-0.5 text-[10px] font-normal border-silver text-muted-foreground hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors rounded-none"
           :class="{
-            'bg-zinc-900 text-zinc-50 border-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900':
+            'bg-[var(--accent-electric)] text-[var(--background)] border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 hover:text-[var(--background)]':
               isTagSelected(tag, modelValue),
           }"
           @click="toggleTag(tag, modelValue)"

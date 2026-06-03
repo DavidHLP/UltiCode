@@ -191,13 +191,6 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
-/* Terminal-ify non-terminal child components */
-.problem-explorer-controls :deep(.rounded-full),
-.problem-explorer-controls :deep(.rounded-md),
-.problem-explorer-controls :deep(.rounded-lg) {
-  border-radius: 0 !important;
-}
-
 .problem-explorer-controls :deep(button),
 .problem-explorer-controls :deep(input),
 .problem-explorer-controls :deep([role="button"]),

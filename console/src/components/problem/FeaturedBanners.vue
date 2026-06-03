@@ -37,7 +37,7 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 
 const CARD_BASE =
-  "relative overflow-hidden border transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_-8px_var(--shadow-color)] h-full rounded-none group";
+  "relative overflow-hidden border border-silver transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md h-full rounded-none group";
 const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
 const ICON_BASE =
   "w-12 h-12 rounded-none flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 border shadow-lg";
@@ -224,7 +224,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showLeftArrow"
       @click="scrollByCard('left')"
-      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-full bg-background/95 border border-border/50 shadow-lg hover:bg-background hover:border-primary/40 hover:shadow-xl transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
+      class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-silver shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--accent-electric)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
     >
       <ChevronLeft class="w-5 h-5 text-foreground" />
     </button>
@@ -242,16 +242,16 @@ onBeforeUnmount(() => {
           <CardContent class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col">
             <div class="flex items-start justify-between">
               <div class="h-12 w-12 rounded-none bg-muted/60 border border-border/30"></div>
-              <div class="h-5 w-14 rounded-full bg-muted/50"></div>
+              <div class="h-5 w-14 rounded-none bg-muted/50"></div>
             </div>
             <div class="space-y-3 flex-1">
-              <div class="h-5 w-2/3 rounded bg-muted/60"></div>
-              <div class="h-3 w-full rounded bg-muted/50"></div>
-              <div class="h-3 w-4/5 rounded bg-muted/50"></div>
+              <div class="h-5 w-2/3 rounded-none bg-muted/60"></div>
+              <div class="h-3 w-full rounded-none bg-muted/50"></div>
+              <div class="h-3 w-4/5 rounded-none bg-muted/50"></div>
             </div>
             <div class="flex items-center justify-between pt-2">
-              <div class="h-3 w-20 rounded bg-muted/50"></div>
-              <div class="h-3 w-16 rounded bg-muted/50"></div>
+              <div class="h-3 w-20 rounded-none bg-muted/50"></div>
+              <div class="h-3 w-16 rounded-none bg-muted/50"></div>
             </div>
           </CardContent>
         </Card>
@@ -325,13 +325,13 @@ onBeforeUnmount(() => {
 
               <div class="flex items-center justify-between">
                 <div
-                  class="text-xs font-medium text-muted-foreground flex items-center gap-1"
+                  class="text-xs font-data font-medium text-muted-foreground flex items-center gap-1"
                 >
                   <Sparkles class="w-3 h-3" :class="banner.theme.sparkle" />
-                  {{ banner.problemCount }} {{ t("problem.banners.questions") }}
+                  <span class="tabular-nums">{{ banner.problemCount }}</span> {{ t("problem.banners.questions") }}
                 </div>
                 <div
-                  class="flex items-center gap-1 text-xs font-semibold text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
+                  class="flex items-center gap-1 text-xs font-data font-semibold text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"
                 >
                   {{ t("problem.banners.viewList") }}
                   <ArrowRight class="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ onBeforeUnmount(() => {
     <button
       v-show="needsScroll && showRightArrow"
       @click="scrollByCard('right')"
-      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center justify-end rounded-full bg-background/95 border border-border/50 shadow-lg hover:bg-background hover:border-primary/40 hover:shadow-xl transition-all duration-200 pr-1"
+      class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 hidden group-hover/carousel:flex items-center justify-center rounded-none bg-background/95 border border-silver shadow-float hover:bg-[var(--surface-sunken)] hover:border-[var(--accent-electric)] transition-all duration-200 opacity-0 group-hover/carousel:opacity-100"
     >
       <ChevronRight class="w-5 h-5 text-foreground" />
     </button>

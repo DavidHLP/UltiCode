@@ -37,7 +37,7 @@ const emit = defineEmits<{
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="pl-8.5 h-9 text-xs rounded-full"
+        class="pl-8.5 h-9 text-xs rounded-none border-silver bg-[var(--surface-sunken)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
       />
     </div>
 
@@ -47,14 +47,14 @@ const emit = defineEmits<{
         <DropdownMenuTrigger as-child>
           <Button
             variant="outline"
-            class="h-9 gap-1.5 border-dashed rounded-full text-xs"
+            class="h-9 gap-1.5 border-dashed rounded-none text-xs border-silver"
           >
             <ListFilter class="h-3.5 w-3.5" />
             {{ filterLabel || "Filters" }}
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-0.5 h-4 px-1 text-[9px] rounded-full"
+              class="ml-0.5 h-4 px-1 text-[9px] rounded-none bg-[var(--surface-sunken)] text-foreground border border-silver/30"
             >
               {{ activeFilterCount }}
             </Badge>
@@ -71,7 +71,7 @@ const emit = defineEmits<{
         v-if="showClear"
         variant="ghost"
         size="icon"
-        class="h-9 w-9 rounded-full"
+        class="h-9 w-9 rounded-none border border-silver hover:bg-[var(--surface-sunken)]"
         @click="emit('clear')"
         :aria-label="clearLabel || 'Clear filters'"
       >

@@ -178,12 +178,12 @@ onMounted(loadData);
   >
     <!-- Header -->
     <header
-      class="flex h-16 flex-shrink-0 items-center border-b bg-card px-6 gap-4 shadow-sm z-10"
+      class="flex h-16 flex-shrink-0 items-center border-b border-silver bg-card px-6 gap-4 shadow-sm z-10"
     >
       <Button
         variant="ghost"
         size="sm"
-        class="gap-2 rounded-full hover:bg-muted"
+        class="gap-2 rounded-none hover:bg-accent/30 font-bold"
         @click="handleGoBack"
       >
         <ArrowLeft class="h-4 w-4" />
@@ -193,7 +193,7 @@ onMounted(loadData);
       <Separator orientation="vertical" class="h-6" />
 
       <div class="flex items-center gap-2 flex-1">
-        <h2 class="text-sm font-black uppercase tracking-widest text-primary">
+        <h2 class="text-sm font-black uppercase tracking-widest text-[var(--accent-electric)]">
           {{
             isEditMode ? t("forum.post.editPost") : t("forum.post.createPost")
           }}
@@ -203,7 +203,7 @@ onMounted(loadData);
       <div class="flex items-center gap-3">
         <Button
           size="sm"
-          class="gap-2 rounded-full px-6 h-9 font-bold"
+          class="gap-2 rounded-none px-6 h-9 font-black uppercase tracking-wider bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white"
           :disabled="isSaving || isLoading"
           @click="handleSave"
         >
@@ -221,24 +221,24 @@ onMounted(loadData);
     <main class="flex flex-1 overflow-hidden">
       <div class="flex w-full flex-col overflow-hidden">
         <!-- Meta Section -->
-        <div class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10">
-          <div class="max-w-5xl mx-auto w-full space-y-4">
+        <div class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-silver/20">
+          <div class="max-w-[1600px] mx-auto w-full space-y-4">
             <Input
               v-model="title"
               :placeholder="t('forum.post.titlePlaceholder')"
-              class="rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 text-3xl font-black shadow-none focus-visible:ring-0 focus-visible:border-primary transition-all placeholder:text-muted-foreground/30 h-14"
+              class="rounded-none border-0 border-b border-silver/30 bg-transparent px-0 text-3xl font-black shadow-none focus-visible:ring-0 focus-visible:border-[var(--accent-electric)] transition-all placeholder:text-muted-foreground/30 h-14"
             />
 
             <div class="flex flex-wrap gap-3 items-center">
               <div
-                class="flex items-center gap-2 bg-card rounded-full border p-1 pr-3 shadow-sm hover:border-primary/50 transition-colors"
+                class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
               >
-                <div class="bg-primary/10 text-primary p-1.5 rounded-full">
+                <div class="bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] px-2.5 h-full flex items-center justify-center border-r border-silver">
                   <LayoutGrid class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="communityId">
                   <SelectTrigger
-                    class="w-[180px] h-7 border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider"
+                    class="w-[180px] h-full border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider px-3"
                   >
                     <SelectValue :placeholder="t('forum.post.community')" />
                   </SelectTrigger>
@@ -255,14 +255,14 @@ onMounted(loadData);
               </div>
 
               <div
-                class="flex items-center gap-2 bg-card rounded-full border p-1 pr-3 shadow-sm hover:border-primary/50 transition-colors"
+                class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
               >
-                <div class="bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] p-1.5 rounded-full">
+                <div class="bg-[color-mix(in_oklch,var(--terminal-amber)_15%,transparent)] text-[var(--terminal-amber)] px-2.5 h-full flex items-center justify-center border-r border-silver">
                   <Tag class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="flairType">
                   <SelectTrigger
-                    class="w-[140px] h-7 border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider"
+                    class="w-[140px] h-full border-0 bg-transparent shadow-none focus:ring-0 text-xs font-bold uppercase tracking-wider px-3"
                   >
                     <SelectValue :placeholder="t('forum.post.flair')" />
                   </SelectTrigger>
@@ -282,14 +282,14 @@ onMounted(loadData);
                 v-if="flairType"
                 v-model="flairLabel"
                 :placeholder="t('forum.post.customLabel')"
-                class="h-9 w-[150px] text-xs font-bold rounded-full shadow-sm"
+                class="h-9 w-[150px] text-xs font-bold rounded-none border-silver focus:border-[var(--accent-electric)] focus:ring-2 focus:ring-[var(--accent-electric-glow)] shadow-sm bg-card"
               />
 
               <div class="relative">
                 <Button
                   variant="outline"
                   size="sm"
-                  class="h-9 rounded-full gap-2 px-4 shadow-sm"
+                  class="h-9 rounded-none border-silver gap-2 px-4 shadow-sm hover:border-[var(--accent-electric)] hover:bg-[var(--surface-sunken)] transition-colors"
                   @click="showTagPicker = !showTagPicker"
                 >
                   <Plus class="h-3.5 w-3.5" />
@@ -337,7 +337,7 @@ onMounted(loadData);
                 v-for="tag in selectedTags"
                 :key="tag"
                 variant="secondary"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-full text-[10px] font-bold bg-primary/5 text-primary border-primary/10 border"
+                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-[10px] font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_20%,transparent)] border shadow-sm"
               >
                 {{ tag }}
                 <button
@@ -353,12 +353,12 @@ onMounted(loadData);
         </div>
 
         <!-- Editor Section -->
-        <div class="flex-1 px-6 pb-6 overflow-hidden">
+        <div class="flex-1 px-6 pt-6 pb-6 overflow-hidden">
           <div
             class="max-w-[1600px] mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             <div
-              class="flex flex-col h-full overflow-hidden border rounded-none bg-card shadow-sm focus-within:border-primary/50 transition-all"
+              class="flex flex-col h-full overflow-hidden border border-silver rounded-none bg-card shadow-sm focus-within:border-[var(--accent-electric)] focus-within:ring-2 focus-within:ring-[var(--accent-electric-glow)] transition-all"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
@@ -377,7 +377,7 @@ onMounted(loadData);
             </div>
 
             <div
-              class="hidden lg:flex flex-col rounded-none border bg-card overflow-hidden shadow-sm"
+              class="hidden lg:flex flex-col rounded-none border border-silver bg-card overflow-hidden shadow-sm"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
@@ -403,75 +403,6 @@ onMounted(loadData);
   </div>
 </template>
 
-<style>
-.markdown-content h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.markdown-content h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 0.875rem;
-  margin-bottom: 0.5rem;
-}
-
-.markdown-content blockquote {
-  border-left: 4px solid var(--color-border);
-  padding-left: 1rem;
-  color: var(--text-secondary);
-  margin: 0.5rem 0;
-}
-
-.markdown-content ul {
-  list-style: disc;
-  margin-left: 1.5rem;
-}
-
-.markdown-content ol {
-  list-style: decimal;
-  margin-left: 1.5rem;
-}
-
-.markdown-content pre {
-  background-color: var(--color-secondary);
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1rem 0;
-}
-
-.markdown-content code {
-  font-family: "Fira Code", monospace;
-  font-size: 0.875rem;
-}
-
-.markdown-content pre code {
-  background-color: transparent;
-  padding: 0;
-}
-
-.markdown-content table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1rem 0;
-}
-
-.markdown-content th,
-.markdown-content td {
-  border: 1px solid var(--color-border);
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.markdown-content th {
-  background-color: var(--color-muted);
-}
-
-.markdown-content a {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
+<style scoped>
+/* Scoped styles can be empty since we rely on Tailwind and the global markdown design system */
 </style>

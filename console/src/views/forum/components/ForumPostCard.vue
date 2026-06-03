@@ -202,14 +202,14 @@ async function handleSave() {
 
 <template>
   <div
-    class="bg-card text-card-foreground hover:bg-muted/30 transition-colors border-b border-border/40 last:border-0"
+    class="terminal-card hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
   >
     <div class="flex gap-3 px-4 py-3 sm:gap-4 sm:px-6">
       <div class="min-w-0 flex-1 space-y-2">
         <!-- Header -->
         <header class="flex items-center gap-2 text-xs text-muted-foreground">
           <Avatar
-            class="h-9 w-9 rounded-none border border-border/40"
+            class="h-9 w-9 rounded-none border border-silver"
             v-if="post.community?.icon"
           >
             <AvatarImage
@@ -221,7 +221,7 @@ async function handleSave() {
             }}</AvatarFallback>
           </Avatar>
           <Avatar
-            class="h-9 w-9 rounded-none border border-border/40"
+            class="h-9 w-9 rounded-none border border-silver"
             v-else
           >
             <AvatarImage
@@ -285,14 +285,14 @@ async function handleSave() {
               post.excerpt &&
               !(media?.kind === 'image' || media?.kind === 'video')
             "
-            class="text-sm text-muted-foreground line-clamp-[20] prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+            class="text-sm text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
             v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
           ></div>
 
           <!-- Media -->
           <div
             v-if="media"
-            class="mt-2 overflow-hidden rounded-none border border-border/40 bg-muted/40"
+            class="mt-2 overflow-hidden rounded-none border border-silver bg-[var(--surface-sunken)]/50"
           >
             <AspectRatio
               v-if="media.kind === 'image'"

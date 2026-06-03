@@ -229,7 +229,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
-        class="flex flex-col gap-3 rounded-none border border-border/40 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
+        class="flex flex-col gap-3 terminal-card bg-card p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
       >
         <div class="flex flex-1 items-center gap-3">
           <div class="relative flex-1 max-w-md">
@@ -239,12 +239,12 @@ function handlePostSave(postId: string, isSaved: boolean) {
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="h-10 pl-10 rounded-none bg-background/50 font-data border-[var(--silver-200)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
+              class="h-10 pl-10 rounded-none bg-[var(--surface-sunken)]/50 font-data border-silver focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
             />
           </div>
           <Select v-model="quickFilter">
             <SelectTrigger
-              class="h-10 w-40 rounded-none bg-background/50 font-data border-[var(--silver-200)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
+              class="h-10 w-40 rounded-none bg-[var(--surface-sunken)]/50 font-data border-silver focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
             >
               <SelectValue :placeholder="t('forum.list.sort')" />
             </SelectTrigger>
@@ -260,7 +260,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
           </Select>
         </div>
         <Button
-          class="h-10 rounded-none px-6 gap-2 font-data uppercase tracking-[0.12em]"
+          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-[0.12em] bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white border-0 shadow-sm"
           @click="handleCreatePost"
         >
           <Plus class="h-4 w-4" />

@@ -248,7 +248,11 @@ forumEditRoute.meta = { requiresAuth: true };
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: "/", redirect: { name: "forum-home" } },
+    {
+      path: "/",
+      name: "landing",
+      component: () => import("../views/LandingView.vue"),
+    },
     forumCreateRoute,
     forumEditRoute,
     forumRoutes,
@@ -386,6 +390,11 @@ router.beforeEach(async (to) => {
     authStore.isAuthenticated &&
     (to.name === "login" || to.name === "register")
   ) {
+    return { name: "forum-home" };
+  }
+
+  // If authenticated user tries to access landing page, redirect to app console
+  if (authStore.isAuthenticated && to.name === "landing") {
     return { name: "forum-home" };
   }
 

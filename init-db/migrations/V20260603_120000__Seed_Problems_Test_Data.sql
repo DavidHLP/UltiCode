@@ -2,16 +2,15 @@
 -- ------------------------------------------------------------
 -- 拆分自 V20260602_120200__Insert_Test_Data.sql (Section: Problems)
 -- 维护指南: 修改 problems / problem_details / problem_examples /
---          problem_tags / problem_tag_relations / problem_languages /
---          按 tag 自动生成的题单 (list-tag-*) 时, 仅编辑本文件
+--          problem_tags / problem_tag_relations / problem_languages
+--          测试数据时, 仅编辑本文件
 --
 -- 设计原则: 每个难度 (Easy/Medium/Hard) 恰好 2 道题, 共 6 道
 --   Easy   : id=1 (两数之和) / id=6 (反转链表)
 --   Medium : id=2 (两数相加) / id=3 (无重复字符的最长子串)
 --   Hard   : id=4 (寻找两个正序数组的中位数) / id=7 (合并K个升序链表)
 --
--- 设计原则 2: 每种题目类型 (tag) 对应 1 个题单, 便于 /problem-lists 页面
---   按类型浏览; list-tag-* 11 个题单与 problem_tags 一一对应。
+-- 题单数据: 由 V20260603_120200 维护 (9 个题单), 本文件不涉及
 --
 -- 字符集说明: 后端 JDBC URL 已包含 useUnicode=true&characterEncoding=UTF-8,
 --   Flyway 走应用连接字符正常; 若手动 docker exec mysql 写入中文,
@@ -262,45 +261,6 @@ ON DUPLICATE KEY UPDATE
   `starter_code` = VALUES(`starter_code`);
 
 -- ============================================================
--- 7. problem_lists (按 tag 一对一建题单, 共 11 个)
---    与 problem_tags.id 一一对应, 命名 list-tag-<slug>
---    is_featured=0 (基础题单, 不进 banner)
--- ============================================================
-INSERT INTO `problem_lists` (`id`, `name`, `description`, `author_id`, `is_public`, `is_featured`, `banner_tag`, `banner_icon`, `banner_theme`, `banner_order`, `created_at`, `updated_at`, `version`)
-VALUES
-('list-tag-array',          '数组 专题',           '数组遍历、双指针、二分等数组类题目合集',                 'user-sara',  1, 0, '数组',   'Braces',       'sky',     10, NOW(3), NOW(3), 1),
-('list-tag-hash-table',     '哈希表 专题',         '哈希表 / Map / Set 优化时间复杂度的经典题目',           'user-sara',  1, 0, '哈希',   'Hash',         'violet',  11, NOW(3), NOW(3), 1),
-('list-tag-linked-list',    '链表 专题',           '单链表、双链表操作相关题目',                            'user-david', 1, 0, '链表',   'Link2',        'emerald', 12, NOW(3), NOW(3), 1),
-('list-tag-string',         '字符串 专题',         '字符串处理、解析与匹配',                                'user-david', 1, 0, '字符串', 'Type',         'amber',   13, NOW(3), NOW(3), 1),
-('list-tag-sliding-window', '滑动窗口 专题',       '固定/可变窗口的子串与子数组题',                          'user-chen',  1, 0, '窗口',   'Square',       'pink',    14, NOW(3), NOW(3), 1),
-('list-tag-two-pointers',   '双指针 专题',         '左右指针、快慢指针等技巧合集',                          'user-chen',  1, 0, '双指针', 'ArrowLeftRight','cyan',  15, NOW(3), NOW(3), 1),
-('list-tag-binary-search',  '二分查找 专题',       '二分查找及其变体',                                       'user-alex',  1, 0, '二分',   'ChevronsUpDown','rose',  16, NOW(3), NOW(3), 1),
-('list-tag-divide-and-conquer', '分治 专题',        '分治思想, 归并 / 快速排序变体 (slug 拼接兼容)',          'user-petr',  1, 0, '分治',   'Split',        'purple',  17, NOW(3), NOW(3), 1),
-('list-tag-heap',           '堆 专题',             '优先队列 / 最小堆 / 最大堆 相关题目',                    'user-petr',  1, 0, '堆',     'Layers',       'teal',    18, NOW(3), NOW(3), 1),
-('list-tag-math',           '数学 专题',           '数学推导、算术运算相关题目',                              'user-alex',  1, 0, '数学',   'Sigma',        'indigo',  19, NOW(3), NOW(3), 1),
-('list-tag-recursion',      '递归 专题',           '递归 / 回溯算法相关题目',                                'user-chen',  1, 0, '递归',   'Repeat',       'lime',    20, NOW(3), NOW(3), 1)
-ON DUPLICATE KEY UPDATE
-  `name` = VALUES(`name`),
-  `description` = VALUES(`description`),
-  `is_public` = VALUES(`is_public`),
-  `updated_at` = NOW(3);
-
--- ============================================================
--- 8. problem_list_problem_relations (tag 题单 ↔ 题目 多对多)
---    来源: 复用上面的 problem_tag_relations 数据,
---    通过 JOIN problems / problem_tags 自动生成 (list_tag + problem_id) 笛卡尔积
---    用 INSERT IGNORE 避免与 V120200 既有 relations 冲突
--- ============================================================
-INSERT IGNORE INTO `problem_list_problem_relations` (`list_id`, `problem_id`, `sort_order`, `added_at`)
-SELECT
-  CONCAT('list-tag-', pt.slug) AS list_id,
-  ptr.problem_id,
-  ROW_NUMBER() OVER (PARTITION BY ptr.problem_id ORDER BY ptr.tag_id) AS sort_order,
-  NOW(3) AS added_at
-FROM `problem_tag_relations` ptr
-JOIN `problem_tags` pt ON pt.id = ptr.tag_id;
-
--- ============================================================
 -- Verify:
 --   SELECT difficulty, COUNT(*) FROM problems GROUP BY difficulty;
 --   期望: Easy=2, Medium=2, Hard=2
@@ -310,10 +270,5 @@ JOIN `problem_tags` pt ON pt.id = ptr.tag_id;
 --   期望: 每题 3 种语言 (Java/Python/C++)
 --   SELECT id, label, usage_count FROM problem_tags ORDER BY id;
 --   期望: usage_count 与 relations 实际计数一致
---   SELECT id, name, (SELECT COUNT(*) FROM problem_list_problem_relations
---                      WHERE list_id = pl.id) AS problems
---   FROM problem_lists pl WHERE id LIKE 'list-tag-%' ORDER BY id;
---   期望: 11 个 list-tag-*, 大部分含 1+ 题, list-tag-two-pointers 关联 0 题
---   注: divide-and-conquer 走 slug 拼接 (list-tag-divide-and-conquer),
---       与 list-tag-divide-conquer 不可并存, 保留与 slug 一致的命名
+--   (题单 9 个由 V20260603_120200 维护)
 -- ============================================================

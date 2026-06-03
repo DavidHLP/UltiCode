@@ -5,10 +5,11 @@
 
 -- Insert super admin user (password: admin123, BCrypt encoded)
 INSERT INTO `users` (
-    `id`, `username`, `name`, `email`, `password`,
+    `id`, `username`, `name`, `email`, `avatar`, `password`,
     `role`, `is_active`, `is_banned`, `is_deleted`, `joined_at`
 ) VALUES (
     UUID(), 'admin', 'SuperAdmin', 'admin@ulticode.com',
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
     '$2a$10$TdoAPJ1mnUV/Osnws1nVbecA1VOuTLMyZ/Yo18Rkgh4yHjXGj3lyq',
     'ADMIN', 1, 0, 0, NOW(3)
 );

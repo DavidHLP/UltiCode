@@ -57,7 +57,7 @@ defineOptions({
   font-weight: 600;
   font-size: 0.9375rem;
   letter-spacing: 0.02em;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   border: none;
   cursor: pointer;
   overflow: hidden;

@@ -160,7 +160,7 @@ async function handleSubmit(event: Event) {
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   border-left: 3px solid var(--terminal-red);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-radius: 0;
   background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
   color: var(--status-error);
   font-size: 0.875rem;

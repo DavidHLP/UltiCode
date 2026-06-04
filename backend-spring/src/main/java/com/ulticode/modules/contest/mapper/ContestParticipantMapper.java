@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestParticipant;
+import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -196,24 +197,27 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param contestId the contest ID
      * @return list of participants with user data
      */
-    @Results({
-            @Result(column = "id", property = "id"),
-            @Result(column = "contest_id", property = "contestId"),
-            @Result(column = "user_id", property = "userId"),
-            @Result(column = "status", property = "status"),
-            @Result(column = "final_rank", property = "finalRank"),
-            @Result(column = "total_score", property = "totalScore"),
-            @Result(column = "total_penalty", property = "totalPenalty"),
-            @Result(column = "total_time", property = "totalTime"),
-            @Result(column = "attempt_count", property = "attemptCount"),
-            @Result(column = "registered_at", property = "registeredAt"),
-            @Result(column = "updated_at", property = "updatedAt"),
-            @Result(column = "virtual_session_id", property = "virtualSessionId"),
-            @Result(column = "username", property = "username"),
-            @Result(column = "name", property = "name"),
-            @Result(column = "avatar", property = "avatar")
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "contest_id", javaType = String.class),
+            @Arg(column = "user_id", javaType = String.class),
+            @Arg(column = "status", javaType = String.class),
+            @Arg(column = "final_rank", javaType = Integer.class),
+            @Arg(column = "total_score", javaType = Integer.class),
+            @Arg(column = "total_penalty", javaType = Integer.class),
+            @Arg(column = "total_time", javaType = Integer.class),
+            @Arg(column = "attempt_count", javaType = Integer.class),
+            @Arg(column = "registered_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "updated_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "virtual_session_id", javaType = String.class),
+            @Arg(column = "username", javaType = String.class),
+            @Arg(column = "name", javaType = String.class),
+            @Arg(column = "avatar", javaType = String.class)
     })
-    @Select("SELECT cp.*, u.username, u.name, u.avatar " +
+    @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
+            "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
+            "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
+            "u.username, u.name, u.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
             "WHERE cp.contest_id = #{contestId} " +
@@ -228,24 +232,27 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param offset    number of participants to skip
      * @return paginated list of ranked participants with user data
      */
-    @Results({
-            @Result(column = "id", property = "id"),
-            @Result(column = "contest_id", property = "contestId"),
-            @Result(column = "user_id", property = "userId"),
-            @Result(column = "status", property = "status"),
-            @Result(column = "final_rank", property = "finalRank"),
-            @Result(column = "total_score", property = "totalScore"),
-            @Result(column = "total_penalty", property = "totalPenalty"),
-            @Result(column = "total_time", property = "totalTime"),
-            @Result(column = "attempt_count", property = "attemptCount"),
-            @Result(column = "registered_at", property = "registeredAt"),
-            @Result(column = "updated_at", property = "updatedAt"),
-            @Result(column = "virtual_session_id", property = "virtualSessionId"),
-            @Result(column = "username", property = "username"),
-            @Result(column = "name", property = "name"),
-            @Result(column = "avatar", property = "avatar")
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "contest_id", javaType = String.class),
+            @Arg(column = "user_id", javaType = String.class),
+            @Arg(column = "status", javaType = String.class),
+            @Arg(column = "final_rank", javaType = Integer.class),
+            @Arg(column = "total_score", javaType = Integer.class),
+            @Arg(column = "total_penalty", javaType = Integer.class),
+            @Arg(column = "total_time", javaType = Integer.class),
+            @Arg(column = "attempt_count", javaType = Integer.class),
+            @Arg(column = "registered_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "updated_at", javaType = java.time.LocalDateTime.class),
+            @Arg(column = "virtual_session_id", javaType = String.class),
+            @Arg(column = "username", javaType = String.class),
+            @Arg(column = "name", javaType = String.class),
+            @Arg(column = "avatar", javaType = String.class)
     })
-    @Select("SELECT cp.*, u.username, u.name, u.avatar " +
+    @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, " +
+            "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, " +
+            "cp.registered_at, cp.updated_at, cp.virtual_session_id, " +
+            "u.username, u.name, u.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
             "WHERE cp.contest_id = #{contestId} AND cp.final_rank IS NOT NULL " +

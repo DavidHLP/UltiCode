@@ -26,13 +26,15 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale();
         :class="[
           isCurrentLocale(localeConfig.code)
             ? 'bg-accent/50 text-accent-foreground font-bold'
-            : ''
+            : '',
         ]"
         @click="setLocale(localeConfig.code)"
       >
         <div class="flex items-center gap-3">
           <span class="text-base leading-none">{{ localeConfig.flag }}</span>
-          <span class="text-[11px] uppercase tracking-widest font-data">{{ localeConfig.nativeName }}</span>
+          <span class="text-[11px] uppercase tracking-widest font-data">{{
+            localeConfig.nativeName
+          }}</span>
         </div>
         <Check
           v-if="isCurrentLocale(localeConfig.code)"

@@ -71,7 +71,9 @@
         >
           {{ comment.time }}
         </span>
-        <span v-if="comment.editedAt" class="text-muted-foreground/60 text-[10px]"
+        <span
+          v-if="comment.editedAt"
+          class="text-muted-foreground/60 text-[10px]"
           >({{ t("forum.comments.edited") }})</span
         >
         <span

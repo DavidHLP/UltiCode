@@ -135,10 +135,8 @@ const donutValueFormatter = (tick: number | Date) =>
           <div class="flex justify-between text-sm font-medium">
             <span
               :class="{
-                'text-chart-easy':
-                  stat.difficulty === 'EASY',
-                'text-chart-medium':
-                  stat.difficulty === 'MEDIUM',
+                'text-chart-easy': stat.difficulty === 'EASY',
+                'text-chart-medium': stat.difficulty === 'MEDIUM',
                 'text-chart-hard': stat.difficulty === 'HARD',
               }"
               >{{ stat.label }}</span

@@ -50,9 +50,7 @@ const { t } = useI18n();
           :disabled="loading"
         >
           {{
-            loading
-              ? t("common.status.saving")
-              : t("common.actions.confirm")
+            loading ? t("common.status.saving") : t("common.actions.confirm")
           }}
         </AlertDialogAction>
       </AlertDialogFooter>

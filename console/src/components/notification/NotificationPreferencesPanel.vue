@@ -10,12 +10,7 @@ import {
   updateNotificationPreferences,
 } from "@/api/notification";
 import type { NotificationPreferences } from "@/types/notification";
-import {
-  MessageSquare,
-  Megaphone,
-  ShieldAlert,
-  Bell,
-} from "lucide-vue-next";
+import { MessageSquare, Megaphone, ShieldAlert, Bell } from "lucide-vue-next";
 
 const { t } = useI18n();
 const loading = ref(false);
@@ -47,7 +42,10 @@ onMounted(async () => {
   }
 });
 
-async function togglePreference(key: keyof NotificationPreferences, value: boolean) {
+async function togglePreference(
+  key: keyof NotificationPreferences,
+  value: boolean,
+) {
   const previous = preferences.value[key];
   preferences.value = { ...preferences.value, [key]: value };
   try {
@@ -62,14 +60,13 @@ async function togglePreference(key: keyof NotificationPreferences, value: boole
 
 <template>
   <div class="space-y-4">
-    <div
-      v-for="(item, index) in prefItems"
-      :key="item.key"
-    >
+    <div v-for="(item, index) in prefItems" :key="item.key">
       <Separator v-if="index > 0" class="mb-4" />
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-8 w-8 items-center justify-center rounded-full border bg-background">
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-full border bg-background"
+          >
             <component :is="item.icon" class="h-4 w-4 text-muted-foreground" />
           </div>
           <Label :for="`pref-${item.key}`" class="cursor-pointer text-sm">

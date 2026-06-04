@@ -26,10 +26,7 @@ import {
   BookmarkMinus,
   Pencil,
 } from "lucide-vue-next";
-import type {
-  ProblemList,
-  ProblemListCategory,
-} from "@/types/problem-list";
+import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 
@@ -64,11 +61,15 @@ const isListActive = (id: string | number) => {
   <div class="px-1 py-0.5" v-if="data.ownLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
+        <CollapsibleTrigger
+          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+        >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <User class="h-3.5 w-3.5 mr-0.5 text-[var(--accent-electric)]/70 group-hover/trigger:text-[var(--accent-electric)] transition-colors" />
+          <User
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--accent-electric)]/70 group-hover/trigger:text-[var(--accent-electric)] transition-colors"
+          />
           <span>{{ t("sidebar.problemLists.myLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
@@ -81,7 +82,7 @@ const isListActive = (id: string | number) => {
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -126,11 +127,15 @@ const isListActive = (id: string | number) => {
   <div class="px-1 py-0.5" v-if="data.savedLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
+        <CollapsibleTrigger
+          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+        >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <Bookmark class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-green)]/70 group-hover/trigger:text-[var(--terminal-green)] transition-colors" />
+          <Bookmark
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-green)]/70 group-hover/trigger:text-[var(--terminal-green)] transition-colors"
+          />
           <span>{{ t("sidebar.problemLists.savedLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
@@ -143,7 +148,7 @@ const isListActive = (id: string | number) => {
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -201,24 +206,32 @@ const isListActive = (id: string | number) => {
   <div class="px-1 py-0.5" v-if="data.featuredLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
+        <CollapsibleTrigger
+          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+        >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <Star class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-amber)]/70 group-hover/trigger:text-[var(--terminal-amber)] transition-colors" />
+          <Star
+            class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-amber)]/70 group-hover/trigger:text-[var(--terminal-amber)] transition-colors"
+          />
           <span>{{ t("sidebar.problemLists.featured").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
       <CollapsibleContent class="py-0.5">
         <ul class="space-y-0.5">
-          <li v-for="item in data.featuredLists" :key="item.id" class="group/item">
+          <li
+            v-for="item in data.featuredLists"
+            :key="item.id"
+            class="group/item"
+          >
             <div
               :class="[
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink
@@ -238,10 +251,16 @@ const isListActive = (id: string | number) => {
   </div>
 
   <!-- User Categories -->
-  <div v-for="category in data.categories" :key="category.id" class="px-1 py-0.5">
+  <div
+    v-for="category in data.categories"
+    :key="category.id"
+    class="px-1 py-0.5"
+  >
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
-        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
+        <CollapsibleTrigger
+          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+        >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
@@ -283,7 +302,7 @@ const isListActive = (id: string | number) => {
                 'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
               ]"
             >
               <RouterLink

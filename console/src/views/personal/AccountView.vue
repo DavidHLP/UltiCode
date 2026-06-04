@@ -179,7 +179,9 @@ onMounted(async () => {
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
             <!-- Profile Section -->
-            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
+            <Card
+              class="border shadow-[var(--shadow-float)] bg-card rounded-none"
+            >
               <CardHeader>
                 <CardTitle class="text-xl font-semibold tracking-tight">{{
                   t("personal.account.sections.publicProfile")
@@ -286,7 +288,9 @@ onMounted(async () => {
             </Card>
 
             <!-- Social/Links Section -->
-            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
+            <Card
+              class="border shadow-[var(--shadow-float)] bg-card rounded-none"
+            >
               <CardHeader>
                 <CardTitle class="text-xl font-semibold tracking-tight">{{
                   t("personal.account.sections.webPresence")
@@ -359,7 +363,9 @@ onMounted(async () => {
             value="password"
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
-            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
+            <Card
+              class="border shadow-[var(--shadow-float)] bg-card rounded-none"
+            >
               <CardHeader>
                 <CardTitle class="text-lg">{{
                   t("personal.account.changePassword")
@@ -428,7 +434,9 @@ onMounted(async () => {
             value="notifications"
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
-            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
+            <Card
+              class="border shadow-[var(--shadow-float)] bg-card rounded-none"
+            >
               <CardHeader>
                 <CardTitle class="text-lg">{{
                   t("personal.account.sections.notifications")
@@ -510,7 +518,9 @@ onMounted(async () => {
                       <div
                         class="h-10 w-10 rounded-full bg-[var(--terminal-green)]/10 flex items-center justify-center"
                       >
-                        <ShieldCheck class="h-5 w-5 text-[var(--terminal-green)]" />
+                        <ShieldCheck
+                          class="h-5 w-5 text-[var(--terminal-green)]"
+                        />
                       </div>
                       <div class="space-y-0.5">
                         <Label class="text-base font-bold">{{

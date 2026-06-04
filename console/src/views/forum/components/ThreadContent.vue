@@ -52,10 +52,14 @@ const emit = defineEmits<{
 }>();
 
 const flairClasses: Record<ForumFlairType, string> = {
-  announcement: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
-  discussion: "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
-  showcase: "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
-  question: "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
+  announcement:
+    "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+  discussion:
+    "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+  showcase:
+    "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+  question:
+    "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
   hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
 };
 
@@ -265,10 +269,7 @@ async function handleShare() {
 
     <!-- Content -->
     <div class="px-4 sm:px-6 pb-2 space-y-4">
-      <section
-        v-if="thread.excerpt"
-        class="markdown-view"
-      >
+      <section v-if="thread.excerpt" class="markdown-view">
         <div
           class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
           v-html="sanitizeHtml(renderMarkdown(thread.excerpt))"
@@ -330,13 +331,12 @@ async function handleShare() {
             </div>
           </div>
 
-          <div
-            v-else-if="media.type === 'text'"
-            class="markdown-view"
-          >
+          <div v-else-if="media.type === 'text'" class="markdown-view">
             <div
               class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-              v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
+              v-html="
+                sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))
+              "
             ></div>
           </div>
 

@@ -78,11 +78,7 @@ function handleSubmit() {
           :disabled="loading || !form.name.trim()"
           class="rounded-full px-8"
         >
-          {{
-            loading
-              ? t("common.status.saving")
-              : t("common.actions.save")
-          }}
+          {{ loading ? t("common.status.saving") : t("common.actions.save") }}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Trophy,
@@ -39,16 +34,46 @@ const { t } = useI18n();
 const stats = computed(() => {
   if (!props.statsData)
     return {
-      easy: { count: 0, total: 0, color: "text-[var(--terminal-green)]", bg: "bg-[var(--terminal-green)]" },
-      medium: { count: 0, total: 0, color: "text-[var(--terminal-amber)]", bg: "bg-[var(--terminal-amber)]" },
-      hard: { count: 0, total: 0, color: "text-[var(--terminal-red)]", bg: "bg-[var(--terminal-red)]" },
+      easy: {
+        count: 0,
+        total: 0,
+        color: "text-[var(--terminal-green)]",
+        bg: "bg-[var(--terminal-green)]",
+      },
+      medium: {
+        count: 0,
+        total: 0,
+        color: "text-[var(--terminal-amber)]",
+        bg: "bg-[var(--terminal-amber)]",
+      },
+      hard: {
+        count: 0,
+        total: 0,
+        color: "text-[var(--terminal-red)]",
+        bg: "bg-[var(--terminal-red)]",
+      },
     };
 
   const { stats: s } = props.statsData;
   return {
-    easy: { count: s.Easy.count, total: s.Easy.total, color: "text-[var(--terminal-green)]", bg: "bg-[var(--terminal-green)]" },
-    medium: { count: s.Medium.count, total: s.Medium.total, color: "text-[var(--terminal-amber)]", bg: "bg-[var(--terminal-amber)]" },
-    hard: { count: s.Hard.count, total: s.Hard.total, color: "text-[var(--terminal-red)]", bg: "bg-[var(--terminal-red)]" },
+    easy: {
+      count: s.Easy.count,
+      total: s.Easy.total,
+      color: "text-[var(--terminal-green)]",
+      bg: "bg-[var(--terminal-green)]",
+    },
+    medium: {
+      count: s.Medium.count,
+      total: s.Medium.total,
+      color: "text-[var(--terminal-amber)]",
+      bg: "bg-[var(--terminal-amber)]",
+    },
+    hard: {
+      count: s.Hard.count,
+      total: s.Hard.total,
+      color: "text-[var(--terminal-red)]",
+      bg: "bg-[var(--terminal-red)]",
+    },
   };
 });
 
@@ -73,9 +98,16 @@ const recentActivity = computed(() => {
       <!-- Key Metrics Row -->
       <div class="grid gap-4 sm:grid-cols-3">
         <Card class="relative overflow-hidden group rounded-none">
-          <div class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"></div>
-          <CardHeader class="pb-2 space-y-0 flex flex-row items-center justify-between">
-            <CardTitle class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ t("personal.profile.globalRank") }}</CardTitle>
+          <div
+            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <CardHeader
+            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+          >
+            <CardTitle
+              class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >{{ t("personal.profile.globalRank") }}</CardTitle
+            >
             <Trophy class="h-4 w-4 text-[var(--accent-electric)]" />
           </CardHeader>
           <CardContent>
@@ -83,18 +115,31 @@ const recentActivity = computed(() => {
               #{{ (userRank || 12403).toLocaleString() }}
             </div>
             <div class="mt-2 flex items-center gap-2">
-              <Badge variant="secondary" class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1.5 font-bold">
+              <Badge
+                variant="secondary"
+                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1.5 font-bold"
+              >
                 DIAMOND III
               </Badge>
-              <span class="text-[10px] text-muted-foreground font-medium uppercase">{{ t("personal.stats.topPercent", { percent: "0.5" }) }}</span>
+              <span
+                class="text-[10px] text-muted-foreground font-medium uppercase"
+                >{{ t("personal.stats.topPercent", { percent: "0.5" }) }}</span
+              >
             </div>
           </CardContent>
         </Card>
 
         <Card class="relative overflow-hidden group rounded-none">
-          <div class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"></div>
-          <CardHeader class="pb-2 space-y-0 flex flex-row items-center justify-between">
-            <CardTitle class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ t("personal.profile.solved") }}</CardTitle>
+          <div
+            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <CardHeader
+            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+          >
+            <CardTitle
+              class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >{{ t("personal.profile.solved") }}</CardTitle
+            >
             <CheckCircle2 class="h-4 w-4 text-[var(--terminal-green)]" />
           </CardHeader>
           <CardContent>
@@ -108,9 +153,16 @@ const recentActivity = computed(() => {
         </Card>
 
         <Card class="relative overflow-hidden group rounded-none">
-          <div class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"></div>
-          <CardHeader class="pb-2 space-y-0 flex flex-row items-center justify-between">
-            <CardTitle class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{{ t("personal.profile.streak") }}</CardTitle>
+          <div
+            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <CardHeader
+            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+          >
+            <CardTitle
+              class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >{{ t("personal.profile.streak") }}</CardTitle
+            >
             <Flame class="h-4 w-4 text-[var(--terminal-amber)]" />
           </CardHeader>
           <CardContent>
@@ -149,7 +201,7 @@ const recentActivity = computed(() => {
                     ((statsData?.stats?.Easy.total || 0) +
                       (statsData?.stats?.Medium.total || 0) +
                       (statsData?.stats?.Hard.total || 0) || 1)) *
-                    100
+                  100
                 ).toFixed(1)
               }}%
             </div>
@@ -164,8 +216,13 @@ const recentActivity = computed(() => {
             >
               <div class="flex items-end justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold capitalize">{{ t(`personal.stats.${difficulty}`) }}</span>
-                  <Badge variant="outline" class="text-[10px] h-4 px-1 border-muted-foreground/30 text-muted-foreground">
+                  <span class="text-sm font-bold capitalize">{{
+                    t(`personal.stats.${difficulty}`)
+                  }}</span>
+                  <Badge
+                    variant="outline"
+                    class="text-[10px] h-4 px-1 border-muted-foreground/30 text-muted-foreground"
+                  >
                     {{ stat.count }} / {{ stat.total }}
                   </Badge>
                 </div>
@@ -173,11 +230,15 @@ const recentActivity = computed(() => {
                   {{ ((stat.count / (stat.total || 1)) * 100).toFixed(1) }}%
                 </span>
               </div>
-              <div class="h-3 w-full overflow-hidden rounded-full bg-muted shadow-inner">
+              <div
+                class="h-3 w-full overflow-hidden rounded-full bg-muted shadow-inner"
+              >
                 <div
                   class="h-full transition-all duration-1000 ease-out"
                   :class="stat.bg"
-                  :style="{ width: (stat.count / (stat.total || 1)) * 100 + '%' }"
+                  :style="{
+                    width: (stat.count / (stat.total || 1)) * 100 + '%',
+                  }"
                 ></div>
               </div>
             </div>
@@ -192,7 +253,9 @@ const recentActivity = computed(() => {
             <Activity class="h-5 w-5 text-primary" />
             {{ t("personal.profile.heatmapTitle") }}
           </CardTitle>
-          <CardDescription>{{ t("personal.profile.heatmapSubtitle") }}</CardDescription>
+          <CardDescription>{{
+            t("personal.profile.heatmapSubtitle")
+          }}</CardDescription>
         </CardHeader>
         <CardContent class="pt-2">
           <ActivityHeatmap :data="statsData?.heatmap" />
@@ -220,7 +283,9 @@ const recentActivity = computed(() => {
             <GitCommit class="h-5 w-5 text-primary" />
             {{ t("personal.history.title") }}
           </CardTitle>
-          <CardDescription>{{ t("personal.history.subtitle") }}</CardDescription>
+          <CardDescription>{{
+            t("personal.history.subtitle")
+          }}</CardDescription>
         </CardHeader>
         <CardContent class="pt-2">
           <SubmissionHistoryChart />
@@ -234,7 +299,9 @@ const recentActivity = computed(() => {
             <Target class="h-5 w-5 text-primary" />
             {{ t("personal.learning.title") }}
           </CardTitle>
-          <CardDescription>{{ t("personal.learning.subtitle") }}</CardDescription>
+          <CardDescription>{{
+            t("personal.learning.subtitle")
+          }}</CardDescription>
         </CardHeader>
         <CardContent class="pt-2">
           <LearningProgressChart />
@@ -252,13 +319,18 @@ const recentActivity = computed(() => {
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0">
-          <div v-if="recentActivity.length > 0" class="divide-y divide-border/50">
+          <div
+            v-if="recentActivity.length > 0"
+            class="divide-y divide-border/50"
+          >
             <div
               v-for="(item, index) in recentActivity"
               :key="index"
               class="group relative flex items-start gap-4 p-4 hover:bg-muted/40 transition-colors"
             >
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors"
+              >
                 <div
                   class="h-3 w-3 rounded-full animate-pulse shadow-[0_0_8px_oklch(0.7_0.15_160)]"
                   :class="
@@ -281,7 +353,9 @@ const recentActivity = computed(() => {
                   </span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-medium text-muted-foreground">{{ item.time }}</span>
+                  <span class="text-[11px] font-medium text-muted-foreground">{{
+                    item.time
+                  }}</span>
                   <Badge
                     variant="outline"
                     class="text-[9px] h-4 px-1 rounded-none font-bold uppercase tracking-tighter"
@@ -297,7 +371,10 @@ const recentActivity = computed(() => {
               </div>
             </div>
           </div>
-          <div v-else class="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+          <div
+            v-else
+            class="flex flex-col items-center justify-center py-12 text-center text-muted-foreground"
+          >
             <Activity class="h-8 w-8 mb-2 opacity-20" />
             <p class="text-sm">{{ t("personal.submissions.noSubmissions") }}</p>
           </div>

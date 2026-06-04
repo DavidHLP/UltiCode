@@ -156,7 +156,8 @@ export const useNotificationStore = defineStore("notification", () => {
       id: payload.id,
       title: payload.title,
       body: payload.content,
-      type: (payload.type?.toUpperCase() ?? "SYSTEM") as NotificationItem["type"],
+      type: (payload.type?.toUpperCase() ??
+        "SYSTEM") as NotificationItem["type"],
       category: "SYSTEM",
       link: payload.link || null,
       isRead: false,

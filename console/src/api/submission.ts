@@ -47,7 +47,8 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
     memoryPercentile: (s.memory_percentile ?? s.memoryPercentile) as
       | number
       | undefined,
-    memoryDistBinsMb: s.memoryDistBinsMb as SubmissionRecord["memoryDistBinsMb"],
+    memoryDistBinsMb:
+      s.memoryDistBinsMb as SubmissionRecord["memoryDistBinsMb"],
   } as SubmissionRecord;
 }
 
@@ -70,7 +71,9 @@ function mapSubmissionStatus(meta: unknown): SubmissionStatusMeta {
 export async function fetchProblemSubmissions(
   problemId: number,
 ): Promise<SubmissionRecord[]> {
-  const pageResult = await apiGet<{ items: unknown[] }>(`/problems/${problemId}/submissions`);
+  const pageResult = await apiGet<{ items: unknown[] }>(
+    `/problems/${problemId}/submissions`,
+  );
   return pageResult.items.map(mapSubmission);
 }
 

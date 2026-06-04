@@ -24,7 +24,11 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty";
-import { SemanticBadge, SUBMISSION_STATUS_COLOR_MAP, type SemanticColor } from "@/components/ui/terminal";
+import {
+  SemanticBadge,
+  SUBMISSION_STATUS_COLOR_MAP,
+  type SemanticColor,
+} from "@/components/ui/terminal";
 
 function getSubmissionColor(status: string): SemanticColor {
   const normalized = status.toUpperCase().replace(/\s+/g, "_");
@@ -47,7 +51,6 @@ const { t } = useI18n();
 const decoratedSubmissions = computed(() => {
   return props.submissions;
 });
-
 
 const handleSelect = (submission: SubmissionRecord) => {
   emit("select", submission);

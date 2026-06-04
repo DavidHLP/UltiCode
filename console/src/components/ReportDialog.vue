@@ -87,9 +87,7 @@ defineExpose({ open: handleOpen });
     <DialogContent class="sm:max-w-[500px] rounded-none">
       <DialogHeader>
         <DialogTitle>举报内容</DialogTitle>
-        <DialogDescription>
-          请选择举报原因并提供详细说明
-        </DialogDescription>
+        <DialogDescription> 请选择举报原因并提供详细说明 </DialogDescription>
       </DialogHeader>
       <div class="grid gap-4 py-4">
         <div class="grid gap-2">

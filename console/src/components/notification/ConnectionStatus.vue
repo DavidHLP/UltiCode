@@ -13,11 +13,15 @@ const props = defineProps<{
 const notificationStore = useNotificationStore();
 
 const statusColor = computed(() => {
-  return notificationStore.realtimeConnected ? "bg-[var(--terminal-green)]" : "bg-[var(--terminal-amber)]";
+  return notificationStore.realtimeConnected
+    ? "bg-[var(--terminal-green)]"
+    : "bg-[var(--terminal-amber)]";
 });
 
 const statusText = computed(() => {
-  return notificationStore.realtimeConnected ? t("notification.connected") : t("notification.disconnected");
+  return notificationStore.realtimeConnected
+    ? t("notification.connected")
+    : t("notification.disconnected");
 });
 </script>
 

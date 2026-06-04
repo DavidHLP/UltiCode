@@ -71,7 +71,8 @@ interface RequestMetadata {
  * Extended config with metadata
  */
 interface ConfigWithMetadata
-  extends Omit<InternalAxiosRequestConfig, "headers">,
+  extends
+    Omit<InternalAxiosRequestConfig, "headers">,
     Omit<RequestConfig, "headers"> {
   headers: AxiosRequestHeaders;
   _metadata?: RequestMetadata;
@@ -313,9 +314,8 @@ service.interceptors.response.use(
           if (authStore.isAuthenticated) {
             authStore.clearUser();
 
-            const { getSessionExpiredCallback } = await import(
-              "@/contexts/AuthContext"
-            );
+            const { getSessionExpiredCallback } =
+              await import("@/contexts/AuthContext");
             const callback = getSessionExpiredCallback();
             if (callback) {
               callback();
@@ -329,7 +329,9 @@ service.interceptors.response.use(
           }
         } finally {
           // Reset flag after a short delay to allow future auth errors to be handled
-          setTimeout(() => { isAuthErrorHandling = false; }, 1000);
+          setTimeout(() => {
+            isAuthErrorHandling = false;
+          }, 1000);
         }
       }
 
@@ -350,7 +352,7 @@ service.interceptors.response.use(
     } else if (!error.response) {
       // Network error (no response) - log it
       if (isDevelopment) {
-        console.error('Request error:', error);
+        console.error("Request error:", error);
       }
     }
 

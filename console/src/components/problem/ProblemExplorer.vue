@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { Problem } from "@/types/problem";
 import type { ProblemExplorerProps } from "./type";
-import { useProblemExplorer, type EnrichedProblem } from "./composables/useProblemExplorer";
+import {
+  useProblemExplorer,
+  type EnrichedProblem,
+} from "./composables/useProblemExplorer";
 import ProblemFilterPanel from "./components/ProblemFilterPanel.vue";
 import ProblemResultList from "./components/ProblemResultList.vue";
 import { useRouter } from "vue-router";

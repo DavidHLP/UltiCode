@@ -59,7 +59,9 @@ function mapProblem(problem: unknown): Problem {
     completedTime,
     tags: Array.isArray(p.tags)
       ? p.tags
-          .map((tag) => (typeof tag === "string" ? tag : (tag as { label?: string })?.label))
+          .map((tag) =>
+            typeof tag === "string" ? tag : (tag as { label?: string })?.label,
+          )
           .filter((l): l is string => typeof l === "string")
       : Array.isArray(p.tagRelations)
         ? p.tagRelations
@@ -70,22 +72,22 @@ function mapProblem(problem: unknown): Problem {
 }
 
 export interface ProblemFilters {
-  category?: string
-  search?: string
-  difficulty?: string
-  status?: string
-  tag?: string
-  isPremium?: boolean
-  sortBy?: string
-  sortOrder?: string
+  category?: string;
+  search?: string;
+  difficulty?: string;
+  status?: string;
+  tag?: string;
+  isPremium?: boolean;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 export interface PaginatedProblems {
-  items: Problem[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
+  items: Problem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export async function fetchProblems(
@@ -93,40 +95,40 @@ export async function fetchProblems(
   page: number = 1,
   pageSize: number = 50,
 ): Promise<PaginatedProblems> {
-  const params = new URLSearchParams()
-  params.append("page", String(page))
-  params.append("pageSize", String(pageSize))
-  if (filters.search) params.append("search", filters.search)
-  if (filters.difficulty) params.append("difficulty", filters.difficulty)
-  if (filters.status) params.append("status", filters.status)
-  if (filters.tag) params.append("tag", filters.tag)
+  const params = new URLSearchParams();
+  params.append("page", String(page));
+  params.append("pageSize", String(pageSize));
+  if (filters.search) params.append("search", filters.search);
+  if (filters.difficulty) params.append("difficulty", filters.difficulty);
+  if (filters.status) params.append("status", filters.status);
+  if (filters.tag) params.append("tag", filters.tag);
   if (filters.category && filters.category !== "all")
-    params.append("category", filters.category)
+    params.append("category", filters.category);
   if (filters.isPremium !== undefined)
-    params.append("isPremium", String(filters.isPremium))
-  if (filters.sortBy) params.append("sortBy", filters.sortBy)
-  if (filters.sortOrder) params.append("sortOrder", filters.sortOrder)
+    params.append("isPremium", String(filters.isPremium));
+  if (filters.sortBy) params.append("sortBy", filters.sortBy);
+  if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
 
   const response = await apiGet<{
-    items: unknown[]
-    total: number
-    page: number
-    pageSize: number
-    totalPages: number
-  }>(`/problems?${params.toString()}`)
+    items: unknown[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>(`/problems?${params.toString()}`);
   return {
     items: response.items.map(mapProblem),
     total: response.total,
     page: response.page,
     pageSize: response.pageSize,
     totalPages: response.totalPages,
-  }
+  };
 }
 
 export async function searchProblems(query: string): Promise<Problem[]> {
-  if (!query.trim()) return []
-  const result = await fetchProblems({ search: query.trim() })
-  return result.items
+  if (!query.trim()) return [];
+  const result = await fetchProblems({ search: query.trim() });
+  return result.items;
 }
 
 export async function fetchProblemById(

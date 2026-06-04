@@ -5,7 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, FolderPlus, Loader2, Lock, Star, Save, BookmarkMinus, List } from "lucide-vue-next";
+import {
+  Search,
+  Plus,
+  FolderPlus,
+  Loader2,
+  Lock,
+  Star,
+  Save,
+  BookmarkMinus,
+  List,
+} from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
@@ -17,9 +27,7 @@ import DeleteListDialog from "./components/DeleteListDialog.vue";
 import CreateCategoryDialog from "./components/CreateCategoryDialog.vue";
 import EditCategoryDialog from "./components/EditCategoryDialog.vue";
 import DeleteCategoryDialog from "./components/DeleteCategoryDialog.vue";
-import {
-  useProblemLists,
-} from "./composables/useProblemLists";
+import { useProblemLists } from "./composables/useProblemLists";
 import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 
 const router = useRouter();
@@ -65,15 +73,23 @@ const isDeletingCategory = ref(false);
 const categoryToDelete = ref<ProblemListCategory | null>(null);
 
 // --- Create List ---
-function onCreateList(formData: { name: string; description: string; isPublic: boolean }) {
+function onCreateList(formData: {
+  name: string;
+  description: string;
+  isPublic: boolean;
+}) {
   isCreating.value = true;
-  handleCreateList(formData, (newListId: string) => {
-    isCreating.value = false;
-    router.push(`/problemset/list/${newListId}`);
-  }, () => {
-    isCreating.value = false;
-    isCreateOpen.value = false;
-  });
+  handleCreateList(
+    formData,
+    (newListId: string) => {
+      isCreating.value = false;
+      router.push(`/problemset/list/${newListId}`);
+    },
+    () => {
+      isCreating.value = false;
+      isCreateOpen.value = false;
+    },
+  );
 }
 
 // --- Delete List ---
@@ -137,12 +153,18 @@ async function onDeleteCategoryConfirm() {
 
 // --- Categories Tab helpers (list-level operations need list ID + action) ---
 function onCategoryMoveToCategory(listId: string, categoryId: string | null) {
-  const list = [...data.value.savedLists, ...data.value.categories.flatMap(c => c.lists)].find(l => l.id === listId);
+  const list = [
+    ...data.value.savedLists,
+    ...data.value.categories.flatMap((c) => c.lists),
+  ].find((l) => l.id === listId);
   if (list) handleMoveToCategory(list, categoryId);
 }
 
 function onCategoryUnsave(listId: string) {
-  const list = [...data.value.savedLists, ...data.value.categories.flatMap(c => c.lists)].find(l => l.id === listId);
+  const list = [
+    ...data.value.savedLists,
+    ...data.value.categories.flatMap((c) => c.lists),
+  ].find((l) => l.id === listId);
   if (list) handleUnsaveList(list);
 }
 </script>
@@ -204,7 +226,9 @@ function onCategoryUnsave(listId: string) {
         {{ t("personal.problemLists.loginToManage") }}
       </p>
       <Button as-child class="rounded-full px-8 h-10 font-bold">
-        <router-link to="/login">{{ t("personal.profile.signIn") }}</router-link>
+        <router-link to="/login">{{
+          t("personal.profile.signIn")
+        }}</router-link>
       </Button>
     </div>
 
@@ -348,7 +372,9 @@ function onCategoryUnsave(listId: string) {
                         class="flex items-center gap-2"
                       >
                         {{ list.name }}
-                        <Star class="h-4 w-4 text-[var(--terminal-amber)] fill-[var(--terminal-amber)]" />
+                        <Star
+                          class="h-4 w-4 text-[var(--terminal-amber)] fill-[var(--terminal-amber)]"
+                        />
                       </router-link>
                     </h3>
                   </div>
@@ -379,7 +405,9 @@ function onCategoryUnsave(listId: string) {
                   {{ list.description }}
                 </p>
               </div>
-              <div class="bg-muted/20 border-t py-3 px-6 mt-auto flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <div
+                class="bg-muted/20 border-t py-3 px-6 mt-auto flex items-center gap-2 text-xs font-bold text-muted-foreground"
+              >
                 <List class="h-4 w-4 text-primary/70" />
                 {{
                   t("personal.problemLists.listCard.problemCount", {

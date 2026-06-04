@@ -43,7 +43,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="space-y-4 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls">
+  <div
+    class="space-y-4 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls"
+  >
     <CategoryFilter
       :categories="categoryOptions"
       :model-value="selectedCategory"
@@ -70,7 +72,9 @@ const emit = defineEmits<{
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
           :checked="selectedStatus.includes('solved')"
-          @click="emit('toggleStatus', 'solved', !selectedStatus.includes('solved'))"
+          @click="
+            emit('toggleStatus', 'solved', !selectedStatus.includes('solved'))
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.status.solved") }}
@@ -82,7 +86,13 @@ const emit = defineEmits<{
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           :checked="selectedStatus.includes('attempted')"
-          @click="emit('toggleStatus', 'attempted', !selectedStatus.includes('attempted'))"
+          @click="
+            emit(
+              'toggleStatus',
+              'attempted',
+              !selectedStatus.includes('attempted'),
+            )
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.status.attempted") }}
@@ -94,7 +104,9 @@ const emit = defineEmits<{
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           :checked="selectedStatus.includes('todo')"
-          @click="emit('toggleStatus', 'todo', !selectedStatus.includes('todo'))"
+          @click="
+            emit('toggleStatus', 'todo', !selectedStatus.includes('todo'))
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.status.todo") }}
@@ -111,7 +123,13 @@ const emit = defineEmits<{
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem
           :checked="selectedDifficulty.includes('Easy')"
-          @click="emit('toggleDifficulty', 'Easy', !selectedDifficulty.includes('Easy'))"
+          @click="
+            emit(
+              'toggleDifficulty',
+              'Easy',
+              !selectedDifficulty.includes('Easy'),
+            )
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.difficulty.easy") }}
@@ -123,7 +141,13 @@ const emit = defineEmits<{
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           :checked="selectedDifficulty.includes('Medium')"
-          @click="emit('toggleDifficulty', 'Medium', !selectedDifficulty.includes('Medium'))"
+          @click="
+            emit(
+              'toggleDifficulty',
+              'Medium',
+              !selectedDifficulty.includes('Medium'),
+            )
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.difficulty.medium") }}
@@ -135,7 +159,13 @@ const emit = defineEmits<{
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           :checked="selectedDifficulty.includes('Hard')"
-          @click="emit('toggleDifficulty', 'Hard', !selectedDifficulty.includes('Hard'))"
+          @click="
+            emit(
+              'toggleDifficulty',
+              'Hard',
+              !selectedDifficulty.includes('Hard'),
+            )
+          "
         >
           <span class="flex items-center w-full">
             {{ t("problem.difficulty.hard") }}
@@ -195,10 +225,7 @@ const emit = defineEmits<{
 .problem-explorer-controls :deep(input),
 .problem-explorer-controls :deep([role="button"]),
 .problem-explorer-controls :deep([data-slot="badge"]) {
-  font-family:
-    "JetBrains Mono",
-    ui-monospace,
-    monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 
 .problem-explorer-controls :deep(.border-dashed) {

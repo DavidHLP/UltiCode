@@ -58,16 +58,24 @@ const getItemIconColorClass = (url?: string) => {
   if (!url) return "";
   const active = isItemActive(url);
   if (url.includes("/forum/c/interview")) {
-    return active ? "text-[#f59e0b]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#f59e0b]";
+    return active
+      ? "text-[#f59e0b]"
+      : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#f59e0b]";
   }
   if (url.includes("/forum/c/career")) {
-    return active ? "text-[#14b8a6]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#14b8a6]";
+    return active
+      ? "text-[#14b8a6]"
+      : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#14b8a6]";
   }
   if (url.includes("/forum/c/compensation")) {
-    return active ? "text-[#10b981]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#10b981]";
+    return active
+      ? "text-[#10b981]"
+      : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#10b981]";
   }
   if (url.includes("/forum/c/technology")) {
-    return active ? "text-[#06b6d4]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#06b6d4]";
+    return active
+      ? "text-[#06b6d4]"
+      : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#06b6d4]";
   }
   if (active) return "text-[var(--accent-electric)]";
   return "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]";
@@ -111,10 +119,17 @@ const getItemIconColorClass = (url?: string) => {
                 'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none border-l-2 h-8.5',
                 isItemActive(item.url)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
               ]"
             >
-              <component :is="item.icon" v-if="item.icon" :class="['h-4 w-4 shrink-0 transition-colors', getItemIconColorClass(item.url)]" />
+              <component
+                :is="item.icon"
+                v-if="item.icon"
+                :class="[
+                  'h-4 w-4 shrink-0 transition-colors',
+                  getItemIconColorClass(item.url),
+                ]"
+              />
               <span class="truncate">{{ t(item.title) }}</span>
               <Badge
                 v-if="item.badge"
@@ -135,11 +150,18 @@ const getItemIconColorClass = (url?: string) => {
                   'group',
                   isItemActive(item.url)
                     ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-1.5'
-                    : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
+                    : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
                 ]"
               >
                 <router-link :to="item.url || '#'">
-                  <component :is="item.icon" v-if="item.icon" :class="['transition-colors', getItemIconColorClass(item.url)]" />
+                  <component
+                    :is="item.icon"
+                    v-if="item.icon"
+                    :class="[
+                      'transition-colors',
+                      getItemIconColorClass(item.url),
+                    ]"
+                  />
                   <span>{{ t(item.title) }}</span>
                   <Badge
                     v-if="item.badge"
@@ -169,10 +191,17 @@ const getItemIconColorClass = (url?: string) => {
               'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none border-l-2 h-8.5',
               isItemActive(item.url)
                 ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
-                : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+                : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
             ]"
           >
-            <component :is="item.icon" v-if="item.icon" :class="['h-4 w-4 shrink-0 transition-colors', getItemIconColorClass(item.url)]" />
+            <component
+              :is="item.icon"
+              v-if="item.icon"
+              :class="[
+                'h-4 w-4 shrink-0 transition-colors',
+                getItemIconColorClass(item.url),
+              ]"
+            />
             <span class="truncate">{{ t(item.title) }}</span>
             <Badge
               v-if="item.badge"
@@ -193,11 +222,18 @@ const getItemIconColorClass = (url?: string) => {
                 'group',
                 isItemActive(item.url)
                   ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-1.5'
-                  : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
+                  : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
               ]"
             >
               <router-link :to="item.url || '#'">
-                <component :is="item.icon" v-if="item.icon" :class="['transition-colors', getItemIconColorClass(item.url)]" />
+                <component
+                  :is="item.icon"
+                  v-if="item.icon"
+                  :class="[
+                    'transition-colors',
+                    getItemIconColorClass(item.url),
+                  ]"
+                />
                 <span>{{ t(item.title) }}</span>
                 <Badge
                   v-if="item.badge"

@@ -52,9 +52,7 @@ const topicLabel = computed(
     t("forum.post.flair"),
 );
 
-const formattedDate = computed(() =>
-  formatRelativeTime(props.item.created_at),
-);
+const formattedDate = computed(() => formatRelativeTime(props.item.created_at));
 
 const languageLabel = computed(() => {
   const lang = props.item.language;
@@ -217,10 +215,17 @@ const handleCommentVote = async (
     );
 
     // Recursive helper to find and update comment immutably
-    const updateCommentInList = (list: SolutionComment[]): SolutionComment[] => {
+    const updateCommentInList = (
+      list: SolutionComment[],
+    ): SolutionComment[] => {
       return list.map((comment) => {
         if (comment.id === commentId) {
-          return { ...comment, likes: res.likes, dislikes: res.dislikes, userVote: res.userVote };
+          return {
+            ...comment,
+            likes: res.likes,
+            dislikes: res.dislikes,
+            userVote: res.userVote,
+          };
         }
         if (comment.replies && comment.replies.length > 0) {
           return { ...comment, replies: updateCommentInList(comment.replies) };

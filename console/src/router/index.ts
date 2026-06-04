@@ -77,8 +77,7 @@ const contestRoutes: RouteRecordRaw = {
     {
       path: "browse/past",
       name: "contest-browse-past",
-      component: () =>
-        import("@/views/contest/ContestBrowseView.vue"),
+      component: () => import("@/views/contest/ContestBrowseView.vue"),
       props: { initialTab: "finished" },
     },
     {
@@ -107,8 +106,7 @@ const contestRoutes: RouteRecordRaw = {
     {
       path: ":slug",
       name: "contest-detail",
-      component: () =>
-        import("@/views/contest/detailed/ContestDetailView.vue"),
+      component: () => import("@/views/contest/detailed/ContestDetailView.vue"),
     },
   ],
 };

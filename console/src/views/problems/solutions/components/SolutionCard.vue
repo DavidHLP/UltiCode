@@ -34,9 +34,7 @@ const topicLabel = computed(
     t("forum.post.flair"),
 );
 
-const formattedDate = computed(() =>
-  formatRelativeTime(props.item.created_at),
-);
+const formattedDate = computed(() => formatRelativeTime(props.item.created_at));
 
 const handleSelect = () => emit("select", props.item);
 
@@ -122,7 +120,10 @@ const voteCounts = computed(() =>
         {{ props.item.summary }}
       </p>
       <!-- Tags -->
-      <div v-if="props.item.tags && props.item.tags.length" class="flex flex-wrap gap-1">
+      <div
+        v-if="props.item.tags && props.item.tags.length"
+        class="flex flex-wrap gap-1"
+      >
         <span
           v-for="tag in props.item.tags.slice(0, 3)"
           :key="tag"

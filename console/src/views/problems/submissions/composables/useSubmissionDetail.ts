@@ -45,7 +45,9 @@ export function useSubmissionDetail(
   });
 
   const isAccepted = computed(() => submission()?.status === "Accepted");
-  const isCompileError = computed(() => submission()?.status === "Compile Error");
+  const isCompileError = computed(
+    () => submission()?.status === "Compile Error",
+  );
   const isPending = computed(() =>
     ["Pending", "Judging"].includes(submission()?.status ?? ""),
   );
@@ -74,10 +76,14 @@ export function useSubmissionDetail(
     pendingSeconds.value = 0;
   };
 
-  watch(isPending, (pending) => {
-    if (pending) startPendingTimer();
-    else stopPendingTimer();
-  }, { immediate: true });
+  watch(
+    isPending,
+    (pending) => {
+      if (pending) startPendingTimer();
+      else stopPendingTimer();
+    },
+    { immediate: true },
+  );
 
   onUnmounted(() => stopPendingTimer());
 

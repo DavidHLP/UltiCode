@@ -181,9 +181,12 @@ const navigateToProblem = (slug: string) => {
                 <span
                   :class="
                     cn({
-                      'text-[var(--terminal-green)]': problem.difficulty === 'EASY',
-                      'text-[var(--terminal-amber)]': problem.difficulty === 'MEDIUM',
-                      'text-[var(--terminal-red)]': problem.difficulty === 'HARD',
+                      'text-[var(--terminal-green)]':
+                        problem.difficulty === 'EASY',
+                      'text-[var(--terminal-amber)]':
+                        problem.difficulty === 'MEDIUM',
+                      'text-[var(--terminal-red)]':
+                        problem.difficulty === 'HARD',
                     })
                   "
                 >

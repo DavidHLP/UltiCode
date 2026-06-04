@@ -31,8 +31,7 @@ const oauthLabel = computed(() => {
 });
 
 function handleOAuth() {
-  const baseUrl =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
   if (props.provider === "github") {
     window.location.href = `${baseUrl}/auth/github`;
   } else if (props.provider === "google") {

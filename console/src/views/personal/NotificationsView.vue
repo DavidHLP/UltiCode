@@ -417,7 +417,9 @@ watch(currentPage, () => {
     <SheetContent side="right">
       <SheetHeader>
         <SheetTitle>{{ t("personal.notifications.preferences") }}</SheetTitle>
-        <SheetDescription>{{ t("personal.notifications.preferencesDesc") }}</SheetDescription>
+        <SheetDescription>{{
+          t("personal.notifications.preferencesDesc")
+        }}</SheetDescription>
       </SheetHeader>
       <div class="mt-6">
         <NotificationPreferencesPanel />

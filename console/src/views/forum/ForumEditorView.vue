@@ -193,7 +193,9 @@ onMounted(loadData);
       <Separator orientation="vertical" class="h-6" />
 
       <div class="flex items-center gap-2 flex-1">
-        <h2 class="text-sm font-black uppercase tracking-widest text-[var(--accent-electric)]">
+        <h2
+          class="text-sm font-black uppercase tracking-widest text-[var(--accent-electric)]"
+        >
           {{
             isEditMode ? t("forum.post.editPost") : t("forum.post.createPost")
           }}
@@ -221,7 +223,9 @@ onMounted(loadData);
     <main class="flex flex-1 overflow-hidden">
       <div class="flex w-full flex-col overflow-hidden">
         <!-- Meta Section -->
-        <div class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-silver/20">
+        <div
+          class="flex flex-shrink-0 flex-col gap-4 px-6 py-6 bg-muted/10 border-b border-silver/20"
+        >
           <div class="max-w-[1600px] mx-auto w-full space-y-4">
             <Input
               v-model="title"
@@ -233,7 +237,9 @@ onMounted(loadData);
               <div
                 class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
               >
-                <div class="bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] px-2.5 h-full flex items-center justify-center border-r border-silver">
+                <div
+                  class="bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] px-2.5 h-full flex items-center justify-center border-r border-silver"
+                >
                   <LayoutGrid class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="communityId">
@@ -257,7 +263,9 @@ onMounted(loadData);
               <div
                 class="flex items-center rounded-none border border-silver bg-card shadow-sm hover:border-[var(--accent-electric)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)] transition-colors h-9 overflow-hidden"
               >
-                <div class="bg-[color-mix(in_oklch,var(--terminal-amber)_15%,transparent)] text-[var(--terminal-amber)] px-2.5 h-full flex items-center justify-center border-r border-silver">
+                <div
+                  class="bg-[color-mix(in_oklch,var(--terminal-amber)_15%,transparent)] text-[var(--terminal-amber)] px-2.5 h-full flex items-center justify-center border-r border-silver"
+                >
                   <Tag class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="flairType">

@@ -177,7 +177,9 @@
                   :key="feature"
                   class="flex items-start gap-2"
                 >
-                  <Check class="h-4 w-4 text-[var(--terminal-green)] mt-0.5 flex-shrink-0" />
+                  <Check
+                    class="h-4 w-4 text-[var(--terminal-green)] mt-0.5 flex-shrink-0"
+                  />
                   <span class="text-sm">{{ feature }}</span>
                 </li>
               </ul>

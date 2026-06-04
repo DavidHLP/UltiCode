@@ -36,9 +36,8 @@ async function bootstrap() {
 
   // Initialize auth context BEFORE auth store
   // This sets up global auth error handling
-  const { initializeAuthContext, onSessionExpired } = await import(
-    "@/contexts/AuthContext"
-  );
+  const { initializeAuthContext, onSessionExpired } =
+    await import("@/contexts/AuthContext");
   initializeAuthContext();
 
   // Setup session expired redirect to login
@@ -72,7 +71,6 @@ async function bootstrap() {
   ).value;
 
   app.mount("#app");
-
 }
 
 // Start the application

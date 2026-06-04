@@ -268,7 +268,7 @@ const initCreationFlow = async () => {
       if (best && best.status === "Accepted") {
         submissionToUse = best;
       }
-    } catch { }
+    } catch {}
   }
 
   if (submissionToUse) {

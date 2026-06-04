@@ -42,9 +42,13 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
   left: Math.random() * 100,
   delay: Math.random() * 0.5,
   duration: 1 + Math.random() * 0.5,
-  color: ["oklch(0.6545 0.1340 85.7)", "oklch(0.5863 0.2064 27.1)", "oklch(0.6437 0.1019 187.4)", "oklch(0.6149 0.1394 244.9)", "oklch(0.6444 0.1508 118.6)"][
-    Math.floor(Math.random() * 5)
-  ],
+  color: [
+    "oklch(0.6545 0.1340 85.7)",
+    "oklch(0.5863 0.2064 27.1)",
+    "oklch(0.6437 0.1019 187.4)",
+    "oklch(0.6149 0.1394 244.9)",
+    "oklch(0.6444 0.1508 118.6)",
+  ][Math.floor(Math.random() * 5)],
 }));
 </script>
 

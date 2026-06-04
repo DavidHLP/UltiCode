@@ -47,7 +47,7 @@ const APPEAL_STATUS_COLOR_MAP: Record<AppealStatus, SemanticColor> = {
 function renderStatusBadge(status: AppealStatus, t: (key: string, fallback?: string) => string) {
   return badge({
     color: APPEAL_STATUS_COLOR_MAP[status],
-    label: t(`moderation.appealStatus.${status}`, status),
+    label: t(`moderation.appealStatus.${status}`),
     icon: APPEAL_STATUS_ICON_MAP[status],
   })
 }

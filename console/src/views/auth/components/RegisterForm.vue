@@ -122,15 +122,11 @@ async function handleSubmit(event: Event) {
     <!-- Divider -->
     <AuthDivider />
 
-    <!-- GitHub OAuth -->
-    <OAuthButton provider="github">{{
-      t("auth.login.loginWithGithub")
-    }}</OAuthButton>
-
-    <!-- Google OAuth -->
-    <OAuthButton provider="google">{{
-      t("auth.login.loginWithGoogle")
-    }}</OAuthButton>
+    <!-- OAuth buttons grid -->
+    <div class="register-form__oauth-grid">
+      <OAuthButton provider="github">GitHub</OAuthButton>
+      <OAuthButton provider="google">Google</OAuthButton>
+    </div>
 
     <!-- Sign In Link -->
     <div class="register-form__signin">
@@ -144,33 +140,37 @@ async function handleSubmit(event: Event) {
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
 }
 
 .register-form__header {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--silver-100);
-}
-
-.dark .register-form__header {
-  border-bottom-color: var(--silver-300);
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .register-form__title {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--foreground);
+  color: var(--solarized-base03);
   line-height: 1.1;
 }
 
+.dark .register-form__title {
+  color: var(--silver-900);
+}
+
 .register-form__subtitle {
-  font-size: 0.875rem;
-  color: var(--silver-500);
+  font-size: 0.8125rem;
+  color: var(--solarized-base01);
+}
+
+.dark .register-form__subtitle {
+  color: var(--silver-400);
 }
 
 .register-form__error {
@@ -202,17 +202,28 @@ async function handleSubmit(event: Event) {
 
 .register-form__signin {
   font-size: 0.8125rem;
-  color: var(--silver-500);
+  color: var(--solarized-base01);
   text-align: center;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+.dark .register-form__signin {
+  color: var(--silver-400);
 }
 
 .register-form__signin a {
-  color: var(--accent-primary);
+  color: var(--accent-electric);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 750;
 }
 
 .register-form__signin a:hover {
   text-decoration: underline;
+}
+
+.register-form__oauth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 </style>

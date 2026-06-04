@@ -24,7 +24,7 @@ defineOptions({
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 0;
+  padding: 0.375rem 0;
 }
 
 .auth-divider__line {

@@ -24,6 +24,8 @@ import { badge, type SemanticColor } from '@/components/ui/terminal'
 import type { Comment, CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 
+import { renderInlineContent } from '@/utils/comment-renderer'
+
 export interface CommentActions {
   viewCommentDetails: (comment: Comment) => void
   unflagComment: (comment: Comment) => void
@@ -99,13 +101,21 @@ export function createColumns(
         const truncated =
           comment.content.length > 80 ? comment.content.slice(0, 80) + '...' : comment.content
 
-        return h('div', { class: 'flex flex-col gap-1 py-1' }, [
-          h('span', { class: 'text-sm text-[var(--foreground)] leading-relaxed' }, truncated),
+        return h('div', { class: 'flex flex-col gap-1.5 py-1.5' }, [
+          h(
+            'div',
+            { class: 'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1' },
+            renderInlineContent(truncated),
+          ),
           h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
             comment.type === 'forum'
-              ? h(IconMessage, { class: 'h-3 w-3' })
-              : h(IconFileText, { class: 'h-3 w-3' }),
-            h('span', {}, comment.parentTitle || t('comments.type.unknown')),
+              ? h(IconMessage, { class: 'h-3 w-3 text-[var(--terminal-cyan)]' })
+              : h(IconFileText, { class: 'h-3 w-3 text-[var(--terminal-green)]' }),
+            h(
+              'span',
+              { class: 'hover:text-[var(--foreground)] transition-colors' },
+              comment.parentTitle || t('comments.type.unknown'),
+            ),
           ]),
         ])
       },

@@ -22,6 +22,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
 
 const router = useRouter()
 const route = useRoute()
@@ -307,10 +308,10 @@ function handleFlagSuccess() {
               </div>
 
               <!-- Comment Body -->
-              <div class="prose dark:prose-invert max-w-none">
-                <p class="text-[var(--foreground)] leading-relaxed whitespace-pre-wrap">
-                  {{ comment.content }}
-                </p>
+              <div
+                class="prose dark:prose-invert max-w-none text-[var(--foreground)] leading-relaxed markdown-content"
+                v-html="renderSafeMarkdown(comment.content)"
+              >
               </div>
 
               <!-- Mobile Status Badges -->

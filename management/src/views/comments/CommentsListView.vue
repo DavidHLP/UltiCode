@@ -31,6 +31,7 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, type CommentActions } from './columns'
+import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
@@ -480,11 +481,11 @@ async function handleBulkDeleteConfirm() {
           <span class="terminal-label text-[var(--silver-500)]">{{
             t('comments.columns.content')
           }}</span>
-          <p
-            class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3"
+          <div
+            class="prose dark:prose-invert max-w-none text-sm text-[var(--foreground)] leading-relaxed rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3 markdown-content"
+            v-html="renderSafeMarkdown(detailComment.content)"
           >
-            {{ detailComment.content }}
-          </p>
+          </div>
         </div>
         <!-- Type & Author Row -->
         <div class="grid grid-cols-2 gap-4">

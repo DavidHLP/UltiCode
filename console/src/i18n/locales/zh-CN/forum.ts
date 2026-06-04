@@ -84,6 +84,7 @@ export default {
     loadReplies: "加载 {count} 条回复",
     submit: "评论",
     collapsed: "（已折叠）",
+    edited: "已编辑",
     joinConversation: "加入讨论...",
     threadLocked: "帖子已锁定",
     beFirst: "分享你的观点，开启讨论！",

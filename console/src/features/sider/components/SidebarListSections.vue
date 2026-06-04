@@ -30,10 +30,11 @@ import type {
   ProblemList,
   ProblemListCategory,
 } from "@/types/problem-list";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
+const route = useRoute();
 
 const emit = defineEmits<{
   deleteList: [list: ProblemList];
@@ -52,36 +53,43 @@ defineProps<{
   };
   allCategories: ProblemListCategory[];
 }>();
+
+const isListActive = (id: string | number) => {
+  return route.path === `/problemset/list/${id}`;
+};
 </script>
 
 <template>
   <!-- My Lists Section -->
-  <div class="px-4 py-2" v-if="data.ownLists.length > 0">
-    <Collapsible :default-open="true">
-      <div class="flex items-center justify-between group">
-        <CollapsibleTrigger class="flex flex-1 items-center gap-1">
+  <div class="px-1 py-0.5" v-if="data.ownLists.length > 0">
+    <Collapsible :default-open="true" class="group/collapsible">
+      <div class="flex items-center justify-between px-2 py-0.5 select-none">
+        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
           <ChevronRight
-            class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <User class="h-4 w-4 mr-1 text-[var(--accent-electric)]" />
-          <span class="text-sm font-semibold">{{
-            t("sidebar.problemLists.myLists")
-          }}</span>
+          <User class="h-3.5 w-3.5 mr-0.5 text-[var(--accent-electric)]/70 group-hover/trigger:text-[var(--accent-electric)] transition-colors" />
+          <span>{{ t("sidebar.problemLists.myLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-2">
-        <ul class="space-y-1">
+      <CollapsibleContent class="py-0.5">
+        <ul class="space-y-0.5">
           <li v-for="item in data.ownLists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              :class="[
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                isListActive(item.id)
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+              ]"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-xs text-muted-foreground">{{
+                <span class="text-[10px] text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -91,7 +99,7 @@ defineProps<{
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -115,32 +123,35 @@ defineProps<{
   </div>
 
   <!-- Saved Lists Section -->
-  <div class="px-4 py-2" v-if="data.savedLists.length > 0">
-    <Collapsible :default-open="true">
-      <div class="flex items-center justify-between group">
-        <CollapsibleTrigger class="flex flex-1 items-center gap-1">
+  <div class="px-1 py-0.5" v-if="data.savedLists.length > 0">
+    <Collapsible :default-open="true" class="group/collapsible">
+      <div class="flex items-center justify-between px-2 py-0.5 select-none">
+        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
           <ChevronRight
-            class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <Bookmark class="h-4 w-4 mr-1 text-[var(--terminal-green)]" />
-          <span class="text-sm font-semibold">{{
-            t("sidebar.problemLists.savedLists")
-          }}</span>
+          <Bookmark class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-green)]/70 group-hover/trigger:text-[var(--terminal-green)] transition-colors" />
+          <span>{{ t("sidebar.problemLists.savedLists").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-2">
-        <ul class="space-y-1">
+      <CollapsibleContent class="py-0.5">
+        <ul class="space-y-0.5">
           <li v-for="item in data.savedLists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              :class="[
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                isListActive(item.id)
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+              ]"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-xs text-muted-foreground">{{
+                <span class="text-[10px] text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -150,7 +161,7 @@ defineProps<{
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />
@@ -187,32 +198,35 @@ defineProps<{
   </div>
 
   <!-- Featured Section -->
-  <div class="px-4 py-2" v-if="data.featuredLists.length > 0">
-    <Collapsible :default-open="true">
-      <div class="flex items-center justify-between group">
-        <CollapsibleTrigger class="flex flex-1 items-center gap-1">
+  <div class="px-1 py-0.5" v-if="data.featuredLists.length > 0">
+    <Collapsible :default-open="true" class="group/collapsible">
+      <div class="flex items-center justify-between px-2 py-0.5 select-none">
+        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
           <ChevronRight
-            class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <Star class="h-4 w-4 mr-1 text-[var(--terminal-amber)]" />
-          <span class="text-sm font-semibold">{{
-            t("sidebar.problemLists.featured")
-          }}</span>
+          <Star class="h-3.5 w-3.5 mr-0.5 text-[var(--terminal-amber)]/70 group-hover/trigger:text-[var(--terminal-amber)] transition-colors" />
+          <span>{{ t("sidebar.problemLists.featured").toUpperCase() }}</span>
         </CollapsibleTrigger>
       </div>
 
-      <CollapsibleContent class="py-2">
-        <ul class="space-y-1">
+      <CollapsibleContent class="py-0.5">
+        <ul class="space-y-0.5">
           <li v-for="item in data.featuredLists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              :class="[
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                isListActive(item.id)
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+              ]"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-xs text-muted-foreground">{{
+                <span class="text-[10px] text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -224,14 +238,14 @@ defineProps<{
   </div>
 
   <!-- User Categories -->
-  <div v-for="category in data.categories" :key="category.id" class="px-4 py-2">
-    <Collapsible :default-open="true">
-      <div class="flex items-center justify-between group">
-        <CollapsibleTrigger class="flex flex-1 items-center gap-1">
+  <div v-for="category in data.categories" :key="category.id" class="px-1 py-0.5">
+    <Collapsible :default-open="true" class="group/collapsible">
+      <div class="flex items-center justify-between px-2 py-0.5 select-none">
+        <CollapsibleTrigger class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors">
           <ChevronRight
-            class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
+            class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
           />
-          <span class="text-sm font-semibold">{{ category.name }}</span>
+          <span class="truncate">{{ category.name }}</span>
         </CollapsibleTrigger>
 
         <DropdownMenu>
@@ -261,18 +275,23 @@ defineProps<{
         </DropdownMenu>
       </div>
 
-      <CollapsibleContent class="py-2">
-        <ul class="space-y-1">
+      <CollapsibleContent class="py-0.5">
+        <ul class="space-y-0.5">
           <li v-for="item in category.lists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              :class="[
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                isListActive(item.id)
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+              ]"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-xs text-muted-foreground">{{
+                <span class="text-[10px] text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -282,7 +301,7 @@ defineProps<{
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                    class="h-5 w-5 opacity-0 group-hover/item:opacity-100 transition-opacity hover:text-[var(--accent-electric)]"
                     @click.prevent.stop
                   >
                     <MoreHorizontal class="h-3 w-3" />

@@ -46,7 +46,7 @@ const {
     <Button
       variant="ghost"
       size="sm"
-      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground rounded-none border border-dashed border-silver/40 bg-[var(--surface-sunken)]/30 hover:border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/5 hover:text-foreground transition-all duration-200 font-data text-xs"
+      class="w-full justify-start gap-2 text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] rounded-none border border-dashed border-silver/20 bg-transparent hover:border-[var(--accent-electric)]/50 hover:bg-[var(--accent-electric)]/5 transition-all duration-200 font-data text-xs h-8"
       @click="isCreateListOpen = true"
     >
       <ListPlus class="h-3.5 w-3.5" />
@@ -55,7 +55,7 @@ const {
     <Button
       variant="ghost"
       size="sm"
-      class="w-full justify-start gap-2 text-muted-foreground hover:text-foreground rounded-none border border-dashed border-silver/40 bg-[var(--surface-sunken)]/30 hover:border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/5 hover:text-foreground transition-all duration-200 font-data text-xs"
+      class="w-full justify-start gap-2 text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] rounded-none border border-dashed border-silver/20 bg-transparent hover:border-[var(--accent-electric)]/50 hover:bg-[var(--accent-electric)]/5 transition-all duration-200 font-data text-xs h-8"
       @click="isCreateCategoryOpen = true"
     >
       <Plus class="h-3.5 w-3.5" />

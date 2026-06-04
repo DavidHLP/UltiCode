@@ -137,9 +137,9 @@ const isLoaded = ref(false)
 const stats = computed(() => {
   const problems = problemsStore.problems
   const total = problemsStore.total
-  const published = problems.filter((p) => p.isPublished).length
-  const draft = problems.filter((p) => !p.isPublished).length
-  const flagged = problems.filter((p) => p.isFlagged).length
+  const published = problems.filter((p) => p.isPublished ?? p.is_published).length
+  const draft = problems.filter((p) => !(p.isPublished ?? p.is_published)).length
+  const flagged = problems.filter((p) => p.isFlagged ?? p.is_flagged).length
   return { total, published, draft, flagged }
 })
 

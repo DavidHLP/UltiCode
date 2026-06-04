@@ -153,11 +153,12 @@ export function useProblemColumns(
       },
     },
     {
-      accessorKey: 'isPublished',
+      id: 'isPublished',
+      accessorFn: (row) => row.isPublished ?? row.is_published,
       header: () => t('problems.columns.published'),
       cell: ({ row }) => {
         const isPublished = row.getValue('isPublished') as boolean
-        const isDeleted = row.original.isDeleted
+        const isDeleted = row.original.isDeleted ?? row.original.is_deleted
         if (isDeleted) {
           return h(
             Badge,
@@ -182,14 +183,16 @@ export function useProblemColumns(
       },
     },
     {
-      accessorKey: 'isFlagged',
+      id: 'isFlagged',
+      accessorFn: (row) => row.isFlagged ?? row.is_flagged,
       header: () => t('problems.columns.flagged'),
       cell: ({ row }) => {
         const problem = row.original
-        if (!problem.isFlagged) {
+        const isFlagged = row.getValue('isFlagged') as boolean
+        if (!isFlagged) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '\u2014')
         }
-        const flagStatus = problem.flagStatus || ('PENDING' as const)
+        const flagStatus = problem.flagStatus || problem.flag_status || ('PENDING' as const)
         const statusColors: Record<string, string> = {
           PENDING: 'text-[var(--terminal-red)]',
           REVIEWED: 'text-[var(--terminal-amber)]',
@@ -202,7 +205,7 @@ export function useProblemColumns(
           'div',
           {
             class: 'flex items-center gap-1',
-            title: `${t(statusKey)}${problem.flagReason ? `: ${problem.flagReason}` : ''}`,
+            title: `${t(statusKey)}${problem.flagReason || problem.flag_reason ? `: ${problem.flagReason || problem.flag_reason}` : ''}`,
           },
           [
             h(IconFlag, {
@@ -222,13 +225,14 @@ export function useProblemColumns(
       },
     },
     {
-      accessorKey: 'submissionCount',
+      id: 'submissionCount',
+      accessorFn: (row) => row.submissionCount ?? row.submission_count,
       header: () => t('problems.columns.submissions'),
       cell: ({ row }) =>
         h(
           'span',
           { class: 'text-muted-foreground text-sm tabular-nums' },
-          (row.original.submissionCount || 0).toLocaleString(),
+          (Number(row.getValue('submissionCount')) || 0).toLocaleString(),
         ),
     },
     {

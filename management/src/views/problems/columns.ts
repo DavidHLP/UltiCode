@@ -187,7 +187,8 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'isPublished',
+      id: 'isPublished',
+      accessorFn: (row) => row.isPublished ?? row.is_published,
       size: 80,
       minSize: 70,
       maxSize: 90,
@@ -201,12 +202,13 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const isPublished = row.getValue('isPublished') as boolean
-        const isDeleted = row.original.isDeleted
+        const isDeleted = row.original.isDeleted ?? row.original.is_deleted
         return renderPublishedBadge(isPublished, isDeleted, t)
       },
     },
     {
-      accessorKey: 'isFlagged',
+      id: 'isFlagged',
+      accessorFn: (row) => row.isFlagged ?? row.is_flagged,
       size: 70,
       minSize: 60,
       maxSize: 80,
@@ -220,13 +222,13 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const problem = row.original
-        const isFlagged = problem.isFlagged
+        const isFlagged = row.getValue('isFlagged') as boolean
         if (!isFlagged) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
 
         const flagStatus: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' =
-          problem.flagStatus || 'PENDING'
+          problem.flagStatus || problem.flag_status || 'PENDING'
 
         // Status-based color for the flag icon
         const statusColors: Record<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED', string> = {
@@ -243,7 +245,7 @@ export function createColumns(
           'div',
           {
             class: 'flex items-center gap-1',
-            title: `${t(statusKey)}${problem.flagReason ? `: ${problem.flagReason}` : ''}`,
+            title: `${t(statusKey)}${problem.flagReason || problem.flag_reason ? `: ${problem.flagReason || problem.flag_reason}` : ''}`,
           },
           [
             h(IconFlag, {

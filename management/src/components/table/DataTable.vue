@@ -241,7 +241,8 @@ watch(
     <!-- Table Body (Data/Loading State) -->
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="w-full overflow-auto max-h-[calc(100vh-320px)] min-h-[200px]"
+      class="w-full overflow-auto min-h-[200px]"
+      style="max-height: calc(100vh - 380px);"
     >
       <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
         <Table :overflow="false">

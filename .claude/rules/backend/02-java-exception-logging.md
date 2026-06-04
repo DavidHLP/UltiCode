@@ -1,7 +1,7 @@
 ---
-description: Java 异常与日志 Agent Rules
-globs: "**/*.java"
-alwaysApply: true
+paths:
+  - "**/*.java"
+description: Java 异常处理与 SLF4J 日志规约
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

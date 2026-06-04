@@ -1,7 +1,9 @@
 ---
-description: Java 单元测试 Agent Rules
-globs: "**/*Test.java, **/*Tests.java"
-alwaysApply: true
+paths:
+  - "**/*Test.java"
+  - "**/*Tests.java"
+  - "**/*IT.java"
+description: Java 单元测试与集成测试规约
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

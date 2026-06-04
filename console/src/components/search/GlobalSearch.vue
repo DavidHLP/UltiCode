@@ -192,13 +192,18 @@ onUnmounted(() => {
             :class="
               cn(
                 'flex items-center gap-3 px-4 py-3 transition-colors',
-                selectedIndex === index ? 'bg-accent font-bold' : 'hover:bg-muted/50',
+                selectedIndex === index
+                  ? 'bg-accent font-bold'
+                  : 'hover:bg-muted/50',
               )
             "
             @click="searchHook.close()"
             @mouseenter="searchHook.selectedIndex.value = index"
           >
-            <component :is="getTypeIcon(result.type)" class="h-5 w-5 text-muted-foreground" />
+            <component
+              :is="getTypeIcon(result.type)"
+              class="h-5 w-5 text-muted-foreground"
+            />
             <div class="flex flex-col">
               <span class="text-sm font-medium">{{ result.title }}</span>
               <span
@@ -232,8 +237,15 @@ onUnmounted(() => {
             Start typing to search...
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
-            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">Cmd</kbd> +
-            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">K</kbd>
+            <kbd
+              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              >Cmd</kbd
+            >
+            +
+            <kbd
+              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              >K</kbd
+            >
             to open search
           </p>
         </div>
@@ -247,12 +259,21 @@ onUnmounted(() => {
         <span>{{ total }} results</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
-            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">↑</kbd>
-            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">↓</kbd>
+            <kbd
+              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              >↑</kbd
+            >
+            <kbd
+              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              >↓</kbd
+            >
             to navigate
           </span>
           <span class="flex items-center gap-1">
-            <kbd class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data">Enter</kbd>
+            <kbd
+              class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
+              >Enter</kbd
+            >
             to select
           </span>
         </div>

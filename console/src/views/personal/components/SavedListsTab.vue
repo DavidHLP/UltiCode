@@ -152,11 +152,7 @@ const { t } = useI18n();
   </div>
 
   <!-- Categories with their lists -->
-  <div
-    v-for="category in categories"
-    :key="category.id"
-    class="space-y-4"
-  >
+  <div v-for="category in categories" :key="category.id" class="space-y-4">
     <Collapsible :default-open="true">
       <div class="flex items-center gap-3 mb-2 group/cat">
         <CollapsibleTrigger
@@ -248,9 +244,7 @@ const { t } = useI18n();
                     >
                       <FolderInput class="h-4 w-4" />
                       {{
-                        t(
-                          "personal.problemLists.actions.removeFromCategory",
-                        )
+                        t("personal.problemLists.actions.removeFromCategory")
                       }}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

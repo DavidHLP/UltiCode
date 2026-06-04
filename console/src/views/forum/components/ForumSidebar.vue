@@ -18,10 +18,7 @@ const { t } = useI18n();
 <template>
   <aside class="hidden w-[312px] flex-none space-y-4 lg:block">
     <!-- Community Info (when viewing specific community) -->
-    <div
-      v-if="community"
-      class="terminal-card overflow-hidden shadow-sm"
-    >
+    <div v-if="community" class="terminal-card overflow-hidden shadow-sm">
       <div
         class="terminal-card-header p-4 font-medium"
         :style="{
@@ -52,36 +49,58 @@ const { t } = useI18n();
               community.online?.toLocaleString()
             }}</span>
           </div>
-          <div v-if="community.postsToday" class="flex justify-between text-xs font-data">
+          <div
+            v-if="community.postsToday"
+            class="flex justify-between text-xs font-data"
+          >
             <span class="text-muted-foreground">{{
               t("forum.sidebar.postsToday")
             }}</span>
-            <span class="font-bold tabular-nums text-foreground">{{ community.postsToday }}</span>
+            <span class="font-bold tabular-nums text-foreground">{{
+              community.postsToday
+            }}</span>
           </div>
-          <div v-if="community.postsWeek" class="flex justify-between text-xs font-data">
+          <div
+            v-if="community.postsWeek"
+            class="flex justify-between text-xs font-data"
+          >
             <span class="text-muted-foreground">{{
               t("forum.sidebar.postsWeek")
             }}</span>
-            <span class="font-bold tabular-nums text-foreground">{{ community.postsWeek }}</span>
+            <span class="font-bold tabular-nums text-foreground">{{
+              community.postsWeek
+            }}</span>
           </div>
         </div>
 
         <!-- Rules -->
-        <div v-if="rules && rules.length > 0" class="mt-4 border-t border-silver/40 pt-4">
-          <h3 class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data">
+        <div
+          v-if="rules && rules.length > 0"
+          class="mt-4 border-t border-silver/40 pt-4"
+        >
+          <h3
+            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
+          >
             {{ t("forum.sidebar.communityRules") }}
           </h3>
           <ol class="space-y-2 text-xs">
             <li v-for="rule in rules" :key="rule.id">
-              <strong class="font-data font-bold text-foreground">{{ rule.sortOrder }}. {{ rule.title }}</strong>
+              <strong class="font-data font-bold text-foreground"
+                >{{ rule.sortOrder }}. {{ rule.title }}</strong
+              >
               <p class="text-muted-foreground mt-0.5">{{ rule.body }}</p>
             </li>
           </ol>
         </div>
 
         <!-- Links -->
-        <div v-if="links && links.length > 0" class="mt-4 border-t border-silver/40 pt-4">
-          <h3 class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data">
+        <div
+          v-if="links && links.length > 0"
+          class="mt-4 border-t border-silver/40 pt-4"
+        >
+          <h3
+            class="mb-2 text-xs font-black uppercase tracking-widest text-foreground font-data"
+          >
             {{ t("forum.sidebar.resources") }}
           </h3>
           <ul class="space-y-1 text-xs">
@@ -101,10 +120,7 @@ const { t } = useI18n();
     </div>
 
     <!-- Default sidebar (when viewing all posts) -->
-    <div
-      v-else
-      class="terminal-card overflow-hidden shadow-sm"
-    >
+    <div v-else class="terminal-card overflow-hidden shadow-sm">
       <div class="terminal-card-header">
         {{ t("forum.sidebar.aboutCommunity") }}
       </div>

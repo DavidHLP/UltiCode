@@ -3,7 +3,6 @@ import markdownItKatex from "markdown-it-katex";
 import hljs from "highlight.js";
 import { sanitizeHtml } from "@/utils/sanitize";
 
-
 const md = new MarkdownIt({
   html: false,
   linkify: true,

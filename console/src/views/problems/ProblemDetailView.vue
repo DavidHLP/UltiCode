@@ -47,12 +47,8 @@ import MobileProblemLayout from "./components/MobileProblemLayout.vue";
 
 const { t } = useI18n();
 const { isMobile } = useBreakpoints();
-const {
-  isSidePanelOpen,
-  isNotesOpen,
-  toggleSidePanel,
-  toggleNotes,
-} = useProblemPanels();
+const { isSidePanelOpen, isNotesOpen, toggleSidePanel, toggleNotes } =
+  useProblemPanels();
 
 provide(ToggleSidePanelKey, toggleSidePanel);
 provide(ToggleNotesKey, toggleNotes);
@@ -86,8 +82,16 @@ const ConnectedDescriptionView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h("div", { class: "px-1 py-2" }, h(DescriptionView, { problem: problem.value }))
-        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
+        ? h(
+            "div",
+            { class: "px-1 py-2" },
+            h(DescriptionView, { problem: problem.value }),
+          )
+        : h(
+            "div",
+            { class: "flex items-center justify-center h-full" },
+            t("common.status.loading"),
+          );
   },
 });
 
@@ -96,8 +100,19 @@ const ConnectedSolutionsView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h("div", { class: "px-1 py-2" }, h(ProblemSolutionsView, { problemId: problem.value.id, followUp: problem.value.followUp ?? "" }))
-        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
+        ? h(
+            "div",
+            { class: "px-1 py-2" },
+            h(ProblemSolutionsView, {
+              problemId: problem.value.id,
+              followUp: problem.value.followUp ?? "",
+            }),
+          )
+        : h(
+            "div",
+            { class: "flex items-center justify-center h-full" },
+            t("common.status.loading"),
+          );
   },
 });
 
@@ -106,8 +121,19 @@ const ConnectedSubmissionsView = defineComponent({
     const { problem, contestId } = useProblemContext();
     return () =>
       problem.value
-        ? h("div", { class: "px-1 py-2" }, h(SubmissionsView, { problemId: problem.value.id, contestId: contestId.value ?? undefined }))
-        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
+        ? h(
+            "div",
+            { class: "px-1 py-2" },
+            h(SubmissionsView, {
+              problemId: problem.value.id,
+              contestId: contestId.value ?? undefined,
+            }),
+          )
+        : h(
+            "div",
+            { class: "flex items-center justify-center h-full" },
+            t("common.status.loading"),
+          );
   },
 });
 
@@ -116,8 +142,17 @@ const ConnectedCodeView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value && problem.value.languages.length
-        ? h(CodeView, { key: problem.value.id, languages: problem.value.languages, starterNotes: problem.value.starterNotes ?? [], problemKey: problem.value.slug })
-        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
+        ? h(CodeView, {
+            key: problem.value.id,
+            languages: problem.value.languages,
+            starterNotes: problem.value.starterNotes ?? [],
+            problemKey: problem.value.slug,
+          })
+        : h(
+            "div",
+            { class: "flex items-center justify-center h-full" },
+            t("common.status.loading"),
+          );
   },
 });
 
@@ -126,8 +161,16 @@ const ConnectedTestCaseView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h("div", { class: "px-1 py-2" }, h(TestCaseView, { testCases: problem.value.testCases ?? [] }))
-        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
+        ? h(
+            "div",
+            { class: "px-1 py-2" },
+            h(TestCaseView, { testCases: problem.value.testCases ?? [] }),
+          )
+        : h(
+            "div",
+            { class: "flex items-center justify-center h-full" },
+            t("common.status.loading"),
+          );
   },
 });
 
@@ -135,7 +178,11 @@ const ConnectedTestResultsView = defineComponent({
   setup() {
     const { runResult } = useProblemContext();
     return () =>
-      h("div", { class: "px-1 py-2" }, h(TestResultsView, { runResult: runResult.value }));
+      h(
+        "div",
+        { class: "px-1 py-2" },
+        h(TestResultsView, { runResult: runResult.value }),
+      );
   },
 });
 
@@ -152,7 +199,8 @@ const panelComponentMap: Record<number, Component> = {
 provide(PanelComponentMapKey, panelComponentMap);
 
 // --- Layout Logic ---
-const { currentLayout, layoutConfig, handleLayoutChange, initLayout } = useProblemLayout();
+const { currentLayout, layoutConfig, handleLayoutChange, initLayout } =
+  useProblemLayout();
 
 onUnmounted(() => {
   void problemHooks.emit("problem:view:unmount", { slug: slug.value });
@@ -176,9 +224,14 @@ onMounted(() => {
       <SheetContent side="left" class="p-0 w-[400px] sm:w-[540px]">
         <SheetHeader class="sr-only">
           <SheetTitle>{{ t("problem.drawer.problemList") }}</SheetTitle>
-          <SheetDescription>{{ t("problem.drawer.noProblemsFound") }}</SheetDescription>
+          <SheetDescription>{{
+            t("problem.drawer.noProblemsFound")
+          }}</SheetDescription>
         </SheetHeader>
-        <ProblemListDrawer :current-problem-id="problem?.id" @close="isSidePanelOpen = false" />
+        <ProblemListDrawer
+          :current-problem-id="problem?.id"
+          @close="isSidePanelOpen = false"
+        />
       </SheetContent>
     </Sheet>
 
@@ -186,23 +239,41 @@ onMounted(() => {
       <SheetContent side="right" class="p-0 w-[400px] sm:w-[500px]">
         <SheetHeader class="sr-only">
           <SheetTitle>{{ t("problem.notes.title") }}</SheetTitle>
-          <SheetDescription>{{ t("problem.notes.description") }}</SheetDescription>
+          <SheetDescription>{{
+            t("problem.notes.description")
+          }}</SheetDescription>
         </SheetHeader>
-        <ProblemNotesDrawer v-if="problem" :problem-id="Number(problem.id)" @close="isNotesOpen = false" />
+        <ProblemNotesDrawer
+          v-if="problem"
+          :problem-id="Number(problem.id)"
+          @close="isNotesOpen = false"
+        />
       </SheetContent>
     </Sheet>
 
-    <header class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5">
-      <div class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden">
+    <header
+      class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5"
+    >
+      <div
+        class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden"
+      >
         <LayoutHeaderLeft />
       </div>
-      <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div
+        class="pointer-events-none absolute inset-0 flex items-center justify-center"
+      >
         <div class="pointer-events-auto">
           <LayoutHeaderCenter />
         </div>
       </div>
-      <div class="relative z-10 ml-auto flex h-full flex-1 items-center justify-end gap-2">
-        <LayoutHeaderControls :current-layout="currentLayout" :problem="problem" @layout-change="handleLayoutChange" />
+      <div
+        class="relative z-10 ml-auto flex h-full flex-1 items-center justify-end gap-2"
+      >
+        <LayoutHeaderControls
+          :current-layout="currentLayout"
+          :problem="problem"
+          @layout-change="handleLayoutChange"
+        />
       </div>
     </header>
 
@@ -212,7 +283,11 @@ onMounted(() => {
       role="main"
     >
       <MobileProblemLayout v-if="isMobile" />
-      <LayoutTree v-else-if="layoutConfig" :layout="layoutConfig" class="h-full w-full" />
+      <LayoutTree
+        v-else-if="layoutConfig"
+        :layout="layoutConfig"
+        class="h-full w-full"
+      />
     </main>
   </div>
 </template>

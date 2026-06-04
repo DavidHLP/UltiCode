@@ -104,7 +104,10 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
     </template>
 
     <template #cell-difficulty="{ item: problem }">
-      <span class="font-data text-xs uppercase" :class="difficultyClass((problem as EnrichedProblem).difficulty)">
+      <span
+        class="font-data text-xs uppercase"
+        :class="difficultyClass((problem as EnrichedProblem).difficulty)"
+      >
         {{
           t(
             "problem.difficulty." +

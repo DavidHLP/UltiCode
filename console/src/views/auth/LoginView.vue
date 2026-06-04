@@ -51,8 +51,12 @@ defineOptions({
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title whitespace-pre-line">{{ t('auth.layout.codingConsole') }}</h2>
-        <p class="auth-pattern-text__subtitle">{{ t('auth.layout.codingConsoleSubtitle') }}</p>
+        <h2 class="auth-pattern-text__title whitespace-pre-line">
+          {{ t("auth.layout.codingConsole") }}
+        </h2>
+        <p class="auth-pattern-text__subtitle">
+          {{ t("auth.layout.codingConsoleSubtitle") }}
+        </p>
         <div class="auth-pattern-text__cursor"></div>
       </div>
     </AuthGrid>

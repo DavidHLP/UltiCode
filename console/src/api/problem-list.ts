@@ -1,5 +1,5 @@
-import { apiGet, apiPost, apiDelete, apiPatch } from '@/utils/request'
-import { mapProblem } from '@/api/problem'
+import { apiGet, apiPost, apiDelete, apiPatch } from "@/utils/request";
+import { mapProblem } from "@/api/problem";
 import type {
   ProblemListStats,
   ProblemListId,
@@ -8,51 +8,51 @@ import type {
   ProblemListCategory,
   UserProblemListsResponse,
   ProblemListDetailResponse,
-} from '@/types/problem-list'
+} from "@/types/problem-list";
 
 // ============================================================================
 // Backend Response Interfaces (camelCase from Spring Boot Jackson)
 // ============================================================================
 
 interface BackendProblemList {
-  id?: string
-  name?: string
-  description?: string | null
-  problemCount?: number | null
-  authorId?: string | null
-  authorName?: string | null
-  authorUsername?: string | null
-  isPublic?: boolean | null
-  isFeatured?: boolean | null
-  bannerTag?: string | null
-  bannerIcon?: string | null
-  bannerTheme?: string | null
-  bannerOrder?: number | null
-  createdAt?: string | null
-  updatedAt?: string | null
-  isSaved?: boolean | null
+  id?: string;
+  name?: string;
+  description?: string | null;
+  problemCount?: number | null;
+  authorId?: string | null;
+  authorName?: string | null;
+  authorUsername?: string | null;
+  isPublic?: boolean | null;
+  isFeatured?: boolean | null;
+  bannerTag?: string | null;
+  bannerIcon?: string | null;
+  bannerTheme?: string | null;
+  bannerOrder?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  isSaved?: boolean | null;
 }
 
 interface BackendProblemListCategory {
-  id?: string
-  name?: string
-  sortOrder?: number | null
-  lists?: unknown[]
-  description?: string | null
-  icon?: string | null
-  color?: string | null
-  listCount?: number | null
+  id?: string;
+  name?: string;
+  sortOrder?: number | null;
+  lists?: unknown[];
+  description?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  listCount?: number | null;
 }
 
 interface BackendViewerState {
-  isSaved?: boolean
-  categoryId?: string | null
+  isSaved?: boolean;
+  categoryId?: string | null;
 }
 
 interface BackendCategoryOption {
-  id?: string
-  name?: string
-  sortOrder?: number | null
+  id?: string;
+  name?: string;
+  sortOrder?: number | null;
 }
 
 // ============================================================================
@@ -60,21 +60,22 @@ interface BackendCategoryOption {
 // ============================================================================
 
 function mapProblemList(input: unknown): ProblemList {
-  if (!input || typeof input !== 'object') {
-    return { id: '', name: '', description: undefined, problemCount: 0 }
+  if (!input || typeof input !== "object") {
+    return { id: "", name: "", description: undefined, problemCount: 0 };
   }
-  const raw = input as BackendProblemList
-  const rawBannerOrder = raw.bannerOrder
+  const raw = input as BackendProblemList;
+  const rawBannerOrder = raw.bannerOrder;
   const parsedBannerOrder =
-    typeof rawBannerOrder === 'number'
+    typeof rawBannerOrder === "number"
       ? rawBannerOrder
-      : typeof rawBannerOrder === 'string'
+      : typeof rawBannerOrder === "string"
         ? Number(rawBannerOrder)
-        : Number.NaN
+        : Number.NaN;
   return {
-    id: String(raw.id ?? ''),
-    name: String(raw.name ?? ''),
-    description: typeof raw.description === 'string' ? raw.description : undefined,
+    id: String(raw.id ?? ""),
+    name: String(raw.name ?? ""),
+    description:
+      typeof raw.description === "string" ? raw.description : undefined,
     problemCount: Number(raw.problemCount ?? 0) || 0,
     authorId: raw.authorId ?? undefined,
     authorName: raw.authorName ?? undefined,
@@ -84,74 +85,88 @@ function mapProblemList(input: unknown): ProblemList {
     bannerTag: raw.bannerTag ?? undefined,
     bannerIcon: raw.bannerIcon ?? undefined,
     bannerTheme: raw.bannerTheme ?? undefined,
-    bannerOrder: Number.isFinite(parsedBannerOrder) ? parsedBannerOrder : undefined,
-    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : undefined,
-    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
-    isSaved: typeof raw.isSaved === 'boolean' ? raw.isSaved : undefined,
-  }
+    bannerOrder: Number.isFinite(parsedBannerOrder)
+      ? parsedBannerOrder
+      : undefined,
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : undefined,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : undefined,
+    isSaved: typeof raw.isSaved === "boolean" ? raw.isSaved : undefined,
+  };
 }
 
 function mapCategory(input: unknown): ProblemListCategory {
-  if (!input || typeof input !== 'object') {
-    return { id: '', name: '', sortOrder: 0, lists: [] }
+  if (!input || typeof input !== "object") {
+    return { id: "", name: "", sortOrder: 0, lists: [] };
   }
-  const raw = input as BackendProblemListCategory
+  const raw = input as BackendProblemListCategory;
   return {
-    id: String(raw.id ?? ''),
-    name: String(raw.name ?? ''),
-    sortOrder: typeof raw.sortOrder === 'number' ? raw.sortOrder : 0,
+    id: String(raw.id ?? ""),
+    name: String(raw.name ?? ""),
+    sortOrder: typeof raw.sortOrder === "number" ? raw.sortOrder : 0,
     lists: Array.isArray(raw.lists) ? raw.lists.map(mapProblemList) : [],
-    description: typeof raw.description === 'string' ? raw.description : undefined,
-    icon: typeof raw.icon === 'string' ? raw.icon : undefined,
-    color: typeof raw.color === 'string' ? raw.color : undefined,
-    listCount: typeof raw.listCount === 'number' ? raw.listCount : undefined,
-  }
+    description:
+      typeof raw.description === "string" ? raw.description : undefined,
+    icon: typeof raw.icon === "string" ? raw.icon : undefined,
+    color: typeof raw.color === "string" ? raw.color : undefined,
+    listCount: typeof raw.listCount === "number" ? raw.listCount : undefined,
+  };
 }
 
 function mapUserProblemListsResponse(input: unknown): UserProblemListsResponse {
-  if (!input || typeof input !== 'object') {
-    return { ownLists: [], savedLists: [], featuredLists: [], categories: [] }
+  if (!input || typeof input !== "object") {
+    return { ownLists: [], savedLists: [], featuredLists: [], categories: [] };
   }
   const raw = input as {
-    ownLists?: unknown[]
-    savedLists?: unknown[]
-    featuredLists?: unknown[]
-    categories?: unknown[]
-  }
+    ownLists?: unknown[];
+    savedLists?: unknown[];
+    featuredLists?: unknown[];
+    categories?: unknown[];
+  };
   return {
-    ownLists: Array.isArray(raw.ownLists) ? raw.ownLists.map(mapProblemList) : [],
-    savedLists: Array.isArray(raw.savedLists) ? raw.savedLists.map(mapProblemList) : [],
-    featuredLists: Array.isArray(raw.featuredLists) ? raw.featuredLists.map(mapProblemList) : [],
-    categories: Array.isArray(raw.categories) ? raw.categories.map(mapCategory) : [],
-  }
+    ownLists: Array.isArray(raw.ownLists)
+      ? raw.ownLists.map(mapProblemList)
+      : [],
+    savedLists: Array.isArray(raw.savedLists)
+      ? raw.savedLists.map(mapProblemList)
+      : [],
+    featuredLists: Array.isArray(raw.featuredLists)
+      ? raw.featuredLists.map(mapProblemList)
+      : [],
+    categories: Array.isArray(raw.categories)
+      ? raw.categories.map(mapCategory)
+      : [],
+  };
 }
 
 function mapProblemListItem(input: unknown): ProblemListItem {
-  if (!input || typeof input !== 'object') {
-    return { id: '', name: '' }
+  if (!input || typeof input !== "object") {
+    return { id: "", name: "" };
   }
-  const raw = input as BackendProblemList
-  const rawBannerOrder = raw.bannerOrder
+  const raw = input as BackendProblemList;
+  const rawBannerOrder = raw.bannerOrder;
   const parsedBannerOrder =
-    typeof rawBannerOrder === 'number'
+    typeof rawBannerOrder === "number"
       ? rawBannerOrder
-      : typeof rawBannerOrder === 'string'
+      : typeof rawBannerOrder === "string"
         ? Number(rawBannerOrder)
-        : Number.NaN
+        : Number.NaN;
   return {
-    id: String(raw.id ?? ''),
-    name: String(raw.name ?? ''),
-    description: typeof raw.description === 'string' ? raw.description : undefined,
+    id: String(raw.id ?? ""),
+    name: String(raw.name ?? ""),
+    description:
+      typeof raw.description === "string" ? raw.description : undefined,
     authorId: raw.authorId ?? undefined,
     isPublic: raw.isPublic ?? undefined,
     isFeatured: raw.isFeatured ?? undefined,
     bannerTag: raw.bannerTag ?? undefined,
     bannerIcon: raw.bannerIcon ?? undefined,
     bannerTheme: raw.bannerTheme ?? undefined,
-    bannerOrder: Number.isFinite(parsedBannerOrder) ? parsedBannerOrder : undefined,
-    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : undefined,
-    updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : undefined,
-  }
+    bannerOrder: Number.isFinite(parsedBannerOrder)
+      ? parsedBannerOrder
+      : undefined,
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : undefined,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : undefined,
+  };
 }
 
 // ============================================================================
@@ -159,86 +174,90 @@ function mapProblemListItem(input: unknown): ProblemListItem {
 // ============================================================================
 
 export async function fetchProblemListsOverview(): Promise<UserProblemListsResponse> {
-  const data = await apiGet<unknown>('/problem-lists/overview')
-  return mapUserProblemListsResponse(data)
+  const data = await apiGet<unknown>("/problem-lists/overview");
+  return mapUserProblemListsResponse(data);
 }
 
 export async function fetchFeaturedProblemLists(): Promise<ProblemList[]> {
-  const data = await fetchProblemListsOverview()
-  return data.featuredLists
+  const data = await fetchProblemListsOverview();
+  return data.featuredLists;
 }
 
 export async function fetchProblemListOverview(
   listId: ProblemListId,
 ): Promise<ProblemListDetailResponse> {
-  const data = await apiGet<unknown>(`/problem-lists/${listId}/overview`)
-  if (!data || typeof data !== 'object') {
-    return { list: null, problems: [], stats: null }
+  const data = await apiGet<unknown>(`/problem-lists/${listId}/overview`);
+  if (!data || typeof data !== "object") {
+    return { list: null, problems: [], stats: null };
   }
   const raw = data as {
-    problems?: unknown[]
-    stats?: unknown
-    isOwner?: boolean
-    viewer?: BackendViewerState
-    categories?: unknown[]
-  }
+    problems?: unknown[];
+    stats?: unknown;
+    isOwner?: boolean;
+    viewer?: BackendViewerState;
+    categories?: unknown[];
+  };
   // Flatten: backend ProblemListDetailVO extends SummaryVO fields + problems
   // Front-end expects { list, problems, stats, ... }
-  const listData = mapProblemList(data)
+  const listData = mapProblemList(data);
   return {
     list: listData,
     problems: Array.isArray(raw.problems) ? raw.problems.map(mapProblem) : [],
     stats:
-      raw.stats && typeof raw.stats === 'object' ? (raw.stats as ProblemListStats) : null,
-    isOwner: typeof raw.isOwner === 'boolean' ? raw.isOwner : undefined,
+      raw.stats && typeof raw.stats === "object"
+        ? (raw.stats as ProblemListStats)
+        : null,
+    isOwner: typeof raw.isOwner === "boolean" ? raw.isOwner : undefined,
     viewer:
-      raw.viewer && typeof raw.viewer === 'object'
+      raw.viewer && typeof raw.viewer === "object"
         ? {
             isSaved: Boolean(raw.viewer.isSaved),
             categoryId:
-              typeof raw.viewer.categoryId === 'string'
+              typeof raw.viewer.categoryId === "string"
                 ? String(raw.viewer.categoryId)
                 : null,
           }
         : undefined,
     categories: Array.isArray(raw.categories)
       ? raw.categories.map((item: unknown) => {
-          const c = item as BackendCategoryOption
+          const c = item as BackendCategoryOption;
           return {
-            id: String(c.id ?? ''),
-            name: String(c.name ?? ''),
-            sortOrder: typeof c.sortOrder === 'number' ? c.sortOrder : 0,
-          }
+            id: String(c.id ?? ""),
+            name: String(c.name ?? ""),
+            sortOrder: typeof c.sortOrder === "number" ? c.sortOrder : 0,
+          };
         })
       : undefined,
-  }
+  };
 }
 
 // ============================================================================
 // List CRUD
 // ============================================================================
 
-export async function createProblemList(
-  data: { name: string; description?: string; isPublic?: boolean },
-): Promise<ProblemListItem> {
-  const res = await apiPost<unknown>('/problem-lists', data)
-  return mapProblemListItem(res)
+export async function createProblemList(data: {
+  name: string;
+  description?: string;
+  isPublic?: boolean;
+}): Promise<ProblemListItem> {
+  const res = await apiPost<unknown>("/problem-lists", data);
+  return mapProblemListItem(res);
 }
 
 export async function updateProblemList(
   listId: string,
   data: { name?: string; description?: string; isPublic?: boolean },
 ): Promise<void> {
-  await apiPatch(`/problem-lists/${listId}`, data)
+  await apiPatch(`/problem-lists/${listId}`, data);
 }
 
 export async function deleteProblemList(listId: string): Promise<void> {
-  await apiDelete(`/problem-lists/${listId}`)
+  await apiDelete(`/problem-lists/${listId}`);
 }
 
 export async function forkProblemList(listId: string): Promise<string> {
-  const res = await apiPost<{ id: string }>(`/problem-lists/${listId}/fork`)
-  return res.id
+  const res = await apiPost<{ id: string }>(`/problem-lists/${listId}/fork`);
+  return res.id;
 }
 
 // ============================================================================
@@ -249,52 +268,59 @@ export async function addProblemToList(
   listId: string,
   problemId: number,
 ): Promise<void> {
-  await apiPost(`/problem-lists/${listId}/problems`, { problemId })
+  await apiPost(`/problem-lists/${listId}/problems`, { problemId });
 }
 
 export async function removeProblemFromList(
   listId: string,
   problemId: number,
 ): Promise<void> {
-  await apiDelete(`/problem-lists/${listId}/problems/${problemId}`)
+  await apiDelete(`/problem-lists/${listId}/problems/${problemId}`);
 }
 
 export async function batchAddProblemToLists(
   problemId: number,
   listIds: string[],
 ): Promise<void> {
-  await apiPost(`/problem-lists/problems/${problemId}/batch-add`, { listIds })
+  await apiPost(`/problem-lists/problems/${problemId}/batch-add`, { listIds });
 }
 
 export async function batchRemoveProblemFromLists(
   problemId: number,
   listIds: string[],
 ): Promise<void> {
-  await apiPost(`/problem-lists/problems/${problemId}/batch-remove`, { listIds })
+  await apiPost(`/problem-lists/problems/${problemId}/batch-remove`, {
+    listIds,
+  });
 }
 
 export interface ProblemListWithStatus extends ProblemList {
-  containsProblem: boolean
-  canEdit: boolean
+  containsProblem: boolean;
+  canEdit: boolean;
 }
 
 export async function getUserListsForProblem(
   problemId: number,
 ): Promise<ProblemListWithStatus[]> {
-  const data = await apiGet<unknown>(`/problem-lists/problems/${problemId}/user-lists`)
-  if (!data || typeof data !== 'object') {
-    return []
+  const data = await apiGet<unknown>(
+    `/problem-lists/problems/${problemId}/user-lists`,
+  );
+  if (!data || typeof data !== "object") {
+    return [];
   }
-  const raw = data as { lists?: unknown[] }
-  const lists = Array.isArray(raw.lists) ? raw.lists : []
+  const raw = data as { lists?: unknown[] };
+  const lists = Array.isArray(raw.lists) ? raw.lists : [];
   return lists.map((item) => {
-    const rawItem = item as BackendProblemList & { hasProblem?: boolean; canEdit?: boolean }
+    const rawItem = item as BackendProblemList & {
+      hasProblem?: boolean;
+      canEdit?: boolean;
+    };
     return {
       ...mapProblemList(item),
       containsProblem: Boolean(rawItem.hasProblem),
       canEdit: Boolean(rawItem.canEdit),
-    }
-  })
+    };
+  });
 }
 
 // ============================================================================
@@ -305,39 +331,51 @@ export async function saveList(
   listId: string,
   categoryId?: string,
 ): Promise<void> {
-  await apiPost(`/problem-lists/${listId}/save`, { categoryId })
+  await apiPost(`/problem-lists/${listId}/save`, { categoryId });
 }
 
 export async function unsaveList(listId: string): Promise<void> {
-  await apiDelete(`/problem-lists/${listId}/save`)
+  await apiDelete(`/problem-lists/${listId}/save`);
 }
 
 export async function moveListToCategory(
   listId: string,
   categoryId: string | null,
 ): Promise<void> {
-  await apiPatch(`/problem-lists/${listId}/category`, { categoryId })
+  await apiPatch(`/problem-lists/${listId}/category`, { categoryId });
 }
 
 // ============================================================================
 // Category Management
 // ============================================================================
 
-export async function createCategory(
-  data: { name: string; description?: string; icon?: string; color?: string },
-): Promise<ProblemListCategory> {
-  const res = await apiPost<unknown>('/problem-lists/categories', data)
-  return mapCategory(res)
+export async function createCategory(data: {
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+}): Promise<ProblemListCategory> {
+  const res = await apiPost<unknown>("/problem-lists/categories", data);
+  return mapCategory(res);
 }
 
 export async function updateCategory(
   categoryId: string,
-  data: { name?: string; description?: string; icon?: string; color?: string; sortOrder?: number },
+  data: {
+    name?: string;
+    description?: string;
+    icon?: string;
+    color?: string;
+    sortOrder?: number;
+  },
 ): Promise<ProblemListCategory> {
-  const res = await apiPatch<unknown>(`/problem-lists/categories/${categoryId}`, data)
-  return mapCategory(res)
+  const res = await apiPatch<unknown>(
+    `/problem-lists/categories/${categoryId}`,
+    data,
+  );
+  return mapCategory(res);
 }
 
 export async function deleteCategory(categoryId: string): Promise<void> {
-  await apiDelete(`/problem-lists/categories/${categoryId}`)
+  await apiDelete(`/problem-lists/categories/${categoryId}`);
 }

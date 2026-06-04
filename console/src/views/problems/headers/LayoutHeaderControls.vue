@@ -77,7 +77,9 @@ const selectedLayout = computed({
 
 <template>
   <div class="flex min-w-60 flex-1 items-center justify-end overflow-hidden">
-    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
+    <div
+      class="flex items-center overflow-hidden rounded-none focus:outline-none"
+    >
       <ProblemEdgeOperations :problem="problem" />
 
       <div class="relative group/nav-back flex items-center">

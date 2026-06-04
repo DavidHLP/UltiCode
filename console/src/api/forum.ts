@@ -80,10 +80,9 @@ function normalizePost(
           slug: raw.communitySlug ?? "",
         }
       : undefined,
-    flair:
-      raw.flairType
-        ? { type: raw.flairType as ForumFlairType, text: raw.flairLabel }
-        : undefined,
+    flair: raw.flairType
+      ? { type: raw.flairType as ForumFlairType, text: raw.flairLabel }
+      : undefined,
     stats: normalizeStats(raw.stats),
     tags: normalizeTags(raw.tags),
     media: normalizeMedia(raw.media),
@@ -94,24 +93,30 @@ function normalizePost(
 // API functions
 // =========================================================================
 
-export async function fetchForumPosts(
-  options?: { sortBy?: string; page?: number; pageSize?: number },
-): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+export async function fetchForumPosts(options?: {
+  sortBy?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
   const params: Record<string, string | number> = {};
   if (options?.sortBy) params.sortBy = options.sortBy;
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<PageResult<{
-    userId: string;
-    authorUsername?: string;
-    authorAvatar?: string;
-    communityId?: string;
-    communityName?: string;
-    communitySlug?: string;
-    flairType?: string;
-    flairLabel?: string;
-  } & Record<string, unknown>>>("/forum/posts", { params });
+  const response = await apiGet<
+    PageResult<
+      {
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+        communityId?: string;
+        communityName?: string;
+        communitySlug?: string;
+        flairType?: string;
+        flairLabel?: string;
+      } & Record<string, unknown>
+    >
+  >("/forum/posts", { params });
 
   const rows = Array.isArray(response) ? response : response.items;
   const total = !Array.isArray(response) ? response.total : rows.length;
@@ -125,16 +130,18 @@ export async function fetchForumPosts(
 }
 
 export async function fetchForumPost(postId: string): Promise<ForumPost> {
-  const raw = await apiGet<{
-    userId: string;
-    authorUsername?: string;
-    authorAvatar?: string;
-    communityId?: string;
-    communityName?: string;
-    communitySlug?: string;
-    flairType?: string;
-    flairLabel?: string;
-  } & Record<string, unknown>>(`/forum/posts/${postId}`);
+  const raw = await apiGet<
+    {
+      userId: string;
+      authorUsername?: string;
+      authorAvatar?: string;
+      communityId?: string;
+      communityName?: string;
+      communitySlug?: string;
+      flairType?: string;
+      flairLabel?: string;
+    } & Record<string, unknown>
+  >(`/forum/posts/${postId}`);
 
   return normalizePost(raw);
 }
@@ -164,16 +171,20 @@ export async function fetchCommunityPosts(
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<PageResult<{
-    userId: string;
-    authorUsername?: string;
-    authorAvatar?: string;
-    communityId?: string;
-    communityName?: string;
-    communitySlug?: string;
-    flairType?: string;
-    flairLabel?: string;
-  } & Record<string, unknown>>>(`/forum/communities/${slug}/posts`, { params });
+  const response = await apiGet<
+    PageResult<
+      {
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+        communityId?: string;
+        communityName?: string;
+        communitySlug?: string;
+        flairType?: string;
+        flairLabel?: string;
+      } & Record<string, unknown>
+    >
+  >(`/forum/communities/${slug}/posts`, { params });
 
   const rows = Array.isArray(response) ? response : response.items;
   const total = !Array.isArray(response) ? response.total : rows.length;
@@ -193,12 +204,12 @@ export async function fetchForumTags(): Promise<ForumTag[]> {
 export async function fetchForumQuickFilters(): Promise<
   Array<{ label: string; value: string }>
 > {
-  return apiGet<Array<{ label: string; value: string }>>("/forum/quick-filters");
+  return apiGet<Array<{ label: string; value: string }>>(
+    "/forum/quick-filters",
+  );
 }
 
-export async function fetchForumThread(
-  postId: string,
-): Promise<ForumThread> {
+export async function fetchForumThread(postId: string): Promise<ForumThread> {
   const response = await apiGet<{
     post: {
       userId: string;
@@ -247,7 +258,11 @@ export async function recordForumView(postId: string) {
 }
 
 export async function recordForumShare(postId: string) {
-  return apiPost(`/forum/posts/${postId}/share`, {}, { skipErrorHandler: true });
+  return apiPost(
+    `/forum/posts/${postId}/share`,
+    {},
+    { skipErrorHandler: true },
+  );
 }
 
 export async function joinForumCommunity(id: string): Promise<void> {
@@ -286,7 +301,10 @@ export async function updateForumPost(
     media?: unknown[];
   }>,
 ): Promise<ForumPost> {
-  const raw = await apiPatch<Record<string, unknown>>(`/forum/posts/${postId}`, input);
+  const raw = await apiPatch<Record<string, unknown>>(
+    `/forum/posts/${postId}`,
+    input,
+  );
   return normalizePost(raw as Parameters<typeof normalizePost>[0]);
 }
 
@@ -294,23 +312,28 @@ export async function deleteForumPost(postId: string): Promise<void> {
   await apiDelete(`/forum/posts/${postId}`);
 }
 
-export async function fetchMyForumPosts(
-  options?: { page?: number; pageSize?: number },
-): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+export async function fetchMyForumPosts(options?: {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
   const params: Record<string, string | number> = {};
   if (options?.page) params.page = options.page;
   if (options?.pageSize) params.pageSize = options.pageSize;
 
-  const response = await apiGet<PageResult<{
-    userId: string;
-    authorUsername?: string;
-    authorAvatar?: string;
-    communityId?: string;
-    communityName?: string;
-    communitySlug?: string;
-    flairType?: string;
-    flairLabel?: string;
-  } & Record<string, unknown>>>("/forum/me/posts", { params });
+  const response = await apiGet<
+    PageResult<
+      {
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+        communityId?: string;
+        communityName?: string;
+        communitySlug?: string;
+        flairType?: string;
+        flairLabel?: string;
+      } & Record<string, unknown>
+    >
+  >("/forum/me/posts", { params });
 
   const rows = Array.isArray(response) ? response : response.items;
   const total = !Array.isArray(response) ? response.total : rows.length;

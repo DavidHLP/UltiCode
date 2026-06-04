@@ -31,9 +31,13 @@ const { t } = useI18n();
 const localForm = ref({ ...props.form });
 
 // Sync local form when prop changes
-watch(() => props.form, (newForm) => {
-  localForm.value = { ...newForm };
-}, { deep: true });
+watch(
+  () => props.form,
+  (newForm) => {
+    localForm.value = { ...newForm };
+  },
+  { deep: true },
+);
 
 // Emit form updates to parent
 function updateName(value: string | number) {
@@ -65,7 +69,12 @@ function updateIsPublic(value: boolean) {
           <Label for="name" class="text-right">{{
             t("problem.problemList.dialogs.listName")
           }}</Label>
-          <Input id="name" :model-value="localForm.name" class="col-span-3" @update:model-value="updateName" />
+          <Input
+            id="name"
+            :model-value="localForm.name"
+            class="col-span-3"
+            @update:model-value="updateName"
+          />
         </div>
         <div class="grid grid-cols-4 items-center gap-4">
           <Label for="description" class="text-right">{{
@@ -83,7 +92,11 @@ function updateIsPublic(value: boolean) {
             t("problem.problemList.dialogs.publicList")
           }}</Label>
           <div class="col-span-3 flex items-center space-x-2">
-            <Switch id="public" :checked="localForm.isPublic" @update:checked="updateIsPublic" />
+            <Switch
+              id="public"
+              :checked="localForm.isPublic"
+              @update:checked="updateIsPublic"
+            />
             <span class="text-sm text-muted-foreground">{{
               localForm.isPublic
                 ? t("problem.problemList.detail.publicHint")

@@ -106,7 +106,8 @@ export const useAuthStore = defineStore("auth", () => {
         }
         if (isDevelopment) {
         }
-      } catch { // Backend unavailable or not authenticated - still mark as ready
+      } catch {
+        // Backend unavailable or not authenticated - still mark as ready
         // App will function in guest mode
         if (isDevelopment) {
         }
@@ -145,7 +146,9 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       // Connection error or 401 - user is not authenticated
       if (isDevelopment) {
-        console.debug("[Auth] ensureUser() - fetch failed, user not authenticated");
+        console.debug(
+          "[Auth] ensureUser() - fetch failed, user not authenticated",
+        );
       }
       return null;
     }
@@ -158,9 +161,12 @@ export const useAuthStore = defineStore("auth", () => {
   async function fetchUser(): Promise<User | null> {
     try {
       // /auth/me returns { user: User, csrfToken: string } after interceptor unwraps Result<T>
-      const response = await apiGet<{ user: User; csrfToken?: string }>("/auth/me", {
-        skipErrorHandler: true,
-      });
+      const response = await apiGet<{ user: User; csrfToken?: string }>(
+        "/auth/me",
+        {
+          skipErrorHandler: true,
+        },
+      );
 
       if (isDevelopment) {
       }
@@ -181,7 +187,9 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       return response.user;
-    } catch { if (isDevelopment) {} // 401 means no valid session - clear state
+    } catch {
+      if (isDevelopment) {
+      } // 401 means no valid session - clear state
       user.value = null;
       return null;
     }
@@ -345,7 +353,10 @@ export const useAuthStore = defineStore("auth", () => {
       permissions.value = new Set(response || []);
       if (isDevelopment) {
       }
-    } catch { if (isDevelopment) {} permissions.value.clear();
+    } catch {
+      if (isDevelopment) {
+      }
+      permissions.value.clear();
     }
   }
 

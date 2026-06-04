@@ -14,9 +14,7 @@ defineOptions({
 <template>
   <div class="auth-divider">
     <span class="auth-divider__line"></span>
-    <span class="auth-divider__text">{{
-      t("auth.login.orContinueWith")
-    }}</span>
+    <span class="auth-divider__text">{{ t("auth.login.orContinueWith") }}</span>
     <span class="auth-divider__line"></span>
   </div>
 </template>

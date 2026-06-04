@@ -44,9 +44,7 @@ import ProblemListAnalytics from "./ProblemListAnalytics.vue";
 import EditListDialog from "./components/EditListDialog.vue";
 import DeleteListDialog from "./components/DeleteListDialog.vue";
 import AddProblemsDialog from "./components/AddProblemsDialog.vue";
-import {
-  useProblemListOperations,
-} from "./composables/useProblemListOperations";
+import { useProblemListOperations } from "./composables/useProblemListOperations";
 
 const route = useRoute();
 const { t } = useI18n();
@@ -213,11 +211,21 @@ function openAddProblemsDialog() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-56">
             <template v-if="isOwner">
-              <DropdownMenuItem @click="dropdownOpen = false; nextTick(() => isEditOpen = true)">
+              <DropdownMenuItem
+                @click="
+                  dropdownOpen = false;
+                  nextTick(() => (isEditOpen = true));
+                "
+              >
                 <Pencil class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.detail.editDetails") }}
               </DropdownMenuItem>
-              <DropdownMenuItem @click="dropdownOpen = false; nextTick(() => openAddProblemsDialog())">
+              <DropdownMenuItem
+                @click="
+                  dropdownOpen = false;
+                  nextTick(() => openAddProblemsDialog());
+                "
+              >
                 <Plus class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.detail.addProblems") }}
               </DropdownMenuItem>
@@ -259,7 +267,10 @@ function openAddProblemsDialog() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 class="text-destructive focus:text-destructive"
-                @click="dropdownOpen = false; nextTick(() => isDeleteOpen = true)"
+                @click="
+                  dropdownOpen = false;
+                  nextTick(() => (isDeleteOpen = true));
+                "
               >
                 <Trash2 class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.actions.deleteList") }}

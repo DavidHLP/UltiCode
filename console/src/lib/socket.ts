@@ -194,8 +194,7 @@ function createSocketManager(): SocketManager {
       connectHeaders: {
         "X-CSRF-Token": csrfToken || "",
       },
-      debug: () => {
-      },
+      debug: () => {},
       reconnectDelay: 1000,
       maxReconnectDelay: 5000,
       heartbeatIncoming: 10000,
@@ -349,7 +348,6 @@ function createSocketManager(): SocketManager {
       destination: `/app/contest.join`,
       body: contestId,
     });
-
   };
 
   const unsubscribeFromContest = (contestId: string) => {
@@ -367,7 +365,6 @@ function createSocketManager(): SocketManager {
         body: contestId,
       });
     }
-
   };
 
   const subscribeToCommunity = (communityId: string) => {
@@ -385,7 +382,6 @@ function createSocketManager(): SocketManager {
       handleMessage(NotificationEvent.COMMUNITY_NEW_POST, message),
     );
     subscriptions.set(key, sub);
-
   };
 
   const unsubscribeFromCommunity = (communityId: string) => {
@@ -395,7 +391,6 @@ function createSocketManager(): SocketManager {
       sub.unsubscribe();
       subscriptions.delete(key);
     }
-
   };
 
   return {

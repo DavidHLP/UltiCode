@@ -4,10 +4,13 @@
  * have been removed; this barrel provides a single shared source for both
  * console and management frontends.
  */
-export { default as SemanticBadge } from '@/shared/badge-config/src/SemanticBadge.vue'
-export { badge } from '@/shared/badge-config/src/useSemanticBadge'
-export { cn } from '@/shared/badge-config/src/utils/cn'
-export type { SemanticColor, BadgeOptions } from '@/shared/badge-config/src/semantic-colors'
+export { default as SemanticBadge } from "@/shared/badge-config/src/SemanticBadge.vue";
+export { badge } from "@/shared/badge-config/src/useSemanticBadge";
+export { cn } from "@/shared/badge-config/src/utils/cn";
+export type {
+  SemanticColor,
+  BadgeOptions,
+} from "@/shared/badge-config/src/semantic-colors";
 export {
   DIFFICULTY_COLOR_MAP,
   USER_STATUS_COLOR_MAP,
@@ -16,4 +19,4 @@ export {
   CONTEST_TYPE_COLOR_MAP,
   SUBMISSION_STATUS_COLOR_MAP,
   PROBLEM_LIST_VISIBILITY_COLOR_MAP,
-} from '@/shared/badge-config/src/color-maps'
+} from "@/shared/badge-config/src/color-maps";

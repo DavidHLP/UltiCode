@@ -58,7 +58,10 @@ const emit = defineEmits<{
   (e: "update:isCreateListOpen", value: boolean): void;
   (e: "update:createCategoryForm", value: { name: string }): void;
   (e: "update:editCategoryForm", value: { name: string }): void;
-  (e: "update:createListForm", value: { name: string; description: string; isPublic: boolean }): void;
+  (
+    e: "update:createListForm",
+    value: { name: string; description: string; isPublic: boolean },
+  ): void;
   (e: "createCategory"): void;
   (e: "editCategory"): void;
   (e: "deleteCategory"): void;
@@ -69,20 +72,31 @@ const emit = defineEmits<{
 
 <template>
   <!-- Create Category Dialog -->
-  <Dialog :open="isCreateCategoryOpen" @update:open="emit('update:isCreateCategoryOpen', $event)">
+  <Dialog
+    :open="isCreateCategoryOpen"
+    @update:open="emit('update:isCreateCategoryOpen', $event)"
+  >
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ t("sidebar.problemLists.createCategory") }}</DialogTitle>
-        <DialogDescription>{{ t("sidebar.problemLists.createCategory") }}</DialogDescription>
+        <DialogTitle>{{
+          t("sidebar.problemLists.createCategory")
+        }}</DialogTitle>
+        <DialogDescription>{{
+          t("sidebar.problemLists.createCategory")
+        }}</DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-4">
         <div class="space-y-2">
-          <Label for="category-name">{{ t("sidebar.problemLists.categoryName") }}</Label>
+          <Label for="category-name">{{
+            t("sidebar.problemLists.categoryName")
+          }}</Label>
           <Input
             id="category-name"
             :model-value="createCategoryForm.name"
             :placeholder="t('sidebar.problemLists.categoryNamePlaceholder')"
-            @update:model-value="emit('update:createCategoryForm', { name: String($event) })"
+            @update:model-value="
+              emit('update:createCategoryForm', { name: String($event) })
+            "
             @keydown.enter="emit('createCategory')"
           />
         </div>
@@ -96,26 +110,41 @@ const emit = defineEmits<{
           {{ t("common.actions.cancel") }}
         </Button>
         <Button @click="emit('createCategory')" :disabled="isCreatingCategory">
-          {{ isCreatingCategory ? t("common.status.saving") : t("common.actions.create") }}
+          {{
+            isCreatingCategory
+              ? t("common.status.saving")
+              : t("common.actions.create")
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 
   <!-- Edit Category Dialog -->
-  <Dialog :open="isEditCategoryOpen" @update:open="emit('update:isEditCategoryOpen', $event)">
+  <Dialog
+    :open="isEditCategoryOpen"
+    @update:open="emit('update:isEditCategoryOpen', $event)"
+  >
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ t("sidebar.problemLists.renameCategory") }}</DialogTitle>
-        <DialogDescription>{{ t("sidebar.problemLists.renameCategory") }}</DialogDescription>
+        <DialogTitle>{{
+          t("sidebar.problemLists.renameCategory")
+        }}</DialogTitle>
+        <DialogDescription>{{
+          t("sidebar.problemLists.renameCategory")
+        }}</DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-4">
         <div class="space-y-2">
-          <Label for="edit-category-name">{{ t("sidebar.problemLists.categoryName") }}</Label>
+          <Label for="edit-category-name">{{
+            t("sidebar.problemLists.categoryName")
+          }}</Label>
           <Input
             id="edit-category-name"
             :model-value="editCategoryForm.name"
-            @update:model-value="emit('update:editCategoryForm', { name: String($event) })"
+            @update:model-value="
+              emit('update:editCategoryForm', { name: String($event) })
+            "
             @keydown.enter="emit('editCategory')"
           />
         </div>
@@ -129,62 +158,101 @@ const emit = defineEmits<{
           {{ t("common.actions.cancel") }}
         </Button>
         <Button @click="emit('editCategory')" :disabled="isEditingCategory">
-          {{ isEditingCategory ? t("common.status.saving") : t("common.actions.save") }}
+          {{
+            isEditingCategory
+              ? t("common.status.saving")
+              : t("common.actions.save")
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 
   <!-- Delete Category Confirmation -->
-  <AlertDialog :open="isDeleteCategoryOpen" @update:open="emit('update:isDeleteCategoryOpen', $event)">
+  <AlertDialog
+    :open="isDeleteCategoryOpen"
+    @update:open="emit('update:isDeleteCategoryOpen', $event)"
+  >
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>{{ t("sidebar.problemLists.deleteCategory") }}</AlertDialogTitle>
+        <AlertDialogTitle>{{
+          t("sidebar.problemLists.deleteCategory")
+        }}</AlertDialogTitle>
         <AlertDialogDescription>
-          {{ t("sidebar.problemLists.deleteCategoryConfirm", { name: categoryToDelete?.name }) }}
+          {{
+            t("sidebar.problemLists.deleteCategoryConfirm", {
+              name: categoryToDelete?.name,
+            })
+          }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel :disabled="isDeletingCategory">{{ t("common.actions.cancel") }}</AlertDialogCancel>
+        <AlertDialogCancel :disabled="isDeletingCategory">{{
+          t("common.actions.cancel")
+        }}</AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-white hover:bg-destructive/90"
           @click="emit('deleteCategory')"
           :disabled="isDeletingCategory"
         >
-          {{ isDeletingCategory ? t("common.status.failed") : t("common.actions.delete") }}
+          {{
+            isDeletingCategory
+              ? t("common.status.failed")
+              : t("common.actions.delete")
+          }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
 
   <!-- Delete List Confirmation -->
-  <AlertDialog :open="isDeleteListOpen" @update:open="emit('update:isDeleteListOpen', $event)">
+  <AlertDialog
+    :open="isDeleteListOpen"
+    @update:open="emit('update:isDeleteListOpen', $event)"
+  >
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>{{ t("problem.problemList.delete") }}</AlertDialogTitle>
+        <AlertDialogTitle>{{
+          t("problem.problemList.delete")
+        }}</AlertDialogTitle>
         <AlertDialogDescription>
-          {{ t("problem.problemList.detail.deleteConfirmDesc", { name: listToDelete?.name }) }}
+          {{
+            t("problem.problemList.detail.deleteConfirmDesc", {
+              name: listToDelete?.name,
+            })
+          }}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel :disabled="isDeletingList">{{ t("common.actions.cancel") }}</AlertDialogCancel>
+        <AlertDialogCancel :disabled="isDeletingList">{{
+          t("common.actions.cancel")
+        }}</AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-white hover:bg-destructive/90"
           @click="emit('deleteList')"
           :disabled="isDeletingList"
         >
-          {{ isDeletingList ? t("common.status.failed") : t("common.actions.delete") }}
+          {{
+            isDeletingList
+              ? t("common.status.failed")
+              : t("common.actions.delete")
+          }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
 
   <!-- Create List Dialog -->
-  <Dialog :open="isCreateListOpen" @update:open="emit('update:isCreateListOpen', $event)">
+  <Dialog
+    :open="isCreateListOpen"
+    @update:open="emit('update:isCreateListOpen', $event)"
+  >
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>{{ t("problem.problemList.create") }}</DialogTitle>
-        <DialogDescription>{{ t("problem.problemList.create") }}</DialogDescription>
+        <DialogDescription>{{
+          t("problem.problemList.create")
+        }}</DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-4">
         <div class="space-y-2">
@@ -193,23 +261,37 @@ const emit = defineEmits<{
             id="new-list-name"
             :model-value="createListForm.name"
             :placeholder="t('problem.problemList.namePlaceholder')"
-            @update:model-value="emit('update:createListForm', { ...createListForm, name: String($event) })"
+            @update:model-value="
+              emit('update:createListForm', {
+                ...createListForm,
+                name: String($event),
+              })
+            "
             @keydown.enter="emit('createList')"
           />
         </div>
         <div class="space-y-2">
-          <Label for="new-list-desc">{{ t("problem.problemList.description") }}</Label>
+          <Label for="new-list-desc">{{
+            t("problem.problemList.description")
+          }}</Label>
           <Textarea
             id="new-list-desc"
             :model-value="createListForm.description"
             :placeholder="t('problem.problemList.descriptionPlaceholder')"
             rows="3"
-            @update:model-value="emit('update:createListForm', { ...createListForm, description: String($event) })"
+            @update:model-value="
+              emit('update:createListForm', {
+                ...createListForm,
+                description: String($event),
+              })
+            "
           />
         </div>
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
-            <Label for="new-list-public">{{ t("problem.problemList.public") }}</Label>
+            <Label for="new-list-public">{{
+              t("problem.problemList.public")
+            }}</Label>
             <p class="text-xs text-muted-foreground">
               {{
                 createListForm.isPublic
@@ -221,7 +303,12 @@ const emit = defineEmits<{
           <Switch
             id="new-list-public"
             :checked="createListForm.isPublic"
-            @update:checked="emit('update:createListForm', { ...createListForm, isPublic: $event })"
+            @update:checked="
+              emit('update:createListForm', {
+                ...createListForm,
+                isPublic: $event,
+              })
+            "
           />
         </div>
       </div>
@@ -237,7 +324,11 @@ const emit = defineEmits<{
           @click="emit('createList')"
           :disabled="isCreatingList || !createListForm.name.trim()"
         >
-          {{ isCreatingList ? t("common.status.saving") : t("common.actions.create") }}
+          {{
+            isCreatingList
+              ? t("common.status.saving")
+              : t("common.actions.create")
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>

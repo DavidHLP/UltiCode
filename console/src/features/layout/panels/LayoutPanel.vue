@@ -203,7 +203,9 @@ const handleOverlayDrop = (
 </script>
 
 <template>
-  <div class="flex flex-col h-full rounded-none overflow-hidden shadow-sm terminal-card">
+  <div
+    class="flex flex-col h-full rounded-none overflow-hidden shadow-sm terminal-card"
+  >
     <header class="flex items-center terminal-card-header min-h-9">
       <div class="flex items-center min-h-8 flex-1 gap-1">
         <LayoutPanelHeader

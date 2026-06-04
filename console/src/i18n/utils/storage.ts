@@ -56,7 +56,8 @@ async function initToastNotifier() {
     try {
       const { toast } = await import("vue-sonner");
       toastNotifier = toast;
-    } catch { // vue-sonner not available - toast notifications disabled
+    } catch {
+      // vue-sonner not available - toast notifications disabled
     }
   }
   return toastNotifier;
@@ -260,7 +261,9 @@ export function getStoredLocale(): string | null {
     } else {
       return storage.getItem(LOCALE_STORAGE_KEY);
     }
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -286,7 +289,8 @@ export function setStoredLocale(locale: string): void {
     } else {
       storage.setItem(LOCALE_STORAGE_KEY, locale);
     }
-  } catch { // If current storage failed, try falling back
+  } catch {
+    // If current storage failed, try falling back
     // Storage write failed, attempting fallback
 
     // Force re-detection of storage

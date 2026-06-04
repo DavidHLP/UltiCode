@@ -335,7 +335,9 @@ onMounted(() => {
             </div>
           </div>
 
-          <Card class="border-none shadow-[var(--shadow-float)] overflow-hidden rounded-none">
+          <Card
+            class="border-none shadow-[var(--shadow-float)] overflow-hidden rounded-none"
+          >
             <CardContent class="p-0">
               <div
                 v-if="isLoadingDetails"

@@ -24,7 +24,9 @@ import {
   Link as LinkIcon,
 } from "lucide-vue-next";
 
-async function fetchUserAchievementsById(userId: string): Promise<AchievementProgress[]> {
+async function fetchUserAchievementsById(
+  userId: string,
+): Promise<AchievementProgress[]> {
   return apiGet<AchievementProgress[]>(`/achievements/user/${userId}`);
 }
 
@@ -72,7 +74,8 @@ onMounted(async () => {
     ]);
     userAchievements.value = achievements;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : t("personal.social.loadError");
+    error.value =
+      e instanceof Error ? e.message : t("personal.social.loadError");
   } finally {
     loading.value = false;
   }
@@ -121,7 +124,11 @@ onMounted(async () => {
           <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
             <div v-if="profile.joinedAt" class="flex items-center gap-1">
               <Calendar class="h-4 w-4" />
-              <span>{{ t("personal.profile.joinedDate", { date: new Date(profile.joinedAt).toLocaleDateString() }) }}</span>
+              <span>{{
+                t("personal.profile.joinedDate", {
+                  date: new Date(profile.joinedAt).toLocaleDateString(),
+                })
+              }}</span>
             </div>
             <div v-if="profile.location" class="flex items-center gap-1">
               <MapPin class="h-4 w-4" />
@@ -190,7 +197,11 @@ onMounted(async () => {
         <StatsCard
           :title="t('personal.stats.acceptanceRate')"
           :value="`${profile.acceptanceRate ?? 0}%`"
-          :subtitle="t('personal.social.submissionsSubtitle', { count: profile.submissionCount ?? 0 })"
+          :subtitle="
+            t('personal.social.submissionsSubtitle', {
+              count: profile.submissionCount ?? 0,
+            })
+          "
           color="purple"
         >
           <template #icon>
@@ -254,7 +265,10 @@ onMounted(async () => {
           </Button>
         </div>
 
-        <div v-if="earnedAchievements.length > 0" class="grid gap-4 lg:grid-cols-2">
+        <div
+          v-if="earnedAchievements.length > 0"
+          class="grid gap-4 lg:grid-cols-2"
+        >
           <AchievementCard
             v-for="achievement in earnedAchievements"
             :key="achievement.achievementId"

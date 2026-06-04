@@ -38,74 +38,75 @@ const SOLARIZED = {
 // Syntax token rules (identical for light & dark — only accent colors)
 // ---------------------------------------------------------------------------
 
-const TOKEN_RULES: { token: string; foreground: string; fontStyle?: string }[] = [
-  // Keywords & control flow
-  { token: "keyword", foreground: SOLARIZED.green },
-  { token: "keyword.flow", foreground: SOLARIZED.green },
-  { token: "keyword.control", foreground: SOLARIZED.green },
-  { token: "storage", foreground: SOLARIZED.green },
-  { token: "storage.type", foreground: SOLARIZED.green },
+const TOKEN_RULES: { token: string; foreground: string; fontStyle?: string }[] =
+  [
+    // Keywords & control flow
+    { token: "keyword", foreground: SOLARIZED.green },
+    { token: "keyword.flow", foreground: SOLARIZED.green },
+    { token: "keyword.control", foreground: SOLARIZED.green },
+    { token: "storage", foreground: SOLARIZED.green },
+    { token: "storage.type", foreground: SOLARIZED.green },
 
-  // Strings
-  { token: "string", foreground: SOLARIZED.cyan },
-  { token: "string.escape", foreground: SOLARIZED.red },
+    // Strings
+    { token: "string", foreground: SOLARIZED.cyan },
+    { token: "string.escape", foreground: SOLARIZED.red },
 
-  // Numbers & constants
-  { token: "number", foreground: SOLARIZED.blue },
-  { token: "constant", foreground: SOLARIZED.blue },
-  { token: "constant.numeric", foreground: SOLARIZED.blue },
-  { token: "constant.language", foreground: SOLARIZED.blue },
-  { token: "constant.character", foreground: SOLARIZED.blue },
-  { token: "constant.character.escape", foreground: SOLARIZED.red },
+    // Numbers & constants
+    { token: "number", foreground: SOLARIZED.blue },
+    { token: "constant", foreground: SOLARIZED.blue },
+    { token: "constant.numeric", foreground: SOLARIZED.blue },
+    { token: "constant.language", foreground: SOLARIZED.blue },
+    { token: "constant.character", foreground: SOLARIZED.blue },
+    { token: "constant.character.escape", foreground: SOLARIZED.red },
 
-  // Comments
-  { token: "comment", foreground: "", fontStyle: "italic" },
-  { token: "comment.block", foreground: "", fontStyle: "italic" },
-  { token: "comment.line", foreground: "", fontStyle: "italic" },
+    // Comments
+    { token: "comment", foreground: "", fontStyle: "italic" },
+    { token: "comment.block", foreground: "", fontStyle: "italic" },
+    { token: "comment.line", foreground: "", fontStyle: "italic" },
 
-  // Types & classes
-  { token: "type", foreground: SOLARIZED.yellow },
-  { token: "type.identifier", foreground: SOLARIZED.yellow },
-  { token: "class", foreground: SOLARIZED.yellow },
-  { token: "constructor", foreground: SOLARIZED.blue },
+    // Types & classes
+    { token: "type", foreground: SOLARIZED.yellow },
+    { token: "type.identifier", foreground: SOLARIZED.yellow },
+    { token: "class", foreground: SOLARIZED.yellow },
+    { token: "constructor", foreground: SOLARIZED.blue },
 
-  // Functions
-  { token: "identifier", foreground: "" },
-  { token: "entity.name.function", foreground: SOLARIZED.blue },
-  { token: "variable", foreground: "" },
-  { token: "variable.predefined", foreground: SOLARIZED.blue },
+    // Functions
+    { token: "identifier", foreground: "" },
+    { token: "entity.name.function", foreground: SOLARIZED.blue },
+    { token: "variable", foreground: "" },
+    { token: "variable.predefined", foreground: SOLARIZED.blue },
 
-  // Operators & punctuation
-  { token: "operator", foreground: SOLARIZED.green },
-  { token: "delimiter", foreground: "" },
-  { token: "delimiter.html", foreground: "" },
+    // Operators & punctuation
+    { token: "operator", foreground: SOLARIZED.green },
+    { token: "delimiter", foreground: "" },
+    { token: "delimiter.html", foreground: "" },
 
-  // Tags (HTML / JSX)
-  { token: "tag", foreground: SOLARIZED.blue },
-  { token: "tag.attribute.name", foreground: SOLARIZED.yellow },
-  { token: "tag.attribute.value", foreground: SOLARIZED.cyan },
+    // Tags (HTML / JSX)
+    { token: "tag", foreground: SOLARIZED.blue },
+    { token: "tag.attribute.name", foreground: SOLARIZED.yellow },
+    { token: "tag.attribute.value", foreground: SOLARIZED.cyan },
 
-  // Regex
-  { token: "regexp", foreground: SOLARIZED.red },
-  { token: "regexp.constant.character.escape", foreground: SOLARIZED.red },
+    // Regex
+    { token: "regexp", foreground: SOLARIZED.red },
+    { token: "regexp.constant.character.escape", foreground: SOLARIZED.red },
 
-  // Decorators / annotations
-  { token: "decorator", foreground: SOLARIZED.magenta },
-  { token: "annotation", foreground: SOLARIZED.magenta },
+    // Decorators / annotations
+    { token: "decorator", foreground: SOLARIZED.magenta },
+    { token: "annotation", foreground: SOLARIZED.magenta },
 
-  // Meta (markdown, etc.)
-  { token: "meta.tag", foreground: SOLARIZED.blue },
+    // Meta (markdown, etc.)
+    { token: "meta.tag", foreground: SOLARIZED.blue },
 
-  // CSS / SCSS
-  { token: "attribute.name", foreground: SOLARIZED.blue },
-  { token: "attribute.value", foreground: SOLARIZED.cyan },
+    // CSS / SCSS
+    { token: "attribute.name", foreground: SOLARIZED.blue },
+    { token: "attribute.value", foreground: SOLARIZED.cyan },
 
-  // JSON keys
-  { token: "type.json", foreground: SOLARIZED.blue },
+    // JSON keys
+    { token: "type.json", foreground: SOLARIZED.blue },
 
-  // YAML
-  { token: "type.yaml", foreground: SOLARIZED.blue },
-] as const;
+    // YAML
+    { token: "type.yaml", foreground: SOLARIZED.blue },
+  ] as const;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -166,7 +167,7 @@ export function registerSolarizedThemes(
       "input.background": SOLARIZED.base3,
       "input.border": SOLARIZED.base1,
       "input.foreground": SOLARIZED.base00,
-      "focusBorder": SOLARIZED.blue,
+      focusBorder: SOLARIZED.blue,
       "list.activeSelectionBackground": `${SOLARIZED.base1}60`,
       "list.hoverBackground": `${SOLARIZED.base1}30`,
     },
@@ -209,7 +210,7 @@ export function registerSolarizedThemes(
       "input.background": SOLARIZED.base03,
       "input.border": SOLARIZED.base01,
       "input.foreground": SOLARIZED.base0,
-      "focusBorder": SOLARIZED.blue,
+      focusBorder: SOLARIZED.blue,
       "list.activeSelectionBackground": `${SOLARIZED.base01}60`,
       "list.hoverBackground": `${SOLARIZED.base01}30`,
     },

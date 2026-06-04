@@ -57,9 +57,7 @@ const categoryColor = computed(
         cn(
           'relative flex items-center justify-center rounded-full transition-all duration-300',
           sizeClasses[size || 'md'],
-          achievement.earned
-            ? `${tierGradient} shadow-lg`
-            : 'bg-muted',
+          achievement.earned ? `${tierGradient} shadow-lg` : 'bg-muted',
           !achievement.earned && 'opacity-50',
         )
       "

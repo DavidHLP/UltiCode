@@ -105,11 +105,7 @@ const { t } = useI18n();
 
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 rounded-full"
-              >
+              <Button variant="ghost" size="icon" class="h-8 w-8 rounded-full">
                 <MoreHorizontal class="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

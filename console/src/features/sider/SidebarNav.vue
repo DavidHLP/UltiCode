@@ -5,6 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -22,6 +23,7 @@ import { useRoute } from "vue-router";
 const { t } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
+const { state } = useSidebar();
 
 const props = defineProps<{
   sections: SidebarSection[];
@@ -51,15 +53,35 @@ const isItemActive = (url?: string) => {
   }
   return route.path.startsWith(url);
 };
+
+const getItemIconColorClass = (url?: string) => {
+  if (!url) return "";
+  const active = isItemActive(url);
+  if (url.includes("/forum/c/interview")) {
+    return active ? "text-[#f59e0b]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#f59e0b]";
+  }
+  if (url.includes("/forum/c/career")) {
+    return active ? "text-[#14b8a6]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#14b8a6]";
+  }
+  if (url.includes("/forum/c/compensation")) {
+    return active ? "text-[#10b981]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#10b981]";
+  }
+  if (url.includes("/forum/c/technology")) {
+    return active ? "text-[#06b6d4]" : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#06b6d4]";
+  }
+  if (active) return "text-[var(--accent-electric)]";
+  return "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]";
+};
 </script>
 
 <template>
-  <div class="flex flex-col gap-0">
+  <div class="flex flex-col gap-3 py-1">
     <SidebarGroup
       v-for="section in visibleSections"
       :key="section.name"
       class="py-0"
     >
+      <!-- Collapsible Section -->
       <Collapsible
         v-if="section.collapsible"
         :default-open="true"
@@ -67,30 +89,57 @@ const isItemActive = (url?: string) => {
       >
         <SidebarGroupLabel
           as-child
-          class="group/label w-full text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          class="group/label w-full text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:bg-transparent hover:text-[var(--accent-electric)] transition-colors select-none cursor-pointer"
         >
-          <CollapsibleTrigger>
-            {{ t(section.name).toUpperCase() }}
+          <CollapsibleTrigger class="flex items-center w-full py-1">
+            <span>{{ t(section.name).toUpperCase() }}</span>
             <ChevronRight
-              class="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90"
+              class="ml-auto h-3 w-3 text-[var(--silver-400)] dark:text-[var(--silver-500)] transition-transform group-data-[state=open]/collapsible:rotate-90"
             />
           </CollapsibleTrigger>
         </SidebarGroupLabel>
         <CollapsibleContent>
-          <SidebarMenu>
+          <div
+            v-if="state !== 'collapsed'"
+            class="flex flex-col gap-0.5 px-1 py-0.5"
+          >
+            <router-link
+              v-for="item in section.items"
+              :key="item.title"
+              :to="item.url || '#'"
+              :class="[
+                'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none border-l-2 h-8.5',
+                isItemActive(item.url)
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                  : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+              ]"
+            >
+              <component :is="item.icon" v-if="item.icon" :class="['h-4 w-4 shrink-0 transition-colors', getItemIconColorClass(item.url)]" />
+              <span class="truncate">{{ t(item.title) }}</span>
+              <Badge
+                v-if="item.badge"
+                :variant="item.badgeVariant || 'default'"
+                class="ml-auto h-5 px-1.5 text-[10px]"
+              >
+                {{ item.badge }}
+              </Badge>
+            </router-link>
+          </div>
+          <SidebarMenu v-else>
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
               <SidebarMenuButton
                 :tooltip="t(item.title)"
                 :is-active="isItemActive(item.url)"
                 as-child
                 :class="[
+                  'group',
                   isItemActive(item.url)
-                    ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-foreground font-bold pl-1.5'
-                    : 'border-l-2 border-transparent'
+                    ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-1.5'
+                    : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
                 ]"
               >
                 <router-link :to="item.url || '#'">
-                  <component :is="item.icon" v-if="item.icon" />
+                  <component :is="item.icon" v-if="item.icon" :class="['transition-colors', getItemIconColorClass(item.url)]" />
                   <span>{{ t(item.title) }}</span>
                   <Badge
                     v-if="item.badge"
@@ -106,22 +155,49 @@ const isItemActive = (url?: string) => {
         </CollapsibleContent>
       </Collapsible>
 
+      <!-- Non-collapsible Section -->
       <template v-else>
-        <!-- Non-collapsible simpler group -->
-        <SidebarMenu class="mt-2">
+        <div
+          v-if="state !== 'collapsed'"
+          class="flex flex-col gap-0.5 px-1 py-0.5"
+        >
+          <router-link
+            v-for="item in section.items"
+            :key="item.title"
+            :to="item.url || '#'"
+            :class="[
+              'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none border-l-2 h-8.5',
+              isItemActive(item.url)
+                ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
+                : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5'
+            ]"
+          >
+            <component :is="item.icon" v-if="item.icon" :class="['h-4 w-4 shrink-0 transition-colors', getItemIconColorClass(item.url)]" />
+            <span class="truncate">{{ t(item.title) }}</span>
+            <Badge
+              v-if="item.badge"
+              :variant="item.badgeVariant || 'default'"
+              class="ml-auto h-5 px-1.5 text-[10px]"
+            >
+              {{ item.badge }}
+            </Badge>
+          </router-link>
+        </div>
+        <SidebarMenu v-else class="mt-2">
           <SidebarMenuItem v-for="item in section.items" :key="item.title">
             <SidebarMenuButton
               :tooltip="t(item.title)"
               :is-active="isItemActive(item.url)"
               as-child
               :class="[
+                'group',
                 isItemActive(item.url)
-                  ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-foreground font-bold pl-1.5'
-                  : 'border-l-2 border-transparent'
+                  ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-1.5'
+                  : 'border-l-2 border-transparent hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
               ]"
             >
               <router-link :to="item.url || '#'">
-                <component :is="item.icon" v-if="item.icon" />
+                <component :is="item.icon" v-if="item.icon" :class="['transition-colors', getItemIconColorClass(item.url)]" />
                 <span>{{ t(item.title) }}</span>
                 <Badge
                   v-if="item.badge"

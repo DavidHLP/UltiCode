@@ -84,6 +84,7 @@ export default {
     loadReplies: "Load {count} replies",
     submit: "Comment",
     collapsed: "(collapsed)",
+    edited: "edited",
     joinConversation: "Join the conversation...",
     threadLocked: "Thread is locked",
     beFirst: "Be the first to share what you think and start the discussion!",

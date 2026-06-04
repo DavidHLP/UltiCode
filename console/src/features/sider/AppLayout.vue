@@ -69,25 +69,29 @@ const isActiveNav = (item: NavItem) => {
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3"
+        class="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4"
       >
         <SidebarTrigger class="-ml-1" />
-        <Separator orientation="vertical" class="mr-1 h-4" />
-        <NavigationMenu class="hidden md:flex">
-          <NavigationMenuList>
-            <NavigationMenuItem v-for="item in navItems" :key="item.label">
+        <Separator orientation="vertical" class="h-6" />
+        <NavigationMenu class="hidden md:flex h-full">
+          <NavigationMenuList class="flex h-full items-stretch gap-1">
+            <NavigationMenuItem v-for="item in navItems" :key="item.label" class="flex items-stretch">
               <NavigationMenuLink
                 v-if="item.to"
                 :as-child="true"
                 :active="isActiveNav(item)"
+                class="flex items-stretch"
               >
                 <RouterLink
                   :to="item.to"
-                  class="flex items-center justify-center gap-1 rounded-none border border-transparent px-3 py-1.5 text-center transition hover:border-accent hover:bg-accent/30"
+                  :class="[
+                    'flex items-center justify-center gap-1 rounded-none px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
+                    isActiveNav(item)
+                      ? 'border-[var(--accent-electric)] text-[var(--accent-electric)] bg-[var(--accent-electric)]/5'
+                      : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
+                  ]"
                 >
-                  <span class="text-sm font-medium">
-                    {{ item.label }}
-                  </span>
+                  <span>{{ item.label }}</span>
                   <span
                     v-if="item.comingSoon"
                     class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
@@ -99,12 +103,10 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                class="flex items-center justify-center gap-1 px-3 py-1.5"
+                class="flex items-center justify-center gap-1 px-4 border-b-2 border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4 transition-all duration-200 h-full"
                 target="_self"
               >
-                <span class="text-sm font-medium">
-                  {{ item.label }}
-                </span>
+                <span>{{ item.label }}</span>
                 <span
                   v-if="item.comingSoon"
                   class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
@@ -116,7 +118,7 @@ const isActiveNav = (item: NavItem) => {
           </NavigationMenuList>
           <NavigationMenuIndicator />
         </NavigationMenu>
-        <div class="ml-auto flex items-center gap-2">
+        <div class="ml-auto flex items-center gap-3">
           <SearchBar />
           <NotificationBadge />
         </div>

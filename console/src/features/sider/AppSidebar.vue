@@ -61,7 +61,7 @@ const currentSidebarData = computed(() => {
 
 <template>
   <Sidebar v-bind="props">
-    <SidebarHeader class="h-16 border-b border-sidebar-border">
+    <SidebarHeader class="h-14 border-b border-sidebar-border flex items-center justify-center p-2">
       <NavUser :user="user" :is-authenticated="isAuthenticated" />
     </SidebarHeader>
     <SidebarContent>

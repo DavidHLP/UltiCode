@@ -82,16 +82,27 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section v-if="contests.length > 0" data-contests>
+  <section v-if="contests.length > 0" class="space-y-5" data-contests>
+    <div class="flex items-center justify-between">
+      <div class="space-y-1">
+        <h2 class="text-2xl font-bold tracking-tight">
+          {{ t("contest.list.upcoming") }}
+        </h2>
+        <p class="text-sm text-muted-foreground">
+          {{ t("contest.list.subtitle") }}
+        </p>
+      </div>
+    </div>
+
     <div class="grid gap-6 md:grid-cols-2">
       <Card
         v-for="(contest, index) in contests.slice(0, 2)"
         :key="contest.id"
-        class="relative cursor-pointer overflow-hidden border-0 text-white transition-all hover:scale-[1.02] hover:shadow-[var(--shadow-float)]"
+        class="group relative cursor-pointer overflow-hidden rounded-none border border-border bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
         :class="
           index === 0
-            ? 'bg-[var(--terminal-cyan)]'
-            : 'bg-[var(--terminal-green)]'
+            ? 'border-l-4 border-l-[var(--terminal-cyan)]'
+            : 'border-l-4 border-l-[var(--terminal-green)]'
         "
         @click="
           router.push({
@@ -100,59 +111,54 @@ onUnmounted(() => {
           })
         "
       >
-        <!-- Background decoration -->
-        <div
-          class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"
-        ></div>
-
         <CardContent class="p-6 relative z-10">
-          <div class="space-y-6">
-            <div class="flex justify-between items-start">
+          <div class="space-y-5">
+            <div class="flex justify-between items-start gap-4">
               <div class="space-y-2">
-                <p class="text-sm font-medium text-white/90">
+                <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none">
                   {{
                     t(
                       `contest.types.${contest.contestType || "weekly"}`,
                       contest.contestType || "weekly",
                     )
                   }}
-                </p>
-                <h3 class="text-2xl font-bold leading-tight">
+                </span>
+                <h3 class="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
                   {{ contest.title }}
                 </h3>
               </div>
-              <Trophy class="w-12 h-12 text-white/90" />
+              <div class="p-2 bg-muted/50 border border-border shrink-0">
+                <Trophy class="w-8 h-8 text-[var(--terminal-amber)]" />
+              </div>
             </div>
 
-            <div class="space-y-2 text-sm text-gray-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono">
               <div class="flex items-center gap-2">
-                <Calendar class="h-4 w-4" />
-                <span
-                  >{{ t("contest.list.time") }}
-                  {{ formatDateTime(contest.startTime) }}</span
-                >
+                <Calendar class="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                <span class="truncate">{{ formatDateTime(contest.startTime) }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <Clock class="h-4 w-4" />
-                <span
-                  >{{ t("contest.list.duration") }}
+                <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                <span>
                   {{ getDurationMinutes(contest.startTime, contest.endTime) }}
-                  {{ t("contest.time.min_short") }}</span
-                >
+                  {{ t("contest.time.min_short") }}
+                </span>
               </div>
             </div>
 
-            <div class="flex items-center justify-between mt-4">
-              <div class="text-sm font-medium opacity-90">
-                {{ t("contest.list.startsIn") }} {{ getCountdown(contest.id) }}
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div class="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
+                <span class="h-2 w-2 bg-[var(--terminal-cyan)] animate-pulse inline-block"></span>
+                <span>{{ t("contest.list.startsIn") }}</span>
+                <span class="font-bold text-foreground text-sm bg-muted/65 px-1.5 py-0.5 border border-border">{{ getCountdown(contest.id) }}</span>
               </div>
               <Button
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                class="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
+                class="rounded-none border-border shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs self-end sm:self-auto"
                 @click.stop
               >
-                <Calendar class="mr-2 h-3 w-3" />
+                <Calendar class="mr-2 h-3.5 w-3.5" />
                 {{ t("contest.list.addToCalendar") }}
               </Button>
             </div>

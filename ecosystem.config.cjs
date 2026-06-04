@@ -12,6 +12,50 @@ const logConfig = (name) => ({
   max_files: 5
 })
 
+// 从项目根目录的 .env 读取 KEY=VALUE 配置，作为 PM2 环境变量的"基线"。
+// 这样 .env 是唯一的真实来源（single source of truth），避免在 ecosystem.config.cjs
+// 中重复硬编码 DB_PASSWORD / REDIS_PASSWORD 等敏感信息，防止占位符漂移。
+// 任何显式声明的 env.* 仍会覆盖 .env 中的同名变量（保持原有覆盖语义）。
+const fs = require('fs')
+const path = require('path')
+
+const ENV_FILE = path.resolve(__dirname, '.env')
+
+function parseEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {}
+  const content = fs.readFileSync(filePath, 'utf8')
+  const result = {}
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) continue
+    const eqIdx = line.indexOf('=')
+    if (eqIdx === -1) continue
+    const key = line.slice(0, eqIdx).trim()
+    let value = line.slice(eqIdx + 1).trim()
+    // 去掉包裹的双引号或单引号
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (key) result[key] = value
+  }
+  return result
+}
+
+const envFromFile = parseEnvFile(ENV_FILE)
+
+// 应用启动时输出关键检查（启动后通过 `pm2 logs ulticode-9001` 看不到，所以只在启动阶段打印一次）
+const maskedKeys = ['DB_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET', 'MYSQL_ROOT_PASSWORD']
+const maskedSummary = maskedKeys
+  .filter((k) => envFromFile[k])
+  .map((k) => `${k}=${'*'.repeat(Math.min(8, String(envFromFile[k]).length))}`)
+  .join(', ')
+if (maskedSummary) {
+  console.log(`[ecosystem.config] loaded ${Object.keys(envFromFile).length} vars from .env (${maskedSummary})`)
+}
+
 module.exports = {
   apps: [
     {
@@ -22,57 +66,14 @@ module.exports = {
       interpreter: 'bash',
       instance_var: 'INSTANCE_ID',
       ...logConfig('9001'),
-      // env 完全覆盖父进程环境，必须显式声明应用依赖的所有外部变量
+      // env 完全覆盖父进程环境：先铺 .env 基线，再用显式值覆盖非敏感默认值。
+      // 敏感字段（密码/密钥）必须来自 .env，绝不在此处硬编码。
       env: {
+        ...envFromFile,
         // 应用配置
         SPRING_PROFILES_ACTIVE: 'dev',
-        // MySQL
-        DB_HOST: 'localhost',
-        DB_PORT: '23306',
-        DB_USER: 'ulticode',
-        DB_PASSWORD: 'CHANGE_ME_strong_password',
-        DB_NAME: 'ulticode',
-        // Redis
-        REDIS_HOST: 'localhost',
-        REDIS_PORT: '26379',
-        REDIS_PASSWORD: 'CHANGE_ME_redis_password',
-        REDIS_DB: '0',
-        // JWT
-        JWT_SECRET: '5GXMfun06YtfZSSV5h3M7yNA9fmuagbY5dITQyqSVDfcgebV-DqD9upy0zsSpPbKVKdRh4kllefbUFaTDuvpSA',
         // CORS
-        CORS_ALLOWED_ORIGINS: 'http://localhost:9002,http://localhost:9003',
-        // Nacos
-        NACOS_SERVER_ADDR: 'localhost:28848',
-        NACOS_HOST: 'localhost',
-        NACOS_PORT: '28848',
-        NACOS_NAMESPACE: 'public',
-        NACOS_GROUP: 'DEFAULT_GROUP',
-        NACOS_USERNAME: 'nacos',
-        NACOS_PASSWORD: 'nacos',
-        // Judge Container
-        JUDGE_CONTAINER_ENABLED: 'true',
-        JUDGE_CONTAINER_IMAGE: 'ulticode-judge:latest',
-        JUDGE_CONTAINER_POOL_SIZE: '5',
-        JUDGE_CONTAINER_MAX_CONTAINERS: '10',
-        JUDGE_DEFAULT_TIME_LIMIT: '2000',
-        JUDGE_DEFAULT_MEMORY_LIMIT: '256',
-        DOCKER_SOCKET_PATH: '/var/run/docker.sock',
-        // OAuth (留空，由前端/外部流程提供)
-        GITHUB_CLIENT_ID: 'your_github_client_id',
-        GITHUB_CLIENT_SECRET: 'your_github_client_secret',
-        GITHUB_REDIRECT_URI: 'http://localhost:9001/auth/github/callback',
-        GOOGLE_CLIENT_ID: 'your_google_client_id',
-        GOOGLE_CLIENT_SECRET: 'your_google_client_secret',
-        GOOGLE_REDIRECT_URI: 'http://localhost:9001/auth/google/callback',
-        // Stripe (开发占位)
-        STRIPE_SECRET_KEY: 'sk_test_your_stripe_secret_key',
-        STRIPE_WEBHOOK_SECRET: 'whsec_your_webhook_secret',
-        // SMTP
-        SMTP_HOST: 'smtp.example.com',
-        SMTP_PORT: '587',
-        SMTP_USER: 'your_smtp_user',
-        SMTP_PASSWORD: 'your_smtp_password',
-        EMAIL_ENABLED: 'false'
+        CORS_ALLOWED_ORIGINS: 'http://localhost:9002,http://localhost:9003'
       }
     },
     {
@@ -83,6 +84,7 @@ module.exports = {
       interpreter: 'none',
       ...logConfig('9002'),
       env: {
+        ...envFromFile,
         NODE_ENV: 'development'
       }
     },
@@ -94,6 +96,7 @@ module.exports = {
       interpreter: 'none',
       ...logConfig('9003'),
       env: {
+        ...envFromFile,
         NODE_ENV: 'development'
       }
     },
@@ -107,13 +110,9 @@ module.exports = {
       interpreter: 'none',
       autorestart: false,
       ...logConfig('init-db'),
+      // flyway.conf 已包含完整 JDBC URL/用户/密码, 此处仅兜底（密码来自 .env）
       env: {
-        // flyway.conf 已包含完整 JDBC URL/用户/密码, 此处仅兜底
-        DB_HOST: 'localhost',
-        DB_PORT: '23306',
-        DB_USER: 'ulticode',
-        DB_PASSWORD: 'CHANGE_ME_strong_password',
-        DB_NAME: 'ulticode'
+        ...envFromFile
       }
     }
   ]

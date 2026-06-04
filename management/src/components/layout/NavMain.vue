@@ -49,7 +49,16 @@ function isActive(url: string): boolean {
     <SidebarGroupContent class="flex flex-col gap-2">
       <SidebarMenu>
         <SidebarMenuItem v-for="item in items" :key="item.title">
-          <SidebarMenuButton :tooltip="String(item.title)" :is-active="isActive(item.url)" as-child>
+          <SidebarMenuButton
+            :tooltip="String(item.title)"
+            :is-active="isActive(item.url)"
+            as-child
+            :class="[
+              isActive(item.url)
+                ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--foreground)] font-bold pl-1.5'
+                : 'border-l-2 border-transparent'
+            ]"
+          >
             <RouterLink :to="item.url">
               <component :is="item.icon" v-if="item.icon" />
               <span>{{ item.title }}</span>

@@ -447,25 +447,25 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @param page   pagination object
      * @return paginated submissions with problem title/slug
      */
-    @Results({
-            @Result(column = "id", property = "id"),
-            @Result(column = "problem_id", property = "problemId"),
-            @Result(column = "user_id", property = "userId"),
-            @Result(column = "language", property = "language"),
-            @Result(column = "code", property = "code"),
-            @Result(column = "status", property = "status"),
-            @Result(column = "runtime", property = "runtime"),
-            @Result(column = "memory", property = "memory"),
-            @Result(column = "notes", property = "notes"),
-            @Result(column = "retry_count", property = "retryCount"),
-            @Result(column = "created_at", property = "createdAt"),
-            @Result(column = "runtime_percentile", property = "runtimePercentile"),
-            @Result(column = "memory_percentile", property = "memoryPercentile"),
-            @Result(column = "test_details", property = "testDetails"),
-            @Result(column = "memory_dist_bins_mb", property = "memoryDistBinsMb"),
-            @Result(column = "runtime_dist_bins_ms", property = "runtimeDistBinsMs"),
-            @Result(column = "title", property = "problemTitle"),
-            @Result(column = "slug", property = "problemSlug")
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "user_id", javaType = String.class),
+            @Arg(column = "language", javaType = String.class),
+            @Arg(column = "code", javaType = String.class),
+            @Arg(column = "status", javaType = String.class),
+            @Arg(column = "runtime", javaType = Integer.class),
+            @Arg(column = "memory", javaType = Double.class),
+            @Arg(column = "notes", javaType = String.class),
+            @Arg(column = "retry_count", javaType = Integer.class),
+            @Arg(column = "created_at", javaType = LocalDateTime.class),
+            @Arg(column = "runtime_percentile", javaType = Double.class),
+            @Arg(column = "memory_percentile", javaType = Double.class),
+            @Arg(column = "test_details", javaType = Object.class),
+            @Arg(column = "memoryDistBinsMb", javaType = Object.class),
+            @Arg(column = "runtimeDistBinsMs", javaType = Object.class),
+            @Arg(column = "title", javaType = String.class),
+            @Arg(column = "slug", javaType = String.class)
     })
     @Select("SELECT s.*, p.title, p.slug " +
             "FROM submissions s " +
@@ -483,25 +483,25 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @param page     pagination object
      * @return paginated submissions with problem title/slug
      */
-    @Results({
-            @Result(column = "id", property = "id"),
-            @Result(column = "problem_id", property = "problemId"),
-            @Result(column = "user_id", property = "userId"),
-            @Result(column = "language", property = "language"),
-            @Result(column = "code", property = "code"),
-            @Result(column = "status", property = "status"),
-            @Result(column = "runtime", property = "runtime"),
-            @Result(column = "memory", property = "memory"),
-            @Result(column = "notes", property = "notes"),
-            @Result(column = "retry_count", property = "retryCount"),
-            @Result(column = "created_at", property = "createdAt"),
-            @Result(column = "runtime_percentile", property = "runtimePercentile"),
-            @Result(column = "memory_percentile", property = "memoryPercentile"),
-            @Result(column = "test_details", property = "testDetails"),
-            @Result(column = "memory_dist_bins_mb", property = "memoryDistBinsMb"),
-            @Result(column = "runtime_dist_bins_ms", property = "runtimeDistBinsMs"),
-            @Result(column = "title", property = "problemTitle"),
-            @Result(column = "slug", property = "problemSlug")
+    @ConstructorArgs({
+            @Arg(column = "id", javaType = String.class),
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "user_id", javaType = String.class),
+            @Arg(column = "language", javaType = String.class),
+            @Arg(column = "code", javaType = String.class),
+            @Arg(column = "status", javaType = String.class),
+            @Arg(column = "runtime", javaType = Integer.class),
+            @Arg(column = "memory", javaType = Double.class),
+            @Arg(column = "notes", javaType = String.class),
+            @Arg(column = "retry_count", javaType = Integer.class),
+            @Arg(column = "created_at", javaType = LocalDateTime.class),
+            @Arg(column = "runtime_percentile", javaType = Double.class),
+            @Arg(column = "memory_percentile", javaType = Double.class),
+            @Arg(column = "test_details", javaType = Object.class),
+            @Arg(column = "memoryDistBinsMb", javaType = Object.class),
+            @Arg(column = "runtimeDistBinsMs", javaType = Object.class),
+            @Arg(column = "title", javaType = String.class),
+            @Arg(column = "slug", javaType = String.class)
     })
     @Select("<script>" +
             "SELECT s.*, p.title, p.slug " +

@@ -1,7 +1,6 @@
 import { createI18n } from 'vue-i18n'
-// Default locale (zh-CN) is eagerly loaded
 import zhCN from './locales/zh-CN/'
-// Non-active locale (en-US) is lazily loaded via dynamic import()
+import enUS from './locales/en-US/'
 
 // Re-export types and constants from types.ts (single source of truth)
 export {
@@ -46,23 +45,13 @@ function getInitialLocale(): string {
   return 'zh-CN' // Default locale
 }
 
-// Lazily loaded messages object
-// Only the initial locale is eagerly loaded; the other is loaded on demand
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const messages: Record<string, any> = {
   'zh-CN': zhCN,
-  'en-US': {},
+  'en-US': enUS,
 }
 
-// Dynamic import for lazy locale loading
 export async function loadLocale(locale: 'zh-CN' | 'en-US'): Promise<void> {
-  if (locale === 'en-US' && Object.keys(messages['en-US']).length === 0) {
-    const module = await import('./locales/en-US/')
-    messages['en-US'] = module.default
-  } else if (locale === 'zh-CN' && Object.keys(messages['zh-CN']).length === 0) {
-    const module = await import('./locales/zh-CN/')
-    messages['zh-CN'] = module.default
-  }
+  // Eagerly loaded, nothing to do
 }
 
 // Create i18n instance
@@ -89,13 +78,6 @@ export function getActiveLocale(): string {
 
 // Set locale and persist to localStorage
 export function setLocale(locale: 'zh-CN' | 'en-US'): void {
-  // Lazily load the locale if not already loaded
-  if (locale === 'en-US' && Object.keys(messages['en-US']).length === 0) {
-    import('./locales/en-US/').then((module) => {
-      messages['en-US'] = module.default
-    })
-  }
-
   i18n.global.locale.value = locale
 
   try {

@@ -8,7 +8,8 @@ export default {
   titlePart1: "精密",
   titlePart2: "编程",
   titlePart3: "控制台",
-  subtitle: "// UltiCode 是一个低延迟、以黑客为中心的算法竞赛终端。零冗余装饰，追求绝对计算精度。",
+  subtitle:
+    "// UltiCode 是一个低延迟、以黑客为中心的算法竞赛终端。零冗余装饰，追求绝对计算精度。",
   startSession: "启动会话",
   browseProblems: "浏览题库",
   systemBootStatus: "系统引导状态",
@@ -17,25 +18,28 @@ export default {
   runCode: "运行代码",
   running: "运行中...",
   compileSuccess: "编译成功：解决方案已编译，且所有本地测试用例评估为 PASS。",
-  
+
   // Platform Modules
   modulesTitle: "平台模块",
   modulesSubtitle: "// 专为开发者工作流优化的工程化组件。",
-  
+
   judgeTitle: "精密评测机",
   judgeDesc: "零缓冲沙箱隔离编译器，支持在 10ms 编译开销下进行快速容器化执行。",
   judgeFooter: "评测延迟 < 12ms",
-  
+
   contestsTitle: "每周竞赛",
-  contestsDesc: "实时参与有积分评级的算法赛事。亚秒级实时排行榜更新及历史解题数据统计。",
+  contestsDesc:
+    "实时参与有积分评级的算法赛事。亚秒级实时排行榜更新及历史解题数据统计。",
   contestsFooter: "每周赛事奖励",
-  
+
   feedTitle: "开发者社区",
-  feedDesc: "编写题解、讨论优化算法、分享创意，并在支持原生 Markdown 的社区中与其他工程师交流。",
+  feedDesc:
+    "编写题解、讨论优化算法、分享创意，并在支持原生 Markdown 的社区中与其他工程师交流。",
   feedFooter: "支持原生 MARKDOWN",
-  
+
   badgesTitle: "游戏化徽章",
-  badgesDesc: "解锁各项成就，保持解题连击状态，并在公共开发者档案中展示终端风格的徽章。",
+  badgesDesc:
+    "解锁各项成就，保持解题连击状态，并在公共开发者档案中展示终端风格的徽章。",
   badgesFooter: "连击追踪中",
 
   // Telemetry
@@ -44,13 +48,13 @@ export default {
   solverCapacity: "全局评测机容量",
   latencyStability: "沙箱延迟稳定性",
   logHeader: "system_status.log",
-  
+
   totalSubmissions: "提交总数 (TOTAL_SUBMISSIONS)",
   activeSolvers24h: "24H活跃用户 (ACTIVE_SOLVERS_24H)",
   compilationAvgMs: "平均编译耗时 (COMPILATION_AVG_MS)",
   contestsCompleted: "已完成赛事 (CONTESTS_COMPLETED)",
   eventsUnit: "场活动",
-  
+
   logInfoInit: "[INFO] 正在初始化节点组 group-04...",
   logInfoSandbox: "[INFO] 分布式沙箱环境已建立。",
   logOkSync: "[OK] 节点同步完成。平均区块差 0.001 秒。",
@@ -60,11 +64,11 @@ export default {
   ctaTitle: "初始化您的开发者会话",
   ctaDesc: "建立网络连接，解锁题目仓库，编译解决方案，并评估执行耗时基准。",
   createAccount: "创建账户",
-  
+
   // Footer
   copyright: "© 2026 UltiCode 项目。采用 Apache License 2.0 开源协议。",
   apiDocs: "API 文档",
   repository: "代码仓库",
   terms: "使用条款",
-  status: "服务状态"
+  status: "服务状态",
 };

@@ -1,7 +1,7 @@
 ---
-description: Java 编程规约 Agent Rules
-globs: "**/*.java"
-alwaysApply: true
+paths:
+  - "**/*.java"
+description: Java 编程规约（命名、OOP、集合、并发、控制语句、注释等）
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

@@ -1,7 +1,10 @@
 ---
-description: Java 安全规约 Agent Rules
-globs: "**/*.java, **/*.xml, **/*.yml, **/*.yaml"
-alwaysApply: true
+paths:
+  - "**/*.java"
+  - "**/*.xml"
+  - "**/*.yml"
+  - "**/*.yaml"
+description: Java 与配置文件安全规约（鉴权、SQL 注入、XSS、CSRF 等）
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

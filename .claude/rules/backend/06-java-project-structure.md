@@ -1,7 +1,12 @@
 ---
-description: Java 工程结构 Agent Rules
-globs: "**/pom.xml, **/build.gradle, **/*.java, **/*.yml, **/*.yaml"
-alwaysApply: true
+paths:
+  - "**/pom.xml"
+  - "**/build.gradle"
+  - "**/build.gradle.kts"
+  - "**/*.java"
+  - "**/*.yml"
+  - "**/*.yaml"
+description: Java 工程结构规约（应用分层、二方库、服务器）
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

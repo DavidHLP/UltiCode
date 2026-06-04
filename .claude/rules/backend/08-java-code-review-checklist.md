@@ -1,7 +1,11 @@
 ---
-description: Java Code Review 总检查清单，基于 Java 开发手册华山版拆分生成
-globs: "**/*.java, **/*.sql, **/*.xml, **/*.yml, **/*.yaml"
-alwaysApply: true
+paths:
+  - "**/*.java"
+  - "**/*.sql"
+  - "**/*.xml"
+  - "**/*.yml"
+  - "**/*.yaml"
+description: Java Code Review 总检查清单（编译/并发/异常/数据库/安全/可维护性/测试）
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

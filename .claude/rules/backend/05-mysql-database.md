@@ -1,7 +1,9 @@
 ---
-description: MySQL 数据库 Agent Rules
-globs: "**/*.sql, **/mapper/**/*.xml, **/*Mapper.java"
-alwaysApply: true
+paths:
+  - "**/*.sql"
+  - "**/mapper/**/*.xml"
+  - "**/*Mapper.java"
+description: MySQL DDL/索引/SQL/MyBatis ORM 规约
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

@@ -57,6 +57,14 @@ export default {
     monthly: "月赛",
     special: "特别赛",
     virtual: "虚拟比赛",
+    ICPC: "ICPC",
+    IOI: "IOI",
+    CUSTOM: "自定义赛",
+    icpc: "ICPC",
+    ioi: "IOI",
+    custom: "自定义赛",
+    rated: "计分",
+    unrated: "不计分",
   },
 
   // Contest detail

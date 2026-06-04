@@ -42,7 +42,7 @@ function formatCountdown(seconds: number): string {
 }
 
 function getContestTypeLabel(type: string): string {
-  return t(`contest.types.${type}`);
+  return t(`contest.types.${type}`, type);
 }
 
 function updateTimers() {
@@ -115,7 +115,9 @@ onUnmounted(() => {
       <div
         class="flex items-center gap-2 rounded-full border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--terminal-red)]"
       >
-        <span class="h-2 w-2 rounded-full bg-[var(--terminal-red)] animate-pulse"></span>
+        <span
+          class="h-2 w-2 rounded-full bg-[var(--terminal-red)] animate-pulse"
+        ></span>
         {{ t("contest.list.liveBadge") }}
       </div>
     </div>
@@ -126,9 +128,7 @@ onUnmounted(() => {
         :key="contest.id"
         class="relative overflow-hidden border-0 text-white shadow-[var(--shadow-float)] transition-transform hover:-translate-y-1"
       >
-        <div
-          class="absolute inset-0 bg-[oklch(0.27_0.049_220)]"
-        ></div>
+        <div class="absolute inset-0 bg-[oklch(0.27_0.049_220)]"></div>
         <div
           class="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white/10 blur-3xl"
         ></div>
@@ -139,11 +139,7 @@ onUnmounted(() => {
                 <p
                   class="text-xs font-semibold uppercase tracking-widest text-white/70"
                 >
-                  {{
-                    getContestTypeLabel(
-                      contest.contestType || "weekly",
-                    )
-                  }}
+                  {{ getContestTypeLabel(contest.contestType || "weekly") }}
                 </p>
                 <h3 class="text-2xl font-black leading-tight">
                   {{ contest.title }}
@@ -171,18 +167,14 @@ onUnmounted(() => {
               <div class="flex items-center gap-2">
                 <Users class="h-4 w-4" />
                 <span
-                  >{{
-                    contest.participantCount || 0
-                  }}
+                  >{{ contest.participantCount || 0 }}
                   {{ t("contest.detail.participants") }}</span
                 >
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4" />
                 <span
-                  >{{
-                    contest.duration || 0
-                  }}
+                  >{{ contest.duration || 0 }}
                   {{ t("contest.time.min_short") }}</span
                 >
               </div>
@@ -207,7 +199,7 @@ onUnmounted(() => {
               <div class="text-xs text-white/70">
                 {{ t("contest.list.rated") }}
                 {{
-                  (contest.isRated)
+                  contest.isRated
                     ? t("common.labels.yes")
                     : t("common.labels.no")
                 }}

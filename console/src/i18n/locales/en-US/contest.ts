@@ -61,6 +61,14 @@ export default {
     monthly: "Monthly Contest",
     special: "Special Contest",
     virtual: "Virtual Contest",
+    ICPC: "ICPC",
+    IOI: "IOI",
+    CUSTOM: "Custom",
+    icpc: "ICPC",
+    ioi: "IOI",
+    custom: "Custom",
+    rated: "Rated",
+    unrated: "Unrated",
   },
 
   // Contest detail

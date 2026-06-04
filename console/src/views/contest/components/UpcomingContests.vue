@@ -110,7 +110,12 @@ onUnmounted(() => {
             <div class="flex justify-between items-start">
               <div class="space-y-2">
                 <p class="text-sm font-medium text-white/90">
-                  {{ t(`contest.types.${contest.contestType || "weekly"}`) }}
+                  {{
+                    t(
+                      `contest.types.${contest.contestType || "weekly"}`,
+                      contest.contestType || "weekly",
+                    )
+                  }}
                 </p>
                 <h3 class="text-2xl font-bold leading-tight">
                   {{ contest.title }}

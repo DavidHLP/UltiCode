@@ -46,18 +46,18 @@ const { t } = useI18n();
           </h1>
           <Badge
             :variant="
-              contest.status === 'running'
+              contest.status === 'RUNNING'
                 ? 'destructive'
-                : contest.status === 'upcoming'
+                : contest.status === 'UPCOMING'
                   ? 'default'
                   : 'secondary'
             "
-            class="rounded-full px-3 h-6 font-bold uppercase text-[10px] tracking-widest"
+            class="rounded-none px-3 h-6 font-bold uppercase text-[10px] tracking-widest"
           >
             {{
-              contest.status === "upcoming"
+              contest.status === "UPCOMING"
                 ? t("contest.status.upcoming")
-                : contest.status === "running"
+                : contest.status === "RUNNING"
                   ? t("contest.list.liveBadge")
                   : t("contest.status.finished")
             }}
@@ -73,9 +73,9 @@ const { t } = useI18n();
 
       <div class="flex flex-col sm:flex-row gap-3">
         <Button
-          v-if="!isRegistered && contest.status === 'upcoming'"
+          v-if="!isRegistered && contest.status === 'UPCOMING'"
           size="lg"
-          class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
+          class="gap-2 rounded-none h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
           :disabled="registering"
           @click="emit('register')"
         >
@@ -87,10 +87,10 @@ const { t } = useI18n();
           }}
         </Button>
         <Button
-          v-else-if="isRegistered && contest.status === 'upcoming'"
+          v-else-if="isRegistered && contest.status === 'UPCOMING'"
           size="lg"
           variant="outline"
-          class="gap-2 rounded-full h-12 px-8 font-bold"
+          class="gap-2 rounded-none h-12 px-8 font-bold"
           :disabled="registering"
           @click="emit('unregister')"
         >
@@ -101,10 +101,10 @@ const { t } = useI18n();
               : t("contest.detail.unregister")
           }}
         </Button>
-        <template v-else-if="contest.status === 'running'">
+        <template v-else-if="contest.status === 'RUNNING'">
           <Button
             size="lg"
-            class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
+            class="gap-2 rounded-none h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
             @click="emit('scrollToProblems')"
           >
             <PlayCircle class="h-5 w-5" />
@@ -113,18 +113,18 @@ const { t } = useI18n();
           <Button
             size="lg"
             variant="outline"
-            class="gap-2 rounded-full h-12 px-8 font-bold"
+            class="gap-2 rounded-none h-12 px-8 font-bold"
             @click="emit('scrollToRanking')"
           >
             <Trophy class="h-5 w-5" />
             {{ t("contest.detail.liveRanking") }}
           </Button>
         </template>
-        <template v-if="contest.status === 'finished'">
+        <template v-if="contest.status === 'FINISHED'">
           <Button
             v-if="!virtualSessionActive"
             size="lg"
-            class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
+            class="gap-2 rounded-none h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
             :disabled="startingVirtual"
             @click="emit('startVirtual')"
           >
@@ -139,7 +139,7 @@ const { t } = useI18n();
             v-else
             size="lg"
             variant="outline"
-            class="gap-2 rounded-full h-12 px-8 font-bold"
+            class="gap-2 rounded-none h-12 px-8 font-bold"
             disabled
           >
             <PlayCircle class="h-5 w-5" />

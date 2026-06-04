@@ -21,9 +21,19 @@ interface TooltipCallbackDataParams {
   [key: string]: unknown;
 }
 
-function formatMemory(bytes: number): string {
-  if (bytes < 1024) return `${bytes} KB`;
-  return `${(bytes / 1024).toFixed(1)} MB`;
+function formatRuntime(value: number | undefined): string {
+  if (!Number.isFinite(value)) return "-- ms";
+  return `${Math.round(value as number)} ms`;
+}
+
+function formatMemory(value: number | undefined): string {
+  if (!Number.isFinite(value)) return "-- MB";
+  const memoryMb = value as number;
+  return `${memoryMb >= 100 ? Math.round(memoryMb) : memoryMb.toFixed(1)} MB`;
+}
+
+function formatPercentile(value: number | undefined): string {
+  return Number.isFinite(value) ? (value as number).toFixed(1) : "0.0";
 }
 
 const props = defineProps({
@@ -44,8 +54,9 @@ const { t } = useI18n();
 const router = useRouter();
 
 const {
-  statusMeta,
   statusLabel,
+  statusDescription,
+  statusSuggestion,
   statusToneClass,
   isAccepted,
   isCompileError,
@@ -56,13 +67,9 @@ const {
   showVerdictMeta,
   verdictDetail,
   codeMarkdown,
-  distBins,
-  distCounts,
   pairedDist,
   totalCount,
   highlightIndex,
-  memoryDistBins,
-  memoryDistCounts,
   pairedMemoryDist,
   totalMemoryCount,
   memoryHighlightIndex,
@@ -82,8 +89,6 @@ let runtimeChart: ECharts | null = null;
 let memoryChart: ECharts | null = null;
 
 function buildChartOption(
-  bins: number[],
-  counts: number[],
   paired: { i: number; count: number; bin: number }[],
   total: number,
   userIndex: number,
@@ -100,11 +105,12 @@ function buildChartOption(
         const dataArray = params as TooltipCallbackDataParams[];
         const data = dataArray[0];
         if (!data) return "";
-        const bin = bins[data.dataIndex];
-        const count = counts[data.dataIndex] ?? 0;
+        const point = paired[data.dataIndex];
+        if (!point || !Number.isFinite(point.bin)) return "";
+        const count = point.count;
         const percentage = total ? ((count / total) * 100).toFixed(2) : "0";
         const isUserPosition = data.dataIndex === userIndex;
-        return `${bin}${unit}<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><span style="color: hsl(var(--chart-series-1));">${t("problem.layout.userPosition")}</span>` : ""}`;
+        return `${point.bin}${unit}<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><span style="color: var(--chart-series-1);">${t("problem.layout.userPosition")}</span>` : ""}`;
       },
     },
     grid: {
@@ -116,20 +122,28 @@ function buildChartOption(
     },
     xAxis: {
       type: "category",
-      data: bins.map((bin) => `${bin}${unit}`),
+      data: paired.map((point) => `${point.bin}${unit}`),
       axisLabel: {
-        interval: Math.ceil(bins.length / 8),
+        interval: paired.length <= 8 ? 0 : Math.ceil(paired.length / 8),
         rotate: 0,
         fontSize: 10,
+        color: "var(--muted-foreground)",
+        fontFamily:
+          "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
       },
-      axisLine: { lineStyle: { color: "hsl(var(--border))" } },
+      axisLine: { lineStyle: { color: "var(--border)" } },
     },
     yAxis: {
       type: "value",
       axisLine: { show: false },
       axisTick: { show: false },
-      splitLine: { lineStyle: { color: "hsl(var(--border))" } },
-      axisLabel: { fontSize: 10, color: "hsl(var(--muted-foreground))" },
+      splitLine: { lineStyle: { color: "var(--border)" } },
+      axisLabel: {
+        fontSize: 10,
+        color: "var(--muted-foreground)",
+        fontFamily:
+          "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
+      },
     },
     series: [
       {
@@ -139,9 +153,9 @@ function buildChartOption(
           itemStyle: {
             color:
               i === userIndex
-                ? "hsl(var(--chart-series-1))"
-                : "hsl(var(--muted-foreground) / 0.3)",
-            borderRadius: [4, 4, 0, 0],
+                ? "var(--chart-series-1)"
+                : "color-mix(in oklch, var(--muted-foreground) 32%, transparent)",
+            borderRadius: 0,
           },
         })),
         barMaxWidth: 40,
@@ -174,7 +188,10 @@ function addAvatarMarkPoint(
     ctx.restore();
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
-    ctx.strokeStyle = "hsl(var(--chart-series-1))";
+    ctx.strokeStyle =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--chart-series-1")
+        .trim() || "var(--chart-series-1)";
     ctx.lineWidth = 2;
     ctx.stroke();
     const circularAvatar = canvas.toDataURL();
@@ -203,15 +220,16 @@ const initRuntimeChart = () => {
   runtimeChart = echarts.init(runtimeChartRef.value);
   runtimeChart.setOption(
     buildChartOption(
-      distBins.value,
-      distCounts.value,
       pairedDist.value,
       totalCount.value,
       highlightIndex.value,
       "ms",
     ),
   );
-  if (highlightIndex.value >= 0) {
+  if (
+    highlightIndex.value >= 0 &&
+    highlightIndex.value < pairedDist.value.length
+  ) {
     addAvatarMarkPoint(
       runtimeChart,
       highlightIndex.value,
@@ -228,15 +246,16 @@ const initMemoryChart = () => {
   memoryChart = echarts.init(memoryChartRef.value);
   memoryChart.setOption(
     buildChartOption(
-      memoryDistBins.value,
-      memoryDistCounts.value,
       pairedMemoryDist.value,
       totalMemoryCount.value,
       memoryHighlightIndex.value,
       "MB",
     ),
   );
-  if (memoryHighlightIndex.value >= 0) {
+  if (
+    memoryHighlightIndex.value >= 0 &&
+    memoryHighlightIndex.value < pairedMemoryDist.value.length
+  ) {
     addAvatarMarkPoint(
       memoryChart,
       memoryHighlightIndex.value,
@@ -291,20 +310,20 @@ const handleWriteSolution = () => {
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full hover:bg-muted"
+            class="h-8 w-8 rounded-none hover:bg-muted"
             @click="emit('back')"
           >
             <ArrowLeft class="h-4 w-4" />
           </Button>
           <div
-            class="flex flex-1 items-center gap-1.5 text-lg font-medium leading-tight"
+            class="flex flex-1 items-center gap-1.5 text-lg font-data font-semibold uppercase leading-tight tracking-wider"
             :class="statusToneClass"
           >
             <Loader2 v-if="isPending" class="h-4 w-4 animate-spin" />
             <span data-e2e-locator="submission-result">{{ statusLabel }}</span>
             <span
               v-if="isPending && pendingSeconds > 30"
-              class="text-xs text-muted-foreground"
+              class="text-xs font-data text-muted-foreground tabular-nums"
             >
               ({{ pendingSeconds }}s)
             </span>
@@ -317,7 +336,7 @@ const handleWriteSolution = () => {
           <span v-if="isAccepted">{{
             t("problem.submissions.allTestsPassed")
           }}</span>
-          <span v-else>
+          <span v-else class="font-data tabular-nums">
             {{
               t("problem.submissions.testsPassed", {
                 count:
@@ -331,22 +350,25 @@ const handleWriteSolution = () => {
         </div>
         <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <div class="flex items-center gap-1">
-            <Avatar class="h-4 w-4">
+            <Avatar class="h-4 w-4 rounded-none">
               <AvatarImage
+                class="rounded-none"
                 :src="
                   props.submission.user?.avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/default_avatar.png'
                 "
               />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarFallback class="rounded-none">U</AvatarFallback>
             </Avatar>
-            <span class="font-medium text-foreground">{{
-              props.submission.user?.username || "User"
+            <span class="font-data font-medium text-foreground">{{
+              props.submission.user?.name ||
+              props.submission.user?.username ||
+              "User"
             }}</span>
             <span class="text-muted-foreground/60">{{
               t("problem.submissions.submittedAt")
             }}</span>
-            <span>{{
+            <span class="font-data tabular-nums">{{
               new Date(
                 props.submission.submittedAt ?? props.submission.created_at,
               ).toLocaleString()
@@ -359,7 +381,7 @@ const handleWriteSolution = () => {
           v-if="isAccepted"
           variant="default"
           size="sm"
-          class="h-7 text-xs bg-[var(--terminal-green)] hover:bg-[var(--terminal-green)] text-[var(--background)]"
+          class="h-7 text-xs rounded-none bg-[var(--terminal-green)] hover:bg-[var(--terminal-green)] text-[var(--background)]"
           @click="handleWriteSolution"
         >
           {{ t("problem.solutions.writeSolution") }}
@@ -368,7 +390,7 @@ const handleWriteSolution = () => {
           v-if="isStuck"
           variant="outline"
           size="sm"
-          class="h-7 text-xs"
+          class="h-7 text-xs rounded-none"
           @click="handleResubmit"
         >
           {{ t("problem.submissions.resubmit") }}
@@ -392,20 +414,17 @@ const handleWriteSolution = () => {
       <div class="text-xs font-medium text-muted-foreground">
         {{ t("problem.submissions.verdictInfo") }}
       </div>
-      <div v-if="statusMeta?.description" class="mt-2 text-sm text-foreground">
-        {{ statusMeta.description }}
+      <div v-if="statusDescription" class="mt-2 text-sm text-foreground">
+        {{ statusDescription }}
       </div>
       <div
         v-if="verdictDetail"
-        class="mt-2 rounded-none bg-muted px-3 py-2 font-mono text-xs text-foreground"
+        class="mt-2 rounded-none bg-muted px-3 py-2 font-data text-xs text-foreground"
       >
         {{ verdictDetail }}
       </div>
-      <div
-        v-if="statusMeta?.suggestion"
-        class="mt-2 text-xs text-muted-foreground"
-      >
-        {{ t("problem.submissions.suggestion") }}: {{ statusMeta.suggestion }}
+      <div v-if="statusSuggestion" class="mt-2 text-xs text-muted-foreground">
+        {{ t("problem.submissions.suggestion") }}: {{ statusSuggestion }}
       </div>
     </div>
 
@@ -418,7 +437,7 @@ const handleWriteSolution = () => {
         {{ t("problem.submissions.compileError") }}
       </h3>
       <pre
-        class="whitespace-pre-wrap text-sm font-mono text-[var(--terminal-red)] bg-transparent p-0"
+        class="whitespace-pre-wrap text-sm font-data text-[var(--terminal-red)] bg-transparent p-0"
         >{{
           props.submission.compiler_error ||
           t("problem.submissions.noErrorMessage")
@@ -435,60 +454,87 @@ const handleWriteSolution = () => {
     <!-- Accepted (Charts) -->
     <div v-else-if="isAccepted" class="space-y-4">
       <div
-        class="flex w-full flex-col gap-1.5 rounded-none border border-border p-2"
+        class="flex w-full flex-col gap-1.5 rounded-none border border-border bg-[var(--surface-sunken)]/35 p-2"
       >
         <div class="flex items-center justify-between gap-1.5">
           <div class="flex w-full flex-wrap gap-2">
             <div
-              class="rounded-none group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
-              :class="showRuntimeDetail ? 'bg-accent' : 'opacity-40'"
+              role="button"
+              tabindex="0"
+              class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
+              :class="
+                showRuntimeDetail
+                  ? 'border-[var(--accent-electric)] bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] shadow-[inset_2px_0_0_var(--accent-electric)]'
+                  : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--accent-electric)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+              "
               @click="activeChart = 'runtime'"
+              @keydown.enter.prevent="activeChart = 'runtime'"
+              @keydown.space.prevent="activeChart = 'runtime'"
             >
-              <div class="flex justify-between gap-1.5">
-                <div class="flex items-center gap-1 text-foreground">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-1.5 text-foreground">
                   <Clock class="h-3 w-3" />
-                  <div class="flex-1 text-xs">
+                  <div class="min-w-0 flex-1 truncate text-xs font-medium">
                     {{ t("problem.submissions.runtimeDistribution") }}
                   </div>
                 </div>
-              </div>
-              <div class="mt-1.5 flex items-center gap-1">
-                <span class="font-medium text-foreground"
-                  >{{
-                    props.submission?.runtime.toString().replace("ms", "")
-                  }}
-                  ms</span
+                <span
+                  class="font-data text-[10px] uppercase text-muted-foreground"
                 >
+                  ms
+                </span>
+              </div>
+              <div
+                class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-data tabular-nums"
+              >
+                <span class="font-semibold text-foreground">{{
+                  formatRuntime(props.submission?.runtime)
+                }}</span>
                 <span class="text-muted-foreground">{{
                   t("problem.layout.beats", {
-                    percent: (props.submission?.runtimePercentile ?? 0).toFixed(
-                      1,
+                    percent: formatPercentile(
+                      props.submission?.runtimePercentile,
                     ),
                   })
                 }}</span>
               </div>
             </div>
             <div
-              class="rounded-none group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
-              :class="showMemoryDetail ? 'bg-accent' : 'opacity-40'"
+              role="button"
+              tabindex="0"
+              class="group flex min-w-[240px] flex-1 cursor-pointer flex-col rounded-none border px-3 py-2 text-xs transition-colors"
+              :class="
+                showMemoryDetail
+                  ? 'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,var(--terminal-cyan)_10%,transparent)] shadow-[inset_2px_0_0_var(--terminal-cyan)]'
+                  : 'border-border bg-card hover:border-[color-mix(in_oklch,var(--terminal-cyan)_45%,var(--border))] hover:bg-[var(--surface-sunken)]/50'
+              "
               @click="activeChart = 'memory'"
+              @keydown.enter.prevent="activeChart = 'memory'"
+              @keydown.space.prevent="activeChart = 'memory'"
             >
-              <div class="flex justify-between gap-1.5">
-                <div class="flex items-center gap-1 text-foreground">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-1.5 text-foreground">
                   <Microchip class="h-3 w-3" />
-                  <div class="flex-1 text-xs">
+                  <div class="min-w-0 flex-1 truncate text-xs font-medium">
                     {{ t("problem.submissions.memoryDistribution") }}
                   </div>
                 </div>
+                <span
+                  class="font-data text-[10px] uppercase text-muted-foreground"
+                >
+                  MB
+                </span>
               </div>
-              <div class="mt-1.5 flex items-center gap-1">
+              <div
+                class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-data tabular-nums"
+              >
                 <span class="font-medium text-foreground">{{
                   formatMemory(props.submission?.memory)
                 }}</span>
                 <span class="text-muted-foreground">{{
                   t("problem.layout.beats", {
-                    percent: (props.submission?.memoryPercentile ?? 0).toFixed(
-                      1,
+                    percent: formatPercentile(
+                      props.submission?.memoryPercentile,
                     ),
                   })
                 }}</span>

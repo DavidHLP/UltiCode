@@ -55,7 +55,22 @@ const activeResult = computed<ProblemCaseResultDetail | undefined>(() => {
 const verdictLabel = computed(() => {
   const verdict = props.runResult?.verdict;
   if (!verdict) return t("problem.layout.noVerdict");
-  return verdict;
+  const normalized = verdict.toUpperCase().replace(/\s+/g, "_");
+  const map: Record<string, string> = {
+    ACCEPTED: "submission.status.accepted",
+    WRONG_ANSWER: "submission.status.wrongAnswer",
+    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+    RUNTIME_ERROR: "submission.status.runtimeError",
+    COMPILE_ERROR: "submission.status.compileError",
+    PRESENTATION_ERROR: "submission.status.presentationError",
+    SYSTEM_ERROR: "submission.status.systemError",
+    JUDGING: "submission.status.judging",
+    PENDING: "submission.status.pending",
+  };
+  const key = map[normalized];
+  return key ? t(key) : verdict;
 });
 
 const verdictClass = computed(() => {

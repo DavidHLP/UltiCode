@@ -202,7 +202,7 @@ const emit = defineEmits<{
       <template #actions>
         <Button
           variant="outline"
-          class="h-9 rounded-none font-data text-[10px] uppercase tracking-[0.12em] border-[var(--silver-200)]"
+          class="h-9 rounded-none font-mono text-xs font-bold uppercase tracking-wider bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20 hover:bg-[var(--accent-electric)]/18 transition-all cursor-pointer"
           @click="emit('pickOne')"
         >
           {{ t("problem.explorer.pickOne") }}
@@ -230,11 +230,11 @@ const emit = defineEmits<{
 
 .problem-explorer-controls :deep(.border-dashed) {
   border-style: solid;
-  border-color: var(--silver-200);
+  border-color: var(--border);
 }
 
 .problem-explorer-controls :deep(input) {
-  border-color: var(--silver-200);
+  border-color: var(--border);
   background: var(--surface-sunken);
 }
 

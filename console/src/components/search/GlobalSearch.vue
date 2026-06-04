@@ -234,7 +234,7 @@ onUnmounted(() => {
         >
           <Search class="h-12 w-12 text-muted-foreground/50" />
           <p class="mt-4 text-sm text-muted-foreground">
-            Start typing to search...
+            {{ t("common.search.startTyping") }}
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
             <kbd
@@ -246,7 +246,7 @@ onUnmounted(() => {
               class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >K</kbd
             >
-            to open search
+            {{ t("common.search.openSearchTip") }}
           </p>
         </div>
       </div>
@@ -256,7 +256,7 @@ onUnmounted(() => {
         v-if="results?.length > 0"
         class="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground"
       >
-        <span>{{ total }} results</span>
+        <span>{{ t("common.search.resultsCount", { total }) }}</span>
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
             <kbd
@@ -267,14 +267,14 @@ onUnmounted(() => {
               class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >↓</kbd
             >
-            to navigate
+            {{ t("common.search.navigateTip") }}
           </span>
           <span class="flex items-center gap-1">
             <kbd
               class="rounded-none border border-silver bg-[var(--surface-sunken)] px-1.5 py-0.5 font-data"
               >Enter</kbd
             >
-            to select
+            {{ t("common.search.selectTip") }}
           </span>
         </div>
       </div>

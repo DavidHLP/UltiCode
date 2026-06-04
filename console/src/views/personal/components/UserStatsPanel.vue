@@ -77,6 +77,25 @@ const stats = computed(() => {
   };
 });
 
+const getSubmissionLabel = (status: string): string => {
+  const normalized = status.toUpperCase().replace(/\s+/g, "_");
+  const map: Record<string, string> = {
+    ACCEPTED: "submission.status.accepted",
+    WRONG_ANSWER: "submission.status.wrongAnswer",
+    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+    RUNTIME_ERROR: "submission.status.runtimeError",
+    COMPILE_ERROR: "submission.status.compileError",
+    PRESENTATION_ERROR: "submission.status.presentationError",
+    SYSTEM_ERROR: "submission.status.systemError",
+    JUDGING: "submission.status.judging",
+    PENDING: "submission.status.pending",
+  };
+  const key = map[normalized];
+  return key ? t(key) : status;
+};
+
 const recentActivity = computed(() => {
   return props.submissions.slice(0, 5).map((sub) => ({
     action:
@@ -365,7 +384,7 @@ const recentActivity = computed(() => {
                         : 'border-[var(--terminal-red)]/50 text-[var(--terminal-red)]'
                     "
                   >
-                    {{ item.status }}
+                    {{ getSubmissionLabel(item.status) }}
                   </Badge>
                 </div>
               </div>

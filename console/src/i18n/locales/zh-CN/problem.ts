@@ -429,6 +429,10 @@ export default {
   // Sidebar
   sidebar: {
     dailyChallenge: "每日一题",
+    completed: "已通关",
+    daysUnit: "天",
+    legendCompleted: "已通关",
+    legendToday: "今日",
   },
 
   // Table

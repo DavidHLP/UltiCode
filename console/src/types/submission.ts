@@ -53,15 +53,16 @@ export interface SubmissionRecord {
   submittedAt?: string; // alias
   notes?: string;
   code?: string;
-  runtimeDistBinsMs?: { min: number; max: number; count: number }[];
+  runtimeDistBinsMs?: DistributionBin[];
   runtimeDist?: { distribution: [number, number][] };
   runtimePercentile?: number;
   memoryPercentile?: number;
-  memoryDistBinsMb?: { min: number; max: number; count: number }[];
+  memoryDistBinsMb?: DistributionBin[];
   tests?: SubmissionTestRecord[];
   user?: {
     id: string;
     username: string;
+    name?: string;
     avatar?: string;
   };
   problem?: {
@@ -71,3 +72,14 @@ export interface SubmissionRecord {
   };
   contest_info?: ContestSubmissionInfo;
 }
+
+export type DistributionBin =
+  | number
+  | [number, number]
+  | {
+      min?: number;
+      max?: number;
+      value?: number;
+      bin?: number;
+      count?: number;
+    };

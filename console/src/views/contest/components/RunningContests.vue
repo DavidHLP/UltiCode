@@ -113,10 +113,10 @@ onUnmounted(() => {
         </p>
       </div>
       <div
-        class="flex items-center gap-2 rounded-full border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--terminal-red)]"
+        class="flex items-center gap-2 rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--terminal-red)]"
       >
         <span
-          class="h-2 w-2 rounded-full bg-[var(--terminal-red)] animate-pulse"
+          class="h-2 w-2 rounded-none bg-[var(--terminal-red)] animate-pulse"
         ></span>
         {{ t("contest.list.liveBadge") }}
       </div>
@@ -126,87 +126,75 @@ onUnmounted(() => {
       <Card
         v-for="contest in contests.slice(0, 2)"
         :key="contest.id"
-        class="relative overflow-hidden border-0 text-white shadow-[var(--shadow-float)] transition-transform hover:-translate-y-1"
+        class="group relative overflow-hidden rounded-none border border-border border-l-4 border-l-[var(--terminal-red)] bg-card text-foreground transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0 active:translate-y-0 shadow-[3px_3px_0px_0px_var(--border)] hover:shadow-[4px_4px_0px_0px_var(--border)]"
       >
-        <div class="absolute inset-0 bg-[oklch(0.27_0.049_220)]"></div>
-        <div
-          class="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white/10 blur-3xl"
-        ></div>
         <CardContent class="relative z-10 p-6">
           <div class="space-y-5">
             <div class="flex items-start justify-between gap-4">
-              <div class="space-y-1">
-                <p
-                  class="text-xs font-semibold uppercase tracking-widest text-white/70"
-                >
+              <div class="space-y-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none">
                   {{ getContestTypeLabel(contest.contestType || "weekly") }}
-                </p>
-                <h3 class="text-2xl font-black leading-tight">
+                </span>
+                <h3 class="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
                   {{ contest.title }}
                 </h3>
               </div>
               <div
-                class="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+                class="rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--terminal-red)] flex items-center gap-1.5 shrink-0"
               >
+                <span class="h-1.5 w-1.5 bg-[var(--terminal-red)] animate-pulse inline-block"></span>
                 {{ t("contest.list.liveNow") }}
               </div>
             </div>
 
-            <div class="grid gap-3 text-xs text-white/80 md:grid-cols-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono">
               <div class="flex items-center gap-2">
-                <Calendar class="h-4 w-4" />
+                <Calendar class="h-4 w-4 shrink-0 text-muted-foreground/80" />
                 <span>{{ formatDateTime(contest.startTime) }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <Clock class="h-4 w-4" />
-                <span
-                  >{{ t("contest.list.remaining") }}
-                  {{ getCountdown(contest.id) }}</span
-                >
+                <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                <span>{{ t("contest.list.remaining") }} <span class="font-bold text-foreground">{{ getCountdown(contest.id) }}</span></span>
               </div>
               <div class="flex items-center gap-2">
-                <Users class="h-4 w-4" />
-                <span
-                  >{{ contest.participantCount || 0 }}
-                  {{ t("contest.detail.participants") }}</span
-                >
+                <Users class="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                <span>{{ contest.participantCount || 0 }} {{ t("contest.detail.participants") }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <Clock class="h-4 w-4" />
-                <span
-                  >{{ contest.duration || 0 }}
-                  {{ t("contest.time.min_short") }}</span
-                >
+                <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                <span>{{ contest.duration || 0 }} {{ t("contest.time.min_short") }}</span>
               </div>
             </div>
 
             <div class="space-y-2">
-              <div class="h-2 rounded-full bg-white/20 overflow-hidden">
+              <div class="h-2 rounded-none bg-muted border border-border overflow-hidden">
                 <div
-                  class="h-full bg-white/80 transition-all duration-500"
+                  class="h-full bg-[var(--terminal-red)] transition-all duration-500"
                   :style="{ width: `${getProgress(contest.id)}%` }"
                 ></div>
               </div>
               <div
-                class="flex items-center justify-between text-[10px] uppercase tracking-widest text-white/70"
+                class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
               >
                 <span>{{ t("contest.list.liveProgress") }}</span>
-                <span>{{ Math.round(getProgress(contest.id)) }}%</span>
+                <span class="font-bold text-foreground">{{ Math.round(getProgress(contest.id)) }}%</span>
               </div>
             </div>
 
-            <div class="flex items-center justify-between">
-              <div class="text-xs text-white/70">
+            <div class="flex items-center justify-between gap-3 pt-2">
+              <div class="text-xs font-mono text-muted-foreground">
                 {{ t("contest.list.rated") }}
-                {{
-                  contest.isRated
-                    ? t("common.labels.yes")
-                    : t("common.labels.no")
-                }}
+                <span class="font-bold text-foreground">
+                  {{
+                    contest.isRated
+                      ? t("common.labels.yes")
+                      : t("common.labels.no")
+                  }}
+                </span>
               </div>
               <Button
                 size="sm"
-                class="h-9 rounded-full bg-white/20 text-white hover:bg-white/30"
+                class="rounded-none border border-border bg-[var(--terminal-red)] text-white hover:bg-[var(--terminal-red)]/90 shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-xs h-9 px-4 font-bold"
                 @click="
                   router.push({
                     name: 'contest-detail',

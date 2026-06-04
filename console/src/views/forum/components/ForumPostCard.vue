@@ -198,18 +198,38 @@ async function handleSave() {
     toast.error(t("forum.messages.saveFailed"));
   }
 }
+
+function handleCardClick(event: MouseEvent) {
+  // If the user is selecting text, ignore navigation
+  const selection = window.getSelection();
+  if (selection && selection.toString()) {
+    return;
+  }
+
+  const target = event.target as HTMLElement;
+
+  // Do not navigate if user clicked on any interactive element
+  if (
+    target.closest("a, button, [role='button'], input, select, textarea, video, audio, .avatar-trigger, .font-bold")
+  ) {
+    return;
+  }
+
+  router.push({ name: "forum-thread", params: { postId: props.post.id } });
+}
 </script>
 
 <template>
   <div
-    class="terminal-card hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+    class="terminal-card hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+    @click="handleCardClick"
   >
     <div class="flex gap-3 px-4 py-3 sm:gap-4 sm:px-6">
       <div class="min-w-0 flex-1 space-y-2">
         <!-- Header -->
         <header class="flex items-center gap-2 text-xs text-muted-foreground">
           <Avatar
-            class="h-9 w-9 rounded-none border border-silver"
+            class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
             v-if="post.community?.icon"
           >
             <AvatarImage
@@ -221,7 +241,7 @@ async function handleSave() {
             }}</AvatarFallback>
           </Avatar>
           <Avatar
-            class="h-9 w-9 rounded-none border border-silver"
+            class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
             v-else
           >
             <AvatarImage

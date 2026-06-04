@@ -115,7 +115,7 @@ defineOptions({
   text-decoration: none;
   color: var(--foreground);
   border: 1px solid var(--silver-200);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: var(--background);
   transition:
     border-color var(--transition-fast),
@@ -139,7 +139,7 @@ defineOptions({
   height: 2rem;
   background: var(--silver-800);
   color: var(--background);
-  border-radius: 4px;
+  border-radius: 0;
   transition: box-shadow var(--transition-fast);
 }
 

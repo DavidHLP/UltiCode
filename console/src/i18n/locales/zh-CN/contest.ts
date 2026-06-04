@@ -121,6 +121,7 @@ export default {
       time: "用时",
       problems: "题目",
       rating: "Rating",
+      problemsSolved: "通过数",
     },
     notFound: {
       title: "未找到比赛",

@@ -112,9 +112,7 @@ async function handleReset(e: Event) {
               :label="t('auth.resetPassword.confirmPassword')"
               type="password"
               autocomplete="new-password"
-              :placeholder="
-                t('auth.resetPassword.confirmPasswordPlaceholder')
-              "
+              :placeholder="t('auth.resetPassword.confirmPasswordPlaceholder')"
               :disabled="loading"
             />
 
@@ -147,8 +145,12 @@ async function handleReset(e: Event) {
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title whitespace-pre-line">{{ t('auth.layout.codingConsole') }}</h2>
-        <p class="auth-pattern-text__subtitle">{{ t('auth.layout.codingConsoleSubtitle') }}</p>
+        <h2 class="auth-pattern-text__title whitespace-pre-line">
+          {{ t("auth.layout.codingConsole") }}
+        </h2>
+        <p class="auth-pattern-text__subtitle">
+          {{ t("auth.layout.codingConsoleSubtitle") }}
+        </p>
         <div class="auth-pattern-text__cursor"></div>
       </div>
     </AuthGrid>

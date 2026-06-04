@@ -42,7 +42,9 @@ const colorClasses = {
         :class="
           cn(
             'text-xs font-medium',
-            trend.value >= 0 ? 'text-[oklch(0.6444_0.1508_118.6)]' : 'text-[oklch(0.5863_0.2064_27.1)]',
+            trend.value >= 0
+              ? 'text-[oklch(0.6444_0.1508_118.6)]'
+              : 'text-[oklch(0.5863_0.2064_27.1)]',
           )
         "
       >

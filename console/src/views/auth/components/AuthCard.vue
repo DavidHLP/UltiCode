@@ -20,12 +20,8 @@ defineOptions({
     <div class="auth-card__header">
       <div class="auth-card__window-controls">
         <span class="auth-card__control auth-card__control--close"></span>
-        <span
-          class="auth-card__control auth-card__control--minimize"
-        ></span>
-        <span
-          class="auth-card__control auth-card__control--maximize"
-        ></span>
+        <span class="auth-card__control auth-card__control--minimize"></span>
+        <span class="auth-card__control auth-card__control--maximize"></span>
       </div>
       <span class="auth-card__title">{{ title }}</span>
     </div>

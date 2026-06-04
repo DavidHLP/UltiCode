@@ -78,7 +78,9 @@ export async function fetchUserSkills(userId: string): Promise<UserSkills> {
   return apiGet<UserSkills>(`/users/${userId}/skills`);
 }
 
-export async function fetchProfileByUsername(username: string): Promise<ProfileData> {
+export async function fetchProfileByUsername(
+  username: string,
+): Promise<ProfileData> {
   return apiGet<ProfileData>(
     `/users/by-username/${encodeURIComponent(username)}/profile`,
   );

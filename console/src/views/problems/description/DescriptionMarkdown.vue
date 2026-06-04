@@ -95,7 +95,9 @@ ${props.description.followUp}
   return parts.join("");
 });
 
-const htmlContent = computed(() => sanitizeHtml(renderMarkdown(markdownContent.value)));
+const htmlContent = computed(() =>
+  sanitizeHtml(renderMarkdown(markdownContent.value)),
+);
 </script>
 
 <template>
@@ -163,7 +165,8 @@ const htmlContent = computed(() => sanitizeHtml(renderMarkdown(markdownContent.v
 
 /* Inline Code - LeetCode Pill Style */
 .description-markdown :deep(.markdown-content code) {
-  font-family: "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
+  font-family:
+    "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
   font-size: 0.85em;
   background-color: var(--surface-sunken); /* Use theme sunken bg */
   color: var(--foreground);

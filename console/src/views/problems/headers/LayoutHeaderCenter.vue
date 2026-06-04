@@ -130,7 +130,9 @@ onBeforeUnmount(() => {
   <div
     class="relative z-20 flex min-w-60 flex-1 items-center overflow-hidden pointer-events-auto"
   >
-    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
+    <div
+      class="flex items-center overflow-hidden rounded-none focus:outline-none"
+    >
       <div class="relative group/nav-back flex items-center">
         <!-- Run button with HoverCard -->
         <HoverCard :open-delay="200">
@@ -150,7 +152,9 @@ onBeforeUnmount(() => {
               />
               <span
                 class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-50"
-                :class="bottomPanelStore.isRunning ? 'bg-primary/15' : 'bg-primary/5'"
+                :class="
+                  bottomPanelStore.isRunning ? 'bg-primary/15' : 'bg-primary/5'
+                "
               />
               <Play
                 class="h-4 w-4 transition-transform duration-200"
@@ -219,7 +223,6 @@ onBeforeUnmount(() => {
             </div>
           </HoverCardContent>
         </HoverCard>
-
       </div>
     </div>
 

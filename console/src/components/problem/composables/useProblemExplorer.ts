@@ -3,11 +3,7 @@ import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { Component } from "vue";
 import type { ProblemExplorerProps } from "../type";
-import {
-  CheckCircle2,
-  FileEdit,
-  CircleDot,
-} from "lucide-vue-next";
+import { CheckCircle2, FileEdit, CircleDot } from "lucide-vue-next";
 import { fetchProblems } from "@/api/problem";
 import { toast } from "vue-sonner";
 import { useRouter } from "vue-router";
@@ -73,7 +69,11 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     isLoading.value = true;
     try {
       const currentPage = append ? page.value : 1;
-      const result = await fetchProblems(buildFilters(), currentPage, PROBLEMS_PER_PAGE);
+      const result = await fetchProblems(
+        buildFilters(),
+        currentPage,
+        PROBLEMS_PER_PAGE,
+      );
       if (append) {
         fallbackProblems.value = [...fallbackProblems.value, ...result.items];
       } else {
@@ -99,7 +99,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     void loadProblems();
   });
 
-  const sourceProblems = computed(() => props.problems ?? fallbackProblems.value);
+  const sourceProblems = computed(
+    () => props.problems ?? fallbackProblems.value,
+  );
 
   const enrichedProblems = computed<EnrichedProblem[]>(() => {
     return sourceProblems.value.map((p) => {
@@ -126,12 +128,17 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
 
   // Immediate reload for non-search filters
   watch(
-    [selectedTags, selectedStatus, selectedDifficulty, showPremium, selectedCategory],
+    [
+      selectedTags,
+      selectedStatus,
+      selectedDifficulty,
+      showPremium,
+      selectedCategory,
+    ],
     () => {
       void loadProblems();
     },
   );
-
 
   const hasMore = computed(() => page.value < totalPages.value);
 
@@ -184,7 +191,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
 
   const allTags = computed(() => {
     const tags = new Set<string>();
-    enrichedProblems.value.forEach((p) => p.tags.forEach((tag) => tags.add(tag)));
+    enrichedProblems.value.forEach((p) =>
+      p.tags.forEach((tag) => tags.add(tag)),
+    );
     return Array.from(tags).sort();
   });
 
@@ -235,7 +244,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
         selectedDifficulty.value = [...selectedDifficulty.value, value];
       }
     } else {
-      selectedDifficulty.value = selectedDifficulty.value.filter((d) => d !== value);
+      selectedDifficulty.value = selectedDifficulty.value.filter(
+        (d) => d !== value,
+      );
     }
   }
 

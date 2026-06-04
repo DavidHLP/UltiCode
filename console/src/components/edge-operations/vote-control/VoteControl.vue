@@ -43,7 +43,8 @@ defineOptions({
         size="icon"
         class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--terminal-amber)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
         :class="{
-          'text-[var(--terminal-amber)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]': userVote === 1,
+          'text-[var(--terminal-amber)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]':
+            userVote === 1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"
@@ -67,7 +68,9 @@ defineOptions({
       </span>
 
       <!-- Separator -->
-      <div class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"></div>
+      <div
+        class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"
+      ></div>
 
       <!-- Dislikes Count -->
       <span
@@ -86,7 +89,8 @@ defineOptions({
         size="icon"
         class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--accent-electric)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
         :class="{
-          'text-[var(--accent-electric)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]': userVote === -1,
+          'text-[var(--accent-electric)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]':
+            userVote === -1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"
@@ -102,11 +106,17 @@ defineOptions({
     <template v-else>
       <!-- Preview Mode -->
       <div class="flex items-center gap-1.5 px-2">
-        <span class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums">
+        <span
+          class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums"
+        >
           {{ formatCount(likes) }}
         </span>
-        <div class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"></div>
-        <span class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums">
+        <div
+          class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"
+        ></div>
+        <span
+          class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums"
+        >
           {{ formatCount(dislikes) }}
         </span>
       </div>

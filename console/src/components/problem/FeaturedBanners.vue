@@ -49,8 +49,7 @@ const GLOW_BASE =
 const SLATE_THEME: BannerTheme = {
   card: "bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border-border/50 hover:border-border/70",
   icon: "text-muted-foreground bg-muted/60 border-border/40",
-  badge:
-    "bg-muted/80 text-muted-foreground border-border/50 backdrop-blur-sm",
+  badge: "bg-muted/80 text-muted-foreground border-border/50 backdrop-blur-sm",
   glow: "bg-muted/30",
   sparkle: "text-muted-foreground",
 };
@@ -239,9 +238,13 @@ onBeforeUnmount(() => {
           :key="i"
           class="flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden border border-border/40 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent h-[200px] rounded-none"
         >
-          <CardContent class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col">
+          <CardContent
+            class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col"
+          >
             <div class="flex items-start justify-between">
-              <div class="h-12 w-12 rounded-none bg-muted/60 border border-border/30"></div>
+              <div
+                class="h-12 w-12 rounded-none bg-muted/60 border border-border/30"
+              ></div>
               <div class="h-5 w-14 rounded-none bg-muted/50"></div>
             </div>
             <div class="space-y-3 flex-1">
@@ -273,7 +276,9 @@ onBeforeUnmount(() => {
                 : t("problem.banners.noBanners")
             }}
           </p>
-          <p class="text-xs text-muted-foreground mt-2 max-w-[280px] leading-relaxed">
+          <p
+            class="text-xs text-muted-foreground mt-2 max-w-[280px] leading-relaxed"
+          >
             {{
               hasError
                 ? t("problem.banners.tryAgain")
@@ -328,7 +333,8 @@ onBeforeUnmount(() => {
                   class="text-xs font-data font-medium text-muted-foreground flex items-center gap-1"
                 >
                   <Sparkles class="w-3 h-3" :class="banner.theme.sparkle" />
-                  <span class="tabular-nums">{{ banner.problemCount }}</span> {{ t("problem.banners.questions") }}
+                  <span class="tabular-nums">{{ banner.problemCount }}</span>
+                  {{ t("problem.banners.questions") }}
                 </div>
                 <div
                   class="flex items-center gap-1 text-xs font-data font-semibold text-primary opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0"

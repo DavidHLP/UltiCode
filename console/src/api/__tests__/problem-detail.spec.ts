@@ -119,10 +119,12 @@ describe("fetchProblemDetailById", () => {
       ],
     });
 
-    expect(problem.testCases?.[0]?.inputs?.map((input) => ({
-      name: input.name,
-      value: input.value,
-    }))).toEqual([
+    expect(
+      problem.testCases?.[0]?.inputs?.map((input) => ({
+        name: input.name,
+        value: input.value,
+      })),
+    ).toEqual([
       { name: "nums", value: "[3,2,4]" },
       { name: "target", value: "6" },
     ]);

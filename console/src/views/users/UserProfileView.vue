@@ -8,7 +8,14 @@ import type { UserStats, UserSkills } from "@/api/user";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
-import { Trophy, Flame, Target, BarChart3, Calendar, Globe } from "lucide-vue-next";
+import {
+  Trophy,
+  Flame,
+  Target,
+  BarChart3,
+  Calendar,
+  Globe,
+} from "lucide-vue-next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 
@@ -56,7 +63,8 @@ onMounted(async () => {
     stats.value = statsData;
     skills.value = skillsData;
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "Failed to load user profile";
+    error.value =
+      e instanceof Error ? e.message : "Failed to load user profile";
   } finally {
     loading.value = false;
   }
@@ -89,7 +97,9 @@ onMounted(async () => {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold tracking-tight">{{ profile.name || profile.username }}</h1>
+          <h1 class="text-2xl font-bold tracking-tight">
+            {{ profile.name || profile.username }}
+          </h1>
           <p class="text-muted-foreground">@{{ profile.username }}</p>
         </div>
         <img
@@ -98,7 +108,10 @@ onMounted(async () => {
           :alt="profile.username"
           class="h-24 w-24 rounded-full object-cover"
         />
-        <div v-else class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--terminal-green)] text-2xl font-bold text-[var(--color-background)]">
+        <div
+          v-else
+          class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--terminal-green)] text-2xl font-bold text-[var(--color-background)]"
+        >
           {{ (profile.name || profile.username).charAt(0).toUpperCase() }}
         </div>
       </div>
@@ -109,14 +122,23 @@ onMounted(async () => {
         <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div v-if="profile.joined_at" class="flex items-center gap-1">
             <Calendar class="h-4 w-4" />
-            <span>{{ t("profile.joined", { date: new Date(profile.joined_at).toLocaleDateString() }) }}</span>
+            <span>{{
+              t("profile.joined", {
+                date: new Date(profile.joined_at).toLocaleDateString(),
+              })
+            }}</span>
           </div>
           <div v-if="profile.location" class="flex items-center gap-1">
             <Globe class="h-4 w-4" />
             <span>{{ profile.location }}</span>
           </div>
           <div v-if="profile.website" class="flex items-center gap-1">
-            <a :href="profile.website" target="_blank" rel="noopener" class="hover:text-[var(--accent-electric)]">
+            <a
+              :href="profile.website"
+              target="_blank"
+              rel="noopener"
+              class="hover:text-[var(--accent-electric)]"
+            >
               {{ profile.website }}
             </a>
           </div>
@@ -128,7 +150,9 @@ onMounted(async () => {
         <StatsCard
           :title="t('profile.stats.problemsSolved')"
           :value="totalSolved"
-          :subtitle="t('profile.stats.ofTotal', { total: stats?.totalSolved || 0 })"
+          :subtitle="
+            t('profile.stats.ofTotal', { total: stats?.totalSolved || 0 })
+          "
           color="green"
         >
           <template #icon>
@@ -150,7 +174,11 @@ onMounted(async () => {
         <StatsCard
           :title="t('profile.stats.acceptanceRate')"
           :value="`${acceptanceRate}%`"
-          :subtitle="t('profile.stats.submissions', { count: profile.submission_count || 0 })"
+          :subtitle="
+            t('profile.stats.submissions', {
+              count: profile.submission_count || 0,
+            })
+          "
           color="purple"
         >
           <template #icon>
@@ -179,13 +207,19 @@ onMounted(async () => {
           <!-- Easy -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-green)]">{{ t("personal.stats.easy") }}</span>
+              <span class="font-medium text-[var(--terminal-green)]">{{
+                t("personal.stats.easy")
+              }}</span>
               <span class="text-muted-foreground">
                 {{ stats.stats.Easy.count }} / {{ stats.stats.Easy.total }}
               </span>
             </div>
             <Progress
-              :model-value="stats.stats.Easy.total > 0 ? (stats.stats.Easy.count / stats.stats.Easy.total) * 100 : 0"
+              :model-value="
+                stats.stats.Easy.total > 0
+                  ? (stats.stats.Easy.count / stats.stats.Easy.total) * 100
+                  : 0
+              "
               class="h-2 [&>div]:bg-[var(--terminal-green)]"
             />
           </div>
@@ -193,13 +227,19 @@ onMounted(async () => {
           <!-- Medium -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-amber)]">{{ t("personal.stats.medium") }}</span>
+              <span class="font-medium text-[var(--terminal-amber)]">{{
+                t("personal.stats.medium")
+              }}</span>
               <span class="text-muted-foreground">
                 {{ stats.stats.Medium.count }} / {{ stats.stats.Medium.total }}
               </span>
             </div>
             <Progress
-              :model-value="stats.stats.Medium.total > 0 ? (stats.stats.Medium.count / stats.stats.Medium.total) * 100 : 0"
+              :model-value="
+                stats.stats.Medium.total > 0
+                  ? (stats.stats.Medium.count / stats.stats.Medium.total) * 100
+                  : 0
+              "
               class="h-2 [&>div]:bg-[var(--terminal-amber)]"
             />
           </div>
@@ -207,13 +247,19 @@ onMounted(async () => {
           <!-- Hard -->
           <div class="space-y-2">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-[var(--terminal-red)]">{{ t("personal.stats.hard") }}</span>
+              <span class="font-medium text-[var(--terminal-red)]">{{
+                t("personal.stats.hard")
+              }}</span>
               <span class="text-muted-foreground">
                 {{ stats.stats.Hard.count }} / {{ stats.stats.Hard.total }}
               </span>
             </div>
             <Progress
-              :model-value="stats.stats.Hard.total > 0 ? (stats.stats.Hard.count / stats.stats.Hard.total) * 100 : 0"
+              :model-value="
+                stats.stats.Hard.total > 0
+                  ? (stats.stats.Hard.count / stats.stats.Hard.total) * 100
+                  : 0
+              "
               class="h-2 [&>div]:bg-[var(--terminal-red)]"
             />
           </div>

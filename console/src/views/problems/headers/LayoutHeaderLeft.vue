@@ -139,7 +139,10 @@ async function handleRandom() {
       </div>
     </div>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
+    <Separator
+      orientation="vertical"
+      class="h-7 w-px flex-none bg-[var(--border)]"
+    />
 
     <!-- Previous problem button with HoverCard -->
     <HoverCard :open-delay="200">
@@ -177,7 +180,10 @@ async function handleRandom() {
       </HoverCardContent>
     </HoverCard>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
+    <Separator
+      orientation="vertical"
+      class="h-7 w-px flex-none bg-[var(--border)]"
+    />
 
     <!-- Next problem button with HoverCard -->
     <HoverCard :open-delay="200">
@@ -215,7 +221,10 @@ async function handleRandom() {
       </HoverCardContent>
     </HoverCard>
 
-    <Separator orientation="vertical" class="h-7 w-px flex-none bg-[var(--border)]" />
+    <Separator
+      orientation="vertical"
+      class="h-7 w-px flex-none bg-[var(--border)]"
+    />
 
     <!-- Random problem button with HoverCard -->
     <HoverCard :open-delay="200">

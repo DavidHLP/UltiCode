@@ -92,8 +92,13 @@ const problemDescription = computed<ProblemDescription>(() => ({
       <div class="flex flex-wrap gap-1">
         <!-- Difficulty Badge -->
         <SemanticBadge
-          :color="DIFFICULTY_COLOR_MAP[props.problem.difficulty?.toUpperCase()] ?? 'neutral'"
-          :label="t(`problem.difficulty.${props.problem.difficulty.toLowerCase()}`)"
+          :color="
+            DIFFICULTY_COLOR_MAP[props.problem.difficulty?.toUpperCase()] ??
+            'neutral'
+          "
+          :label="
+            t(`problem.difficulty.${props.problem.difficulty.toLowerCase()}`)
+          "
           size="sm"
         />
 

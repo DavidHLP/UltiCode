@@ -1,18 +1,18 @@
 @layer base {
   :root {
     /* Chart Visualization Colors */
-    --vis-primary-color: oklch(0.2051 0.0390 219.7);
+    --vis-primary-color: oklch(0.2051 0.039 219.7);
     --vis-secondary-color: oklch(0.6444 0.1508 118.6);
     --vis-text-color: var(--muted-foreground);
 
     /* Status Colors (oklch Solarized) */
     --chart-status-solved: oklch(0.6444 0.1508 118.6);
-    --chart-status-attempted: oklch(0.6545 0.1340 85.7);
+    --chart-status-attempted: oklch(0.6545 0.134 85.7);
     --chart-status-todo: oklch(0.6437 0.1019 187.4);
 
     /* Difficulty Colors (oklch Solarized) */
     --chart-difficulty-easy: oklch(0.6444 0.1508 118.6);
-    --chart-difficulty-medium: oklch(0.6545 0.1340 85.7);
+    --chart-difficulty-medium: oklch(0.6545 0.134 85.7);
     --chart-difficulty-hard: oklch(0.5863 0.2064 27.1);
 
     /* Multi-series Chart Colors (oklch Solarized) */
@@ -21,12 +21,12 @@
     --chart-series-3: oklch(0.6444 0.1508 118.6);
     --chart-series-4: oklch(0.5924 0.2025 355.9);
     --chart-series-5: oklch(0.5863 0.2064 27.1);
-    --chart-series-6: oklch(0.6545 0.1340 85.7);
+    --chart-series-6: oklch(0.6545 0.134 85.7);
 
     /* Accent & Highlight Colors (oklch Solarized) */
     --chart-accent-primary: oklch(0.6149 0.1394 244.9);
     --chart-accent-secondary: oklch(0.6444 0.1508 118.6);
-    --chart-accent-warning: oklch(0.6545 0.1340 85.7);
+    --chart-accent-warning: oklch(0.6545 0.134 85.7);
     --chart-accent-danger: oklch(0.5863 0.2064 27.1);
     --chart-accent-info: oklch(0.6437 0.1019 187.4);
 
@@ -48,12 +48,12 @@
 
     /* Status Colors - Dark Mode (Solarized invariant) */
     --chart-status-solved: oklch(0.6444 0.1508 118.6);
-    --chart-status-attempted: oklch(0.6545 0.1340 85.7);
+    --chart-status-attempted: oklch(0.6545 0.134 85.7);
     --chart-status-todo: oklch(0.6437 0.1019 187.4);
 
     /* Difficulty Colors - Dark Mode (Solarized invariant) */
     --chart-difficulty-easy: oklch(0.6444 0.1508 118.6);
-    --chart-difficulty-medium: oklch(0.6545 0.1340 85.7);
+    --chart-difficulty-medium: oklch(0.6545 0.134 85.7);
     --chart-difficulty-hard: oklch(0.5863 0.2064 27.1);
 
     /* Multi-series Chart Colors - Dark Mode (Solarized invariant) */
@@ -62,19 +62,19 @@
     --chart-series-3: oklch(0.6444 0.1508 118.6);
     --chart-series-4: oklch(0.5924 0.2025 355.9);
     --chart-series-5: oklch(0.5863 0.2064 27.1);
-    --chart-series-6: oklch(0.6545 0.1340 85.7);
+    --chart-series-6: oklch(0.6545 0.134 85.7);
 
     /* Accent & Highlight Colors - Dark Mode (Solarized invariant) */
     --chart-accent-primary: oklch(0.6149 0.1394 244.9);
     --chart-accent-secondary: oklch(0.6444 0.1508 118.6);
-    --chart-accent-warning: oklch(0.6545 0.1340 85.7);
+    --chart-accent-warning: oklch(0.6545 0.134 85.7);
     --chart-accent-danger: oklch(0.5863 0.2064 27.1);
     --chart-accent-info: oklch(0.6437 0.1019 187.4);
 
     /* Background & Grid Colors - Dark Mode */
-    --chart-grid-color: oklch(0.5230 0.0283 219.1);
+    --chart-grid-color: oklch(0.523 0.0283 219.1);
     --chart-tooltip-background: oklch(0.3092 0.0518 219.7);
-    --chart-tooltip-border: oklch(0.5230 0.0283 219.1);
+    --chart-tooltip-border: oklch(0.523 0.0283 219.1);
 
     /* Premium & Solution Indicators - Dark Mode (Solarized invariant) */
     --chart-premium: oklch(0.5924 0.2025 355.9);
@@ -259,13 +259,21 @@
   .chart-badge-premium {
     color: var(--chart-premium);
     border-color: color-mix(in oklch, var(--chart-premium) 30%, transparent);
-    background-color: color-mix(in oklch, var(--chart-premium) 10%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--chart-premium) 10%,
+      transparent
+    );
   }
 
   .chart-badge-solution {
     color: var(--chart-solution);
     border-color: color-mix(in oklch, var(--chart-solution) 30%, transparent);
-    background-color: color-mix(in oklch, var(--chart-solution) 10%, transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--chart-solution) 10%,
+      transparent
+    );
   }
 }
 

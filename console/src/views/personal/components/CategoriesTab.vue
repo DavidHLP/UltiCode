@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import {
-  Card,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,13 +48,9 @@ const { t } = useI18n();
       :key="category.id"
       class="border-muted/60 hover:shadow-[var(--shadow-float)] transition-shadow duration-300 rounded-none overflow-hidden"
     >
-      <div
-        class="flex items-center justify-between px-6 py-4 bg-muted/30"
-      >
+      <div class="flex items-center justify-between px-6 py-4 bg-muted/30">
         <div class="flex items-center gap-4">
-          <GripVertical
-            class="h-5 w-5 text-muted-foreground/30 cursor-grab"
-          />
+          <GripVertical class="h-5 w-5 text-muted-foreground/30 cursor-grab" />
           <div
             class="h-10 w-10 rounded-none bg-primary/10 flex items-center justify-center"
           >
@@ -104,11 +98,7 @@ const { t } = useI18n();
           class="text-center py-10 bg-muted/10 rounded-none border-2 border-dashed"
         >
           <p class="text-sm text-muted-foreground italic">
-            {{
-              t(
-                "personal.problemLists.emptyStates.noListsInCategoryDesc",
-              )
-            }}
+            {{ t("personal.problemLists.emptyStates.noListsInCategoryDesc") }}
           </p>
         </div>
         <div v-else class="grid gap-3">
@@ -148,9 +138,7 @@ const { t } = useI18n();
                 <DropdownMenuSub v-if="allCategories.length > 1">
                   <DropdownMenuSubTrigger class="gap-2">
                     <FolderInput class="h-4 w-4" />
-                    {{
-                      t("personal.problemLists.actions.moveToAnother")
-                    }}
+                    {{ t("personal.problemLists.actions.moveToAnother") }}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem
@@ -169,11 +157,7 @@ const { t } = useI18n();
                   class="gap-2"
                 >
                   <FolderInput class="h-4 w-4" />
-                  {{
-                    t(
-                      "personal.problemLists.actions.removeFromCategory",
-                    )
-                  }}
+                  {{ t("personal.problemLists.actions.removeFromCategory") }}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

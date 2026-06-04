@@ -5,7 +5,10 @@ import { followApi } from "@/api/follow";
  * Composable for managing follow status state.
  * Provides reactive follow state with optimistic UI updates.
  */
-export function useFollowStatus(targetUserId: string, initialIsFollowing = false) {
+export function useFollowStatus(
+  targetUserId: string,
+  initialIsFollowing = false,
+) {
   const isFollowing = ref(initialIsFollowing);
   const loading = ref(false);
 

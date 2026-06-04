@@ -41,20 +41,16 @@ const { t } = useI18n();
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel
-          :disabled="loading"
-          class="rounded-full"
-          >{{ t("common.actions.cancel") }}</AlertDialogCancel
-        >
+        <AlertDialogCancel :disabled="loading" class="rounded-full">{{
+          t("common.actions.cancel")
+        }}</AlertDialogCancel>
         <AlertDialogAction
           class="bg-destructive text-white hover:bg-destructive/90 rounded-full"
           @click="emit('confirm')"
           :disabled="loading"
         >
           {{
-            loading
-              ? t("common.status.saving")
-              : t("common.actions.confirm")
+            loading ? t("common.status.saving") : t("common.actions.confirm")
           }}
         </AlertDialogAction>
       </AlertDialogFooter>

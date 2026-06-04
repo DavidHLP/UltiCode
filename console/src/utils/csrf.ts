@@ -32,8 +32,12 @@ export function getCsrfToken(): string | null {
  */
 export const csrfManager = {
   getToken: () => csrfToken || readCsrfFromCookie(),
-  setToken: (token: string) => { csrfToken = token; },
-  clearToken: () => { csrfToken = null; },
+  setToken: (token: string) => {
+    csrfToken = token;
+  },
+  clearToken: () => {
+    csrfToken = null;
+  },
   refreshFromResponse: (response: { csrfToken?: string }) => {
     if (response.csrfToken) {
       csrfToken = response.csrfToken;

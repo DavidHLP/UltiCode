@@ -75,7 +75,11 @@ const isActiveNav = (item: NavItem) => {
         <Separator orientation="vertical" class="h-6" />
         <NavigationMenu class="hidden md:flex h-full">
           <NavigationMenuList class="flex h-full items-stretch gap-1">
-            <NavigationMenuItem v-for="item in navItems" :key="item.label" class="flex items-stretch">
+            <NavigationMenuItem
+              v-for="item in navItems"
+              :key="item.label"
+              class="flex items-stretch"
+            >
               <NavigationMenuLink
                 v-if="item.to"
                 :as-child="true"
@@ -88,7 +92,7 @@ const isActiveNav = (item: NavItem) => {
                     'flex items-center justify-center gap-1 rounded-none px-4 text-sm font-medium transition-all duration-200 border-b-2 h-full',
                     isActiveNav(item)
                       ? 'border-[var(--accent-electric)] text-[var(--accent-electric)] bg-[var(--accent-electric)]/5'
-                      : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4'
+                      : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
                   ]"
                 >
                   <span>{{ item.label }}</span>
@@ -123,7 +127,9 @@ const isActiveNav = (item: NavItem) => {
           <NotificationBadge />
         </div>
       </header>
-      <main class="flex flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6 xl:px-8">
+      <main
+        class="flex flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6 xl:px-8"
+      >
         <div class="mx-auto w-full max-w-[1440px] min-w-0 px-2 sm:px-3 lg:px-4">
           <router-view />
         </div>

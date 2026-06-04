@@ -14,9 +14,6 @@ const { t } = useI18n();
     <div class="text-xs font-medium text-muted-foreground">
       {{ t("problem.submissions.code") }}
     </div>
-    <MarkdownView
-      :content="codeMarkdown"
-      editor-id="submission-code-preview"
-    />
+    <MarkdownView :content="codeMarkdown" editor-id="submission-code-preview" />
   </div>
 </template>

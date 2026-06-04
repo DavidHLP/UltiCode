@@ -32,7 +32,11 @@ const emit = defineEmits<{
     >
       <div
         class="p-0.5 rounded-none bg-[var(--surface-sunken)] border border-silver/30 shadow-sm"
-        :class="modelValue === cat.value ? 'text-[var(--accent-electric)]' : 'text-muted-foreground'"
+        :class="
+          modelValue === cat.value
+            ? 'text-[var(--accent-electric)]'
+            : 'text-muted-foreground'
+        "
       >
         <component :is="cat.icon" v-if="cat.icon" class="w-2.5 h-2.5" />
       </div>

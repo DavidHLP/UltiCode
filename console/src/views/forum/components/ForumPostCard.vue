@@ -51,10 +51,14 @@ const emit = defineEmits<{
 }>();
 
 const flairClasses: Record<ForumFlairType, string> = {
-  announcement: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
-  discussion: "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
-  showcase: "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
-  question: "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
+  announcement:
+    "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+  discussion:
+    "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+  showcase:
+    "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+  question:
+    "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
   hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
 };
 
@@ -210,7 +214,9 @@ function handleCardClick(event: MouseEvent) {
 
   // Do not navigate if user clicked on any interactive element
   if (
-    target.closest("a, button, [role='button'], input, select, textarea, video, audio, .avatar-trigger, .font-bold")
+    target.closest(
+      "a, button, [role='button'], input, select, textarea, video, audio, .avatar-trigger, .font-bold",
+    )
   ) {
     return;
   }
@@ -343,7 +349,9 @@ function handleCardClick(event: MouseEvent) {
                 <div class="text-xs text-muted-foreground truncate">
                   {{ media.description }}
                 </div>
-                <div class="flex items-center gap-1 text-xs text-[var(--accent-electric)]">
+                <div
+                  class="flex items-center gap-1 text-xs text-[var(--accent-electric)]"
+                >
                   <LinkIcon class="w-3 h-3" />
                   {{ media.domain }}
                 </div>
@@ -377,7 +385,11 @@ function handleCardClick(event: MouseEvent) {
             >
               <div
                 class="prose prose-sm dark:prose-invert max-w-none p-3"
-                v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
+                v-html="
+                  sanitizeHtml(
+                    renderMarkdown(media.markdown || media.body || ''),
+                  )
+                "
               ></div>
             </div>
           </div>
@@ -416,4 +428,3 @@ function handleCardClick(event: MouseEvent) {
     </div>
   </div>
 </template>
-

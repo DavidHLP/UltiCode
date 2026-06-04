@@ -170,7 +170,9 @@ const getExampleInput = (example: BackendExample): string =>
 const getExampleOutput = (example: BackendExample): string =>
   example.output ?? example.outputText ?? example.output_text ?? "";
 
-const mapExamplesToTestCases = (examples: BackendExample[]): ProblemTestCase[] =>
+const mapExamplesToTestCases = (
+  examples: BackendExample[],
+): ProblemTestCase[] =>
   examples.map((ex, index) => ({
     id: ex.id || `case-${index}`,
     label: `Case ${index + 1}`,
@@ -243,7 +245,10 @@ export function mapProblemDetail(
           },
           reactions: [],
           viewer: response.interactions.viewer_reaction
-            ? { reaction: response.interactions.viewer_reaction as ProblemReactionType }
+            ? {
+                reaction: response.interactions
+                  .viewer_reaction as ProblemReactionType,
+              }
             : undefined,
         }
       : undefined,

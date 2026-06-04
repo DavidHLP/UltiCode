@@ -31,8 +31,10 @@ export interface Bookmark {
   metadata?: Record<string, unknown>;
 }
 
-export interface BookmarkFolderWithItems
-  extends Omit<BookmarkFolder, "itemCount"> {
+export interface BookmarkFolderWithItems extends Omit<
+  BookmarkFolder,
+  "itemCount"
+> {
   items: Bookmark[];
 }
 

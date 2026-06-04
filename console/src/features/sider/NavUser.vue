@@ -50,7 +50,7 @@ const { user, isAuthenticated } = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { } = useLocale();
+const {} = useLocale();
 const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -67,7 +67,8 @@ onMounted(async () => {
 
   try {
     await notificationStore.loadUnreadCount();
-  } catch { // Don't show error toast for notification count failures
+  } catch {
+    // Don't show error toast for notification count failures
     // It's a non-critical UI element
     // Failed to load notification count - non-critical UI element
   }
@@ -104,7 +105,9 @@ async function handleLogout() {
                 </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-medium">{{ t("auth.guest.name") }}</span>
+                <span class="truncate font-medium">{{
+                  t("auth.guest.name")
+                }}</span>
                 <span class="truncate text-xs text-muted-foreground">
                   {{ t("auth.guest.loginToContinue") }}
                 </span>
@@ -119,14 +122,18 @@ async function handleLogout() {
             :side-offset="4"
           >
             <DropdownMenuLabel class="p-0 font-normal">
-              <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <div
+                class="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
+              >
                 <Avatar class="h-8 w-8 rounded-none">
                   <AvatarFallback class="rounded-none">
                     <User class="size-4" />
                   </AvatarFallback>
                 </Avatar>
                 <div class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="truncate font-medium">{{ t("auth.guest.name") }}</span>
+                  <span class="truncate font-medium">{{
+                    t("auth.guest.name")
+                  }}</span>
                   <span class="truncate text-xs text-muted-foreground">
                     {{ t("auth.guest.loginToContinue") }}
                   </span>

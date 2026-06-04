@@ -4,13 +4,16 @@ import type { ForumComment, SolutionComment } from "@/types/comment";
 import { Lock, MessageSquare } from "lucide-vue-next";
 import CommentNode from "./CommentNode.vue";
 import CommentForm from "./CommentForm.vue";
-import { buildCommentTree, buildSolutionCommentTree } from "./comment-tree-builder";
+import {
+  buildCommentTree,
+  buildSolutionCommentTree,
+} from "./comment-tree-builder";
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
   comments: ForumComment[] | SolutionComment[];
-  commentType?: 'forum' | 'solution';
+  commentType?: "forum" | "solution";
   isLocked?: boolean;
   postAuthorUsername?: string;
 }>();
@@ -35,8 +38,11 @@ const commentTree = computed(() => {
     currentUserId: userId || undefined,
     postAuthorUsername: props.postAuthorUsername,
   };
-  if (props.commentType === 'solution') {
-    return buildSolutionCommentTree(props.comments as SolutionComment[], options);
+  if (props.commentType === "solution") {
+    return buildSolutionCommentTree(
+      props.comments as SolutionComment[],
+      options,
+    );
   }
   return buildCommentTree(props.comments as ForumComment[], options);
 });
@@ -52,11 +58,14 @@ const commentTree = computed(() => {
         <div
           class="h-8 w-8 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] flex items-center justify-center group-hover:border-[var(--accent-electric)] group-hover:text-[var(--accent-electric)] transition-all duration-200"
         >
-          <MessageSquare class="h-4 w-4 text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]" />
+          <MessageSquare
+            class="h-4 w-4 text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]"
+          />
         </div>
-        <span class="font-[family-name:var(--font-mono)] text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200">{{
-          t("forum.comments.joinConversation")
-        }}</span>
+        <span
+          class="font-[family-name:var(--font-mono)] text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200"
+          >{{ t("forum.comments.joinConversation") }}</span
+        >
       </div>
     </div>
 

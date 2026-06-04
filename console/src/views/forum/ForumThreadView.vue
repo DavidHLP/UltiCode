@@ -43,7 +43,6 @@ async function loadThread(postId: string) {
   if (!postId) return;
   isLoading.value = true;
   try {
-    
     thread.value = await fetchForumThread(postId);
   } catch (error) {
     console.error("Failed to load forum thread", error);
@@ -278,7 +277,9 @@ function handleThreadSave(isSaved: boolean) {
               @save="handleThreadSave"
             />
             <div class="px-4 sm:px-6 py-4 border-t border-border/50">
-              <h2 class="text-sm font-bold tracking-tight flex items-center gap-2">
+              <h2
+                class="text-sm font-bold tracking-tight flex items-center gap-2"
+              >
                 <MessageSquare class="h-4 w-4" />
                 {{ t("forum.comments.title") }}
                 <span class="text-muted-foreground font-normal">

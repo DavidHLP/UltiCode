@@ -93,7 +93,7 @@ function formatDate(date: Date | string): string {
         <div class="flex items-center gap-2">
           <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
           <span :class="['font-data', entityTypeColor]">
-            {{ t(`moderation.entityTypes.${entityType}`, entityType) }}
+            {{ t(`moderation.entityTypes.${entityType}`) }}
           </span>
         </div>
         <div class="flex items-center gap-2">

@@ -5,11 +5,11 @@ export default {
   initialize: "初始化",
   console: "控制台",
   coreSessionReady: "核心会话就绪",
-  titlePart1: "精密",
-  titlePart2: "编程",
-  titlePart3: "控制台",
+  titlePart1: "下一代极客的",
+  titlePart2: "算法竞技",
+  titlePart3: "与编程训练终端",
   subtitle:
-    "// UltiCode 是一个低延迟、以黑客为中心的算法竞赛终端。零冗余装饰，追求绝对计算精度。",
+    "// UltiCode 是专为程序员打造的极简、低延迟、沉浸式算法竞赛与评测系统。通过极致的控制台体验，告别花合界面，回归最纯粹的代码竞技与效能巅峰。",
   startSession: "启动会话",
   browseProblems: "浏览题库",
   systemBootStatus: "系统引导状态",
@@ -23,8 +23,8 @@ export default {
   modulesTitle: "平台模块",
   modulesSubtitle: "// 专为开发者工作流优化的工程化组件。",
 
-  judgeTitle: "精密评测机",
-  judgeDesc: "零缓冲沙箱隔离编译器，支持在 10ms 编译开销下进行快速容器化执行。",
+  judgeTitle: "精密评测机 (SANDBOX JUDGE)",
+  judgeDesc: "零缓冲沙箱隔离编译器，深度优化 Docker 运行时。支持在 10ms 编译开销下进行快速容器化执行与亚毫秒级资源统计。",
   judgeFooter: "评测延迟 < 12ms",
 
   contestsTitle: "每周竞赛",
@@ -50,9 +50,13 @@ export default {
   logHeader: "system_status.log",
 
   totalSubmissions: "提交总数 (TOTAL_SUBMISSIONS)",
+  totalSubmissionsDesc: "低延迟容器云已稳定承载百万次评测分析",
   activeSolvers24h: "24H活跃用户 (ACTIVE_SOLVERS_24H)",
+  activeSolversDesc: "万余名精英开发者在此实时比拼代码效率",
   compilationAvgMs: "平均编译耗时 (COMPILATION_AVG_MS)",
+  compilationAvgDesc: "SSD与内存集群深度优化，实现代码秒级编译",
   contestsCompleted: "已完成赛事 (CONTESTS_COMPLETED)",
+  contestsCompletedDesc: "官方与社区竞赛持续提供高质量的赛题演练",
   eventsUnit: "场活动",
 
   logInfoInit: "[INFO] 正在初始化节点组 group-04...",

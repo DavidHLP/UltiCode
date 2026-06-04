@@ -23,4 +23,25 @@ public class ContestProblemVO {
 
     @Schema(description = "Score for this problem")
     private Integer score;
+
+    @Schema(description = "Penalty per wrong submission")
+    private Integer penaltyPerWrong;
+
+    @Schema(description = "Problem title")
+    private String title;
+
+    @Schema(description = "Problem slug")
+    private String slug;
+
+    @Schema(description = "Problem difficulty")
+    private String difficulty;
+
+    @Schema(description = "Solved count for this problem in the contest")
+    private Integer solvedCount;
+
+    @Schema(description = "Submission count for this problem in the contest")
+    private Integer submissionCount;
+
+    @Schema(description = "Acceptance rate")
+    private java.math.BigDecimal acceptanceRate;
 }

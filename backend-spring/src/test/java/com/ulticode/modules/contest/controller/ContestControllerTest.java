@@ -38,14 +38,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Tests contest creation endpoint with security context.</p>
  */
 @WebMvcTest(
-        value = ContestController.class,
+        value = AdminContestController.class,
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = MapperConfig.class
         )
 )
 @AutoConfigureMockMvc(addFilters = false)
-@DisplayName("ContestController")
+@DisplayName("AdminContestController")
 class ContestControllerTest {
 
     @Autowired
@@ -92,7 +92,7 @@ class ContestControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /contest")
+    @DisplayName("POST /admin/contest")
     class CreateContestTests {
 
         @Test
@@ -105,7 +105,7 @@ class ContestControllerTest {
 
             CreateContestDTO dto = createValidDTO();
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
@@ -129,7 +129,7 @@ class ContestControllerTest {
 
             CreateContestDTO dto = createValidDTO();
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
@@ -146,7 +146,7 @@ class ContestControllerTest {
 
             CreateContestDTO dto = createValidDTO();
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isForbidden());
@@ -159,7 +159,7 @@ class ContestControllerTest {
             CreateContestDTO dto = createValidDTO();
             dto.setTitle("");
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
@@ -172,7 +172,7 @@ class ContestControllerTest {
             CreateContestDTO dto = createValidDTO();
             dto.setStartTime(LocalDateTime.now().minusDays(1));
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
@@ -185,7 +185,7 @@ class ContestControllerTest {
             CreateContestDTO dto = createValidDTO();
             dto.setDuration(3);
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
@@ -198,7 +198,7 @@ class ContestControllerTest {
             CreateContestDTO dto = createValidDTO();
             dto.setDuration(2000);
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest());
@@ -209,7 +209,7 @@ class ContestControllerTest {
         void createContest_unauthenticated() throws Exception {
             CreateContestDTO dto = createValidDTO();
 
-            mockMvc.perform(post("/contest")
+            mockMvc.perform(post("/admin/contest")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isUnauthorized());

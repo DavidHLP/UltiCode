@@ -1,7 +1,8 @@
 ---
-description: Java 设计规约 Agent Rules
-globs: "**/*.java, docs/**/*.md"
-alwaysApply: true
+paths:
+  - "**/*.java"
+  - "docs/**/*.md"
+description: Java 设计规约（存储方案、用例图、状态图、时序图、单一原则等）
 source: "Java开发手册_华山版_v1.5.0.md"
 version: "1.5.0"
 ---

@@ -70,9 +70,9 @@ async function handleLogout() {
             tooltip="User Menu"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
-            <Avatar class="h-8 w-8 grayscale">
+            <Avatar class="h-8 w-8 grayscale rounded-none" shape="square">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-              <AvatarFallback> CN </AvatarFallback>
+              <AvatarFallback class="rounded-none"> CN </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">{{ user.name }}</span>
@@ -84,6 +84,7 @@ async function handleLogout() {
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
+          variant="terminal"
           class="w-(--reka-dropdown-menu-trigger-width) min-w-56"
           :side="isMobile ? 'bottom' : 'right'"
           :side-offset="4"
@@ -91,9 +92,9 @@ async function handleLogout() {
         >
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8">
+              <Avatar class="h-8 w-8 rounded-none" shape="square">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                <AvatarFallback> CN </AvatarFallback>
+                <AvatarFallback class="rounded-none"> CN </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-medium">{{ user.name }}</span>

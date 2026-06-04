@@ -81,6 +81,10 @@ export default {
   // Stats
   stats: {
     problemManagement: 'problem management',
+    total: 'total',
+    published: 'published',
+    draft: 'draft',
+    flagged: 'flagged',
   },
 
   // Filters

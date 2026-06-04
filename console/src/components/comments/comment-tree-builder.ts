@@ -19,18 +19,16 @@ const mapToComment = (
   const userVote = resolveUserVote(input.userVote);
 
   // Get username from backend response (authorUsername) or from author object
-  const username = input.authorUsername || input.author?.username;
-  const authorId = input.authorId || input.author?.id;
+  const username = input.authorUsername || input.author?.username || "Deleted User";
+  const authorId = input.authorId || input.author?.id || "";
   const avatar = input.authorAvatar || input.author?.avatar;
 
-  // Validate required fields - these should always be present from backend
-  if (!username) {
-    console.error("Comment missing required username:", input);
-    throw new Error(`Comment ${input.id} is missing required username field`);
+  // Validate required fields - fallback to warnings instead of hard crashes
+  if (!input.authorUsername && !input.author?.username) {
+    console.warn(`Comment ${input.id} missing username, fallback to "Deleted User"`);
   }
-  if (!authorId) {
-    console.error("Comment missing required authorId:", input);
-    throw new Error(`Comment ${input.id} is missing required authorId field`);
+  if (!input.authorId && !input.author?.id) {
+    console.warn(`Comment ${input.id} missing authorId`);
   }
 
   return {
@@ -82,7 +80,7 @@ export const buildCommentTree = (
 
     if (comment.parentId && nodes.has(comment.parentId)) {
       const parent = nodes.get(comment.parentId)!;
-      nodes.set(parent.id, { ...parent, children: [...(parent.children ?? []), current] });
+      nodes.set(String(parent.id), { ...parent, children: [...(parent.children ?? []), current] });
     } else {
       roots.push(current);
     }
@@ -98,17 +96,15 @@ const mapSolutionComment = (
   const voteCounts = resolveVoteCounts(input.likes, input.dislikes);
   const userVote = resolveUserVote(input.userVote);
 
-  const username = input.authorUsername || input.author?.username;
-  const authorId = input.authorId || input.author?.id;
+  const username = input.authorUsername || input.author?.username || "Deleted User";
+  const authorId = input.authorId || input.author?.id || "";
   const avatar = input.authorAvatar || input.author?.avatar;
 
-  if (!username) {
-    console.error("Solution comment missing required username:", input);
-    throw new Error(`Comment ${input.id} is missing required username field`);
+  if (!input.authorUsername && !input.author?.username) {
+    console.warn(`Solution comment ${input.id} missing username, fallback to "Deleted User"`);
   }
-  if (!authorId) {
-    console.error("Solution comment missing required authorId:", input);
-    throw new Error(`Comment ${input.id} is missing required authorId field`);
+  if (!input.authorId && !input.author?.id) {
+    console.warn(`Solution comment ${input.id} missing authorId`);
   }
 
   return {
@@ -147,7 +143,7 @@ export const buildSolutionCommentTree = (
 
     if (comment.parentId && nodes.has(comment.parentId)) {
       const parent = nodes.get(comment.parentId)!;
-      nodes.set(parent.id, { ...parent, children: [...(parent.children ?? []), current] });
+      nodes.set(String(parent.id), { ...parent, children: [...(parent.children ?? []), current] });
     } else {
       roots.push(current);
     }

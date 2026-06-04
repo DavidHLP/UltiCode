@@ -75,14 +75,14 @@ const hasAnyContent = computed(
   <!-- Content Grid -->
   <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Test Cases -->
-    <section v-if="hasExamples" class="lg:col-span-7 rounded-none border bg-card overflow-hidden">
-      <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
+    <section v-if="hasExamples" class="lg:col-span-7 rounded-none border border-silver bg-card overflow-hidden">
+      <div class="flex items-center gap-2 p-4 border-b border-silver bg-muted/20">
         <IconFlask class="h-4 w-4 text-muted-foreground" />
         <h3 class="font-semibold text-sm">{{ t('problems.casesDisplay.examples') }}</h3>
         <Badge variant="secondary" class="ml-auto text-xs">{{ examples.length }}</Badge>
       </div>
 
-      <div class="divide-y">
+      <div class="divide-y divide-[var(--silver-200)] dark:divide-[var(--silver-300)]">
         <div
           v-for="(example, index) in examples"
           :key="example.id"
@@ -90,7 +90,7 @@ const hasAnyContent = computed(
           :class="index > 0 ? 'bg-muted/10' : ''"
         >
           <div class="flex items-center gap-2 mb-3">
-            <Badge variant="outline" class="font-mono text-xs">
+            <Badge variant="outline" class="font-data text-xs">
               {{ index + 1 }}
             </Badge>
           </div>
@@ -102,7 +102,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.input') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-none bg-slate-100 text-slate-800 overflow-x-auto border"
+                class="text-sm font-data p-3 rounded-none bg-[var(--surface-sunken)] text-[var(--foreground)] overflow-x-auto border border-silver"
                 >{{ example.input }}</pre
               >
             </div>
@@ -113,7 +113,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.output') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-none bg-slate-100 text-slate-800 overflow-x-auto border"
+                class="text-sm font-data p-3 rounded-none bg-[var(--surface-sunken)] text-[var(--foreground)] overflow-x-auto border border-silver"
                 >{{ example.output }}</pre
               >
             </div>

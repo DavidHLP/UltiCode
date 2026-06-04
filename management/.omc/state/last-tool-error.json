@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk find /home/davidhlp/project/UltiCode-Public-Next/.omc/state -type f -name \\\"cancel-signal-state.json\\\" -exec sh -c 'echo \\\"{\\\\\\\"active\\\\\\\":false,\\\\\\\"requested_at\\\\\\\":\\\\\\\"2026-05-05T14:...",
-  "error": "Exit code 1\nrtk: rtk find does not support compound predicates or actions (e.g. -not, -exec). Use `find` directly.",
-  "timestamp": "2026-05-05T14:10:55.917Z",
-  "retry_count": 1
-}

@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd backend-spring && timeout 120 ./mvnw test -Dtest=AchievementServiceTest 2>&1 | grep -E \\\"Tests run|BUILD|FAILURE\\\" | tail -5\"}",
-  "error": "Exit code 1\n/bin/bash: 第 1 行：cd: backend-spring: 没有那个文件或目录",
-  "timestamp": "2026-04-22T05:32:28.221Z",
-  "retry_count": 1
-}

@@ -121,6 +121,7 @@ public class SubmissionVO {
     public static class UserInfo {
         private String id;
         private String username;
+        private String name;
         private String avatar;
     }
 

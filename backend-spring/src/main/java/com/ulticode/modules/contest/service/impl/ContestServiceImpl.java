@@ -24,6 +24,8 @@ import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
+import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -57,6 +59,7 @@ public class ContestServiceImpl implements ContestService {
     private final AchievementTriggerService achievementTriggerService;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
+    private final ProblemMapper problemMapper;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -140,7 +143,11 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     public ContestVO getContestById(String id, String userId) {
-        return toVO(findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND)), userId);
+        Contest contest = findById(id).orElse(null);
+        if (contest == null) {
+            contest = findBySlug(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        }
+        return toVO(contest, userId);
     }
 
     @Override
@@ -153,6 +160,13 @@ public class ContestServiceImpl implements ContestService {
                 .map(cp -> {
                     ContestProblemVO vo = new ContestProblemVO();
                     BeanUtils.copyProperties(cp, vo);
+                    Problem problem = problemMapper.selectById(cp.getProblemId());
+                    if (problem != null) {
+                        vo.setTitle(problem.getTitle());
+                        vo.setSlug(problem.getSlug());
+                        vo.setDifficulty(problem.getDifficulty());
+                        vo.setAcceptanceRate(problem.getAcceptanceRate());
+                    }
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -568,6 +582,7 @@ public class ContestServiceImpl implements ContestService {
         vo.setUserId(ranking.getUserId());
         vo.setUsername(ranking.getUsername());
         vo.setAvatar(ranking.getAvatar());
+        vo.setName(ranking.getName());
         vo.setScore(ranking.getRating().longValue());
         vo.setProblemsSolved(ranking.getContestsAttended());
         vo.setCountry(ranking.getCountry());

@@ -7,9 +7,11 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
+import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
+import java.util.Optional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -209,9 +211,10 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         // Get optional userId for user-specific fields
         String userId = SecurityUtil.getCurrentUserId();
-        ContestVO contest = contestService.getContestById(id, userId);
+        ContestVO contest = contestService.getContestById(resolvedId, userId);
         return Result.success(contest);
     }
 
@@ -230,7 +233,8 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
-        List<ContestProblemVO> problems = contestService.getContestProblems(id);
+        String resolvedId = resolveContestId(id);
+        List<ContestProblemVO> problems = contestService.getContestProblems(resolvedId);
         return Result.success(problems);
     }
 
@@ -249,7 +253,8 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
-        List<ContestAnnouncement> announcements = contestService.getContestAnnouncements(id);
+        String resolvedId = resolveContestId(id);
+        List<ContestAnnouncement> announcements = contestService.getContestAnnouncements(resolvedId);
         return Result.success(announcements);
     }
 
@@ -274,7 +279,8 @@ public class ContestController {
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false, defaultValue = "50") Integer limit) {
 
-        PageResult<ContestRankingVO> result = rankingService.getContestRanking(id, page, limit);
+        String resolvedId = resolveContestId(id);
+        PageResult<ContestRankingVO> result = rankingService.getContestRanking(resolvedId, page, limit);
         return Result.success(result);
     }
 
@@ -297,7 +303,8 @@ public class ContestController {
             @Parameter(description = "Maximum number of rankings to return")
             @RequestParam(required = false, defaultValue = "100") Integer limit) {
 
-        List<LiveRankingEntryVO> rankings = rankingService.getLiveRanking(id, limit);
+        String resolvedId = resolveContestId(id);
+        List<LiveRankingEntryVO> rankings = rankingService.getLiveRanking(resolvedId, limit);
         return Result.success(rankings);
     }
 
@@ -324,8 +331,9 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        contestService.registerForContest(id, userId);
+        contestService.registerForContest(resolvedId, userId);
         return Result.success();
     }
 
@@ -348,8 +356,9 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        contestService.unregisterFromContest(id, userId);
+        contestService.unregisterFromContest(resolvedId, userId);
         return Result.success();
     }
 
@@ -370,8 +379,9 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        ParticipationStatusDTO status = contestService.getParticipationStatus(id, userId);
+        ParticipationStatusDTO status = contestService.getParticipationStatus(resolvedId, userId);
         return Result.success(status);
     }
 
@@ -398,8 +408,9 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        ParticipationStatusDTO status = contestService.startVirtualContest(id, userId);
+        ParticipationStatusDTO status = contestService.startVirtualContest(resolvedId, userId);
         return Result.success(status);
     }
 
@@ -420,8 +431,9 @@ public class ContestController {
             @Parameter(description = "Contest ID")
             @PathVariable String id) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        ParticipationStatusDTO status = contestService.getVirtualSession(id, userId);
+        ParticipationStatusDTO status = contestService.getVirtualSession(resolvedId, userId);
         return Result.success(status);
     }
 
@@ -447,8 +459,9 @@ public class ContestController {
             @Parameter(description = "Virtual session ID")
             @RequestParam String sessionId) {
 
+        String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();
-        contestService.finishVirtualContest(id, sessionId, userId);
+        contestService.finishVirtualContest(resolvedId, sessionId, userId);
         return Result.success();
     }
 
@@ -497,6 +510,25 @@ public class ContestController {
     // =========================================================================
     // HELPER METHODS
     // =========================================================================
+
+    /**
+     * Resolve a contest ID or slug to the actual database contest ID.
+     *
+     * @param idOrSlug the contest ID or slug
+     * @return the database contest ID, or the original value if not found
+     */
+    private String resolveContestId(String idOrSlug) {
+        if (idOrSlug == null) {
+            return null;
+        }
+        Optional<Contest> contestOpt = contestService.findById(idOrSlug);
+        if (contestOpt.isPresent()) {
+            return contestOpt.get().getId();
+        }
+        return contestService.findBySlug(idOrSlug)
+                .map(Contest::getId)
+                .orElse(idOrSlug);
+    }
 
     /**
      * Get the current authenticated user's ID or throw an exception.

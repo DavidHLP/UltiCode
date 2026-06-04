@@ -59,6 +59,9 @@ public class GlobalRanking {
      */
     private String ratingTitle;
 
+    @TableField(exist = false)
+    private String name;
+
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 }

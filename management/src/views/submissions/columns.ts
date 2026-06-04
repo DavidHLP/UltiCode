@@ -13,6 +13,28 @@ export interface SubmissionActions {
 }
 
 /**
+ * Normalize submission status to uppercase with underscores for consistent lookup
+ * Backend may return lowercase or mixed case status values with spaces
+ * e.g., "WRONG ANSWER" -> "WRONG_ANSWER"
+ */
+function normalizeStatus(status: string): string {
+  return status.toUpperCase().replace(/\s+/g, '_')
+}
+
+/**
+ * Get translated status label with fallback to original status
+ * Handles cases where i18n key might not exist
+ */
+function getStatusLabel(t: (key: string) => string, status: string): string {
+  const normalizedStatus = normalizeStatus(status)
+  const key = `submissions.statusLabels.${normalizedStatus}`
+  const translated = t(key)
+  // If translation returns the key itself, it means translation is missing
+  // Return the normalized status as fallback
+  return translated === key ? normalizedStatus : translated
+}
+
+/**
  * Format runtime from milliseconds to human-readable string
  * Handles null/undefined values
  */
@@ -102,12 +124,14 @@ export function createColumns(
     {
       accessorKey: 'status',
       header: () => t('submissions.status'),
-      cell: ({ row }) =>
-        badge({
-          color: SUBMISSION_STATUS_COLOR_MAP[row.original.status] ?? 'neutral',
-          label: row.original.status,
-          pulse: row.original.status === 'PENDING' || row.original.status === 'JUDGING',
-        }),
+      cell: ({ row }) => {
+        const normalizedStatus = normalizeStatus(row.original.status)
+        return badge({
+          color: SUBMISSION_STATUS_COLOR_MAP[normalizedStatus] ?? 'neutral',
+          label: getStatusLabel(t, row.original.status),
+          pulse: normalizedStatus === 'PENDING' || normalizedStatus === 'JUDGING',
+        })
+      },
     },
     {
       accessorKey: 'runtime',

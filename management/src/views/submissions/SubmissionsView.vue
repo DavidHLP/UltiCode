@@ -21,7 +21,7 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, formatRuntime, formatMemory } from './columns'
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const store = useSubmissionsStore()
 
 // Filters
@@ -65,7 +65,10 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[140px]',
     options: [
       { value: 'all', label: t('submissions.allStatuses') },
-      ...store.statuses.map((s) => ({ value: s.key, label: s.label })),
+      ...store.statuses.map((s) => ({
+        value: s.key,
+        label: te(`submissions.statusLabels.${s.key}`) ? t(`submissions.statusLabels.${s.key}`) : s.label,
+      })),
     ],
   },
   {
@@ -288,7 +291,7 @@ const columns = createColumns(t, {
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1">
+    <div class="flex-1 min-h-0">
       <DataTable
         :columns="columns"
         :data="data"
@@ -373,7 +376,13 @@ const columns = createColumns(t, {
             <Label class="terminal-label text-[var(--silver-500)]">{{
               t('submissions.status')
             }}</Label>
-            <p class="font-data text-sm mt-1">{{ selectedSubmission.status }}</p>
+            <p class="font-data text-sm mt-1">
+              {{
+                te(`submissions.statusLabels.${selectedSubmission.status.toUpperCase()}`)
+                  ? t(`submissions.statusLabels.${selectedSubmission.status.toUpperCase()}`)
+                  : selectedSubmission.status
+              }}
+            </p>
           </div>
           <div>
             <Label class="terminal-label text-[var(--silver-500)]">{{

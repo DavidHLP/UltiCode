@@ -12,6 +12,8 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
+import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -349,6 +351,50 @@ class SubmissionServiceImplIT {
             assertThat(persisted).isNotNull();
             assertThat(persisted.getStatus()).isEqualTo("System Error");
             assertThat(persisted.getNotes()).contains("Judge queue unavailable");
+        }
+    }
+
+    @Nested
+    @DisplayName("findByProblemId() - integration")
+    class FindByProblemIdIntegration {
+
+        @Test
+        @DisplayName("returns paginated submissions for current user without mapper errors")
+        void findByProblemId_persistedSubmission_returnsListItemsFromMySQL() {
+            userMapper.insert(createTestUser());
+            problemMapper.insert(createTestProblem());
+
+            Submission submission = new Submission();
+            submission.setId("sub-it-problem-1");
+            submission.setUserId(USER_ID);
+            submission.setProblemId(PROBLEM_ID);
+            submission.setLanguage(LANGUAGE);
+            submission.setCode(CODE);
+            submission.setStatus("Accepted");
+            submission.setRuntime(42);
+            submission.setMemory(16.5);
+            submission.setRetryCount(0);
+            submission.setCreatedAt(LocalDateTime.now());
+            submission.setTestDetails(new ArrayList<>());
+            submissionMapper.insert(submission);
+
+            SubmissionQueryDTO query = new SubmissionQueryDTO();
+            query.setPage(1);
+            query.setPageSize(10);
+
+            var result = submissionService.findByProblemId(PROBLEM_ID, USER_ID, query);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getItems()).hasSize(1);
+
+            SubmissionListItemVO item = result.getItems().get(0);
+            assertThat(item.getId()).isEqualTo("sub-it-problem-1");
+            assertThat(item.getLanguage()).isEqualTo(LANGUAGE);
+            assertThat(item.getStatus()).isEqualTo("Accepted");
+            assertThat(item.getProblem()).isNotNull();
+            assertThat(item.getProblem().getId()).isEqualTo(PROBLEM_ID);
+            assertThat(item.getProblem().getTitle()).isEqualTo("IT Problem");
+            assertThat(item.getProblem().getSlug()).isEqualTo("it-problem");
         }
     }
 

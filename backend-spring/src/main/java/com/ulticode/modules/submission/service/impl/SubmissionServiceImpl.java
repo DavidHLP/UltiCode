@@ -317,6 +317,40 @@ public class SubmissionServiceImpl implements SubmissionService {
         SubmissionDetailVO vo = new SubmissionDetailVO();
         BeanUtils.copyProperties(baseVo, vo);
 
+        // Map UserInfo explicitly due to type differences
+        if (baseVo.getUser() != null) {
+            SubmissionDetailVO.UserInfo userInfo = new SubmissionDetailVO.UserInfo();
+            userInfo.setId(baseVo.getUser().getId());
+            userInfo.setUsername(baseVo.getUser().getUsername());
+            userInfo.setName(baseVo.getUser().getName());
+            userInfo.setAvatar(baseVo.getUser().getAvatar());
+            vo.setUser(userInfo);
+        }
+
+        // Map ProblemInfo explicitly due to type differences
+        if (baseVo.getProblem() != null) {
+            SubmissionDetailVO.ProblemInfo problemInfo = new SubmissionDetailVO.ProblemInfo();
+            problemInfo.setId(baseVo.getProblem().getId());
+            problemInfo.setTitle(baseVo.getProblem().getTitle());
+            problemInfo.setSlug(baseVo.getProblem().getSlug());
+            vo.setProblem(problemInfo);
+        }
+
+        // Map TestResult list explicitly due to type differences
+        if (baseVo.getTests() != null) {
+            java.util.List<SubmissionDetailVO.TestResult> tests = baseVo.getTests().stream()
+                    .map(t -> {
+                        SubmissionDetailVO.TestResult r = new SubmissionDetailVO.TestResult();
+                        r.setId(t.getId());
+                        r.setStatus(t.getStatus());
+                        r.setRuntime(t.getRuntime());
+                        r.setMemory(t.getMemory());
+                        return r;
+                    })
+                    .toList();
+            vo.setTests(tests);
+        }
+
         // Detail-only fields
         vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
 
@@ -351,6 +385,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
             userInfo.setId(user.getId());
             userInfo.setUsername(user.getUsername());
+            userInfo.setName(user.getName());
             userInfo.setAvatar(user.getAvatar());
             vo.setUser(userInfo);
         }
@@ -433,6 +468,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
             userInfo.setId(user.getId());
             userInfo.setUsername(user.getUsername());
+            userInfo.setName(user.getName());
             userInfo.setAvatar(user.getAvatar());
             vo.setUser(userInfo);
         }

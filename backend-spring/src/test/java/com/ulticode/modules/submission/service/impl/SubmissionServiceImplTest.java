@@ -1,11 +1,14 @@
 package com.ulticode.modules.submission.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
+import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -178,6 +181,58 @@ class SubmissionServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("findByProblemId()")
+    class FindByProblemId {
+
+        @Test
+        @DisplayName("maps joined submissions to lightweight list items")
+        void findByProblemId_joinedSubmission_returnsListItem() {
+            SubmissionMapper.SubmissionWithProblem row = new SubmissionMapper.SubmissionWithProblem(
+                    "sub-123",
+                    PROBLEM_ID,
+                    USER_ID,
+                    LANGUAGE,
+                    CODE,
+                    "Accepted",
+                    42,
+                    16.5,
+                    "ok",
+                    0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Test Problem",
+                    "test-problem"
+            );
+            Page<SubmissionMapper.SubmissionWithProblem> page = new Page<>(1, 10);
+            page.setRecords(List.of(row));
+            page.setTotal(1);
+
+            when(submissionMapper.findByProblemIdWithProblem(eq(PROBLEM_ID), eq(USER_ID), any()))
+                    .thenReturn(page);
+
+            SubmissionQueryDTO query = new SubmissionQueryDTO();
+            query.setPage(1);
+            query.setPageSize(10);
+
+            var result = submissionService.findByProblemId(PROBLEM_ID, USER_ID, query);
+
+            assertThat(result.getItems()).hasSize(1);
+            SubmissionListItemVO item = result.getItems().get(0);
+            assertThat(item.getId()).isEqualTo("sub-123");
+            assertThat(item.getStatus()).isEqualTo("Accepted");
+            assertThat(item.getLanguage()).isEqualTo(LANGUAGE);
+            assertThat(item.getProblem()).isNotNull();
+            assertThat(item.getProblem().getId()).isEqualTo(PROBLEM_ID);
+            assertThat(item.getProblem().getTitle()).isEqualTo("Test Problem");
+            assertThat(item.getProblem().getSlug()).isEqualTo("test-problem");
         }
     }
 

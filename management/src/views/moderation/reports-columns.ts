@@ -86,7 +86,7 @@ const entityTypeColors: Record<ModeratableEntityType, string> = {
 function renderStatusBadge(status: ReportStatus, t: (key: string, fallback?: string) => string) {
   return badge({
     color: REPORT_STATUS_COLOR_MAP[status] ?? 'neutral',
-    label: t(`moderation.reportStatus.${status}`, status),
+    label: t(`moderation.reportStatus.${status}`),
     icon: REPORT_STATUS_ICON_MAP[status],
   })
 }
@@ -97,7 +97,7 @@ function renderCategoryBadge(
 ) {
   return badge({
     color: CATEGORY_COLOR_MAP[category] ?? 'neutral',
-    label: t(`moderation.categories.${category}`, category),
+    label: t(`moderation.categories.${category}`),
     icon: CATEGORY_ICON_MAP[category],
     size: 'sm',
   })
@@ -193,7 +193,7 @@ export function createReportsColumns(
         return h(
           'span',
           { class: ['font-data text-xs', entityTypeColors[entityType]] },
-          t(`moderation.entityTypes.${entityType}`, entityType),
+          t(`moderation.entityTypes.${entityType}`),
         )
       },
     },

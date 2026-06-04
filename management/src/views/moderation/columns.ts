@@ -106,7 +106,7 @@ function renderStatusBadge(
 ) {
   return badge({
     color: MODERATION_STATUS_COLOR_MAP[status] ?? 'neutral',
-    label: t(`moderation.status.${status}`, status),
+    label: t(`moderation.status.${status}`),
     icon: STATUS_ICON_MAP[status],
   })
 }
@@ -123,7 +123,7 @@ function renderCategoryBadge(
   const config = CATEGORY_CONFIG[category]
   return badge({
     color: config.color,
-    label: t(`moderation.categories.${category}`, category),
+    label: t(`moderation.categories.${category}`),
     icon: config.icon,
     size: 'sm',
   })
@@ -341,7 +341,7 @@ export function createColumns(
         return h(
           'span',
           { class: `font-data text-xs ${colorClass}` },
-          t(`moderation.actions.${resolution}`, resolution as string),
+          t(`moderation.actions.${resolution}`),
         )
       },
     },

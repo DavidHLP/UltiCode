@@ -155,23 +155,24 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
 
 /* Inline Code - Pill Style */
 .description-markdown :deep(.markdown-content code) {
-  font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', ui-monospace, monospace;
   font-size: 0.85em;
-  background-color: var(--muted);
+  background-color: var(--surface-sunken);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
+  border-radius: 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 /* Code Blocks */
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--muted);
-  border-radius: 0.5rem;
+  background-color: var(--surface-sunken);
+  border-radius: 0;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
+  border: 1px solid var(--border);
 }
 
 .description-markdown :deep(.markdown-content pre code) {
@@ -206,22 +207,17 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   overflow-y: hidden;
 }
 
-/* Dark mode tweaks */
-.dark .description-markdown :deep(.markdown-content code) {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
 /* Code Tabs Styles */
 .description-markdown :deep(.lc-code-tabs) {
   margin: 1rem 0;
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: 0;
   overflow: hidden;
 }
 
 .description-markdown :deep(.lc-tabs-header) {
   display: flex;
-  background: var(--muted);
+  background: var(--surface-sunken);
   border-bottom: 1px solid var(--border);
 }
 
@@ -274,9 +270,9 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
-  background: var(--muted);
+  background: var(--surface-sunken);
   border: 1px solid var(--border);
-  border-radius: 0.25rem;
+  border-radius: 0;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s;

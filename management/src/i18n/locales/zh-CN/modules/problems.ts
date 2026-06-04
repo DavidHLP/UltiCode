@@ -81,6 +81,10 @@ export default {
   // 统计
   stats: {
     problemManagement: '题目管理',
+    total: '总计',
+    published: '已发布',
+    draft: '草稿',
+    flagged: '被标记',
   },
 
   // 筛选器

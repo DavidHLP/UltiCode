@@ -9,12 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "vue-sonner";
-import {
-  Trophy,
-  Calendar,
-  Clock,
-  Users,
-} from "lucide-vue-next";
+import { Trophy, Calendar, Clock, Users } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import VirtualContestTimer from "../components/VirtualContestTimer.vue";
 import ContestHeader from "./components/ContestHeader.vue";
@@ -54,10 +49,7 @@ const {
 } = useContestStatus(contest, isRegistered);
 
 const contestIdRef = computed(() => contestId);
-const {
-  rankings,
-  getCountryFlag,
-} = useContestRankings(contestIdRef, contest);
+const { rankings, getCountryFlag } = useContestRankings(contestIdRef, contest);
 
 onMounted(async () => {
   try {
@@ -72,8 +64,10 @@ onMounted(async () => {
     if (problemsResult.status === "fulfilled") {
       contestProblems.value = problemsResult.value;
     }
-  } catch {
-    // Error handled by UI state
+  } catch (err) {
+    // Log error for debugging
+    console.error("Failed to load contest details:", err);
+    // Error handled by UI state - contest will be null and loading will be false
   }
 });
 
@@ -176,13 +170,19 @@ function getErrorMessage(error: unknown, fallback: string) {
 
       <!-- Contest Info Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card class="border-none shadow-sm bg-primary/5 hover:bg-primary/5 transition-colors">
+        <Card
+          class="border-none shadow-sm bg-primary/5 hover:bg-primary/5 transition-colors"
+        >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary shadow-sm">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary shadow-sm"
+              >
                 <Calendar class="h-5 w-5" />
               </div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <p
+                class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+              >
                 {{ t("contest.detail.startTime") }}
               </p>
             </div>
@@ -192,13 +192,19 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-[var(--terminal-amber)]/5 hover:bg-[var(--terminal-amber)]/5 transition-colors">
+        <Card
+          class="border-none shadow-sm bg-[var(--terminal-amber)]/5 hover:bg-[var(--terminal-amber)]/5 transition-colors"
+        >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] shadow-sm">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] shadow-sm"
+              >
                 <Clock class="h-5 w-5" />
               </div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <p
+                class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+              >
                 {{ t("contest.detail.duration") }}
               </p>
             </div>
@@ -209,13 +215,19 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-[var(--terminal-green)]/5 hover:bg-[var(--terminal-green)]/5 transition-colors">
+        <Card
+          class="border-none shadow-sm bg-[var(--terminal-green)]/5 hover:bg-[var(--terminal-green)]/5 transition-colors"
+        >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] shadow-sm">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] shadow-sm"
+              >
                 <Users class="h-5 w-5" />
               </div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <p
+                class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+              >
                 {{ t("contest.detail.participants") }}
               </p>
             </div>
@@ -225,20 +237,26 @@ function getErrorMessage(error: unknown, fallback: string) {
           </CardContent>
         </Card>
 
-        <Card class="border-none shadow-sm bg-[var(--accent-electric)]/5 hover:bg-[var(--accent-electric)]/5 transition-colors">
+        <Card
+          class="border-none shadow-sm bg-[var(--accent-electric)]/5 hover:bg-[var(--accent-electric)]/5 transition-colors"
+        >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] shadow-sm">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] shadow-sm"
+              >
                 <Trophy class="h-5 w-5" />
               </div>
-              <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <p
+                class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+              >
                 {{ t("contest.types.title") }}
               </p>
             </div>
             <p class="text-base font-bold truncate pl-1">
               {{
-                (contest.isRated)
-                  ? t("contest.list.rated")
+                contest.isRated
+                  ? t("contest.types.rated")
                   : t("contest.types.unrated")
               }}
             </p>
@@ -246,14 +264,21 @@ function getErrorMessage(error: unknown, fallback: string) {
         </Card>
       </div>
 
-      <Card v-if="contest.rules" class="border-none shadow-sm overflow-hidden rounded-none">
+      <Card
+        v-if="contest.rules"
+        class="border-none shadow-sm overflow-hidden rounded-none"
+      >
         <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-lg font-black uppercase tracking-widest text-muted-foreground">
+          <CardTitle
+            class="text-lg font-black uppercase tracking-widest text-muted-foreground"
+          >
             {{ t("contest.detail.rules") }}
           </CardTitle>
         </CardHeader>
         <CardContent class="p-6">
-          <p class="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
+          <p
+            class="text-sm text-muted-foreground whitespace-pre-line leading-relaxed"
+          >
             {{ contest.rules }}
           </p>
         </CardContent>
@@ -262,16 +287,16 @@ function getErrorMessage(error: unknown, fallback: string) {
       <!-- Main Content Area -->
       <Tabs default-value="problems" class="w-full">
         <div class="flex items-center justify-between mb-6">
-          <TabsList class="bg-muted/50 p-1 h-11 rounded-full">
+          <TabsList class="bg-muted/50 p-1 h-11 rounded-none">
             <TabsTrigger
               value="problems"
-              class="rounded-full px-8 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              class="rounded-none px-8 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               {{ t("contest.detail.problems") }}
             </TabsTrigger>
             <TabsTrigger
               value="ranking"
-              class="rounded-full px-8 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              class="rounded-none px-8 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               {{ t("contest.detail.ranking") }}
             </TabsTrigger>

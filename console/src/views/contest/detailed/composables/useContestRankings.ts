@@ -1,15 +1,22 @@
 import { ref, watch, onUnmounted, type Ref } from "vue";
-import type { ContestDetail, ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
+import type {
+  ContestDetail,
+  ContestRankingEntry,
+  LiveRankingEntry,
+} from "@/types/contest";
 import { fetchContestRanking, fetchLiveRanking } from "@/api/contest";
 
-export function useContestRankings(contestId: Ref<string>, contest: Ref<ContestDetail | null>) {
+export function useContestRankings(
+  contestId: Ref<string>,
+  contest: Ref<ContestDetail | null>,
+) {
   const rankings = ref<(ContestRankingEntry | LiveRankingEntry)[]>([]);
   let rankingIntervalId: number | null = null;
 
   async function loadRankings() {
     if (!contest.value) return;
     try {
-      if (contest.value.status === "running") {
+      if (contest.value.status === "RUNNING") {
         rankings.value = await fetchLiveRanking(contestId.value);
         return;
       }
@@ -30,7 +37,7 @@ export function useContestRankings(contestId: Ref<string>, contest: Ref<ContestD
         clearInterval(rankingIntervalId);
         rankingIntervalId = null;
       }
-      if (value.status === "running") {
+      if (value.status === "RUNNING") {
         rankingIntervalId = window.setInterval(loadRankings, 30000);
       }
     },

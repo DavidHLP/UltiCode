@@ -84,7 +84,10 @@ onMounted(loadRankings);
           :class="{
             'bg-background shadow-[var(--shadow-float)]': scope === 'global',
           }"
-          @click="scope = 'global'; loadRankings()"
+          @click="
+            scope = 'global';
+            loadRankings();
+          "
         >
           <Globe class="h-4 w-4" />
           <span>{{ t("contest.rankings.global") }}</span>
@@ -96,7 +99,10 @@ onMounted(loadRankings);
             'bg-background shadow-[var(--shadow-float)]': scope === 'local',
           }"
           :disabled="!hasUserCountry"
-          @click="scope = 'local'; loadRankings()"
+          @click="
+            scope = 'local';
+            loadRankings();
+          "
         >
           <MapPin class="h-4 w-4" />
           <span>{{ t("contest.rankings.local") }}</span>

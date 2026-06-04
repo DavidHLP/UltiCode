@@ -2,7 +2,10 @@ import { ref, computed, watch, onUnmounted, type Ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail } from "@/types/contest";
 
-export function useContestStatus(contest: Ref<ContestDetail | null>, isRegistered: Ref<boolean>) {
+export function useContestStatus(
+  contest: Ref<ContestDetail | null>,
+  isRegistered: Ref<boolean>,
+) {
   const { t } = useI18n();
 
   const statusCountdown = ref("00:00:00");
@@ -84,7 +87,10 @@ export function useContestStatus(contest: Ref<ContestDetail | null>, isRegistere
       statusLabel.value = t("contest.virtual.timeRemaining");
       statusCountdown.value = formatCountdown(remaining);
       statusHint.value = t("contest.detail.submissionsLive");
-      statusProgress.value = Math.min(100, Math.max(0, (elapsed / total) * 100));
+      statusProgress.value = Math.min(
+        100,
+        Math.max(0, (elapsed / total) * 100),
+      );
       return;
     }
 

@@ -56,7 +56,7 @@ const { t } = useI18n();
             <p
               class="text-xs font-bold truncate w-full text-[var(--foreground)] mt-1"
             >
-              {{ rankings[1].username }}
+              {{ rankings[1].name || rankings[1].username }}
             </p>
             <RatingBadge :rating="rankings[1].rating" size="sm" />
             <div
@@ -98,7 +98,7 @@ const { t } = useI18n();
             <p
               class="text-sm font-black truncate w-full text-[var(--terminal-amber)] mt-1"
             >
-              {{ rankings[0].username }}
+              {{ rankings[0].name || rankings[0].username }}
             </p>
             <RatingBadge :rating="rankings[0].rating" size="sm" />
             <div
@@ -140,7 +140,7 @@ const { t } = useI18n();
             <p
               class="text-xs font-bold truncate w-full text-[var(--terminal-amber)] mt-1"
             >
-              {{ rankings[2].username }}
+              {{ rankings[2].name || rankings[2].username }}
             </p>
             <RatingBadge :rating="rankings[2].rating" size="sm" />
             <div
@@ -175,7 +175,7 @@ const { t } = useI18n();
               <p
                 class="truncate text-sm font-medium group-hover:text-primary transition-colors"
               >
-                {{ user.username }}
+                {{ user.name || user.username }}
               </p>
               <p class="text-xs text-muted-foreground">
                 {{

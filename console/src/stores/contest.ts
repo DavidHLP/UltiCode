@@ -60,7 +60,10 @@ export const useContestStore = defineStore("contest", () => {
 
   const isRegistered = computed(() => (contestId: string) => {
     const participation = userParticipation.value.get(contestId);
-    return participation?.status === "REGISTERED" || participation?.status === "STARTED";
+    return (
+      participation?.status === "REGISTERED" ||
+      participation?.status === "STARTED"
+    );
   });
 
   const isInVirtualContest = computed(

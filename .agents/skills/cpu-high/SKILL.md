@@ -1,6 +1,6 @@
 ---
 name: arthas-cpu-high
-description: 排查 JVM / 应用 CPU 飙高（线程定位 + 代码路径分析）
+description: Diagnose JVM / application CPU spikes via thread identification and code path analysis using Arthas
 ---
 
 # JVM CPU 飙高排查指南（Arthas）
@@ -18,7 +18,7 @@ description: 排查 JVM / 应用 CPU 飙高（线程定位 + 代码路径分析�
 
 - 使用 `thread` 找出最忙的前 N 个线程并打印堆栈：
   - 例如：`topN=3` 或 `topN=5`
-- 记录每个热点线程的 `threadId` 与堆栈关键方法名（可用 `take_notes` 记录证据）。
+- 记录每个热点线程的 `threadId` 与堆栈关键方法名。
 
 判断方向：
 - 如果堆栈显示在 `java.util.regex`、JSON 序列化、日志格式化等：可能是 CPU 密集计算。
@@ -36,4 +36,3 @@ description: 排查 JVM / 应用 CPU 飙高（线程定位 + 代码路径分析�
 - 现象与证据：dashboard 摘要 + topN 线程堆栈关键片段
 - 初步结论：CPU 主要消耗在什么类型的逻辑（计算/锁/GC/日志等）
 - 下一步：建议进一步 trace/watch 的目标方法（给出类名+方法名的精确范围），或建议用户提供主包名/关键接口信息以继续收敛
-

@@ -1,13 +1,10 @@
 ---
 name: mockito5-lombok-constructor-injection
-description: "Mockito 5 @InjectMocks with Lombok @RequiredArgsConstructor requires all constructor args to have @Mock fields"
-user-invocable: false
-origin: auto-extracted
+description: Mockito 5 @InjectMocks with Lombok @RequiredArgsConstructor requires all constructor args to have @Mock fields. Trigger when tests throw NPE after adding a new dependency.
 ---
 
 # Mockito 5 @InjectMocks with Lombok @RequiredArgsConstructor
 
-**Extracted:** 2026-05-16
 **Context:** Adding new constructor-injected dependencies to a Spring Boot service using Lombok, existing Mockito tests fail
 
 ## Problem

@@ -48,6 +48,25 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
+function getSubmissionLabel(status: string): string {
+  const normalized = status.toUpperCase().replace(/\s+/g, "_");
+  const map: Record<string, string> = {
+    ACCEPTED: "submission.status.accepted",
+    WRONG_ANSWER: "submission.status.wrongAnswer",
+    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+    RUNTIME_ERROR: "submission.status.runtimeError",
+    COMPILE_ERROR: "submission.status.compileError",
+    PRESENTATION_ERROR: "submission.status.presentationError",
+    SYSTEM_ERROR: "submission.status.systemError",
+    JUDGING: "submission.status.judging",
+    PENDING: "submission.status.pending",
+  };
+  const key = map[normalized];
+  return key ? t(key) : status;
+}
+
 const decoratedSubmissions = computed(() => {
   return props.submissions;
 });
@@ -124,7 +143,7 @@ const showLoginPrompt = computed(
               <TableCell class="font-medium">
                 <SemanticBadge
                   :color="getSubmissionColor(submission.status)"
-                  :label="submission.status"
+                  :label="getSubmissionLabel(submission.status)"
                   size="xs"
                 />
               </TableCell>

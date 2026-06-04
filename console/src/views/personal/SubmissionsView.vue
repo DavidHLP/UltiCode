@@ -122,6 +122,25 @@ const getStatusColorClass = (status: SubmissionRecord["status"]) => {
   }
 };
 
+const getSubmissionLabel = (status: string): string => {
+  const normalized = status.toUpperCase().replace(/\s+/g, "_");
+  const map: Record<string, string> = {
+    ACCEPTED: "submission.status.accepted",
+    WRONG_ANSWER: "submission.status.wrongAnswer",
+    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+    RUNTIME_ERROR: "submission.status.runtimeError",
+    COMPILE_ERROR: "submission.status.compileError",
+    PRESENTATION_ERROR: "submission.status.presentationError",
+    SYSTEM_ERROR: "submission.status.systemError",
+    JUDGING: "submission.status.judging",
+    PENDING: "submission.status.pending",
+  };
+  const key = map[normalized];
+  return key ? t(key) : status;
+};
+
 const handleRowClick = (submission: SubmissionRecord) => {
   if (submission.problem?.slug) {
     router.push(`/problems/${submission.problem.slug}`);
@@ -223,7 +242,7 @@ onMounted(async () => {
               :is="getStatusIcon((item as SubmissionRecord).status)"
               class="h-3.5 w-3.5"
             />
-            {{ (item as SubmissionRecord).status }}
+            {{ getSubmissionLabel((item as SubmissionRecord).status) }}
           </Badge>
         </template>
 

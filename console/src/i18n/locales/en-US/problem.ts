@@ -438,6 +438,10 @@ export default {
   // Sidebar
   sidebar: {
     dailyChallenge: "Daily Challenge",
+    completed: "Completed",
+    daysUnit: "days",
+    legendCompleted: "Completed",
+    legendToday: "Today",
   },
 
   // Table

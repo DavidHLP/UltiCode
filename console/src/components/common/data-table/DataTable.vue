@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { SearchX } from "lucide-vue-next";
 import { useVirtualizer } from "@tanstack/vue-virtual";
+import { cn } from "@/lib/utils";
 
 export interface ColumnDef {
   key: string;
@@ -137,11 +138,11 @@ const getItemAtIndex = (index: number): T => {
       <Table>
         <TableHeader class="sticky top-0 bg-background z-10">
           <slot name="header">
-            <TableRow v-if="hasColumnDefinitions">
+            <TableRow v-if="hasColumnDefinitions" class="border-b border-border">
               <TableHead
                 v-for="col in columns"
                 :key="col.key"
-                :class="col.headerClass"
+                :class="['font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60', col.headerClass]"
               >
                 {{ col.header }}
               </TableHead>
@@ -157,7 +158,7 @@ const getItemAtIndex = (index: number): T => {
                   (getItemAtIndex(virtualRow.index) as Identifiable).id ||
                   virtualRow.index
                 "
-                class="odd:bg-[var(--surface-sunken)] even:bg-background hover:bg-muted/40 cursor-pointer transition-colors"
+                class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--accent-electric)]/5 border-b border-border cursor-pointer transition-colors"
                 :style="{
                   position: 'absolute',
                   top: 0,
@@ -171,7 +172,7 @@ const getItemAtIndex = (index: number): T => {
                 <TableCell
                   v-for="col in columns"
                   :key="col.key"
-                  :class="col.class"
+                  :class="cn('py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle', col.class)"
                 >
                   <template v-if="$slots[`cell-${col.key}`]">
                     <slot
@@ -225,11 +226,11 @@ const getItemAtIndex = (index: number): T => {
     <Table>
       <TableHeader>
         <slot name="header">
-          <TableRow v-if="hasColumnDefinitions">
+          <TableRow v-if="hasColumnDefinitions" class="border-b border-border">
             <TableHead
               v-for="col in columns"
               :key="col.key"
-              :class="col.headerClass"
+              :class="['font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60', col.headerClass]"
             >
               {{ col.header }}
             </TableHead>
@@ -243,13 +244,13 @@ const getItemAtIndex = (index: number): T => {
             <TableRow
               v-for="(item, index) in data"
               :key="(item as Identifiable).id || index"
-              class="odd:bg-[var(--surface-sunken)] even:bg-background hover:bg-muted/40 cursor-pointer transition-colors"
+              class="odd:bg-[var(--surface-sunken)] even:bg-card hover:bg-[var(--accent-electric)]/5 border-b border-border cursor-pointer transition-colors"
               @click="emit('row-click', item)"
             >
               <TableCell
                 v-for="col in columns"
                 :key="col.key"
-                :class="col.class"
+                :class="cn('py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle', col.class)"
               >
                 <template v-if="$slots[`cell-${col.key}`]">
                   <slot :name="`cell-${col.key}`" :item="item" />

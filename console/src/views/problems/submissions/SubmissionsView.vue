@@ -9,12 +9,14 @@ import type {
 import {
   fetchProblemSubmissions,
   fetchSubmissionStatuses,
+  fetchSubmission,
 } from "@/api/submission";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import { useSocket } from "@/composables/useSocket";
+import { Loader2 } from "lucide-vue-next";
 
 const props = defineProps<{
   problemId: number;
@@ -30,12 +32,23 @@ const isLoading = ref(true);
 const selectedSubmissionId = ref<string | null>(null);
 const statusMeta = ref<SubmissionStatusMeta[]>([]);
 
-const selectedSubmission = computed(
-  () =>
-    submissions.value.find(
-      (submission) => submission.id === selectedSubmissionId.value,
-    ) ?? null,
-);
+const selectedSubmission = ref<SubmissionRecord | null>(null);
+
+watch(selectedSubmissionId, async (newId) => {
+  if (newId) {
+    try {
+      selectedSubmission.value = await fetchSubmission(newId);
+    } catch (error) {
+      handleError(error, {
+        fallbackMessage: "problem.submissions.error.loadFailed",
+        logToConsole: true,
+      });
+      selectedSubmission.value = null;
+    }
+  } else {
+    selectedSubmission.value = null;
+  }
+});
 
 const statusMetaByKey = computed<Record<string, SubmissionStatusMeta>>(() => {
   return statusMeta.value.reduce(
@@ -143,8 +156,11 @@ const handleBack = () => {
 
 <template>
   <div class="flex flex-col gap-4">
+    <div v-if="selectedSubmissionId && !selectedSubmission" class="flex h-full items-center justify-center p-8">
+      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
     <SubmissionsDetail
-      v-if="selectedSubmission"
+      v-else-if="selectedSubmission"
       :submission="selectedSubmission"
       :status-meta-by-key="statusMetaByKey"
       @back="handleBack"

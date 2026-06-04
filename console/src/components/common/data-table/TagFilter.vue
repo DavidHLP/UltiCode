@@ -38,11 +38,12 @@ function isTagSelected(tag: string, currentTags: string[]) {
         v-for="tag in popularTags"
         :key="tag"
         variant="outline"
-        class="cursor-pointer px-2 py-0.5 text-[11px] border-silver text-muted-foreground hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors rounded-none"
-        :class="{
-          'bg-[var(--accent-electric)] text-[var(--background)] border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 hover:text-[var(--background)]':
-            isTagSelected(tag, modelValue),
-        }"
+        class="cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-all duration-200 rounded-none"
+        :class="
+          isTagSelected(tag, modelValue)
+            ? 'border-[var(--accent-electric)]/30 bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/18'
+            : 'border-border/40 bg-[var(--surface-sunken)]/40 text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
+        "
         @click="toggleTag(tag, modelValue)"
       >
         {{ tag }}
@@ -51,7 +52,7 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Button
           variant="ghost"
           size="sm"
-          class="gap-1 h-6 text-[10px] text-muted-foreground hover:text-foreground rounded-none px-2"
+          class="gap-1 h-6 text-[10px] font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:text-foreground rounded-none px-2 hover:bg-[var(--surface-sunken)] cursor-pointer"
         >
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-2.5 w-2.5" />
@@ -64,11 +65,12 @@ function isTagSelected(tag: string, currentTags: string[]) {
           v-for="tag in otherTags"
           :key="tag"
           variant="outline"
-          class="cursor-pointer px-2 py-0.5 text-[10px] font-normal border-silver text-muted-foreground hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors rounded-none"
-          :class="{
-            'bg-[var(--accent-electric)] text-[var(--background)] border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 hover:text-[var(--background)]':
-              isTagSelected(tag, modelValue),
-          }"
+          class="cursor-pointer px-2.5 py-1 text-[10px] font-medium transition-all duration-200 rounded-none"
+          :class="
+            isTagSelected(tag, modelValue)
+              ? 'border-[var(--accent-electric)]/30 bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/18'
+              : 'border-border/40 bg-[var(--surface-sunken)]/40 text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--surface-sunken)] hover:text-foreground'
+          "
           @click="toggleTag(tag, modelValue)"
         >
           {{ tag }}

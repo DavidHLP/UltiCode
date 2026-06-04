@@ -177,6 +177,11 @@ export default {
   search: {
     placeholder: "搜索题目、用户、帖子...",
     noResults: '未找到 "{query}" 的相关结果',
+    startTyping: "输入以开始搜索...",
+    openSearchTip: "打开搜索",
+    resultsCount: "{total} 个结果",
+    navigateTip: "进行导航",
+    selectTip: "进行选择",
     types: {
       problem: "题目",
       user: "用户",

@@ -5,11 +5,11 @@ export default {
   initialize: "Initialize",
   console: "Console",
   coreSessionReady: "Core Session Ready",
-  titlePart1: "Precision",
-  titlePart2: "Programming",
-  titlePart3: "Console",
+  titlePart1: "Next-Gen",
+  titlePart2: "Competitive Coding",
+  titlePart3: "& Algorithmic Terminal",
   subtitle:
-    "// UltiCode is a low-latency, hacker-centric competitive coding terminal. Zero decoration, absolute computing precision.",
+    "// UltiCode is a low-latency, immersive algorithmic competitive coding platform built for developers. Speed, precision, and clean terminal control. Reclaim your programming peak.",
   startSession: "Start Session",
   browseProblems: "Browse Problems",
   systemBootStatus: "System Boot Status",
@@ -24,9 +24,9 @@ export default {
   modulesTitle: "Platform Modules",
   modulesSubtitle: "// Engineered components optimized for developer workflow.",
 
-  judgeTitle: "Precision Judge",
+  judgeTitle: "Precision Judge (SANDBOX JUDGE)",
   judgeDesc:
-    "Zero-buffer sandboxed isolation compiler supporting fast containerized executions under 10ms compiler overhead.",
+    "Zero-buffer sandboxed isolation compiler supporting fast containerized executions under 10ms compiler overhead and sub-millisecond telemetry.",
   judgeFooter: "LATENCY < 12ms",
 
   contestsTitle: "Weekly Contests",
@@ -53,9 +53,13 @@ export default {
   logHeader: "system_status.log",
 
   totalSubmissions: "TOTAL_SUBMISSIONS",
+  totalSubmissionsDesc: "Low-latency judge nodes have safely executed millions of runs",
   activeSolvers24h: "ACTIVE_SOLVERS_24H",
+  activeSolversDesc: "Thousands of developers coding and benchmarking daily",
   compilationAvgMs: "COMPILATION_AVG_MS",
+  compilationAvgDesc: "Parallel compilation on RAM-disks minimizes wait times",
   contestsCompleted: "CONTESTS_COMPLETED",
+  contestsCompletedDesc: "High-quality algorithmic tournaments held continuously",
   eventsUnit: "events",
 
   logInfoInit: "[INFO] Initializing node group-04...",

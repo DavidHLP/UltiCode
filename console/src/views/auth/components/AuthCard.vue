@@ -35,39 +35,24 @@ defineOptions({
 .auth-card {
   width: 100%;
   max-width: 25rem;
-  border: 1px solid var(--silver-200);
+  border: 1px solid var(--border);
   border-radius: 0;
-  background: var(--background);
-  box-shadow:
-    0 4px 24px -4px oklch(0 0 0 / 0.08),
-    0 0 0 1px oklch(0 0 0 / 0.02);
+  background: var(--card);
+  box-shadow: 4px 4px 0px 0px var(--border);
   overflow: hidden;
   animation: card-fade-in 0.4s ease-out;
-  transition:
-    box-shadow var(--transition-normal),
-    border-color var(--transition-normal),
-    transform var(--transition-normal);
+  transition: all var(--transition-normal);
 }
 
 .dark .auth-card {
-  border-color: var(--silver-300);
-  box-shadow:
-    0 4px 24px -4px oklch(0 0 0 / 0.25),
-    0 0 0 1px oklch(0 0 0 / 0.1);
+  border-color: var(--border);
 }
 
-.auth-card:hover {
-  box-shadow:
-    0 8px 32px -4px oklch(0 0 0 / 0.1),
-    0 0 0 1px var(--accent-primary),
-    0 0 20px -4px var(--accent-glow);
-}
-
+.auth-card:hover,
 .auth-card:focus-within {
-  box-shadow:
-    0 8px 32px -4px oklch(0 0 0 / 0.1),
-    0 0 0 2px var(--accent-primary),
-    0 0 30px -4px var(--accent-glow);
+  box-shadow: 6px 6px 0px 0px var(--accent-electric);
+  border-color: var(--accent-electric);
+  transform: translate(-2px, -2px);
 }
 
 @keyframes card-fade-in {
@@ -85,14 +70,14 @@ defineOptions({
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  padding: 0.625rem 1rem;
   background: var(--silver-50);
-  border-bottom: 1px solid var(--silver-200);
+  border-bottom: 1px solid var(--border);
 }
 
 .dark .auth-card__header {
   background: var(--silver-800);
-  border-bottom-color: var(--silver-300);
+  border-bottom-color: var(--border);
 }
 
 .auth-card__window-controls {
@@ -127,12 +112,12 @@ defineOptions({
 }
 
 .auth-card__body {
-  padding: 2rem;
+  padding: 1.25rem;
 }
 
 @media (min-width: 768px) {
   .auth-card__body {
-    padding: 2.5rem;
+    padding: 1.5rem;
   }
 }
 </style>

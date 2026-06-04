@@ -82,35 +82,37 @@ function handleOAuth() {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 3rem;
-  gap: 0.75rem;
-  padding: 0 1.25rem;
-  font-weight: 500;
-  font-size: 0.9375rem;
+  height: 2.375rem;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--foreground);
-  background: transparent;
-  border: 1px solid var(--silver-300);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 0;
   cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+  box-shadow: 2px 2px 0px 0px var(--border);
+  transition: all var(--transition-fast);
 }
 
 .oauth-button:hover {
   background: var(--silver-50);
-  border-color: var(--silver-400);
-  box-shadow: 0 2px 8px oklch(0 0 0 / 0.05);
+  border-color: var(--accent-electric);
+  box-shadow: 3px 3px 0px 0px var(--accent-electric);
+  transform: translate(-1px, -1px);
 }
 
 .dark .oauth-button:hover {
   background: var(--silver-800);
-  border-color: var(--silver-400);
 }
 
 .oauth-button:active {
-  transform: scale(0.98);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px 0px var(--border);
 }
 
 .oauth-button__icon {

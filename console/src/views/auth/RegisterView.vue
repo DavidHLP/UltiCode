@@ -58,6 +58,27 @@ defineOptions({
           {{ t("auth.layout.codingConsoleSubtitle") }}
         </p>
         <div class="auth-pattern-text__cursor"></div>
+
+        <!-- Terminal Status Spec Block -->
+        <div class="auth-pattern-terminal select-none">
+          <div class="auth-pattern-terminal__header">
+            <span class="auth-pattern-terminal__dot bg-[var(--terminal-red)]"></span>
+            <span class="auth-pattern-terminal__dot bg-[var(--terminal-amber)]"></span>
+            <span class="auth-pattern-terminal__dot bg-[var(--terminal-green)]"></span>
+            <span class="auth-pattern-terminal__title">system_status.sh</span>
+          </div>
+          <div class="auth-pattern-terminal__content font-mono text-xs">
+            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)]">$ systemctl status ulticode.service</div>
+            <div class="text-[var(--terminal-green)] font-bold">● ulticode.service - UltiCode Platform</div>
+            <div class="pl-4">Active: <span class="text-[var(--terminal-green)] font-bold">active (running)</span> since Jun 2026</div>
+            <div class="pl-4">PID: 9002 (vite-console)</div>
+            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5">$ npx vitest run --coverage</div>
+            <div class="text-[var(--terminal-green)]">✓ 154 tests passed (100% coverage)</div>
+            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5">$ check_db_connection</div>
+            <div>Database: <span class="text-[var(--terminal-green)] font-bold">mysql@localhost (CONNECTED)</span></div>
+            <div>Server Port: <span class="text-[var(--accent-electric)] font-bold">9002 (Vite Console)</span></div>
+          </div>
+        </div>
       </div>
     </AuthGrid>
   </div>
@@ -74,25 +95,32 @@ defineOptions({
 
 @media (min-width: 1024px) {
   .auth-layout {
-    grid-template-columns: 2fr 3fr;
+    grid-template-columns: 1.1fr 0.9fr;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
   }
 }
 
 .auth-layout__form-side {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
 }
 
 @media (min-width: 768px) {
   .auth-layout__form-side {
-    padding: 2.5rem 3rem;
+    padding: 1.5rem 2.5rem;
   }
 }
 
 @media (min-width: 1024px) {
   .auth-layout__form-side {
-    padding: 3rem 4rem;
+    height: 100%;
+    overflow: hidden;
+    justify-content: space-between;
+    padding: 1.5rem 3rem;
+    border-right: 1px solid var(--border);
   }
 }
 
@@ -179,12 +207,13 @@ defineOptions({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem 0;
+  min-height: 0;
+  padding: 0.5rem 0;
 }
 
 @media (min-width: 768px) {
   .auth-layout__content {
-    padding: 2rem 0;
+    padding: 0.5rem 0;
   }
 }
 
@@ -241,28 +270,28 @@ defineOptions({
 }
 
 .auth-pattern-text__title {
-  font-size: 2.5rem;
-  font-weight: 500;
+  font-size: 2.25rem;
+  font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.2;
   margin-bottom: 1rem;
-  color: var(--silver-100);
-  background: linear-gradient(
-    135deg,
-    var(--silver-100) 0%,
-    var(--silver-300) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--solarized-base03);
+}
+
+.dark .auth-pattern-text__title {
+  color: var(--silver-900);
 }
 
 .auth-pattern-text__subtitle {
   font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
   font-size: 0.875rem;
-  color: var(--silver-400);
+  color: var(--solarized-base00);
   letter-spacing: 0.02em;
-  opacity: 0.8;
+  line-height: 1.5;
+}
+
+.dark .auth-pattern-text__subtitle {
+  color: var(--solarized-base0);
 }
 
 .auth-pattern-text__cursor {
@@ -274,6 +303,56 @@ defineOptions({
   margin-top: 0.5rem;
   animation: blink 1s step-end infinite;
   box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* Retro console spec box */
+.auth-pattern-terminal {
+  margin-top: 2.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  width: 100%;
+  max-width: 28rem;
+  box-shadow: 3px 3px 0px 0px var(--border);
+}
+
+.auth-pattern-terminal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border);
+}
+
+.dark .auth-pattern-terminal__header {
+  background: var(--surface-sunken);
+}
+
+.auth-pattern-terminal__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.auth-pattern-terminal__title {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 0.6875rem;
+  color: var(--solarized-base01);
+  margin-left: 0.5rem;
+}
+
+.dark .auth-pattern-terminal__title {
+  color: var(--silver-400);
+}
+
+.auth-pattern-terminal__content {
+  padding: 1rem;
+  line-height: 1.6;
+  color: var(--solarized-base00);
+}
+
+.dark .auth-pattern-terminal__content {
+  color: var(--silver-400);
 }
 
 @keyframes blink {

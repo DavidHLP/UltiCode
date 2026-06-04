@@ -53,57 +53,59 @@ defineOptions({
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 3rem;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
+  height: 2.375rem;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   border-radius: 0;
-  border: none;
+  border: 1px solid var(--border);
   cursor: pointer;
   overflow: hidden;
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast),
-    background-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .auth-button--primary {
   background: var(--silver-800);
   color: var(--background);
+  box-shadow: 2px 2px 0px 0px var(--accent-electric);
+  border-color: var(--silver-900);
 }
 
 .auth-button--primary:hover:not(:disabled) {
   background: var(--silver-900);
-  box-shadow: 0 4px 20px oklch(0 0 0 / 0.15);
-}
-
-.auth-button--primary:hover:not(:disabled) .auth-button__glow {
-  opacity: 0.15;
+  box-shadow: 3px 3px 0px 0px var(--accent-electric);
+  transform: translate(-1px, -1px);
 }
 
 .auth-button--secondary {
   background: transparent;
   color: var(--foreground);
-  border: 1px solid var(--silver-300);
+  box-shadow: 2px 2px 0px 0px var(--border);
 }
 
 .auth-button--secondary:hover:not(:disabled) {
   background: var(--silver-50);
-  border-color: var(--silver-400);
+  border-color: var(--accent-electric);
+  box-shadow: 3px 3px 0px 0px var(--accent-electric);
+  transform: translate(-1px, -1px);
 }
 
 .dark .auth-button--secondary:hover:not(:disabled) {
   background: var(--silver-800);
-  border-color: var(--silver-400);
 }
 
 .auth-button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px 0px var(--border);
 }
 
 .auth-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .auth-button--loading .auth-button__content {

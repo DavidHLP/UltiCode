@@ -52,8 +52,7 @@ public class CodeExecutionService {
 
         List<RunSubmissionDTO.RunTestCase> testCases = request.getTestCases();
         if (testCases == null || testCases.isEmpty()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST,
-                    "No test cases provided for execution");
+            return helper.emptyResult(problemId, userId);
         }
 
         String runId = UUID.randomUUID().toString();

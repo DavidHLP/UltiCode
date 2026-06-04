@@ -1,13 +1,10 @@
 ---
 name: cross-stack-dto-granularity-alignment
-description: "Systematic method to analyze and align DTO types, API endpoints, and enums between frontend and backend codebases"
-user-invocable: false
-origin: auto-extracted
+description: Systematic method to analyze and align DTO types, API endpoints, and enums between frontend and backend codebases. Trigger when debugging type mismatches, before major releases, or when onboarding to a full-stack module.
 ---
 
 # Cross-Stack DTO Granularity Alignment
 
-**Extracted:** 2026-05-20
 **Context:** When frontend and backend evolve independently, DTO fields, enum values, and API endpoints drift out of sync. This pattern provides a systematic method to audit and document alignment gaps.
 
 ## Problem

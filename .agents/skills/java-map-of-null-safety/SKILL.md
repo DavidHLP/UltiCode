@@ -1,13 +1,10 @@
 ---
 name: java-map-of-null-safety
-description: "Java Map.of() throws NPE on null values; use requireNonNullElse or HashMap for nullable data"
-user-invocable: false
-origin: auto-extracted
+description: Java Map.of() throws NPE on null values; use requireNonNullElse or HashMap for nullable data. Trigger when building maps from entity fields or audit logs where nulls may occur.
 ---
 
 # Java Map.of() Null Safety
 
-**Extracted:** 2026-05-16
 **Context:** Building audit log oldValues/newValues maps where entity fields may be null
 
 ## Problem

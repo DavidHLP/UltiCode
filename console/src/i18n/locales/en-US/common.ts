@@ -182,6 +182,11 @@ export default {
   search: {
     placeholder: "Search problems, users, posts...",
     noResults: 'No results found for "{query}"',
+    startTyping: "Start typing to search...",
+    openSearchTip: "to open search",
+    resultsCount: "{total} results",
+    navigateTip: "to navigate",
+    selectTip: "to select",
     types: {
       problem: "Problem",
       user: "User",

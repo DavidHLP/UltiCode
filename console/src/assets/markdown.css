@@ -6,7 +6,7 @@
   overflow: hidden;
   margin: 1rem 0;
   border: 1px solid var(--border);
-  background-color: #f2f3f4;
+  background-color: var(--surface-sunken);
 }
 
 /* Header */
@@ -51,7 +51,7 @@
 /* Body Panel */
 .lc-tabs-body {
   position: relative;
-  background-color: #f2f3f4;
+  background-color: var(--surface-sunken);
 }
 
 /* Panel Visibility */
@@ -101,10 +101,9 @@
 .lc-code-body pre {
   margin: 0 !important;
   padding: 1rem;
-  font-family:
-    "Menlo", "Monaco", "Consolas", "Courier New", monospace !important;
+  font-family: var(--font-mono) !important;
   font-size: 0.875em !important;
-  line-height: 1.6 !important;
+  line-height: var(--leading-code) !important;
   background-color: transparent !important;
   overflow-x: auto;
 }
@@ -179,7 +178,7 @@
 
 /* Inline Code - LeetCode Pill Style */
 .markdown-view .prose :not(pre) > code {
-  font-family: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
   background-color: var(--muted);
   color: var(--foreground);
@@ -200,7 +199,7 @@
   overflow-x: auto;
   color: inherit;
   font-size: 0.9em;
-  line-height: 1.5;
+  line-height: var(--leading-code);
 }
 
 .markdown-view .prose pre code {
@@ -209,7 +208,7 @@
   border-radius: 0;
   font-weight: normal;
   color: inherit;
-  font-family: "Menlo", "Monaco", "Consolas", "Courier New", monospace;
+  font-family: var(--font-mono);
 }
 
 /* Blockquote */

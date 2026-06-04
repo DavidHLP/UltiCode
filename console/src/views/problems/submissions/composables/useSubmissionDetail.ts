@@ -1,13 +1,57 @@
 import { computed, ref, watch, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import type {
+  DistributionBin,
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
+
+export interface NormalizedDistributionPoint {
+  i: number;
+  bin: number;
+  count: number;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+export function normalizeDistributionBins(
+  bins: DistributionBin[] | undefined,
+): NormalizedDistributionPoint[] {
+  if (!Array.isArray(bins)) return [];
+
+  return bins.flatMap((bin, i) => {
+    if (Array.isArray(bin)) {
+      const label = toFiniteNumber(bin[0]);
+      if (label == null) return [];
+      return [{ i, bin: label, count: toFiniteNumber(bin[1]) ?? 0 }];
+    }
+
+    if (bin && typeof bin === "object") {
+      const label = toFiniteNumber(bin.min ?? bin.value ?? bin.bin ?? bin.max);
+      if (label == null) return [];
+      return [{ i, bin: label, count: toFiniteNumber(bin.count) ?? 0 }];
+    }
+
+    const label = toFiniteNumber(bin);
+    if (label == null) return [];
+    return [{ i, bin: label, count: 0 }];
+  });
+}
 
 export function useSubmissionDetail(
   submission: () => SubmissionRecord | undefined,
   statusMetaByKey: () => Record<string, SubmissionStatusMeta>,
 ) {
+  const { t } = useI18n();
+
   const parseMs = (value: string | number) => {
     if (typeof value === "number") return value;
     const m = /([0-9]+)\s*ms/.exec(value);
@@ -22,9 +66,62 @@ export function useSubmissionDetail(
     submission() ? statusMetaByKey()[submission()!.status] : null,
   );
 
-  const statusLabel = computed(
-    () => statusMeta.value?.label ?? submission()?.status ?? "",
-  );
+  const statusLabel = computed(() => {
+    const status = submission()?.status ?? "";
+    const normalized = status.toUpperCase().replace(/\s+/g, "_");
+    const map: Record<string, string> = {
+      ACCEPTED: "submission.status.accepted",
+      WRONG_ANSWER: "submission.status.wrongAnswer",
+      TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+      MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+      OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+      RUNTIME_ERROR: "submission.status.runtimeError",
+      COMPILE_ERROR: "submission.status.compileError",
+      PRESENTATION_ERROR: "submission.status.presentationError",
+      SYSTEM_ERROR: "submission.status.systemError",
+      JUDGING: "submission.status.judging",
+      PENDING: "submission.status.pending",
+    };
+    const key = map[normalized];
+    return key ? t(key) : (statusMeta.value?.label ?? status);
+  });
+
+  const statusDescription = computed(() => {
+    const status = submission()?.status ?? "";
+    const normalized = status.toUpperCase().replace(/\s+/g, "_");
+    const map: Record<string, string> = {
+      ACCEPTED: "submission.statusDescriptions.accepted",
+      WRONG_ANSWER: "submission.statusDescriptions.wrongAnswer",
+      TIME_LIMIT_EXCEEDED: "submission.statusDescriptions.timeLimitExceeded",
+      MEMORY_LIMIT_EXCEEDED:
+        "submission.statusDescriptions.memoryLimitExceeded",
+      OUTPUT_LIMIT_EXCEEDED:
+        "submission.statusDescriptions.outputLimitExceeded",
+      RUNTIME_ERROR: "submission.statusDescriptions.runtimeError",
+      COMPILE_ERROR: "submission.statusDescriptions.compileError",
+      PRESENTATION_ERROR: "submission.statusDescriptions.presentationError",
+      SYSTEM_ERROR: "submission.statusDescriptions.systemError",
+      JUDGING: "submission.statusDescriptions.judging",
+      PENDING: "submission.statusDescriptions.pending",
+    };
+    const key = map[normalized];
+    return key ? t(key) : (statusMeta.value?.description ?? "");
+  });
+
+  const statusSuggestion = computed(() => {
+    const status = submission()?.status ?? "";
+    const normalized = status.toUpperCase().replace(/\s+/g, "_");
+    const map: Record<string, string> = {
+      ACCEPTED: "submission.statusSuggestions.accepted",
+      WRONG_ANSWER: "submission.statusSuggestions.wrongAnswer",
+      TIME_LIMIT_EXCEEDED: "submission.statusSuggestions.timeLimitExceeded",
+      MEMORY_LIMIT_EXCEEDED: "submission.statusSuggestions.memoryLimitExceeded",
+      RUNTIME_ERROR: "submission.statusSuggestions.runtimeError",
+      COMPILE_ERROR: "submission.statusSuggestions.compileError",
+    };
+    const key = map[normalized];
+    return key ? t(key) : (statusMeta.value?.suggestion ?? "");
+  });
 
   const statusToneClass = computed(() => {
     const severity = statusMeta.value?.severity ?? statusMeta.value?.category;
@@ -114,21 +211,14 @@ export function useSubmissionDetail(
   });
 
   // Runtime distribution data
-  const distBins = computed<number[]>(
-    () => submission()?.runtimeDistBinsMs?.map((b) => b.min) ?? [],
-  );
-  const distCounts = computed<number[]>(
-    () => submission()?.runtimeDistBinsMs?.map((b) => b.count) ?? [],
-  );
-  const distLength = computed(() =>
-    Math.min(distCounts.value.length, distBins.value.length),
-  );
   const pairedDist = computed(() =>
-    Array.from({ length: distLength.value }, (_, i) => ({
-      i,
-      count: distCounts.value[i]!,
-      bin: distBins.value[i]!,
-    })),
+    normalizeDistributionBins(submission()?.runtimeDistBinsMs),
+  );
+  const distBins = computed<number[]>(() =>
+    pairedDist.value.map((point) => point.bin),
+  );
+  const distCounts = computed<number[]>(() =>
+    pairedDist.value.map((point) => point.count),
   );
   const totalCount = computed(() =>
     pairedDist.value.reduce(
@@ -156,21 +246,14 @@ export function useSubmissionDetail(
   });
 
   // Memory distribution data
-  const memoryDistBins = computed<number[]>(
-    () => submission()?.memoryDistBinsMb?.map((b) => b.min) ?? [],
-  );
-  const memoryDistCounts = computed<number[]>(
-    () => submission()?.memoryDistBinsMb?.map((b) => b.count) ?? [],
-  );
-  const memoryDistLength = computed(() =>
-    Math.min(memoryDistCounts.value.length, memoryDistBins.value.length),
-  );
   const pairedMemoryDist = computed(() =>
-    Array.from({ length: memoryDistLength.value }, (_, i) => ({
-      i,
-      count: memoryDistCounts.value[i]!,
-      bin: memoryDistBins.value[i]!,
-    })),
+    normalizeDistributionBins(submission()?.memoryDistBinsMb),
+  );
+  const memoryDistBins = computed<number[]>(() =>
+    pairedMemoryDist.value.map((point) => point.bin),
+  );
+  const memoryDistCounts = computed<number[]>(() =>
+    pairedMemoryDist.value.map((point) => point.count),
   );
   const totalMemoryCount = computed(() =>
     pairedMemoryDist.value.reduce(
@@ -200,6 +283,8 @@ export function useSubmissionDetail(
     runtimeMs,
     statusMeta,
     statusLabel,
+    statusDescription,
+    statusSuggestion,
     statusToneClass,
     isAccepted,
     isCompileError,

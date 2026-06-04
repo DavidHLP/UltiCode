@@ -16,6 +16,9 @@ interface BackendSubmissionRecord {
   runtimePercentile?: unknown;
   memory_percentile?: unknown;
   memoryPercentile?: unknown;
+  runtime_dist_bins_ms?: unknown;
+  runtimeDistBinsMs?: unknown;
+  memory_dist_bins_mb?: unknown;
   memoryDistBinsMb?: unknown;
   [key: string]: unknown;
 }
@@ -40,6 +43,11 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
   const s = sub as BackendSubmissionRecord;
   return {
     ...s,
+    created_at: (s.created_at ?? s.createdAt) as string,
+    submittedAt: (s.submitted_at ??
+      s.submittedAt ??
+      s.created_at ??
+      s.createdAt) as string | undefined,
     errorDetail: (s.error_detail ?? s.errorDetail) as string | undefined,
     runtimePercentile: (s.runtime_percentile ?? s.runtimePercentile) as
       | number
@@ -47,8 +55,10 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
     memoryPercentile: (s.memory_percentile ?? s.memoryPercentile) as
       | number
       | undefined,
-    memoryDistBinsMb:
-      s.memoryDistBinsMb as SubmissionRecord["memoryDistBinsMb"],
+    runtimeDistBinsMs: (s.runtime_dist_bins_ms ??
+      s.runtimeDistBinsMs) as SubmissionRecord["runtimeDistBinsMs"],
+    memoryDistBinsMb: (s.memory_dist_bins_mb ??
+      s.memoryDistBinsMb) as SubmissionRecord["memoryDistBinsMb"],
   } as SubmissionRecord;
 }
 

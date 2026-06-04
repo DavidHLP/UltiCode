@@ -37,46 +37,43 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 
 const CARD_BASE =
-  "relative overflow-hidden border border-silver transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md h-full rounded-none group";
+  "relative overflow-hidden border border-border/80 border-l-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md h-full rounded-none group bg-card";
 const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
 const ICON_BASE =
-  "w-12 h-12 rounded-none flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 border shadow-lg";
+  "w-12 h-12 rounded-none flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 border";
 const BADGE_BASE =
-  "px-2 py-0.5 rounded-none text-[10px] font-bold border backdrop-blur-sm uppercase tracking-widest";
+  "px-2 py-0.5 rounded-none text-[10px] font-bold border uppercase tracking-widest";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 
 const SLATE_THEME: BannerTheme = {
-  card: "bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border-border/50 hover:border-border/70",
-  icon: "text-muted-foreground bg-muted/60 border-border/40",
-  badge: "bg-muted/80 text-muted-foreground border-border/50 backdrop-blur-sm",
-  glow: "bg-muted/30",
+  card: "border-l-[var(--silver-400)] hover:border-border",
+  icon: "text-muted-foreground bg-muted border-border/40",
+  badge: "bg-muted text-muted-foreground border-border/50",
+  glow: "hidden",
   sparkle: "text-muted-foreground",
 };
 
 const THEME_MAP: Record<string, BannerTheme> = {
   amber: {
-    card: "bg-gradient-to-br from-[var(--terminal-amber)]/25 via-[var(--terminal-amber)]/10 to-transparent border-[var(--terminal-amber)]/50 hover:border-[var(--terminal-amber)]/70",
-    icon: "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/25 border-[var(--terminal-amber)]/40 shadow-[0_0_20px_var(--terminal-amber)/20]",
-    badge:
-      "bg-[var(--terminal-amber)]/25 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/50 backdrop-blur-sm",
-    glow: "bg-[var(--terminal-amber)]/40",
+    card: "border-l-[var(--terminal-amber)] hover:border-[var(--terminal-amber)]/60",
+    icon: "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/8 border-[var(--terminal-amber)]/20 shadow-none",
+    badge: "bg-[var(--terminal-amber)]/8 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 shadow-none",
+    glow: "hidden",
     sparkle: "text-[var(--terminal-amber)]",
   },
   sky: {
-    card: "bg-gradient-to-br from-[var(--accent-electric)]/25 via-[var(--accent-electric)]/10 to-transparent border-[var(--accent-electric)]/50 hover:border-[var(--accent-electric)]/70",
-    icon: "text-[var(--accent-electric)] bg-[var(--accent-electric)]/25 border-[var(--accent-electric)]/40 shadow-[0_0_20px_var(--accent-electric)/20]",
-    badge:
-      "bg-[var(--accent-electric)]/25 text-[var(--accent-electric)] border-[var(--accent-electric)]/50 backdrop-blur-sm",
-    glow: "bg-[var(--accent-electric)]/40",
+    card: "border-l-[var(--accent-electric)] hover:border-[var(--accent-electric)]/60",
+    icon: "text-[var(--accent-electric)] bg-[var(--accent-electric)]/8 border-[var(--accent-electric)]/20 shadow-none",
+    badge: "bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 shadow-none",
+    glow: "hidden",
     sparkle: "text-[var(--accent-electric)]",
   },
   emerald: {
-    card: "bg-gradient-to-br from-[var(--terminal-green)]/25 via-[var(--terminal-green)]/10 to-transparent border-[var(--terminal-green)]/50 hover:border-[var(--terminal-green)]/70",
-    icon: "text-[var(--terminal-green)] bg-[var(--terminal-green)]/25 border-[var(--terminal-green)]/40 shadow-[0_0_20px_var(--terminal-green)/20]",
-    badge:
-      "bg-[var(--terminal-green)]/25 text-[var(--terminal-green)] border-[var(--terminal-green)]/50 backdrop-blur-sm",
-    glow: "bg-[var(--terminal-green)]/40",
+    card: "border-l-[var(--terminal-green)] hover:border-[var(--terminal-green)]/60",
+    icon: "text-[var(--terminal-green)] bg-[var(--terminal-green)]/8 border-[var(--terminal-green)]/20 shadow-none",
+    badge: "bg-[var(--terminal-green)]/8 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 shadow-none",
+    glow: "hidden",
     sparkle: "text-[var(--terminal-green)]",
   },
   slate: SLATE_THEME,
@@ -236,7 +233,7 @@ onBeforeUnmount(() => {
         <Card
           v-for="i in 3"
           :key="i"
-          class="flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden border border-border/40 bg-gradient-to-br from-muted/30 via-muted/20 to-transparent h-[200px] rounded-none"
+          class="flex-shrink-0 w-[calc(33.333%-1rem)] relative overflow-hidden border border-border/40 bg-card h-[200px] rounded-none"
         >
           <CardContent
             class="p-5 animate-pulse space-y-4 relative z-10 h-full flex flex-col"
@@ -262,7 +259,7 @@ onBeforeUnmount(() => {
 
       <template v-else-if="displayBanners.length === 0">
         <div
-          class="col-span-full flex-shrink-0 w-full flex flex-col items-center justify-center py-16 rounded-none border-2 border-dashed border-border/30 bg-gradient-to-b from-muted/10 to-transparent text-center px-6"
+          class="col-span-full flex-shrink-0 w-full flex flex-col items-center justify-center py-16 rounded-none border border-dashed border-border/30 bg-card text-center px-6"
         >
           <div
             class="flex h-14 w-14 items-center justify-center rounded-none bg-muted/60 border border-border/30 mb-4 shadow-lg"

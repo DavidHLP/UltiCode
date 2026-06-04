@@ -230,10 +230,10 @@ function handleCardClick(event: MouseEvent) {
     class="terminal-card hover:bg-muted/10 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
     @click="handleCardClick"
   >
-    <div class="flex gap-3 px-4 py-3 sm:gap-4 sm:px-6">
-      <div class="min-w-0 flex-1 space-y-2">
+    <div class="flex gap-4 p-5 sm:p-6">
+      <div class="min-w-0 flex-1 space-y-3">
         <!-- Header -->
-        <header class="flex items-center gap-2 text-xs text-muted-foreground">
+        <header class="flex items-center gap-2 text-xs font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)]">
           <Avatar
             class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
             v-if="post.community?.icon"
@@ -259,13 +259,13 @@ function handleCardClick(event: MouseEvent) {
           <span class="flex items-center gap-1">
             <span
               v-if="post.community"
-              class="font-bold text-foreground hover:underline cursor-pointer"
+              class="font-bold text-[var(--accent-electric)] hover:underline cursor-pointer"
             >
               r/{{ post.community.name }}
             </span>
             <span
               v-else
-              class="font-bold text-foreground hover:underline cursor-pointer"
+              class="font-bold text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:underline cursor-pointer"
             >
               u/{{ post.author?.username || "?" }}
             </span>
@@ -299,7 +299,7 @@ function handleCardClick(event: MouseEvent) {
             class="block"
           >
             <h3
-              class="text-base sm:text-lg font-medium leading-snug text-foreground hover:underline decoration-2 decoration-transparent hover:decoration-current transition-all"
+              class="text-base sm:text-lg font-bold leading-snug text-[var(--solarized-base03)] dark:text-[var(--silver-900)] hover:text-[var(--accent-electric)] hover:underline transition-colors"
             >
               {{ post.title }}
             </h3>

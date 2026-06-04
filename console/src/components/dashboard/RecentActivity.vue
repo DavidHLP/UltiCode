@@ -2,11 +2,33 @@
 import type { RecentActivity } from "@/types/userStats";
 import { cn } from "@/lib/utils";
 import { CheckCircle, MessageSquare, FileText, Clock } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 
 defineProps<{
   activities: RecentActivity[];
   title?: string;
 }>();
+
+const { t } = useI18n();
+
+const getSubmissionLabel = (status: string): string => {
+  const normalized = status.toUpperCase().replace(/\s+/g, "_");
+  const map: Record<string, string> = {
+    ACCEPTED: "submission.status.accepted",
+    WRONG_ANSWER: "submission.status.wrongAnswer",
+    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
+    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
+    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
+    RUNTIME_ERROR: "submission.status.runtimeError",
+    COMPILE_ERROR: "submission.status.compileError",
+    PRESENTATION_ERROR: "submission.status.presentationError",
+    SYSTEM_ERROR: "submission.status.systemError",
+    JUDGING: "submission.status.judging",
+    PENDING: "submission.status.pending",
+  };
+  const key = map[normalized];
+  return key ? t(key) : status;
+};
 
 const iconMap = {
   submission: CheckCircle,
@@ -86,7 +108,7 @@ function formatTime(dateStr: string): string {
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
             <span class="capitalize">{{ activity.type }}</span>
             <span v-if="activity.status" :class="statusColors[activity.status]">
-              {{ activity.status }}
+              {{ getSubmissionLabel(activity.status) }}
             </span>
           </div>
         </div>

@@ -18,28 +18,19 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-1.5 mb-1.5">
+  <div class="flex flex-wrap items-center gap-1 bg-[var(--surface-sunken)] p-1 rounded-none border border-border/40 w-fit mb-2">
     <button
       v-for="cat in categories"
       :key="cat.value"
       @click="emit('update:modelValue', cat.value)"
-      class="flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-medium transition-all duration-200 border"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs transition-all duration-200 cursor-pointer select-none"
       :class="
         modelValue === cat.value
-          ? 'bg-[var(--surface-sunken)] border-[var(--accent-electric)] text-[var(--accent-electric)] shadow-sm'
-          : 'border-silver bg-card text-muted-foreground hover:text-foreground hover:bg-[var(--surface-sunken)]'
+          ? 'bg-card text-[var(--accent-electric)] shadow-sm border border-[var(--accent-electric)]/20 font-bold'
+          : 'border border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-card/40 hover:text-foreground font-medium'
       "
     >
-      <div
-        class="p-0.5 rounded-none bg-[var(--surface-sunken)] border border-silver/30 shadow-sm"
-        :class="
-          modelValue === cat.value
-            ? 'text-[var(--accent-electric)]'
-            : 'text-muted-foreground'
-        "
-      >
-        <component :is="cat.icon" v-if="cat.icon" class="w-2.5 h-2.5" />
-      </div>
+      <component :is="cat.icon" v-if="cat.icon" class="w-3.5 h-3.5 shrink-0" />
       {{ cat.label }}
     </button>
   </div>

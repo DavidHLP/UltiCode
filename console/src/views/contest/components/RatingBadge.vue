@@ -54,7 +54,7 @@ const sizeClasses = computed(() => {
 <template>
   <div class="inline-flex items-center gap-1.5">
     <span
-      class="font-bold rounded"
+      class="font-bold rounded-none"
       :class="sizeClasses"
       :style="{ color: color }"
     >

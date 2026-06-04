@@ -36,7 +36,7 @@ defineOptions({
   width: 100%;
   max-width: 25rem;
   border: 1px solid var(--silver-200);
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   background: var(--background);
   box-shadow:
     0 4px 24px -4px oklch(0 0 0 / 0.08),

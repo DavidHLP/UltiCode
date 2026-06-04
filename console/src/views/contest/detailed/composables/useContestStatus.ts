@@ -16,9 +16,9 @@ export function useContestStatus(
 
   const statusCardClass = computed(() => {
     const status = contest.value?.status;
-    if (status === "RUNNING") return "bg-[var(--terminal-red)]";
-    if (status === "UPCOMING") return "bg-[var(--terminal-green)]";
-    return "bg-[var(--silver-dark)]";
+    if (status === "RUNNING") return "border-l-4 border-l-[var(--terminal-red)]";
+    if (status === "UPCOMING") return "border-l-4 border-l-[var(--terminal-green)]";
+    return "border-l-4 border-l-muted-foreground";
   });
 
   const contestEndTime = computed(() => {
@@ -71,7 +71,7 @@ export function useContestStatus(
 
     if (value.status === "UPCOMING") {
       const remaining = Math.max(0, Math.floor((startMs - now) / 1000));
-      statusLabel.value = t("contest.time.startsIn");
+      statusLabel.value = t("contest.detail.notStarted");
       statusCountdown.value = formatCountdown(remaining);
       statusHint.value = isRegistered.value
         ? t("contest.detail.youAreRegistered")
@@ -84,7 +84,7 @@ export function useContestStatus(
       const remaining = Math.max(0, Math.floor(((endMs ?? now) - now) / 1000));
       const total = Math.max(1, Math.floor(((endMs ?? now) - startMs) / 1000));
       const elapsed = Math.min(total, Math.max(0, total - remaining));
-      statusLabel.value = t("contest.virtual.timeRemaining");
+      statusLabel.value = t("contest.detail.inProgress");
       statusCountdown.value = formatCountdown(remaining);
       statusHint.value = t("contest.detail.submissionsLive");
       statusProgress.value = Math.min(

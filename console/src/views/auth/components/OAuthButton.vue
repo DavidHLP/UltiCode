@@ -90,7 +90,7 @@ function handleOAuth() {
   color: var(--foreground);
   background: transparent;
   border: 1px solid var(--silver-300);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   cursor: pointer;
   transition:
     background-color var(--transition-fast),

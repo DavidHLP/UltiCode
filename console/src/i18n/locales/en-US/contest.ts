@@ -126,6 +126,7 @@ export default {
       time: "Time",
       problems: "Problems",
       rating: "Rating",
+      problemsSolved: "Problems Solved",
     },
     notFound: {
       title: "Contest Not Found",

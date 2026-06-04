@@ -54,6 +54,17 @@ export interface Problem {
   tags: ProblemTag[]
   submissionCount?: number
   solutionCount?: number
+
+  // Backend snake_case fallbacks
+  is_premium?: boolean
+  has_solution?: boolean
+  is_published?: boolean
+  is_deleted?: boolean
+  is_flagged?: boolean
+  flag_reason?: string
+  flag_status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+  submission_count?: number
+  solution_count?: number
 }
 
 export interface ProblemExample {

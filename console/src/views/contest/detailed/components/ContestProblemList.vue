@@ -43,7 +43,7 @@ const { t } = useI18n();
     </CardHeader>
     <CardContent class="p-0">
       <div
-        v-if="contest.status === 'upcoming'"
+        v-if="contest.status === 'UPCOMING'"
         class="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center"
       >
         <div
@@ -62,7 +62,7 @@ const { t } = useI18n();
         <Button
           v-if="!isRegistered"
           variant="outline"
-          class="rounded-full px-6"
+          class="rounded-none px-6"
           :disabled="registering"
           @click="emit('register')"
         >
@@ -104,6 +104,7 @@ const { t } = useI18n();
             <TableCell>
               <div class="space-y-1">
                 <router-link
+                  v-if="problem.slug"
                   :to="{
                     name: 'problem-detail',
                     params: { slug: problem.slug },
@@ -113,6 +114,7 @@ const { t } = useI18n();
                 >
                   {{ problem.title }}
                 </router-link>
+                <span v-else class="text-base font-bold">{{ problem.title }}</span>
                 <div
                   class="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
                 >
@@ -158,9 +160,10 @@ const { t } = useI18n();
             </TableCell>
             <TableCell class="pr-6">
               <Button
+                v-if="problem.slug"
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                class="h-8 w-8 rounded-none opacity-0 group-hover:opacity-100 transition-opacity"
                 @click="
                   $router.push({
                     name: 'problem-detail',

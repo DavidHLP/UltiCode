@@ -24,7 +24,7 @@ export enum ParticipantStatus {
 }
 
 export type ContestScoringMode = "SCORE" | "ICPC" | "IOI";
-export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_TIME";
+export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_TIME" | "TOTAL_ATTEMPTS";
 export type VirtualContestStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
 // Codeforces-style rating titles
@@ -252,10 +252,11 @@ export interface GlobalRankingEntry {
   rank: number;
   userId: string;
   username: string;
+  name: string | null;
   avatar: string | null;
   country: string | null;
-  rating: number;
-  maxRating: number;
+  rating: number | null;
+  maxRating: number | null;
   ratingTitle: RatingTitle;
   maxRatingTitle: RatingTitle;
   contestsAttended: number;

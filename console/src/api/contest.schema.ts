@@ -1,14 +1,18 @@
-import { z } from "zod"
-import { ContestType, ContestStatus } from "@/types/contest"
+import { z } from "zod";
+import { ContestType, ContestStatus } from "@/types/contest";
 
 // ============================================================================
 // ENUM SCHEMAS
 // ============================================================================
 
-export const contestStatusSchema = z.nativeEnum(ContestStatus)
-export const contestTypeSchema = z.nativeEnum(ContestType)
-export const contestScoringModeSchema = z.enum(["SCORE", "ICPC", "IOI"])
-export const contestTieBreakerSchema = z.enum(["LAST_SOLVE_TIME", "TOTAL_TIME"])
+export const contestStatusSchema = z.nativeEnum(ContestStatus);
+export const contestTypeSchema = z.nativeEnum(ContestType);
+export const contestScoringModeSchema = z.enum(["SCORE", "ICPC", "IOI"]);
+export const contestTieBreakerSchema = z.enum([
+  "LAST_SOLVE_TIME",
+  "TOTAL_TIME",
+  "TOTAL_ATTEMPTS",
+]);
 export const ratingTitleSchema = z.enum([
   "NEWBIE",
   "PUPIL",
@@ -20,7 +24,7 @@ export const ratingTitleSchema = z.enum([
   "GRANDMASTER",
   "INTERNATIONAL_GRANDMASTER",
   "LEGENDARY_GRANDMASTER",
-])
+]);
 
 // ============================================================================
 // CONTEST LIST ITEM — Matches backend ContestListVO
@@ -48,9 +52,9 @@ export const contestListItemSchema = z.object({
   scoringMode: contestScoringModeSchema,
   penaltyPerWrong: z.number().int().default(0),
   coverImage: z.string().default(""),
-})
+});
 
-export type ContestListItemInput = z.infer<typeof contestListItemSchema>
+export type ContestListItemInput = z.infer<typeof contestListItemSchema>;
 
 // ============================================================================
 // CONTEST DETAIL — Matches backend ContestVO (extends ContestListVO fields)
@@ -75,9 +79,9 @@ export const contestDetailSchema = contestListItemSchema.extend({
   problemIds: z.array(z.number().int()).default([]),
   tags: z.array(z.string()).default([]),
   userScore: z.number().int().default(0),
-})
+});
 
-export type ContestDetailInput = z.infer<typeof contestDetailSchema>
+export type ContestDetailInput = z.infer<typeof contestDetailSchema>;
 
 // ============================================================================
 // CONTEST PROBLEM SUMMARY — Matches backend ContestProblemVO
@@ -96,9 +100,11 @@ export const contestProblemSummarySchema = z.object({
   solvedCount: z.number().int().default(0),
   submissionCount: z.number().int().default(0),
   acceptanceRate: z.number().default(0),
-})
+});
 
-export type ContestProblemSummaryInput = z.infer<typeof contestProblemSummarySchema>
+export type ContestProblemSummaryInput = z.infer<
+  typeof contestProblemSummarySchema
+>;
 
 // ============================================================================
 // GLOBAL RANKING ENTRY — Matches backend GlobalRankingVO
@@ -108,6 +114,7 @@ export const globalRankingEntrySchema = z.object({
   rank: z.number().int(),
   userId: z.string(),
   username: z.string(),
+  name: z.string().nullable().default(null),
   avatar: z.string().nullable().default(null),
   country: z.string().nullable().default(null),
   rating: z.number().int().nullable().default(null),
@@ -116,9 +123,9 @@ export const globalRankingEntrySchema = z.object({
   maxRatingTitle: ratingTitleSchema.default("NEWBIE"),
   contestsAttended: z.number().int().default(0),
   badge: z.string().nullable().default(null),
-})
+});
 
-export type GlobalRankingEntryInput = z.infer<typeof globalRankingEntrySchema>
+export type GlobalRankingEntryInput = z.infer<typeof globalRankingEntrySchema>;
 
 // ============================================================================
 // PAGINATION HELPER
@@ -131,5 +138,5 @@ export function paginatedSchema<T extends z.ZodTypeAny>(itemSchema: T) {
     page: z.number().int().default(1),
     pageSize: z.number().int().default(20),
     totalPages: z.number().int().default(0),
-  })
+  });
 }

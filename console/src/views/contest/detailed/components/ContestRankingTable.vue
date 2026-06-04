@@ -37,7 +37,7 @@ const { t } = useI18n();
       <Button
         variant="outline"
         size="sm"
-        class="rounded-full h-8 font-bold text-[10px]"
+        class="rounded-none h-8 font-bold text-[10px]"
         >{{ t("contest.detail.viewAll") }}</Button
       >
     </CardHeader>
@@ -105,9 +105,7 @@ const { t } = useI18n();
                   </span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-black text-sm">{{
-                    entry.username
-                  }}</span>
+                  <span class="font-black text-sm">{{ entry.username }}</span>
                   <span
                     class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"
                   >
@@ -122,14 +120,8 @@ const { t } = useI18n();
               }}</span>
             </TableCell>
             <TableCell class="text-center">
-              <span
-                class="font-mono text-xs font-bold text-muted-foreground"
-              >
-                {{
-                  formatPenaltyTime(
-                    entry.penalty ?? 0,
-                  )
-                }}
+              <span class="font-mono text-xs font-bold text-muted-foreground">
+                {{ formatPenaltyTime(entry.penalty ?? 0) }}
               </span>
             </TableCell>
             <TableCell>

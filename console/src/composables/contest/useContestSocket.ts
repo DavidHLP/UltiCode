@@ -201,8 +201,7 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     connectHeaders: {
       "X-CSRF-Token": csrfToken || "",
     },
-    debug: () => {
-    }, 
+    debug: () => {},
     reconnectDelay: options.reconnectionDelay,
     maxReconnectDelay: 5000,
     heartbeatIncoming: 10000,

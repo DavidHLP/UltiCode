@@ -6,7 +6,11 @@
  */
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { SemanticBadge, CONTEST_STATUS_COLOR_MAP, type SemanticColor } from "@/components/ui/terminal";
+import {
+  SemanticBadge,
+  CONTEST_STATUS_COLOR_MAP,
+  type SemanticColor,
+} from "@/components/ui/terminal";
 
 const props = defineProps<{
   status: string;
@@ -24,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const color = computed<SemanticColor>(
-  () => CONTEST_STATUS_COLOR_MAP[props.status] ?? "neutral"
+  () => CONTEST_STATUS_COLOR_MAP[props.status] ?? "neutral",
 );
 
 const label = computed(() => {
@@ -42,5 +46,10 @@ const badgeSize = computed(() => {
 </script>
 
 <template>
-  <SemanticBadge :color="color" :label="label" :pulse="pulse" :size="badgeSize" />
+  <SemanticBadge
+    :color="color"
+    :label="label"
+    :pulse="pulse"
+    :size="badgeSize"
+  />
 </template>

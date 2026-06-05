@@ -11,6 +11,7 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.submission.dto.SubmissionVO;
 import java.util.Optional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -306,6 +307,32 @@ public class ContestController {
         String resolvedId = resolveContestId(id);
         List<LiveRankingEntryVO> rankings = rankingService.getLiveRanking(resolvedId, limit);
         return Result.success(rankings);
+    }
+
+    /**
+     * Get the current user's submissions for a contest problem.
+     * Requires authentication.
+     *
+     * @param id        the contest ID or slug
+     * @param problemId the problem ID
+     * @return list of submissions for the problem in this contest
+     */
+    @Operation(summary = "Get contest problem submissions", description = "Get the current user's submissions for a problem in a contest")
+    @ApiResponse(responseCode = "200", description = "Contest problem submissions retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest or problem not found")
+    @SecurityRequirement(name = "Bearer")
+    @GetMapping("/{id}/problems/{problemId}/submissions")
+    public Result<List<SubmissionVO>> getContestProblemSubmissions(
+            @Parameter(description = "Contest ID or slug")
+            @PathVariable String id,
+            @Parameter(description = "Problem ID")
+            @PathVariable Long problemId) {
+
+        String resolvedId = resolveContestId(id);
+        String userId = getCurrentUserIdOrThrow();
+        List<SubmissionVO> submissions = contestService.getContestProblemSubmissions(resolvedId, problemId, userId);
+        return Result.success(submissions);
     }
 
     // =========================================================================

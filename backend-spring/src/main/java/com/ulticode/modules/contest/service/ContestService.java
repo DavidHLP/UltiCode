@@ -4,6 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
+import com.ulticode.modules.submission.dto.SubmissionVO;
 
 import java.util.List;
 import java.util.Optional;
@@ -83,6 +84,11 @@ public interface ContestService {
      * Get contest problems by contest ID
      */
     List<ContestProblemVO> getContestProblems(String contestId);
+
+    /**
+     * Get the current user's submissions for a contest problem.
+     */
+    List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId);
 
     /**
      * Get contest announcements by contest ID

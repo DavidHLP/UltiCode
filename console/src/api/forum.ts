@@ -29,6 +29,15 @@ function normalizeStats(raw: unknown): ForumPostStats | undefined {
   return undefined;
 }
 
+function normalizeNumber(raw: unknown): number | undefined {
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 function normalizeTags(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw as string[];
   if (typeof raw === "string") {
@@ -66,6 +75,9 @@ function normalizePost(
     flairLabel?: string;
   },
 ): ForumPost {
+  const stats = normalizeStats(raw.stats);
+  const commentCount = normalizeNumber(raw.commentCount);
+
   return {
     ...raw,
     author: {
@@ -83,7 +95,13 @@ function normalizePost(
     flair: raw.flairType
       ? { type: raw.flairType as ForumFlairType, text: raw.flairLabel }
       : undefined,
-    stats: normalizeStats(raw.stats),
+    stats:
+      commentCount === undefined
+        ? stats
+        : {
+            ...(stats ?? {}),
+            comments: commentCount,
+          },
     tags: normalizeTags(raw.tags),
     media: normalizeMedia(raw.media),
   } as ForumPost;

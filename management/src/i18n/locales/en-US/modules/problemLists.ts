@@ -167,8 +167,10 @@ export default {
 
   // ========== Stats ==========
   stats: {
-    total: 'total',
-    featured: 'featured',
+    total: 'Total',
+    featured: 'Featured',
+    public: 'Public',
+    listManagement: 'Problem List Management',
   },
 
   // ========== Empty State ==========

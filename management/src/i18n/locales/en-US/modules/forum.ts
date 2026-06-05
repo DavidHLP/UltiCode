@@ -4,6 +4,13 @@ export default {
   detailTitle: 'Post Detail',
   searchPlaceholder: 'Search posts...',
   clearSelection: 'Clear Selection',
+  stats: {
+    total: 'Total',
+    pinned: 'Pinned',
+    locked: 'Locked',
+    flagged: 'Flagged',
+    postManagement: 'Post Management',
+  },
 
   // Column definitions
   columns: {

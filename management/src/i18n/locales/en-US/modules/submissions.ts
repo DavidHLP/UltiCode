@@ -41,6 +41,7 @@ export default {
     JUDGING: 'Judging',
     SYSTEM_ERROR: 'System Error',
     OUTPUT_LIMIT_EXCEEDED: 'Output Limit Exceeded',
+    PRESENTATION_ERROR: 'Presentation Error',
   },
 
   // Stats

@@ -385,6 +385,17 @@ export default {
     descriptionSubtitle: 'Edit problem description',
     codeSubtitle: 'Configure supported languages',
     testCasesSubtitle: 'Manage test cases and constraints',
+    action: 'Action',
+    mode: 'Mode',
+    newProblem: 'New Problem',
+    problemCreation: 'Problem Creation',
+    section: 'Section',
+    description: 'Description',
+    testCases: 'Test Cases',
+    code: 'Code',
+    problemEditor: 'Problem Editor',
+    testCaseEditor: 'Test Case Editor',
+    languageConfig: 'Language Config',
   },
 
   // View page

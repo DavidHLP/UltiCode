@@ -26,4 +26,6 @@ export default {
   backup: 'Backup',
   email: 'Email',
   monitoring: 'Monitoring',
+  overview: 'Overview',
+  usersAndSecurity: 'Users & Security',
 } as const

@@ -168,6 +168,8 @@ export default {
   stats: {
     total: '总计',
     featured: '精选',
+    public: '公开',
+    listManagement: '题单管理',
   },
 
   // ========== 空状态 ==========

@@ -134,6 +134,7 @@ export default {
     flagged: '已标记',
     published: '已发布',
     loading: '加载中...',
+    solutionManagement: '题解管理',
   },
 
   // ========== 空状态 ==========

@@ -89,6 +89,9 @@ export default {
     accepted: '通过数',
     acceptanceRate: '通过率',
     userManagement: '用户管理',
+    total: '总计',
+    active: '活跃',
+    banned: '已封禁',
   },
 
   // 操作

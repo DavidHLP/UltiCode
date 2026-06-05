@@ -4,6 +4,13 @@ export default {
   detailTitle: '帖子详情',
   searchPlaceholder: '搜索帖子...',
   clearSelection: '清除选择',
+  stats: {
+    total: '总计',
+    pinned: '已置顶',
+    locked: '已锁定',
+    flagged: '已标记',
+    postManagement: '帖子管理',
+  },
 
   // 列定义
   columns: {

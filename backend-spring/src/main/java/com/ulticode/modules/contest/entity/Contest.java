@@ -56,7 +56,7 @@ public class Contest {
     private String scoringMode;
 
     /**
-     * Tie breaker: LAST_SOLVE_TIME, TOTAL_TIME
+     * Tie breaker: LAST_SOLVE_TIME, TOTAL_TIME, TOTAL_ATTEMPTS, NONE
      */
     private String tieBreaker;
 

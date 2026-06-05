@@ -237,3 +237,74 @@
   margin-bottom: 1rem;
   border-radius: 0.5rem;
 }
+
+/* --- High Contrast Solarized Theme Adjustments --- */
+.markdown-view .prose {
+  color: var(--solarized-base02) !important;
+}
+.dark .markdown-view .prose {
+  color: var(--solarized-base0) !important;
+}
+
+.markdown-view .prose h1,
+.markdown-view .prose h2,
+.markdown-view .prose h3,
+.markdown-view .prose h4 {
+  color: var(--solarized-base03) !important;
+}
+.dark .markdown-view .prose h1,
+.dark .markdown-view .prose h2,
+.dark .markdown-view .prose h3,
+.dark .markdown-view .prose h4 {
+  color: var(--solarized-base1) !important;
+}
+
+/* --- Section Heading Accent Lines --- */
+.markdown-view .prose h2 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  border-left: 4px solid var(--solarized-blue) !important;
+  padding-left: 0.75rem !important;
+  margin-top: 2.5rem !important;
+  margin-bottom: 1.25rem !important;
+  line-height: 1.4 !important;
+}
+
+.markdown-view .prose h3 {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  border-left: 3px solid var(--solarized-cyan) !important;
+  padding-left: 0.6rem !important;
+  margin-top: 2rem !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.4 !important;
+}
+
+/* --- Standalone Code Block Toolbar & Styling --- */
+.lc-code-block-standalone {
+  margin: 1.5rem 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.lc-code-block-header {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface-sunken);
+}
+
+.lc-code-block-header span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--silver-600);
+}
+
+.dark .lc-code-block-header span {
+  color: var(--silver-400);
+}
+
+.lc-code-block-standalone pre {
+  margin: 0 !important;
+  padding: 1rem !important;
+  background-color: transparent !important;
+}
+

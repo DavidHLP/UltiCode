@@ -263,15 +263,32 @@ watch(
   <div>
     <DropdownMenu @update:open="handleOpenChange">
       <DropdownMenuTrigger as-child>
-        <ActionItem
-          :icon="isSaved ? BookmarkCheck : Bookmark"
-          :count="count"
-          :label="t('problem.save.title')"
-          :active="isSaved"
-          class="cursor-pointer"
-          :class="{ 'fill-primary/20': isSaved }"
+        <Button
+          type="button"
+          variant="ghost"
+          class="h-8 px-3 rounded-none flex items-center gap-1.5 transition-all select-none font-bold text-xs cursor-pointer bg-transparent text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground shadow-none"
+          :class="{
+            'text-[var(--solarized-blue)]! bg-[var(--solarized-blue)]/10! hover:bg-[var(--solarized-blue)]/15! hover:text-[var(--solarized-blue)]!': isSaved,
+          }"
           :aria-label="t('problem.save.title')"
-        />
+        >
+          <component
+            :is="isSaved ? BookmarkCheck : Bookmark"
+            class="h-3.5 w-3.5"
+            :class="{ 'fill-current': isSaved }"
+          />
+          <span
+            v-if="count !== undefined"
+            class="text-[11px] tabular-nums font-mono font-bold"
+          >
+            {{ count }}
+          </span>
+          <span
+            class="hidden sm:inline text-[11px] font-bold opacity-80"
+          >
+            {{ t('problem.save.title') }}
+          </span>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent class="w-72" align="end">
         <DropdownMenuLabel>{{ t("problem.save.title") }}</DropdownMenuLabel>

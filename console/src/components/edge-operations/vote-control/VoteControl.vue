@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
-import { ArrowBigUp } from "lucide-vue-next";
+import { ThumbsUp, ThumbsDown } from "lucide-vue-next";
 import { computed } from "vue";
 
 const props = defineProps<{
@@ -33,92 +33,70 @@ defineOptions({
 </script>
 
 <template>
-  <div
-    class="flex items-center rounded-none h-8 px-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)] dark:bg-[var(--silver-100)] hover:border-[var(--silver-300)] dark:hover:border-[var(--silver-400)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
-  >
+  <div class="flex items-center select-none font-mono">
     <template v-if="!isPreview">
-      <!-- Upvote -->
+      <!-- Upvote Button -->
       <Button
+        type="button"
         variant="ghost"
-        size="icon"
-        class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--terminal-amber)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
+        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
         :class="{
-          'text-[var(--terminal-amber)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]':
+          'text-[var(--solarized-yellow)]! bg-[var(--solarized-yellow)]/10! hover:bg-[var(--solarized-yellow)]/15! hover:text-[var(--solarized-yellow)]!':
             userVote === 1,
-          'cursor-default hover:bg-transparent hover:text-inherit': readonly,
+          'opacity-50 cursor-default pointer-events-none': readonly,
         }"
-        :disabled="readonly"
         @click.stop="handleVote(1)"
       >
-        <ArrowBigUp
-          class="h-4 w-4 transition-transform active:scale-125"
+        <ThumbsUp
+          class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === 1 }"
         />
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(likes) }}</span>
       </Button>
 
-      <!-- Likes Count -->
-      <span
-        class="font-data text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none tabular-nums"
-        :class="{
-          'text-[var(--terminal-amber)]': userVote === 1,
-          'text-[var(--silver-500)]': userVote !== 1,
-        }"
-      >
-        {{ formatCount(likes) }}
-      </span>
-
-      <!-- Separator -->
+      <!-- Internal Separator -->
       <div
-        class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"
+        class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
       ></div>
 
-      <!-- Dislikes Count -->
-      <span
-        class="font-data text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none tabular-nums"
-        :class="{
-          'text-[var(--accent-electric)]': userVote === -1,
-          'text-[var(--silver-500)]': userVote !== -1,
-        }"
-      >
-        {{ formatCount(dislikes) }}
-      </span>
-
-      <!-- Downvote -->
+      <!-- Downvote Button -->
       <Button
+        type="button"
         variant="ghost"
-        size="icon"
-        class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--accent-electric)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
+        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all flex items-center gap-1.5 cursor-pointer select-none font-bold"
         :class="{
-          'text-[var(--accent-electric)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]':
+          'text-[var(--solarized-violet)]! bg-[var(--solarized-violet)]/10! hover:bg-[var(--solarized-violet)]/15! hover:text-[var(--solarized-violet)]!':
             userVote === -1,
-          'cursor-default hover:bg-transparent hover:text-inherit': readonly,
+          'opacity-50 cursor-default pointer-events-none': readonly,
         }"
-        :disabled="readonly"
         @click.stop="handleVote(-1)"
       >
-        <ArrowBigUp
-          class="h-4 w-4 rotate-180 transition-transform active:scale-125"
+        <ThumbsDown
+          class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === -1 }"
         />
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(dislikes) }}</span>
       </Button>
     </template>
 
     <template v-else>
-      <!-- Preview Mode -->
-      <div class="flex items-center gap-1.5 px-2">
-        <span
-          class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums"
-        >
-          {{ formatCount(likes) }}
-        </span>
-        <div
-          class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"
-        ></div>
-        <span
-          class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums"
-        >
-          {{ formatCount(dislikes) }}
-        </span>
+      <!-- Preview Mode: Two Static Buttons -->
+      <div
+        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
+      >
+        <ThumbsUp class="h-3.5 w-3.5" />
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(likes) }}</span>
+      </div>
+      
+      <div
+        class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+      ></div>
+
+      <div
+        class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
+      >
+        <ThumbsDown class="h-3.5 w-3.5" />
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(dislikes) }}</span>
       </div>
     </template>
   </div>

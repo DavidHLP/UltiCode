@@ -26,6 +26,7 @@ import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
@@ -177,15 +178,7 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     public List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId) {
-        Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || contest.getIsDeleted()) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
-        if (contestProblem == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
-        }
+        ContestProblem contestProblem = getContestProblemOrThrow(contestId, problemId);
 
         return contestSubmissionMapper
                 .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
@@ -195,12 +188,49 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
+    @Transactional
+    public SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO) {
+        Contest contest = getContestOrThrow(contestId);
+        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest is not running");
+        }
+
+        getContestProblemOrThrow(contestId, problemId);
+
+        ContestParticipant participant = participantMapper.findByContestIdAndUserId(contestId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED));
+        if (!ContestParticipantStatus.STARTED.name().equals(participant.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest participation has not started");
+        }
+
+        createDTO.setProblemId(problemId);
+        return submissionService.submit(userId, createDTO);
+    }
+
+    @Override
     public List<ContestAnnouncement> getContestAnnouncements(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null || contest.getIsDeleted()) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
         return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
+    }
+
+    private Contest getContestOrThrow(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+        return contest;
+    }
+
+    private ContestProblem getContestProblemOrThrow(String contestId, Long problemId) {
+        getContestOrThrow(contestId);
+        ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
+        if (contestProblem == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+        return contestProblem;
     }
 
     @Override

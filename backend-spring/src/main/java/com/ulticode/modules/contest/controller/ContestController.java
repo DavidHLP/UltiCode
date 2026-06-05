@@ -11,6 +11,7 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import java.util.Optional;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,12 +21,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * REST controller for contest-related operations.
@@ -38,6 +42,7 @@ public class ContestController {
 
     private final ContestService contestService;
     private final RankingService rankingService;
+    private final Validator validator;
 
     // =========================================================================
     // CONTEST QUERIES (Public)
@@ -335,6 +340,41 @@ public class ContestController {
         return Result.success(submissions);
     }
 
+    /**
+     * Submit code for a contest problem.
+     * Requires authentication.
+     *
+     * @param id        the contest ID or slug
+     * @param problemId the problem ID
+     * @param createDTO the submission payload
+     * @return created submission
+     */
+    @Operation(summary = "Submit contest problem", description = "Submit code for a problem in a contest")
+    @ApiResponse(responseCode = "200", description = "Contest problem submitted", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest or problem not found")
+    @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:problem-submit", limit = 20, period = 60)
+    @PostMapping("/{id}/problems/{problemId}/submissions")
+    public Result<SubmissionVO> submitContestProblem(
+            @Parameter(description = "Contest ID or slug")
+            @PathVariable String id,
+            @Parameter(description = "Problem ID")
+            @PathVariable Long problemId,
+            @RequestBody CreateSubmissionDTO createDTO) {
+
+        String resolvedId = resolveContestId(id);
+        String userId = getCurrentUserIdOrThrow();
+        if (createDTO == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Submission payload is required");
+        }
+        createDTO.setProblemId(problemId);
+        validateSubmissionPayload(createDTO);
+        SubmissionVO submission = contestService.submitContestProblem(resolvedId, problemId, userId, createDTO);
+        return Result.success(submission);
+    }
+
     // =========================================================================
     // PARTICIPATION (Authenticated)
     // =========================================================================
@@ -569,5 +609,16 @@ public class ContestController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         return userId;
+    }
+
+    private void validateSubmissionPayload(CreateSubmissionDTO createDTO) {
+        Set<ConstraintViolation<CreateSubmissionDTO>> violations = validator.validate(createDTO);
+        if (!violations.isEmpty()) {
+            String message = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .findFirst()
+                    .orElse("Validation failed");
+            throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+        }
     }
 }

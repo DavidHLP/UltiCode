@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.*;
+import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -89,6 +90,11 @@ public interface ContestService {
      * Get the current user's submissions for a contest problem.
      */
     List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId);
+
+    /**
+     * Submit code for a problem in a specific contest.
+     */
+    SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO);
 
     /**
      * Get contest announcements by contest ID

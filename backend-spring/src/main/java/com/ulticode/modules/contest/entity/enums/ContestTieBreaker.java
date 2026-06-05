@@ -5,5 +5,7 @@ package com.ulticode.modules.contest.entity.enums;
  */
 public enum ContestTieBreaker {
     LAST_SOLVE_TIME,
-    TOTAL_TIME
+    TOTAL_TIME,
+    TOTAL_ATTEMPTS,
+    NONE
 }

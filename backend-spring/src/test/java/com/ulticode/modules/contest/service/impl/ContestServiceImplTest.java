@@ -6,7 +6,9 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
+import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
@@ -36,6 +38,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.contest.dto.ContestListVO;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
+import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -509,6 +512,114 @@ class ContestServiceImplTest {
 
             verify(contestSubmissionMapper, never())
                     .findSubmissionsByContestProblemAndUser(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("should return empty list when user has no submissions for contest problem")
+        void getContestProblemSubmissions_noSubmissions_returnsEmptyList() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setIsDeleted(false);
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(contestSubmissionMapper.findSubmissionsByContestProblemAndUser(
+                    "contest-1", "contest-problem-1", REGULAR_USER_ID))
+                    .thenReturn(List.of());
+
+            List<SubmissionVO> result = contestService.getContestProblemSubmissions(
+                    "contest-1", 42L, REGULAR_USER_ID);
+
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("submitContestProblem")
+    class SubmitContestProblemTests {
+
+        @Test
+        @DisplayName("should submit when contest is running and participant has started")
+        void submitContestProblem_success() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setIsDeleted(false);
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            ContestParticipant participant = new ContestParticipant();
+            participant.setId("participant-1");
+            participant.setContestId("contest-1");
+            participant.setUserId(REGULAR_USER_ID);
+            participant.setStatus(ContestParticipantStatus.STARTED.name());
+
+            CreateSubmissionDTO dto = new CreateSubmissionDTO();
+            dto.setLanguage("java");
+            dto.setCode("class Main {}");
+
+            SubmissionVO submissionVO = new SubmissionVO();
+            submissionVO.setId("submission-1");
+            submissionVO.setProblemId(42L);
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+                    .thenReturn(java.util.Optional.of(participant));
+            when(submissionService.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+
+            SubmissionVO result = contestService.submitContestProblem(
+                    "contest-1", 42L, REGULAR_USER_ID, dto);
+
+            assertThat(result.getId()).isEqualTo("submission-1");
+            assertThat(dto.getProblemId()).isEqualTo(42L);
+        }
+
+        @Test
+        @DisplayName("should reject when participant has not started")
+        void submitContestProblem_notStarted() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setIsDeleted(false);
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            ContestParticipant participant = new ContestParticipant();
+            participant.setId("participant-1");
+            participant.setContestId("contest-1");
+            participant.setUserId(REGULAR_USER_ID);
+            participant.setStatus(ContestParticipantStatus.REGISTERED.name());
+
+            CreateSubmissionDTO dto = new CreateSubmissionDTO();
+            dto.setLanguage("java");
+            dto.setCode("class Main {}");
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+                    .thenReturn(java.util.Optional.of(participant));
+
+            assertThatThrownBy(() -> contestService.submitContestProblem(
+                    "contest-1", 42L, REGULAR_USER_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_STARTED);
+
+            verify(submissionService, never()).submit(any(), any());
         }
     }
 }

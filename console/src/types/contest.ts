@@ -24,7 +24,11 @@ export enum ParticipantStatus {
 }
 
 export type ContestScoringMode = "SCORE" | "ICPC" | "IOI";
-export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_TIME" | "TOTAL_ATTEMPTS";
+export type ContestTieBreaker =
+  | "LAST_SOLVE_TIME"
+  | "TOTAL_TIME"
+  | "TOTAL_ATTEMPTS"
+  | "NONE";
 export type VirtualContestStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
 // Codeforces-style rating titles
@@ -100,7 +104,7 @@ export interface ContestListItem {
   title: string;
   status: ContestStatus | string;
   startTime: string;
-  endTime: string;
+  endTime: string | null;
   duration: number;
   contestType: ContestType | string;
   participantCount: number;
@@ -431,7 +435,7 @@ export interface Contest {
   contestType: ContestType;
   status: ContestStatus;
   startTime: string;
-  endTime: string;
+  endTime: string | null;
   duration: number;
   isRated: boolean;
   isVisible: boolean;

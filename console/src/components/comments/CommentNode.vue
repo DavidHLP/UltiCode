@@ -94,10 +94,11 @@
       <div v-if="!isCollapsed">
         <!-- Content Body -->
         <div v-if="!isEditing">
-          <div
-            class="text-sm leading-snug break-words pr-4 whitespace-pre-wrap mb-2"
-          >
-            {{ comment.content }}
+          <div class="text-sm break-words pr-4 mb-2">
+            <MarkdownView
+              :content="comment.content"
+              :editor-id="`comment-${comment.id}`"
+            />
           </div>
 
           <!-- Actions -->
@@ -245,6 +246,7 @@ import type { Comment } from "@/types/comment";
 import CommentConnector from "./CommentConnector.vue";
 import CommentRail from "./CommentRail.vue";
 import CommentForm from "./CommentForm.vue";
+import MarkdownView from "@/components/markdown/MarkdownView.vue";
 import { ActionItem, VoteControl } from "@/components/edge-operations";
 import { Badge } from "@/components/ui/badge";
 import ReportDialog from "@/components/ReportDialog.vue";

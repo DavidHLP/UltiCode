@@ -63,8 +63,14 @@ public class ForumPostServiceImpl implements ForumPostService {
         List<ForumPost> posts = postMapper.selectList(wrapper.last("LIMIT " + limit + " OFFSET " + offset));
         Map<String, User> authorMap = batchLoadAuthors(posts);
         Map<String, ForumCommunity> communityMap = batchLoadCommunities(posts);
+        Map<String, Long> commentCounts = batchLoadCommentCounts(posts);
         List<ForumPostVO> items = posts.stream()
-                .map(p -> convertToPostVO(p, userId, authorMap.get(p.getUserId()), communityMap.get(p.getCommunityId())))
+                .map(p -> convertToPostVO(
+                        p,
+                        userId,
+                        authorMap.get(p.getUserId()),
+                        communityMap.get(p.getCommunityId()),
+                        commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, page, limit);
     }
@@ -96,8 +102,14 @@ public class ForumPostServiceImpl implements ForumPostService {
         List<ForumPost> paged = posts.stream().skip(offset).limit(limit).collect(Collectors.toList());
         Map<String, User> authorMap = batchLoadAuthors(paged);
         Map<String, ForumCommunity> communityMap = batchLoadCommunities(paged);
+        Map<String, Long> commentCounts = batchLoadCommentCounts(paged);
         List<ForumPostVO> items = paged.stream()
-                .map(p -> convertToPostVO(p, userId, authorMap.get(p.getUserId()), communityMap.get(p.getCommunityId())))
+                .map(p -> convertToPostVO(
+                        p,
+                        userId,
+                        authorMap.get(p.getUserId()),
+                        communityMap.get(p.getCommunityId()),
+                        commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, page, limit);
     }
@@ -238,6 +250,19 @@ public class ForumPostServiceImpl implements ForumPostService {
                 .collect(Collectors.toMap(ForumCommunity::getId, Function.identity()));
     }
 
+    public Map<String, Long> batchLoadCommentCounts(List<ForumPost> posts) {
+        List<String> ids = posts.stream()
+                .map(ForumPost::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) return Collections.emptyMap();
+        return commentMapper.countByPostIds(ids).stream()
+                .collect(Collectors.toMap(
+                        row -> String.valueOf(row.getOrDefault("post_id", row.get("postId"))),
+                        row -> ((Number) row.getOrDefault("cnt", row.get("count"))).longValue()));
+    }
+
     // =========================================================================
     // Entity → VO conversion (core fix: JSON fields + missing VO fields)
     // =========================================================================
@@ -250,6 +275,16 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     public ForumPostVO convertToPostVO(ForumPost post, String userId, User author, ForumCommunity community) {
+        long realCommentCount = post.getId() != null ? commentMapper.countByPostId(post.getId()) : 0L;
+        return convertToPostVO(post, userId, author, community, realCommentCount);
+    }
+
+    public ForumPostVO convertToPostVO(
+            ForumPost post,
+            String userId,
+            User author,
+            ForumCommunity community,
+            long realCommentCount) {
         ForumPostVO vo = new ForumPostVO();
         vo.setId(post.getId());
         vo.setCommunityId(post.getCommunityId());
@@ -326,11 +361,10 @@ public class ForumPostServiceImpl implements ForumPostService {
         statsMap.put("likes", vr.getLikes());
         statsMap.put("dislikes", vr.getDislikes());
         statsMap.put("score", vr.getLikes() - vr.getDislikes());
+        statsMap.put("comments", realCommentCount);
         vo.setStats(statsMap);
 
-        // --- CommentCount: extract from stats ---
-        Object commentsObj = statsMap.get("comments");
-        vo.setCommentCount(commentsObj instanceof Number ? ((Number) commentsObj).longValue() : 0L);
+        vo.setCommentCount(realCommentCount);
 
         // --- Community name/slug ---
         if (community != null) {

@@ -83,10 +83,7 @@ export const buildCommentTree = (
 
     if (comment.parentId && nodes.has(comment.parentId)) {
       const parent = nodes.get(comment.parentId)!;
-      nodes.set(String(parent.id), {
-        ...parent,
-        children: [...(parent.children ?? []), current],
-      });
+      parent.children = [...(parent.children ?? []), current];
     } else {
       roots.push(current);
     }
@@ -152,10 +149,7 @@ export const buildSolutionCommentTree = (
 
     if (comment.parentId && nodes.has(comment.parentId)) {
       const parent = nodes.get(comment.parentId)!;
-      nodes.set(String(parent.id), {
-        ...parent,
-        children: [...(parent.children ?? []), current],
-      });
+      parent.children = [...(parent.children ?? []), current];
     } else {
       roots.push(current);
     }

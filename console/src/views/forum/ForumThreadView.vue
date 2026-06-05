@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
-import type { ForumThread } from "@/types/forum";
+import type { ForumComment, ForumThread } from "@/types/forum";
 import { Skeleton } from "@/components/ui/skeleton";
 import ForumPostSkeleton from "@/views/forum/components/ForumPostSkeleton.vue";
 import ThreadContent from "@/views/forum/components/ThreadContent.vue";
@@ -13,9 +13,9 @@ import {
   deleteForumPost,
   recordForumView,
 } from "@/api/forum";
-import { ref, watch } from "vue";
+import { ref, watch, computed, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, RouterLink, useRouter } from "vue-router";
-import { ArrowLeft, MessageSquare, Flag } from "lucide-vue-next";
+import { ArrowLeft, MessageSquare, Flag, List } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
@@ -31,6 +31,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import ReportDialog from "@/components/ReportDialog.vue";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAvatar } from "@/composables/useAvatar";
+import { formatRelativeTime } from "@/utils/date";
 
 const route = useRoute();
 const router = useRouter();
@@ -180,8 +183,7 @@ async function handleCommentVote(commentId: string | number, type: 1 | -1) {
       type,
     );
 
-    // Find and update comment in the flat list
-    const comment = thread.value.comments.find((c) => c.id === commentId);
+    const comment = findCommentById(thread.value.comments, String(commentId));
     if (comment) {
       comment.likes = res.likes;
       comment.dislikes = res.dislikes;
@@ -192,18 +194,185 @@ async function handleCommentVote(commentId: string | number, type: 1 | -1) {
   }
 }
 
+function findCommentById(
+  comments: ForumComment[],
+  commentId: string,
+): ForumComment | undefined {
+  for (const comment of comments) {
+    if (comment.id === commentId) return comment;
+    const match = findCommentById(comment.replies ?? [], commentId);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+function countThreadComments(comments: ForumComment[] = []): number {
+  return comments.reduce(
+    (total, comment) => total + 1 + countThreadComments(comment.replies ?? []),
+    0,
+  );
+}
+
 function handleThreadSave(isSaved: boolean) {
   if (thread.value) {
     thread.value.isSaved = isSaved;
   }
 }
+
+// --- Author Info & Avatar ---
+const authorUsername = computed(() => thread.value?.author?.username);
+const authorAvatar = computed(() => thread.value?.author?.avatar);
+const { normalizedAvatar: authorAvatarUrl } = useAvatar(authorUsername, authorAvatar);
+
+const authorInitial = computed(() => {
+  if (!thread.value?.author?.username) return "?";
+  return thread.value.author.username.charAt(0).toUpperCase();
+});
+
+const createdAgo = computed(() => thread.value ? formatRelativeTime(thread.value.createdAt) : "");
+
+// --- Table of Contents & Scroll Spy ---
+const getPostContent = () => {
+  if (!thread.value) return "";
+  if (thread.value.body) return thread.value.body;
+  if (thread.value.media) {
+    const m = thread.value.media as any;
+    if (m && m.type === "text") {
+      return m.markdown || m.body || "";
+    } else if (Array.isArray(m)) {
+      const textMedia = m.find((item: any) => item.type === "text");
+      if (textMedia) return textMedia.markdown || textMedia.body || "";
+    }
+  }
+  return "";
+};
+
+const headings = computed(() => {
+  const content = getPostContent();
+  const lines = content.split("\n");
+  const result: { id: string; text: string; level: number }[] = [];
+  let codeBlock = false;
+
+  lines.forEach((line: string) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) {
+      codeBlock = !codeBlock;
+    }
+    if (codeBlock) return;
+
+    // Match ## heading or ### heading
+    const match = trimmed.match(/^(#{2,3})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length;
+      const text = match[2].trim();
+      const id = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
+      result.push({ id, text, level });
+    }
+  });
+
+  // Always append comments section
+  result.push({
+    id: "comments-section",
+    text: t("forum.comments.title"),
+    level: 2,
+  });
+
+  return result;
+});
+
+const activeHeadingId = ref<string>("");
+let spyObserver: IntersectionObserver | null = null;
+
+const setupScrollSpy = () => {
+  if (spyObserver) {
+    spyObserver.disconnect();
+  }
+
+  spyObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          activeHeadingId.value = entry.target.id;
+        }
+      });
+    },
+    {
+      root: null,
+      rootMargin: "-80px 0px -50% 0px",
+      threshold: 0.1,
+    }
+  );
+
+  headings.value.forEach((h) => {
+    const el = document.getElementById(h.id);
+    if (el) {
+      spyObserver?.observe(el);
+    }
+  });
+};
+
+watch(
+  () => headings.value,
+  () => {
+    setTimeout(setupScrollSpy, 250);
+  },
+  { immediate: true, deep: true }
+);
+
+// --- Responsive Layout Container Query / Resize Observer ---
+const wrapperRef = ref<HTMLElement | null>(null);
+const containerWidth = ref(0);
+const isWideLayout = computed(() => containerWidth.value >= 900);
+const showMobileTOC = ref(false);
+
+let resizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  setTimeout(setupScrollSpy, 500);
+  
+  if (wrapperRef.value) {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        containerWidth.value = entry.contentRect.width;
+      }
+    });
+    resizeObserver.observe(wrapperRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (spyObserver) {
+    spyObserver.disconnect();
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
+const scrollToHeading = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    activeHeadingId.value = id;
+  }
+};
+
+const handleMobileTOCClick = (id: string) => {
+  scrollToHeading(id);
+  showMobileTOC.value = false;
+};
+
 </script>
 
 <template>
   <div
-    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+    ref="wrapperRef"
+    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500"
   >
-    <main class="w-full min-w-0 flex-1 space-y-6">
+    <main
+      class="min-w-0 space-y-6"
+      :class="[isWideLayout ? 'max-w-4xl flex-1' : 'w-full']"
+    >
       <div v-if="isLoading" class="space-y-6">
         <ForumPostSkeleton />
         <div class="space-y-4 pl-4 border-l border-border/40">
@@ -218,18 +387,63 @@ function handleThreadSave(isSaved: boolean) {
       </div>
 
       <template v-else-if="thread">
-        <div class="flex items-start gap-0.25 sm:gap-0.5">
-          <RouterLink
-            to="/forum"
-            class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-none bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mt-4 sm:mt-6"
-          >
-            <ArrowLeft class="h-5 w-5" />
-          </RouterLink>
+        <div class="space-y-4">
+          <!-- Back Link Header -->
+          <div class="flex items-center">
+            <RouterLink
+              to="/forum"
+              class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground hover:border-[var(--silver-300)] active:bg-[var(--silver-200)] dark:active:bg-[var(--silver-300)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
+            >
+              <ArrowLeft class="h-3.5 w-3.5 mr-1.5" />
+              <span>{{ t("forum.feedback.backToDiscussions") }}</span>
+            </RouterLink>
+          </div>
 
-          <div class="flex-1 min-w-0 bg-card sm:rounded-none overflow-hidden">
+          <div class="terminal-card overflow-hidden w-full">
             <div
               class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-6 pt-4"
             >
+              <!-- Mobile Table of Contents button (narrow container only) -->
+              <div v-if="!isWideLayout && headings.length > 1" class="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 px-2 text-xs font-semibold hover:bg-[var(--surface-sunken)] rounded-none"
+                  @click="showMobileTOC = !showMobileTOC"
+                >
+                  <List class="mr-1 h-3.5 w-3.5" />
+                  目录
+                </Button>
+                
+                <!-- Floating TOC Dropdown Popup -->
+                <div
+                  v-if="showMobileTOC"
+                  class="absolute right-0 top-9 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
+                >
+                  <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1">
+                    文章大纲
+                  </div>
+                  <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                    <button
+                      v-for="h in headings"
+                      :key="h.id"
+                      type="button"
+                      class="text-left text-xs py-1 px-1.5 transition-all duration-150 border-l-2 hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer select-none"
+                      :class="[
+                        activeHeadingId === h.id
+                          ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                          : 'border-transparent text-muted-foreground font-medium'
+                      ]"
+                      :style="{ paddingLeft: h.level === 3 ? '1rem' : '0.25rem' }"
+                      @click="handleMobileTOCClick(h.id)"
+                    >
+                      {{ h.text }}
+                    </button>
+                  </nav>
+                </div>
+              </div>
+
               <template v-if="isOwner()">
                 <Button variant="outline" size="sm" @click="handleEditThread">
                   {{ t("forum.post.edit") }}
@@ -276,14 +490,14 @@ function handleThreadSave(isSaved: boolean) {
               @vote="handleThreadVote"
               @save="handleThreadSave"
             />
-            <div class="px-4 sm:px-6 py-4 border-t border-border/50">
+            <div id="comments-section" class="px-4 sm:px-6 py-4 border-t border-border/50">
               <h2
                 class="text-sm font-bold tracking-tight flex items-center gap-2"
               >
                 <MessageSquare class="h-4 w-4" />
                 {{ t("forum.comments.title") }}
                 <span class="text-muted-foreground font-normal">
-                  ({{ thread.comments?.length || 0 }})
+                  ({{ countThreadComments(thread.comments) }})
                 </span>
               </h2>
             </div>
@@ -306,6 +520,64 @@ function handleThreadSave(isSaved: boolean) {
         {{ t("forum.comments.failedToLoad") }}
       </div>
     </main>
+
+    <!-- Right Sidebar Column: Sticky details & TOC -->
+    <aside v-if="isWideLayout && thread" class="flex flex-col gap-4 w-60 shrink-0 sticky top-4 select-none">
+      
+      <!-- Author Profile Card -->
+      <div class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <Avatar class="h-9 w-9 border border-border/40 shrink-0">
+            <AvatarImage :src="authorAvatarUrl" :alt="thread.author?.username" />
+            <AvatarFallback class="text-xs font-semibold bg-primary/10 text-primary">
+              {{ authorInitial }}
+            </AvatarFallback>
+          </Avatar>
+          <div class="flex flex-col min-w-0">
+            <span class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight">
+              u/{{ thread.author?.username || 'unknown' }}
+            </span>
+            <span class="text-[10px] text-muted-foreground truncate leading-none mt-0.5" v-if="thread.author?.karma !== undefined">
+              Reputation: {{ thread.author.karma }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono">
+          <div>发布于：{{ createdAgo }}</div>
+          <div v-if="thread.community" class="truncate">社区：r/{{ thread.community.name }}</div>
+          <div v-if="thread.flair" class="flex items-center gap-1.5 flex-wrap mt-1">
+            <span class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)]">
+              {{ thread.flair.text }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table of Contents Widget -->
+      <div v-if="headings.length > 1" class="bg-[var(--card)] border border-border shadow-sm p-4">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono">
+          文章大纲
+        </div>
+        <nav class="flex flex-col gap-1">
+          <button
+            v-for="h in headings"
+            :key="h.id"
+            type="button"
+            class="text-left text-xs font-mono py-1 px-2 transition-all duration-150 border-l-2 select-none hover:bg-[var(--surface-sunken)] hover:text-foreground cursor-pointer"
+            :class="[
+              activeHeadingId === h.id
+                ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
+                : 'border-transparent text-muted-foreground font-medium'
+            ]"
+            :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
+            @click="scrollToHeading(h.id)"
+          >
+            {{ h.text }}
+          </button>
+        </nav>
+      </div>
+    </aside>
   </div>
 
   <ReportDialog

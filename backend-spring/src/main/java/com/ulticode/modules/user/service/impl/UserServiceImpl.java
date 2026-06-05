@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -348,12 +349,11 @@ public class UserServiceImpl implements UserService {
         UserSkillsDTO skillsDTO = new UserSkillsDTO();
 
         // Get tag stats from problem_tag_relations
-        List<Object[]> tagStats = problemTagRelationMapper.findTagStatsByUserId(id);
+        List<Map<String, Object>> tagStats = Optional
+                .ofNullable(problemTagRelationMapper.findTagStatsByUserId(id))
+                .orElse(List.of());
         List<UserSkillsDTO.UserSkill> skills = tagStats.stream()
-                .map(row -> new UserSkillsDTO.UserSkill(
-                        (String) row[0],
-                        (String) row[1],
-                        ((Number) row[2]).intValue()))
+                .map(this::toUserSkill)
                 .toList();
 
         skillsDTO.setSkills(skills);
@@ -363,6 +363,14 @@ public class UserServiceImpl implements UserService {
         skillsDTO.setTotalSolved(totalSolved != null ? totalSolved.intValue() : 0);
 
         return skillsDTO;
+    }
+
+    private UserSkillsDTO.UserSkill toUserSkill(Map<String, Object> row) {
+        Object count = row.get("count");
+        return new UserSkillsDTO.UserSkill(
+                Objects.toString(row.get("tagName"), ""),
+                Objects.toString(row.get("tagSlug"), ""),
+                count instanceof Number ? ((Number) count).intValue() : 0);
     }
 
     @Override

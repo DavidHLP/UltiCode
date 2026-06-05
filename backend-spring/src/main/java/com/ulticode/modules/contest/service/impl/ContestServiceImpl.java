@@ -26,6 +26,8 @@ import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -60,6 +62,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ProblemMapper problemMapper;
+    private final SubmissionService submissionService;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -170,6 +173,25 @@ public class ContestServiceImpl implements ContestService {
                     return vo;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || contest.getIsDeleted()) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        ContestProblem contestProblem = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
+        if (contestProblem == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+
+        return contestSubmissionMapper
+                .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
+                .stream()
+                .map(submissionService::toVO)
+                .toList();
     }
 
     @Override

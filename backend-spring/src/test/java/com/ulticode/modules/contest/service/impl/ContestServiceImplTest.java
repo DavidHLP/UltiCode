@@ -6,6 +6,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
@@ -16,6 +17,9 @@ import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,6 +73,8 @@ class ContestServiceImplTest {
     private ContestSubmissionMapper contestSubmissionMapper;
     @Mock
     private ProblemMapper problemMapper;
+    @Mock
+    private SubmissionService submissionService;
 
     private ContestServiceImpl contestService;
 
@@ -87,7 +93,8 @@ class ContestServiceImplTest {
                 achievementTriggerService,
                 contestAnnouncementMapper,
                 contestSubmissionMapper,
-                problemMapper
+                problemMapper,
+                submissionService
         );
     }
 
@@ -438,6 +445,70 @@ class ContestServiceImplTest {
 
             assertThat(result.getPage()).isEqualTo(1);
             assertThat(result.getPageSize()).isEqualTo(20);
+        }
+    }
+
+    @Nested
+    @DisplayName("getContestProblemSubmissions")
+    class GetContestProblemSubmissionsTests {
+
+        @Test
+        @DisplayName("should return current user's submissions for contest problem")
+        void getContestProblemSubmissions_success() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setIsDeleted(false);
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            Submission submission = new Submission();
+            submission.setId("submission-1");
+            submission.setProblemId(42L);
+            submission.setUserId(REGULAR_USER_ID);
+            submission.setStatus("Accepted");
+
+            SubmissionVO submissionVO = new SubmissionVO();
+            submissionVO.setId("submission-1");
+            submissionVO.setProblemId(42L);
+            submissionVO.setStatus("Accepted");
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(contestSubmissionMapper.findSubmissionsByContestProblemAndUser(
+                    "contest-1", "contest-problem-1", REGULAR_USER_ID))
+                    .thenReturn(List.of(submission));
+            when(submissionService.toVO(submission)).thenReturn(submissionVO);
+
+            List<SubmissionVO> result = contestService.getContestProblemSubmissions(
+                    "contest-1", 42L, REGULAR_USER_ID);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getId()).isEqualTo("submission-1");
+            assertThat(result.get(0).getStatus()).isEqualTo("Accepted");
+        }
+
+        @Test
+        @DisplayName("should throw when problem does not belong to contest")
+        void getContestProblemSubmissions_problemNotInContest() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setIsDeleted(false);
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(null);
+
+            assertThatThrownBy(() -> contestService.getContestProblemSubmissions(
+                    "contest-1", 42L, REGULAR_USER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PROBLEM_NOT_FOUND);
+
+            verify(contestSubmissionMapper, never())
+                    .findSubmissionsByContestProblemAndUser(any(), any(), any());
         }
     }
 }

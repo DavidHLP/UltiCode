@@ -10,7 +10,7 @@ export function formatDateTime(isoString: string): string {
 
 export function getDurationMinutes(
   startTime?: string,
-  endTime?: string,
+  endTime?: string | null,
 ): number {
   if (!startTime || !endTime) return 0;
   const start = new Date(startTime).getTime();

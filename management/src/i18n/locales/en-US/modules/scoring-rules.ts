@@ -3,6 +3,13 @@ export default {
   createRule: 'Create Rule',
   searchPlaceholder: 'Search rules...',
   showInactive: 'Show Inactive',
+  stats: {
+    total: 'Total',
+    active: 'Active',
+    defaults: 'Default',
+    inactive: 'Inactive',
+    scoringManagement: 'Scoring Management',
+  },
   loadError: 'Failed to load scoring rules',
   emptyTitle: 'No scoring rules found',
   emptyDescription: 'Create a new scoring rule to get started.',

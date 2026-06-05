@@ -26,4 +26,6 @@ export default {
   backup: '备份恢复',
   email: '邮件管理',
   monitoring: '系统监控',
+  overview: '数据概览',
+  usersAndSecurity: '用户与安全',
 } as const

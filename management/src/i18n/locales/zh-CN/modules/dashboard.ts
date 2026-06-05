@@ -77,6 +77,8 @@ export default {
   chart: {
     userRegistrationTrend: '用户注册趋势',
     dailyRegistrations: '每日新注册用户',
+    noDataTitle: '暂无数据',
+    noDataDesc: '在选定的时间范围内没有找到注册记录。',
   },
 
   // 时间段选择器

@@ -89,6 +89,9 @@ export default {
     accepted: 'Accepted',
     acceptanceRate: 'Acceptance Rate',
     userManagement: 'user management',
+    total: 'Total',
+    active: 'Active',
+    banned: 'Banned',
   },
 
   // Actions

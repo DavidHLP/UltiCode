@@ -2,6 +2,14 @@ export default {
   title: '评论管理',
   searchPlaceholder: '搜索评论内容...',
   clearSelection: '清除选择',
+  stats: {
+    total: '总计',
+    flagged: '被标记',
+    forum: '论坛',
+    solution: '题解',
+    deleted: '已删除',
+    commentModeration: '评论管理',
+  },
 
   // 列
   columns: {

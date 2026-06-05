@@ -3,6 +3,13 @@ export default {
   createRule: '创建规则',
   searchPlaceholder: '搜索规则...',
   showInactive: '显示已禁用',
+  stats: {
+    total: '总计',
+    active: '已启用',
+    defaults: '默认',
+    inactive: '已禁用',
+    scoringManagement: '计分管理',
+  },
   loadError: '加载计分规则失败',
   emptyTitle: '未找到计分规则',
   emptyDescription: '创建新的计分规则以开始使用。',

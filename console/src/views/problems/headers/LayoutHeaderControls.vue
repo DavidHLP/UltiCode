@@ -87,10 +87,8 @@ const selectedLayout = computed({
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button
-              variant="ghost"
-              size="icon"
               :aria-label="t('problem.explorer.filters')"
-              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
+              class="header-btn w-8 p-0"
             >
               <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -218,12 +216,10 @@ const selectedLayout = computed({
         />
 
         <!-- Guest: show login button -->
-        <RouterLink v-if="!isAuthenticated" to="/login">
+        <RouterLink v-if="!isAuthenticated" to="/login" class="flex-none">
           <Button
-            variant="ghost"
-            size="icon"
             :aria-label="t('auth.login.submit')"
-            class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
+            class="header-btn w-8 p-0"
           >
             <LogIn class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -233,10 +229,8 @@ const selectedLayout = computed({
         <DropdownMenu v-else>
           <DropdownMenuTrigger as-child>
             <Button
-              variant="ghost"
-              size="icon"
               :aria-label="t('personal.profile.title')"
-              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
+              class="header-btn w-8 p-0"
             >
               <User class="h-4 w-4" aria-hidden="true" />
             </Button>

@@ -25,42 +25,42 @@ const { t } = useI18n();
 <template>
   <Card
     id="contest-ranking"
-    class="border-none shadow-sm overflow-hidden rounded-none"
+    class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-[var(--shadow-float)] overflow-hidden rounded-none"
   >
     <CardHeader
-      class="flex flex-row items-center justify-between pb-3 border-b bg-muted/20"
+      class="flex flex-row items-center justify-between pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
     >
       <CardTitle
-        class="text-lg font-black uppercase tracking-widest text-muted-foreground"
+        class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
         >{{ t("contest.detail.leaderboard") }}</CardTitle
       >
       <Button
         variant="outline"
         size="sm"
-        class="rounded-none h-8 font-bold text-[10px]"
+        class="rounded-none h-8 px-3 font-bold text-xs uppercase tracking-wider border border-border bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
         >{{ t("contest.detail.viewAll") }}</Button
       >
     </CardHeader>
     <CardContent class="p-0">
       <Table>
-        <TableHeader class="bg-muted/50">
-          <TableRow>
-            <TableHead class="w-20 pl-6 font-bold">{{
+        <TableHeader class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40">
+          <TableRow class="hover:bg-transparent">
+            <TableHead class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.rank")
             }}</TableHead>
-            <TableHead class="font-bold">{{
+            <TableHead class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.user")
             }}</TableHead>
-            <TableHead class="w-24 text-center font-bold">{{
+            <TableHead class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.score")
             }}</TableHead>
-            <TableHead class="w-32 text-center font-bold">{{
+            <TableHead class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.time")
             }}</TableHead>
-            <TableHead class="w-48 font-bold">{{
+            <TableHead class="w-48 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.problems")
             }}</TableHead>
-            <TableHead class="w-32 pr-6 text-right font-bold">{{
+            <TableHead class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
               t("contest.detail.rankingHeaders.problemsSolved")
             }}</TableHead>
           </TableRow>
@@ -69,25 +69,25 @@ const { t } = useI18n();
           <TableRow
             v-for="entry in rankings.slice(0, 20)"
             :key="entry.username"
-            class="group hover:bg-muted/30 transition-colors"
+            class="group border-b border-border/30 last:border-b-0 hover:bg-[var(--silver-100)]/30 dark:hover:bg-[var(--solarized-base03)]/30 transition-all transition-colors"
           >
-            <TableCell class="pl-6">
+            <TableCell class="pl-6 py-3">
               <div
-                class="inline-flex h-10 w-10 items-center justify-center rounded-none font-black text-sm transition-all"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-none font-black text-xs transition-all shadow-sm"
                 :class="{
-                  'bg-[var(--terminal-amber)] text-white shadow-[var(--shadow-float)] shadow-[var(--terminal-amber)]/20 scale-110':
+                  'bg-[var(--terminal-amber)] text-white scale-110':
                     entry.rank === 1,
-                  'bg-[var(--silver-300)] text-white shadow-[var(--shadow-float)] shadow-[var(--silver-300)]/20 scale-105':
+                  'bg-[var(--silver-300)] text-white scale-105':
                     entry.rank === 2,
-                  'bg-[var(--terminal-amber)] text-white shadow-[var(--shadow-float)] shadow-[var(--terminal-amber)]/20':
+                  'bg-[var(--terminal-amber)] text-white':
                     entry.rank === 3,
-                  'bg-muted text-muted-foreground': (entry.rank ?? 0) > 3,
+                  'bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border border-border/40': (entry.rank ?? 0) > 3,
                 }"
               >
                 {{ entry.rank ?? 0 }}
               </div>
             </TableCell>
-            <TableCell>
+            <TableCell class="py-3">
               <div class="flex items-center gap-3">
                 <div class="relative">
                   <img
@@ -95,7 +95,7 @@ const { t } = useI18n();
                       entry.avatar ||
                       'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2U1ZTdlYiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTIiLz48L3N2Zz4='
                     "
-                    class="h-10 w-10 rounded-none border border-border bg-muted shadow-sm"
+                    class="h-9 w-9 rounded-none border border-border bg-muted shadow-sm"
                     alt="Avatar"
                   />
                   <span
@@ -105,37 +105,37 @@ const { t } = useI18n();
                   </span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-black text-sm">{{ entry.username }}</span>
+                  <span class="font-bold text-sm text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">{{ entry.username }}</span>
                   <span
-                    class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"
+                    class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest"
                   >
                     {{ entry.ratingTitle || "NEWBIE" }}
                   </span>
                 </div>
               </div>
             </TableCell>
-            <TableCell class="text-center">
-              <span class="text-xl font-black tracking-tight">{{
+            <TableCell class="text-center py-3">
+              <span class="text-base font-black tracking-tight font-mono text-foreground">{{
                 entry.score ?? 0
               }}</span>
             </TableCell>
-            <TableCell class="text-center">
-              <span class="font-mono text-xs font-bold text-muted-foreground">
+            <TableCell class="text-center py-3">
+              <span class="font-mono text-xs font-semibold text-muted-foreground">
                 {{ formatPenaltyTime(entry.penalty ?? 0) }}
               </span>
             </TableCell>
-            <TableCell>
+            <TableCell class="py-3">
               <div class="flex flex-wrap gap-1">
                 <Badge
                   variant="secondary"
-                  class="min-w-[2rem] justify-center font-mono text-[10px] h-6 rounded px-1.5"
+                  class="min-w-[2rem] justify-center font-mono text-[10px] h-6 rounded-none px-2 border border-border/40 bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-foreground font-bold"
                 >
                   {{ entry.problemsSolved }}
                 </Badge>
               </div>
             </TableCell>
-            <TableCell class="pr-6 text-right">
-              <span class="font-mono text-sm font-bold">
+            <TableCell class="pr-6 text-right py-3">
+              <span class="font-mono text-xs font-bold text-foreground">
                 {{ entry.problemsSolved ?? 0 }}
               </span>
             </TableCell>

@@ -5,6 +5,8 @@ import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
 import { ThumbsUp, Eye, MessageSquare } from "lucide-vue-next";
+import { useAvatar } from "@/composables/useAvatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -18,6 +20,11 @@ const { t } = useI18n();
 
 const authorInitial = computed(
   () => props.item.author.name.charAt(0)?.toUpperCase() ?? "?",
+);
+
+const { normalizedAvatar: authorAvatarUrl } = useAvatar(
+  computed(() => props.item.author.username),
+  computed(() => props.item.author.avatar),
 );
 
 const languageLabel = computed(() => {
@@ -52,19 +59,15 @@ const voteCounts = computed(() =>
     @keyup.enter.prevent="handleSelect"
   >
     <header class="flex items-start gap-2.5">
-      <img
-        v-if="props.item.author.avatar"
-        :src="props.item.author.avatar"
-        class="h-8 w-8 rounded-none border border-border object-cover"
-        alt="Avatar"
-      />
-      <div
-        v-else
-        class="flex h-8 w-8 items-center justify-center rounded-none text-[11px] font-semibold text-white"
-        :style="{ backgroundColor: props.item.author.avatarColor }"
-      >
-        {{ authorInitial }}
-      </div>
+      <Avatar class="h-8 w-8 border border-border/50">
+        <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
+        <AvatarFallback
+          class="text-[11px] font-semibold text-white"
+          :style="{ backgroundColor: props.item.author.avatarColor }"
+        >
+          {{ authorInitial }}
+        </AvatarFallback>
+      </Avatar>
       <div class="flex flex-1 flex-col gap-0.5 text-xs leading-none">
         <div class="flex flex-wrap items-center gap-1.5">
           <span class="font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">

@@ -76,19 +76,27 @@ const selectedLayout = computed({
 </script>
 
 <template>
-  <div class="flex min-w-60 flex-1 items-center justify-end overflow-hidden">
+  <div class="flex flex-1 items-center justify-end overflow-hidden">
     <div
-      class="flex items-center overflow-hidden rounded-none focus:outline-none"
+      class="flex items-center gap-3 focus:outline-none"
     >
-      <ProblemEdgeOperations :problem="problem" />
+      <!-- Group 1: Problem Operations (Vote & Save) -->
+      <ProblemEdgeOperations v-if="problem" :problem="problem" />
 
-      <div class="relative group/nav-back flex items-center">
-        <!-- Layout button with Dropdown Menu -->
+      <!-- Divider -->
+      <Separator
+        v-if="problem"
+        orientation="vertical"
+        class="h-5 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+      />
+
+      <!-- Group 2: View Settings (Layout Switching) -->
+      <div class="flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button
               :aria-label="t('problem.explorer.filters')"
-              class="header-btn w-8 p-0"
+              class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground data-[state=open]:bg-[var(--silver-100)] dark:data-[state=open]:bg-[var(--silver-200)] data-[state=open]:text-[var(--solarized-base03)] dark:data-[state=open]:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
             >
               <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -209,17 +217,21 @@ const selectedLayout = computed({
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
 
-        <Separator
-          orientation="vertical"
-          class="h-7 w-px flex-none bg-[var(--border)]"
-        />
+      <!-- Divider -->
+      <Separator
+        orientation="vertical"
+        class="h-5 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+      />
 
+      <!-- Group 3: User Entry -->
+      <div class="flex items-center">
         <!-- Guest: show login button -->
         <RouterLink v-if="!isAuthenticated" to="/login" class="flex-none">
           <Button
             :aria-label="t('auth.login.submit')"
-            class="header-btn w-8 p-0"
+            class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
           >
             <LogIn class="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -230,7 +242,7 @@ const selectedLayout = computed({
           <DropdownMenuTrigger as-child>
             <Button
               :aria-label="t('personal.profile.title')"
-              class="header-btn w-8 p-0"
+              class="h-8 w-8 p-0 rounded-none border border-transparent bg-transparent hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground data-[state=open]:bg-[var(--silver-100)] dark:data-[state=open]:bg-[var(--silver-200)] data-[state=open]:text-[var(--solarized-base03)] dark:data-[state=open]:text-foreground transition-all duration-200 flex items-center justify-center cursor-pointer select-none shadow-none"
             >
               <User class="h-4 w-4" aria-hidden="true" />
             </Button>

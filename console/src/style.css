@@ -1114,3 +1114,58 @@
 .dark .hljs-params {
   color: #839496;
 }
+
+/* ========================================
+   Header Button Unified Style
+   ======================================== */
+.header-btn {
+  height: 2rem !important; /* h-8 */
+  border-radius: 0 !important; /* rounded-none */
+  font-family: var(--font-mono) !important; /* matches engineering style code/text stack */
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all var(--transition-fast) !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--solarized-base01) !important;
+  box-shadow: none !important;
+}
+
+.dark .header-btn {
+  color: var(--solarized-base1) !important;
+}
+
+/* Hover state */
+.header-btn:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--solarized-base1) 22%, transparent) !important;
+  color: var(--solarized-base02) !important;
+}
+
+.dark .header-btn:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--solarized-base01) 22%, transparent) !important;
+  color: var(--solarized-base3) !important;
+}
+
+/* Active / Checked state */
+.header-btn.active, .header-btn[data-state=open] {
+  background-color: color-mix(in oklch, var(--solarized-base1) 32%, transparent) !important;
+  color: var(--solarized-base03) !important;
+}
+
+.dark .header-btn.active, .dark .header-btn[data-state=open] {
+  background-color: color-mix(in oklch, var(--solarized-base01) 32%, transparent) !important;
+  color: var(--solarized-base3) !important;
+}
+
+/* Disabled state */
+.header-btn:disabled, .header-btn.disabled {
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}

@@ -63,12 +63,14 @@ const displayActivities = computed(() => {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] shadow-float h-full"
+    class="border-2 border-[var(--silver-200)] dark:border-[var(--silver-300)] shadow-float h-full rounded-none"
   >
-    <CardHeader class="pb-2 pt-5 px-5">
+    <CardHeader
+      class="pb-3 pt-3 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/20 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+    >
       <div class="flex items-center justify-between">
         <div>
-          <CardTitle class="text-base font-medium tracking-tight">{{
+          <CardTitle class="text-base font-bold font-mono uppercase tracking-wide text-foreground">{{
             t('dashboard.timeline.title')
           }}</CardTitle>
           <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
@@ -77,7 +79,7 @@ const displayActivities = computed(() => {
         </div>
       </div>
     </CardHeader>
-    <CardContent class="pt-2 px-5 pb-5">
+    <CardContent class="pt-4 px-5 pb-5">
       <div
         v-if="displayActivities.length === 0"
         class="text-center py-8 text-[var(--silver-400)] text-sm"
@@ -90,51 +92,66 @@ const displayActivities = computed(() => {
           <div
             v-for="(activity, index) in displayActivities"
             :key="activity.id"
-            class="relative flex items-start gap-3 py-3 group cursor-default"
+            class="relative flex items-start gap-4 py-3 group cursor-default"
             :class="{ 'pb-0': index === displayActivities.length - 1 }"
           >
-            <!-- Timeline node with icon -->
+            <!-- Timeline node with icon (Square design) -->
             <div
-              class="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all duration-200"
+              class="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-none border transition-all duration-200"
               :style="{
                 borderColor: getIconColor(activity.action),
-                backgroundColor: 'transparent',
+                backgroundColor: 'var(--card)',
               }"
             >
               <div
-                class="h-2 w-2 rounded-full transition-all duration-200 group-hover:scale-125"
+                class="h-2 w-2 rounded-none transition-all duration-200 group-hover:scale-125"
                 :style="{ backgroundColor: getIconColor(activity.action) }"
               ></div>
-              <!-- Hover glow effect -->
+              <!-- Hover glow effect (Square) -->
               <div
-                class="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                class="absolute inset-0 rounded-none opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 :style="{
-                  boxShadow: `0 0 8px 2px ${getIconColor(activity.action)}40`,
+                  boxShadow: `0 0 8px 1.5px ${getIconColor(activity.action)}40`,
                 }"
               ></div>
             </div>
 
-            <!-- Activity content -->
-            <div class="flex-1 min-w-0">
+            <!-- Structured Activity Content -->
+            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
-                <p class="text-sm leading-none truncate">
+                <!-- Action Badge & Performer -->
+                <div class="flex items-center gap-2 flex-wrap">
                   <span
-                    class="text-xs font-medium px-1.5 py-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] mr-1.5"
+                    class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-none border"
                     :style="{
                       color: getIconColor(activity.action),
-                      borderColor: getIconColor(activity.action) + '40',
+                      borderColor: getIconColor(activity.action) + '50',
+                      backgroundColor: getIconColor(activity.action) + '12',
                     }"
                   >
-                    {{ getActivityLabel(activity.action as string) }}
+                    {{ getActivityLabel(activity.action) }}
                   </span>
-                  <span class="text-[var(--silver-500)]">{{ activity.user }}</span>
-                  <span class="text-[var(--silver-300)] mx-1">→</span>
-                  <span class="font-medium text-foreground">{{ activity.target }}</span>
-                </p>
+                  <span class="text-xs font-semibold text-foreground">
+                    {{ activity.user }}
+                  </span>
+                </div>
+                <!-- Time (Top-Right aligned) -->
+                <span class="text-[10px] font-mono text-[var(--silver-400)] tabular-nums shrink-0">
+                  {{ activity.time }}
+                </span>
               </div>
-              <p class="text-xs text-[var(--silver-400)] mt-1 font-data tabular-nums">
-                {{ activity.time }}
-              </p>
+
+              <!-- Target & Context Description -->
+              <div class="text-xs text-[var(--silver-500)] flex items-center gap-1.5">
+                <span class="text-[var(--silver-400)] text-[10px] uppercase font-mono tracking-wide"
+                  >Target:</span
+                >
+                <span
+                  class="font-mono bg-[var(--silver-100)] dark:bg-[var(--silver-200)]/20 px-1.5 py-0.5 text-[var(--silver-700)] dark:text-[var(--silver-300)] text-[11px] truncate max-w-[170px] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 rounded-none"
+                >
+                  {{ activity.target }}
+                </span>
+              </div>
             </div>
           </div>
         </div>

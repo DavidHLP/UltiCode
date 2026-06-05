@@ -45,23 +45,34 @@ const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
   email: authStore.user?.email || 'admin@ulticode.com',
   avatar: authStore.user?.avatar || '/avatars/default.jpg',
+  role: authStore.userRole || 'ADMIN',
 }))
 
-const navMain = computed(() => {
+const overviewItems = computed(() => {
   const items = [
     {
       title: t('nav.dashboard'),
       url: '/',
       icon: IconDashboard,
     },
-    {
-      title: t('nav.users'),
-      url: '/users',
-      icon: IconUsers,
-    },
   ]
+  if (authStore.hasPermission('READ', 'SYSTEM')) {
+    items.push({
+      title: t('nav.analytics'),
+      url: '/analytics',
+      icon: IconChartBar,
+    })
+    items.push({
+      title: t('nav.auditLogs'),
+      url: '/audit',
+      icon: IconHistory,
+    })
+  }
+  return items
+})
 
-  // Add Problems if user has permission
+const contentItems = computed(() => {
+  const items = []
   if (authStore.hasPermission('READ', 'PROBLEM')) {
     items.push({
       title: t('nav.problems'),
@@ -69,17 +80,6 @@ const navMain = computed(() => {
       icon: IconListDetails,
     })
   }
-
-  // Add Moderation if user has permission
-  if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
-    items.push({
-      title: t('nav.moderation'),
-      url: '/moderation',
-      icon: IconReport,
-    })
-  }
-
-  // Add Problem Lists if user has permission
   if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
     items.push({
       title: t('nav.problemLists'),
@@ -87,8 +87,6 @@ const navMain = computed(() => {
       icon: IconListDetails,
     })
   }
-
-  // Add Tags if user has permission
   if (authStore.hasPermission('READ', 'TAG')) {
     items.push({
       title: t('nav.tags'),
@@ -96,8 +94,6 @@ const navMain = computed(() => {
       icon: IconTags,
     })
   }
-
-  // Add Solutions if user has permission
   if (authStore.hasPermission('READ', 'SOLUTION')) {
     items.push({
       title: t('nav.solutions'),
@@ -105,8 +101,6 @@ const navMain = computed(() => {
       icon: IconFileDescription,
     })
   }
-
-  // Add Contests if user has permission
   if (authStore.hasPermission('READ', 'CONTEST')) {
     items.push({
       title: t('nav.contests'),
@@ -114,8 +108,6 @@ const navMain = computed(() => {
       icon: IconTrophy,
     })
   }
-
-  // Add Submissions if user has permission
   if (authStore.hasPermission('READ', 'PROBLEM')) {
     items.push({
       title: t('nav.submissions'),
@@ -123,8 +115,6 @@ const navMain = computed(() => {
       icon: IconCode,
     })
   }
-
-  // Add Forum if user has permission
   if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
     items.push({
       title: t('nav.forum'),
@@ -132,8 +122,24 @@ const navMain = computed(() => {
       icon: IconMessages,
     })
   }
+  return items
+})
 
-  // Add Comments if user has permission
+const userSecurityItems = computed(() => {
+  const items = [
+    {
+      title: t('nav.users'),
+      url: '/users',
+      icon: IconUsers,
+    },
+  ]
+  if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
+    items.push({
+      title: t('nav.moderation'),
+      url: '/moderation',
+      icon: IconReport,
+    })
+  }
   if (
     authStore.hasPermission('MODERATE', 'FORUM_COMMENT') ||
     authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT')
@@ -144,8 +150,6 @@ const navMain = computed(() => {
       icon: IconMessageCircle,
     })
   }
-
-  // Add Notifications if user has permission
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({
       title: t('nav.notifications'),
@@ -153,25 +157,6 @@ const navMain = computed(() => {
       icon: IconBell,
     })
   }
-
-  // Add Audit Logs only if user has permission
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
-    items.push({
-      title: t('nav.auditLogs'),
-      url: '/audit',
-      icon: IconHistory,
-    })
-  }
-
-  // Add Analytics if user has permission
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
-    items.push({
-      title: t('nav.analytics'),
-      url: '/analytics',
-      icon: IconChartBar,
-    })
-  }
-
   return items
 })
 
@@ -217,18 +202,20 @@ const navSecondary = computed(() => {
             class="data-[slot=sidebar-menu-button]:!p-1.5"
           >
             <button type="button" @click="toggleSidebar">
-              <IconInnerShadowTop class="size-4" />
-              <span class="text-base font-semibold">{{ t('nav.brandName') }}</span>
+              <IconInnerShadowTop class="size-4 text-[var(--accent-primary)]" />
+              <span class="text-base font-semibold text-foreground">{{ t('nav.brandName') }}</span>
             </button>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
-    <SidebarContent>
-      <NavMain :items="navMain" />
+    <SidebarContent class="gap-0">
+      <NavMain :items="overviewItems" :title="t('nav.overview')" />
+      <NavMain :items="contentItems" :title="t('nav.content')" />
+      <NavMain :items="userSecurityItems" :title="t('nav.usersAndSecurity')" />
       <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
-    <SidebarFooter>
+    <SidebarFooter class="border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] p-2">
       <NavUser :user="user" />
     </SidebarFooter>
   </Sidebar>

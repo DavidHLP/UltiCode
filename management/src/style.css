@@ -1,5 +1,10 @@
 @import "../../shared/design-system/style.css";
 
+:root {
+  --header-padding-y: 1.25rem;   /* 20px */
+  --stats-padding-y: 0.625rem;  /* 10px */
+}
+
 /* Markdown content styles */
 .prose {
   max-width: 65ch;

@@ -31,6 +31,7 @@ interface User {
   name: string
   email: string
   avatar?: string
+  role?: string
 }
 
 defineProps<{
@@ -68,19 +69,27 @@ async function handleLogout() {
           <SidebarMenuButton
             size="lg"
             tooltip="User Menu"
-            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-11"
           >
-            <Avatar class="h-8 w-8 grayscale rounded-none" shape="square">
+            <Avatar class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]" shape="square">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
               <AvatarFallback class="rounded-none"> CN </AvatarFallback>
             </Avatar>
-            <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ user.name }}</span>
-              <span class="text-muted-foreground truncate text-xs">
+            <div class="grid flex-1 text-left text-xs leading-tight">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="truncate font-bold text-[13px] text-foreground">{{ user.name }}</span>
+                <span
+                  v-if="user.role"
+                  class="inline-flex items-center px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                >
+                  {{ user.role }}
+                </span>
+              </div>
+              <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-[10px]">
                 {{ user.email }}
               </span>
             </div>
-            <IconDotsVertical class="ml-auto size-4" />
+            <IconDotsVertical class="ml-auto size-4 text-[var(--silver-400)] group-hover:text-foreground" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -91,14 +100,22 @@ async function handleLogout() {
           align="end"
         >
           <DropdownMenuLabel class="p-0 font-normal">
-            <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8 rounded-none" shape="square">
+            <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
+              <Avatar class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]" shape="square">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
                 <AvatarFallback class="rounded-none"> CN </AvatarFallback>
               </Avatar>
-              <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-medium">{{ user.name }}</span>
-                <span class="text-muted-foreground truncate text-xs">
+              <div class="grid flex-1 text-left text-xs leading-tight">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
+                  <span
+                    v-if="user.role"
+                    class="inline-flex items-center px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                  >
+                    {{ user.role }}
+                  </span>
+                </div>
+                <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-[10px]">
                   {{ user.email }}
                 </span>
               </div>

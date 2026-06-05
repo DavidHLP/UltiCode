@@ -103,7 +103,7 @@ function getLeetLayoutConfig(t: (key: string) => string) {
     {
       id: "programming-left",
       type: "leaf",
-      size: 50,
+      size: 55,
       groupId: "problem-info",
       groupMetadata: {
         id: "problem-info",
@@ -113,7 +113,7 @@ function getLeetLayoutConfig(t: (key: string) => string) {
     {
       id: "programming-right",
       type: "container",
-      size: 50,
+      size: 45,
       direction: "vertical",
       children: [
         {

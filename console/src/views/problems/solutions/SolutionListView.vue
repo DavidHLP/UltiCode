@@ -187,37 +187,38 @@ onMounted(async () => {
 <template>
   <section class="relative flex h-full w-full flex-col overflow-hidden">
     <!-- Header 区域 -->
-    <header class="flex flex-col border-b border-border">
+    <header class="flex flex-col border-b border-border/30 bg-[var(--background)]">
       <!-- 顶部搜索和排序栏 -->
       <div class="flex items-center gap-2 px-3 py-2">
         <!-- 搜索框 -->
         <div class="relative flex-1">
           <Search
-            class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
           />
           <Input
             v-model="search"
             :placeholder="t('problem.solutions.searchPlaceholder')"
-            class="h-8 pl-8 text-xs"
+            class="h-8 pl-8.5 text-xs rounded-none bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base03)] border-border focus-visible:border-[var(--accent-electric)] focus-visible:ring-1 focus-visible:ring-[var(--accent-electric)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
           />
         </div>
 
         <!-- 排序按钮 -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs">
-              <ArrowDownAZ class="h-4 w-4" />
-              {{ t("common.actions.sort") }}
+            <Button variant="outline" size="sm" class="gap-1.5 text-xs rounded-none bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base03)] border-border hover:bg-muted font-bold cursor-pointer h-8">
+              <ArrowDownAZ class="h-3.5 w-3.5" />
+              <span class="text-[11px] uppercase tracking-wider">{{ t("common.actions.sort") }}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" class="rounded-none">
             <DropdownMenuItem
               v-for="option in sortOptions"
               :key="option.value"
               @click="sortBy = option.value"
+              class="text-xs cursor-pointer rounded-none"
             >
               {{ option.label }}
-              <Check v-if="sortBy === option.value" class="ml-auto h-4 w-4" />
+              <Check v-if="sortBy === option.value" class="ml-auto h-3.5 w-3.5 text-[var(--accent-electric)]" />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -225,18 +226,18 @@ onMounted(async () => {
 
       <!-- 语言标签过滤栏 -->
       <div
-        class="relative w-full overflow-hidden px-3 py-1.5 lc-md:px-2 lc-md:py-1"
+        class="relative w-full overflow-hidden px-3 py-1.5 border-t border-border/20"
       >
         <div
           class="flex w-full items-center gap-1.5 overflow-x-auto scrollbar-hide"
         >
           <Badge
             variant="secondary"
-            class="lc-md:px-1.5 lc-md:py-0.5 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === 'all'
-                ? 'bg-muted text-foreground'
-                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
+                : 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-muted-foreground hover:bg-[var(--silver-100)]/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = 'all'"
           >
@@ -249,11 +250,11 @@ onMounted(async () => {
             :key="option.value"
             translate="no"
             variant="secondary"
-            class="lc-md:px-1.5 lc-md:py-0.5 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === option.value
-                ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
+                : 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-muted-foreground hover:bg-[var(--silver-100)]/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = option.value"
           >
@@ -263,32 +264,32 @@ onMounted(async () => {
       </div>
 
       <!-- 提交统计和操作栏 -->
-      <div class="mx-3 mb-1.5 lc-md:mx-2 lc-md:mb-1">
+      <div class="mx-3 mb-2 lc-md:mx-2 lc-md:mb-1.5">
         <div
-          class="bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 rounded-none p-1.5 lc-md:p-1"
+          class="bg-[var(--silver-100)] dark:bg-[var(--solarized-base02)] border border-border/40 flex items-center justify-between gap-3 rounded-none p-2 lc-md:p-1.5"
         >
-          <div class="flex items-center gap-1.5 flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-1 min-w-0 pl-1">
             <template v-if="userSolution">
               <div
-                class="rounded-full bg-opacity-100 p-0.5 bg-fill-primary dark:bg-fill-primary flex-shrink-0"
+                class="rounded-none p-0.5 bg-[var(--solarized-green)] flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
                 <Check
-                  class="h-2.5 w-2.5 text-text-primary dark:text-text-primary"
+                  class="h-3 w-3 text-white"
                 />
               </div>
-              <span class="text-[11px] leading-tight">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate">
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
             </template>
             <template v-else-if="bestSubmission">
               <div
-                class="rounded-full bg-opacity-100 p-0.5 bg-fill-primary dark:bg-fill-primary flex-shrink-0"
+                class="rounded-none p-0.5 bg-[var(--accent-electric)] flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Plus
-                  class="h-2.5 w-2.5 text-text-primary dark:text-text-primary"
+                <Check
+                  class="h-3 w-3 text-white"
                 />
               </div>
-              <span class="text-[11px] leading-tight">
+              <span class="text-[11px] font-semibold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] leading-tight truncate">
                 {{
                   t("problem.solutions.runtimeBeats", {
                     percent: bestSubmission.runtimePercentile?.toFixed(1) ?? 0,
@@ -297,21 +298,24 @@ onMounted(async () => {
               </span>
             </template>
             <template v-else>
-              <span class="text-[11px] leading-tight text-muted-foreground">
+              <span class="text-[11px] font-semibold text-muted-foreground leading-tight truncate">
                 {{ t("problem.solutions.solveToWrite") }}
               </span>
             </template>
           </div>
+          
           <button
-            class="flex h-5 flex-shrink-0 items-center gap-0.5 rounded-none bg-[var(--terminal-green)] px-2 py-0.5 text-[11px] font-medium text-[var(--background)] shadow-[var(--shadow-float)] transition-all hover:bg-[var(--terminal-green)]/90 hover:shadow active:bg-[var(--terminal-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50"
+            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
-            <PenLine class="h-2.5 w-2.5" />
-            {{
-              userSolution
-                ? t("problem.solutions.editSolution")
-                : t("problem.solutions.writeSolution")
-            }}
+            <PenLine class="h-3.5 w-3.5 text-white" />
+            <span>
+              {{
+                userSolution
+                  ? t("problem.solutions.editSolution")
+                  : t("problem.solutions.writeSolution")
+              }}
+            </span>
           </button>
         </div>
       </div>

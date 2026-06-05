@@ -78,39 +78,30 @@ async function handleRandom() {
     </ul>
 
     <!-- Navigation menu composite component -->
-    <div
-      class="flex items-center overflow-hidden rounded-none hover:bg-[var(--surface-sunken)] focus:outline-none"
-    >
+    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
       <div class="relative group/nav-back flex items-center">
         <!-- Main button HoverCard - Expand panel -->
         <HoverCard :open-delay="200">
           <HoverCardTrigger as-child>
             <Button
-              variant="ghost"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-[var(--accent-electric)] flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground px-2 rounded-none"
+              class="header-btn px-2.5 gap-1.5"
               role="button"
               data-state="closed"
               @click="toggleSidePanel"
             >
               <Indent class="h-4 w-4" />
-              <div class="relative flex items-center gap-1 overflow-hidden">
-                <div
-                  class="truncate font-medium group-hover:text-[var(--accent-electric)] text-foreground hover:text-[var(--accent-electric)]"
-                >
-                  {{ t("problem.layout.problemSet") }}
-                </div>
-              </div>
+              <span class="truncate">{{ t("problem.layout.problemSet") }}</span>
             </Button>
           </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2">
+          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
             <div class="flex items-center gap-1">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.expandPanel") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs"> Ctrl </Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
                 <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">]</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">]</Kbd>
               </KbdGroup>
             </div>
           </HoverCardContent>
@@ -123,14 +114,14 @@ async function handleRandom() {
               <RouterLink
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none no-underline -translate-x-3 hover:bg-[var(--surface-sunken)] hover:text-foreground transition-colors duration-200"
+                class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none no-underline -translate-x-3 hover:bg-[var(--silver-200)]/30 hover:text-[var(--solarized-base02)] dark:hover:text-[var(--solarized-base3)] transition-colors duration-200 text-muted-foreground"
                 :to="{ name: 'problemset' }"
               >
-                <ExternalLink class="h-3 w-3 text-muted-foreground" />
+                <ExternalLink class="h-3 w-3 text-current" />
               </RouterLink>
             </div>
           </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2">
+          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
             <p class="text-xs leading-none">
               {{ t("problem.layout.openInNewTab") }}
             </p>
@@ -148,10 +139,8 @@ async function handleRandom() {
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
         <Button
-          variant="ghost"
-          size="icon"
-          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
-          :class="!adj.prev && 'opacity-50 pointer-events-none'"
+          class="header-btn w-8 p-0"
+          :disabled="!adj.prev"
         >
           <RouterLink
             v-if="adj.prev"
@@ -159,22 +148,22 @@ async function handleRandom() {
               name: 'problem-detail',
               params: { slug: adj.prev, tab: $route.params.tab },
             }"
-            class="flex items-center justify-center w-full h-full"
+            class="flex items-center justify-center w-full h-full text-current"
           >
             <ChevronLeft class="h-4 w-4" />
           </RouterLink>
           <ChevronLeft v-else class="h-4 w-4" />
         </Button>
       </HoverCardTrigger>
-      <HoverCardContent class="h-auto w-auto p-2">
+      <HoverCardContent class="h-auto w-auto p-2 rounded-none">
         <div class="flex items-center gap-1">
           <p class="text-xs leading-none">
             {{ t("problem.layout.previousProblem") }}
           </p>
           <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs"> Ctrl </Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
             <span class="text-xs">+</span>
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">←</Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">←</Kbd>
           </KbdGroup>
         </div>
       </HoverCardContent>
@@ -189,10 +178,8 @@ async function handleRandom() {
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
         <Button
-          variant="ghost"
-          size="icon"
-          class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
-          :class="!adj.next && 'opacity-50 pointer-events-none'"
+          class="header-btn w-8 p-0"
+          :disabled="!adj.next"
         >
           <RouterLink
             v-if="adj.next"
@@ -200,22 +187,22 @@ async function handleRandom() {
               name: 'problem-detail',
               params: { slug: adj.next, tab: $route.params.tab },
             }"
-            class="flex items-center justify-center w-full h-full"
+            class="flex items-center justify-center w-full h-full text-current"
           >
             <ChevronRight class="h-4 w-4" />
           </RouterLink>
           <ChevronRight v-else class="h-4 w-4" />
         </Button>
       </HoverCardTrigger>
-      <HoverCardContent class="h-auto w-auto p-2">
+      <HoverCardContent class="h-auto w-auto p-2 rounded-none">
         <div class="flex items-center gap-1">
           <p class="text-xs leading-none">
             {{ t("problem.layout.nextProblem") }}
           </p>
           <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs"> Ctrl </Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
             <span class="text-xs">+</span>
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">→</Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">→</Kbd>
           </KbdGroup>
         </div>
       </HoverCardContent>
@@ -230,9 +217,7 @@ async function handleRandom() {
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
         <Button
-          variant="ghost"
-          size="icon"
-          class="flex-none cursor-pointer justify-center flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none"
+          class="header-btn w-8 p-0"
           @click="handleRandom"
         >
           <Shuffle class="h-4 w-4" />

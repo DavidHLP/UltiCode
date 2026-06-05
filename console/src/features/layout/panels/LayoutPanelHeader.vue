@@ -111,8 +111,9 @@ const activeTabStyle = computed(() => {
     color: "var(--foreground)",
   };
   if (props.header.iconColor) {
-    styles.borderColor = props.header.iconColor;
-    styles.backgroundColor = `color-mix(in oklch, ${props.header.iconColor} 8%, transparent)`;
+    styles.borderColor = "var(--border)";
+    styles.borderTopColor = props.header.iconColor;
+    styles.backgroundColor = "var(--background)";
   }
   return styles;
 });
@@ -135,7 +136,7 @@ const setRef = (el: unknown) => {
 <template>
   <div
     :ref="setRef"
-    class="flex items-center h-full cursor-move relative"
+    class="flex items-center h-full cursor-move relative align-middle"
     :style="{ touchAction: 'none' }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -143,15 +144,14 @@ const setRef = (el: unknown) => {
     @pointerup="onPointerUp"
     @pointerleave="onPointerLeave"
   >
-    <Separator v-if="showSeparator" orientation="vertical" class="h-3 mx-1" />
     <Button
       variant="ghost"
       size="sm"
-      class="relative h-7 rounded-none font-data uppercase tracking-widest terminal-tab"
+      class="relative h-8 -mb-px rounded-none font-data uppercase tracking-widest terminal-tab transition-all cursor-pointer"
       :class="[
         isActive
-          ? 'text-foreground hover:text-foreground hover:bg-transparent dark:hover:bg-transparent border-b-2'
-          : 'text-silver-500 hover:bg-silver-100 dark:hover:bg-silver-100 hover:text-silver-700 border-b-2 border-transparent',
+          ? 'text-foreground hover:text-foreground hover:bg-background bg-background border-l border-r border-t-2 border-b-transparent border-border z-10'
+          : 'text-silver-500 hover:bg-[var(--silver-100)]/40 hover:text-silver-700 border border-transparent',
       ]"
       :style="activeTabStyle"
       @click="onHeaderClick"
@@ -160,7 +160,7 @@ const setRef = (el: unknown) => {
         :is="getIconComponent(header.icon)"
         v-if="getIconComponent(header.icon)"
         :style="{ color: header.iconColor }"
-        class="h-3.5 w-3.5 mr-1"
+        class="h-3.5 w-3.5 mr-1.5"
       />
       <span class="text-[11px] font-bold">{{ header.title }}</span>
     </Button>

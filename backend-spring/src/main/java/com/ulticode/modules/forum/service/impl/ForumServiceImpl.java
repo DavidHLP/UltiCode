@@ -152,9 +152,15 @@ public class ForumServiceImpl implements ForumService {
         Map<String, User> am = forumPostService.batchLoadAuthors(ps);
         // Batch load communities (all same community here)
         Map<String, ForumCommunity> cm = Map.of(c.getId(), c);
+        Map<String, Long> commentCounts = ((ForumPostServiceImpl) forumPostService).batchLoadCommentCounts(ps);
         List<ForumPostVO> items = ps.stream()
                 .map(p -> ((ForumPostServiceImpl) forumPostService)
-                        .convertToPostVO(p, u, am.get(p.getUserId()), cm.get(p.getCommunityId())))
+                        .convertToPostVO(
+                                p,
+                                u,
+                                am.get(p.getUserId()),
+                                cm.get(p.getCommunityId()),
+                                commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, page, limit);
     }

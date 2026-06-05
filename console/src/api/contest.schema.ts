@@ -12,6 +12,7 @@ export const contestTieBreakerSchema = z.enum([
   "LAST_SOLVE_TIME",
   "TOTAL_TIME",
   "TOTAL_ATTEMPTS",
+  "NONE",
 ]);
 export const ratingTitleSchema = z.enum([
   "NEWBIE",

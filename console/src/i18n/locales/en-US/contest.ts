@@ -73,6 +73,7 @@ export default {
 
   // Contest detail
   detail: {
+    details: "Contest Details",
     duration: "Duration",
     startTime: "Start Time",
     endTime: "End Time",

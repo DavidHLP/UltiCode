@@ -108,41 +108,41 @@ const htmlContent = computed(() =>
 
 <style scoped>
 .description-markdown :deep(.markdown-content) {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--foreground);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--solarized-base00);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
-/* Headings */
-.description-markdown :deep(.markdown-content h1) {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
+.dark .description-markdown :deep(.markdown-content) {
+  color: var(--solarized-base0);
 }
 
-.description-markdown :deep(.markdown-content h2) {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.description-markdown :deep(.markdown-content h3) {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
+/* Headings with high contrast */
+.description-markdown :deep(.markdown-content h1),
+.description-markdown :deep(.markdown-content h2),
+.description-markdown :deep(.markdown-content h3),
 .description-markdown :deep(.markdown-content h4) {
-  font-size: 0.875rem;
+  color: var(--solarized-base02);
   font-weight: 700;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-sans);
 }
+
+.dark .description-markdown :deep(.markdown-content h1),
+.dark .description-markdown :deep(.markdown-content h2),
+.dark .description-markdown :deep(.markdown-content h3),
+.dark .description-markdown :deep(.markdown-content h4) {
+  color: var(--solarized-base1);
+}
+
+.description-markdown :deep(.markdown-content h1) { font-size: 1.35rem; }
+.description-markdown :deep(.markdown-content h2) { font-size: 1.15rem; }
+.description-markdown :deep(.markdown-content h3) { font-size: 0.95rem; }
+.description-markdown :deep(.markdown-content h4) { font-size: 0.85rem; }
 
 .description-markdown :deep(.markdown-content p) {
   margin-bottom: 1em;
@@ -160,27 +160,31 @@ const htmlContent = computed(() =>
 }
 
 .description-markdown :deep(.markdown-content li) {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
-/* Inline Code - LeetCode Pill Style */
+/* Inline Code - Solarized Pill Style */
 .description-markdown :deep(.markdown-content code) {
-  font-family:
-    "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
-  background-color: var(--surface-sunken); /* Use theme sunken bg */
-  color: var(--foreground);
-  padding: 0.125rem 0.375rem; /* Pill padding */
-  border-radius: 0; /* Sharp corners */
-  white-space: pre-wrap; /* Allow wrapping in inline code */
+  background-color: var(--silver-100);
+  color: var(--solarized-base01);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0;
+  white-space: pre-wrap;
   word-break: break-word;
+  border: 1px solid var(--border);
+}
+
+.dark .description-markdown :deep(.markdown-content code) {
+  color: var(--solarized-base1);
 }
 
 /* Code Blocks */
 .description-markdown :deep(.markdown-content pre) {
-  background-color: var(--surface-sunken);
+  background-color: var(--silver-100);
   border-radius: 0;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   margin: 1rem 0;
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -190,21 +194,42 @@ const htmlContent = computed(() =>
   background-color: transparent;
   padding: 0;
   border-radius: 0;
+  border: none;
   color: inherit;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 /* Blockquote - Matches LeetCode example blocks */
 .description-markdown :deep(.markdown-content blockquote) {
-  border-left: 3px solid var(--border);
-  padding-left: 1rem;
-  color: var(--muted-foreground);
+  border-left: 3px solid var(--solarized-blue);
+  background-color: var(--silver-100);
+  padding: 0.75rem 1rem;
   margin: 1rem 0;
+  color: var(--solarized-base00);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dark .description-markdown :deep(.markdown-content blockquote) {
+  color: var(--solarized-base0);
+}
+
+.description-markdown :deep(.markdown-content blockquote code) {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
 }
 
 /* Strong text */
 .description-markdown :deep(.markdown-content strong) {
   font-weight: 600;
+  color: var(--solarized-base01);
+}
+
+.dark .description-markdown :deep(.markdown-content strong) {
+  color: var(--solarized-base1);
 }
 
 /* Katex adjustments */

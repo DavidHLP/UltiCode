@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
-import { PostActions } from "@/components/edge-operations";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
+import { ThumbsUp, Eye, MessageSquare } from "lucide-vue-next";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -38,7 +38,6 @@ const formattedDate = computed(() => formatRelativeTime(props.item.created_at));
 
 const handleSelect = () => emit("select", props.item);
 
-const userVote = computed(() => resolveUserVote(props.item.userVote));
 const voteCounts = computed(() =>
   resolveVoteCounts(props.item.likes, props.item.dislikes, props.item.stats),
 );
@@ -46,57 +45,57 @@ const voteCounts = computed(() =>
 
 <template>
   <article
-    class="group flex cursor-pointer flex-col gap-2 bg-card/70 p-3"
+    class="group flex cursor-pointer flex-col gap-2.5 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-border/40 p-4 rounded-none hover:border-[var(--accent-electric)]/50 hover:bg-[var(--solarized-base3)]/90 hover:shadow-xs transition-all duration-200"
     tabindex="0"
     role="button"
     @click="handleSelect"
     @keyup.enter.prevent="handleSelect"
   >
-    <header class="flex items-start gap-2">
+    <header class="flex items-start gap-2.5">
       <img
         v-if="props.item.author.avatar"
         :src="props.item.author.avatar"
-        class="h-9 w-9 rounded-full border border-border object-cover"
+        class="h-8 w-8 rounded-none border border-border object-cover"
         alt="Avatar"
       />
       <div
         v-else
-        class="flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-semibold text-white"
+        class="flex h-8 w-8 items-center justify-center rounded-none text-[11px] font-semibold text-white"
         :style="{ backgroundColor: props.item.author.avatarColor }"
       >
         {{ authorInitial }}
       </div>
-      <div class="flex flex-1 flex-col gap-1 text-[12px] leading-tight">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="font-semibold text-foreground">{{
-            props.item.author.name
-          }}</span>
-          <span class="truncate text-muted-foreground">{{
-            props.item.author.role
-          }}</span>
-          <span class="text-xs text-muted-foreground"
-            >· {{ formattedDate }}</span
-          >
+      <div class="flex flex-1 flex-col gap-0.5 text-xs leading-none">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+            {{ props.item.author.name }}
+          </span>
+          <span class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-1 py-0.2 rounded-none">
+            {{ props.item.author.role }}
+          </span>
+          <span class="text-[10px] text-muted-foreground ml-auto">
+            {{ formattedDate }}
+          </span>
           <span
             v-if="props.item.flair"
-            class="rounded-full bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)]"
+            class="rounded-none bg-[var(--terminal-amber)]/15 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20"
           >
             {{ props.item.flair }}
           </span>
         </div>
-        <div
-          class="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground"
-        >
-          <span class="rounded-full bg-muted/80 px-2 py-0.5 capitalize">{{
-            languageLabel
-          }}</span>
-          <span class="rounded-full bg-muted/80 px-2 py-0.5 capitalize">{{
-            topicLabel
-          }}</span>
+        
+        <!-- Language and Topic badging -->
+        <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <span class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider">
+            {{ languageLabel }}
+          </span>
+          <span class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider">
+            {{ topicLabel }}
+          </span>
           <span
             v-for="badge in props.item.badges"
             :key="badge"
-            class="rounded-full border border-border px-2 py-0.5 font-medium"
+            class="rounded-none border border-border px-2 py-0.5 text-[10px] font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] uppercase tracking-wider"
           >
             {{ badge }}
           </span>
@@ -104,62 +103,61 @@ const voteCounts = computed(() =>
       </div>
     </header>
 
-    <section class="space-y-1">
-      <div class="space-y-1">
+    <section class="space-y-1.5">
+      <div class="space-y-0.5">
         <p
           v-if="props.item.highlight"
-          class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+          class="text-[9px] font-bold uppercase tracking-widest text-[var(--accent-electric)]"
         >
           {{ props.item.highlight }}
         </p>
-        <h3 class="text-sm font-semibold text-foreground">
+        <h3 class="text-sm font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1">
           {{ props.item.title }}
         </h3>
       </div>
-      <p class="line-clamp-2 text-xs text-muted-foreground">
+      <p class="line-clamp-2 text-xs text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] leading-relaxed">
         {{ props.item.summary }}
       </p>
-      <!-- Tags -->
+    </section>
+
+    <!-- Footer containing tags & stats -->
+    <footer class="mt-2.5 flex items-center justify-between border-t border-border/20 pt-2.5 gap-2">
+      <!-- Left: Algorithm Tags -->
       <div
         v-if="props.item.tags && props.item.tags.length"
-        class="flex flex-wrap gap-1"
+        class="flex flex-wrap gap-1 items-center"
       >
         <span
-          v-for="tag in props.item.tags.slice(0, 3)"
+          v-for="tag in props.item.tags.slice(0, 2)"
           :key="tag"
-          class="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] capitalize text-muted-foreground"
+          class="rounded-none bg-[var(--silver-100)]/70 dark:bg-[var(--silver-800)]/70 px-2 py-0.5 text-[10px] text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
         >
           {{ tag }}
         </span>
         <span
-          v-if="props.item.tags.length > 3"
-          class="text-[10px] text-muted-foreground"
+          v-if="props.item.tags.length > 2"
+          class="text-[9px] font-bold text-muted-foreground bg-[var(--silver-100)]/40 dark:bg-[var(--silver-800)]/40 px-1 py-0.2"
         >
-          +{{ props.item.tags.length - 3 }}
+          +{{ props.item.tags.length - 2 }}
         </span>
       </div>
-    </section>
+      <div v-else />
 
-    <footer class="mt-2">
-      <PostActions
-        :vote="{
-          likes: voteCounts.likes,
-          dislikes: voteCounts.dislikes,
-          userVote: userVote,
-        }"
-        :config="{
-          views: { show: true, count: props.item.stats?.views ?? 0 },
-          comments: {
-            show: true,
-            count: props.item.stats?.comments ?? 0,
-            variant: 'simple',
-            icon: 'message-circle',
-          },
-          share: { show: false },
-          save: { show: false },
-        }"
-        class="text-[10px]"
-      />
+      <!-- Right: Community Interaction Stats -->
+      <div class="flex items-center gap-3.5 text-[11px] font-data text-muted-foreground">
+        <div class="flex items-center gap-1 hover:text-[var(--solarized-green)] transition-colors">
+          <ThumbsUp class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
+          <span class="font-bold">{{ voteCounts.likes }}</span>
+        </div>
+        <div class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors">
+          <Eye class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
+          <span class="font-bold">{{ props.item.stats?.views ?? 0 }}</span>
+        </div>
+        <div class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors">
+          <MessageSquare class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
+          <span class="font-bold">{{ props.item.stats?.comments ?? 0 }}</span>
+        </div>
+      </div>
     </footer>
   </article>
 </template>

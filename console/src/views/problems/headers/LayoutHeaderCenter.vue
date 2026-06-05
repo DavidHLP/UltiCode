@@ -133,92 +133,72 @@ onBeforeUnmount(() => {
     <div
       class="flex items-center overflow-hidden rounded-none focus:outline-none"
     >
-      <div class="relative group/nav-back flex items-center">
+      <div class="relative group/nav-back flex items-center gap-2">
         <!-- Run button with HoverCard -->
         <HoverCard :open-delay="200">
           <HoverCardTrigger as-child>
             <Button
-              variant="ghost"
-              size="icon"
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="bottomPanelStore.isRunning"
-              class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-muted-foreground w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-[var(--surface-sunken)] border border-silver/30 overflow-hidden rounded-none"
+              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-[var(--solarized-green)] px-3 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-[var(--solarized-green)]/40 hover:bg-[var(--solarized-green)] hover:text-white dark:hover:text-[var(--solarized-base03)] hover:border-[var(--solarized-green)] disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-[11px]"
               @click="handleRun"
             >
-              <span
-                v-if="bottomPanelStore.isRunning"
-                :key="runPulseKey"
-                class="pointer-events-none absolute inset-0 animate-[ping_1s_ease-out] rounded-none bg-primary/20"
-              />
-              <span
-                class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-50"
-                :class="
-                  bottomPanelStore.isRunning ? 'bg-primary/15' : 'bg-primary/5'
-                "
-              />
               <Play
-                class="h-4 w-4 transition-transform duration-200"
+                class="h-3.5 w-3.5 transition-transform duration-200"
                 :class="
                   bottomPanelStore.isRunning
-                    ? 'text-primary animate-[spin_0.9s_linear]'
-                    : 'text-muted-foreground'
+                    ? 'text-current animate-[spin_0.9s_linear]'
+                    : 'text-current'
                 "
               />
+              <span class="truncate">{{ t("problem.layout.runCode") }}</span>
             </Button>
           </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2">
+          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
             <div class="flex items-center gap-1">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.runCode") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">F5</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">F5</Kbd>
               </KbdGroup>
             </div>
           </HoverCardContent>
         </HoverCard>
 
-        <Separator
-          orientation="vertical"
-          class="h-7 w-px flex-none bg-[var(--border)]"
-        />
+        <div class="h-6 w-px bg-border/40" />
 
         <!-- Submit button -->
         <HoverCard :open-delay="200">
           <HoverCardTrigger as-child>
             <Button
-              variant="ghost"
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-[var(--accent-electric)] flex items-center h-8 transition-none hover:bg-[var(--surface-sunken)] text-muted-foreground px-2 bg-[var(--surface-sunken)] border border-silver/30 disabled:opacity-50 rounded-none"
+              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-white px-3 bg-[var(--accent-electric)] border border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/95 hover:border-[var(--accent-electric)]/95 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-[11px] shadow-sm"
               @click="handleSubmit"
             >
               <CloudUpload
-                class="h-4 w-4"
+                class="h-3.5 w-3.5 text-white"
                 :class="isSubmitting && 'animate-bounce'"
               />
-              <div class="relative flex items-center gap-1 overflow-hidden">
-                <div
-                  class="truncate font-medium group-hover:text-[var(--accent-electric)] text-foreground"
-                >
-                  {{
-                    isSubmitting
-                      ? t("problem.layout.formatting")
-                      : t("problem.layout.submitSolution")
-                  }}
-                </div>
-              </div>
+              <span class="truncate text-white">
+                {{
+                  isSubmitting
+                    ? t("problem.layout.formatting")
+                    : t("problem.layout.submitSolution")
+                }}
+              </span>
             </Button>
           </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2">
+          <HoverCardContent class="h-auto w-auto p-2 rounded-none">
             <div class="flex items-center gap-1">
               <p class="text-xs leading-none">
                 {{ t("problem.layout.submitSolution") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">Ctrl</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">Ctrl</Kbd>
                 <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">Enter</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">Enter</Kbd>
               </KbdGroup>
             </div>
           </HoverCardContent>

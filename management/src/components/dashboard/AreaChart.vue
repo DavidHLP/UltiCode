@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
-import { VisAxis, VisLine, VisXYContainer, VisScatter } from '@unovis/vue'
+import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
+import { IconChartBar } from '@tabler/icons-vue'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 
 export interface ChartDataPoint {
   date: Date
@@ -183,34 +192,54 @@ const getColors = () => {
     return config?.color || 'var(--accent-primary)'
   })
 }
+
+// Calculate dynamic yDomain to prevent line squishing
+const yDomain = computed(() => {
+  const data = filterRange.value
+  if (!data || data.length === 0) return [0, 10]
+  let max = 0
+  for (const item of data) {
+    for (const key of seriesKeys.value) {
+      const val = Number(item[key])
+      if (val > max) max = val
+    }
+  }
+  // add a 20% margin to the top, and ensure at least [0, 5]
+  const upper = Math.max(5, Math.ceil(max * 1.25))
+  return [0, upper]
+})
 </script>
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] overflow-hidden shadow-float"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float rounded-none"
   >
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
+    <CardHeader
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 px-6 pt-6 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+    >
       <div class="space-y-1">
-        <CardTitle class="text-lg font-medium tracking-tight">{{ props.title }}</CardTitle>
+        <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
+          props.title
+        }}</CardTitle>
         <CardDescription class="text-xs text-[var(--silver-400)]">{{
           props.description
         }}</CardDescription>
       </div>
 
-      <!-- Time period selector - precision style -->
+      <!-- Time period selector - Segmented Control style -->
       <div
-        class="flex items-center gap-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-transparent p-0.5"
+        class="flex items-center gap-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-100)] p-0.5"
       >
         <Button
           v-for="period in timePeriods"
           :key="period.value"
-          :variant="timePeriod === period.value ? 'default' : 'ghost'"
+          variant="ghost"
           :size="'sm'"
-          class="h-6 px-2.5 text-xs rounded-none font-data"
+          class="h-6 px-3.5 text-xs rounded-none font-mono transition-all duration-200 cursor-pointer"
           :class="
             timePeriod === period.value
-              ? 'bg-foreground text-background'
-              : 'text-[var(--silver-400)] hover:text-foreground'
+              ? 'bg-card text-[var(--accent-primary)] font-bold shadow-sm border border-[var(--silver-200)] dark:border-[var(--silver-300)]'
+              : 'text-[var(--silver-500)] hover:text-foreground hover:bg-[var(--silver-200)]/50'
           "
           @click="timePeriod = period.value"
         >
@@ -219,22 +248,57 @@ const getColors = () => {
       </div>
     </CardHeader>
 
-    <CardContent class="px-2 pb-6 pt-0 sm:px-6">
-      <ChartContainer :config="chartConfig" class="aspect-auto h-[280px] w-full" :cursor="false">
+    <CardContent class="px-2 pb-6 pt-6 sm:px-6">
+      <!-- Empty State -->
+      <div
+        v-if="filterRange.length === 0"
+        class="flex flex-col items-center justify-center h-[280px] w-full border border-dashed border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)]/30 rounded-none"
+      >
+        <Empty>
+          <EmptyContent>
+            <EmptyMedia
+              variant="icon"
+              class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card text-[var(--silver-400)] rounded-none"
+            >
+              <IconChartBar class="size-6" />
+            </EmptyMedia>
+            <EmptyHeader class="text-center mt-2">
+              <EmptyTitle class="text-xs font-mono font-bold text-foreground">
+                {{ t('dashboard.chart.noDataTitle') }}
+              </EmptyTitle>
+              <EmptyDescription
+                class="text-[11px] font-mono text-[var(--silver-400)] mt-1 max-w-xs mx-auto"
+              >
+                {{ t('dashboard.chart.noDataDesc') }}
+              </EmptyDescription>
+            </EmptyHeader>
+          </EmptyContent>
+        </Empty>
+      </div>
+
+      <!-- Chart View -->
+      <ChartContainer
+        v-else
+        :config="chartConfig"
+        class="aspect-auto h-[280px] w-full"
+        :cursor="false"
+      >
         <VisXYContainer
           :data="filterRange"
           :margin="{ left: -10, right: 10, top: 10, bottom: 20 }"
-          :y-domain="[0, 600]"
+          :y-domain="yDomain"
         >
-          <!-- Precision thin lines only, no fill -->
-          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1.5" />
+          <!-- Semi-transparent area fill -->
+          <VisArea :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :opacity="0.14" />
+          <!-- Precision thin lines -->
+          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="2" />
           <!-- Small data points -->
           <VisScatter
             :x="(d: Data) => d.date"
             :y="getYValues"
             :color="getColors"
             :radius="3"
-            :stroke-width="1"
+            :stroke-width="1.5"
           />
           <VisAxis
             type="x"
@@ -255,11 +319,11 @@ const getColors = () => {
           />
           <VisAxis
             type="y"
-            :num-ticks="3"
+            :num-ticks="4"
             :tick-line="false"
             :domain-line="false"
             :grid-line="true"
-            :grid-line-color="'var(--silver-200)'"
+            :grid-line-color="'color-mix(in oklch, var(--border) 45%, transparent)'"
             :tick-format="(d: number) => d.toString()"
           />
           <ChartTooltip />

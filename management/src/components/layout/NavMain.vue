@@ -4,6 +4,7 @@ import { useRoute, RouterLink } from 'vue-router'
 
 import {
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
@@ -18,6 +19,7 @@ interface NavItem {
 
 defineProps<{
   items: NavItem[]
+  title?: string
 }>()
 
 const route = useRoute()
@@ -45,23 +47,40 @@ function isActive(url: string): boolean {
 </script>
 
 <template>
-  <SidebarGroup>
-    <SidebarGroupContent class="flex flex-col gap-2">
+  <SidebarGroup class="py-1">
+    <SidebarGroupLabel
+      v-if="title && items.length > 0"
+      class="px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] mt-2 mb-1"
+    >
+      {{ title }}
+    </SidebarGroupLabel>
+    <SidebarGroupContent class="flex flex-col gap-1">
       <SidebarMenu>
         <SidebarMenuItem v-for="item in items" :key="item.title">
           <SidebarMenuButton
             :tooltip="String(item.title)"
             :is-active="isActive(item.url)"
             as-child
+            class="h-9 transition-all duration-200"
             :class="[
               isActive(item.url)
-                ? 'border-l-2 border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--foreground)] font-bold pl-1.5'
-                : 'border-l-2 border-transparent'
+                ? 'border-l-4 border-[var(--accent-primary)] bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] pl-2 font-semibold'
+                : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
             ]"
           >
-            <RouterLink :to="item.url">
-              <component :is="item.icon" v-if="item.icon" />
-              <span>{{ item.title }}</span>
+            <RouterLink :to="item.url" class="flex items-center gap-2.5 w-full">
+              <component
+                :is="item.icon"
+                v-if="item.icon"
+                class="size-4 shrink-0 transition-colors"
+                :class="isActive(item.url) ? 'text-[var(--accent-primary)] stroke-[2.5]' : 'text-[var(--silver-400)] group-hover:text-foreground stroke-[1.8]'"
+              />
+              <span
+                class="truncate text-xs font-medium"
+                :class="isActive(item.url) ? 'text-[var(--accent-primary)] font-semibold' : 'text-[var(--silver-500)] group-hover:text-foreground'"
+              >
+                {{ item.title }}
+              </span>
             </RouterLink>
           </SidebarMenuButton>
         </SidebarMenuItem>

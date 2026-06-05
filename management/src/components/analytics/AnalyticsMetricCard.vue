@@ -69,8 +69,11 @@ const sizeClasses = {
 
 <template>
   <div
-    class="group relative overflow-hidden rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-float precision-card"
+    class="group relative overflow-hidden rounded-none border-t-2 border-x border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card shadow-float precision-card hover:border-r-[var(--silver-300)] hover:border-l-[var(--silver-300)] hover:border-b-[var(--silver-300)] dark:hover:border-r-[var(--silver-200)]/60 dark:hover:border-l-[var(--silver-200)]/60 dark:hover:border-b-[var(--silver-200)]/60 transition-all duration-200"
     :class="sizeClasses[props.size].card"
+    :style="{
+      borderTopColor: getTrendColor(props.metric.trend || 'neutral'),
+    }"
   >
     <!-- Background decoration icon -->
     <div

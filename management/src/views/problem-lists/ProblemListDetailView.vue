@@ -57,90 +57,90 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-    <!-- Terminal Header -->
-    <header
-      class="sticky top-0 z-10 bg-[var(--card)]/95 backdrop-blur border-b border-[var(--silver-200)]"
-    >
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
-        <div class="flex items-center gap-4">
+  <div class="editor-container w-full flex flex-col gap-5 lg:gap-6">
+    <!-- Refined Header Section -->
+    <div class="flex flex-col gap-2.5 pb-2 border-b border-[var(--editor-border-weak)] select-none">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <!-- Back button using correct translations -->
           <Button
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8 text-[var(--silver-400)] -ml-2 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]"
+            variant="outline"
+            size="sm"
+            class="custom-back-btn h-7 px-2.5 font-mono text-xs text-[var(--editor-text-muted)] border-[var(--editor-control-border)] bg-[var(--editor-control-bg)] hover:bg-[var(--editor-panel-bg)] hover:text-[var(--editor-text-primary)] rounded-none cursor-pointer flex items-center gap-1.5 transition-all"
             @click="back"
           >
-            <ArrowLeft :size="18" />
-          </Button><h1 class="text-sm font-semibold text-[var(--foreground)]">
+            <ArrowLeft :size="12" />
+            <span>{{ t('common.back') }}</span>
+          </Button>
+          <span class="text-[var(--editor-text-muted)] font-mono opacity-50">/</span>
+          <!-- Prominent Title -->
+          <h1
+            class="text-base lg:text-lg font-bold font-sans text-[var(--editor-text-primary)] tracking-tight"
+          >
             {{ isCreate ? t('problemLists.createList') : list?.name || t('problemLists.editList') }}
           </h1>
         </div>
       </div>
 
-      <!-- Status Ticker (edit mode only) -->
+      <!-- Muted Status Ticker Metadata Line -->
       <div
         v-if="list && !isCreate"
-        class="px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] bg-[var(--surface-sunken)]"
+        class="flex flex-wrap items-center gap-2 font-mono text-[11px] text-[var(--editor-text-muted)]"
       >
-        <div class="flex items-center gap-6 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">{{ t('problemLists.status.visibility') }}:</span>
-            <span
-              :class="
-                list.isPublic
-                  ? 'font-data text-[var(--terminal-green)]'
-                  : 'font-data text-[var(--silver-400)]'
-              "
-            >
-              {{
-                list.isPublic ? t('problemLists.status.public') : t('problemLists.status.private')
-              }}
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">{{ t('problemLists.status.problems') }}:</span>
-            <span class="font-data text-[var(--terminal-cyan)]">{{
-              list.problems?.length || 0
-            }}</span>
-          </div>
-          <div v-if="list.isFeatured" class="flex items-center gap-2">
-            <span class="terminal-label">{{ t('problemLists.status.featured') }}:</span>
-            <span class="font-data text-[var(--terminal-amber)]">{{
-              t('problemLists.status.featured')
-            }}</span>
-          </div>
-        </div>
+        <span
+          class="font-bold uppercase tracking-wider"
+          :class="list.isPublic ? 'text-[var(--editor-green)]' : 'text-[var(--editor-yellow)]'"
+        >
+          {{ list.isPublic ? t('problemLists.status.public') : t('problemLists.status.private') }}
+        </span>
+        <span class="opacity-40">•</span>
+        <span>
+          {{ list.problems?.length || 0 }}
+          {{
+            t('problemLists.problemsManager.problemsCount', {
+              count: list.problems?.length || 0,
+            }).split(' ')[1] || '题目'
+          }}
+        </span>
+        <template v-if="list.isFeatured">
+          <span class="opacity-40">•</span>
+          <span class="text-[var(--editor-yellow)] font-bold uppercase tracking-wider">
+            {{ t('problemLists.status.featured') }}
+          </span>
+        </template>
       </div>
-    </header>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 w-full max-w-5xl mx-auto p-4 lg:p-6 lg:pt-8">
+    <!-- Main Editor Interface -->
+    <div class="w-full">
       <!-- Loading State -->
       <div v-if="isInitialLoad || (store.isLoading && !list && !isCreate)" class="space-y-6">
         <div class="space-y-4">
-          <Skeleton class="h-12 w-1/3 rounded-none" />
-          <Skeleton class="h-64 w-full rounded-none" />
+          <Skeleton class="h-10 w-1/3 rounded-none" />
+          <Skeleton class="h-48 w-full rounded-none" />
         </div>
       </div>
 
       <!-- Error State -->
       <div
         v-else-if="store.error && !isCreate"
-        class="flex flex-col items-center justify-center py-24 text-center"
+        class="flex flex-col items-center justify-center py-20 text-center border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]"
       >
         <div
-          class="w-12 h-12 rounded-full border-2 border-[var(--terminal-red)] flex items-center justify-center mb-3"
+          class="w-10 h-10 border border-[var(--editor-red)] flex items-center justify-center mb-3 text-[var(--editor-red)]"
         >
-          <FileText :size="24" class="text-[var(--terminal-red)]" />
+          <FileText :size="20" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
+        <h2
+          class="text-xs font-bold mb-1 text-[var(--editor-text-primary)] font-mono uppercase tracking-wider"
+        >
           {{ t('problemLists.errorLoading') }}
         </h2>
-        <p class="text-xs font-data text-[var(--silver-400)] mb-4">{{ store.error }}</p>
+        <p class="text-xs font-mono text-[var(--editor-text-muted)] mb-4">{{ store.error }}</p>
         <Button
           variant="outline"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)]"
+          class="font-mono text-xs border-[var(--editor-control-border)] rounded-none"
           @click="back"
         >
           {{ t('problemLists.backToLists') }}
@@ -148,33 +148,130 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
       </div>
 
       <!-- Content -->
-      <div v-else class="space-y-8">
-        <!-- Basic Info Section -->
-        <BasicInfoSection
-          :model-value="list"
-          :disabled="isCreate"
-          :is-create="isCreate"
-          @update:model-value="handleListUpdate"
-          @success="handleCreateSuccess"
-        />
+      <div v-else>
+        <!-- Create Mode: Centered form -->
+        <div v-if="isCreate" class="max-w-2xl mx-auto w-full">
+          <BasicInfoSection
+            :model-value="list"
+            :disabled="isCreate"
+            :is-create="isCreate"
+            @update:model-value="handleListUpdate"
+            @success="handleCreateSuccess"
+          />
+        </div>
 
-        <!-- Visibility Section -->
-        <VisibilitySection
-          :model-value="list"
-          :disabled="isCreate"
-          @update:model-value="handleListUpdate"
-        />
+        <!-- Edit Mode: Dense editorial grid -->
+        <div v-else class="problem-list-editor-grid">
+          <div class="editor-grid-basic">
+            <BasicInfoSection
+              :model-value="list"
+              :disabled="isCreate"
+              :is-create="isCreate"
+              @update:model-value="handleListUpdate"
+              @success="handleCreateSuccess"
+            />
+          </div>
 
-        <!-- Banner Section -->
-        <BannerSection
-          :model-value="list"
-          :disabled="isCreate"
-          @update:model-value="handleListUpdate"
-        />
+          <div class="editor-grid-visibility">
+            <VisibilitySection
+              :model-value="list"
+              :disabled="isCreate"
+              @update:model-value="handleListUpdate"
+            />
+          </div>
 
-        <!-- Problems Manager -->
-        <ProblemsManager :list="list" />
+          <div class="editor-grid-banner">
+            <BannerSection
+              :model-value="list"
+              :disabled="isCreate"
+              @update:model-value="handleListUpdate"
+            />
+          </div>
+
+          <div class="editor-grid-problems">
+            <ProblemsManager :list="list" />
+          </div>
+        </div>
       </div>
-    </main>
+    </div>
   </div>
 </template>
+
+<style>
+/* CSS Variable Hierarchy for Problem List Editor */
+.editor-container {
+  /* Solarized Light Theme Variables */
+  --editor-panel-bg: var(--solarized-base3);
+  --editor-panel-border: var(--silver-300); /* base0 - #839496 */
+  --editor-border-weak: var(--silver-200); /* base1 - #93a1a1 */
+  --editor-control-bg: var(--solarized-base2); /* base2 - sunken appearance */
+  --editor-control-border: var(--silver-200);
+  --editor-text-primary: var(--solarized-base03); /* base03 - #002b36 */
+  --editor-text-muted: var(--solarized-base01); /* base01 - #586e75 */
+
+  /* Semantic Accent Colors */
+  --editor-cyan: var(--solarized-cyan); /* #2aa198 */
+  --editor-blue: var(--solarized-blue); /* #268bd2 */
+  --editor-green: var(--solarized-green); /* #859900 */
+  --editor-yellow: var(--solarized-yellow); /* #b58900 */
+  --editor-red: var(--solarized-red); /* #dc322f */
+}
+
+.dark .editor-container {
+  /* Solarized Dark Theme Variables */
+  --editor-panel-bg: var(--solarized-base02);
+  --editor-panel-border: var(--silver-700); /* base01 - #586e75 */
+  --editor-border-weak: rgba(88, 110, 117, 0.22); /* very weak dividers */
+  --editor-control-bg: var(--solarized-base03); /* base03 - sunken appearance */
+  --editor-control-border: rgba(88, 110, 117, 0.45);
+  --editor-text-primary: var(--solarized-base0); /* base0 - #839496 */
+  --editor-text-muted: var(--solarized-base01); /* base01 - #586e75 */
+}
+
+.custom-back-btn {
+  border-radius: 0 !important;
+}
+
+.problem-list-editor-grid {
+  display: grid;
+  grid-template-areas:
+    'basic'
+    'visibility'
+    'banner'
+    'problems';
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.editor-grid-basic,
+.editor-grid-visibility,
+.editor-grid-banner,
+.editor-grid-problems {
+  min-width: 0;
+}
+
+.editor-grid-basic {
+  grid-area: basic;
+}
+
+.editor-grid-visibility {
+  grid-area: visibility;
+}
+
+.editor-grid-banner {
+  grid-area: banner;
+}
+
+.editor-grid-problems {
+  grid-area: problems;
+}
+
+@media (min-width: 1024px) {
+  .problem-list-editor-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    grid-template-areas:
+      'basic visibility'
+      'problems banner';
+  }
+}
+</style>

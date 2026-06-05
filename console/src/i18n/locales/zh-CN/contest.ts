@@ -69,6 +69,7 @@ export default {
 
   // Contest detail
   detail: {
+    details: "比赛详情",
     duration: "比赛时长",
     startTime: "开始时间",
     endTime: "结束时间",

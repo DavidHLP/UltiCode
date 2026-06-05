@@ -62,11 +62,45 @@ UPDATE users SET name = '正确的姓名' WHERE id = '...';
 
 ## 运行时调试 (Arthas)
 
-项目已安装 `arthas-boot.jar` (4.1.9) 于项目根目录,用于 Java 运行时诊断。
+项目已安装 `arthas-boot.jar` (4.1.9) 于 `tools/` 目录,用于 Java 运行时诊断。
+
+**Arthas MCP 服务**: 项目已配置 Arthas MCP (Model Context Protocol) 端点,Claude Code 可直接调用 Arthas 诊断工具。
+
+| 项目 | 值 |
+|------|-----|
+| MCP 端点 | `http://localhost:8563/mcp` |
+| PM2 进程名 | `ulticode-arthas` |
+| 启动脚本 | `scripts/start-arthas.sh` |
+| 配置文件 | `~/.arthas/arthas.properties` |
 
 ```bash
-# 启动 Arthas (会列出所有 Java 进程,选择对应进程)
-java -jar arthas-boot.jar
+# 启动 Arthas MCP (通过 PM2, 自动附加到 Spring Boot)
+pm2 start ecosystem.config.cjs --only ulticode-arthas
+
+# 手动启动 Arthas 并附加到指定进程
+java -jar tools/arthas-boot.jar --attach-only --http-port 8563 <PID>
+
+# 验证 MCP 端点
+curl -s -X POST http://localhost:8563/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+
+# Arthas 交互式模式 (手动调试)
+java -jar tools/arthas-boot.jar <PID>
+```
+
+### Arthas MCP 注意事项
+- `arthas-boot.jar` 不支持 `--properties-file` 参数; 配置文件放 `~/.arthas/arthas.properties` 自动加载
+- `--telnet-port -1` 不被支持 (port out of range); 如需禁用 telnet 不传该参数即可
+- `--attach-only` 模式: 启动进程退出但 HTTP/MCP agent 运行在目标 JVM 内, PM2 必须 `autorestart: false`
+- Spring Boot 健康检查用 `lsof -ti :9001` 而非 `curl` (根路径可能返回 302/401)
+- 脚本中用 `$CLAUDE_PROJECT_DIR` 解析项目根目录, 非 `$SCRIPT_DIR`
+- Java 版本不一致 (arthas-boot Java 21 vs 目标 JVM Java 17) 会 WARN 但不影响功能
+
+### MCP 配置 (.mcp.json)
+- HTTP 远程服务器用 `type: "http"` (Claude Code 官方写法; `streamableHttp` 是 MCP 规范别名, 也接受)
+- 项目级 `.mcp.json` 首次使用需在 `/mcp` 中审批
+- Arthas MCP: `{"type":"http","url":"http://localhost:8563/mcp"}`
 
 # 常用命令
 dashboard          # 系统运行状态总览
@@ -77,9 +111,6 @@ trace <class> <method>          # 方法内部调用路径
 stack <class> <method>          # 查看方法调用堆栈
 ognl '<expr>'                   # 执行 OGNL 表达式
 sc -d <class>                   # 搜索类详细信息
-
-# 附加到指定进程
-java -jar arthas-boot.jar <pid>
 ```
 
 **调试典型问题:**
@@ -240,6 +271,7 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 | 9001 | ulticode-9001 | Spring Boot Backend |
 | 9002 | ulticode-9002 | Console Frontend (Vite) |
 | 9003 | ulticode-9003 | Management Frontend (Vite) |
+| 8563 | ulticode-arthas | Arthas MCP Server (HTTP/MCP, agent runs in target JVM) |
 
 **Terminal Commands:**
 ```bash

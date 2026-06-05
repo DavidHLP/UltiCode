@@ -1,0 +1,1169 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    --vis-tooltip-background-color: none !important;
+    --vis-tooltip-border-color: none !important;
+    --vis-tooltip-text-color: none !important;
+    --vis-tooltip-shadow-color: none !important;
+    --vis-tooltip-backdrop-filter: none !important;
+    --vis-tooltip-padding: none !important;
+
+    --vis-primary-color: 222.2 47.4% 11.2%;
+    --vis-secondary-color: 160 81% 40%;
+    --vis-text-color: var(--muted-foreground);
+  }
+
+  .markdown-block {
+    display: block;
+    color: inherit;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .markdown-block :where(p, ul, ol, blockquote, pre, table) {
+    margin-block: 0.5rem;
+  }
+
+  .markdown-block h1,
+  .markdown-block h2,
+  .markdown-block h3,
+  .markdown-block h4,
+  .markdown-block h5,
+  .markdown-block h6 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .markdown-block code {
+    font-family:
+      "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo,
+      Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85em;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0;
+    background-color: color-mix(in srgb, var(--muted) 80%, transparent);
+  }
+
+  .markdown-block pre {
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    background-color: color-mix(in srgb, var(--muted) 70%, transparent);
+    overflow-x: auto;
+  }
+
+  .markdown-block pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .markdown-block blockquote {
+    border-inline-start: 2px solid
+      color-mix(in srgb, var(--foreground) 30%, transparent);
+    padding-inline-start: 1rem;
+    color: color-mix(
+      in srgb,
+      var(--muted-foreground) 90%,
+      var(--foreground) 10%
+    );
+  }
+
+  .markdown-block ul {
+    list-style: disc;
+    padding-inline-start: 1.25rem;
+  }
+
+  .markdown-block ol {
+    list-style: decimal;
+    padding-inline-start: 1.25rem;
+  }
+
+  .markdown-block .katex-display {
+    max-width: 100%;
+    padding-block: 0.25rem;
+    text-align: center;
+    overflow: visible;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Primary Monospace Font Stack */
+  --font-sans: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* Typography Sizing Scale */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.875rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.5rem; /* 24px */
+  --text-2xl: 1.875rem; /* 30px */
+
+  /* Typography Line Heights and Letter Spacing */
+  --leading-normal: 1.6;
+  --leading-code: 1.4;
+  --tracking-tight: -0.02em;
+
+  /* Solarized Color Palette & Accents */
+  --color-solarized-base03: var(--solarized-base03);
+  --color-solarized-base02: var(--solarized-base02);
+  --color-solarized-base01: var(--solarized-base01);
+  --color-solarized-base00: var(--solarized-base00);
+  --color-solarized-base0: var(--solarized-base0);
+  --color-solarized-base1: var(--solarized-base1);
+  --color-solarized-base2: var(--solarized-base2);
+  --color-solarized-base3: var(--solarized-base3);
+
+  --color-solarized-yellow: var(--solarized-yellow);
+  --color-solarized-orange: var(--solarized-orange);
+  --color-solarized-red: var(--solarized-red);
+  --color-solarized-magenta: var(--solarized-magenta);
+  --color-solarized-violet: var(--solarized-violet);
+  --color-solarized-blue: var(--solarized-blue);
+  --color-solarized-cyan: var(--solarized-cyan);
+  --color-solarized-green: var(--solarized-green);
+
+  --color-silver-50: var(--silver-50);
+  --color-silver-100: var(--silver-100);
+  --color-silver-200: var(--silver-200);
+  --color-silver-300: var(--silver-300);
+  --color-silver-400: var(--silver-400);
+  --color-silver-500: var(--silver-500);
+  --color-silver-600: var(--silver-600);
+  --color-silver-700: var(--silver-700);
+  --color-silver-800: var(--silver-800);
+  --color-silver-900: var(--silver-900);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-status-solved: var(--chart-status-solved);
+  --color-chart-status-attempted: var(--chart-status-attempted);
+  --color-chart-status-todo: var(--chart-status-todo);
+  --color-chart-difficulty-easy: var(--chart-difficulty-easy);
+  --color-chart-difficulty-medium: var(--chart-difficulty-medium);
+  --color-chart-difficulty-hard: var(--chart-difficulty-hard);
+  --color-chart-series-1: var(--chart-series-1);
+  --color-chart-series-2: var(--chart-series-2);
+  --color-chart-series-3: var(--chart-series-3);
+  --color-chart-series-4: var(--chart-series-4);
+  --color-chart-series-5: var(--chart-series-5);
+  --color-chart-series-6: var(--chart-series-6);
+  --color-chart-accent-primary: var(--chart-accent-primary);
+  --color-chart-accent-secondary: var(--chart-accent-secondary);
+  --color-chart-accent-warning: var(--chart-accent-warning);
+  --color-chart-accent-danger: var(--chart-accent-danger);
+  --color-chart-accent-info: var(--chart-accent-info);
+  --color-chart-premium: var(--chart-premium);
+  --color-chart-solution: var(--chart-solution);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--reka-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--reka-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* ========================================
+   Solarized Design System - Light
+   ======================================== */
+
+:root {
+  --radius: 0;
+
+  /* Primary Monospace Font Stack */
+  --font-sans: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+
+  /* Solarized Color Palette Core (oklch mapping) */
+  --solarized-base03: oklch(0.2673 0.0486 219.8);
+  --solarized-base02: oklch(0.3092 0.0518 219.7);
+  --solarized-base01: oklch(0.523 0.0283 219.1);
+  --solarized-base00: oklch(0.5682 0.0285 221.9);
+  --solarized-base0: oklch(0.6537 0.0197 205.3);
+  --solarized-base1: oklch(0.6979 0.0159 196.8);
+  --solarized-base2: oklch(0.9306 0.026 92.4);
+  --solarized-base3: oklch(0.9735 0.0261 90.1);
+
+  /* Solarized Accent Colors */
+  --solarized-yellow: oklch(0.6545 0.134 85.7);
+  --solarized-orange: oklch(0.5808 0.1732 39.5);
+  --solarized-red: oklch(0.5863 0.2064 27.1);
+  --solarized-magenta: oklch(0.5924 0.2025 355.9);
+  --solarized-violet: oklch(0.524 0.144 286.9);
+  --solarized-blue: oklch(0.6149 0.1394 244.9);
+  --solarized-cyan: oklch(0.6437 0.1019 187.4);
+  --solarized-green: oklch(0.6444 0.1508 118.6);
+
+  /* Solarized Light: base2 background, base3 card, base00 body text */
+  --background: var(--solarized-base2);
+  --foreground: var(--solarized-base00);
+  --card: var(--solarized-base3);
+  --card-foreground: var(--solarized-base00);
+  --popover: var(--solarized-base3);
+  --popover-foreground: var(--solarized-base00);
+  --primary: var(--solarized-base03);
+  --primary-foreground: var(--solarized-base3);
+  --secondary: var(--solarized-base2);
+  --secondary-foreground: var(--solarized-base01);
+  --muted: var(--solarized-base2);
+  --muted-foreground: var(--solarized-base01);
+  --accent: var(--solarized-blue);
+  --accent-foreground: var(--solarized-base3);
+  --destructive: var(--solarized-red);
+  --destructive-foreground: var(--solarized-base3);
+  --border: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
+  --input: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
+  --ring: var(--solarized-blue);
+  --chart-1: var(--solarized-blue);
+  --chart-2: var(--solarized-cyan);
+  --chart-3: var(--solarized-green);
+  --chart-4: var(--solarized-yellow);
+  --chart-5: var(--solarized-orange);
+  --sidebar: var(--solarized-base3);
+  --sidebar-foreground: var(--solarized-base00);
+  --sidebar-primary: var(--solarized-blue);
+  --sidebar-primary-foreground: var(--solarized-base3);
+  --sidebar-accent: color-mix(in oklch, var(--solarized-blue) 10%, transparent);
+  --sidebar-accent-foreground: var(--solarized-base00);
+  --sidebar-border: color-mix(in oklch, var(--solarized-base1) 30%, transparent);
+  --sidebar-ring: var(--solarized-blue);
+
+  /* Solarized Monotones (base3→base03, warm hue ~90) */
+  --silver-50: var(--solarized-base3);
+  --silver-100: var(--solarized-base2);
+  --silver-200: var(--solarized-base1);
+  --silver-300: var(--solarized-base0);
+  --silver-400: var(--solarized-base0);
+  --silver-500: var(--solarized-base00);
+  --silver-600: var(--solarized-base01);
+  --silver-700: var(--solarized-base01);
+  --silver-800: var(--solarized-base02);
+  --silver-900: var(--solarized-base03);
+
+  /* Solarized Blue Accent */
+  --accent-primary: var(--solarized-blue);
+  --accent-glow: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
+
+  /* Solarized Accent Status */
+  --status-success: var(--solarized-green);
+  --status-warning: var(--solarized-yellow);
+  --status-error: var(--solarized-red);
+
+  /* Border Styles */
+  --border-thin: 1px solid var(--silver-200);
+  --border-accent: 1px solid var(--accent-primary);
+
+  /* Shadow Styles */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.08);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.12);
+
+  /* Transition Timing */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Scrollbar */
+  --scrollbar-thumb: var(--solarized-base1);
+  --scrollbar-thumb-hover: var(--solarized-base01);
+  --scrollbar-thumb-active: var(--solarized-base01);
+}
+
+/* ========================================
+   Solarized Design System - Dark
+   ======================================== */
+
+.dark {
+  /* Solarized Dark: base03 background, base0 body text */
+  --background: var(--solarized-base03);
+  --foreground: var(--solarized-base0);
+  --card: var(--solarized-base02);
+  --card-foreground: var(--solarized-base0);
+  --popover: var(--solarized-base02);
+  --popover-foreground: var(--solarized-base0);
+  --primary: var(--solarized-base1);
+  --primary-foreground: var(--solarized-base03);
+  --secondary: var(--solarized-base02);
+  --secondary-foreground: var(--solarized-base0);
+  --muted: var(--solarized-base02);
+  --muted-foreground: var(--solarized-base01);
+  --accent: var(--solarized-blue);
+  --accent-foreground: var(--solarized-base3);
+  --destructive: var(--solarized-red);
+  --destructive-foreground: var(--solarized-base3);
+  --border: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
+  --input: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
+  --ring: var(--solarized-blue);
+  --chart-1: var(--solarized-blue);
+  --chart-2: var(--solarized-cyan);
+  --chart-3: var(--solarized-green);
+  --chart-4: var(--solarized-yellow);
+  --chart-5: var(--solarized-orange);
+  --sidebar: var(--solarized-base02);
+  --sidebar-foreground: var(--solarized-base0);
+  --sidebar-primary: var(--solarized-blue);
+  --sidebar-primary-foreground: var(--solarized-base3);
+  --sidebar-accent: color-mix(in oklch, var(--solarized-blue) 15%, transparent);
+  --sidebar-accent-foreground: var(--solarized-base0);
+  --sidebar-border: color-mix(in oklch, var(--solarized-base01) 40%, transparent);
+  --sidebar-ring: var(--solarized-blue);
+
+  /* Solarized Monotones - Dark Mode (inverted) */
+  --silver-50: var(--solarized-base03);
+  --silver-100: var(--solarized-base02);
+  --silver-200: var(--solarized-base01);
+  --silver-300: var(--solarized-base01);
+  --silver-400: var(--solarized-base0);
+  --silver-500: var(--solarized-base0);
+  --silver-600: var(--solarized-base1);
+  --silver-700: var(--solarized-base2);
+  --silver-800: var(--solarized-base3);
+  --silver-900: var(--solarized-base3);
+
+  /* Accent Colors - Dark Mode (same as light per Solarized spec) */
+  --accent-primary: var(--solarized-blue);
+  --accent-glow: color-mix(in oklch, var(--solarized-blue) 20%, transparent);
+
+  /* Status Colors - Dark Mode (same as light per Solarized spec) */
+  --status-success: var(--solarized-green);
+  --status-warning: var(--solarized-yellow);
+  --status-error: var(--solarized-red);
+
+  /* Shadow Styles - Dark Mode */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.25);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.35);
+
+  /* Scrollbar - Dark Mode */
+  --scrollbar-thumb: oklch(0.45 0.03 220);
+  --scrollbar-thumb-hover: oklch(0.55 0.025 210);
+  --scrollbar-thumb-active: var(--solarized-base0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  html {
+    overflow-x: hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
+  }
+
+  pre, code, .font-mono, .font-data {
+    font-family: var(--font-mono);
+    line-height: var(--leading-code);
+  }
+
+  /* WebKit Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-active);
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ========================================
+   Precision Dashboard Typography
+   ======================================== */
+
+.font-data {
+  font-family:
+    "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+/* ========================================
+   Precision Dashboard Utilities
+   ======================================== */
+
+.precision-card {
+  transition:
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.precision-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float-hover);
+}
+
+.border-silver {
+  border-color: var(--silver-200);
+}
+
+.dark .border-silver {
+  border-color: var(--silver-300);
+}
+
+.shadow-float {
+  box-shadow: var(--shadow-float);
+}
+
+.precision-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--silver-200),
+    transparent
+  );
+}
+
+.dark .precision-divider {
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--silver-300),
+    transparent
+  );
+}
+
+.timeline-line {
+  position: relative;
+}
+
+.timeline-line::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: var(--silver-200);
+}
+
+.dark .timeline-line::before {
+  background: var(--silver-300);
+}
+
+.glow-accent {
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.status-success {
+  color: var(--status-success);
+}
+
+.status-warning {
+  color: var(--status-warning);
+}
+
+.status-error {
+  color: var(--status-error);
+}
+
+/* ========================================
+   Terminal Precision Design System
+   ======================================== */
+
+:root {
+  /* Solarized Terminal Accent Colors (identical in light/dark) */
+  --terminal-green: oklch(0.6444 0.1508 118.6);
+  --terminal-amber: oklch(0.6545 0.134 85.7);
+  --terminal-red: oklch(0.5863 0.2064 27.1);
+  --terminal-cyan: oklch(0.6437 0.1019 187.4);
+  --terminal-purple: oklch(0.5924 0.2025 355.9);
+
+  /* Solarized Blue Accent */
+  --accent-electric: oklch(0.6149 0.1394 244.9);
+  --accent-electric-glow: oklch(0.6149 0.1394 244.9 / 0.15);
+
+  /* Surface Layers */
+  --surface-elevated: oklch(0.9735 0.0261 90.1);
+  --surface-sunken: oklch(0.9306 0.026 92.4);
+
+  /* Terminal Timing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 350ms;
+}
+
+/* ========================================
+   Terminal Animations
+   ======================================== */
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scan-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes subtle-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes terminal-typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Staggered animation utility */
+.animate-stagger > * {
+  animation: slide-up-fade var(--duration-normal) var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.animate-stagger > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.animate-stagger > *:nth-child(8) {
+  animation-delay: 350ms;
+}
+.animate-stagger > *:nth-child(9) {
+  animation-delay: 400ms;
+}
+.animate-stagger > *:nth-child(10) {
+  animation-delay: 450ms;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger > *,
+  .terminal-cursor,
+  .animate-scan,
+  .animate-pulse-subtle {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ========================================
+   Terminal Typography Utilities
+   ======================================== */
+
+.terminal-prompt {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  color: var(--accent-electric);
+}
+
+.terminal-prompt::before {
+  content: "> ";
+  color: var(--terminal-green);
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--accent-electric);
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+}
+
+.terminal-label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+}
+
+.terminal-comment {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  font-style: italic;
+}
+
+.terminal-comment::before {
+  content: "// ";
+}
+
+.terminal-badge {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 0;
+}
+
+.terminal-kv-key {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--silver-500);
+}
+
+.terminal-kv-value {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+/* ========================================
+   Terminal Card Styling
+   ======================================== */
+
+.terminal-card {
+  border-radius: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+}
+
+.dark .terminal-card {
+  border-color: var(--border);
+}
+
+.terminal-card-header {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 8px 12px;
+  border-bottom: none;
+  background:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        var(--silver-200) 15%,
+        var(--silver-200) 85%,
+        transparent 100%
+      )
+      bottom / 100% 1px no-repeat,
+    var(--silver-50);
+  color: var(--silver-600);
+}
+
+.dark .terminal-card-header {
+  background:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        var(--silver-300) 15%,
+        var(--silver-300) 85%,
+        transparent 100%
+      )
+      bottom / 100% 1px no-repeat,
+    var(--silver-100);
+  color: var(--silver-500);
+}
+
+.terminal-tab {
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo),
+    color var(--duration-fast) var(--ease-out-expo);
+}
+
+.terminal-separator {
+  height: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-200) 0px,
+    var(--silver-200) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  margin: 16px 0;
+}
+
+.dark .terminal-separator {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-300) 0px,
+    var(--silver-300) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.terminal-input {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  border-radius: 0;
+  border: 1px solid var(--silver-200);
+  background: var(--surface-sunken);
+}
+
+.dark .terminal-input {
+  border-color: var(--silver-300);
+}
+
+.terminal-input:focus {
+  outline: none;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 2px var(--accent-electric-glow);
+}
+
+/* ========================================
+   Terminal Status Colors
+   ======================================== */
+
+.terminal-success {
+  color: var(--terminal-green);
+}
+
+.terminal-warning {
+  color: var(--terminal-amber);
+}
+
+.terminal-error {
+  color: var(--terminal-red);
+}
+
+.terminal-info {
+  color: var(--terminal-cyan);
+}
+
+.terminal-badge-success {
+  background: color-mix(in oklch, var(--terminal-green) 15%, transparent);
+  color: var(--terminal-green);
+  border: 1px solid color-mix(in oklch, var(--terminal-green) 30%, transparent);
+}
+
+.terminal-badge-warning {
+  background: color-mix(in oklch, var(--terminal-amber) 15%, transparent);
+  color: var(--terminal-amber);
+  border: 1px solid color-mix(in oklch, var(--terminal-amber) 30%, transparent);
+}
+
+.terminal-badge-error {
+  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
+  color: var(--terminal-red);
+  border: 1px solid color-mix(in oklch, var(--terminal-red) 30%, transparent);
+}
+
+.terminal-badge-info {
+  background: color-mix(in oklch, var(--terminal-cyan) 15%, transparent);
+  color: var(--terminal-cyan);
+  border: 1px solid color-mix(in oklch, var(--terminal-cyan) 30%, transparent);
+}
+
+.terminal-badge-purple {
+  background: color-mix(in oklch, var(--terminal-purple) 15%, transparent);
+  color: var(--terminal-purple);
+  border: 1px solid color-mix(in oklch, var(--terminal-purple) 30%, transparent);
+}
+
+.terminal-badge-electric {
+  background: color-mix(in oklch, var(--accent-electric) 15%, transparent);
+  color: var(--accent-electric);
+  border: 1px solid color-mix(in oklch, var(--accent-electric) 30%, transparent);
+}
+
+.terminal-badge-neutral {
+  background: color-mix(in oklch, var(--silver-500) 15%, transparent);
+  color: var(--silver-500);
+  border: 1px solid color-mix(in oklch, var(--silver-500) 30%, transparent);
+}
+
+.terminal-badge-primary {
+  background: color-mix(in oklch, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 40%, transparent);
+}
+
+.animate-pulse-subtle {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+.animate-scan {
+  animation: scan-reveal 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ========================================
+   ASCII-Style Progress Bars
+   ======================================== */
+
+.ascii-progress {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre;
+  letter-spacing: 0;
+}
+
+.ascii-progress-track {
+  color: var(--silver-300);
+}
+
+.dark .ascii-progress-track {
+  color: var(--silver-400);
+}
+
+.ascii-progress-fill {
+  color: var(--accent-electric);
+}
+
+/* ========================================
+   Terminal Table Enhancements
+   ======================================== */
+
+.terminal-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.terminal-table > div.overflow-hidden {
+  overflow-x: auto;
+}
+
+.terminal-table-row {
+  transition: background-color var(--duration-fast) ease;
+}
+
+.terminal-table-row:hover {
+  background: var(--surface-sunken);
+}
+
+.terminal-row-num {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  text-align: right;
+  user-select: none;
+  width: 40px;
+}
+
+/* ========================================
+   Dark Mode Terminal Adjustments
+   ======================================== */
+
+.dark {
+  --surface-elevated: oklch(0.3092 0.0518 219.7);
+  --surface-sunken: oklch(0.2673 0.0486 219.8);
+}
+
+/* ========================================
+   Highlight.js Solarized Theme
+   ======================================== */
+
+.hljs {
+  background: transparent;
+  color: #657b83;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #93a1a1;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+  color: #859900;
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-literal,
+.hljs-doctag,
+.hljs-regexp {
+  color: #2aa198;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #268bd2;
+}
+
+.hljs-attribute,
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type {
+  color: #268bd2;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+  color: #cb4b16;
+}
+
+.hljs-built_in,
+.hljs-deletion {
+  color: #dc322f;
+}
+
+.hljs-formula {
+  background: #eee8d5;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-function {
+  color: #268bd2;
+}
+
+.hljs-params {
+  color: #657b83;
+}
+
+.hljs-tag {
+  color: #859900;
+}
+
+.hljs-xml-tag {
+  color: #859900;
+}
+
+.hljs-xml-attr {
+  color: #268bd2;
+}
+
+.hljs-xml-comment {
+  color: #93a1a1;
+}
+
+.hljs-javascript .hljs-title,
+.hljs-typescript .hljs-title {
+  color: #268bd2;
+}
+
+.hljs-python .hljs-decorator {
+  color: #268bd2;
+}
+
+.hljs-java .hljs-annotation {
+  color: #268bd2;
+}
+
+/* Highlight.js Dark Theme Override */
+.dark .hljs {
+  color: #839496;
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: #586e75;
+}
+
+.dark .hljs-formula {
+  background: #073642;
+}
+
+.dark .hljs-params {
+  color: #839496;
+}
+
+/* ========================================
+   Header Button Unified Style
+   ======================================== */
+.header-btn {
+  height: 2rem !important; /* h-8 */
+  border-radius: 0 !important; /* rounded-none */
+  font-family: var(--font-mono) !important; /* matches engineering style code/text stack */
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all var(--transition-fast) !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--solarized-base01) !important;
+  box-shadow: none !important;
+}
+
+.dark .header-btn {
+  color: var(--solarized-base1) !important;
+}
+
+/* Hover state */
+.header-btn:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--solarized-base1) 22%, transparent) !important;
+  color: var(--solarized-base02) !important;
+}
+
+.dark .header-btn:hover:not(:disabled) {
+  background-color: color-mix(in oklch, var(--solarized-base01) 22%, transparent) !important;
+  color: var(--solarized-base3) !important;
+}
+
+/* Active / Checked state */
+.header-btn.active, .header-btn[data-state=open] {
+  background-color: color-mix(in oklch, var(--solarized-base1) 32%, transparent) !important;
+  color: var(--solarized-base03) !important;
+}
+
+.dark .header-btn.active, .dark .header-btn[data-state=open] {
+  background-color: color-mix(in oklch, var(--solarized-base01) 32%, transparent) !important;
+  color: var(--solarized-base3) !important;
+}
+
+/* Disabled state */
+.header-btn:disabled, .header-btn.disabled {
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}

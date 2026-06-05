@@ -1,6 +1,11 @@
 export default {
   title: '标签管理',
   searchPlaceholder: '搜索标签...',
+  stats: {
+    total: '总计',
+    problem: '题目',
+    forum: '论坛',
+  },
   tagType: '标签类型',
   problemTags: '题目标签',
   forumTags: '论坛标签',

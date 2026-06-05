@@ -2,6 +2,14 @@ export default {
   title: 'Comment Management',
   searchPlaceholder: 'Search comments...',
   clearSelection: 'Clear Selection',
+  stats: {
+    total: 'Total',
+    flagged: 'Flagged',
+    forum: 'Forum',
+    solution: 'Solution',
+    deleted: 'Deleted',
+    commentModeration: 'Comment Moderation',
+  },
 
   // Columns
   columns: {

@@ -383,6 +383,17 @@ export default {
     descriptionSubtitle: '编辑题目描述信息',
     codeSubtitle: '配置支持的编程语言',
     testCasesSubtitle: '管理测试用例和约束条件',
+    action: '操作',
+    mode: '模式',
+    newProblem: '新建题目',
+    problemCreation: '创建题目',
+    section: '部分',
+    description: '题目描述',
+    testCases: '测试用例',
+    code: '评测代码',
+    problemEditor: '题目编辑器',
+    testCaseEditor: '测试用例编辑器',
+    languageConfig: '语言配置',
   },
 
   // 查看页面

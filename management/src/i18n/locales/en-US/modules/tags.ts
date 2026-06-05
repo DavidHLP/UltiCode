@@ -1,6 +1,11 @@
 export default {
   title: 'Tag Management',
   searchPlaceholder: 'Search tags...',
+  stats: {
+    total: 'Total',
+    problem: 'Problem',
+    forum: 'Forum',
+  },
   tagType: 'Tag Type',
   problemTags: 'Problem Tags',
   forumTags: 'Forum Tags',

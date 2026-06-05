@@ -134,6 +134,7 @@ export default {
     flagged: 'Flagged',
     published: 'Published',
     loading: 'Loading...',
+    solutionManagement: 'Solution Management',
   },
 
   // ========== Empty State ==========

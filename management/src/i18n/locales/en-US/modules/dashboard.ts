@@ -77,6 +77,8 @@ export default {
   chart: {
     userRegistrationTrend: 'User Registration Trend',
     dailyRegistrations: 'Daily new user registrations',
+    noDataTitle: 'NO DATA POINTS',
+    noDataDesc: 'No registration records found for the selected time range.',
   },
 
   // Time period selector

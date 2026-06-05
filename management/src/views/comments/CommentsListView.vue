@@ -288,32 +288,32 @@ async function handleBulkDeleteConfirm() {
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.flagged') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">forum:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.forum') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.forumCount
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">solution:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.solution') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.solutionCount
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconMessage class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">comment moderation</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('comments.stats.commentModeration') }}</span>
         </div>
       </div>
     </div>

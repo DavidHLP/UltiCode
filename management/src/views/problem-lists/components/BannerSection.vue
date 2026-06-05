@@ -10,7 +10,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
@@ -140,99 +139,145 @@ function handleBlur() {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="terminal-comment">// {{ t('problemLists.sections.bannerSettings') }}</div>
+  <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
+    <!-- Card Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+          03 // {{ t('problemLists.sections.bannerSettings') }}
+        </span>
+      </div>
+      <!-- Auto-save Status Indicator in Header -->
+      <div v-if="saveStatus !== 'idle'" class="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold">
+        <template v-if="saveStatus === 'saving'">
+          <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
+          <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.status.saving') }}</span>
+        </template>
+        <template v-else-if="saveStatus === 'saved'">
+          <span class="text-[var(--editor-green)] font-bold">// SAVED</span>
+        </template>
+        <template v-else-if="saveStatus === 'error'">
+          <span class="text-[var(--editor-red)] font-bold">// ERROR</span>
+        </template>
+      </div>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Card Content -->
+    <div class="p-4 lg:p-5 flex flex-col gap-4.5">
       <!-- Banner Tag -->
       <FormField name="bannerTag">
-        <FormItem>
-          <FormLabel class="terminal-label">{{ t('problemLists.form.bannerTag') }}</FormLabel>
+        <FormItem class="space-y-1.5">
+          <div class="flex justify-between items-baseline select-none">
+            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+              {{ t('problemLists.form.bannerTag') }}
+            </FormLabel>
+            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono">
+              {{ localBannerTag.length }}/50
+            </span>
+          </div>
           <FormControl>
             <Input
               v-model="localBannerTag"
               :placeholder="t('problemLists.form.bannerTagPlaceholder')"
               :maxlength="50"
               :disabled="disabled"
-              class="terminal-input h-9"
+              class="custom-terminal-input h-9"
               @blur="handleBlur()"
             />
           </FormControl>
-          <div class="flex justify-between items-center">
-            <FormDescription class="text-xs text-[var(--silver-400)]">
+          <div class="select-none pt-0.5">
+            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono leading-none">
               {{ t('problemLists.form.bannerTagDescription') }}
-            </FormDescription>
-            <span class="text-xs text-[var(--silver-400)] font-data">
-              {{ localBannerTag.length }}/50
             </span>
           </div>
-          <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+          <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
         </FormItem>
       </FormField>
 
       <!-- Banner Theme -->
       <FormField name="bannerTheme">
-        <FormItem>
-          <FormLabel class="terminal-label">{{ t('problemLists.form.bannerTheme') }}</FormLabel>
-          <Select v-model="localBannerTheme" :disabled="disabled" @update:modelValue="handleBlur()">
+        <FormItem class="space-y-1.5">
+          <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            {{ t('problemLists.form.bannerTheme') }}
+          </FormLabel>
+          <Select v-model="localBannerTheme" :disabled="disabled" @update:modelValue="handleBlur()()">
             <FormControl>
-              <SelectTrigger class="terminal-input h-9 font-data text-xs">
+              <SelectTrigger class="custom-terminal-input h-9 font-mono text-xs select-none">
                 <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
               </SelectTrigger>
             </FormControl>
-            <SelectContent>
+            <SelectContent class="rounded-none border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]">
               <SelectItem
                 v-for="theme in bannerThemes"
                 :key="theme.value"
                 :value="theme.value"
-                class="font-data text-xs"
+                class="font-mono text-xs rounded-none cursor-pointer focus:bg-[var(--editor-control-bg)]/50 focus:text-[var(--editor-cyan)]"
               >
                 {{ theme.label }}
               </SelectItem>
             </SelectContent>
           </Select>
-          <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+          <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
         </FormItem>
       </FormField>
 
       <!-- Banner Order -->
       <FormField name="bannerOrder">
-        <FormItem>
-          <FormLabel class="terminal-label">{{ t('problemLists.form.sortOrder') }}</FormLabel>
+        <FormItem class="space-y-1.5">
+          <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            {{ t('problemLists.form.sortOrder') }}
+          </FormLabel>
           <FormControl>
             <Input
               v-model.number="localBannerOrder"
               type="number"
               :disabled="disabled"
-              class="terminal-input h-9"
-              @blur="handleBlur()"
+              class="custom-terminal-input h-9"
+              @blur="handleBlur()()"
             />
           </FormControl>
-          <FormDescription class="text-xs text-[var(--silver-400)]">
-            {{ t('problemLists.form.sortOrderDescription') }}
-          </FormDescription>
-          <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+          <div class="select-none pt-0.5">
+            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono leading-none">
+              {{ t('problemLists.form.sortOrderDescription') }}
+            </span>
+          </div>
+          <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
         </FormItem>
       </FormField>
     </div>
-
-    <!-- Save Status Indicator -->
-    <div class="flex items-center gap-2 min-h-[20px]">
-      <template v-if="saveStatus === 'saving'">
-        <span class="animate-pulse text-xs text-[var(--silver-400)] font-data">
-          {{ t('problemLists.status.saving') }}
-        </span>
-      </template>
-      <template v-else-if="saveStatus === 'saved'">
-        <span class="text-xs text-[var(--terminal-green)] font-data">
-          {{ t('problemLists.status.saved') }}
-        </span>
-      </template>
-      <template v-else-if="saveStatus === 'error'">
-        <span class="text-xs text-[var(--terminal-red)] font-data">
-          {{ errorMessage || t('problemLists.status.error') }}
-        </span>
-      </template>
-    </div>
   </div>
 </template>
+
+<style scoped>
+.custom-terminal-input {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  border-radius: 0 !important;
+  border: 1px solid var(--editor-control-border);
+  background: var(--editor-control-bg);
+  color: var(--editor-text-primary);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+:deep(.custom-terminal-input) {
+  border-radius: 0 !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.custom-terminal-input:hover:not(:disabled) {
+  border-color: var(--editor-panel-border);
+}
+
+.custom-terminal-input:focus {
+  outline: none;
+  border-color: var(--editor-cyan) !important;
+  box-shadow: 0 0 0 1px var(--editor-cyan) !important;
+}
+
+.custom-terminal-input:disabled {
+  opacity: 0.55;
+  background-color: color-mix(in srgb, var(--editor-control-bg) 60%, transparent);
+  border-color: color-mix(in srgb, var(--editor-control-border) 40%, transparent);
+  cursor: not-allowed;
+}
+</style>

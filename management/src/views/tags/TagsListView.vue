@@ -357,19 +357,19 @@ const columns: ColumnDef<Tag>[] = [
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">problem:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.problem') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.problemTags
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">forum:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.forum') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.forumTags
           }}</span>

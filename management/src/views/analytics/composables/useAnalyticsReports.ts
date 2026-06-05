@@ -9,7 +9,6 @@ import {
   type UserActivityReport,
   type ProblemCompletionReport,
   type ContestParticipationReport,
-  type RevenueReport,
   type PerformanceReport,
 } from '@/api/admin/analytics'
 
@@ -17,7 +16,6 @@ export type ReportTab =
   | 'user_activity'
   | 'problem_completion'
   | 'contest_participation'
-  | 'revenue'
   | 'performance'
 
 export function useAnalyticsReports() {
@@ -32,7 +30,6 @@ export function useAnalyticsReports() {
   const userActivityReport = ref<UserActivityReport | null>(null)
   const problemCompletionReport = ref<ProblemCompletionReport | null>(null)
   const contestParticipationReport = ref<ContestParticipationReport | null>(null)
-  const revenueReport = ref<RevenueReport | null>(null)
   const performanceReport = ref<PerformanceReport | null>(null)
 
   // Current time display
@@ -73,10 +70,6 @@ export function useAnalyticsReports() {
     return formatNumberByLocale(num / 100, { style: 'percent', maximumFractionDigits: 1 })
   }
 
-  function formatCurrency(num: number): string {
-    return formatNumberByLocale(num, { style: 'currency', currency: 'USD' })
-  }
-
   function formatUptime(seconds: number): string {
     const d = Math.floor(seconds / 86400)
     const h = Math.floor((seconds % 86400) / 3600)
@@ -98,27 +91,16 @@ export function useAnalyticsReports() {
     showRefreshSession.value = false
     loading.value = true
     try {
-      switch (activeTab.value) {
-        case 'user_activity':
-          userActivityReport.value = await analyticsApi.getUserActivity({ days: days.value })
-          break
-        case 'problem_completion':
-          problemCompletionReport.value = await analyticsApi.getProblemCompletion({
-            days: days.value,
-          })
-          break
-        case 'contest_participation':
-          contestParticipationReport.value = await analyticsApi.getContestParticipation({
-            days: days.value,
-          })
-          break
-        case 'revenue':
-          revenueReport.value = await analyticsApi.getRevenue({ days: days.value })
-          break
-        case 'performance':
-          performanceReport.value = await analyticsApi.getPerformance()
-          break
-      }
+      const [userAct, probComp, contestPart, perf] = await Promise.all([
+        analyticsApi.getUserActivity({ days: days.value }),
+        analyticsApi.getProblemCompletion({ days: days.value }),
+        analyticsApi.getContestParticipation({ days: days.value }),
+        analyticsApi.getPerformance(),
+      ])
+      userActivityReport.value = userAct
+      problemCompletionReport.value = probComp
+      contestParticipationReport.value = contestPart
+      performanceReport.value = perf
     } catch (error) {
       console.error('Failed to load report:', error)
       const apiError = error as ApiError
@@ -145,7 +127,7 @@ export function useAnalyticsReports() {
     }
   }
 
-  watch([activeTab, days], () => {
+  watch(days, () => {
     loadReport()
   })
 
@@ -154,7 +136,6 @@ export function useAnalyticsReports() {
   })
 
   return {
-    activeTab,
     loading,
     days,
     showRefreshSession,
@@ -162,12 +143,10 @@ export function useAnalyticsReports() {
     formattedDate,
     formatNumber,
     formatPercent,
-    formatCurrency,
     formatUptime,
     userActivityReport,
     problemCompletionReport,
     contestParticipationReport,
-    revenueReport,
     performanceReport,
     loadReport,
     refreshSession,

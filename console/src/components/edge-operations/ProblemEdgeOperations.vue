@@ -129,7 +129,7 @@ const handleSaveChange = () => {
 </script>
 
 <template>
-  <div v-if="problem" class="flex items-center gap-2">
+  <div v-if="problem" class="flex items-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-0 rounded-none overflow-hidden select-none shadow-sm">
     <VoteControl
       :likes="reactionCounts.likes"
       :dislikes="reactionCounts.dislikes"
@@ -144,6 +144,11 @@ const handleSaveChange = () => {
         (v) => (v === 1 ? toggleReaction('like') : toggleReaction('dislike'))
       "
     />
+
+    <!-- Separator between VoteControl and Save Button -->
+    <div
+      class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
+    ></div>
 
     <ProblemSaveButton
       :problem-id="problem.id"

@@ -222,25 +222,25 @@ const columns = createColumns(t, {
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total.toLocaleString()
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">pending:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.pending') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">top_lang:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.topLanguage') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)]">{{
             stats.topLanguage
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">ac_rate:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.acceptedRate') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums"
             >{{ stats.acceptedRate }}%</span
           >

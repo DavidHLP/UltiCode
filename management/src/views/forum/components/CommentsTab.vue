@@ -369,19 +369,19 @@ const columns: ColumnDef<Comment>[] = [
       <!-- Stats Ticker -->
       <div class="px-4 py-2 flex items-center gap-4 bg-[var(--surface-sunken)]">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.total') }}:</span>
           <span class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.flagged') }}:</span>
           <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">deleted:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.deleted') }}:</span>
           <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
             stats.deleted
           }}</span>

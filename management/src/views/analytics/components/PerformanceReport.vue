@@ -67,12 +67,14 @@ const endpointBarItems = computed<BarListItem[]>(() =>
     </div>
 
     <div
-      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none bg-card shadow-float p-5"
+      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
     >
-      <h3 class="text-base font-medium tracking-tight mb-4">
-        {{ t('analytics.performance.resourceUsage') }}
-      </h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="pb-4 px-5 pt-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
+        <h3 class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
+          {{ t('analytics.performance.resourceUsage') }}
+        </h3>
+      </div>
+      <div class="p-5 flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-sm text-[var(--silver-500)]">{{

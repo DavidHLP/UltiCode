@@ -176,73 +176,149 @@ defineExpose({ saveStatus, form, saveChanges })
 </script>
 
 <template>
-  <div class="space-y-4 max-w-2xl">
-    <div class="terminal-comment">// {{ t('problemLists.sections.basicInfo') }}</div>
-
-    <form class="space-y-4" @submit.prevent>
-      <FormField v-slot="{ componentField }" name="name">
-        <FormItem>
-          <div class="flex items-center justify-between">
-            <FormLabel class="terminal-label">{{ t('problemLists.form.name') }}</FormLabel>
-            <span
-              class="text-xs font-data"
-              :class="{
-                'text-[var(--silver-400)]': saveStatus === 'idle',
-                'text-[var(--terminal-amber)] animate-pulse': saveStatus === 'saving',
-                'text-[var(--terminal-green)]': saveStatus === 'saved',
-                'text-[var(--terminal-red)]': saveStatus === 'error',
-              }"
-            >
-              <template v-if="saveStatus === 'saving'"
-                >// {{ t('problemLists.form.saving') }}</template
-              >
-              <template v-else-if="saveStatus === 'saved'">// saved</template>
-              <template v-else-if="saveStatus === 'error'">// error</template>
-            </span>
-          </div>
-          <FormControl>
-            <Input
-              v-bind="componentField"
-              :disabled="disabled || saveStatus === 'saving'"
-              :placeholder="t('problemLists.form.namePlaceholder')"
-              class="terminal-input h-9"
-              @blur="handleBlur"
-            />
-          </FormControl>
-          <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
-        </FormItem>
-      </FormField>
-
-      <FormField v-slot="{ componentField }" name="description">
-        <FormItem>
-          <FormLabel class="terminal-label">{{ t('problemLists.form.description') }}</FormLabel>
-          <FormControl>
-            <Textarea
-              v-bind="componentField"
-              :disabled="disabled || saveStatus === 'saving'"
-              :placeholder="t('problemLists.form.descriptionPlaceholder')"
-              class="terminal-input min-h-[100px] resize-y"
-              @blur="handleBlur"
-            />
-          </FormControl>
-          <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
-        </FormItem>
-      </FormField>
-
-      <div v-if="isCreate" class="pt-2">
-        <Button
-          type="button"
-          variant="terminal"
-          class="font-data text-xs"
-          :disabled="saveStatus === 'saving'"
-          @click="handleCreate"
-        >
-          <span v-if="saveStatus === 'saving'" class="animate-pulse">{{
-            t('problemLists.form.creating')
-          }}</span>
-          <span v-else>{{ t('problemLists.form.createList') }}</span>
-        </Button>
+  <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
+    <!-- Card Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+          01 // {{ t('problemLists.sections.basicInfo') }}
+        </span>
       </div>
-    </form>
+      
+      <!-- Auto-save Status Indicator in Header -->
+      <div v-if="!isCreate" class="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold">
+        <template v-if="saveStatus === 'saving'">
+          <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
+          <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.form.saving') }}</span>
+        </template>
+        <template v-else-if="saveStatus === 'saved'">
+          <span class="text-[var(--editor-green)]">// SAVED</span>
+        </template>
+        <template v-else-if="saveStatus === 'error'">
+          <span class="text-[var(--editor-red)]">// ERROR</span>
+        </template>
+      </div>
+    </div>
+
+    <!-- Card Content -->
+    <div class="p-4 lg:p-5">
+      <form class="space-y-4.5" @submit.prevent>
+        <FormField v-slot="{ componentField }" name="name">
+          <FormItem class="space-y-1.5">
+            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+              {{ t('problemLists.form.name') }}
+            </FormLabel>
+            <FormControl>
+              <Input
+                v-bind="componentField"
+                :disabled="disabled || saveStatus === 'saving'"
+                :placeholder="t('problemLists.form.namePlaceholder')"
+                class="custom-terminal-input h-9"
+                :class="{ 'border-[var(--editor-red)] focus:ring-[var(--editor-red)]': form.errors.value?.name }"
+                @blur="handleBlur"
+              />
+            </FormControl>
+            <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ componentField }" name="description">
+          <FormItem class="space-y-1.5">
+            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+              {{ t('problemLists.form.description') }}
+            </FormLabel>
+            <FormControl>
+              <Textarea
+                v-bind="componentField"
+                :disabled="disabled || saveStatus === 'saving'"
+                :placeholder="t('problemLists.form.descriptionPlaceholder')"
+                class="custom-terminal-input min-h-[120px] py-2 px-3 resize-y"
+                :class="{ 'border-[var(--editor-red)] focus:ring-[var(--editor-red)]': form.errors.value?.description }"
+                @blur="handleBlur"
+              />
+            </FormControl>
+            <FormMessage class="font-mono text-xs text-[var(--editor-red)]" />
+          </FormItem>
+        </FormField>
+
+        <div v-if="isCreate" class="pt-2">
+          <Button
+            type="button"
+            class="custom-terminal-button custom-terminal-button-primary"
+            :disabled="saveStatus === 'saving'"
+            @click="handleCreate"
+          >
+            <span v-if="saveStatus === 'saving'" class="animate-pulse">{{
+              t('problemLists.form.creating')
+            }}</span>
+            <span v-else>{{ t('problemLists.form.createList') }}</span>
+          </Button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.custom-terminal-input {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  border-radius: 0 !important;
+  border: 1px solid var(--editor-control-border);
+  background: var(--editor-control-bg);
+  color: var(--editor-text-primary);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+:deep(.custom-terminal-input) {
+  border-radius: 0 !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.custom-terminal-input:hover:not(:disabled) {
+  border-color: var(--editor-panel-border);
+}
+
+.custom-terminal-input:focus {
+  outline: none;
+  border-color: var(--editor-cyan) !important;
+  box-shadow: 0 0 0 1px var(--editor-cyan) !important;
+}
+
+.custom-terminal-input:disabled {
+  opacity: 0.55;
+  background-color: color-mix(in srgb, var(--editor-control-bg) 60%, transparent);
+  border-color: color-mix(in srgb, var(--editor-control-border) 40%, transparent);
+  cursor: not-allowed;
+}
+
+.custom-terminal-button {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 0 !important;
+  padding: 8px 16px;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.custom-terminal-button-primary {
+  background-color: var(--editor-blue);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.custom-terminal-button-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--editor-blue) 85%, #000000);
+}
+
+.custom-terminal-button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

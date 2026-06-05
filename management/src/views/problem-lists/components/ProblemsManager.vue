@@ -102,135 +102,134 @@ function difficultyColor(difficulty: string): SemanticColor {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex justify-between items-center pb-4 border-b border-[var(--silver-200)]">
+  <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
+    <!-- Card Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
       <div class="flex items-center gap-3">
-        <span class="terminal-comment">{{ t('problemLists.problemsManager.manageProblems') }}</span>
-        <span class="font-data text-xs text-[var(--terminal-cyan)]">
-          {{ t('problemLists.problemsManager.problemsCount', { count: problems.length }) }}
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            04 // {{ t('problemLists.problemsManager.manageProblems') }}
+          </span>
+        </div>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 bg-[var(--editor-control-bg)] border border-[var(--editor-control-border)] text-[var(--editor-cyan)] font-bold">
+          {{ problems.length }} {{ t('problemLists.problemsManager.problemsCount', { count: problems.length }).split(' ')[1] || '题目' }}
         </span>
       </div>
-      <div class="flex gap-2">
-        <Button variant="terminal" size="sm" class="font-data text-xs" @click="pickerOpen = true">
-          <IconPlus class="mr-1.5 h-3.5 w-3.5" />
-          {{ t('problemLists.problemsManager.addProblem').toUpperCase() }}
+
+      <!-- Action Buttons in Header -->
+      <div class="flex items-center gap-2">
+        <Button 
+          class="custom-terminal-button custom-terminal-button-secondary" 
+          @click="pickerOpen = true"
+        >
+          <IconPlus class="mr-1 h-3 w-3" />
+          <span>{{ t('problemLists.problemsManager.addProblem') }}</span>
         </Button>
         <Button
-          variant="terminal"
-          size="sm"
-          class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+          class="custom-terminal-button custom-terminal-button-primary"
           :disabled="!isDirty || loading"
           @click="saveProblems"
         >
-          <span v-if="loading" class="animate-pulse">{{
-            t('problemLists.problemsManager.saving')
-          }}</span>
+          <span v-if="loading" class="animate-pulse">{{ t('problemLists.problemsManager.saving') }}</span>
           <span v-else>{{ t('problemLists.problemsManager.saveChanges') }}</span>
         </Button>
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="border border-[var(--silver-200)] rounded-none">
-      <Table>
-        <TableHeader>
-          <TableRow class="hover:bg-transparent">
-            <TableHead class="terminal-column w-[80px]">
-              <span
-                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
-              >
-                {{ t('problemLists.problemsManager.order') }}
-              </span>
+    <!-- Table Container -->
+    <div class="w-full overflow-x-auto">
+      <Table class="w-full border-collapse">
+        <TableHeader class="bg-[var(--editor-control-bg)]/20 select-none">
+          <TableRow class="hover:bg-transparent border-b border-[var(--editor-border-weak)]">
+            <TableHead class="h-9 px-4 text-left font-mono text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)] w-[80px]">
+              {{ t('problemLists.problemsManager.order') }}
             </TableHead>
-            <TableHead class="terminal-column">
-              <span
-                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
-              >
-                {{ t('problemLists.problemsManager.problem') }}
-              </span>
+            <TableHead class="h-9 px-4 text-left font-mono text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)]">
+              {{ t('problemLists.problemsManager.problem') }}
             </TableHead>
-            <TableHead class="terminal-column">
-              <span
-                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
-              >
-                {{ t('problemLists.problemsManager.difficulty') }}
-              </span>
+            <TableHead class="h-9 px-4 text-center font-mono text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)] w-[120px]">
+              {{ t('problemLists.problemsManager.difficulty') }}
             </TableHead>
-            <TableHead class="terminal-column">
-              <span
-                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
-              >
-                {{ t('table.columnNames.status') }}
-              </span>
+            <TableHead class="h-9 px-4 text-center font-mono text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)] w-[100px]">
+              {{ t('table.columnNames.status') }}
             </TableHead>
-            <TableHead class="terminal-column">
-              <span
-                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
-              >
-                {{ t('table.columnNames.addedAt') }}
-              </span>
+            <TableHead class="h-9 px-4 text-right font-mono text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)] w-[160px]">
+              {{ t('table.columnNames.addedAt') }}
             </TableHead>
-            <TableHead class="terminal-column w-[50px]"></TableHead>
+            <TableHead class="h-9 px-4 w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow
             v-for="problem in problems"
             :key="problem.id"
-            class="border-[var(--silver-200)] hover:bg-[var(--surface-sunken)]"
+            class="border-b border-[var(--editor-border-weak)] hover:bg-[var(--editor-control-bg)]/15 transition-colors duration-150"
           >
-            <TableCell>
+            <!-- Sort Order Input -->
+            <TableCell class="p-2 px-4 align-middle">
               <Input
                 type="number"
-                class="terminal-input w-16 h-8 font-data text-xs tabular-nums"
+                class="custom-terminal-input text-center w-14 h-7.5 font-mono text-xs tabular-nums p-0"
                 :model-value="problem.sortOrder"
                 @update:model-value="updateSortOrder(problem.id, Number($event))"
               />
             </TableCell>
-            <TableCell>
-              <div class="flex flex-col gap-0.5 py-1">
-                <span class="font-medium text-sm text-[var(--foreground)]">{{
-                  problem.title
-                }}</span>
-                <span class="font-data text-xs text-[var(--silver-400)]">{{ problem.slug }}</span>
+
+            <!-- Problem Info -->
+            <TableCell class="p-2 px-4 align-middle">
+              <div class="flex flex-col py-0.5">
+                <span class="font-mono text-xs font-bold text-[var(--editor-text-primary)]">
+                  {{ problem.title }}
+                </span>
+                <span class="font-mono text-[10px] text-[var(--editor-text-muted)]">
+                  {{ problem.slug }}
+                </span>
               </div>
             </TableCell>
-            <TableCell>
-              <SemanticBadge
-                :color="difficultyColor(problem.difficulty)"
-                :label="problem.difficulty?.toUpperCase() || 'UNKNOWN'"
-                size="xs"
-              />
+
+            <!-- Difficulty Badge -->
+            <TableCell class="p-2 px-4 text-center align-middle">
+              <div class="inline-flex justify-center w-full">
+                <SemanticBadge
+                  :color="difficultyColor(problem.difficulty)"
+                  :label="problem.difficulty?.toUpperCase() || 'UNKNOWN'"
+                  size="xs"
+                  class="rounded-none border border-[color-mix(in_srgb,_currentColor_25%,_transparent)] font-bold"
+                />
+              </div>
             </TableCell>
-            <TableCell>
-              <span class="font-data text-xs text-[var(--silver-400)]">
+
+            <!-- Status -->
+            <TableCell class="p-2 px-4 text-center align-middle">
+              <span class="font-mono text-[11px] font-bold text-[var(--editor-text-muted)] uppercase">
                 {{ problem.status?.toUpperCase() || '-' }}
               </span>
             </TableCell>
-            <TableCell>
-              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-                {{ problem.addedAt ? formatDateByLocale(problem.addedAt) : '-' }}
-              </span>
+
+            <!-- Added At Date -->
+            <TableCell class="p-2 px-4 text-right align-middle font-mono text-[11px] text-[var(--editor-text-muted)] tabular-nums">
+              {{ problem.addedAt ? formatDateByLocale(problem.addedAt) : '-' }}
             </TableCell>
-            <TableCell>
+
+            <!-- Actions (Delete button) -->
+            <TableCell class="p-2 px-4 text-center align-middle">
               <Button
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
+                class="h-8 w-8 custom-action-trash rounded-none flex items-center justify-center border border-transparent"
                 @click="removeProblem(problem.id)"
               >
-                <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />
+                <IconTrash class="h-3.5 w-3.5" />
               </Button>
             </TableCell>
           </TableRow>
 
           <!-- Empty State -->
           <TableRow v-if="problems.length === 0">
-            <TableCell colspan="6" class="h-24 text-center">
-              <span class="terminal-comment">{{
-                t('problemLists.problemsManager.noProblems')
-              }}</span>
+            <TableCell colspan="6" class="h-28 text-center align-middle select-none">
+              <span class="font-mono text-xs text-[var(--editor-text-muted)]">
+                // {{ t('problemLists.problemsManager.noProblems') }}
+              </span>
             </TableCell>
           </TableRow>
         </TableBody>
@@ -244,3 +243,87 @@ function difficultyColor(difficulty: string): SemanticColor {
     />
   </div>
 </template>
+
+<style scoped>
+.custom-terminal-input {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  border-radius: 0 !important;
+  border: 1px solid var(--editor-control-border);
+  background: var(--editor-control-bg);
+  color: var(--editor-text-primary);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+:deep(.custom-terminal-input) {
+  border-radius: 0 !important;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.custom-terminal-input:hover:not(:disabled) {
+  border-color: var(--editor-panel-border);
+}
+
+.custom-terminal-input:focus {
+  outline: none;
+  border-color: var(--editor-cyan) !important;
+  box-shadow: 0 0 0 1px var(--editor-cyan) !important;
+}
+
+.custom-terminal-button {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  border-radius: 0 !important;
+  padding: 6px 12px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+}
+
+.custom-terminal-button-primary {
+  background-color: var(--editor-blue);
+  color: #ffffff;
+  border: 1px solid transparent;
+}
+
+.custom-terminal-button-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--editor-blue) 85%, #000000);
+}
+
+.custom-terminal-button-primary:disabled {
+  opacity: 0.45;
+  background-color: var(--editor-control-bg);
+  border-color: var(--editor-control-border);
+  color: var(--editor-text-muted);
+  cursor: not-allowed;
+}
+
+.custom-terminal-button-secondary {
+  background-color: transparent;
+  color: var(--editor-text-primary);
+  border: 1px solid var(--editor-control-border);
+}
+
+.custom-terminal-button-secondary:hover:not(:disabled) {
+  background-color: var(--editor-control-bg);
+  border-color: var(--editor-panel-border);
+}
+
+.custom-action-trash {
+  color: var(--editor-text-muted);
+  opacity: 0.6;
+  transition: all 0.15s ease-in-out;
+}
+
+.custom-action-trash:hover {
+  opacity: 1;
+  background-color: color-mix(in srgb, var(--editor-red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--editor-red) 30%, transparent);
+  color: var(--editor-red);
+}
+</style>

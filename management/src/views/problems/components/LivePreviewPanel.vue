@@ -44,14 +44,14 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 </script>
 
 <template>
-  <div class="live-preview-panel flex flex-col h-full">
+  <div class="live-preview-panel flex flex-col h-full bg-[var(--background)] border-l border-[var(--border)]">
     <!-- Header -->
-    <div class="shrink-0 border-b bg-card px-5 py-4">
+    <div class="shrink-0 border-b border-[var(--border)] bg-card px-5 py-4">
       <div class="space-y-1 mb-3">
-        <h2 class="text-lg font-semibold tracking-tight leading-tight">
+        <h2 class="text-base font-bold tracking-tight text-foreground font-sans">
           {{ data.title || t('problems.preview.untitled') }}
         </h2>
-        <p class="text-xs text-muted-foreground font-mono">
+        <p class="text-[11px] font-mono text-[var(--silver-500)]">
           {{ data.slug || '—' }}
         </p>
       </div>
@@ -65,14 +65,14 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <Badge
           v-if="data.isPremium"
           variant="outline"
-          class="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] px-2 py-0.5"
+          class="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded-none font-mono"
         >
-          <IconLock class="h-3 w-3 mr-1" />
+          <IconLock class="h-3 w-3 mr-1 shrink-0" />
           {{ t('problems.badges.premium') }}
         </Badge>
         <Badge
           :variant="data.isPublished ? 'default' : 'outline'"
-          class="text-[10px] px-2 py-0.5 capitalize"
+          class="text-[10px] px-2 py-0.5 capitalize rounded-none font-mono"
         >
           {{ data.isPublished ? t('problems.published.published') : t('problems.published.draft') }}
         </Badge>
@@ -80,10 +80,10 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
     </div>
 
     <!-- Scrollable Content -->
-    <div class="flex-1 overflow-y-auto px-5 py-5">
+    <div class="flex-1 overflow-y-auto px-5 py-5 space-y-4">
       <!-- Summary -->
-      <div v-if="data.summary" class="mb-4">
-        <p class="text-sm text-muted-foreground leading-relaxed">
+      <div v-if="data.summary" class="border-l-2 border-[var(--border)] pl-3">
+        <p class="text-xs text-muted-foreground font-mono leading-relaxed">
           {{ data.summary }}
         </p>
       </div>
@@ -93,36 +93,36 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 
       <!-- Hints (Collapsible) -->
       <template v-if="hasHints">
-        <Separator class="my-5" />
+        <Separator class="my-4 border-[var(--border)]" />
 
-        <Collapsible>
-          <CollapsibleTrigger class="w-full">
-            <div class="flex items-center justify-between py-2 group">
-              <span class="text-sm font-semibold">
+        <Collapsible class="border border-[var(--border)] bg-card rounded-none overflow-hidden">
+          <CollapsibleTrigger class="w-full bg-muted/15 border-b border-[var(--border)] px-4 py-2 text-left hover:bg-muted/20 transition-colors">
+            <div class="flex items-center justify-between group cursor-pointer">
+              <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] flex items-center gap-2">
                 {{ t('problems.display.hints') }}
-                <Badge variant="secondary" class="ml-2 text-[10px] px-1.5 py-0">
+                <Badge variant="secondary" class="rounded-none shadow-none font-mono text-[10px] px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]">
                   {{ data.hints.length }}
                 </Badge>
               </span>
               <IconChevronDown
-                class="h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+                class="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
               />
             </div>
           </CollapsibleTrigger>
 
           <CollapsibleContent>
-            <ul class="space-y-2 pt-2">
+            <ul class="divide-y divide-[var(--border)]">
               <li
                 v-for="(hint, index) in data.hints"
                 :key="index"
-                class="text-sm text-muted-foreground p-3 border bg-muted/30 flex items-start gap-2.5"
+                class="text-xs text-muted-foreground p-3 bg-card flex items-start gap-2.5"
               >
                 <span
-                  class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 shrink-0 h-5 flex items-center justify-center"
+                  class="font-mono text-[11px] font-bold text-[var(--silver-600)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
                 >
                   {{ index + 1 }}
                 </span>
-                <span class="leading-snug">{{ hint }}</span>
+                <span class="leading-relaxed font-sans text-xs text-foreground/80">{{ hint }}</span>
               </li>
             </ul>
           </CollapsibleContent>

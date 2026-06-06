@@ -81,6 +81,7 @@ const formSchema = toTypedSchema(problemDescriptionSchema)
 
 const form = useForm({
   validationSchema: formSchema,
+  keepValuesOnUnmount: true,
 })
 
 const { values: formValues, setValues, resetForm, handleSubmit, setFieldValue } = form
@@ -183,31 +184,38 @@ function isLanguageSelected(lang: string): boolean {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
     <!-- Left: Form sections -->
-    <div class="lg:col-span-8 space-y-4">
-      <form @submit="onSubmit" class="space-y-4">
+    <div class="lg:col-span-8 space-y-5">
+      <form @submit="onSubmit" class="space-y-5">
         <Accordion type="multiple" :default-value="defaultOpenSections" class="space-y-4">
           <!-- Basic Info -->
           <AccordionItem value="basic" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{
-                    t('problems.descriptionForm.basicInfo')
-                  }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.basicInfo') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent class="space-y-6">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0 space-y-5">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField v-slot="{ componentField }" name="title">
-                      <FormItem>
-                        <FormLabel>{{ t('problems.form.title') }}</FormLabel>
+                      <FormItem class="space-y-0.5">
+                        <FormLabel
+                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        >
+                          {{ t('problems.form.title') }}
+                        </FormLabel>
                         <FormControl>
                           <Input
                             v-bind="componentField"
+                            variant="terminal"
                             :placeholder="t('problems.descriptionForm.titlePlaceholder')"
                           />
                         </FormControl>
@@ -216,11 +224,16 @@ function isLanguageSelected(lang: string): boolean {
                     </FormField>
 
                     <FormField v-slot="{ componentField }" name="slug">
-                      <FormItem>
-                        <FormLabel>{{ t('problems.form.slug') }}</FormLabel>
+                      <FormItem class="space-y-0.5">
+                        <FormLabel
+                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        >
+                          {{ t('problems.form.slug') }}
+                        </FormLabel>
                         <FormControl>
                           <Input
                             v-bind="componentField"
+                            variant="terminal"
                             :placeholder="t('problems.descriptionForm.slugPlaceholder')"
                             class="font-mono"
                           />
@@ -230,17 +243,21 @@ function isLanguageSelected(lang: string): boolean {
                     </FormField>
                   </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField v-slot="{ componentField }" name="difficulty">
-                      <FormItem>
-                        <FormLabel>{{ t('problems.form.difficulty') }}</FormLabel>
+                      <FormItem class="space-y-0.5">
+                        <FormLabel
+                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        >
+                          {{ t('problems.form.difficulty') }}
+                        </FormLabel>
                         <Select v-bind="componentField">
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger variant="terminal" class="w-full">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent class="rounded-none border-[var(--border)] shadow-none">
                             <SelectItem :value="Difficulty.EASY">{{
                               t('problems.difficulty.EASY')
                             }}</SelectItem>
@@ -257,15 +274,19 @@ function isLanguageSelected(lang: string): boolean {
                     </FormField>
 
                     <FormField v-slot="{ componentField }" name="status">
-                      <FormItem>
-                        <FormLabel>{{ t('problems.form.status') }}</FormLabel>
+                      <FormItem class="space-y-0.5">
+                        <FormLabel
+                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        >
+                          {{ t('problems.form.status') }}
+                        </FormLabel>
                         <Select v-bind="componentField">
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger variant="terminal" class="w-full">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent class="rounded-none border-[var(--border)] shadow-none">
                             <SelectItem :value="ProblemStatus.TODO">{{
                               t('problems.status.todo')
                             }}</SelectItem>
@@ -282,22 +303,28 @@ function isLanguageSelected(lang: string): boolean {
                     </FormField>
                   </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <FormField v-slot="{ value, handleChange }" name="isPremium">
                       <FormItem>
                         <div
-                          class="flex items-center justify-between p-3 border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                          class="flex items-center justify-between p-3.5 border border-[var(--border)] bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-none"
                           @click="handleChange(!value)"
                         >
-                          <div class="space-y-0.5">
-                            <Label class="text-base cursor-pointer">{{
-                              t('problems.descriptionForm.premium')
-                            }}</Label>
-                            <p class="text-xs text-muted-foreground">
+                          <div class="space-y-1">
+                            <Label
+                              class="text-xs font-mono font-bold uppercase tracking-wider text-foreground cursor-pointer"
+                            >
+                              {{ t('problems.descriptionForm.premium') }}
+                            </Label>
+                            <p class="text-[11px] text-[var(--silver-500)] leading-normal">
                               {{ t('problems.descriptionForm.premiumDescription') }}
                             </p>
                           </div>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
+                          <Checkbox
+                            :checked="value"
+                            variant="terminal"
+                            @update:checked="handleChange"
+                          />
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -306,18 +333,24 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ value, handleChange }" name="isPublished">
                       <FormItem>
                         <div
-                          class="flex items-center justify-between p-3 border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                          class="flex items-center justify-between p-3.5 border border-[var(--border)] bg-card hover:bg-muted/15 transition-colors cursor-pointer rounded-none"
                           @click="handleChange(!value)"
                         >
-                          <div class="space-y-0.5">
-                            <Label class="text-base cursor-pointer">{{
-                              t('problems.descriptionForm.published')
-                            }}</Label>
-                            <p class="text-xs text-muted-foreground">
+                          <div class="space-y-1">
+                            <Label
+                              class="text-xs font-mono font-bold uppercase tracking-wider text-foreground cursor-pointer"
+                            >
+                              {{ t('problems.descriptionForm.published') }}
+                            </Label>
+                            <p class="text-[11px] text-[var(--silver-500)] leading-normal">
                               {{ t('problems.descriptionForm.publishedDescription') }}
                             </p>
                           </div>
-                          <Checkbox :checked="value" @update:checked="handleChange" />
+                          <Checkbox
+                            :checked="value"
+                            variant="terminal"
+                            @update:checked="handleChange"
+                          />
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -330,26 +363,32 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Description -->
           <AccordionItem value="description" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{
-                    t('problems.descriptionForm.problemDescription')
-                  }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.problemDescription') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent class="space-y-6">
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0 space-y-5">
                   <FormField v-slot="{ componentField }" name="summary">
-                    <FormItem>
-                      <FormLabel>{{ t('problems.form.summary') }}</FormLabel>
+                    <FormItem class="space-y-0.5">
+                      <FormLabel
+                        class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                      >
+                        {{ t('problems.form.summary') }}
+                      </FormLabel>
                       <FormControl>
                         <Textarea
                           v-bind="componentField"
                           rows="2"
                           :placeholder="t('problems.descriptionForm.summaryPlaceholder')"
-                          class="resize-none"
+                          class="font-sans text-sm border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none shadow-none bg-[var(--surface-sunken)]/20 focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] focus-visible:ring-[2px] resize-none min-h-[60px]"
                         />
                       </FormControl>
                       <FormMessage />
@@ -357,8 +396,12 @@ function isLanguageSelected(lang: string): boolean {
                   </FormField>
 
                   <FormField v-slot="{ componentField }" name="content">
-                    <FormItem>
-                      <FormLabel>{{ t('problems.form.fullContent') }}</FormLabel>
+                    <FormItem class="space-y-0.5">
+                      <FormLabel
+                        class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                      >
+                        {{ t('problems.form.fullContent') }}
+                      </FormLabel>
                       <FormControl>
                         <MarkdownEditor
                           :model-value="componentField.modelValue ?? ''"
@@ -376,17 +419,19 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Examples -->
           <AccordionItem value="examples" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{
-                    t('problems.descriptionForm.examples')
-                  }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.examples') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent>
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0">
                   <FormField name="examples">
                     <FormItem>
                       <FormControl>
@@ -402,17 +447,19 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Constraints -->
           <AccordionItem value="constraints" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{
-                    t('problems.descriptionForm.constraints')
-                  }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.constraints') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent>
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0">
                   <FormField name="constraints">
                     <FormItem>
                       <FormControl>
@@ -428,15 +475,19 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Hints -->
           <AccordionItem value="hints" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.hints') }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.hints') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent>
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0">
                   <FormField name="hints">
                     <FormItem>
                       <FormControl>
@@ -452,15 +503,19 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Tags -->
           <AccordionItem value="tags" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.tags') }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.tags') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent>
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0">
                   <FormField name="tags">
                     <FormItem>
                       <FormControl>
@@ -479,44 +534,41 @@ function isLanguageSelected(lang: string): boolean {
 
           <!-- Languages -->
           <AccordionItem value="languages" class="border-0">
-            <Card>
-              <AccordionTrigger class="px-6 py-4 hover:no-underline">
-                <div class="flex items-center gap-2">
-                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{
-                    t('problems.descriptionForm.languages')
-                  }}</CardTitle>
+            <Card class="rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden">
+              <AccordionTrigger
+                class="px-5 py-3.5 hover:no-underline border-b border-[var(--border)] data-[state=closed]:border-b-0 bg-muted/15 transition-colors"
+              >
+                <div class="flex items-center gap-2.5">
+                  <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                    {{ t('problems.descriptionForm.languages') }}
+                  </span>
                 </div>
               </AccordionTrigger>
-              <AccordionContent>
-                <CardContent class="space-y-4">
-                  <p class="text-sm text-muted-foreground">
+              <AccordionContent class="pt-4 pb-5 px-5">
+                <CardContent class="p-0 space-y-4">
+                  <p class="text-xs text-[var(--silver-500)] leading-normal">
                     {{ t('problems.descriptionForm.languagesDescription') }}
                   </p>
-                  <div class="flex flex-wrap gap-2">
+                  <div class="flex flex-wrap gap-1.5">
                     <button
                       v-for="lang in availableLanguages"
                       :key="lang"
                       type="button"
-                      class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      class="cursor-pointer font-mono text-xs px-2.5 py-1 select-none border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] rounded-none h-7 flex items-center justify-center"
+                      :class="[
+                        isLanguageSelected(lang)
+                          ? 'bg-[var(--accent-primary)] text-[var(--solarized-base3)] border-transparent font-semibold'
+                          : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground',
+                      ]"
                       @click="toggleLanguage(lang)"
                     >
-                      <Badge
-                        :variant="isLanguageSelected(lang) ? 'default' : 'outline'"
-                        class="select-none font-mono text-sm"
-                        :class="
-                          isLanguageSelected(lang)
-                            ? ''
-                            : 'hover:bg-accent hover:text-accent-foreground'
-                        "
-                      >
-                        {{ lang }}
-                      </Badge>
+                      {{ lang }}
                     </button>
                   </div>
                   <p
                     v-if="(formValues.languages || []).length === 0"
-                    class="text-sm text-muted-foreground italic"
+                    class="text-xs text-[var(--solarized-red)] italic font-mono"
                   >
                     {{ t('problems.descriptionForm.noLanguagesSelected') }}
                   </p>
@@ -527,8 +579,14 @@ function isLanguageSelected(lang: string): boolean {
         </Accordion>
 
         <!-- Action buttons -->
-        <div class="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button type="submit" class="w-full sm:w-auto" :disabled="loading">
+        <div class="flex flex-col sm:flex-row gap-3 pt-3 border-t border-[var(--border)]">
+          <Button
+            type="submit"
+            variant="terminal_primary"
+            size="terminal_lg"
+            class="w-full sm:w-auto"
+            :disabled="loading"
+          >
             <IconCheck class="h-4 w-4 mr-2" />
             {{
               loading
@@ -538,7 +596,13 @@ function isLanguageSelected(lang: string): boolean {
                   : t('problems.descriptionForm.saveDescription')
             }}
           </Button>
-          <Button type="button" variant="outline" class="w-full sm:w-auto" @click="cancel">
+          <Button
+            type="button"
+            variant="terminal"
+            size="terminal_lg"
+            class="w-full sm:w-auto text-[var(--silver-600)] hover:text-foreground border-[var(--silver-300)]"
+            @click="cancel"
+          >
             {{ t('common.cancel') }}
           </Button>
         </div>
@@ -546,8 +610,10 @@ function isLanguageSelected(lang: string): boolean {
     </div>
 
     <!-- Right: Live Preview -->
-    <div class="lg:col-span-4 lg:sticky lg:top-6 h-fit">
-      <Card class="h-[calc(100vh-8rem)]">
+    <div class="lg:col-span-4 lg:sticky lg:top-5 h-fit">
+      <Card
+        class="h-[calc(100vh-6rem)] rounded-none border-[var(--border)] shadow-none bg-card overflow-hidden flex flex-col"
+      >
         <LivePreviewPanel :data="formValues as ProblemDescriptionFormData" />
       </Card>
     </div>

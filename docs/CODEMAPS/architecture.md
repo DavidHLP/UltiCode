@@ -50,15 +50,13 @@
 - **Real-time**: WebSocket STOMP on `/ws`, `/ws/contest`, `/ws/notifications` → broker prefixes `/topic`, `/queue`, `/user`
 - **Search**: MeiliSearch SDK 0.20.0 for problem/solution full-text search
 
-## Migration Strategy (Dual Flyway)
+## Migration Strategy
 
 | Tool | Location | Versions | Purpose |
 |------|----------|----------|---------|
-| db-manager/ | `db-manager/migrations/` | V1–V108 (sequential) | Incremental schema changes |
-| init-db/ | `init-db/migrations/` | V{YYYYMMDDHHMMSS} (timestamp) | Baseline from existing DB |
+| Flyway | `init-db/migrations/` | Timestamp-based | Schema and seed migrations |
 
 ## Shared Libraries
 
 - `shared/auth-core/` — Vue composable: types, cookie utils, CSRF manager, auth state machine, axios CSRF interceptor, permission checker (TS ~5.9, pkg v0.0.1)
-- `db-manager/` — Flyway migration CLI (Python), 42 migrations (V1–V108)
-- `init-db/` — Standalone Flyway with Maven, timestamp-based versioning, baseline migration
+- `init-db/` — Flyway migrations with Maven and container-based execution

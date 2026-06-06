@@ -68,61 +68,35 @@ UltiCode/
 - **Java 17+** (推荐 [Adoptium](https://adoptium.net/))
 - **Node.js 20+** (推荐 22.x)
 - **pnpm 10+**
-- **Python 3.10+** (db-manager 工具)
+- **PM2**
 
-### 一键安装
+### 一键启动开发环境
 
 ```bash
 git clone https://github.com/your-org/UltiCode-Public-Next.git
 cd UltiCode-Public-Next
-./setup.sh
+
+# 首次生成私有随机凭据；已有 .env 时不会覆盖
+./scripts/dev/init-env.sh
+
+# 启动基础设施、配置 Nacos、迁移数据库、安装依赖并启动应用
+./scripts/dev/up.sh
 ```
 
-`setup.sh` 会自动完成：环境变量配置 → PM2 安装 → 前端依赖安装 → Docker 服务启动 → 数据库迁移。
+开发数据库会自动创建或恢复固定管理员账号：
 
-### 手动安装
-
-#### 1. 环境变量
-
-```bash
-cp .env.example .env
-# 编辑 .env，修改数据库密码、JWT 密钥等
-# JWT_SECRET 至少 32 个字符
+```text
+用户名：admin
+密码：admin123
 ```
 
-#### 2. 启动基础设施
+该弱密码仅用于本机可丢弃的 `dev` 数据库。基础设施密码和 JWT/Nacos
+密钥仍由 `init-env.sh` 随机生成，并保存在 Git 忽略的 `.env` 中。
+
+再次启动且依赖未变化时可使用：
 
 ```bash
-docker compose up -d    # MySQL 9.1 + Redis 7 + Nacos 2.3.2
-```
-
-#### 3. 数据库迁移
-
-```bash
-cd init-db
-mvn flyway:migrate      # 或使用 db-manager Python 工具
-```
-
-#### 4. 安装前端依赖
-
-```bash
-cd console && pnpm install
-cd ../management && pnpm install
-```
-
-#### 5. 启动服务
-
-```bash
-# 安装 PM2 (首次)
-npm install -g pm2
-
-# 启动所有服务
-pm2 start ecosystem.config.cjs
-
-# 或单独启动
-pm2 start ecosystem.config.cjs --only ulticode-9001  # 后端
-pm2 start ecosystem.config.cjs --only ulticode-9002  # 用户前端
-pm2 start ecosystem.config.cjs --only ulticode-9003  # 管理后台
+./scripts/dev/up.sh --skip-install
 ```
 
 ### 访问地址
@@ -134,6 +108,10 @@ pm2 start ecosystem.config.cjs --only ulticode-9003  # 管理后台
 | 后端 API | http://localhost:9001 |
 | API 文档 (Swagger) | http://localhost:9001/swagger-ui.html |
 | Nacos 控制台 | http://localhost:28848/nacos |
+
+基础 `docker-compose.yml` 不发布基础设施端口；开发覆盖文件仅绑定
+`127.0.0.1`。生产环境只把两个前端绑定到本机回环地址，外部 TLS
+网关负责公开访问，backend、MySQL、Redis 和 Nacos 保持在 Docker 网络内。
 
 ## 开发
 
@@ -154,7 +132,10 @@ pm2 logs ulticode-9001
 ./mvnw test
 
 # 集成测试
-./mvnw verify -Pci
+./mvnw -Dtest='*IT' test
+
+# 测试与 JaCoCo 校验
+./mvnw verify
 
 # 仅编译
 ./mvnw compile
@@ -185,7 +166,11 @@ pnpm test
 
 ```bash
 # 运行迁移
-mvn flyway:migrate
+./scripts/dev/migrate.sh migrate
+
+# 查看或校验迁移
+./scripts/dev/migrate.sh info
+./scripts/dev/migrate.sh validate
 
 # 迁移文件命名规则
 # V{N}__{description}.sql
@@ -196,20 +181,32 @@ mvn flyway:migrate
 
 ```bash
 # 开发环境
-docker compose up -d
+docker compose --env-file .env \
+  -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # 生产环境
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # 直接操作 MySQL
-docker exec ulticode-mysql mysql -u ulticode -p'YOUR_PASSWORD' -e "USE ulticode; SHOW TABLES;"
+set -a; source .env; set +a
+docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+  mysql -u "$DB_USER" "$DB_NAME" -e "SHOW TABLES;"
+```
+
+### 统一测试入口
+
+```bash
+./scripts/dev/test.sh quick        # 后端、共享认证、两个前端的测试和类型检查
+./scripts/dev/test.sh full         # quick + 前端构建、i18n 检查和依赖审计
+./scripts/dev/test.sh integration  # quick + Testcontainers 与 Sandbox 集成测试
 ```
 
 ## 项目约定
 
 - **提交格式**: `<type>: <description>` — 类型: feat, fix, refactor, docs, test, chore, perf, ci
 - **前端 Prettier**: 无分号、单引号、100 字符行宽
-- **集成测试后缀**: `*IT.java`，从 `./mvnw test` 排除，需 `./mvnw verify -Pci` 运行
+- **集成测试后缀**: `*IT.java`，从 `./mvnw test` 排除，使用
+  `./mvnw -Dtest='*IT' test` 运行
 - **迁移命名**: `V{N}__{description}.sql`，置于 `init-db/migrations/`
 - **Docker 容器**: 非 root 用户 (`appuser:appgroup`)、多阶段构建
 - **后端 DTO 枚举**: 后端 DTO 字段使用 `String` 类型表示枚举值，前端使用 TS 枚举

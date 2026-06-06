@@ -1,82 +1,157 @@
-# Environment Variables
+# Development Environment Variables
 
-Reference for all environment variables used in UltiCode.
+UltiCode uses one private root `.env` for Docker Compose, Flyway, PM2, the Spring
+backend, and both Vite applications.
 
----
+Do not commit `.env`. Generate unique infrastructure credentials for each checkout:
 
-## AUTO-GENERATED: From .env.example
+```bash
+./scripts/dev/init-env.sh
+```
 
-<!-- Source: .env.example -->
+The command creates `.env` with mode `0600`, preserves an existing file, and never
+prints generated credentials. `.env.example` documents the complete development
+shape; `.env.test.example` documents test-only overrides.
 
-| Variable | Required | Description | Default |
-|----------|----------|-------------|---------|
-| `DATABASE_URL` | Yes | MySQL connection URL | `mysql://user:pass@localhost:23306/ulticode` |
-| `DB_HOST` | Yes | MySQL host | `localhost` |
-| `DB_PORT` | Yes | MySQL port | `23306` |
-| `DB_USER` | Yes | MySQL username | `ulticode` |
-| `DB_PASSWORD` | Yes | MySQL password | - |
-| `DB_NAME` | Yes | Database name | `ulticode` |
-| `MYSQL_ROOT_PASSWORD` | Yes | Root password | - |
-| `JWT_SECRET` | Yes | JWT signing key (min 32 chars) | - |
-| `JWT_COOKIE_SECURE` | No | Secure cookie flag | `false` (dev) / `true` (prod) |
-| `CORS_ALLOWED_ORIGINS` | Yes | CORS origins (comma-separated) | `http://localhost:9002,http://localhost:9003` |
-| `REDIS_HOST` | Yes | Redis host | `localhost` |
-| `REDIS_PORT` | Yes | Redis port | `26379` |
-| `REDIS_PASSWORD` | Yes | Redis password | - |
-| `JUDGE_CONTAINER_ENABLED` | No | Enable code execution | `true` |
-| `JUDGE_CONTAINER_IMAGE` | No | Docker image | `ulticode-judge:latest` |
-| `JUDGE_CONTAINER_POOL_SIZE` | No | Pool size | `5` |
-| `JUDGE_CONTAINER_MAX_CONTAINERS` | No | Max containers | `10` |
-| `JUDGE_DEFAULT_TIME_LIMIT` | No | Time limit (ms) | `2000` |
-| `JUDGE_DEFAULT_MEMORY_LIMIT` | No | Memory limit (MB) | `256` |
-| `DOCKER_SOCKET_PATH` | No | Docker socket path | `/var/run/docker.sock` |
-| `NACOS_SERVER_ADDR` | Yes | Nacos server address (host:port) | `localhost:28848` |
-| `NACOS_HOST` | Yes | Nacos host | `localhost` |
-| `NACOS_PORT` | Yes | Nacos port | `28848` |
-| `NACOS_NAMESPACE` | No | Nacos namespace | `public` |
-| `NACOS_GROUP` | No | Nacos group | `DEFAULT_GROUP` |
-| `RECOMMENDATION_ENABLED` | No | Enable recommendations | `true` |
-| `RECOMMENDATION_SERVICE_NAME` | No | Service name | `recommend-web` |
-| `RECOMMENDATION_TIMEOUT` | No | Timeout (ms) | `5000` |
-| `RECOMMENDATION_FALLBACK_URL` | No | Fallback URL | `http://localhost:28081` |
-| `GITHUB_CLIENT_ID` | Optional | GitHub OAuth client ID | - |
-| `GITHUB_CLIENT_SECRET` | Optional | GitHub OAuth secret | - |
-| `GITHUB_REDIRECT_URI` | No | GitHub OAuth callback | `http://localhost:9001/auth/github/callback` |
-| `GOOGLE_CLIENT_ID` | Optional | Google OAuth client ID | - |
-| `GOOGLE_CLIENT_SECRET` | Optional | Google OAuth secret | - |
-| `GOOGLE_REDIRECT_URI` | No | Google OAuth callback | `http://localhost:9001/auth/google/callback` |
-| `STRIPE_SECRET_KEY` | Optional | Stripe secret key | - |
-| `STRIPE_WEBHOOK_SECRET` | Optional | Stripe webhook secret | - |
-| `STRIPE_PRICE_PREMIUM_MONTHLY` | Optional | Monthly price ID | - |
-| `STRIPE_PRICE_PREMIUM_YEARLY` | Optional | Yearly price ID | - |
-| `SMTP_HOST` | Optional | SMTP host | `smtp.example.com` |
-| `SMTP_PORT` | Optional | SMTP port | `587` |
-| `SMTP_USER` | Optional | SMTP username | - |
-| `SMTP_PASSWORD` | Optional | SMTP password | - |
-| `EMAIL_ENABLED` | No | Enable email | `false` |
-| `VITE_API_BASE_URL` | Yes | API base URL | `http://localhost:9001` |
-| `VITE_TEST_USERNAME` | Optional | Test username | - |
-| `VITE_TEST_PASSWORD` | Optional | Test password | - |
+## One-Command Workflow
 
-<!-- END AUTO-GENERATED -->
+```bash
+./scripts/dev/up.sh
+```
 
----
+This command:
 
-## Security Notes
+1. Generates `.env` when missing.
+2. Starts MySQL, Redis, and authenticated Nacos on loopback ports.
+3. Provisions the private Nacos administrator and disables the default account.
+4. Applies Flyway migrations using the root database variables.
+5. Creates or restores the documented local `admin` account.
+6. Installs locked frontend/shared dependencies.
+7. Starts backend, console, and management through PM2.
+8. Verifies the three application endpoints.
 
-### Production Checklist
+Use `./scripts/dev/up.sh --skip-install` after the first successful run.
 
-- [ ] All `CHANGE_ME_*` passwords replaced with strong values
-- [ ] `JWT_SECRET` is at least 32 characters
-- [ ] `JWT_COOKIE_SECURE=true` for HTTPS
-- [ ] `CORS_ALLOWED_ORIGINS` set to production domains
-- [ ] OAuth secrets from secure source
-- [ ] Stripe keys from secure source
+## Core Variables
 
-### Development vs Production
+| Variable | Generated/default development value | Consumer |
+|----------|-------------------------------------|----------|
+| `SPRING_PROFILES_ACTIVE` | `dev` | Spring, PM2 |
+| `SERVER_PORT` | `9001` | Backend |
+| `CONSOLE_PORT` | `9002` | Documentation/runtime convention |
+| `MANAGEMENT_PORT` | `9003` | Documentation/runtime convention |
+| `DB_HOST` | `localhost` | Backend, Flyway |
+| `DB_PORT` | `23306` | Backend, Flyway, Compose |
+| `DB_USER` | `ulticode` | MySQL, Backend, Flyway |
+| `DB_PASSWORD` | Random | MySQL, Backend, Flyway |
+| `DB_NAME` | `ulticode` | MySQL, Backend, Flyway |
+| `MYSQL_ROOT_PASSWORD` | Random | MySQL, Nacos, local provisioning |
+| `DB_ROOT_PASSWORD` | Same generated root value | Production Compose compatibility |
+| `REDIS_HOST` | `localhost` | Backend |
+| `REDIS_PORT` | `26379` | Backend, Compose |
+| `REDIS_PASSWORD` | Random | Redis, Backend |
+| `REDIS_DB` | `0` | Backend |
+| `JWT_SECRET` | Random 96-character hex | Backend |
+| `JWT_COOKIE_SECURE` | `false` | Local HTTP cookies |
+| `CORS_ALLOWED_ORIGINS` | Local console/management origins | Backend |
+| `FRONTEND_URL` | `http://localhost:9002` | Password reset links |
 
-| Variable | Development | Production |
-|----------|-------------|------------|
-| `JWT_COOKIE_SECURE` | `false` | `true` |
-| `CORS_ALLOWED_ORIGINS` | `localhost:9002,localhost:9003` | Actual domains |
-| `EMAIL_ENABLED` | `false` | `true` (with real SMTP) |
+## Nacos Variables
+
+| Variable | Development behavior |
+|----------|----------------------|
+| `NACOS_HOST` / `NACOS_PORT` | `localhost:28848` |
+| `NACOS_GRPC_PORT` | `29848` |
+| `NACOS_USERNAME` | `ulticode_dev_admin` |
+| `NACOS_PASSWORD` | Random, 16+ characters |
+| `NACOS_AUTH_TOKEN` | Random Base64 server token |
+| `NACOS_AUTH_IDENTITY_KEY` | Random server identity key |
+| `NACOS_AUTH_IDENTITY_VALUE` | Random server identity value |
+
+The Nacos values are local secrets. Do not reuse them in production.
+
+## Local Development Users
+
+The disposable development database has this documented administrator:
+
+```text
+username: admin
+password: admin123
+role: ADMIN
+```
+
+`up.sh` invokes a separate `DevUserBootstrapRunner` after migrations. The runner is
+both `@Profile("dev")` and explicitly enabled only for that command. It creates the
+account when missing and restores its password and active status when a security
+migration or local change disabled it. The runner cannot load in production.
+
+| Variable | Default |
+|----------|---------|
+| `DEV_SEED_USERS_ENABLED` | `true` |
+| `DEV_SEED_ADMIN_USERNAME` | `admin` |
+| `DEV_SEED_ADMIN_EMAIL` | `admin@localhost.test` |
+| `DEV_SEED_ADMIN_PASSWORD` | `admin123` |
+| `DEV_SEED_ADMIN_ROLE` | `ADMIN` |
+
+Set `DEV_SEED_USERS_ENABLED=false` to preserve all database accounts unchanged.
+These credentials are intentionally weak and must never be reused outside a local,
+disposable development database.
+
+## Optional Features
+
+These are disabled by default so a developer needs only Docker, Java, Maven, Node,
+pnpm, and PM2:
+
+| Variable | Default |
+|----------|---------|
+| `EMAIL_ENABLED` | `false` |
+| `MEILISEARCH_ENABLED` | `false` |
+| `SANDBOX_ENABLED` | `false` |
+| `SPRINGDOC_ENABLED` | `true` |
+| OAuth client IDs/secrets | Empty |
+
+Enable the sandbox after building its image:
+
+```bash
+docker build -t ulticode-sandbox:latest docker/sandbox
+sed -i 's/^SANDBOX_ENABLED=false/SANDBOX_ENABLED=true/' .env
+pm2 restart ulticode-9001 --update-env
+```
+
+## Test Environment
+
+Use the repository test wrapper instead of pointing tests at the development schema:
+
+```bash
+./scripts/dev/test.sh quick
+./scripts/dev/test.sh full
+./scripts/dev/test.sh integration
+```
+
+The wrapper creates and migrates `ulticode_test`, uses Redis database 15, sets a
+test-only JWT secret, disables external integrations, and never drops the development
+database.
+
+## Regeneration and Cleanup
+
+`init-env.sh` does not overwrite `.env`. Credential regeneration against an existing
+MySQL volume would make the stored database users incompatible, so use a disposable
+reset only when local data may be deleted:
+
+```bash
+pm2 delete ulticode-9001 ulticode-9002 ulticode-9003
+docker compose --env-file .env \
+  -f docker-compose.yml -f docker-compose.dev.yml down -v
+rm .env
+./scripts/dev/init-env.sh
+./scripts/dev/up.sh
+```
+
+Never run `down -v` when local data must be preserved.
+
+## Production Boundary
+
+Development values are not production defaults. Production requires externally
+managed secrets, `JWT_COOKIE_SECURE=true`, real TLS origins, no infrastructure host
+ports, and the operational steps in
+`docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md`.

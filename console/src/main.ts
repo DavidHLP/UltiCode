@@ -9,6 +9,7 @@ import "./assets/markdown.css";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
+import { initTheme } from "@/composables/useTheme";
 
 /**
  * Application Bootstrap
@@ -18,15 +19,22 @@ import "@/pwa-register";
  * need to wait for async auth initialization.
  *
  * Flow:
- * 1. Create Vue app
- * 2. Install Pinia (required for stores)
- * 3. Initialize auth context (coordinates auth state)
- * 4. Initialize auth store (async, completes before router)
- * 5. Setup auth-aware navigation handling
- * 6. Install router (now auth status is known)
- * 7. Mount app
+ * 1. Hydrate theme (singleton + media-query listener)
+ * 2. Create Vue app
+ * 3. Install Pinia (required for stores)
+ * 4. Initialize auth context (coordinates auth state)
+ * 5. Initialize auth store (async, completes before router)
+ * 6. Setup auth-aware navigation handling
+ * 7. Install router (now auth status is known)
+ * 8. Mount app
  */
 async function bootstrap() {
+  // Hydrate the shared color theme. The matching FOUC script lives at
+  // public/theme-bootstrap.js and runs before this bootstrap, so this
+  // call is a no-op for the initial paint but registers the OS-preference
+  // listener for live updates.
+  initTheme();
+
   const app = createApp(App);
   const pinia = createPinia();
 

@@ -6,6 +6,7 @@ import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
 import { setLocale } from './i18n'
+import { initTheme } from '@/composables/useTheme'
 
 /**
  * Application Bootstrap
@@ -15,13 +16,20 @@ import { setLocale } from './i18n'
  * need to wait for async auth initialization.
  *
  * Flow:
- * 1. Create Vue app
- * 2. Install Pinia (required for stores)
- * 3. Initialize auth store (async, completes before router)
- * 4. Install router (now auth status is known)
- * 5. Mount app
+ * 1. Hydrate theme (singleton + media-query listener)
+ * 2. Create Vue app
+ * 3. Install Pinia (required for stores)
+ * 4. Initialize auth store (async, completes before router)
+ * 5. Install router (now auth status is known)
+ * 6. Mount app
  */
 async function bootstrap() {
+  // Hydrate the shared color theme. The matching FOUC script lives at
+  // public/theme-bootstrap.js and runs before this bootstrap, so this
+  // call is a no-op for the initial paint but registers the OS-preference
+  // listener for live updates.
+  initTheme()
+
   const app = createApp(App)
   const pinia = createPinia()
 

@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <title>Vite App</title>
+    <!--
+      Apply the persisted theme before the bundle loads to avoid a white
+      flash on dark-mode reloads. The script mirrors the logic in
+      shared/theme/src/applyThemeToDOM.ts. See public/theme-bootstrap.js.
+    -->
+    <script src="/theme-bootstrap.js"></script>
   </head>
   <body>
     <div id="app"></div>

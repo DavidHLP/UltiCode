@@ -55,9 +55,9 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>${flyway.version}</version>
                 <configuration>
-                    <url>jdbc:mysql://localhost:23306/ulticode?useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=utf8mb4&amp;connectionCollation=utf8mb4_unicode_ci&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true&amp;useSSL=false</url>
-                    <user>ulticode</user>
-                    <password>CHANGE_ME_strong_password</password>
+                    <url>jdbc:mysql://${env.DB_HOST}:${env.DB_PORT}/${env.DB_NAME}?useUnicode=true&amp;characterEncoding=UTF-8&amp;characterSetResults=utf8mb4&amp;connectionCollation=utf8mb4_unicode_ci&amp;serverTimezone=Asia/Shanghai&amp;allowPublicKeyRetrieval=true&amp;useSSL=false</url>
+                    <user>${env.DB_USER}</user>
+                    <password>${env.DB_PASSWORD}</password>
                     <locations>
                         <location>filesystem:${project.basedir}/migrations</location>
                     </locations>

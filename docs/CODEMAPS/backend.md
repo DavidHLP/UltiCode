@@ -1,38 +1,57 @@
-<!-- Generated: 2026-05-23 | Files scanned: 605 | Token estimate: ~950 -->
+<!-- Generated: 2026-06-06 | Java files: 667 | Controllers: 43 | Modules: 26 | Token estimate: ~950 -->
 
 # Backend Architecture
 
-## Module Map (27 modules)
+## Module Map (26 modules — recommendation removed)
 
 ```
 modules/
-├── achievement/     → /achievements
-├── admin/           → /admin/* (14 controllers)
-├── auth/            → /auth
-├── backup/          → /admin/backups
-├── bookmark/        → /bookmarks
-├── contest/         → /contest, /admin/contest, /admin/scoring-rules
-├── edgeoperations/  → /edge-operations
-├── email/           → /email
-├── follow/          → /users (follow endpoints)
-├── forum/           → /forum
-├── i18n/            → /i18n
-├── moderation/      → /moderation
-├── monitoring/      → /monitoring
-├── notification/    → /notifications
-├── permission/      → (no REST API, entity/service only)
-├── problem/         → /problems, /admin/problems (+ versions)
-├── problemlist/     → /problem-lists
-├── queue/           → (no REST API, background job processors)
-├── recommendation/  → /recommendations, /recommendations/admin
-├── refreshtoken/    → (no REST API, entity/service only)
-├── search/          → /search
-├── solution/        → /api/solutions
-├── submission/      → /submissions, /problems/{id}/submissions
-├── subscription/    → /subscriptions, /admin/subscriptions
-├── user/            → /users
-├── vote/            → /vote
-└── websocket/       → (STOMP endpoints, no REST)
+├── achievement/      → /achievements
+├── admin/            → /admin/* (15 controllers incl. audit + dashboard)
+├── auth/             → /auth
+├── backup/           → /admin/backups
+├── bookmark/         → /bookmarks
+├── contest/          → /contest, /admin/contest, /admin/scoring-rules
+├── edgeoperations/   → /edge-operations
+├── email/            → /email
+├── follow/           → /users (follow endpoints)
+├── forum/            → /forum
+├── i18n/             → /i18n
+├── moderation/       → /moderation
+├── monitoring/       → /monitoring
+├── notification/     → /notifications
+├── permission/       → (entity/service only, no REST)
+├── problem/          → /problems, /admin/problems (+ versions)
+├── problemlist/      → /problem-lists
+├── queue/            → (background job processors, no REST)
+├── refreshtoken/     → (entity/service only, no REST)
+├── search/           → /search
+├── solution/         → /api/solutions
+├── submission/       → /submissions, /problems/{id}/submissions
+├── subscription/     → /subscriptions, /admin/subscriptions
+├── user/             → /users
+├── vote/             → /vote
+└── websocket/        → (STOMP endpoints, no REST)
+```
+
+> **Removed since 2026-05-30**: `recommendation/` module + Dubbo RPC stack +
+> `:20881` / `:9005` services. The frontend `recommendation` and `recommend-*`
+> API directories remain in console/management but are no longer backed by
+> server endpoints — flagged as **orphan / dead code** for follow-up cleanup.
+
+## Controllers (43)
+
+```
+admin/        : 15  (Account, Analytics, Comment, Forum, Notification, Problem,
+                    ProblemList, Settings, Solution, Submission, Tag, TestCase,
+                    User, Audit, Dashboard)
+contest/      :  3  (Contest, AdminContest, ScoringRule)
+subscription/ :  2  (Subscription, UserSubscription)
+submission/   :  2  (Submission, ProblemSubmission)
+problem/      :  2  (Problem, AdminProblemVersion)
+auth, backup, bookmark, edgeoperations, email, follow, forum, i18n,
+moderation, monitoring, notification, problemlist, search, solution,
+user, vote :  1 each
 ```
 
 ## Key API Routes
@@ -45,7 +64,6 @@ GET  /contest, /contest/{slug}
 GET  /forum, /forum/posts/{id}
 GET  /api/solutions, /api/problems/{id}/solutions
 GET  /submissions, /problems/{id}/submissions
-GET  /recommendations, /recommendations/daily
 POST /bookmarks, /vote, /follow
 GET  /edge-operations/interactions, /edge-operations/{type}/{id}
 POST /edge-operations
@@ -78,12 +96,12 @@ Controller → Service → Mapper (MyBatis-Plus) → Entity
 
 ## Top-level Packages
 
-| Package | Contents |
-|---------|----------|
-| `common/` | Annotations, aspects, config, constants, DTOs, exceptions, filters, response wrappers, services, utilities (43 files) |
-| `infrastructure/` | Redis service, cache constants (2 files) |
-| `security/` | JWT, CSRF, OAuth, auth entry point (7 files) |
-| `websocket/` | Notification WS service, auth interceptor, DTOs (4 files) |
+| Package          | Contents |
+| ---------------- | -------- |
+| `common/`        | Annotations, aspects, config, constants, DTOs, exceptions, filters, response wrappers, services, utilities |
+| `infrastructure/` | Redis service, cache constants |
+| `security/`      | JWT, CSRF, OAuth, auth entry point |
+| `websocket/`     | Notification WS service, auth interceptor, DTOs |
 
 ## WebSocket Endpoints
 
@@ -96,14 +114,14 @@ Broker: /topic, /queue, /user
 
 ## Dependency Versions
 
-| Dependency | Version |
-|-----------|---------|
-| Spring Boot | 3.2.5 |
-| MyBatis-Plus | 3.5.16 |
-| MapStruct | 1.6.3 |
-| jjwt | 0.13.0 |
-| Redisson | 4.3.1 |
-| SpringDoc OpenAPI | 2.6.0 |
-| Dubbo | 3.2.14 |
-| Hutool | 5.8.44 |
-| MeiliSearch SDK | 0.20.0 |
+| Dependency        | Version |
+| ----------------- | ------- |
+| Spring Boot       | 3.2.5   |
+| MyBatis-Plus      | 3.5.16  |
+| MapStruct         | 1.6.3   |
+| jjwt              | 0.13.0  |
+| Redisson          | 4.3.1   |
+| SpringDoc OpenAPI | 2.6.0   |
+| Hutool            | 5.8.44  |
+| MeiliSearch SDK   | 0.20.0  |
+| Testcontainers BOM| 1.21.4  |

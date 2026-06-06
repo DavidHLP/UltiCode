@@ -1,76 +1,84 @@
-<!-- Updated: 2026-06-06 | Migration source: init-db/migrations -->
+<!-- Updated: 2026-06-06 | Migrations: 17 | Baseline tables: 67 | Token estimate: ~700 -->
 
 # Data Architecture
 
 ## Database: MySQL 9.1 (port 23306)
 
-### Core Tables (V1–V8)
+### Baseline (V20260602_120000)
+67 tables created in a single baseline migration, including all FKs, indexes,
+and seed schema. Subsequent migrations add columns / data / constraints.
+
+### Table Groups
 ```
-users, roles, user_roles
-problems, problem_tags, problem_test_cases, problem_examples
-contests, contest_problems, contest_participants, contest_submissions
-forum_posts, post_comments, post_likes
-subscriptions, subscription_plans
-moderation_queue, reports, moderation_actions, appeals
+Identity       : users, roles, user_roles, user_follows, user_achievements,
+                 achievements, badges
+Problem        : problems, problem_tags, problem_test_cases, problem_examples,
+                 problem_versions, problem_lists, problem_lists_version,
+                 problem_details_content
+Submission     : submissions, submission_retry_count, submission_memory_nullable,
+                 solutions, solution_comments, solution_votes
+Contest        : contests, contest_problems, contest_participants,
+                 contest_submissions, contest_actual_times, scoring_rules
+Forum          : forum_posts, post_comments, post_likes
+Moderation     : moderation_queue, reports, moderation_actions, appeals
+Notification   : notifications, notification_settings
+Subscription   : subscriptions, subscription_plans
+Edge ops       : edge_operations (vote / analyze / bookmark)
+Auth           : refresh_tokens, password_reset_tokens, oauth_states,
+                 csrf_tokens
+Audit          : audit_logs
+Recommendation : recommendation_seed_problems, recommendation_seed_submissions,
+                 daily_recommendations_feedback
 ```
 
-### Extended Tables (V9–V31)
+### Migrations (`init-db/migrations/`) — 17 files
 ```
-solutions, solution_comments, solution_votes           (V9, V13–V14, V27–V28)
-daily_recommendations_feedback                         (V10)
-moderation_seed_data, notification_seed_data           (V11–V12)
-featured_problem_lists                                 (V15)
-recommendation_seed_problems, recommendation_seed_submissions (V16–V17)
-submission_retry_count, submission_memory_nullable     (V18–V19)
-password_reset_columns                                 (V20)
-contest_actual_times                                   (V21)
-achievements, user_achievements                        (V22)
-solutions_seed, submissions_seed, collections_seed     (V23–V25)
-problem_lists_version, problem_details_content         (V30–V31)
-```
-
-### New Tables (V99–V108)
-```
-edge_operations                                        (V99) — vote/analyze ops on solutions, comments, posts, problems, lists
-user_follows                                           (V100–V101) — follow relationships + composite indexes
-problem_versions                                       (V103) — version snapshots with snapshot_json, change_type, change_summary
+V20260602_120000  Create_All_Tables                       [baseline, 67 tables]
+V20260602_120100  Insert_Admin_User_And_Permissions       [seed admin + roles]
+V20260603_120000  Seed_Problems_Test_Data
+V20260603_120100  Seed_Audit_Logs_Test_Data
+V20260603_120200  Seed_Problem_Lists_Test_Data
+V20260603_120300  Seed_Users_And_Permissions
+V20260603_120400  Seed_Solutions_Test_Data
+V20260603_120500  Fix_Forum_User_References
+V20260603_120600  Seed_Submissions_Test_Data
+V20260603_120601  Fix_Submission_Test_Details_Json
+V20260603_120700  Seed_Forum_Posts_Per_User
+V20260603_120800  Seed_Comments_And_Interactions
+V20260604_110000  Align_Admin_User_Id
+V20260604_120000  Seed_Contests_Test_Data
+V20260604_130000  Seed_Global_Rankings_Test_Data
+V20260606_130000  Secure_Refresh_Tokens_And_Lock_Seed_Accounts  [security]
 ```
 
-### Recent Alterations
-```
-V104: moderation_actions/queue — added APPEAL_REJECTED to enum
-V105: reports/moderation_queue/appeals — unique + CHECK constraints
-V106: problem_lists — fixed double-encoded banner_tag
-V107: contest_participants — added created_at, updated_at
-V108: contest_problems — added created_at, updated_at
-```
+> **Security migration note**: `V20260606130000` revokes/rotates refresh tokens
+> and locks seed/dev accounts after the public release. The `AdminBootstrapRunner`
+> (opt-in dev profile only) handles initial admin creation. This migration is
+> **mandatory** to keep in history; do not delete.
 
 ## Migration Tool
 
 ### init-db/ (Flyway)
 - **Location**: `/home/david/project/UltiCode-Public-Next/init-db/`
 - **Version**: Timestamp-based Flyway versions
-- **Latest security migration**:
-  `V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql`
 - **Config**: `flyway.conf` (baselineOnMigrate=true, outOfOrder=false)
-- **Execution**: Maven plugin locally or Flyway 10.17 container in CI/CD
+- **Execution**: Maven plugin locally or Flyway 10.17 container in CI
 - **Git Hook**: `validate-migration.sh` for naming convention
 ```
 init-db/
 ├── README.md
 ├── flyway.conf
-├── pom.xml
-├── migrations/
-│   ├── V20260602_120000__Create_All_Tables.sql
-│   └── V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql
+├── pom.xml           (Maven, Flyway 10.10.0)
+├── migrations/       (17 SQL files)
+├── sql/              (one-time dumps)
 └── validate-migration.sh
 ```
 
 ### Migration Naming Convention
 ```
 V{YYYYMMDDHHMMSS}__{Description}.sql
-Example: V20260530130501__Baseline.sql
-         V20260601120000__AddNewFeature.sql
+Example: V20260602120000__Create_All_Tables.sql
+         V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql
 ```
 
 ## Key Relationships
@@ -79,8 +87,8 @@ Example: V20260530130501__Baseline.sql
 users ─┬─< submissions (1:N)
        ├─< solutions (1:N)
        ├─< forum_posts (1:N)
-       ├─< bookmarks (1:N via edge_operations)
-       ├─< user_follows (1:N, both follower/following)
+       ├─< edge_operations (1:N — bookmark / vote / analyze)
+       ├─< user_follows (1:N, both follower / following)
        └─< user_achievements (1:N)
 
 problems ─┬─< problem_test_cases (1:N)
@@ -98,6 +106,6 @@ solutions ─┬─< solution_comments (1:N)
 ## Redis (port 26379)
 
 - Session store (Redisson)
-- Rate limiting
-- Recommendation cache (RedisRecommendationStore)
-- CSRF token store
+- Rate limiting (per-IP / per-user counters)
+- CSRF token store (Redis-backed)
+- Recommendation cache (legacy keys — orphaned after module removal)

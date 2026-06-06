@@ -331,6 +331,7 @@ git diff --check
 - Base / production compose **不发布** MySQL、Redis、Nacos、backend 端口；只有 `docker-compose.dev.yml` 可暴露基础设施，且**只 bind `127.0.0.1`**
 - Nacos 鉴权保持启用；默认 `nacos/nacos` 账号保持禁用
 - Markdown / KaTeX 输出在 `v-html` 前**必须**先 sanitize
+- **主题 bootstrap 脚本**: `console/public/theme-bootstrap.js` 与 `management/public/theme-bootstrap.js` 是为消除 FOUC 而引入的外置脚本，逻辑与 `shared/theme/src/applyThemeToDOM.ts` 一致。当未来引入严格 CSP（无 `'unsafe-inline'`）时，需为 `<script src="/theme-bootstrap.js">` 加 nonce 或 hash，再相应更新 `index.html`。**禁止** 在其他位置（`main.ts` 内联、组件 `onMounted` 等）重新写一份 theme 初始化逻辑 —— 重复实现会与 `shared/theme` 单例产生 hydration 不一致。
 
 ### Frontend Conventions
 

@@ -29,6 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { DropdownMenuArrow } from 'reka-ui'
 
 interface NavItem {
   title: string
@@ -125,24 +126,25 @@ watchEffect(() => {
             <DropdownMenuContent
               side="right"
               align="start"
-              class="w-48 bg-popover text-popover-foreground border border-[var(--border)] rounded-none shadow-md p-1 space-y-0.5"
+              class="w-48 bg-foreground text-background border-none shadow-md p-1.5 space-y-0.5 rounded-none z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
             >
-              <DropdownMenuLabel class="px-2 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-400)]">
+              <DropdownMenuArrow class="bg-foreground fill-foreground z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45" />
+              <DropdownMenuLabel class="px-2.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider text-background/60">
                 {{ item.title }}
               </DropdownMenuLabel>
-              <DropdownMenuSeparator class="bg-[var(--border)]" />
+              <DropdownMenuSeparator class="bg-background/15" />
               <DropdownMenuItem
                 v-for="subItem in item.items"
                 :key="subItem.title"
                 as-child
-                class="p-0 rounded-none focus:bg-[var(--silver-200)]/40 focus:text-foreground"
+                class="p-0 rounded-none focus:bg-background/10 focus:text-background"
               >
                 <RouterLink
                   :to="subItem.url"
-                  class="flex items-center gap-2 px-2 py-1.5 w-full text-xs font-mono text-[var(--silver-500)] hover:text-foreground transition-colors"
+                  class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono text-background/80 hover:text-background transition-colors"
                   :class="[
                     isActive(subItem.url)
-                      ? 'bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)] pl-1.5'
+                      ? 'bg-background/20 text-background font-semibold border-l-2 border-[var(--accent-primary)] pl-1.5'
                       : ''
                   ]"
                 >
@@ -150,7 +152,7 @@ watchEffect(() => {
                     :is="subItem.icon"
                     v-if="subItem.icon"
                     class="size-3.5 shrink-0"
-                    :class="isActive(subItem.url) ? 'text-[var(--accent-primary)]' : 'text-[var(--silver-400)]'"
+                    :class="isActive(subItem.url) ? 'text-[var(--accent-primary)]' : 'text-background/50'"
                   />
                   <span>{{ subItem.title }}</span>
                 </RouterLink>

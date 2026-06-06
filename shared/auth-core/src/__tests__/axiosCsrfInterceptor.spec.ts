@@ -148,7 +148,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {
           "x-new-csrf-token": "new-refreshed-token",
         },
-      } as AxiosResponse;
+      } as unknown as AxiosResponse;
 
       interceptors.responseInterceptor(response);
 
@@ -163,7 +163,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {
           "x-new-csrf-token": "some-token",
         },
-      } as AxiosResponse;
+      } as unknown as AxiosResponse;
 
       interceptors.responseInterceptor(response);
 
@@ -173,7 +173,7 @@ describe("axiosCsrfInterceptor", () => {
     it("should NOT call refreshFromResponse when header is missing", () => {
       const response = {
         headers: {},
-      } as AxiosResponse;
+      } as unknown as AxiosResponse;
 
       interceptors.responseInterceptor(response);
 
@@ -185,7 +185,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {
           "x-new-csrf-token": ["array-token"] as unknown,
         },
-      } as AxiosResponse;
+      } as unknown as AxiosResponse;
 
       interceptors.responseInterceptor(response);
 
@@ -204,7 +204,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {} as Record<string, string>,
         _metadata: {},
         url: "/api/test",
-      } as InternalAxiosRequestConfig;
+      } as unknown as InternalAxiosRequestConfig;
 
       const error = {
         response: {
@@ -242,7 +242,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {} as Record<string, string>,
         _metadata: { csrfRetried: true },
         url: "/api/test",
-      } as InternalAxiosRequestConfig;
+      } as unknown as InternalAxiosRequestConfig;
 
       const error = {
         response: {
@@ -264,7 +264,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {} as Record<string, string>,
         _metadata: {},
         url: "/api/test",
-      } as InternalAxiosRequestConfig;
+      } as unknown as InternalAxiosRequestConfig;
 
       const error = {
         response: {
@@ -286,7 +286,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {} as Record<string, string>,
         _metadata: {},
         url: "/api/test",
-      } as InternalAxiosRequestConfig;
+      } as unknown as InternalAxiosRequestConfig;
 
       const error = {
         response: {
@@ -323,7 +323,7 @@ describe("axiosCsrfInterceptor", () => {
         headers: {} as Record<string, string>,
         _metadata: {},
         url: "/api/test",
-      } as InternalAxiosRequestConfig;
+      } as unknown as InternalAxiosRequestConfig;
 
       const error = {
         response: {

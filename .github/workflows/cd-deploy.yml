@@ -61,13 +61,11 @@ jobs:
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }} \
             "cd ${{ secrets.DEPLOY_PATH }} && \
              docker run --rm --network host \
-               -e DB_HOST=${{ secrets.DB_HOST }} \
-               -e DB_PORT=${{ secrets.DB_PORT }} \
-               -e DB_USER=${{ secrets.DB_USER }} \
-               -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-               -e DB_NAME=${{ secrets.DB_NAME }} \
-               -v \$(pwd)/db-manager/migrations:/flyway/sql \
-               flyway/flyway migrate"
+               -e FLYWAY_URL='jdbc:mysql://${{ secrets.DB_HOST }}:${{ secrets.DB_PORT }}/${{ secrets.DB_NAME }}?allowPublicKeyRetrieval=true&useSSL=true' \
+               -e FLYWAY_USER='${{ secrets.DB_USER }}' \
+               -e FLYWAY_PASSWORD='${{ secrets.DB_PASSWORD }}' \
+               -v \$(pwd)/init-db/migrations:/flyway/sql:ro \
+               flyway/flyway:10.17.0 -connectRetries=10 migrate"
 
       - name: Pull and deploy services
         run: |
@@ -87,7 +85,7 @@ jobs:
           SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
           echo "Checking backend health..."
           for i in $(seq 1 15); do
-            if $SSH_CMD "curl -sf http://localhost:9001/actuator/health > /dev/null 2>&1"; then
+            if $SSH_CMD "docker exec ulticode-backend curl -sf 'http://localhost:9001/contest?page=1&size=1' > /dev/null 2>&1"; then
               echo "  Backend is healthy"
               break
             fi

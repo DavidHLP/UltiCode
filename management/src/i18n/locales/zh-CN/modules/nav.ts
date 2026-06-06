@@ -28,4 +28,8 @@ export default {
   monitoring: '系统监控',
   overview: '数据概览',
   usersAndSecurity: '用户与安全',
+  problemBank: '题库管理',
+  discussion: '讨论与题解',
+  moderationGroup: '审核管理',
 } as const
+

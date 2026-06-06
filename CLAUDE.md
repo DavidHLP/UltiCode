@@ -4,6 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Related Documentation
+
+项目文档分层管理，按需查阅：
+
+| 文件 | 作用 | 何时查阅 |
+|------|------|----------|
+| **[AGENTS.md](./AGENTS.md)** | 仓库级权威指南：项目地图、工具链、启动流程、运维命令 | 进入仓库、跨模块协作、提交前自检 |
+| **[.claude/rules/](./.claude/rules/)** | Claude Code 按 paths 触发的子规则 (backend/, frontend/, database/) | 触及对应路径时自动加载 |
+| **[.cursor/rules/](./.cursor/rules/)** | Cursor IDE 按 globs 触发的 `.mdc` 规则（codegraph、frontend-rules、springboot-rules） | Cursor 环境中触及 `console/`/`management/`/`backend-spring/` 时 |
+| **[.claude/agents/](./.claude/agents/)** | 可调用的领域子代理 | 复杂规划、代码审查、安全审查、TDD、构建修复等场景 |
+| **[docs/](./docs/)** | 架构、运维、安全专题文档（`CODEMAPS/`、`ENV.md`、`CONTRIBUTING.md`、安全审查报告） | 架构梳理、运维排障、安全合规 |
+
+子代理简表（详见 `.claude/agents/<name>.md`）：
+`planner` · `architect` · `code-reviewer` · `java-reviewer` · `security-reviewer` · `tdd-guide` · `build-error-resolver` · `refactor-cleaner` · `doc-updater` · `e2e-runner` · `rust-reviewer`
+
+**职责分工**：CLAUDE.md 聚焦"如何在本项目跑起来 + 项目特有陷阱"（字符集、Arthas、约定）；AGENTS.md 负责"仓库结构 + 工具链 + 启动流程"。本文件不重复 AGENTS.md 已有的内容。
+
+修改 `shared/` 跨端 DTO/enum 字段时，遵循 `cross-stack-dto-granularity-alignment` skill 的审计流程。
+
+---
+
 ## Project Role
 
 **全栈工程师 + 系统管理员**: 你是该项目的核心技术负责人，具备完整的自主问题诊断与解决能力。
@@ -229,6 +250,7 @@ docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
 | Auth | JWT (jjwt 0.13.0), Redis session (Redisson 4.3.1) |
 | API Docs | SpringDoc OpenAPI 2.6.0 |
 | Database | MySQL 9.1 (port 23306), Redis 7 (port 26379) |
+| Service Discovery | Nacos 2.3.2 (port 28848, console at `/nacos`) |
 | Frontend | Vue 3.5, TypeScript ~6, Vite 8, Pinia 3, Vue Router 5, Tailwind CSS v4 |
 | UI Components | shadcn-vue (reka-ui), Radix Vue, Lucide icons |
 | i18n | vue-i18n 11 |
@@ -238,13 +260,136 @@ docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
 | Testing (FE) | Vitest 4, jsdom, Playwright (management) |
 | Linting | ESLint 9/10 (flat config), Prettier (semi: false, singleQuote, printWidth: 100) |
 
+## Repository Conventions
+
+> 以下规则从 [AGENTS.md](./AGENTS.md) 提取的仓库级权威约定；触及对应主题时**优先查阅 AGENTS.md 原文**。
+
+### Toolchain 硬约束
+
+- **Java 17** for backend
+- **Node.js `^20.19.0 || >=22.12.0`** — 版本不匹配会导致 Vite/pnpm 工具链异常
+- **pnpm 10** for frontend and shared packages
+- 每个包用**自己的 lockfile**；**禁止用根目录 install 替代** `console/`、`management/`、`shared/auth-core/` 各自的 install
+- MySQL 9.1 / Redis 7 / Nacos 2.3.2 通过 Docker Compose 提供
+- PM2 管理三个开发进程
+
+### 共享代码（必须双端验证）
+
+`shared/auth-core/` 包含 cookie、CSRF、auth-state、permission 逻辑，console 和 management 都依赖。Console 排除 symlink 的 shared auth 测试；**`shared/auth-core/` 改动必须在该包内跑 `pnpm test` + `pnpm type-check`**，并在两个前端验证。
+
+### Verification Matrix（按触碰面跑对应检查）
+
+提交前按修改面跑对应检查；跨端/安全敏感变更跑完整矩阵。
+
+```bash
+# Backend
+cd backend-spring
+./mvnw compile -B
+./mvnw test -B                  # 排除 *IT.java
+./mvnw -Dtest='*IT' test -B     # 集成测试须显式指定
+./mvnw verify -B                # 含 JaCoCo 校验；项目无 Maven ci profile
+
+# Console
+cd console && pnpm lint && pnpm type-check && pnpm test && pnpm build && pnpm audit --prod --audit-level high
+
+# Management
+cd management && pnpm lint && pnpm type-check && pnpm test \
+  && pnpm validate:i18n-keys && pnpm build && pnpm audit --prod --audit-level high
+
+# Shared auth
+cd shared/auth-core && pnpm test && pnpm type-check
+
+# Migration / 配置校验
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml config >/dev/null
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml config >/dev/null
+git diff --check
+```
+
+> CI 同时验证：迁移在新 MySQL 上跑通、当前树 Gitleaks 扫描、前端 prod 依赖审计、全部 Docker 镜像构建。
+
+### Database Rules（Flyway）
+
+- `init-db/migrations/` 是**唯一**迁移源
+- 命名格式：`V{timestamp}__Description.sql`（如 `V20260606130000__xxx.sql`）
+- **绝不再编辑可能已被应用的迁移**——必须新增一个时间戳更大的迁移
+- `V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql` 是安全修复迁移，**必须保留**在历史 demo seed 之后
+- 迁移里**禁止**写可用默认用户或公开的密码
+- 初始管理员只通过 opt-in `AdminBootstrapRunner` 创建（正常启动保持禁用）
+- schema 工作用 `ulticode-db-migration` skill
+
+### Security Invariants
+
+变更认证/部署密钥/seed 账号/网络暴露前**先读** `docs/SECURITY_REVIEW_2026-06-06.md` + `docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md`，用 `security-review` skill。
+
+- 凭据永不硬编码/提交；运行时密钥来自 `.env` / CI secrets / 部署密钥库
+- **JWT secret ≥ 32 字符**
+- Access + refresh token 都在 HttpOnly cookie
+- Refresh token 走**数据库 hash-only** 的 issue/rotate/revoke 路径；**不可恢复**明文存储；refresh 接口**不接收** access token
+- OAuth state 绑定 HttpOnly 浏览器 cookie，Redis 原子消费
+- WebSocket 鉴权**只接受** `access_token` cookie；**禁止** query token / URL token / 客户端 STOMP token
+- `/admin/**` 与特权方法需 `ADMIN` 或 `SUPER_ADMIN`；审计身份取自认证 principal，**不取自请求体**
+- Base / production compose **不发布** MySQL、Redis、Nacos、backend 端口；只有 `docker-compose.dev.yml` 可暴露基础设施，且**只 bind `127.0.0.1`**
+- Nacos 鉴权保持启用；默认 `nacos/nacos` 账号保持禁用
+- Markdown / KaTeX 输出在 `v-html` 前**必须**先 sanitize
+
+### Frontend Conventions
+
+- Vue 3 Composition API + TypeScript
+- Prettier：无分号、单引号、100 字符
+- 复用现有 API 封装和 shared auth API
+- 保留后端 `Result` 响应处理 + snake_case/camelCase 映射模式
+- 变更 Markdown / HTML sanitize / URL 处理 / UGC 渲染时**必须**加恶意输入回归测试
+- `pnpm dev` 跑 lint+type-check+format+test 再启 Vite；已评审过的树或 PM2 启动场景**直接用 Vite 配置**，避免触发无关格式化
+- API 集成用 `ulticode-api-patterns`；改 shared request/response 类型用 `cross-stack-dto-granularity-alignment`
+
+### Backend Conventions
+
+- 控制器 / 系统边界做输入校验
+- 优先 typed DTO + MyBatis 参数绑定 + 现有 mapper/service 模式
+- 特权操作**即使有全局路由规则也要加** `@PreAuthorize`
+- 单次/竞态敏感状态用**事务性条件更新**
+- `Map.of(...)` 任何 value 可能为 null 时**禁用**——遵循 `java-map-of-null-safety` 指引
+- Lombok service 加构造依赖时，**所有** Mockito `@InjectMocks` 测试必须补齐 mock
+- 后端 DTO enum 字段仍用原始 `String`（与前端 TS enum 错配已知；优先推进后端 enum 化）
+
+### Dev 账号与启动
+
+- 一次性 dev 数据库登录 `admin` / `admin123`，由 dev-profile-only bootstrap runner 初始化；**生产环境禁用**
+- 启动基础设施用 dev override（host 端口只 bind loopback）：
+  ```bash
+  ./scripts/dev/init-env.sh   # 首次：生成随机凭据写入 .env
+  ./scripts/dev/up.sh         # 启基础设施、配置 Nacos、迁移、安装依赖、启动应用
+  ./scripts/dev/up.sh --skip-install   # 依赖未变时复用
+  docker compose --env-file .env \
+    -f docker-compose.yml -f docker-compose.dev.yml ps
+  ```
+- **本项目当前未暴露 Spring Actuator**：不要用 `/actuator/health` 判就绪；改用已知公开 API + 两个前端根路径 + PM2 状态 + 容器健康检查
+
+### Project Skills（自动发现）
+
+`.agents/skills/` 内项目级 skills 触发即用：
+
+- `ulticode-dev-ops` · `ulticode-db-migration` · `ulticode-api-patterns`
+- `cross-stack-dto-granularity-alignment` · `solarized-terminal-design-style`
+- `arthas-cpu-high` · `arthas-eagleeye-traceid` · `arthas-springcontext-issues-resolve`
+
+`.codex/config.toml` 是项目 MCP baseline；**保留**用户 MCP 配置、凭据、自定义 server。`.codex/agents/` 内多代理角色——**未经显式批准不得调度远程代理或对外写入**。
+
+### Git / 外部操作护栏
+
+- 工作树可能含用户改动；**不丢弃、不改写**无关工作
+- 提交前必看 `git diff` + `git diff --check`
+- Conventional commits：`<type>: <description>`
+- 网络工具**默认只读**
+- **需用户显式批准**方可：push、merge、publish、改第三方资源、轮换远程凭据、改写 git 历史
+
 ## Key Conventions
 
 - **Commit format**: `<type>: <description>` (types: feat, fix, refactor, docs, test, chore, perf, ci)
 - **Attribution**: Disabled globally via settings.json
 - **Frontend Prettier**: No semicolons, single quotes, 100 char print width
 - **ESLint**: Flat config, `vue/multi-word-component-names` off in console, whitelisted in management
-- **Integration tests**: Suffix `*IT.java`, excluded from normal Surefire runs; use `./scripts/dev/test.sh integration`
+- **Integration tests**: Suffix `*IT.java`, excluded from normal Surefire runs; use `./scripts/dev/test.sh integration` (test.sh 同样支持 `quick` / `full` 模式，`quick` 跳过集成测试)
 - **Migration naming**: `V{N}__{description}.sql` in `init-db/migrations/`
 - **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
 - **Backend ports**: App 9001
@@ -272,6 +417,7 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 | 9002 | ulticode-9002 | Console Frontend (Vite) |
 | 9003 | ulticode-9003 | Management Frontend (Vite) |
 | 8563 | ulticode-arthas | Arthas MCP Server (HTTP/MCP, agent runs in target JVM) |
+| 28848 | (nacos container) | Nacos 控制台 `/nacos` (默认账号 nacos/nacos) |
 
 **Terminal Commands:**
 ```bash

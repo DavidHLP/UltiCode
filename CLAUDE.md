@@ -40,8 +40,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # ✅ 正确
-docker exec ulticode-mysql mysql --default-character-set=utf8mb4 \
-  -u ulticode -p'CHANGE_ME_strong_password' ulticode
+set -a; source .env; set +a
+docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+  mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME"
 
 # ❌ 错误 (中文会被双重编码)
 docker exec ulticode-mysql mysql -u ulticode -p'...' -e "INSERT INTO t (name) VALUES ('王明')"
@@ -165,7 +166,7 @@ pm2 logs ulticode-9001
 ./mvnw test
 
 # Run integration tests
-./mvnw verify -Pci
+./mvnw -Dtest='*IT' test
 
 # Compile only
 ./mvnw compile
@@ -195,7 +196,7 @@ Flyway 迁移脚本统一管理在 `init-db/migrations/` 目录：
 
 ```bash
 # 独立运行迁移 (不依赖 backend-spring)
-mvn flyway:migrate
+./scripts/dev/migrate.sh migrate
 
 # 迁移文件结构
 init-db/
@@ -203,8 +204,6 @@ init-db/
 │   ├── V20260322__Create_Email_Tables.sql
 │   ├── V20260530130501__Baseline.sql
 │   └── V20260530140000__Insert_Admin_User.sql
-├── sql/                  # 原始 SQL dump 文件
-│   └── 20260530_ulticode_dump.sql
 └── flyway.conf           # Flyway CLI 配置
 ```
 
@@ -213,12 +212,13 @@ DB config from `.env`: `DB_HOST`, `DB_PORT` (23306), `DB_USER`, `DB_PASSWORD`, `
 ### Docker (development)
 
 ```bash
-docker-compose up -d            # Start MySQL 9.1, Redis 7, Nacos 2.3.2
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Production
+./scripts/dev/init-env.sh        # First run: generate private .env
+./scripts/dev/up.sh              # Start infrastructure, migrate, and run all apps
 
 # 直接操作 MySQL (容器内)
-docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "USE ulticode; SQL"
-docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "USE ulticode; SHOW TABLES;"
+set -a; source .env; set +a
+docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+  mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e "SHOW TABLES;"
 ```
 
 ## Tech Stack
@@ -244,7 +244,7 @@ docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "U
 - **Attribution**: Disabled globally via settings.json
 - **Frontend Prettier**: No semicolons, single quotes, 100 char print width
 - **ESLint**: Flat config, `vue/multi-word-component-names` off in console, whitelisted in management
-- **Integration tests**: Suffix `*IT.java`, excluded from `./mvnw test`, run with `./mvnw verify -Pci`
+- **Integration tests**: Suffix `*IT.java`, excluded from normal Surefire runs; use `./scripts/dev/test.sh integration`
 - **Migration naming**: `V{N}__{description}.sql` in `init-db/migrations/`
 - **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
 - **Backend ports**: App 9001

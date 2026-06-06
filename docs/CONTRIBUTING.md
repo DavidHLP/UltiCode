@@ -10,7 +10,6 @@ Welcome to the UltiCode project! This guide will help you get started with devel
 - **Node.js 20+** - Required for frontend development (engines: `^20.19.0 || >=22.12.0`)
 - **pnpm 9+** - Package manager for frontends
 - **Docker & Docker Compose** - For local infrastructure
-- **Python 3.10+** - For db-manager CLI
 
 ---
 
@@ -30,56 +29,26 @@ cd management && pnpm install && cd ..
 ### 2. Configure Environment
 
 ```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and set strong passwords:
-# - DB_PASSWORD (MySQL)
-# - MYSQL_ROOT_PASSWORD
-# - REDIS_PASSWORD
-# - JWT_SECRET (min 32 chars)
+# Generate private infrastructure credentials and documented dev users
+./scripts/dev/init-env.sh
 ```
 
 ### 3. Start Infrastructure
 
 ```bash
-# Start MySQL, Redis, Nacos
-docker-compose up -d
-
-# Verify services are running
-docker-compose ps
+# Start infrastructure, migrate, install dependencies, and launch applications
+./scripts/dev/up.sh
 ```
 
 ### 4. Run Database Migrations
 
-#### Option A: db-manager (Spring Boot integrated)
+#### Flyway migrations
 ```bash
-# Setup db-manager
-cd db-manager
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-
-# Apply migrations
-db-manager migrate
-
-# Verify migration status
-db-manager info
-```
-
-#### Option B: init-db (Standalone Flyway - NEW)
-```bash
-# Navigate to init-db
-cd init-db
-
 # View migration status
-mvn flyway:info
+./scripts/dev/migrate.sh info
 
 # Apply migrations (creates 67 tables from baseline)
-mvn flyway:migrate
-
-# For existing database, create baseline first:
-mvn flyway:baseline -Dflyway.baselineVersion=20260530130501
+./scripts/dev/migrate.sh migrate
 ```
 
 ### 5. Start Application Services
@@ -135,24 +104,13 @@ Same commands as console, plus:
 | `./mvnw spring-boot:run` | Start Spring Boot application |
 | `./mvnw package -DskipTests` | Build JAR |
 | `./mvnw test` | Unit tests (excludes `*IT.java`) |
-| `./mvnw verify -Pci` | Integration tests with Testcontainers |
+| `./mvnw -Dtest='*IT' test` | Integration tests with Testcontainers |
+| `./mvnw verify` | Tests plus JaCoCo report/check |
 | `./mvnw compile` | Compile only |
 
 > Note: Backend is started via PM2 using `start.cjs` wrapper (see `ecosystem.config.cjs`). |
 
-### Database Manager (db-manager/)
-
-| Command | Description |
-|---------|-------------|
-| `db-manager migrate` | Apply pending migrations |
-| `db-manager migrate --dry-run` | Preview migrations |
-| `db-manager info` | Show migration status |
-| `db-manager repair` | Fix metadata inconsistencies |
-| `db-manager validate` | Validate migration state |
-| `db-manager baseline` | Baseline existing database |
-| `db-manager clean --force` | DANGER: Drop all objects |
-
-### init-db (Standalone Flyway - NEW)
+### Database Migrations
 
 | Command | Description |
 |---------|-------------|
@@ -166,8 +124,8 @@ Migration naming: `V{YYYYMMDDHHMMSS}__{Description}.sql`
 
 | Command | Description |
 |---------|-------------|
-| `docker-compose up -d` | Start dev infrastructure |
-| `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d` | Production mode |
+| `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` | Start dev infrastructure |
+| `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` | Production mode |
 
 <!-- AUTO-GENERATED -->
 
@@ -207,7 +165,7 @@ Types: feat, fix, refactor, docs, test, chore, perf, ci
 - Unit tests: `*Test.java` pattern
 - Integration tests: `*IT.java` suffix
 - Run unit tests: `./mvnw test`
-- Run integration tests: `./mvnw verify -Pci`
+- Run integration tests: `./mvnw -Dtest='*IT' test`
 
 ### Frontend Tests
 

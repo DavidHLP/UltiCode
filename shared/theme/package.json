@@ -1,0 +1,29 @@
+{
+  "name": "@ulticode/theme",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.10",
+    "happy-dom": "^15.11.7",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.4",
+    "vue": "^3.5.0"
+  }
+}

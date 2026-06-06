@@ -39,39 +39,30 @@ defineOptions({
 .auth-card {
   width: 100%;
   max-width: 25rem;
-  border: 1px solid var(--silver-200);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  border-radius: 0;
   background: var(--background);
-  box-shadow:
-    0 4px 24px -4px oklch(0 0 0 / 0.08),
-    0 0 0 1px oklch(0 0 0 / 0.02);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
   animation: card-fade-in 0.4s ease-out;
   transition:
     box-shadow var(--transition-normal),
-    border-color var(--transition-normal),
-    transform var(--transition-normal);
+    border-color var(--transition-normal);
 }
 
 .dark .auth-card {
-  border-color: var(--silver-300);
-  box-shadow:
-    0 4px 24px -4px oklch(0 0 0 / 0.25),
-    0 0 0 1px oklch(0 0 0 / 0.1);
+  border-color: var(--border);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-card:hover {
-  box-shadow:
-    0 8px 32px -4px oklch(0 0 0 / 0.1),
-    0 0 0 1px var(--accent-primary),
-    0 0 20px -4px var(--accent-glow);
+  border-color: color-mix(in oklch, var(--accent-primary) 45%, var(--border));
+  box-shadow: var(--shadow-float-hover);
 }
 
 .auth-card:focus-within {
-  box-shadow:
-    0 8px 32px -4px oklch(0 0 0 / 0.1),
-    0 0 0 2px var(--accent-primary),
-    0 0 30px -4px var(--accent-glow);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-float-hover);
 }
 
 @keyframes card-fade-in {
@@ -85,50 +76,48 @@ defineOptions({
   }
 }
 
-/* Terminal Window Header */
+/* Terminal Window Header - subdued, integrated with card body */
 .auth-card__header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  background: var(--silver-50);
-  border-bottom: 1px solid var(--silver-200);
-}
-
-.dark .auth-card__header {
-  background: var(--silver-800);
-  border-bottom-color: var(--silver-300);
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
 }
 
 .auth-card__window-controls {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .auth-card__control {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
-  opacity: 0.8;
+  opacity: 0.55;
 }
 
 .auth-card__control--close {
   background: var(--terminal-red);
+  opacity: 0.65;
 }
 
 .auth-card__control--minimize {
   background: var(--terminal-amber);
+  opacity: 0.65;
 }
 
 .auth-card__control--maximize {
   background: var(--terminal-green);
+  opacity: 0.65;
 }
 
 .auth-card__title {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--silver-500);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 
 /* Card Body */

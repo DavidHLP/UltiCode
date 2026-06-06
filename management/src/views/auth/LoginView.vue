@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import LoginForm from '@/views/auth/components/LoginForm.vue'
 import AuthCard from '@/views/auth/components/AuthCard.vue'
 import AuthGrid from '@/views/auth/components/AuthGrid.vue'
+import AuthThemeToggle from '@/views/auth/components/AuthThemeToggle.vue'
 
 const { t } = useI18n()
 
@@ -32,6 +33,7 @@ defineOptions({
             <span class="auth-logo__badge">ADMIN</span>
           </div>
         </RouterLink>
+        <AuthThemeToggle />
       </div>
 
       <!-- Content Area -->
@@ -142,7 +144,7 @@ defineOptions({
   height: 2rem;
   background: var(--silver-800);
   color: var(--background);
-  border-radius: 4px;
+  border-radius: 0;
   transition: box-shadow var(--transition-fast);
 }
 

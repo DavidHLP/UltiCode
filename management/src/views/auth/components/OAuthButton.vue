@@ -41,35 +41,36 @@ function handleOAuth() {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 3rem;
+  height: 2.75rem;
   gap: 0.75rem;
   padding: 0 1.25rem;
   font-weight: 500;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--foreground);
   background: transparent;
-  border: 1px solid var(--silver-300);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  border-radius: 0;
   cursor: pointer;
   transition:
     background-color var(--transition-fast),
     border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .oauth-button:hover {
-  background: var(--silver-50);
-  border-color: var(--silver-400);
-  box-shadow: 0 2px 8px oklch(0 0 0 / 0.05);
+  background: var(--surface-sunken);
+  border-color: color-mix(in oklch, var(--accent-primary) 35%, var(--border));
 }
 
-.dark .oauth-button:hover {
-  background: var(--silver-800);
-  border-color: var(--silver-400);
+.oauth-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
 }
 
 .oauth-button:active {
-  transform: scale(0.98);
+  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+  transform: translateY(0.5px);
 }
 
 .oauth-button__icon {

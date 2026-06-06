@@ -38,21 +38,23 @@ defineOptions({
   border: 1px solid var(--border);
   border-radius: 0;
   background: var(--card);
-  box-shadow: 4px 4px 0px 0px var(--border);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
   animation: card-fade-in 0.4s ease-out;
-  transition: all var(--transition-normal);
+  transition:
+    box-shadow var(--transition-normal),
+    border-color var(--transition-normal);
 }
 
 .dark .auth-card {
   border-color: var(--border);
+  box-shadow: var(--shadow-float);
 }
 
 .auth-card:hover,
 .auth-card:focus-within {
-  box-shadow: 6px 6px 0px 0px var(--accent-electric);
-  border-color: var(--accent-electric);
-  transform: translate(-2px, -2px);
+  border-color: color-mix(in oklch, var(--accent-electric) 45%, var(--border));
+  box-shadow: var(--shadow-float-hover);
 }
 
 @keyframes card-fade-in {
@@ -71,13 +73,8 @@ defineOptions({
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 1rem;
-  background: var(--silver-50);
+  background: var(--surface-sunken);
   border-bottom: 1px solid var(--border);
-}
-
-.dark .auth-card__header {
-  background: var(--silver-800);
-  border-bottom-color: var(--border);
 }
 
 .auth-card__window-controls {

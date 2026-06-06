@@ -11,6 +11,7 @@ import AuthCard from "@/views/auth/components/AuthCard.vue";
 import AuthGrid from "@/views/auth/components/AuthGrid.vue";
 import AuthInput from "@/views/auth/components/AuthInput.vue";
 import AuthButton from "@/views/auth/components/AuthButton.vue";
+import AuthThemeToggle from "@/views/auth/components/AuthThemeToggle.vue";
 import { toast } from "vue-sonner";
 
 const router = useRouter();
@@ -47,6 +48,7 @@ async function handleSubmit(e: Event) {
             <span class="auth-logo__badge">CODE</span>
           </div>
         </RouterLink>
+        <AuthThemeToggle />
       </div>
 
       <div class="auth-layout__content">
@@ -174,7 +176,9 @@ async function handleSubmit(e: Event) {
 
 .auth-layout__header {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.75rem;
 }
 
 @media (min-width: 1024px) {
@@ -205,6 +209,7 @@ async function handleSubmit(e: Event) {
 
 .dark .auth-logo:hover {
   border-color: var(--silver-400);
+  box-shadow: 0 2px 12px oklch(0 0 0 / 0.2);
 }
 
 .auth-logo__icon {
@@ -213,19 +218,14 @@ async function handleSubmit(e: Event) {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  background: var(--silver-800);
-  color: var(--background);
+  background: var(--primary);
+  color: var(--primary-foreground);
   border-radius: 0;
   transition: box-shadow var(--transition-fast);
 }
 
 .auth-logo:hover .auth-logo__icon {
   box-shadow: 0 0 12px var(--accent-glow);
-}
-
-.dark .auth-logo__icon {
-  background: var(--silver-200);
-  color: var(--silver-900);
 }
 
 .auth-logo__text-group {

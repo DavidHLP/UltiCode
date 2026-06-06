@@ -31,11 +31,25 @@ const oauthLabel = computed(() => {
 });
 
 function handleOAuth() {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!baseUrl) {
+    // Refuse to fall back to localhost: in production this would send
+    // users to a dev backend. Surface the misconfiguration immediately.
+    if (import.meta.env.PROD) {
+      throw new Error(
+        "[OAuthButton] VITE_API_BASE_URL is not configured for production. " +
+          "Set it in your deployment environment before shipping.",
+      );
+    }
+    console.warn(
+      "[OAuthButton] VITE_API_BASE_URL is not set; falling back to http://localhost:9001 for dev.",
+    );
+  }
+  const apiBase = baseUrl ?? "http://localhost:9001";
   if (props.provider === "github") {
-    window.location.href = `${baseUrl}/auth/github`;
+    window.location.href = `${apiBase}/auth/github`;
   } else if (props.provider === "google") {
-    window.location.href = `${baseUrl}/auth/google`;
+    window.location.href = `${apiBase}/auth/google`;
   }
 }
 </script>
@@ -100,14 +114,10 @@ function handleOAuth() {
 }
 
 .oauth-button:hover {
-  background: var(--silver-50);
+  background: var(--surface-sunken);
   border-color: var(--accent-electric);
   box-shadow: 3px 3px 0px 0px var(--accent-electric);
   transform: translate(-1px, -1px);
-}
-
-.dark .oauth-button:hover {
-  background: var(--silver-800);
 }
 
 .oauth-button:active {

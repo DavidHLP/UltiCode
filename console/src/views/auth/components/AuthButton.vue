@@ -42,7 +42,6 @@ defineOptions({
     <span class="auth-button__content">
       <slot />
     </span>
-    <span class="auth-button__glow"></span>
   </button>
 </template>
 
@@ -60,52 +59,54 @@ defineOptions({
   letter-spacing: 0.05em;
   text-transform: uppercase;
   border-radius: 0;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   cursor: pointer;
   overflow: hidden;
-  transition: all var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .auth-button--primary {
-  background: var(--silver-800);
-  color: var(--background);
-  box-shadow: 2px 2px 0px 0px var(--accent-electric);
-  border-color: var(--silver-900);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
 .auth-button--primary:hover:not(:disabled) {
-  background: var(--silver-900);
-  box-shadow: 3px 3px 0px 0px var(--accent-electric);
-  transform: translate(-1px, -1px);
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 0 0 1px var(--accent-electric);
 }
 
 .auth-button--secondary {
   background: transparent;
   color: var(--foreground);
-  box-shadow: 2px 2px 0px 0px var(--border);
+  border-color: var(--border);
 }
 
 .auth-button--secondary:hover:not(:disabled) {
-  background: var(--silver-50);
-  border-color: var(--accent-electric);
-  box-shadow: 3px 3px 0px 0px var(--accent-electric);
-  transform: translate(-1px, -1px);
+  background: var(--surface-sunken);
+  border-color: color-mix(in oklch, var(--accent-electric) 35%, var(--border));
 }
 
-.dark .auth-button--secondary:hover:not(:disabled) {
-  background: var(--silver-800);
+.auth-button--primary:focus-visible,
+.auth-button--secondary:focus-visible {
+  outline: 2px solid var(--accent-electric);
+  outline-offset: 1px;
 }
 
 .auth-button:active:not(:disabled) {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px 0px var(--border);
+  transform: translateY(0.5px);
 }
 
 .auth-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
 }
 
 .auth-button--loading .auth-button__content {
@@ -125,6 +126,7 @@ defineOptions({
   width: 1.25rem;
   height: 1.25rem;
   animation: spin 1s linear infinite;
+  color: currentColor;
 }
 
 @keyframes spin {
@@ -134,18 +136,5 @@ defineOptions({
   to {
     transform: rotate(360deg);
   }
-}
-
-.auth-button__glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at center,
-    oklch(1 0 0) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--transition-fast);
 }
 </style>

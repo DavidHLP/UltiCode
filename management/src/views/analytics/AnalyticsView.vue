@@ -63,25 +63,25 @@ const metricGroups = computed(() => {
   const c = contestParticipationReport.value
   const s = performanceReport.value
 
-  const getTrendStyle = (trend?: string) => {
+  const getTrendStyle = (trend?: string): Record<string, string> => {
     if (trend === 'up') {
       return {
         color: 'var(--status-success)',
-        borderColor: 'var(--status-success)40',
-        backgroundColor: 'var(--status-success)10',
+        borderColor: 'color-mix(in srgb, var(--status-success) 25%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--status-success) 6%, transparent)',
       }
     }
     if (trend === 'down') {
       return {
         color: 'var(--status-error)',
-        borderColor: 'var(--status-error)40',
-        backgroundColor: 'var(--status-error)10',
+        borderColor: 'color-mix(in srgb, var(--status-error) 25%, transparent)',
+        backgroundColor: 'color-mix(in srgb, var(--status-error) 6%, transparent)',
       }
     }
     return {
       color: 'var(--silver-400)',
-      borderColor: 'var(--silver-300)40',
-      backgroundColor: 'var(--silver-100)20',
+      borderColor: 'color-mix(in srgb, var(--silver-300) 25%, transparent)',
+      backgroundColor: 'color-mix(in srgb, var(--silver-100) 6%, transparent)',
     }
   }
 
@@ -335,7 +335,7 @@ const endpointBarItems = computed(() => {
       </div>
 
       <!-- Header Control & Info Bar -->
-      <div class="flex flex-wrap items-center gap-3 bg-[var(--silver-50)] dark:bg-[var(--silver-900)]/30 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 p-2 shadow-sm rounded-none">
+      <div class="flex flex-wrap items-center gap-3 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none">
         <!-- Monospace Status/Date Display -->
         <div class="flex items-center gap-2 px-2.5 py-1 bg-card border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none">
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success)] animate-pulse"></span>
@@ -410,7 +410,7 @@ const endpointBarItems = computed(() => {
               </div>
             </CardHeader>
             <CardContent class="p-4 space-y-2.5">
-              <div v-for="item in panel.items" :key="item.label" class="flex items-center justify-between text-xs border-b border-[var(--silver-100)]/50 dark:border-[var(--silver-800)]/20 pb-1.5 last:border-b-0 last:pb-0">
+              <div v-for="item in panel.items" :key="item.label" class="flex items-center justify-between text-xs border-b border-[var(--silver-100)]/50 dark:border-[var(--silver-200)]/20 pb-1.5 last:border-b-0 last:pb-0">
                 <span class="text-[var(--silver-500)] font-mono">{{ item.label }}</span>
                 <div class="flex items-center gap-1.5 font-data tabular-nums">
                   <span class="font-bold text-foreground">{{ item.value }}</span>
@@ -533,7 +533,7 @@ const endpointBarItems = computed(() => {
                   <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.cpu') }}</span>
                   <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.cpu) }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full transition-all duration-500"
                     :class="performanceReport.resourceUsage.cpu > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.cpu > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--accent-primary)]'"
@@ -546,7 +546,7 @@ const endpointBarItems = computed(() => {
                   <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.memory') }}</span>
                   <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.memory) }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full transition-all duration-500"
                     :class="performanceReport.resourceUsage.memory > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.memory > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"
@@ -559,7 +559,7 @@ const endpointBarItems = computed(() => {
                   <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.disk') }}</span>
                   <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.disk) }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full transition-all duration-500"
                     :class="performanceReport.resourceUsage.disk > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.disk > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"

@@ -1,0 +1,19 @@
+# Development-only host port mappings.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:${DB_PORT:-23306}:3306"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-26379}:6379"
+
+  nacos:
+    ports:
+      - "127.0.0.1:${NACOS_PORT:-28848}:8848"
+      - "127.0.0.1:${NACOS_GRPC_PORT:-29848}:9848"
+
+networks:
+  infrastructure:
+    internal: false

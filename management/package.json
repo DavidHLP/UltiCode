@@ -16,9 +16,10 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
-    "test": "vitest --run --passWithNoTests",
+    "test": "vitest --run --passWithNoTests --exclude '**/shared/theme/**'",
     "test:watch": "vitest --passWithNoTests",
-    "test:coverage": "vitest --coverage --passWithNoTests"
+    "test:coverage": "vitest --coverage --passWithNoTests",
+    "verify:theme-sync": "node ../scripts/verify-theme-sync.mjs"
   },
   "dependencies": {
     "@dnd-kit/abstract": "^0.1.21",

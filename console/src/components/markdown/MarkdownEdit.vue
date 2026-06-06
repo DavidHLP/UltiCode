@@ -62,7 +62,7 @@ const initEditor = async () => {
 
   const initialValue = props.modelValue || props.defaultValue || "";
 
-  editorInstance = monacoInstance.editor.create(editorRef.value, {
+  const createdEditor = monacoInstance.editor.create(editorRef.value, {
     value: initialValue,
     language: "markdown",
     theme: isDark.value ? "vs-dark" : "vs",
@@ -75,10 +75,11 @@ const initEditor = async () => {
     padding: { top: 16, bottom: 16 },
     wordWrap: "on",
   });
+  editorInstance = createdEditor;
 
   // 监听内容变化
-  editorInstance.onDidChangeModelContent(() => {
-    const value = editorInstance?.getValue() || "";
+  createdEditor.onDidChangeModelContent(() => {
+    const value = createdEditor.getValue();
     if (value !== props.modelValue) {
       emit("update:modelValue", value);
       emit("change", value);

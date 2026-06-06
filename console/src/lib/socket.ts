@@ -132,23 +132,6 @@ const eventListeners = new Map<string, Set<EventCallback>>();
 const subscriptions = new Map<string, StompSubscription>();
 
 /**
- * Get JWT token from cookies for authentication.
- * Note: httpOnly cookies are not accessible via JS; this is for non-httpOnly cookie setups.
- */
-export function getTokenFromCookie(): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; access_token=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-
-  // Also try ulticode_token (Spring Boot cookie name)
-  const ulticodeParts = value.split(`; ulticode_token=`);
-  if (ulticodeParts.length === 2)
-    return ulticodeParts.pop()?.split(";").shift() || null;
-
-  return null;
-}
-
-/**
  * Get CSRF token — delegates to the canonical implementation in csrf.ts
  * which supports both in-memory and cookie-based token storage.
  */

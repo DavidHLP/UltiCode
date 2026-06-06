@@ -1,5 +1,5 @@
 import MarkdownIt from "markdown-it";
-import markdownItKatex from "markdown-it-katex";
+import { katex } from "@mdit/plugin-katex";
 import hljs from "highlight.js";
 import { sanitizeHtml } from "@/utils/sanitize";
 
@@ -17,7 +17,7 @@ const md = new MarkdownIt({
   },
 });
 
-md.use(markdownItKatex);
+md.use(katex);
 
 // Custom plugin to group consecutive fence tokens
 const groupFencesPlugin = (md: MarkdownIt) => {
@@ -183,7 +183,7 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   const id = text.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
   
   const idAttrIdx = token.attrIndex("id");
-  if (idAttrIdx >= 0) {
+  if (idAttrIdx >= 0 && token.attrs) {
     token.attrs[idAttrIdx][1] = id;
   } else {
     token.attrPush(["id", id]);
@@ -226,4 +226,3 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
 export function renderMarkdown(text: string): string {
   return sanitizeHtml(md.render(text || ""));
 }
-

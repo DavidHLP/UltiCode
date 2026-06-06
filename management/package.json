@@ -25,6 +25,7 @@
     "@dnd-kit/dom": "^0.1.21",
     "@dnd-kit/modifiers": "^9.0.0",
     "@internationalized/date": "^3.12.1",
+    "@mdit/plugin-katex": "^0.25.2",
     "@tabler/icons-vue": "^3.44.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/vue-table": "^8.21.3",
@@ -44,7 +45,6 @@
     "katex": "^0.17.0",
     "lucide-vue-next": "^0.562.0",
     "markdown-it": "^14.1.0",
-    "markdown-it-katex": "^2.0.3",
     "pinia": "^3.0.4",
     "reka-ui": "^2.9.8",
     "tailwind-merge": "^3.6.0",
@@ -84,6 +84,11 @@
     "vue-tsc": "^3.3.1"
   },
   "pnpm": {
+    "overrides": {
+      "dompurify": "3.4.5",
+      "lodash-es": "4.18.1",
+      "protocol-buffers-schema": "3.6.1"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "maplibre-gl",

@@ -1,5 +1,5 @@
 import MarkdownIt from 'markdown-it'
-import markdownItKatex from 'markdown-it-katex'
+import { katex } from '@mdit/plugin-katex'
 import hljs from 'highlight.js'
 
 const md = new MarkdownIt({
@@ -16,7 +16,7 @@ const md = new MarkdownIt({
   },
 })
 
-md.use(markdownItKatex)
+md.use(katex)
 
 // Custom plugin to group consecutive fence tokens
 const groupFencesPlugin = (md: MarkdownIt) => {

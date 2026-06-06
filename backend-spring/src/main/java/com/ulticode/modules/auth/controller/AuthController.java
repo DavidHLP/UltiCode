@@ -97,8 +97,8 @@ public class AuthController {
     @Operation(summary = "Logout", description = "Logout current user and clear auth cookie")
     @ApiResponse(responseCode = "200", description = "Logout successful")
     @PostMapping("/logout")
-    public Result<Void> logout(HttpServletResponse response) {
-        authService.logout(response);
+    public Result<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        authService.logout(extractRefreshToken(request), response);
         return Result.success();
     }
 
@@ -154,28 +154,30 @@ public class AuthController {
     @Operation(summary = "GitHub login", description = "Redirect to GitHub OAuth")
     @GetMapping("/github")
     public void githubLogin(HttpServletResponse response) throws IOException {
-        String authUrl = oauthService.getGithubAuthUrl();
+        String authUrl = oauthService.getGithubAuthUrl(response);
         response.sendRedirect(authUrl);
     }
 
     @Operation(summary = "GitHub callback", description = "Handle GitHub OAuth callback")
     @GetMapping("/github/callback")
-    public void githubCallback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) throws IOException {
-        oauthService.handleGithubCallback(code, state, response);
+    public void githubCallback(@RequestParam String code, @RequestParam String state,
+                               HttpServletRequest request, HttpServletResponse response) throws IOException {
+        oauthService.handleGithubCallback(code, state, request, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
     @Operation(summary = "Google login", description = "Redirect to Google OAuth")
     @GetMapping("/google")
     public void googleLogin(HttpServletResponse response) throws IOException {
-        String authUrl = oauthService.getGoogleAuthUrl();
+        String authUrl = oauthService.getGoogleAuthUrl(response);
         response.sendRedirect(authUrl);
     }
 
     @Operation(summary = "Google callback", description = "Handle Google OAuth callback")
     @GetMapping("/google/callback")
-    public void googleCallback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) throws IOException {
-        oauthService.handleGoogleCallback(code, state, response);
+    public void googleCallback(@RequestParam String code, @RequestParam String state,
+                               HttpServletRequest request, HttpServletResponse response) throws IOException {
+        oauthService.handleGoogleCallback(code, state, request, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 

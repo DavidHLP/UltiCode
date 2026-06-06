@@ -120,6 +120,20 @@ public class JwtTokenProvider {
     }
 
     /**
+     * Get the user ID from a refresh token, rejecting access tokens and other JWT types.
+     *
+     * @param token the refresh token
+     * @return the user ID, or null if the token is invalid or is not a refresh token
+     */
+    public String getUserIdFromRefreshToken(String token) {
+        Claims claims = parseToken(token);
+        if (claims == null || !"refresh".equals(claims.get("type", String.class))) {
+            return null;
+        }
+        return claims.getSubject();
+    }
+
+    /**
      * Get the username from a JWT token.
      *
      * @param token the JWT token

@@ -35,7 +35,8 @@ public class JwtProperties {
             throw new IllegalStateException("JWT secret must not be blank. Set the 'jwt.secret' property or JWT_SECRET environment variable.");
         }
         if (secret.length() < 32) {
-            log.warn("JWT secret is shorter than 32 characters ({} chars). This may be insecure for HS256 algorithm. Consider using a longer secret.", secret.length());
+            throw new IllegalStateException(
+                    "JWT secret must be at least 32 characters for HS256");
         }
         log.info("JWT secret validated successfully (length: {} chars)", secret.length());
     }

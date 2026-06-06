@@ -10,10 +10,10 @@ import com.ulticode.modules.refreshtoken.entity.RefreshToken;
 import com.ulticode.modules.refreshtoken.mapper.RefreshTokenMapper;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -34,10 +34,9 @@ public class RefreshTokenService {
      * Create a new refresh token for a user.
      *
      * @param userId   the user ID
-     * @param response the HTTP response (for setting cookies if needed)
      * @return the generated refresh token
      */
-    public String createToken(String userId, HttpServletResponse response) {
+    public String createToken(String userId) {
         String tokenId = IdUtil.fastSimpleUUID();
         String token = jwtTokenProvider.generateRefreshToken(userId);
         String tokenHash = DigestUtil.sha256Hex(token);
@@ -45,9 +44,9 @@ public class RefreshTokenService {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setId(tokenId);
         refreshToken.setUserId(userId);
-        refreshToken.setToken(token);
         refreshToken.setTokenHash(tokenHash);
-        refreshToken.setExpiresAt(LocalDateTime.now().plusDays(7));
+        refreshToken.setExpiresAt(LocalDateTime.now().plusNanos(
+            jwtProperties.getRefreshTokenExpiration() * 1_000_000));
         refreshToken.setCreatedAt(LocalDateTime.now());
         refreshToken.setIsRevoked(false);
 
@@ -62,11 +61,15 @@ public class RefreshTokenService {
      * If valid, revokes the old token and returns a new one.
      *
      * @param token    the refresh token to validate
-     * @param response the HTTP response (for setting cookies if needed)
-     * @return a new refresh token
+     * @return the user ID and new refresh token
      * @throws BusinessException if the token is invalid or expired
      */
-    public String validateAndRotate(String token, HttpServletResponse response) {
+    @Transactional
+    public RotationResult validateAndRotate(String token) {
+        String userId = jwtTokenProvider.getUserIdFromRefreshToken(token);
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
         String tokenHash = DigestUtil.sha256Hex(token);
 
         RefreshToken storedToken = refreshTokenMapper.selectOne(
@@ -79,18 +82,35 @@ public class RefreshTokenService {
             log.warn("Invalid refresh token attempt");
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
         }
+        if (!userId.equals(storedToken.getUserId())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
 
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             log.warn("Expired refresh token for user: {}", storedToken.getUserId());
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token has expired");
         }
 
-        // Revoke old token
-        revokeToken(storedToken.getId());
+        int revoked = refreshTokenMapper.revokeIfActive(storedToken.getId());
+        if (revoked != 1) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token has already been used");
+        }
 
-        // Generate new token
         log.info("Rotating refresh token for user: {}", storedToken.getUserId());
-        return createToken(storedToken.getUserId(), response);
+        return new RotationResult(storedToken.getUserId(), createToken(storedToken.getUserId()));
+    }
+
+    public void revokePresentedToken(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        refreshTokenMapper.update(null,
+            new LambdaUpdateWrapper<RefreshToken>()
+                .set(RefreshToken::getIsRevoked, true)
+                .set(RefreshToken::getRotatedAt, LocalDateTime.now())
+                .eq(RefreshToken::getTokenHash, DigestUtil.sha256Hex(token))
+                .eq(RefreshToken::getIsRevoked, false)
+        );
     }
 
     /**
@@ -123,4 +143,6 @@ public class RefreshTokenService {
         );
         log.info("Revoked {} refresh tokens for user: {}", count, userId);
     }
+
+    public record RotationResult(String userId, String token) {}
 }

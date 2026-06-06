@@ -51,7 +51,7 @@ const purifyConfig = {
     // Code blocks with syntax highlighting
     "figure",
     "figcaption",
-    // Katex math elements (used by markdown-it-katex)
+    // KaTeX math elements emitted by @mdit/plugin-katex
     "math",
     "semantics",
     "mrow",

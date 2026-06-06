@@ -21,6 +21,8 @@ COPY shared ./console/src/shared
 
 # Build application
 WORKDIR /app/console
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN pnpm build
 
 # Production stage - nginx

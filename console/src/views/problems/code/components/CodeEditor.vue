@@ -39,6 +39,17 @@ interface RequireFunction {
   defined?: (module: string) => boolean;
 }
 
+interface MonacoTypeScriptApi {
+  typescriptDefaults: {
+    setCompilerOptions(options: Record<string, unknown>): void;
+    setDiagnosticsOptions(options: Record<string, unknown>): void;
+  };
+  javascriptDefaults: MonacoTypeScriptApi["typescriptDefaults"];
+  ScriptTarget: { ESNext: number };
+  ModuleResolutionKind: { NodeJs: number };
+  ModuleKind: { CommonJS: number };
+}
+
 const getMonaco = async () => {
   const globalScope =
     typeof window !== "undefined" ? (window as unknown as GlobalScope) : null;
@@ -99,14 +110,16 @@ const formatDocument = async () => {
 };
 
 const configureLanguageFeatures = (monaco: typeof import("monaco-editor")) => {
+  const typescript =
+    monaco.languages.typescript as unknown as MonacoTypeScriptApi;
   // TypeScript Configuration
   // Intention Actions (Code Actions) & Inspections (Diagnostics)
-  const tsDefaults = monaco.languages.typescript.typescriptDefaults;
+  const tsDefaults = typescript.typescriptDefaults;
   tsDefaults.setCompilerOptions({
-    target: monaco.languages.typescript.ScriptTarget.ESNext,
+    target: typescript.ScriptTarget.ESNext,
     allowNonTsExtensions: true,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-    module: monaco.languages.typescript.ModuleKind.CommonJS,
+    moduleResolution: typescript.ModuleResolutionKind.NodeJs,
+    module: typescript.ModuleKind.CommonJS,
     noEmit: true,
     esModuleInterop: true,
     lib: ["esnext", "dom"],
@@ -119,12 +132,12 @@ const configureLanguageFeatures = (monaco: typeof import("monaco-editor")) => {
 
   // JavaScript Configuration
   // Intention Actions (Code Actions) & Inspections (Diagnostics)
-  const jsDefaults = monaco.languages.typescript.javascriptDefaults;
+  const jsDefaults = typescript.javascriptDefaults;
   jsDefaults.setCompilerOptions({
-    target: monaco.languages.typescript.ScriptTarget.ESNext,
+    target: typescript.ScriptTarget.ESNext,
     allowNonTsExtensions: true,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-    module: monaco.languages.typescript.ModuleKind.CommonJS,
+    moduleResolution: typescript.ModuleResolutionKind.NodeJs,
+    module: typescript.ModuleKind.CommonJS,
     noEmit: true,
     esModuleInterop: true,
     checkJs: true,

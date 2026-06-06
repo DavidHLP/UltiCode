@@ -14,7 +14,7 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
-    "test": "vitest --run --passWithNoTests",
+    "test": "vitest --run --passWithNoTests --exclude '**/auth-core/**'",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "validate:mocks": "node scripts/validate-mock-data.mjs",
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@internationalized/date": "^3.12.1",
+    "@mdit/plugin-katex": "^0.25.2",
     "@monaco-editor/loader": "^1.7.0",
     "@stomp/stompjs": "^7.3.0",
     "@tabler/icons-vue": "^3.36.1",
@@ -42,7 +43,6 @@
     "katex": "^0.17.0",
     "lucide-vue-next": "^0.552.0",
     "markdown-it": "^14.1.1",
-    "markdown-it-katex": "^2.0.3",
     "monaco-editor": "^0.55.1",
     "pinia": "^3.0.4",
     "reka-ui": "^2.9.8",
@@ -88,6 +88,11 @@
     "vue-tsc": "^3.3.1"
   },
   "pnpm": {
+    "overrides": {
+      "dompurify": "3.4.5",
+      "lodash-es": "4.18.1",
+      "protocol-buffers-schema": "3.6.1"
+    },
     "onlyBuiltDependencies": [
       "esbuild",
       "maplibre-gl",

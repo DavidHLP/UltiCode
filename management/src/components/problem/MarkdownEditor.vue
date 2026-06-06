@@ -114,6 +114,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="insertBold"
           :disabled="readonly"
           :title="t('problems.markdownEditor.bold')"
@@ -124,6 +125,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="insertItalic"
           :disabled="readonly"
           :title="t('problems.markdownEditor.italic')"
@@ -134,6 +136,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="insertCode"
           :disabled="readonly"
           :title="t('problems.markdownEditor.inlineCode')"
@@ -144,17 +147,19 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-8 px-2"
           @click="insertCodeBlock"
           :disabled="readonly"
           :title="t('problems.markdownEditor.codeBlock')"
         >
           <Code :size="16" />
-          <span class="text-xs">/block</span>
+          <span class="text-xs ml-1">/block</span>
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="insertLink"
           :disabled="readonly"
           :title="t('problems.markdownEditor.insertLink')"
@@ -165,6 +170,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="insertImage"
           :disabled="readonly"
           :title="t('problems.markdownEditor.insertImage')"
@@ -177,6 +183,7 @@ onUnmounted(() => {
           type="button"
           variant="ghost"
           size="sm"
+          class="rounded-none h-7 w-7 p-0"
           @click="toggleFullscreen"
           :title="t('problems.markdownEditor.toggleFullscreen')"
         >
@@ -189,7 +196,7 @@ onUnmounted(() => {
     <!-- Editor and Preview -->
     <div class="editor-container">
       <!-- Editor -->
-      <div class="editor-pane">
+      <div class="editor-pane bg-card border-r border-[var(--border)]">
         <Textarea
           ref="editorRef"
           v-model="editorContent"
@@ -214,7 +221,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Preview -->
-      <div class="preview-pane">
+      <div class="preview-pane bg-[var(--background)]">
         <div
           ref="previewRef"
           class="preview-content"
@@ -230,10 +237,10 @@ onUnmounted(() => {
 .markdown-editor {
   display: flex;
   flex-direction: column;
-  border: 1px solid hsl(var(--border));
-  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0;
   overflow: hidden;
-  background: hsl(var(--background));
+  background: var(--background);
 }
 
 .markdown-editor.fullscreen {
@@ -250,9 +257,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem;
-  border-bottom: 1px solid hsl(var(--border));
-  background: hsl(var(--muted));
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
 }
 
 .toolbar-group {
@@ -286,10 +293,11 @@ onUnmounted(() => {
   border: none;
   border-radius: 0;
   resize: none;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.875rem;
   line-height: 1.6;
-  background: hsl(var(--background));
+  background: var(--card);
+  color: var(--foreground);
 }
 
 .editor-textarea:focus {
@@ -302,22 +310,22 @@ onUnmounted(() => {
 
 /* Markdown preview styles */
 .preview-content :deep(h1) {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.preview-content :deep(h2) {
   font-size: 1.5rem;
-  font-weight: 600;
-  margin-top: 1.25rem;
+  font-weight: 700;
+  margin-top: 1rem;
   margin-bottom: 0.75rem;
 }
 
-.preview-content :deep(h3) {
+.preview-content :deep(h2) {
   font-size: 1.25rem;
   font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.preview-content :deep(h3) {
+  font-size: 1rem;
+  font-weight: 650;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -328,18 +336,20 @@ onUnmounted(() => {
 }
 
 .preview-content :deep(code) {
-  background: hsl(var(--muted));
+  background: var(--muted);
   padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
+  border-radius: 0;
   font-size: 0.875em;
+  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
 }
 
 .preview-content :deep(pre) {
-  background: hsl(var(--muted));
+  background: var(--muted);
   padding: 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: 0;
   overflow-x: auto;
   margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
 }
 
 .preview-content :deep(pre code) {
@@ -358,15 +368,16 @@ onUnmounted(() => {
 }
 
 .preview-content :deep(a) {
-  color: hsl(var(--primary));
+  color: var(--primary);
   text-decoration: underline;
 }
 
 .preview-content :deep(img) {
   max-width: 100%;
   height: auto;
-  border-radius: 0.5rem;
+  border-radius: 0;
   margin: 0.5rem 0;
+  border: 1px solid var(--border);
 }
 
 .preview-content :deep(table) {
@@ -377,24 +388,24 @@ onUnmounted(() => {
 
 .preview-content :deep(th),
 .preview-content :deep(td) {
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--border);
   padding: 0.5rem;
 }
 
 .preview-content :deep(th) {
-  background: hsl(var(--muted));
+  background: var(--muted);
 }
 
 .preview-content :deep(blockquote) {
-  border-left: 4px solid hsl(var(--primary));
+  border-left: 4px solid var(--border);
   padding-left: 1rem;
   margin: 0.75rem 0;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .preview-content :deep(hr) {
   border: none;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid var(--border);
   margin: 1.5rem 0;
 }
 </style>

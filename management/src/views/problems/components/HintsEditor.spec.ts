@@ -1,8 +1,21 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { useForm } from 'vee-validate'
 import HintsEditor from './HintsEditor.vue'
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => {
+      const messages: Record<string, string> = {
+        'problems.descriptionForm.hintsSection.empty': 'No hints added yet',
+        'problems.descriptionForm.hintsSection.add': 'Add new hint',
+      }
+      return messages[key] || key
+    },
+    locale: { value: 'en-US' },
+  }),
+}))
 
 function createWrapper(initialValues?: { hints?: string[] }) {
   const Wrapper = defineComponent({

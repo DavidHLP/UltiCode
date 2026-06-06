@@ -1,8 +1,24 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h } from 'vue'
 import { useForm } from 'vee-validate'
 import ConstraintsEditor from './ConstraintsEditor.vue'
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => {
+      const messages: Record<string, string> = {
+        'problems.descriptionForm.constraintsSection.emptyDescription':
+          'No constraints added yet. Constraints describe the limits and rules for the problem (e.g., array length, value ranges).',
+        'problems.descriptionForm.constraintsSection.addNew': 'Add new constraint',
+        'problems.descriptionForm.constraintsSection.placeholder':
+          'e.g., 1 <= nums.length <= 10^5',
+      }
+      return messages[key] || key
+    },
+    locale: { value: 'en-US' },
+  }),
+}))
 
 function createWrapper(initialValues?: { constraints?: string[] }) {
   const Wrapper = defineComponent({

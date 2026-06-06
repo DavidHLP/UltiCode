@@ -1,0 +1,10 @@
+title = "UltiCode Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated build and dependency directories"
+paths = [
+  '''(^|/)(target|dist|node_modules|coverage)/'''
+]

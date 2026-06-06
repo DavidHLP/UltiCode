@@ -286,6 +286,9 @@ export default {
       title: '约束条件',
       add: '添加约束',
       empty: '暂无约束条件',
+      emptyDescription: '暂无约束条件。约束条件用于描述题目的限制和规则（例如：数组长度、数值范围）。',
+      addNew: '添加新约束',
+      placeholder: '例如: 1 <= nums.length <= 10^5',
     },
     hints: '提示',
     hintsSection: {

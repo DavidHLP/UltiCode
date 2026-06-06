@@ -39,6 +39,8 @@ const filteredTags = computed(() => {
 
 const showSearch = computed(() => store.allTags.length > 20)
 
+const tagsContainerId = ref(`tags-container-${Math.random().toString(36).substring(2, 9)}`)
+
 function toggleTag(tagId: string) {
   const current = [...modelValueSafe.value]
   const index = current.indexOf(tagId)
@@ -73,8 +75,10 @@ onMounted(() => {
     <!-- Selected Tags -->
     <div class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">{{ t('problems.tagsSelector.selected') }}</span>
-        <span v-if="selectedTags.length" class="text-xs text-muted-foreground">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
+          {{ t('problems.tagsSelector.selected') }}
+        </span>
+        <span v-if="selectedTags.length" class="text-[10px] font-mono text-[var(--silver-500)]">
           {{ selectedTags.length }} {{ t('problems.tagsSelector.selectedCount') }}
         </span>
       </div>
@@ -84,11 +88,16 @@ onMounted(() => {
         class="flex flex-wrap gap-1.5"
         data-testid="selected-tags"
       >
-        <Badge v-for="tag in selectedTags" :key="tag.id" variant="secondary" class="gap-1 pr-1.5">
+        <Badge
+          v-for="tag in selectedTags"
+          :key="tag.id"
+          variant="secondary"
+          class="gap-1 pr-1 px-2.5 py-0.5 rounded-none shadow-none font-mono text-xs border border-[var(--border)] bg-muted/20 text-foreground h-7"
+        >
           {{ tag.label }}
           <button
             type="button"
-            class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
+            class="cursor-pointer text-[var(--silver-500)] hover:text-[var(--solarized-red)] hover:bg-[oklch(0.6_0.2_25/0.1)] rounded-none p-0.5 transition-colors"
             :aria-label="t('problems.tagsSelector.removeTag', { tag: tag.label })"
             @click="removeTag(tag.id)"
           >
@@ -97,7 +106,7 @@ onMounted(() => {
         </Badge>
       </div>
 
-      <p v-else class="text-sm text-muted-foreground italic">
+      <p v-else class="text-xs text-[var(--silver-500)] font-mono italic">
         {{ t('problems.tagsSelector.noTagsSelected') }}
       </p>
     </div>
@@ -107,23 +116,26 @@ onMounted(() => {
       <Input
         v-model="searchQuery"
         type="text"
+        variant="terminal"
         :placeholder="t('problems.tagsSelector.searchPlaceholder')"
-        class="text-sm"
+        class="text-sm font-mono rounded-none shadow-none"
         data-testid="tag-search-input"
       />
     </div>
 
     <!-- Loading State -->
-    <div v-if="store.tagsLoading" class="flex items-center gap-2 text-sm text-muted-foreground">
-      <IconLoader2 class="h-4 w-4 animate-spin" />
+    <div v-if="store.tagsLoading" class="flex items-center gap-2 text-xs font-mono text-[var(--silver-500)]">
+      <IconLoader2 class="h-3.5 w-3.5 animate-spin" />
       {{ t('problems.tagsSelector.loading') }}
     </div>
 
     <!-- Available Tags -->
     <div v-else class="space-y-2">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">{{ t('problems.tagsSelector.available') }}</span>
-        <span class="text-xs text-muted-foreground">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
+          {{ t('problems.tagsSelector.available') }}
+        </span>
+        <span class="text-[10px] font-mono text-[var(--silver-500)]">
           {{ filteredTags.length }} {{ t('problems.tagsSelector.totalCount') }}
         </span>
       </div>
@@ -137,25 +149,29 @@ onMounted(() => {
           v-for="tag in filteredTags"
           :key="tag.id"
           type="button"
-          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] rounded-none h-7 flex items-center justify-center"
           :aria-pressed="isSelected(tag.id)"
           @click="toggleTag(tag.id)"
         >
           <Badge
             :variant="isSelected(tag.id) ? 'default' : 'outline'"
-            class="select-none"
-            :class="isSelected(tag.id) ? '' : 'hover:bg-accent hover:text-accent-foreground'"
+            class="select-none rounded-none shadow-none font-mono text-xs px-2.5 py-1 h-7 border"
+            :class="[
+              isSelected(tag.id)
+                ? 'border-transparent font-semibold'
+                : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground'
+            ]"
           >
             {{ tag.label }}
           </Badge>
         </button>
       </div>
 
-      <p v-else-if="searchQuery" class="text-sm text-muted-foreground italic">
+      <p v-else-if="searchQuery" class="text-xs text-[var(--silver-500)] font-mono italic">
         {{ t('problems.tagsSelector.noResults') }}
       </p>
 
-      <p v-else class="text-sm text-muted-foreground italic">
+      <p v-else class="text-xs text-[var(--silver-500)] font-mono italic">
         {{ t('problems.tagsSelector.noTagsAvailable') }}
       </p>
     </div>

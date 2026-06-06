@@ -169,7 +169,8 @@ public class I18nServiceImpl implements I18nService {
 
     @Override
     @Transactional
-    public BulkUpsertDTO bulkUpsertTranslations(List<BulkUpsertDTO.TranslationItem> translations, boolean skipDuplicates) {
+    public BulkUpsertDTO bulkUpsertTranslations(List<BulkUpsertDTO.TranslationItem> translations,
+                                                boolean skipDuplicates, String actorId) {
         BulkUpsertDTO result = new BulkUpsertDTO();
         result.setSkipDuplicates(skipDuplicates);
 
@@ -229,9 +230,7 @@ public class I18nServiceImpl implements I18nService {
                     } else {
                         // Mark for update
                         existing.setContent(item.getContent());
-                        if (item.getCreatedBy() != null) {
-                            existing.setUpdatedBy(item.getCreatedBy());
-                        }
+                        existing.setUpdatedBy(actorId);
                         toUpdate.add(existing);
                         updated++;
                     }
@@ -243,8 +242,8 @@ public class I18nServiceImpl implements I18nService {
                     newTranslation.setFieldName(item.getFieldName());
                     newTranslation.setLocale(item.getLocale());
                     newTranslation.setContent(item.getContent());
-                    newTranslation.setCreatedBy(item.getCreatedBy());
-                    newTranslation.setUpdatedBy(item.getCreatedBy());
+                    newTranslation.setCreatedBy(actorId);
+                    newTranslation.setUpdatedBy(actorId);
                     toCreate.add(newTranslation);
                     created++;
                 }

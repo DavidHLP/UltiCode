@@ -71,9 +71,5 @@ public class BulkUpsertDTO {
          */
         private String content;
 
-        /**
-         * ID of the user creating this translation.
-         */
-        private String createdBy;
     }
 }

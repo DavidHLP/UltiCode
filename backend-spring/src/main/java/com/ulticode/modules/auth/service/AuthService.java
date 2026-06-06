@@ -42,5 +42,5 @@ public interface AuthService {
      *
      * @param response the HTTP response to clear cookies
      */
-    void logout(HttpServletResponse response);
+    void logout(String refreshToken, HttpServletResponse response);
 }

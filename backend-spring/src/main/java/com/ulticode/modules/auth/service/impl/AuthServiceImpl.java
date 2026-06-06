@@ -11,6 +11,7 @@ import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
@@ -39,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProperties jwtProperties;
     private final PasswordEncoder passwordEncoder;
     private final CsrfService csrfService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     public LoginResponse login(LoginDTO loginDTO, HttpServletResponse response) {
@@ -77,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getUsername(),
                 user.getRole()
         );
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        String refreshToken = refreshTokenService.createToken(user.getId());
 
         // Set cookies
         setAuthCookie(response, accessToken);
@@ -149,15 +151,13 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Validate refresh token
-        String userId;
+        RefreshTokenService.RotationResult rotation;
         try {
-            userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
-            if (userId == null) {
-                throw new BusinessException(ErrorCode.AUTH_TOKEN_EXPIRED, "Invalid refresh token");
-            }
+            rotation = refreshTokenService.validateAndRotate(refreshToken);
         } catch (ExpiredJwtException e) {
             throw new BusinessException(ErrorCode.AUTH_TOKEN_EXPIRED, "Refresh token has expired");
         }
+        String userId = rotation.userId();
 
         // Find user
         User user = userMapper.selectById(userId);
@@ -185,11 +185,9 @@ public class AuthServiceImpl implements AuthService {
                 user.getUsername(),
                 user.getRole()
         );
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-
         // Set cookies
         setAuthCookie(response, accessToken);
-        setRefreshTokenCookie(response, newRefreshToken);
+        setRefreshTokenCookie(response, rotation.token());
 
         // Build response
         String csrfToken = csrfService.generateToken(user.getId());
@@ -203,7 +201,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(HttpServletResponse response) {
+    public void logout(String refreshToken, HttpServletResponse response) {
+        refreshTokenService.revokePresentedToken(refreshToken);
         clearAuthCookies(response);
     }
 

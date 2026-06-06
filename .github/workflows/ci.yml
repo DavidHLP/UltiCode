@@ -40,13 +40,15 @@ jobs:
           filters: |
             backend:
               - 'backend-spring/**'
-              - 'db-manager/migrations/**'
+              - 'init-db/migrations/**'
               - '.github/workflows/ci.yml'
             console:
               - 'console/**'
+              - 'shared/**'
               - '.github/workflows/ci.yml'
             management:
               - 'management/**'
+              - 'shared/**'
               - '.github/workflows/ci.yml'
             docker:
               - 'backend-spring/Dockerfile'
@@ -92,7 +94,7 @@ jobs:
         image: mysql:9.1
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ulticode_test
+          MYSQL_DATABASE: ulticode
           MYSQL_USER: ulticode
           MYSQL_PASSWORD: ulticode
         ports:
@@ -116,7 +118,7 @@ jobs:
       DB_PORT: 23306
       DB_USER: ulticode
       DB_PASSWORD: ulticode
-      DB_NAME: ulticode_test
+      DB_NAME: ulticode
       REDIS_HOST: localhost
       REDIS_PORT: 26379
       JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
@@ -176,34 +178,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Install db-manager
-        run: pip install -e ./db-manager
-
-      - name: Install Flyway CLI
-        run: |
-          # The maven central flyway 11.3.4 bundle has a broken Alpine JRE on Ubuntu.
-          # We extract the bundle, then write a wrapper that invokes Java directly
-          # with the correct classpath (skipping the broken shell script JRE detection).
-          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/10.17.0/flyway-commandline-10.17.0-linux-x64.tar.gz -o /tmp/flyway.tar.gz
-          tar -xzf /tmp/flyway.tar.gz -C /tmp
-          # Write a wrapper that bypasses the broken JRE detection entirely
-          cat > /tmp/flyway-wrapper.sh << 'WRAPPER'
-          #!/usr/bin/env bash
-          FLYWAY_DIR="${FLYWAY_DIR:-/tmp/flyway-10.17.0}"
-          JAVA_CMD="${JAVA_HOME:-$(which java)}/bin/java"
-          CP="$FLYWAY_DIR/lib/*:$FLYWAY_DIR/lib/flyway/*:$FLYWAY_DIR/lib/aad/*:$FLYWAY_DIR/lib/plugins/*:$FLYWAY_DIR/lib/netty/*:$FLYWAY_DIR/lib/opentelemetry/*:$FLYWAY_DIR/drivers/*"
-          exec "$JAVA_CMD" -Djava.security.egd=file:/dev/../dev/urandom -cp "$CP" org.flywaydb.commandline.Main "$@"
-          WRAPPER
-          chmod +x /tmp/flyway-wrapper.sh
-          sudo cp /tmp/flyway-wrapper.sh /usr/local/bin/flyway
-          sudo chmod +x /usr/local/bin/flyway
-          flyway --version
-
       - name: Wait for MySQL
         run: |
           for i in $(seq 1 30); do
@@ -217,9 +191,31 @@ jobs:
 
       - name: Run and validate migrations
         run: |
-          cd db-manager
-          python -m db_manager.cli migrate
-          python -m db_manager.cli validate || echo "Validate command not available, migrations applied successfully"
+          docker run --rm --network host \
+            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
+            flyway/flyway:10.17.0 \
+            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user=ulticode -password=ulticode -connectRetries=10 migrate
+          docker run --rm --network host \
+            -v "$PWD/init-db/migrations:/flyway/sql:ro" \
+            flyway/flyway:10.17.0 \
+            -url="jdbc:mysql://127.0.0.1:23306/ulticode?allowPublicKeyRetrieval=true&useSSL=false" \
+            -user=ulticode -password=ulticode validate
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Run Gitleaks
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo:ro" \
+            zricethezav/gitleaks:v8.24.2 \
+            dir /repo --config=/repo/.gitleaks.toml --redact --no-banner
 
   # --- Frontend: Lint ---
   frontend-lint:
@@ -355,6 +351,34 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
         run: pnpm test
+
+      - name: Audit production dependencies
+        if: steps.should-run.outputs.run == 'true'
+        working-directory: ${{ matrix.app }}
+        run: pnpm audit --prod --audit-level high
+
+  shared-auth-test:
+    name: Test shared auth core
+    needs: changes
+    if: needs.changes.outputs.console == 'true' || needs.changes.outputs.management == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Enable pnpm via corepack
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: shared/auth-core/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: shared/auth-core
+        run: pnpm install --frozen-lockfile
+      - name: Test and type-check
+        working-directory: shared/auth-core
+        run: pnpm test && pnpm type-check
 
   # --- Frontend: i18n Check (management only) ---
   frontend-i18n-check:

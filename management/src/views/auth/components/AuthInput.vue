@@ -9,7 +9,7 @@
  * - 错误状态样式
  */
 import type { HTMLAttributes, InputHTMLAttributes } from 'vue'
-import { computed, ref } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -38,7 +38,7 @@ defineOptions({
   name: 'AuthInput',
 })
 
-const inputId = computed(() => props.id || `auth-input-${Math.random().toString(36).slice(2, 9)}`)
+const inputId = computed(() => props.id || `auth-input-${useId()}`)
 const isFocused = ref(false)
 const hasValue = computed(() => !!props.modelValue)
 const isFloating = computed(() => isFocused.value || hasValue.value)
@@ -114,13 +114,14 @@ function handleBlur() {
 /* Input field */
 .auth-input__field {
   width: 100%;
-  height: 3rem;
+  height: 2.75rem;
   padding: 0 0 0.5rem;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   color: var(--foreground);
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--silver-300);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   outline: none;
   transition: border-color var(--transition-fast);
 }

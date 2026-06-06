@@ -3,7 +3,7 @@
  * AuthInput - Console parameter styled input field
  */
 import type { HTMLAttributes, InputHTMLAttributes } from "vue";
-import { computed, ref } from "vue";
+import { computed, ref, useId } from "vue";
 import { cn } from "@/lib/utils";
 
 const props = withDefaults(
@@ -32,10 +32,11 @@ defineOptions({
   name: "AuthInput",
 });
 
-const inputId = computed(
-  () => props.id || `auth-input-${Math.random().toString(36).slice(2, 9)}`,
-);
+const autoId = useId();
+const inputId = computed(() => props.id || `auth-input-${autoId}`);
 const isFocused = ref(false);
+const hasValue = computed(() => !!props.modelValue);
+const isFloating = computed(() => isFocused.value || hasValue.value);
 
 function handleInput(event: Event) {
   const target = event.target as HTMLInputElement;
@@ -58,6 +59,8 @@ function handleBlur() {
         'auth-input flex flex-col w-full',
         {
           'auth-input--focused': isFocused,
+          'auth-input--has-value': hasValue,
+          'auth-input--floating': isFloating,
           'auth-input--error': error,
           'auth-input--disabled': disabled,
         },
@@ -65,8 +68,12 @@ function handleBlur() {
       )
     "
   >
-    <label :for="inputId" class="auth-input__label">
-      <span class="text-[var(--accent-electric)] font-bold mr-1.5">></span>
+    <label
+      :for="inputId"
+      class="auth-input__label"
+      :class="{ 'auth-input__label--floating': isFloating }"
+    >
+      <span class="auth-input__prompt">&gt;</span>
       {{ label }}
     </label>
     <div class="relative mt-1 w-full">
@@ -82,6 +89,9 @@ function handleBlur() {
         @focus="handleFocus"
         @blur="handleBlur"
       />
+      <div class="auth-input__line">
+        <div class="auth-input__line-glow"></div>
+      </div>
     </div>
     <p v-if="error" class="auth-input__error">{{ error }}</p>
   </div>
@@ -99,10 +109,35 @@ function handleBlur() {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--solarized-base01);
+  transform-origin: left center;
+  transition:
+    transform var(--transition-fast),
+    color var(--transition-fast),
+    font-size var(--transition-fast);
+}
+
+.auth-input__label--floating {
+  font-size: 0.625rem;
+  color: var(--silver-500);
+  transform: translateY(-0.5rem);
+}
+
+.auth-input--focused .auth-input__label--floating {
+  color: var(--accent-electric);
+}
+
+.auth-input--error .auth-input__label--floating {
+  color: var(--status-error);
 }
 
 .dark .auth-input__label {
   color: var(--silver-400);
+}
+
+.auth-input__prompt {
+  color: var(--accent-electric);
+  font-weight: 700;
+  margin-right: 0.375rem;
 }
 
 .auth-input__field {
@@ -129,6 +164,16 @@ function handleBlur() {
   box-shadow: 0 0 0 1px var(--accent-electric-glow);
 }
 
+.auth-input__field::placeholder {
+  color: var(--solarized-base1);
+  opacity: 0.7;
+}
+
+.dark .auth-input__field::placeholder {
+  color: var(--solarized-base01);
+  opacity: 0.7;
+}
+
 .auth-input--error .auth-input__field {
   border-color: var(--status-error);
 }
@@ -136,6 +181,41 @@ function handleBlur() {
 .auth-input--disabled .auth-input__field {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Bottom line + glow that activates on focus, matching management. */
+.auth-input__line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-electric);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--transition-fast);
+}
+
+.auth-input__line-glow {
+  position: absolute;
+  inset: -2px;
+  background: var(--accent-electric);
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.auth-input--focused .auth-input__line {
+  transform: scaleX(1);
+}
+
+.auth-input--focused .auth-input__line-glow {
+  opacity: 0.5;
+}
+
+.auth-input--error .auth-input__line,
+.auth-input--error .auth-input__line-glow {
+  background: var(--status-error);
 }
 
 .auth-input__error {

@@ -33,6 +33,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import ThemeSwitcher from "@/components/ThemeSwitcher.vue";
 import { useLocale } from "@/composables/useLocale";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
@@ -273,6 +274,7 @@ async function handleLogout() {
             {{ t("sidebar.personal.logout") }}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <ThemeSwitcher />
           <LanguageSwitcher />
         </DropdownMenuContent>
       </DropdownMenu>

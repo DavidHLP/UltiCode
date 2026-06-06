@@ -139,6 +139,7 @@ export default {
   // 外观设置
   appearance: {
     theme: '主题',
+    themeDescription: '配置后台管理系统的界面视觉主题样式。',
     light: '浅色',
     dark: '深色',
     system: '跟随系统',

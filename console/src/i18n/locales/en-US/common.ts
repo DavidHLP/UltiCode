@@ -210,6 +210,14 @@ export default {
     queuedSubmissions: "{count} submission(s) queued",
   },
 
+  // Appearance
+  appearance: {
+    theme: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+  },
+
   // Dismiss button
   dismiss: "Dismiss",
 } as const;

@@ -205,6 +205,14 @@ export default {
     queuedSubmissions: "{count} 个提交待同步",
   },
 
+  // Appearance
+  appearance: {
+    theme: "主题",
+    light: "浅色",
+    dark: "深色",
+    system: "跟随系统",
+  },
+
   // Dismiss button
   dismiss: "关闭",
 } as const;

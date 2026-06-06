@@ -141,6 +141,7 @@ export default {
   // Appearance settings
   appearance: {
     theme: 'Theme',
+    themeDescription: 'Configure the visual theme of the management interface.',
     light: 'Light',
     dark: 'Dark',
     system: 'System',

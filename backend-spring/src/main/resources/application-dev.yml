@@ -17,7 +17,7 @@ spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${DB_USER:ulticode}
-    password: ${DB_PASSWORD:ulticode}
+    password: ${DB_PASSWORD:}
 
   data:
     redis:

@@ -4,8 +4,10 @@
 # This file references pre-built images from GHCR instead of building locally.
 # Required environment variables (set in deployment environment):
 #   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-#   REDIS_HOST, REDIS_PORT
+#   REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 #   JWT_SECRET
+#   NACOS_USERNAME, NACOS_PASSWORD, NACOS_AUTH_TOKEN,
+#   NACOS_AUTH_IDENTITY_KEY, NACOS_AUTH_IDENTITY_VALUE
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
 #
 # IMAGE_TAG usage:
@@ -21,10 +23,6 @@ services:
     image: nacos/nacos-server:v2.3.2
     container_name: ulticode-nacos
     restart: unless-stopped
-    ports:
-      - "28848:8848"
-      - "28080:8080"
-      - "29848:9848"
     deploy:
       resources:
         limits:
@@ -41,6 +39,10 @@ services:
       MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
       JVM_XMS: 256m
       JVM_XMX: 512m
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?NACOS_AUTH_TOKEN is required}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?NACOS_AUTH_IDENTITY_KEY is required}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?NACOS_AUTH_IDENTITY_VALUE is required}
     depends_on:
       mysql:
         condition: service_healthy
@@ -59,8 +61,8 @@ services:
     image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}
     container_name: ulticode-backend
     restart: unless-stopped
-    ports:
-      - "9001:9001"
+    expose:
+      - "9001"
     deploy:
       resources:
         limits:
@@ -70,15 +72,16 @@ services:
       - DB_HOST=${DB_HOST:-mysql}
       - DB_PORT=${DB_PORT:-3306}
       - DB_USER=${DB_USER:-ulticode}
-      - DB_PASSWORD=${DB_PASSWORD:-ulticode}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_NAME=${DB_NAME:-ulticode}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NACOS_HOST=nacos
       - NACOS_PORT=8848
-      - NACOS_USERNAME=${NACOS_USERNAME:-nacos}
-      - NACOS_PASSWORD=${NACOS_PASSWORD:-nacos}
+      - NACOS_USERNAME=${NACOS_USERNAME:?NACOS_USERNAME is required}
+      - NACOS_PASSWORD=${NACOS_PASSWORD:?NACOS_PASSWORD is required}
       - SERVER_PORT=9001
     depends_on:
       mysql:
@@ -87,8 +90,11 @@ services:
         condition: service_healthy
       nacos:
         condition: service_healthy
+    networks:
+      - default
+      - infrastructure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9001/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9001/contest?page=1&size=1"]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -104,9 +110,9 @@ services:
     container_name: ulticode-console
     restart: unless-stopped
     ports:
-      - "9002:8080"
+      - "127.0.0.1:${CONSOLE_PORT:-9002}:8080"
     environment:
-      - API_ORIGIN=http://backend:9001
+      - API_ORIGIN=
     depends_on:
       backend:
         condition: service_healthy
@@ -131,9 +137,9 @@ services:
     container_name: ulticode-management
     restart: unless-stopped
     ports:
-      - "9003:8080"
+      - "127.0.0.1:${MANAGEMENT_PORT:-9003}:8080"
     environment:
-      - API_ORIGIN=http://backend:9001
+      - API_ORIGIN=
     depends_on:
       backend:
         condition: service_healthy
@@ -152,4 +158,3 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
-

@@ -8,7 +8,9 @@ description: UltiCode development and operations reference covering PM2 process 
 ## PM2 进程管理
 
 ```bash
-pm2 start ecosystem.config.cjs   # 首次启动
+./scripts/dev/init-env.sh        # 首次生成随机本机环境
+./scripts/dev/up.sh              # 完整启动
+./scripts/dev/up.sh --skip-install # 依赖未变化时快速启动
 pm2 start all                    # 后续启动
 pm2 restart ulticode-9001        # 重启后端
 pm2 restart ulticode-9002        # 重启 Console 前端
@@ -31,16 +33,17 @@ pm2 resurrect                    # 恢复进程列表
 | 9003 | ulticode-9003 | Management 前端 (Vite) |
 | 23306 | ulticode-mysql | MySQL 9.1 |
 | 26379 | ulticode-redis | Redis 7 |
-| 8848 | nacos | Nacos 2.3.2 |
+| 28848 | ulticode-nacos | Nacos 2.3.2 |
 
 ## Docker 操作
 
 ```bash
-docker-compose up -d              # 启动 MySQL + Redis + Nacos
-docker-compose down               # 停止所有容器
-docker-compose logs mysql         # 查看 MySQL 日志
-docker exec ulticode-mysql mysql --default-character-set=utf8mb4 -u ulticode -pulticode -e "USE ulticode; SHOW TABLES;"
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml down
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml logs mysql
 ```
+
+禁止在命令中硬编码数据库密码；从根 `.env` 加载或使用开发脚本。
 
 ## Arthas 运行时诊断
 
@@ -71,7 +74,8 @@ cd backend-spring
 ./mvnw package -DskipTests                       # 构建
 ./mvnw compile                                    # 仅编译
 ./mvnw test                                       # 单元测试
-./mvnw verify -Pci                                # 集成测试
+./mvnw -Dtest='*IT' test                          # 集成测试
+./mvnw verify                                     # 测试 + JaCoCo 校验
 ```
 
 ## 前端开发
@@ -83,9 +87,17 @@ cd console && pnpm build    # Console 构建
 cd management && pnpm build # Management 构建
 ```
 
+## 统一测试
+
+```bash
+./scripts/dev/test.sh quick
+./scripts/dev/test.sh full
+./scripts/dev/test.sh integration
+```
+
 ## 日志排查
 
 1. PM2 日志：`pm2 logs ulticode-9001`
-2. Docker 日志：`docker-compose logs mysql`
+2. Docker 日志：`docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml logs mysql`
 3. Arthas：`trace` + `watch` 定位慢方法
 4. 后端日志级别：生产环境 INFO，开发可开启 DEBUG

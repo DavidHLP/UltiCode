@@ -10,7 +10,6 @@ description: UltiCode Flyway database migration operations reference. Covers mig
 ```
 init-db/
 ├── migrations/           # Flyway SQL 迁移脚本 (V*.sql)
-├── sql/                  # 原始 SQL dump 文件
 └── flyway.conf           # Flyway CLI 配置
 ```
 
@@ -29,8 +28,10 @@ init-db/
 ## 运行迁移
 
 ```bash
-# 独立运行（不依赖 backend-spring）
-cd init-db && mvn flyway:migrate
+# 统一入口，从根 .env 加载连接参数
+./scripts/dev/migrate.sh migrate
+./scripts/dev/migrate.sh info
+./scripts/dev/migrate.sh validate
 
 # 通过 backend-spring（开发时自动运行）
 cd backend-spring && ./mvnw spring-boot:run
@@ -38,24 +39,23 @@ cd backend-spring && ./mvnw spring-boot:run
 
 ## 配置来源
 
-数据库连接配置从 `.env` 读取：
+数据库连接只从根 `.env` 读取；`flyway.conf` 和 `pom.xml` 不保存密码：
 
 ```
 DB_HOST=localhost
 DB_PORT=23306
 DB_USER=ulticode
-DB_PASSWORD=ulticode
+DB_PASSWORD=<random local value>
 DB_NAME=ulticode
 ```
 
 ## 直接操作数据库
 
 ```bash
-# Docker 容器内操作（注意：必须加 --default-character-set=utf8mb4 避免中文乱码）
-docker exec ulticode-mysql mysql --default-character-set=utf8mb4 -u ulticode -p'CHANGE_ME_strong_password' ulticode
-
-# 客户端直连
-mysql -h 127.0.0.1 -P 23306 -u ulticode -pulticode ulticode
+# 使用私有 .env，不在 shell 历史中写入密码
+set -a; source .env; set +a
+docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+  mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME"
 ```
 
 ## 迁移规则

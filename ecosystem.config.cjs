@@ -104,13 +104,12 @@ module.exports = {
       // 数据库迁移服务: 一次性跑 Flyway migrate, 成功即退出 (exit 0)
       // 启动顺序: 先 `pm2 start ulticode-init-db` 等 stopped, 再 `pm2 start ulticode-9001`
       name: 'ulticode-init-db',
-      script: 'mvn',
-      args: 'flyway:migrate -Dflyway.configFiles=flyway.conf --no-transfer-progress -B',
-      cwd: './init-db',
-      interpreter: 'none',
+      script: './scripts/dev/migrate.sh',
+      args: 'migrate',
+      cwd: '.',
+      interpreter: 'bash',
       autorestart: false,
       ...logConfig('init-db'),
-      // flyway.conf 已包含完整 JDBC URL/用户/密码, 此处仅兜底（密码来自 .env）
       env: {
         ...envFromFile
       }

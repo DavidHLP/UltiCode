@@ -10,6 +10,7 @@ import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
@@ -58,6 +59,9 @@ class AuthServiceImplTest {
     @Mock
     private CsrfService csrfService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -100,8 +104,7 @@ class AuthServiceImplTest {
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
             when(jwtTokenProvider.generateAccessToken(USER_ID, USERNAME, "USER"))
                     .thenReturn(ACCESS_TOKEN);
-            when(jwtTokenProvider.generateRefreshToken(USER_ID))
-                    .thenReturn(REFRESH_TOKEN);
+            when(refreshTokenService.createToken(USER_ID)).thenReturn(REFRESH_TOKEN);
             when(csrfService.generateToken(USER_ID)).thenReturn(CSRF_TOKEN);
             when(userService.toVO(user)).thenReturn(mock(UserVO.class));
 
@@ -208,7 +211,7 @@ class AuthServiceImplTest {
             when(passwordEncoder.matches(PASSWORD, "encoded-password")).thenReturn(true);
             when(jwtTokenProvider.generateAccessToken(anyString(), anyString(), anyString()))
                     .thenReturn(ACCESS_TOKEN);
-            when(jwtTokenProvider.generateRefreshToken(anyString())).thenReturn(REFRESH_TOKEN);
+            when(refreshTokenService.createToken(anyString())).thenReturn(REFRESH_TOKEN);
             when(csrfService.generateToken(anyString())).thenReturn(CSRF_TOKEN);
             when(userService.toVO(user)).thenReturn(mock(UserVO.class));
 
@@ -266,11 +269,11 @@ class AuthServiceImplTest {
         void refresh_validToken_returnsNewTokens() {
             User user = createActiveUser();
 
-            when(jwtTokenProvider.getUserIdFromToken(REFRESH_TOKEN)).thenReturn(USER_ID);
+            when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
+                    .thenReturn(new RefreshTokenService.RotationResult(USER_ID, "new-refresh-token"));
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(jwtTokenProvider.generateAccessToken(USER_ID, USERNAME, "USER"))
                     .thenReturn(ACCESS_TOKEN);
-            when(jwtTokenProvider.generateRefreshToken(USER_ID)).thenReturn("new-refresh-token");
             when(csrfService.generateToken(USER_ID)).thenReturn(CSRF_TOKEN);
             when(userService.toVO(user)).thenReturn(mock(UserVO.class));
 
@@ -303,12 +306,23 @@ class AuthServiceImplTest {
         @Test
         @DisplayName("refresh token returning null userId throws AUTH_TOKEN_EXPIRED")
         void refresh_invalidToken_throwsException() {
-            when(jwtTokenProvider.getUserIdFromToken(REFRESH_TOKEN)).thenReturn(null);
+            when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
+                    .thenThrow(new BusinessException(ErrorCode.AUTH_TOKEN_EXPIRED));
 
             assertThatThrownBy(() -> authService.refresh(REFRESH_TOKEN, mockResponse()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_TOKEN_EXPIRED));
         }
+    }
+
+    @Test
+    @DisplayName("logout revokes the presented refresh token")
+    void logout_revokesPresentedToken() {
+        HttpServletResponse response = mockResponse();
+
+        authService.logout(REFRESH_TOKEN, response);
+
+        verify(refreshTokenService).revokePresentedToken(REFRESH_TOKEN);
     }
 }

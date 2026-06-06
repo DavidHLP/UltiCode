@@ -209,7 +209,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("should return 200 with code=0 on successful logout")
         void logout_success() throws Exception {
-            doNothing().when(authService).logout(any());
+            doNothing().when(authService).logout(any(), any());
 
             mockMvc.perform(post("/auth/logout"))
                     .andExpect(status().isOk())

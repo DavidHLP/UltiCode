@@ -39,11 +39,13 @@ class JwtPropertiesTest {
         }
 
         @Test
-        @DisplayName("accepts short secret without throwing (logs warning)")
-        void shortSecret_doesNotThrow() {
+        @DisplayName("rejects a secret shorter than 32 characters")
+        void shortSecret_throws() {
             jwtProperties = new JwtProperties();
             jwtProperties.setSecret("a".repeat(16));
-            assertThatCode(jwtProperties::validateSecret).doesNotThrowAnyException();
+            assertThatThrownBy(jwtProperties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("at least 32 characters");
         }
 
         @Test

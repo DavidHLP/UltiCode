@@ -28,4 +28,8 @@ export default {
   monitoring: 'Monitoring',
   overview: 'Overview',
   usersAndSecurity: 'Users & Security',
+  problemBank: 'Problem Bank',
+  discussion: 'Discussions',
+  moderationGroup: 'Moderation',
 } as const
+

@@ -44,11 +44,11 @@ function isActive(url: string): boolean {
           >
             <RouterLink v-if="item.url.startsWith('/')" :to="item.url">
               <component :is="item.icon" v-if="item.icon" />
-              <span>{{ item.title }}</span>
+              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
             </RouterLink>
             <a v-else :href="item.url">
               <component :is="item.icon" v-if="item.icon" />
-              <span>{{ item.title }}</span>
+              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
             </a>
           </SidebarMenuButton>
         </SidebarMenuItem>

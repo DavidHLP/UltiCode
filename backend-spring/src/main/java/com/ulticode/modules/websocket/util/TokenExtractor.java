@@ -15,8 +15,7 @@ public class TokenExtractor {
   /**
    * Extract JWT token from WebSocket handshake request.
    *
-   * <p>Tries to extract token from: 1. Auth object in handshake attributes 2. Authorization header
-   * 3. Cookie (access_token) 4. Query parameter (token)
+   * <p>Browser WebSocket authentication is accepted only from the HttpOnly access token cookie.
    *
    * @param request the server HTTP request
    * @return Optional containing the token if found
@@ -26,19 +25,6 @@ public class TokenExtractor {
     if (request instanceof ServletServerHttpRequest servletRequest) {
       var httpRequest = servletRequest.getServletRequest();
 
-      // Try query parameter
-      String queryToken = httpRequest.getParameter("token");
-      if (StringUtils.hasText(queryToken)) {
-        return Optional.of(queryToken);
-      }
-
-      // Try Authorization header
-      String authHeader = httpRequest.getHeader("Authorization");
-      if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-        return Optional.of(authHeader.substring(7));
-      }
-
-      // Try cookie
       String cookie = httpRequest.getHeader("Cookie");
       if (StringUtils.hasText(cookie)) {
         String token = extractTokenFromCookie(cookie);
@@ -76,31 +62,10 @@ public class TokenExtractor {
    */
   @SuppressWarnings("unchecked")
   public Optional<String> extractTokenFromHeaders(Map<String, Object> headers) {
-    // Try auth attribute first (set by HandshakeInterceptor from cookie/query param)
+    // The handshake interceptor sets this attribute from the HttpOnly cookie.
     Object auth = headers.get("auth");
     if (auth instanceof String token && StringUtils.hasText(token)) {
       return Optional.of(token);
-    }
-
-    // Try native headers (for direct WebSocket connections without SockJS)
-    Object nativeHeaders = headers.get("nativeHeaders");
-    if (nativeHeaders instanceof Map) {
-      Map<String, Object> nh = (Map<String, Object>) nativeHeaders;
-
-      // Try token in native headers
-      Object tokenObj = nh.get("token");
-      if (tokenObj instanceof java.util.List<?> tokenList && !tokenList.isEmpty()) {
-        return Optional.of(String.valueOf(tokenList.get(0)));
-      }
-
-      // Try Authorization header
-      Object authObj = nh.get("Authorization");
-      if (authObj instanceof java.util.List<?> authList && !authList.isEmpty()) {
-        String authHeader = String.valueOf(authList.get(0));
-        if (authHeader.startsWith("Bearer ")) {
-          return Optional.of(authHeader.substring(7));
-        }
-      }
     }
 
     return Optional.empty();

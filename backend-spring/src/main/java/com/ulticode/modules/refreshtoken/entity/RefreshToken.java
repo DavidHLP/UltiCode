@@ -25,11 +25,6 @@ public class RefreshToken {
     private String userId;
 
     /**
-     * The refresh token value (JWT)
-     */
-    private String token;
-
-    /**
      * SHA-256 hash of the token for secure lookup
      */
     private String tokenHash;

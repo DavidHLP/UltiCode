@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -79,6 +80,7 @@ public class I18nController {
     @Operation(summary = "Bulk upsert translations", description = "Create or update multiple translations at once")
     @RateLimit(key = "i18n:bulk-upsert", limit = 30, period = 60)
     @PostMapping("/translations/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BulkUpsertDTO> bulkUpsert(
             @Valid @RequestBody BulkUpsertDTO dto,
             @CurrentUser String userId) {
@@ -106,13 +108,10 @@ public class I18nController {
                         ErrorCode.I18N_INVALID_FIELD_NAME.getMessage() + ": " + item.getFieldName());
             }
 
-            // Set createdBy for all translations if not provided
-            if (item.getCreatedBy() == null || item.getCreatedBy().isBlank()) {
-                item.setCreatedBy(userId);
-            }
         }
 
-        BulkUpsertDTO result = i18nService.bulkUpsertTranslations(dto.getTranslations(), dto.isSkipDuplicates());
+        BulkUpsertDTO result = i18nService.bulkUpsertTranslations(
+                dto.getTranslations(), dto.isSkipDuplicates(), userId);
         return Result.success(result);
     }
 

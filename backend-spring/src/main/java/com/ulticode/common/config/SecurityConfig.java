@@ -46,7 +46,9 @@ public class SecurityConfig {
             "/auth/forgot-password",
             "/auth/reset-password",
             "/auth/github",
+            "/auth/github/callback",
             "/auth/google",
+            "/auth/google/callback",
             // Contest endpoints (public read access)
             "/contest/**",
             // Submission status endpoints (public read access)
@@ -119,6 +121,7 @@ public class SecurityConfig {
                         .permitAll()
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )

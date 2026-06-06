@@ -68,7 +68,8 @@ public interface I18nService {
      * @param skipDuplicates whether to skip duplicates instead of updating
      * @return the result with counts of created, updated, and skipped
      */
-    BulkUpsertDTO bulkUpsertTranslations(List<BulkUpsertDTO.TranslationItem> translations, boolean skipDuplicates);
+    BulkUpsertDTO bulkUpsertTranslations(List<BulkUpsertDTO.TranslationItem> translations,
+                                         boolean skipDuplicates, String actorId);
 
     /**
      * Parse Accept-Language header and return the best matching locale.

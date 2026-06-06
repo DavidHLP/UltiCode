@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -76,6 +77,7 @@ public class AchievementController {
     @Operation(summary = "Create achievement (admin only)")
     @RateLimit(key = "achievement:create", limit = 30, period = 60)
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AchievementVO> create(@Valid @RequestBody AchievementDTO dto) {
         return Result.success(achievementService.create(dto));
     }
@@ -83,6 +85,7 @@ public class AchievementController {
     @Operation(summary = "Update achievement (admin only)")
     @RateLimit(key = "achievement:update", limit = 30, period = 60)
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AchievementVO> update(
             @PathVariable String id,
             @Valid @RequestBody AchievementDTO dto) {
@@ -92,6 +95,7 @@ public class AchievementController {
     @Operation(summary = "Delete achievement (admin only)")
     @RateLimit(key = "achievement:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable String id) {
         achievementService.delete(id);
         return Result.success();

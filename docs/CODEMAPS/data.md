@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-30 | Migrations: 42 (+init-db) | Token estimate: ~850 -->
+<!-- Updated: 2026-06-06 | Migration source: init-db/migrations -->
 
 # Data Architecture
 
@@ -45,19 +45,15 @@ V107: contest_participants — added created_at, updated_at
 V108: contest_problems — added created_at, updated_at
 ```
 
-## Migration Tools
+## Migration Tool
 
-### 1. db-manager/ (Spring Boot integrated)
-- 41 migrations total (V1–V108, with gap V32–V98, plus V26.1 sub-version)
-- Latest: V108__add_audit_columns_to_contest_problems.sql
-- Commands: `migrate`, `info`, `validate`, `repair`, `baseline`, `clean --force`
-
-### 2. init-db/ (Standalone Flyway - NEW)
+### init-db/ (Flyway)
 - **Location**: `/home/david/project/UltiCode-Public-Next/init-db/`
-- **Version**: Timestamp-based `V{YYYYMMDDHHMMSS}` format
-- **Baseline**: `V20260530130501__Baseline.sql` — 67 tables from existing database
+- **Version**: Timestamp-based Flyway versions
+- **Latest security migration**:
+  `V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql`
 - **Config**: `flyway.conf` (baselineOnMigrate=true, outOfOrder=false)
-- **Maven**: `pom.xml` with Flyway 10.10.0
+- **Execution**: Maven plugin locally or Flyway 10.17 container in CI/CD
 - **Git Hook**: `validate-migration.sh` for naming convention
 ```
 init-db/
@@ -65,9 +61,9 @@ init-db/
 ├── flyway.conf
 ├── pom.xml
 ├── migrations/
-│   └── V20260530130501__Baseline.sql  (67 tables, 1258 lines)
-└── sql/
-    └── 20260530_ulticode_dump.sql     (original backup)
+│   ├── V20260602_120000__Create_All_Tables.sql
+│   └── V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql
+└── validate-migration.sh
 ```
 
 ### Migration Naming Convention

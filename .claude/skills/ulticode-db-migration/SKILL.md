@@ -12,7 +12,6 @@ metadata:
 ```
 init-db/
 ├── migrations/           # Flyway SQL 迁移脚本 (V*.sql)
-├── sql/                  # 原始 SQL dump 文件
 └── flyway.conf           # Flyway CLI 配置
 ```
 
@@ -31,11 +30,9 @@ init-db/
 ## 运行迁移
 
 ```bash
-# 独立运行（不依赖 backend-spring）
-cd init-db && mvn flyway:migrate
-
-# 通过 backend-spring（开发时自动运行）
-cd backend-spring && ./mvnw spring-boot:run
+./scripts/dev/migrate.sh migrate
+./scripts/dev/migrate.sh validate
+./scripts/dev/migrate.sh info
 ```
 
 ## 配置来源
@@ -46,7 +43,7 @@ cd backend-spring && ./mvnw spring-boot:run
 DB_HOST=localhost
 DB_PORT=23306
 DB_USER=ulticode
-DB_PASSWORD=ulticode
+DB_PASSWORD=<generated-private-value>
 DB_NAME=ulticode
 ```
 
@@ -54,10 +51,12 @@ DB_NAME=ulticode
 
 ```bash
 # Docker 容器内操作
-docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "USE ulticode; SHOW TABLES;"
+set -a; source .env; set +a
+docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
+  mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e "SHOW TABLES;"
 
 # 客户端直连
-mysql -h 127.0.0.1 -P 23306 -u ulticode -pulticode ulticode
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p "$DB_NAME"
 ```
 
 ## 迁移规则

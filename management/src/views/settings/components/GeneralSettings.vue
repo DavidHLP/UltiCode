@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -7,8 +8,14 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
 import type { AllSettings } from '@/api/admin/settings'
+import { useTheme } from '@/composables/useTheme'
+import { Sun, Moon, Laptop } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const { theme: themeRef, setTheme } = useTheme()
+// vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons;
+// expose the value as a `ComputedRef` to match the project convention.
+const theme = computed(() => themeRef.value)
 
 const props = defineProps<{
   settings: AllSettings
@@ -49,6 +56,62 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
             @update:model-value="updateField('site_description', String($event))"
             placeholder="Competitive Programming Platform"
           />
+        </div>
+      </CardContent>
+    </Card>
+
+    <!-- Appearance Settings Card -->
+    <Card>
+      <CardHeader>
+        <div class="flex items-center gap-2">
+          <IconSettings class="h-5 w-5 text-muted-foreground" />
+          <CardTitle>{{ t('settings.appearance.theme') }}</CardTitle>
+        </div>
+        <CardDescription>{{ t('settings.appearance.themeDescription') }}</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            :class="[
+              theme === 'light'
+                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+            ]"
+            @click="setTheme('light')"
+          >
+            <Sun class="size-4 text-[var(--solarized-yellow)]" />
+            <span>{{ t('settings.appearance.light') }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            :class="[
+              theme === 'dark'
+                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+            ]"
+            @click="setTheme('dark')"
+          >
+            <Moon class="size-4 text-[var(--solarized-blue)]" />
+            <span>{{ t('settings.appearance.dark') }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="flex-1 flex items-center justify-center gap-2 h-10 border font-mono text-xs uppercase tracking-wider transition-all cursor-pointer rounded-none"
+            :class="[
+              theme === 'system'
+                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+            ]"
+            @click="setTheme('system')"
+          >
+            <Laptop class="size-4" />
+            <span>{{ t('settings.appearance.system') }}</span>
+          </button>
         </div>
       </CardContent>
     </Card>

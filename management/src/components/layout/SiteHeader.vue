@@ -11,6 +11,7 @@ import {
   IconSettings,
 } from '@tabler/icons-vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -153,6 +154,12 @@ onUnmounted(() => {
           <IconBell class="size-4" />
           <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-[var(--status-error)] rounded-none"></span>
         </button>
+
+        <!-- Vertical Divider -->
+        <span class="h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>
+
+        <!-- Theme Switcher -->
+        <ThemeSwitcher />
 
         <!-- Vertical Divider -->
         <span class="h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>

@@ -1,42 +1,103 @@
-Codemap Update Report - 2026-05-30
+Codemap Update Report - 2026-06-06
 ==================================
 
-Files Scanned: 1964 (↑104 from last scan)
-Codemaps Updated: 2 (architecture.md, data.md)
+Files Scanned    : 1688 (was 1964 — ↓276 from last scan, due to
+                   removal of recommend-* services and stale .reports artefacts)
+Backend Java     : 667
+Console Vue/TS   : 341 / 206
+Management Vue   : 474
+Migrations       : 17 (was 1 baseline + V99-V108 → now timestamped V202606*)
+Codemaps Updated : 5 (all)
 
 Change Summary
 -------------
-[MINOR] docs/CODEMAPS/architecture.md
-  - Added Migration Strategy section documenting dual Flyway setup
-  - Updated token/files counts
+[MAJOR] docs/CODEMAPS/architecture.md
+  - Removed `recommend-provider` (:20881) and `recommend-web` (:9005) services
+  - Simplified ASCII diagram to 3-service topology (FE / BE / infra)
+  - Shared packages: 1 → 3 (added badge-config, design-system)
+  - Removed Dubbo from service list
 
-[MINOR] docs/CODEMAPS/data.md
-  - Confirmed init-db section present (from last update)
-  - No material changes needed
+[MAJOR] docs/CODEMAPS/backend.md
+  - Modules: 27 → 26 (recommendation/ removed entirely)
+  - Controllers: 41 → 43 (15 in admin incl. new audit + dashboard controllers)
+  - Removed Dubbo 3.2.14 dependency; recommend-* modules gone
+  - Flagged console/management `recommendation.ts` and `recommend-*` API files
+    as orphan / dead code (no backend endpoint)
 
-Files Unchanged
---------------
-- backend.md — current (2 migrations since review)
-- frontend.md — current
-- dependencies.md — current
+[MAJOR] docs/CODEMAPS/frontend.md
+  - Console: new `features/sider/AppLayout.vue` and `features/layout/...`
+    folder structure; forum + contest routes rewrap with this layout
+  - Console stores: added `stores/contest/` subfolder (index + rankingStore)
+  - Management stores: expanded to `stores/admin/` with 13 sub-stores incl.
+    `moderation/moderationStore.ts` (16.7 KB)
+  - Frontend dep versions bumped across the board
+    (vue 3.5.25→3.5.34, vite 8.0.8→8.0.14, vue-i18n 11.3.2→11.4.4, etc.)
+  - Console deps: added echarts 6, @vue-dnd-kit/core 1.7, @monaco-editor/loader,
+    @stomp/stompjs 7.3, dompurify 3.4.5
+  - Management deps: switched DnD from vue-dnd-kit to @dnd-kit/*; added
+    @tanstack/vue-table, @vee-validate/zod, date-fns
+
+[MAJOR] docs/CODEMAPS/data.md
+  - Replaced V1–V108 numbering scheme with 17 timestamped migrations
+  - Latest security migration: V20260606130000 (Secure_Refresh_Tokens_And_Lock_Seed_Accounts)
+  - Documented seed/data migrations (V20260603*) separately from baseline
+  - Added edge_operations / refresh_tokens / oauth_states / csrf_tokens /
+    audit_logs / recommendation_seed_* to table groups
+  - Note: `recommendation_seed_*` tables are now orphaned since the
+    recommendation module is removed
+
+[MAJOR] docs/CODEMAPS/dependencies.md
+  - Removed Dubbo 3.2.14 + entire recommend-* module set
+  - Updated all FE dep versions (vue, vite, pinia, vue-router, vue-i18n, etc.)
+  - Added new FE deps: echarts, monaco-editor/loader, stompjs, dnd-kit, etc.
+  - Shared: 1 package → 3 packages
+
+Architecture Changes (since 2026-05-30)
+---------------------------------------
+1. RECOMMENDATION SYSTEM REMOVED
+   - Backend `modules/recommendation/` deleted
+   - Removed :20881 (Provider) and :9005 (Web) services from docker-compose
+   - Dubbo dependency dropped from pom.xml
+   - Frontend `recommendation.ts` / `recommend-*` API calls now hit non-existent
+     endpoints — **dead code**, schedule for cleanup
+
+2. SHARED PACKAGE EXPANSION
+   - `shared/auth-core/` (existing)
+   - `shared/badge-config/` (new)
+   - `shared/design-system/` (new)
+
+3. CONSOLE LAYOUT REFACTOR
+   - New `features/sider/AppLayout.vue` and `features/layout/...` tree
+   - Forum + contest route groups now wrap children with the dockable sidebar
+
+4. MANAGEMENT STORES EXPANSION
+   - `stores/admin/` subfolder with 13 sub-stores
+   - `moderation/moderationStore.ts` (16.7 KB) is the largest stateful store
+
+5. SECURITY MIGRATION (V20260606130000)
+   - Refresh tokens rotated, seed accounts locked
+   - Mandatory in migration history; do not delete
 
 New Artifacts (since last scan)
-------------------------------
-[NEW] init-db/ — Standalone Flyway migration tool
-  - README.md (156 lines)
-  - flyway.conf (26 lines)
-  - pom.xml (Maven, Flyway 10.10.0)
-  - migrations/V20260530130501__Baseline.sql (67 tables, 1258 lines)
-  - sql/20260530_ulticode_dump.sql (original backup)
-  - validate-migration.sh (39 lines, executable)
-
-[NEW] db-manager/migrations/V108__add_audit_columns_to_contest_problems.sql
-
-Architecture Changes
--------------------
-- Contest phase 6 management alignment (feat/contest-phase6-management-alignment branch)
-- init-db baseline completed successfully (67 tables in 3s)
+-------------------------------
+- docs/CODEMAPS/ (5 files, all rewritten)
+- shared/badge-config/ (new)
+- shared/design-system/ (new)
+- console/src/features/{sider,layout}/ (new folders)
+- console/src/stores/contest/ (new subfolder)
+- management/src/stores/admin/ (new subfolder with 13 stores)
 
 Staleness Warnings
------------------
-None — all codemaps updated within 7 days
+------------------
+- console/src/api/recommendation.ts, console/src/views/recommendations/
+  (4 views), management/src/views/recommendations — orphaned after backend
+  module removal; do not call from new code
+- Old `dist/` artefacts in console / management still present from prior
+  builds (gitignored — informational only)
+
+Open Follow-up
+--------------
+1. Remove console/management `recommendation*` API + view files (dead code)
+2. Audit for residual references to `recommend-*` modules in CI workflows
+3. Drop leftover recommendation tables from a future migration
+4. Update AGENTS.md / CLAUDE.md module list to match new 26-module backend

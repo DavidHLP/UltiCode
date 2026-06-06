@@ -70,7 +70,7 @@ cd management && pnpm dev
 
 ## Available Commands
 
-<!-- AUTO-GENERATED: Scripts from package.json -->
+<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-06) -->
 
 ### Console Frontend (console/)
 
@@ -78,11 +78,12 @@ cd management && pnpm dev
 |---------|-------------|
 | `pnpm dev` | Start dev server with lint + type-check + format + test |
 | `pnpm build` | Production build with type checking |
+| `pnpm build-only` | Vite build only (no type check) |
 | `pnpm preview` | Preview production build locally |
 | `pnpm type-check` | Run vue-tsc type checker |
 | `pnpm lint` | ESLint with auto-fix |
 | `pnpm format` | Prettier auto-format (no semicolons, single quotes) |
-| `pnpm test` | Vitest unit tests |
+| `pnpm test` | Vitest unit tests (excludes `**/auth-core/**`) |
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:coverage` | Vitest with coverage report |
 | `pnpm validate:mocks` | Validate mock data files |
@@ -91,11 +92,12 @@ cd management && pnpm dev
 
 ### Management Frontend (management/)
 
-Same commands as console, plus:
+Same scripts as console, plus:
 
 | Command | Description |
 |---------|-------------|
-| `pnpm validate:i18n-keys` | Validate i18n key consistency |
+| `pnpm validate:i18n-keys` | Validate i18n key consistency across locales |
+| `pnpm check:i18n` | Type-aware i18n key checker |
 
 ### Backend (backend-spring/)
 
@@ -108,24 +110,47 @@ Same commands as console, plus:
 | `./mvnw verify` | Tests plus JaCoCo report/check |
 | `./mvnw compile` | Compile only |
 
-> Note: Backend is started via PM2 using `start.cjs` wrapper (see `ecosystem.config.cjs`). |
+> Backend is started via PM2 using `ecosystem.config.cjs` (entries
+> `ulticode-9001`, `ulticode-9002`, `ulticode-9003`, `ulticode-arthas`).
 
-### Database Migrations
+### Database Migrations (init-db/)
 
 | Command | Description |
 |---------|-------------|
-| `cd init-db && mvn flyway:info` | View migration status |
-| `cd init-db && mvn flyway:migrate` | Apply migrations |
+| `./scripts/dev/migrate.sh info` | View migration status |
+| `./scripts/dev/migrate.sh migrate` | Apply all pending migrations |
+| `./scripts/dev/migrate.sh validate` | Validate applied migrations |
+| `./scripts/dev/migrate.sh baseline` | Baseline an existing DB |
+| `cd init-db && mvn flyway:info` | Same as above, direct Maven |
+| `cd init-db && mvn flyway:migrate` | Apply migrations via Maven |
 | `cd init-db && mvn flyway:baseline` | Create baseline for existing DB |
 
-Migration naming: `V{YYYYMMDDHHMMSS}__{Description}.sql`
+Migration naming: `V{YYYYMMDDHHMMSS}__{Description}.sql` (see
+`init-db/validate-migration.sh` for naming enforcement).
 
 ### Docker
 
 | Command | Description |
 |---------|-------------|
-| `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` | Start dev infrastructure |
-| `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` | Production mode |
+| `./scripts/dev/up.sh` | Start infra + migrate + install + launch (all-in-one) |
+| `./scripts/dev/up.sh --skip-install` | Skip pnpm install if deps unchanged |
+| `./scripts/dev/test.sh quick` | Run unit tests only (skip integration) |
+| `./scripts/dev/test.sh full` | Run all tests including `*IT.java` |
+| `./scripts/dev/test.sh integration` | Run integration tests only |
+| `docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d` | Start dev infrastructure only |
+| `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` | Production-mode container topology |
+
+### Runtime Debugging
+
+| Command | Description |
+|---------|-------------|
+| `pm2 start ecosystem.config.cjs` | First-time start all services |
+| `pm2 start all` | Start saved process list |
+| `pm2 status` / `pm2 logs` / `pm2 monit` | Inspect running services |
+| `pm2 restart ulticode-9001` | Restart backend (after env/code change) |
+| `pm2 save` / `pm2 resurrect` | Persist / restore process list |
+| `./scripts/start-arthas.sh` | Attach Arthas MCP to Spring Boot JVM (PM2) |
+| `java -jar tools/arthas-boot.jar --attach-only --http-port 8563 <PID>` | Manual Arthas attach |
 
 <!-- AUTO-GENERATED -->
 

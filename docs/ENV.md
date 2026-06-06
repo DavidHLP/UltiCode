@@ -56,6 +56,31 @@ Use `./scripts/dev/up.sh --skip-install` after the first successful run.
 | `CORS_ALLOWED_ORIGINS` | Local console/management origins | Backend |
 | `FRONTEND_URL` | `http://localhost:9002` | Password reset links |
 
+## Frontend Variables (Vite)
+
+Both Vue apps read the same Vite env block at build / dev time.
+
+| Variable | Default | Consumer |
+|----------|---------|----------|
+| `VITE_API_BASE_URL` | `http://localhost:9001` | Console, Management |
+| `VITE_ADMIN_BASE_URL` | `http://localhost:9003` | Console cross-link |
+| `VITE_TEST_USERNAME` | `admin` | E2E test login (Playwright) |
+| `VITE_TEST_PASSWORD` | `admin123` | E2E test login (Playwright) |
+
+## Sandbox & Local Features
+
+| Variable | Default | Consumer |
+|----------|---------|----------|
+| `SANDBOX_IMAGE` | `ulticode-sandbox:latest` | Submission sandbox |
+| `SANDBOX_MEMORY` | `256m` | Submission sandbox |
+| `SANDBOX_CPUS` | `1.0` | Submission sandbox |
+| `SANDBOX_TIMEOUT` | `10` | Submission sandbox |
+| `SANDBOX_PIDS_LIMIT` | `128` | Submission sandbox |
+| `SANDBOX_SECCOMP_PROFILE` | `docker/sandbox/seccomp-profile.json` | Submission sandbox |
+| `BACKUP_DIR` | `/tmp/ulticode-backups` | DB backup module |
+| `AUDIT_EXPORT_LIMIT` | `10000` | Audit log export |
+| `SPRINGDOC_ENABLED` | `true` | OpenAPI docs |
+
 ## Nacos Variables
 
 | Variable | Development behavior |
@@ -97,7 +122,7 @@ Set `DEV_SEED_USERS_ENABLED=false` to preserve all database accounts unchanged.
 These credentials are intentionally weak and must never be reused outside a local,
 disposable development database.
 
-## Optional Features
+## Optional Integrations (off by default)
 
 These are disabled by default so a developer needs only Docker, Java, Maven, Node,
 pnpm, and PM2:
@@ -108,7 +133,13 @@ pnpm, and PM2:
 | `MEILISEARCH_ENABLED` | `false` |
 | `SANDBOX_ENABLED` | `false` |
 | `SPRINGDOC_ENABLED` | `true` |
-| OAuth client IDs/secrets | Empty |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Empty |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Empty |
+| `GITHUB_REDIRECT_URI` | `http://localhost:9001/auth/github/callback` |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:9001/auth/google/callback` |
+| `SMTP_HOST` / `SMTP_PORT` | `localhost:1025` (MailHog default) |
+| `SMTP_USER` / `SMTP_PASSWORD` | Empty |
+| `EMAIL_FROM_NAME` | `UltiCode Dev` |
 
 Enable the sandbox after building its image:
 
@@ -117,6 +148,23 @@ docker build -t ulticode-sandbox:latest docker/sandbox
 sed -i 's/^SANDBOX_ENABLED=false/SANDBOX_ENABLED=true/' .env
 pm2 restart ulticode-9001 --update-env
 ```
+
+## Administrator Bootstrap (opt-in)
+
+These variables are **disabled by default** in development. The bootstrap runner
+is a one-time seed mechanism for the very first admin account, not a recurring
+mechanism. It is intentionally separate from `DevUserBootstrapRunner`.
+
+| Variable | Default |
+|----------|---------|
+| `APP_BOOTSTRAP_ADMIN_ENABLED` | `false` |
+| `APP_BOOTSTRAP_ADMIN_USERNAME` | Empty |
+| `APP_BOOTSTRAP_ADMIN_EMAIL` | Empty |
+| `APP_BOOTSTRAP_ADMIN_PASSWORD` | Empty |
+
+> In production, manage the initial administrator through your secret manager and
+> rotation policy. Do not enable `APP_BOOTSTRAP_ADMIN_ENABLED=true` in any
+> environment that has ever run with real user data.
 
 ## Test Environment
 

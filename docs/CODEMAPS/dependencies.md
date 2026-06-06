@@ -1,82 +1,106 @@
-<!-- Generated: 2026-05-23 | Token estimate: ~750 -->
+<!-- Generated: 2026-06-06 | Token estimate: ~700 -->
 
 # Dependencies & Integrations
 
 ## Backend (backend-spring)
 
-| Category | Technology | Version |
-|----------|-----------|---------|
-| Framework | Spring Boot | 3.2.5 |
-| Runtime | Java | 17 |
-| ORM | MyBatis-Plus | 3.5.16 |
-| DTO Mapping | MapStruct | 1.6.3 |
-| Auth | jjwt | 0.13.0 |
-| Cache/Session | Redisson | 4.3.1 |
-| API Docs | SpringDoc OpenAPI | 2.6.0 |
-| RPC | Dubbo | 3.2.14 |
-| Utilities | Hutool | 5.8.44 |
-| Search | MeiliSearch SDK | 0.20.0 |
-| HTTP Client | OkHttp | 5.3.2 |
-| Security | OWASP Encoder | 1.4.0 |
-| Testing | JUnit 5 + Testcontainers | 1.21.4 |
-| Coverage | JaCoCo | 0.8.12 |
+| Category        | Technology                  | Version |
+| --------------- | --------------------------- | ------- |
+| Framework       | Spring Boot                 | 3.2.5   |
+| Runtime         | Java                        | 17      |
+| ORM             | MyBatis-Plus                | 3.5.16  |
+| DTO Mapping     | MapStruct                   | 1.6.3   |
+| Auth            | jjwt                        | 0.13.0  |
+| Cache/Session   | Redisson                    | 4.3.1   |
+| API Docs        | SpringDoc OpenAPI           | 2.6.0   |
+| Utilities       | Hutool                      | 5.8.44  |
+| Search          | MeiliSearch SDK             | 0.20.0  |
+| HTTP Client     | OkHttp                      | 5.3.2   |
+| Security        | OWASP Encoder               | 1.4.0   |
+| Testing         | JUnit 5 + Testcontainers    | 1.21.4  |
+| Coverage        | JaCoCo                      | 0.8.12  |
+| **Removed**     | ~~Dubbo 3.2.14~~            | —       |
 
-## Frontend (console + management)
+> Dubbo and the entire `recommend-*` module set (recommend-api / -core /
+> -feature / -provider / -web / -spark) have been removed from active scope.
+> The `:20881` (Provider) and `:9005` (Web) ports are no longer published.
 
-| Category | Technology | Version |
-|----------|-----------|---------|
-| Framework | Vue | 3.5.x |
-| Build | Vite | 8.0.x |
-| State | Pinia | 3.0.4 |
-| Routing | Vue Router | 5.0.4 |
-| CSS | Tailwind CSS | v4.1.x |
-| i18n | vue-i18n | 11.3.2 |
-| UI | shadcn-vue (reka-ui), Radix Vue, Lucide icons |
-| HTTP | Axios |
-| PWA | vite-plugin-pwa + workbox (console only) |
-| Testing | Vitest 4.x, jsdom |
-| E2E | Playwright (management only) |
-| Linting | ESLint 9.x (console) / 10.x (management) |
-| Formatting | Prettier (semi: false, singleQuote, printWidth: 100) |
-| Type Check | TypeScript ~6.0.3 |
+## Frontend — Console
+
+| Category        | Technology                       | Version  |
+| --------------- | -------------------------------- | -------- |
+| Framework       | Vue                              | ^3.5.34  |
+| Build           | Vite                             | ^8.0.14  |
+| State           | Pinia                            | ^3.0.4   |
+| Routing         | Vue Router                       | ^5.0.7   |
+| CSS             | Tailwind CSS                     | ^4.3.0   |
+| i18n            | vue-i18n                         | ^11.4.4  |
+| UI              | shadcn-vue (reka-ui), Lucide     | latest   |
+| HTTP            | Axios                            | ^1.13.2  |
+| Composables     | @vueuse/core                     | ^14.1.0  |
+| Sanitize        | dompurify                        | ^3.4.5   |
+| Charts          | echarts                          | ^6.1.0   |
+| Data viz        | @unovis/ts + @unovis/vue         | ^1.6.2   |
+| DnD             | @vue-dnd-kit/core                | 1.7.0    |
+| Code editor     | @monaco-editor/loader            | ^1.7.0   |
+| WebSocket       | @stomp/stompjs                   | ^7.3.0   |
+| Virtual list    | @tanstack/vue-virtual            | ^3.13.18 |
+| KaTeX           | @mdit/plugin-katex               | ^0.25.2  |
+| Icons           | @tabler/icons-vue                | ^3.36.1  |
+| PWA             | vite-plugin-pwa + workbox        | latest   |
+| Testing         | Vitest 4.1.7, jsdom              | —        |
+| Linting         | ESLint 10.4.0                    | —        |
+| Formatting      | Prettier (semi:false, singleQuote, 100c) | — |
+| Type Check      | TypeScript ~6.0.3                | —        |
+
+## Frontend — Management
+
+| Category        | Technology                       | Version  |
+| --------------- | -------------------------------- | -------- |
+| Framework       | Vue                              | ^3.5.34  |
+| Build           | Vite                             | ^8.0.14  |
+| State           | Pinia                            | ^3.0.4   |
+| Routing         | Vue Router                       | ^5.0.4   |
+| CSS             | Tailwind CSS                     | ^4.3.0   |
+| i18n            | vue-i18n                         | ^11.4.4  |
+| HTTP            | Axios                            | ^1.16.1  |
+| Composables     | @vueuse/core                     | ^14.3.0  |
+| Sanitize        | dompurify                        | ^3.4.5   |
+| Data viz        | @unovis/ts + @unovis/vue         | ^1.6.5   |
+| Data table      | @tanstack/vue-table              | ^8.21.3  |
+| DnD             | @dnd-kit/abstract + @dnd-kit/dom + @dnd-kit/modifiers | 0.1.21 / 0.1.21 / 9.0.0 |
+| Forms           | @vee-validate/zod                | ^4.15.1  |
+| Date            | date-fns                         | ^4.3.0   |
+| KaTeX           | @mdit/plugin-katex               | ^0.25.2  |
+| Icons           | @tabler/icons-vue                | ^3.44.0  |
+| E2E             | Playwright                       | latest   |
+| Testing         | Vitest 4.1.7                     | —        |
+| Linting         | ESLint 10.4.0                    | —        |
+| Type Check      | TypeScript ~6.0.3                | —        |
 
 ## Shared
 
-| Package | Version | Notes |
-|---------|---------|-------|
-| shared/auth-core | 0.0.1 | TS ~5.9.3, Vue composable for auth |
+| Package                | Purpose                                                |
+| ---------------------- | ------------------------------------------------------ |
+| `shared/auth-core`     | Vue composable: cookie/CSRF/auth-state/permission      |
+| `shared/badge-config`  | Achievement / badge token config (shared by both FEs)  |
+| `shared/design-system` | Design tokens + Tailwind preset + shared Vue components |
 
-## Infrastructure
+## Infrastructure (docker-compose)
 
-| Service | Image | Port |
-|---------|-------|------|
-| MySQL | mysql:9.1 | 23306 |
-| Redis | redis:7-alpine | 26379 |
-| Nacos | nacos:v2.3.2 | 28848 |
+| Service | Image                       | Host Port  | Container            |
+| ------- | --------------------------- | ---------- | -------------------- |
+| MySQL   | mysql:9.1                   | 23306      | ulticode-mysql       |
+| Redis   | redis:7-alpine              | 26379      | ulticode-redis       |
+| Nacos   | nacos/nacos-server:v2.3.2   | 28848      | ulticode-nacos       |
 
-## Recommendation System
-
-| Module | Purpose |
-|--------|---------|
-| recommend-api | Dubbo service interfaces + DTOs |
-| recommend-core | Recall (CF/Hot/Content/ColdStart) → Rank (RuleRankStrategy) → Re-rank (Diversity/Freshness) |
-| recommend-feature | ProblemFeatureExtractor, UserFeatureExtractor, FeatureStore |
-| recommend-provider | Dubbo service provider (:20881), RedisRecommendationStore |
-| recommend-web | REST API gateway (:9005) |
-| recommend-spark | Apache Spark 3.5.1 offline batch (CFTrainingJob, SimilarityJob, OfflineFeatureJob) |
-
-## Production Docker (docker-compose.prod.yml)
-
-- Images from GHCR: `ghcr.io/davidhlp/ulticode-public-next/...`
-- Backend: 1G RAM / 2 CPU, actuator healthcheck
-- Console/Management: 256M / 0.5 CPU each
-- Recommend-provider (:20881) + recommend-web (:9005) on `app-network`
-- All services: `restart: unless-stopped`, JSON log driver with rotation
-- **Known issue**: `app-network` referenced but not defined in compose files
+Backend / Console / Management run as host processes under PM2 (dev) or as
+container images from GHCR (prod). Base / production compose **does not**
+publish the infra ports externally.
 
 ## CI/CD
 
-- GitHub Actions on push/PR to main
+- GitHub Actions on push / PR to main
 - Path-based change detection (backend, frontend, docker, testcontainers)
 - Backend: Maven build + test (ci profile) + Flyway validation
 - Frontend: lint + type-check + test

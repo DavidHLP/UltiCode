@@ -14,12 +14,13 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix --cache",
     "format": "prettier --write src/",
-    "test": "vitest --run --passWithNoTests --exclude '**/auth-core/**'",
+    "test": "vitest --run --passWithNoTests --exclude '**/auth-core/**' --exclude '**/shared/theme/**'",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
     "validate:mocks": "node scripts/validate-mock-data.mjs",
     "validate:mocks:verbose": "node scripts/validate-mock-data.mjs --verbose",
-    "validate:mocks:strict": "node scripts/validate-mock-data.mjs --strict"
+    "validate:mocks:strict": "node scripts/validate-mock-data.mjs --strict",
+    "verify:theme-sync": "node ../scripts/verify-theme-sync.mjs"
   },
   "dependencies": {
     "@internationalized/date": "^3.12.1",

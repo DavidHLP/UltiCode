@@ -73,34 +73,41 @@ const overviewItems = computed(() => {
 
 const contentItems = computed(() => {
   const items = []
+
+  // 1. Problem Bank Group
+  const bankSubItems = []
   if (authStore.hasPermission('READ', 'PROBLEM')) {
-    items.push({
+    bankSubItems.push({
       title: t('nav.problems'),
       url: '/problems',
       icon: IconListDetails,
     })
   }
   if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
-    items.push({
+    bankSubItems.push({
       title: t('nav.problemLists'),
       url: '/problem-lists',
       icon: IconListDetails,
     })
   }
   if (authStore.hasPermission('READ', 'TAG')) {
-    items.push({
+    bankSubItems.push({
       title: t('nav.tags'),
       url: '/tags',
       icon: IconTags,
     })
   }
-  if (authStore.hasPermission('READ', 'SOLUTION')) {
+
+  if (bankSubItems.length > 0) {
     items.push({
-      title: t('nav.solutions'),
-      url: '/solutions',
-      icon: IconFileDescription,
+      title: t('nav.problemBank'),
+      url: '#',
+      icon: IconListDetails,
+      items: bankSubItems,
     })
   }
+
+  // 2. Contests (Single item)
   if (authStore.hasPermission('READ', 'CONTEST')) {
     items.push({
       title: t('nav.contests'),
@@ -108,6 +115,8 @@ const contentItems = computed(() => {
       icon: IconTrophy,
     })
   }
+
+  // 3. Submissions (Single item)
   if (authStore.hasPermission('READ', 'PROBLEM')) {
     items.push({
       title: t('nav.submissions'),
@@ -115,26 +124,50 @@ const contentItems = computed(() => {
       icon: IconCode,
     })
   }
+
+  // 4. Discussions Group
+  const discussionSubItems = []
+  if (authStore.hasPermission('READ', 'SOLUTION')) {
+    discussionSubItems.push({
+      title: t('nav.solutions'),
+      url: '/solutions',
+      icon: IconFileDescription,
+    })
+  }
   if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
-    items.push({
+    discussionSubItems.push({
       title: t('nav.forum'),
       url: '/forum/posts',
       icon: IconMessages,
     })
   }
+
+  if (discussionSubItems.length > 0) {
+    items.push({
+      title: t('nav.discussion'),
+      url: '#',
+      icon: IconMessages,
+      items: discussionSubItems,
+    })
+  }
+
   return items
 })
 
 const userSecurityItems = computed(() => {
-  const items = [
-    {
-      title: t('nav.users'),
-      url: '/users',
-      icon: IconUsers,
-    },
-  ]
+  const items = []
+
+  // 1. Users (Single item)
+  items.push({
+    title: t('nav.users'),
+    url: '/users',
+    icon: IconUsers,
+  })
+
+  // 2. Moderation Group
+  const moderationSubItems = []
   if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
-    items.push({
+    moderationSubItems.push({
       title: t('nav.moderation'),
       url: '/moderation',
       icon: IconReport,
@@ -144,12 +177,23 @@ const userSecurityItems = computed(() => {
     authStore.hasPermission('MODERATE', 'FORUM_COMMENT') ||
     authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT')
   ) {
-    items.push({
+    moderationSubItems.push({
       title: t('nav.comments'),
       url: '/comments',
       icon: IconMessageCircle,
     })
   }
+
+  if (moderationSubItems.length > 0) {
+    items.push({
+      title: t('nav.moderationGroup'),
+      url: '#',
+      icon: IconReport,
+      items: moderationSubItems,
+    })
+  }
+
+  // 3. Notifications (Single item)
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({
       title: t('nav.notifications'),
@@ -157,8 +201,10 @@ const userSecurityItems = computed(() => {
       icon: IconBell,
     })
   }
+
   return items
 })
+
 
 const navSecondary = computed(() => {
   const items = []

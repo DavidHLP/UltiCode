@@ -48,6 +48,6 @@ ENV SERVER_PORT=9001
 EXPOSE 9001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:9001/actuator/health || exit 1
+    CMD curl -fsS 'http://localhost:9001/contest?page=1&size=1' >/dev/null || exit 1
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

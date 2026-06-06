@@ -405,7 +405,6 @@ class I18nServiceTest {
             item.setFieldName("title");
             item.setLocale("zh-CN");
             item.setContent("New Translation");
-            item.setCreatedBy("user-1");
             items.add(item);
 
             // Return empty list to indicate no existing translations (batch query)
@@ -413,7 +412,7 @@ class I18nServiceTest {
             when(translationMapper.insert(any(Translation.class))).thenReturn(1);
 
             // Act
-            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false);
+            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false, "user-1");
 
             // Assert
             assertNotNull(result);
@@ -434,7 +433,6 @@ class I18nServiceTest {
             item.setFieldName("title");
             item.setLocale("zh-CN");
             item.setContent("Updated Translation");
-            item.setCreatedBy("user-1");
             items.add(item);
 
             Translation existing = new Translation();
@@ -450,13 +448,14 @@ class I18nServiceTest {
             when(translationMapper.updateById(any(Translation.class))).thenReturn(1);
 
             // Act
-            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false);
+            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false, "user-1");
 
             // Assert
             assertNotNull(result);
             assertEquals(0, result.getCreated());
             assertEquals(1, result.getUpdated());
             assertEquals(0, result.getSkipped());
+            assertEquals("user-1", existing.getUpdatedBy());
         }
 
         @Test
@@ -471,7 +470,6 @@ class I18nServiceTest {
             item.setFieldName("title");
             item.setLocale("zh-CN");
             item.setContent("Updated Translation");
-            item.setCreatedBy("user-1");
             items.add(item);
 
             Translation existing = new Translation();
@@ -486,7 +484,7 @@ class I18nServiceTest {
             when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Arrays.asList(existing));
 
             // Act
-            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, true);
+            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, true, "user-1");
 
             // Assert
             assertNotNull(result);
@@ -499,7 +497,8 @@ class I18nServiceTest {
         @DisplayName("should handle empty list")
         void shouldHandleEmptyList() {
             // Act
-            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(Collections.emptyList(), false);
+            BulkUpsertDTO result =
+                    i18nService.bulkUpsertTranslations(Collections.emptyList(), false, "user-1");
 
             // Assert
             assertNotNull(result);
@@ -512,7 +511,7 @@ class I18nServiceTest {
         @DisplayName("should handle null list")
         void shouldHandleNullList() {
             // Act
-            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(null, false);
+            BulkUpsertDTO result = i18nService.bulkUpsertTranslations(null, false, "user-1");
 
             // Assert
             assertNotNull(result);

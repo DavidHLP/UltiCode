@@ -79,7 +79,15 @@ class JwtTokenProviderTest {
 
             assertThat(token).isNotBlank();
             assertThat(jwtTokenProvider.getUserIdFromToken(token)).isEqualTo(USER_ID);
+            assertThat(jwtTokenProvider.getUserIdFromRefreshToken(token)).isEqualTo(USER_ID);
             assertThat(jwtTokenProvider.validateToken(token)).isTrue();
+        }
+
+        @Test
+        @DisplayName("rejects an access token as a refresh token")
+        void accessToken_isNotRefreshToken() {
+            String token = jwtTokenProvider.generateAccessToken(USER_ID, USERNAME, ROLE);
+            assertThat(jwtTokenProvider.getUserIdFromRefreshToken(token)).isNull();
         }
     }
 

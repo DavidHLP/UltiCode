@@ -83,9 +83,13 @@ export function useSubmissionDetail(
   const { t } = useI18n();
 
   const parseMs = (value: string | number) => {
-    if (typeof value === "number") return value;
+    if (typeof value === "number") {
+      return Number.isFinite(value) && value >= 0 ? value : null;
+    }
     const m = /([0-9]+)\s*ms/.exec(value);
-    return m ? Number(m[1]) : null;
+    if (!m) return null;
+    const parsed = Number(m[1]);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   };
 
   const runtimeMs = computed(() =>
@@ -186,9 +190,12 @@ export function useSubmissionDetail(
 
   const startPendingTimer = () => {
     if (pendingTimer) return;
-    const created = new Date(
-      submission()?.submittedAt ?? submission()?.created_at ?? "",
-    ).getTime();
+    // `created_at` is the canonical snake_case field on `SubmissionRecord`;
+    // `submittedAt` is an optional alias some payloads include. We prefer
+    // the primary field and only fall back to the alias when it is missing.
+    const createdAtRaw =
+      submission()?.created_at ?? submission()?.submittedAt ?? "";
+    const created = new Date(createdAtRaw).getTime();
     if (Number.isNaN(created)) return;
     pendingTimer = setInterval(() => {
       pendingSeconds.value = Math.floor((Date.now() - created) / 1000);

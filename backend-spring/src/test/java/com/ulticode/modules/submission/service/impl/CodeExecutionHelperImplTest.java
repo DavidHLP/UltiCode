@@ -79,4 +79,35 @@ class CodeExecutionHelperImplTest {
         assertThat(process.exitValue()).as(stderr).isZero();
         return stdout;
     }
+
+    @Test
+    @DisplayName("per-case timeout floor prevents subprocess.run(timeout=0) when many cases")
+    void resolvePerCaseTimeoutSeconds_largeCaseCount_floorsAtOneSecond() {
+        // Regression for review H2: 30 cases splits the budget to 1s
+        // per case; 31+ would previously degrade to 0s which is invalid for
+        // subprocess.run and would crash the wrapper.
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(30)).isEqualTo(1);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(31)).isEqualTo(1);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(100)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("per-case timeout returns the full 30s budget when no cases")
+    void resolvePerCaseTimeoutSeconds_empty_returnsFullBudget() {
+        // Harmless edge case: an empty case list still produces a
+        // well-formed wrapper, and the full budget means no spurious
+        // timeout if the wrapper does emit any work.
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(0)).isEqualTo(30);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(-1)).isEqualTo(30);
+    }
+
+    @Test
+    @DisplayName("per-case timeout splits evenly for small case counts")
+    void resolvePerCaseTimeoutSeconds_smallCount_splitsEvenly() {
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(1)).isEqualTo(30);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(2)).isEqualTo(15);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(3)).isEqualTo(10);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(6)).isEqualTo(5);
+        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(15)).isEqualTo(2);
+    }
 }

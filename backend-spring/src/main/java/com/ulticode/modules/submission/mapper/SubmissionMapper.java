@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
+import com.ulticode.modules.submission.dto.UserBestStats;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
@@ -264,6 +265,44 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT DISTINCT language FROM submissions ORDER BY language")
     List<String> findDistinctLanguages();
+
+    /**
+     * Per-user best (MIN runtime, MIN memory) among accepted submissions for
+     * a given problem/language pair, aggregated in SQL rather than loading
+     * every accepted row.
+     *
+     * <p>Used by {@code SubmissionServiceImpl.applyPerformanceStats} to
+     * compute percentile / distribution bins for an accepted submission
+     * without scanning the full accepted-submission history on each read.
+     * The result is bounded by the number of distinct users who solved the
+     * problem, not by total submission count.
+     *
+     * <p>Rows with NULL user_id are excluded (defensive — should not occur
+     * given the schema but the join guarantees the aggregate does not
+     * silently absorb them into a single NULL-keyed bucket).
+     *
+     * @param problemId problem id to scope the aggregate to
+     * @param language  language to scope the aggregate to
+     * @return list of per-user best stats, never null (empty when no
+     *         accepted submissions exist)
+     */
+    @ConstructorArgs({
+            @Arg(column = "user_id", javaType = String.class),
+            @Arg(column = "best_runtime_ms", javaType = Integer.class),
+            @Arg(column = "best_memory_mb", javaType = Double.class)
+    })
+    @Select("SELECT user_id, "
+            + "MIN(runtime) AS best_runtime_ms, "
+            + "MIN(memory) AS best_memory_mb "
+            + "FROM submissions "
+            + "WHERE problem_id = #{problemId} "
+            + "  AND language = #{language} "
+            + "  AND status = 'Accepted' "
+            + "  AND user_id IS NOT NULL "
+            + "GROUP BY user_id")
+    List<UserBestStats> findBestStatsByProblemAndLanguage(
+            @Param("problemId") Long problemId,
+            @Param("language") String language);
 
     // ==================== Admin Analytics Aggregation Methods ====================
 

@@ -1,10 +1,18 @@
 <script setup lang="ts">
 /**
- * AuthThemeToggle - Compact theme toggle button for management auth pages.
- * Mirrors the console implementation but pulls translations from the
- * `settings.appearance.*` namespace (management uses a different i18n
- * layout). Uses the shared `@ulticode/theme` singleton so all theme
- * pickers in this app stay in sync.
+ * AuthThemeToggle - Theme switch for the management auth pages.
+ *
+ * Visually paired with the sibling `.auth-logo` card so the page header
+ * reads as one intentional bar (logo on the left, theme switch on the
+ * right) instead of a 32px square floating awkwardly next to a much
+ * larger card. The previous neo-brutalist hover (translate -1px,-1px
+ * with a hard offset shadow) is replaced with a calm background + border
+ * swap that fits the terminal-card design language defined by the
+ * `solarized-terminal-design-style` skill.
+ *
+ * Pulls translations from `settings.appearance.*` and uses the shared
+ * `@ulticode/theme` singleton so all theme pickers in this app stay in
+ * sync.
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -39,44 +47,63 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
     <Sun v-if="theme === 'light'" class="auth-theme-toggle__icon" />
     <Moon v-else-if="theme === 'dark'" class="auth-theme-toggle__icon" />
     <Monitor v-else class="auth-theme-toggle__icon" />
-    <span class="sr-only">{{ labelFor(theme) }}</span>
+    <span class="auth-theme-toggle__label">{{ labelFor(theme) }}</span>
   </button>
 </template>
 
 <style scoped>
+/* Sibling of `.auth-logo` - same height, border, and background so the
+ * two read as a single header bar. */
 .auth-theme-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  gap: 0.5rem;
+  /* 2rem icon + 0.5rem x 2 padding = 3rem (48px), matching the logo card. */
+  height: calc(2rem + 0.5rem * 2);
+  padding: 0 0.75rem;
   border: 1px solid var(--border);
   border-radius: 0;
-  background: var(--card);
+  background: var(--background);
   color: var(--silver-500);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
+/* Subtle terminal-state hover - same pattern as `.auth-logo` and other
+ * actionable cards in the design system, not a brutalist offset shadow. */
 .auth-theme-toggle:hover {
   border-color: var(--accent-electric);
   color: var(--accent-electric);
-  box-shadow: 2px 2px 0px 0px var(--accent-electric);
-  transform: translate(-1px, -1px);
+  background: color-mix(in oklch, var(--accent-electric) 6%, transparent);
 }
 
 .auth-theme-toggle:active {
-  transform: translate(1px, 1px);
-  box-shadow: none;
+  background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
 }
 
 .auth-theme-toggle:focus-visible {
-  outline: 2px solid var(--accent-electric);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 2px var(--accent-electric-glow);
 }
 
+/* Match `.auth-logo__icon` (size-4) so the two glyphs have equal weight. */
 .auth-theme-toggle__icon {
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.auth-theme-toggle__label {
+  line-height: 1;
 }
 </style>

@@ -103,12 +103,14 @@ defineOptions({
 /* Header with Logo */
 .auth-layout__header {
   display: flex;
+  align-items: center;
+  gap: 0.75rem;
   justify-content: center;
 }
 
 @media (min-width: 1024px) {
   .auth-layout__header {
-    justify-content: flex-start;
+    justify-content: space-between;
   }
 }
 

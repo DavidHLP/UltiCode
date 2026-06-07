@@ -135,10 +135,6 @@ public class ProblemSubmissionController {
             @Valid @RequestBody RunSubmissionDTO runDTO) {
 
         String userId = SecurityUtil.getCurrentUserId();
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
         RunResultDTO result = codeExecutionService.execute(runDTO, problemId, userId);
         return Result.success(result);
     }

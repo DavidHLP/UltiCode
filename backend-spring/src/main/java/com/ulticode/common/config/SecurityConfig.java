@@ -116,6 +116,10 @@ public class SecurityConfig {
                         // Public solution list for problems (GET only)
                         .requestMatchers(HttpMethod.GET, "/api/problems/*/solutions")
                         .permitAll()
+                        // Public sample execution. This runs supplied code against visible test cases
+                        // without creating a submission record; real submissions remain authenticated.
+                        .requestMatchers(HttpMethod.POST, "/problems/*/submissions/run")
+                        .permitAll()
                         // Public edge-operations read endpoints (GET only)
                         .requestMatchers(HttpMethod.GET, "/edge-operations/**")
                         .permitAll()

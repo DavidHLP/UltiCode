@@ -201,6 +201,8 @@ export default {
     listDeleted: "List deleted",
     codeReset: "Code has been reset",
     codeCopied: "Code copied",
+    loginRequired: "Please log in to continue.",
+    codeRequired: "Please enter code first.",
   },
 
   // Notes

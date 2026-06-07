@@ -197,6 +197,8 @@ export default {
     listDeleted: "题单已删除",
     codeReset: "代码已重置",
     codeCopied: "代码已复制",
+    loginRequired: "请登录后继续。",
+    codeRequired: "请先输入代码。",
   },
 
   // Notes

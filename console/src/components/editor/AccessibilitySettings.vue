@@ -21,7 +21,7 @@ const editorSettings = useEditorSettingsStore();
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7"
+        class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
         :aria-label="t('problem.accessibility.title')"
         :title="t('problem.accessibility.title')"
       >

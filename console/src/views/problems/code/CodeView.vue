@@ -166,14 +166,19 @@ watch(
 
     <!-- Main Content Area -->
     <main class="flex flex-col gap-1 p-1 flex-1 min-h-0">
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 pb-2 mb-1 px-1">
+      <div
+        data-testid="editor-command-bar"
+        class="flex flex-wrap items-center justify-between gap-2 border border-border/60 bg-card/70 p-1"
+      >
         <div class="flex items-center gap-1.5">
           <DropdownMenu>
             <DropdownMenuTrigger
-              class="h-7 px-3 py-1 text-xs font-semibold bg-[var(--silver-100)] dark:bg-[var(--silver-800)] border border-border flex items-center gap-1.5 hover:bg-muted rounded-none transition-colors outline-none cursor-pointer text-foreground"
+              class="flex h-7 cursor-pointer items-center gap-1.5 rounded-none border border-border bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[state=open]:border-ring/60 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
               :aria-label="t('problem.layout.selectLanguage')"
             >
-              <span class="text-[11px] uppercase tracking-wider font-bold">{{ activeLanguageLabel }}</span>
+              <span class="text-[11px] uppercase tracking-wider font-bold">{{
+                activeLanguageLabel
+              }}</span>
               <ChevronDown class="h-3 w-3 opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" class="w-[200px] rounded-none">
@@ -197,13 +202,15 @@ watch(
           </DropdownMenu>
         </div>
 
-        <div class="flex h-full items-center gap-2 text-muted-foreground">
+        <div class="flex h-full items-center gap-1 text-muted-foreground">
           <!-- Group 1: Code Actions -->
-          <div class="flex items-center bg-[var(--silver-50)] dark:bg-[var(--silver-900)]/40 p-0.5 border border-border/40">
+          <div
+            class="flex items-center border border-border/60 bg-muted/60 p-0.5"
+          >
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 hover:bg-muted rounded-none text-foreground"
+              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
               :aria-label="t('problem.layout.formatCode')"
               :title="t('problem.layout.formatCode')"
               @click="handleFormat"
@@ -213,7 +220,7 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 hover:bg-muted rounded-none text-foreground disabled:opacity-30"
+              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-30"
               :disabled="!canReset"
               :aria-label="t('problem.layout.resetCode')"
               :title="t('problem.layout.resetCode')"
@@ -223,15 +230,19 @@ watch(
             </Button>
           </div>
 
-          <div class="h-4 w-px bg-border/50" />
+          <div class="h-4 w-px bg-border/70" />
 
           <!-- Group 2: Editor View Settings -->
-          <div class="flex items-center bg-[var(--silver-50)] dark:bg-[var(--silver-900)]/40 p-0.5 border border-border/40 gap-0.5">
+          <div
+            class="flex items-center gap-0.5 border border-border/60 bg-muted/60 p-0.5"
+          >
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 hover:bg-muted rounded-none text-foreground"
-              :class="{ 'bg-muted': editorWordWrap }"
+              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              :class="{
+                'bg-accent text-accent-foreground': editorWordWrap,
+              }"
               :aria-pressed="editorWordWrap"
               :aria-label="t('problem.layout.toggleWordWrap')"
               :title="t('problem.layout.toggleWordWrap')"
@@ -242,8 +253,10 @@ watch(
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 hover:bg-muted rounded-none text-foreground"
-              :class="{ 'bg-muted': editorMinimap }"
+              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              :class="{
+                'bg-accent text-accent-foreground': editorMinimap,
+              }"
               :aria-pressed="editorMinimap"
               :aria-label="t('problem.layout.toggleMinimap')"
               :title="t('problem.layout.toggleMinimap')"
@@ -251,25 +264,29 @@ watch(
             >
               <Scan class="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
-            
-            <div class="h-3.5 w-px bg-border/40 mx-0.5" />
+
+            <div class="mx-0.5 h-3.5 w-px bg-border/70" />
 
             <!-- Editor Settings Toolbar -->
             <EditorToolbar
               :language="editorLanguage"
               @insert-template="handleInsertTemplate"
-              class="scale-90"
             />
           </div>
 
-          <div class="h-4 w-px bg-border/50" />
+          <div class="h-4 w-px bg-border/70" />
 
           <!-- Group 3: Layout Window Actions -->
-          <div class="flex items-center bg-[var(--silver-50)] dark:bg-[var(--silver-900)]/40 p-0.5 border border-border/40">
+          <div
+            class="flex items-center border border-border/60 bg-muted/60 p-0.5"
+          >
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 hover:bg-muted rounded-none text-foreground"
+              class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
+              :class="{
+                'bg-accent text-accent-foreground': isFullscreen,
+              }"
               :aria-pressed="isFullscreen"
               :aria-label="t('problem.layout.toggleFullscreen')"
               :title="t('problem.layout.toggleFullscreen')"

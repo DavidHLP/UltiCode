@@ -96,14 +96,14 @@ const handleResetSettings = () => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-0.5">
     <!-- Theme Selector -->
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
         <Button
           variant="ghost"
           size="icon"
-          class="h-7 w-7"
+          class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
           :aria-label="$t('problem.editor.theme')"
           :title="t('problem.editor.changeTheme')"
         >
@@ -152,7 +152,7 @@ const handleResetSettings = () => {
         <Button
           variant="ghost"
           size="icon"
-          class="h-7 w-7"
+          class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
           :aria-label="$t('problem.editor.fontSize')"
           :title="t('problem.editor.fontSettings')"
         >
@@ -215,7 +215,7 @@ const handleResetSettings = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="h-7 w-7"
+      class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
       :aria-label="$t('problem.editor.codeTemplates')"
       :title="t('problem.editor.codeTemplates')"
       @click="showTemplates = true"
@@ -227,7 +227,7 @@ const handleResetSettings = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="h-7 w-7"
+      class="h-6 w-6 rounded-none text-foreground hover:bg-accent hover:text-accent-foreground"
       :aria-label="$t('problem.shortcuts.title')"
       :title="t('problem.editor.keyboardShortcuts')"
       @click="showShortcuts = true"

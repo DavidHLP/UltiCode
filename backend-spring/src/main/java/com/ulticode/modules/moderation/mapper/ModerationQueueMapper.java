@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Mapper interface for ModerationQueue entity.
@@ -106,4 +107,28 @@ public interface ModerationQueueMapper extends BaseMapper<ModerationQueue> {
         + "FROM moderation_queue "
         + "WHERE status = 'RESOLVED' AND resolved_at IS NOT NULL")
     double avgResolutionTimeHours();
+
+    /**
+     * Count queue items grouped by primary category.
+     * Returns rows of {key: category, value: count} for non-null categories.
+     * Note: `key` is backtick-escaped because it is a MySQL reserved word.
+     *
+     * @return list of category-count maps, may be empty
+     */
+    @Select("SELECT primary_category AS `key`, COUNT(*) AS value FROM moderation_queue "
+        + "WHERE primary_category IS NOT NULL GROUP BY primary_category "
+        + "ORDER BY value DESC")
+    List<Map<String, Object>> countByCategory();
+
+    /**
+     * Count queue items grouped by entity type.
+     * Returns rows of {key: entityType, value: count} for non-null types.
+     * Note: `key` is backtick-escaped because it is a MySQL reserved word.
+     *
+     * @return list of entity-type-count maps, may be empty
+     */
+    @Select("SELECT entity_type AS `key`, COUNT(*) AS value FROM moderation_queue "
+        + "WHERE entity_type IS NOT NULL GROUP BY entity_type "
+        + "ORDER BY value DESC")
+    List<Map<String, Object>> countByEntityType();
 }

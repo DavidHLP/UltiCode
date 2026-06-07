@@ -36,11 +36,12 @@ public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService 
 
         UserActivityReportVO report = new UserActivityReportVO();
 
-        // Daily active users - single aggregated query replacing per-day N+1 loop
+        // Daily active users - based on submissions (more representative than audit_logs
+        // which only records admin operations)
         List<UserActivityReportVO.DailyActiveUsers> dailyActiveUsers = new ArrayList<>();
         LocalDateTime overallStart = LocalDateTime.now().minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
         LocalDateTime overallEnd = LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
-        List<Map<String, Object>> dailyCounts = auditLogMapper.countDailyActiveUsers(overallStart, overallEnd);
+        List<Map<String, Object>> dailyCounts = submissionMapper.countDailyActiveUsers(overallStart, overallEnd);
         for (Map<String, Object> row : dailyCounts) {
             dailyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
                     row.get("date").toString(),

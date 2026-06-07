@@ -148,10 +148,15 @@ public interface ModerationService {
     /**
      * Get a specific appeal by ID.
      *
-     * @param id the appeal ID
+     * <p>Authorization: only the appellant themselves, or a MOD/ADMIN/SUPER_ADMIN, may read.
+     * Other authenticated users receive 403 Forbidden.
+     *
+     * @param id            the appeal ID
+     * @param currentUserId the requesting user's ID (from SecurityContext)
      * @return the appeal
+     * @throws com.ulticode.common.exception.BusinessException 404 if not found, 403 if not authorized
      */
-    AppealVO getAppeal(String id);
+    AppealVO getAppeal(String id, String currentUserId);
 
     /**
      * Get appeals for the current user.

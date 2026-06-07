@@ -3,8 +3,8 @@ package com.ulticode.modules.queue.processor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.problem.entity.TestCase;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.modules.problem.entity.ProblemExample;
+import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
 import com.ulticode.modules.queue.job.JudgeJob;
@@ -50,7 +50,7 @@ class JudgeWorkerProcessorTest {
     private RealtimeService realtimeService;
 
     @Mock
-    private TestCaseMapper testCaseMapper;
+    private ProblemExampleMapper problemExampleMapper;
 
     @Mock
     private ContestSubmissionMapper contestSubmissionMapper;
@@ -105,8 +105,8 @@ class JudgeWorkerProcessorTest {
         @DisplayName("processes JudgeJob and decrements activeJobs")
         void withJudgeJob_processesAndDecrementsActiveJobs() {
             when(queueService.pollJob("judge_queue")).thenReturn(sampleJob);
-            when(testCaseMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildTestCases(2));
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
+                    .thenReturn(buildProblemExamples(2));
             when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
                     .thenReturn(buildAcceptedResult(2));
 
@@ -147,8 +147,8 @@ class JudgeWorkerProcessorTest {
         @Test
         @DisplayName("sets status to Judging, executes, writes verdict")
         void setsJudgingThenWritesVerdict() {
-            when(testCaseMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildTestCases(1));
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
+                    .thenReturn(buildProblemExamples(1));
             when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
                     .thenReturn(buildAcceptedResult(1));
 
@@ -164,7 +164,7 @@ class JudgeWorkerProcessorTest {
         @Test
         @DisplayName("null test cases marks as System Error")
         void nullTestCases_marksSystemError() {
-            when(testCaseMapper.findByProblemIdOrderByOrder(100L)).thenReturn(null);
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(null);
 
             processor.processJob(sampleJob);
 
@@ -177,7 +177,7 @@ class JudgeWorkerProcessorTest {
         @Test
         @DisplayName("empty test cases marks as System Error")
         void emptyTestCases_marksSystemError() {
-            when(testCaseMapper.findByProblemIdOrderByOrder(100L)).thenReturn(List.of());
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(List.of());
 
             processor.processJob(sampleJob);
 
@@ -188,8 +188,8 @@ class JudgeWorkerProcessorTest {
         @Test
         @DisplayName("pushes WebSocket result after writing verdict")
         void pushesWebSocketAfterVerdict() {
-            when(testCaseMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildTestCases(1));
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
+                    .thenReturn(buildProblemExamples(1));
             when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
                     .thenReturn(buildWrongAnswerResult(1));
 
@@ -199,6 +199,43 @@ class JudgeWorkerProcessorTest {
             inOrder.verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("Wrong Answer"), anyInt(), any(), any());
             inOrder.verify(realtimeService).emitSubmissionResult(eq("user-1"), any());
+        }
+
+        @Test
+        @DisplayName("contest lookup failure does not overwrite successful verdict")
+        void contestLookupFailure_keepsVerdict() {
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
+                    .thenReturn(buildProblemExamples(1));
+            when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
+                    .thenReturn(buildAcceptedResult(1));
+            when(contestSubmissionMapper.selectOne(any()))
+                    .thenThrow(new RuntimeException("contest schema mismatch"));
+
+            processor.processJob(sampleJob);
+
+            verify(submissionService).updateSubmissionResult(
+                    eq("sub-1"), eq("Accepted"), anyInt(), any(), any());
+            verify(submissionService, never()).updateSubmissionResult(
+                    eq("sub-1"), eq("System Error"), anyInt(), any(), any());
+            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
+        }
+
+        @Test
+        @DisplayName("load failure marks submission as System Error instead of leaving Judging")
+        void testCaseLoadFailure_marksSystemError() {
+            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
+                    .thenThrow(new RuntimeException("problem_examples unavailable"));
+
+            processor.processJob(sampleJob);
+
+            var statusOrder = inOrder(submissionService);
+            statusOrder.verify(submissionService).updateSubmissionResult(
+                    eq("sub-1"), eq("Judging"), eq(0), isNull(), isNull());
+            statusOrder.verify(submissionService).updateSubmissionResult(
+                    eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
+            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
     }
 
@@ -412,13 +449,13 @@ class JudgeWorkerProcessorTest {
 
     // === Helper methods ===
 
-    private List<TestCase> buildTestCases(int count) {
-        java.util.ArrayList<TestCase> cases = new java.util.ArrayList<>();
+    private List<ProblemExample> buildProblemExamples(int count) {
+        java.util.ArrayList<ProblemExample> cases = new java.util.ArrayList<>();
         for (int i = 0; i < count; i++) {
-            TestCase tc = new TestCase();
+            ProblemExample tc = new ProblemExample();
             tc.setId(String.valueOf(1000 + i));
             tc.setProblemId(100L);
-            tc.setTestOrder(i + 1);
+            tc.setExampleOrder(i + 1);
             tc.setInputText(String.valueOf(i));
             tc.setOutputText(String.valueOf(i));
             cases.add(tc);

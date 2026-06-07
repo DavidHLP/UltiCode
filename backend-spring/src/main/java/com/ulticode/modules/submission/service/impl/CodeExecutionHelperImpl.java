@@ -58,23 +58,84 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     }
 
     public String buildPythonBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
-        String funcName = extractFunctionName(code, "def ");
-        return "import json, sys, time\n" +
+        String invocation = buildPythonInvocation(code);
+        boolean usesListNode = code.contains("ListNode");
+        String argsExpression = usesListNode
+                ? "[__ulticode_adapt_arg(arg) for arg in args]"
+                : "args";
+        return "from __future__ import annotations\n" +
+                "import json, sys, time\n" +
+                "from typing import List, Optional\n" +
+                "class ListNode:\n" +
+                "    def __init__(self, val=0, next=None):\n" +
+                "        self.val = val\n" +
+                "        self.next = next\n" +
+                "def __ulticode_to_list_node(value):\n" +
+                "    if value is None:\n" +
+                "        return None\n" +
+                "    dummy = ListNode(0)\n" +
+                "    cur = dummy\n" +
+                "    for item in value:\n" +
+                "        cur.next = ListNode(item)\n" +
+                "        cur = cur.next\n" +
+                "    return dummy.next\n" +
+                "def __ulticode_from_list_node(node):\n" +
+                "    result = []\n" +
+                "    seen = 0\n" +
+                "    while node is not None and seen < 10000:\n" +
+                "        result.append(node.val)\n" +
+                "        node = node.next\n" +
+                "        seen += 1\n" +
+                "    return result\n" +
+                "def __ulticode_adapt_arg(arg):\n" +
+                "    if isinstance(arg, list) and (not arg or all(isinstance(item, int) for item in arg)):\n" +
+                "        return __ulticode_to_list_node(arg)\n" +
+                "    if isinstance(arg, list) and all(isinstance(item, list) for item in arg):\n" +
+                "        return [__ulticode_to_list_node(item) for item in arg]\n" +
+                "    return arg\n" +
+                "def __ulticode_jsonable(result):\n" +
+                "    if isinstance(result, ListNode):\n" +
+                "        return __ulticode_from_list_node(result)\n" +
+                "    if isinstance(result, list):\n" +
+                "        return [__ulticode_from_list_node(item) if isinstance(item, ListNode) else item for item in result]\n" +
+                "    return result\n" +
+                "def __ulticode_memory():\n" +
+                "    try:\n" +
+                "        with open('/sys/fs/cgroup/memory.current') as f:\n" +
+                "            return int(f.read().strip())\n" +
+                "    except Exception:\n" +
+                "        return 0\n" +
                 code + "\n" +
                 "input_data = json.loads(sys.stdin.read())\n" +
                 "results = []\n" +
                 "for args in input_data:\n" +
                 "    start = time.time() * 1000\n" +
                 "    try:\n" +
-                "        result = " + funcName + "(*args)\n" +
+                "        call_args = " + argsExpression + "\n" +
+                "        result = " + invocation + "\n" +
                 "        elapsed = time.time() * 1000 - start\n" +
-                "        with open('/sys/fs/cgroup/memory.current') as f:\n" +
-                "            mem = int(f.read().strip())\n" +
-                "        results.append({'output': json.dumps(result), 'runtime': int(elapsed), 'status': 'ok', 'memory': mem})\n" +
+                "        mem = __ulticode_memory()\n" +
+                "        results.append({'output': json.dumps(__ulticode_jsonable(result)), 'runtime': int(elapsed), 'status': 'ok', 'memory': mem})\n" +
                 "    except Exception as e:\n" +
                 "        elapsed = time.time() * 1000 - start\n" +
                 "        results.append({'output': str(e), 'runtime': int(elapsed), 'status': 'error', 'memory': 0})\n" +
                 "print(json.dumps(results))\n";
+    }
+
+    private String buildPythonInvocation(String code) {
+        if (code.contains("class Solution")) {
+            return "Solution()." + extractSolutionMethodName(code) + "(*call_args)";
+        }
+        return extractFunctionName(code, "def ") + "(*call_args)";
+    }
+
+    private String extractSolutionMethodName(String code) {
+        int classIdx = code.indexOf("class Solution");
+        int methodIdx = code.indexOf("def ", classIdx >= 0 ? classIdx : 0);
+        if (methodIdx < 0) {
+            return "solution";
+        }
+        return extractFunctionName(code.substring(methodIdx), "def ");
     }
 
     public String buildCBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
@@ -169,15 +230,13 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             String stdout, List<RunSubmissionDTO.RunTestCase> testCases,
             String runId, String userId) {
         try {
-            int jsonStart = stdout.lastIndexOf('[');
-            int jsonEnd = stdout.lastIndexOf(']');
-            if (jsonStart < 0 || jsonEnd < 0 || jsonEnd <= jsonStart) {
+            String jsonArray = extractBatchResultsJson(stdout);
+            if (jsonArray == null) {
                 return testCases.stream()
                         .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
                                 0, null, "Failed to parse batch results: " + sanitizeSandboxOutput(stdout), 0.0))
                         .collect(Collectors.toList());
             }
-            String jsonArray = stdout.substring(jsonStart, jsonEnd + 1);
             List<Map<String, Object>> results = objectMapper.readValue(jsonArray,
                     new TypeReference<List<Map<String, Object>>>() {});
             List<RunResultDTO.RunCaseResult> caseResults = new ArrayList<>();
@@ -211,6 +270,32 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                             0, null, "Result parsing failed: " + e.getMessage(), 0.0))
                     .collect(Collectors.toList());
         }
+    }
+
+    private String extractBatchResultsJson(String stdout) {
+        if (stdout == null) {
+            return null;
+        }
+        int jsonEnd = stdout.lastIndexOf(']');
+        if (jsonEnd < 0) {
+            return null;
+        }
+        for (int i = 0; i < stdout.length(); i++) {
+            if (stdout.charAt(i) != '[') {
+                continue;
+            }
+            String candidate = stdout.substring(i, jsonEnd + 1);
+            try {
+                List<?> parsed = objectMapper.readValue(candidate, List.class);
+                boolean allMaps = parsed.stream().allMatch(Map.class::isInstance);
+                if (allMaps) {
+                    return candidate;
+                }
+            } catch (Exception ignored) {
+                // Keep scanning: stdout can contain user output before the wrapper JSON.
+            }
+        }
+        return null;
     }
 
     @Override
@@ -292,6 +377,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     public String normalizeOutput(String output) {
         if (output == null) return "";
         return output.trim().replaceAll("\\s+", " ")
+                .replaceAll("\\s*,\\s*", ",")
                 .replaceAll(",\\s*}", "}").replaceAll(",\\s*]", "]");
     }
 

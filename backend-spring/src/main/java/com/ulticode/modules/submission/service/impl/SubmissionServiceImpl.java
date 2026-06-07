@@ -48,7 +48,11 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -168,6 +172,11 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
 
+        if ("Accepted".equals(submission.getStatus())) {
+            applyPerformanceStats(submission, submission.getRuntime() != null ? submission.getRuntime() : 0,
+                    submission.getMemory());
+        }
+
         return toDetailVO(submission);
     }
 
@@ -235,6 +244,9 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setRuntime(runtime);
         submission.setMemory(memory);
         submission.setTestDetails(testDetails);
+        if ("Accepted".equals(status)) {
+            applyPerformanceStats(submission, runtime, memory);
+        }
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
@@ -279,6 +291,121 @@ public class SubmissionServiceImpl implements SubmissionService {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());
         }
+    }
+
+    private void applyPerformanceStats(Submission current, int runtime, Double memory) {
+        List<Submission> accepted = submissionMapper.selectList(
+                new LambdaQueryWrapper<Submission>()
+                        .eq(Submission::getProblemId, current.getProblemId())
+                        .eq(Submission::getLanguage, current.getLanguage())
+                        .eq(Submission::getStatus, "Accepted"));
+        if (accepted == null) {
+            accepted = List.of();
+        }
+
+        Map<String, Double> bestRuntimeByUser = new LinkedHashMap<>();
+        Map<String, Double> bestMemoryByUser = new LinkedHashMap<>();
+        for (Submission submission : accepted) {
+            if (Objects.equals(submission.getId(), current.getId())) {
+                continue;
+            }
+            if (Objects.equals(submission.getUserId(), current.getUserId())) {
+                continue;
+            }
+            if (StringUtils.hasText(submission.getUserId())
+                    && submission.getRuntime() != null
+                    && submission.getRuntime() >= 0) {
+                bestRuntimeByUser.merge(
+                        submission.getUserId(),
+                        submission.getRuntime().doubleValue(),
+                        Math::min);
+            }
+            if (StringUtils.hasText(submission.getUserId())
+                    && submission.getMemory() != null
+                    && submission.getMemory() >= 0) {
+                bestMemoryByUser.merge(
+                        submission.getUserId(),
+                        submission.getMemory(),
+                        Math::min);
+            }
+        }
+
+        if (runtime >= 0) {
+            List<Double> runtimes = new ArrayList<>(bestRuntimeByUser.values());
+            runtimes.add((double) runtime);
+            current.setRuntimePercentile(calculateBetterThanPercentile(runtimes, runtime));
+            current.setRuntimeDistBinsMs(buildDistributionBins(runtimes));
+        }
+
+        if (memory != null && memory >= 0) {
+            List<Double> memories = new ArrayList<>(bestMemoryByUser.values());
+            memories.add(memory);
+            current.setMemoryPercentile(calculateBetterThanPercentile(memories, memory));
+            current.setMemoryDistBinsMb(buildDistributionBins(memories));
+        }
+    }
+
+    private double calculateBetterThanPercentile(List<Double> values, double currentValue) {
+        if (values.isEmpty()) {
+            return 0.0;
+        }
+        long slowerCount = values.stream()
+                .filter(value -> value > currentValue)
+                .count();
+        return Math.round((slowerCount * 1000.0) / values.size()) / 10.0;
+    }
+
+    private List<Map<String, Number>> buildDistributionBins(List<Double> values) {
+        if (values.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Double, Long> exactCounts = values.stream()
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(
+                        LinkedHashMap::new,
+                        (counts, value) -> counts.merge(value, 1L, Long::sum),
+                        LinkedHashMap::putAll);
+
+        if (exactCounts.size() <= 12) {
+            return exactCounts.entrySet().stream()
+                    .map(entry -> Map.<String, Number>of(
+                            "bin", formatDistributionBin(entry.getKey()),
+                            "count", entry.getValue()))
+                    .toList();
+        }
+
+        double min = values.stream().min(Comparator.naturalOrder()).orElse(0.0);
+        double max = values.stream().max(Comparator.naturalOrder()).orElse(min);
+        if (Double.compare(min, max) == 0) {
+            return List.of(Map.<String, Number>of(
+                    "bin", formatDistributionBin(min),
+                    "count", values.size()));
+        }
+
+        int bucketCount = 12;
+        double bucketSize = (max - min) / bucketCount;
+        long[] counts = new long[bucketCount];
+        for (Double value : values) {
+            int index = (int) Math.floor((value - min) / bucketSize);
+            counts[Math.min(index, bucketCount - 1)]++;
+        }
+
+        List<Map<String, Number>> bins = new ArrayList<>();
+        for (int i = 0; i < bucketCount; i++) {
+            bins.add(Map.<String, Number>of(
+                    "bin", formatDistributionBin(min + (bucketSize * i)),
+                    "count", counts[i]));
+        }
+        return bins;
+    }
+
+    private Number formatDistributionBin(double value) {
+        if (Math.rint(value) == value) {
+            return (long) value;
+        }
+        return Math.round(value * 10.0) / 10.0;
     }
 
     /**

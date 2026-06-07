@@ -46,6 +46,36 @@ export function normalizeDistributionBins(
   });
 }
 
+export function buildDistributionDisplayPoints(
+  points: NormalizedDistributionPoint[],
+  currentValue: number | null | undefined,
+): NormalizedDistributionPoint[] {
+  const hasVisibleCounts = points.some((point) => point.count > 0);
+  if (hasVisibleCounts) return points;
+
+  const value = toFiniteNumber(currentValue);
+  if (value == null) return points;
+
+  if (points.length === 0) {
+    return [{ i: 0, bin: value, count: 1 }];
+  }
+
+  let closestIndex = 0;
+  let closestDistance = Math.abs(points[0].bin - value);
+  for (let i = 1; i < points.length; i++) {
+    const distance = Math.abs(points[i].bin - value);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = i;
+    }
+  }
+
+  return points.map((point, index) => ({
+    ...point,
+    count: index === closestIndex ? 1 : point.count,
+  }));
+}
+
 export function useSubmissionDetail(
   submission: () => SubmissionRecord | undefined,
   statusMetaByKey: () => Record<string, SubmissionStatusMeta>,
@@ -214,14 +244,17 @@ export function useSubmissionDetail(
   const pairedDist = computed(() =>
     normalizeDistributionBins(submission()?.runtimeDistBinsMs),
   );
+  const displayPairedDist = computed(() =>
+    buildDistributionDisplayPoints(pairedDist.value, runtimeMs.value),
+  );
   const distBins = computed<number[]>(() =>
-    pairedDist.value.map((point) => point.bin),
+    displayPairedDist.value.map((point) => point.bin),
   );
   const distCounts = computed<number[]>(() =>
-    pairedDist.value.map((point) => point.count),
+    displayPairedDist.value.map((point) => point.count),
   );
   const totalCount = computed(() =>
-    pairedDist.value.reduce(
+    displayPairedDist.value.reduce(
       (acc, d) => acc + (Number.isFinite(d.count) ? d.count : 0),
       0,
     ),
@@ -249,14 +282,20 @@ export function useSubmissionDetail(
   const pairedMemoryDist = computed(() =>
     normalizeDistributionBins(submission()?.memoryDistBinsMb),
   );
+  const displayPairedMemoryDist = computed(() =>
+    buildDistributionDisplayPoints(
+      pairedMemoryDist.value,
+      submission()?.memory,
+    ),
+  );
   const memoryDistBins = computed<number[]>(() =>
-    pairedMemoryDist.value.map((point) => point.bin),
+    displayPairedMemoryDist.value.map((point) => point.bin),
   );
   const memoryDistCounts = computed<number[]>(() =>
-    pairedMemoryDist.value.map((point) => point.count),
+    displayPairedMemoryDist.value.map((point) => point.count),
   );
   const totalMemoryCount = computed(() =>
-    pairedMemoryDist.value.reduce(
+    displayPairedMemoryDist.value.reduce(
       (acc, d) => acc + (Number.isFinite(d.count) ? d.count : 0),
       0,
     ),
@@ -297,12 +336,12 @@ export function useSubmissionDetail(
     codeMarkdown,
     distBins,
     distCounts,
-    pairedDist,
+    pairedDist: displayPairedDist,
     totalCount,
     highlightIndex,
     memoryDistBins,
     memoryDistCounts,
-    pairedMemoryDist,
+    pairedMemoryDist: displayPairedMemoryDist,
     totalMemoryCount,
     memoryHighlightIndex,
   };

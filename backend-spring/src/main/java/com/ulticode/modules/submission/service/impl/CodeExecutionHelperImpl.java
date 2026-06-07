@@ -139,7 +139,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     }
 
     public String buildCBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
-        int perCaseTimeout = 30 / Math.max(testCases.size(), 1);
+        int perCaseTimeout = resolvePerCaseTimeoutSeconds(testCases.size());
         return "cat > /tmp/solution.c && gcc -o /tmp/solution /tmp/solution.c && " +
                 "cat | python3 -c \"" +
                 "import json,sys,subprocess,time\\n" +
@@ -164,7 +164,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     }
 
     public String buildCppBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
-        int perCaseTimeout = 30 / Math.max(testCases.size(), 1);
+        int perCaseTimeout = resolvePerCaseTimeoutSeconds(testCases.size());
         return "cat > /tmp/solution.cpp && g++ -o /tmp/solution /tmp/solution.cpp && " +
                 "cat | python3 -c \"" +
                 "import json,sys,subprocess,time\\n" +
@@ -190,7 +190,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
 
     public String buildJavaBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
         String b64 = Base64.getEncoder().encodeToString(code.getBytes(StandardCharsets.UTF_8));
-        int perCaseTimeout = 30 / Math.max(testCases.size(), 1);
+        int perCaseTimeout = resolvePerCaseTimeoutSeconds(testCases.size());
         return "echo '" + b64 + "' | base64 -d > /tmp/Main.java && javac /tmp/Main.java && " +
                 "cat | python3 -c \"" +
                 "import json,sys,subprocess,time\\n" +
@@ -223,6 +223,23 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
         }
         json.append("]");
         return json.toString();
+    }
+
+    /**
+     * Per-case timeout budget for batch wrappers.
+     *
+     * <p>Total sandbox wall-time for a batch run is bounded by the outer
+     * {@code DockerSandboxConfig.timeout}; we evenly split that budget
+     * across the supplied test cases. To keep {@code subprocess.run(timeout=0)}
+     * valid (and meaningful for at least one case) we floor the result at 1
+     * second. An empty case list gets the full 30s budget, which is harmless
+     * because the wrapper script emits no work in that case.
+     */
+    static int resolvePerCaseTimeoutSeconds(int testCaseCount) {
+        if (testCaseCount <= 0) {
+            return 30;
+        }
+        return Math.max(1, 30 / testCaseCount);
     }
 
     @Override

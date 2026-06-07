@@ -1,6 +1,5 @@
 package com.ulticode.modules.submission.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
@@ -10,6 +9,7 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
+import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
@@ -18,6 +18,7 @@ import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.dto.UserBestStats;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -82,6 +83,13 @@ public class SubmissionServiceImpl implements SubmissionService {
     private static final List<String> SUPPORTED_LANGUAGES = List.of(
             "javascript", "python", "java", "c", "cpp"
     );
+
+    /**
+     * Number of buckets used when the distinct-value count exceeds the
+     * exact-mode threshold (see {@link #buildDistributionBins}). 12 is the
+     * chosen "small but readable" default for runtime/memory histograms.
+     */
+    private static final int DEFAULT_DISTRIBUTION_BIN_COUNT = 12;
 
     @Override
     @Transactional
@@ -172,12 +180,14 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
 
+        PerformanceStats stats = PerformanceStats.EMPTY;
         if ("Accepted".equals(submission.getStatus())) {
-            applyPerformanceStats(submission, submission.getRuntime() != null ? submission.getRuntime() : 0,
+            stats = computePerformanceStats(submission,
+                    submission.getRuntime() != null ? submission.getRuntime() : 0,
                     submission.getMemory());
         }
 
-        return toDetailVO(submission);
+        return toDetailVO(submission, stats);
     }
 
     @Override
@@ -245,7 +255,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setMemory(memory);
         submission.setTestDetails(testDetails);
         if ("Accepted".equals(status)) {
-            applyPerformanceStats(submission, runtime, memory);
+            PerformanceStats stats = computePerformanceStats(submission, runtime, memory);
+            applyPerformanceStatsToEntity(submission, stats);
         }
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
@@ -293,56 +304,71 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
-    private void applyPerformanceStats(Submission current, int runtime, Double memory) {
-        List<Submission> accepted = submissionMapper.selectList(
-                new LambdaQueryWrapper<Submission>()
-                        .eq(Submission::getProblemId, current.getProblemId())
-                        .eq(Submission::getLanguage, current.getLanguage())
-                        .eq(Submission::getStatus, "Accepted"));
-        if (accepted == null) {
-            accepted = List.of();
+    private PerformanceStats computePerformanceStats(Submission current, int runtime, Double memory) {
+        // Per-user best stats aggregated in SQL. Bounded by distinct-user
+        // count, not by total accepted submissions (see SubmissionMapper
+        // #findBestStatsByProblemAndLanguage).
+        List<UserBestStats> peerBest = submissionMapper.findBestStatsByProblemAndLanguage(
+                current.getProblemId(), current.getLanguage());
+        if (peerBest == null) {
+            peerBest = List.of();
         }
 
-        Map<String, Double> bestRuntimeByUser = new LinkedHashMap<>();
-        Map<String, Double> bestMemoryByUser = new LinkedHashMap<>();
-        for (Submission submission : accepted) {
-            if (Objects.equals(submission.getId(), current.getId())) {
+        List<Double> peerRuntimes = new ArrayList<>();
+        List<Double> peerMemories = new ArrayList<>();
+        for (UserBestStats stats : peerBest) {
+            // Skip the current user — "better than X% of OTHER users" is
+            // the intended comparison axis, matching the previous in-memory
+            // implementation.
+            if (Objects.equals(stats.userId(), current.getUserId())) {
                 continue;
             }
-            if (Objects.equals(submission.getUserId(), current.getUserId())) {
-                continue;
+            if (stats.bestRuntimeMs() != null && stats.bestRuntimeMs() >= 0) {
+                peerRuntimes.add(stats.bestRuntimeMs().doubleValue());
             }
-            if (StringUtils.hasText(submission.getUserId())
-                    && submission.getRuntime() != null
-                    && submission.getRuntime() >= 0) {
-                bestRuntimeByUser.merge(
-                        submission.getUserId(),
-                        submission.getRuntime().doubleValue(),
-                        Math::min);
-            }
-            if (StringUtils.hasText(submission.getUserId())
-                    && submission.getMemory() != null
-                    && submission.getMemory() >= 0) {
-                bestMemoryByUser.merge(
-                        submission.getUserId(),
-                        submission.getMemory(),
-                        Math::min);
+            if (stats.bestMemoryMb() != null && stats.bestMemoryMb() >= 0) {
+                peerMemories.add(stats.bestMemoryMb());
             }
         }
 
+        Double runtimePercentile = null;
+        List<Map<String, Number>> runtimeBins = List.of();
         if (runtime >= 0) {
-            List<Double> runtimes = new ArrayList<>(bestRuntimeByUser.values());
+            List<Double> runtimes = new ArrayList<>(peerRuntimes);
             runtimes.add((double) runtime);
-            current.setRuntimePercentile(calculateBetterThanPercentile(runtimes, runtime));
-            current.setRuntimeDistBinsMs(buildDistributionBins(runtimes));
+            runtimePercentile = calculateBetterThanPercentile(runtimes, runtime);
+            runtimeBins = buildDistributionBins(runtimes);
         }
 
+        Double memoryPercentile = null;
+        List<Map<String, Number>> memoryBins = List.of();
         if (memory != null && memory >= 0) {
-            List<Double> memories = new ArrayList<>(bestMemoryByUser.values());
+            List<Double> memories = new ArrayList<>(peerMemories);
             memories.add(memory);
-            current.setMemoryPercentile(calculateBetterThanPercentile(memories, memory));
-            current.setMemoryDistBinsMb(buildDistributionBins(memories));
+            memoryPercentile = calculateBetterThanPercentile(memories, memory);
+            memoryBins = buildDistributionBins(memories);
         }
+
+        return new PerformanceStats(runtimePercentile, runtimeBins, memoryPercentile, memoryBins);
+    }
+
+    /**
+     * Apply a {@link PerformanceStats} snapshot to the entity so that the
+     * next {@code submissionMapper.updateById} persists the percentile and
+     * distribution bin fields. Used by the write path
+     * ({@link #updateSubmissionResult}); the read path
+     * ({@link #findById}) instead threads the stats into the VO without
+     * touching the entity, so this method is intentionally not called from
+     * there.
+     */
+    private void applyPerformanceStatsToEntity(Submission entity, PerformanceStats stats) {
+        if (stats == null) {
+            return;
+        }
+        entity.setRuntimePercentile(stats.runtimePercentile());
+        entity.setRuntimeDistBinsMs(stats.runtimeDistBinsMs());
+        entity.setMemoryPercentile(stats.memoryPercentile());
+        entity.setMemoryDistBinsMb(stats.memoryDistBinsMb());
     }
 
     private double calculateBetterThanPercentile(List<Double> values, double currentValue) {
@@ -368,7 +394,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                         (counts, value) -> counts.merge(value, 1L, Long::sum),
                         LinkedHashMap::putAll);
 
-        if (exactCounts.size() <= 12) {
+        if (exactCounts.size() <= DEFAULT_DISTRIBUTION_BIN_COUNT) {
             return exactCounts.entrySet().stream()
                     .map(entry -> Map.<String, Number>of(
                             "bin", formatDistributionBin(entry.getKey()),
@@ -384,7 +410,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                     "count", values.size()));
         }
 
-        int bucketCount = 12;
+        int bucketCount = DEFAULT_DISTRIBUTION_BIN_COUNT;
         double bucketSize = (max - min) / bucketCount;
         long[] counts = new long[bucketCount];
         for (Double value : values) {
@@ -401,10 +427,13 @@ public class SubmissionServiceImpl implements SubmissionService {
         return bins;
     }
 
-    private Number formatDistributionBin(double value) {
-        if (Math.rint(value) == value) {
-            return (long) value;
-        }
+    /**
+     * Round a bin label to one decimal place. Always returns a
+     * {@code double} so JSON consumers (frontend) see a single stable type
+     * for the {@code bin} field regardless of whether the underlying
+     * value happens to be an integer.
+     */
+    private double formatDistributionBin(double value) {
         return Math.round(value * 10.0) / 10.0;
     }
 
@@ -436,8 +465,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     /**
      * Convert Submission entity to SubmissionDetailVO.
      * Reuses {@link #toVO(Submission)} for base fields and adds detail-only fields.
+     *
+     * @param submission the submission entity to convert
+     * @param stats      pre-computed performance stats. May be {@code null}
+     *                   for non-Accepted submissions; passed-through stats
+     *                   override the entity's stored bins/percentile so the
+     *                   read path does not need to mutate the entity.
      */
-    public SubmissionDetailVO toDetailVO(Submission submission) {
+    public SubmissionDetailVO toDetailVO(Submission submission, PerformanceStats stats) {
         // Reuse existing toVO for all shared fields (tests, errors, user, problem)
         SubmissionVO baseVo = toVO(submission);
 
@@ -478,8 +513,19 @@ public class SubmissionServiceImpl implements SubmissionService {
             vo.setTests(tests);
         }
 
-        // Detail-only fields
-        vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
+        // Detail-only fields. Use pre-computed stats when available so the
+        // entity does not need to be mutated on the read path; otherwise
+        // fall back to the stored fields (typical for write-path callers
+        // that pass `PerformanceStats.EMPTY`).
+        if (stats != null) {
+            vo.setRuntimePercentile(stats.runtimePercentile());
+            vo.setRuntimeDistBinsMs(stats.runtimeDistBinsMs());
+            vo.setMemoryPercentile(stats.memoryPercentile());
+            vo.setMemoryDistBinsMb(stats.memoryDistBinsMb());
+        } else {
+            vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
+            vo.setMemoryDistBinsMb(submission.getMemoryDistBinsMb());
+        }
 
         return vo;
     }

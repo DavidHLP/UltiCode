@@ -337,13 +337,25 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     private String findContestIdBySubmissionId(String submissionId) {
+        // Non-critical path: a missing or unloadable contest mapping is
+        // not a verdict-changing failure. We classify the failure modes so
+        // genuine data-integrity issues surface as ERROR while transient
+        // infra problems stay at WARN.
         try {
             ContestSubmission cs = contestSubmissionMapper.selectOne(
                     new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ContestSubmission>()
                             .eq(ContestSubmission::getSubmissionId, submissionId));
             return cs != null ? cs.getContestId() : null;
+        } catch (org.springframework.dao.DataAccessException dae) {
+            // Transient DB issues (connection, timeout) — keep judging live.
+            log.warn("Transient DB error resolving contest id for submission {}; continuing without contest context",
+                    submissionId, dae);
+            return null;
         } catch (Exception e) {
-            log.warn("Failed to resolve contest id for submission {}; continuing without contest context",
+            // Anything else (schema drift, unexpected TooManyResults, NPE
+            // inside the mapper proxy) likely indicates a real bug; record
+            // as ERROR for alerting but do not let it fail the judge.
+            log.error("Unexpected error resolving contest id for submission {}; continuing without contest context",
                     submissionId, e);
             return null;
         }

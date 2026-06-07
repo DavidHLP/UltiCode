@@ -241,6 +241,13 @@ export interface CreateAppealDto {
   evidence?: string
 }
 
+/**
+ * Body for POST /moderation/appeals/{id}/review.
+ *
+ * NOTE: Field name is `decision` (NOT `status`).
+ * Allowed values: AppealStatus.APPROVED or AppealStatus.REJECTED.
+ * `response` is an optional moderator note.
+ */
 export interface ReviewAppealDto {
   decision: AppealStatus.APPROVED | AppealStatus.REJECTED
   response?: string

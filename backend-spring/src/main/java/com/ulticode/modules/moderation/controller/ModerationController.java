@@ -7,6 +7,8 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.service.ModerationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -175,11 +177,15 @@ public class ModerationController {
         return Result.success(moderationService.getAppeals(query));
     }
 
-    @Operation(summary = "Get appeal details")
+    @Operation(summary = "Get appeal details", description = "Returns a single appeal. "
+            + "Access is restricted: only the appellant, or a MOD/ADMIN/SUPER_ADMIN, may read. "
+            + "Other authenticated users receive 403 Forbidden. Rate-limited to 30 req/min/key.")
+    @RateLimit(key = "moderation:appeal-detail", limit = 30, period = 60)
     @GetMapping("/appeals/{id}")
     @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> getAppeal(@PathVariable String id) {
-        return Result.success(moderationService.getAppeal(id));
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        return Result.success(moderationService.getAppeal(id, currentUserId));
     }
 
     @Operation(summary = "Get current user's appeals")
@@ -197,7 +203,12 @@ public class ModerationController {
         return Result.success(moderationService.getAppealStats());
     }
 
-    @Operation(summary = "Review an appeal")
+    @Operation(summary = "Review an appeal",
+            description = "Approve or reject an appeal. Body uses `decision` field with values "
+                    + "`APPROVED` or `REJECTED` (NOT `status`). `response` is an optional moderator note.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(schema = @Schema(implementation = ReviewAppealDTO.class)))
     @RateLimit(key = "admin:moderation-review", limit = 30, period = 60)
     @PostMapping("/appeals/{id}/review")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")

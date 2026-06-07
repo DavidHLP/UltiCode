@@ -2,8 +2,8 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.problem.entity.TestCase;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.modules.problem.entity.ProblemExample;
+import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
@@ -72,7 +72,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final SubmissionService submissionService;
     private final RealtimeService realtimeService;
     private final ContestSubmissionMapper contestSubmissionMapper;
-    private final TestCaseMapper testCaseMapper;
+    private final ProblemExampleMapper problemExampleMapper;
     private final QueueConfig queueConfig;
     private final ObjectMapper objectMapper;
 
@@ -125,17 +125,18 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             // Mark as judging
             submissionService.updateSubmissionResult(submissionId, "Judging", 0, null, null);
 
-            // Load test cases
-            List<TestCase> testCases = testCaseMapper.findByProblemIdOrderByOrder(Long.parseLong(problemId));
-            if (testCases == null || testCases.isEmpty()) {
-                log.warn("No test cases found for problem {}", problemId);
+            // Load examples as judge cases. The current schema stores public runnable cases
+            // in problem_examples; there is no test_cases table in the canonical migrations.
+            List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(Long.parseLong(problemId));
+            if (examples == null || examples.isEmpty()) {
+                log.warn("No problem examples found for problem {}", problemId);
                 submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
                 pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
                 return;
             }
 
             // Build RunSubmissionDTO
-            RunSubmissionDTO runDto = buildRunSubmissionDTO(job, testCases);
+            RunSubmissionDTO runDto = buildRunSubmissionDTO(job, examples);
 
             // Execute
             RunResultDTO result = codeExecutionService.execute(runDto, Long.parseLong(problemId), userId);
@@ -175,7 +176,9 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
-            throw new RuntimeException("Judge processing failed for submission " + submissionId, e);
+            submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
+            String failedContestId = findContestIdBySubmissionId(submissionId);
+            pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
         }
     }
 
@@ -278,14 +281,14 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         }
     }
 
-    private RunSubmissionDTO buildRunSubmissionDTO(JudgeJob job, List<TestCase> testCases) {
+    private RunSubmissionDTO buildRunSubmissionDTO(JudgeJob job, List<ProblemExample> examples) {
         RunSubmissionDTO runDto = new RunSubmissionDTO();
         runDto.setLanguage(job.getLanguage());
         runDto.setCode(job.getCode());
-        runDto.setTestCases(testCases.stream().map(tc -> {
+        runDto.setTestCases(examples.stream().map(tc -> {
             RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
             rtc.setId(String.valueOf(tc.getId()));
-            rtc.setLabel("Case " + tc.getTestOrder());
+            rtc.setLabel("Case " + tc.getExampleOrder());
             rtc.setOutput(tc.getOutputText());
 
             List<RunSubmissionDTO.RunInput> runInputs = new ArrayList<>();
@@ -308,7 +311,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                         runInputs.add(ri);
                     }
                 } catch (JsonProcessingException e) {
-                    log.warn("Failed to parse inputs JSON for test case {}, falling back to inputText", tc.getId());
+                    log.warn("Failed to parse inputs JSON for problem example {}, falling back to inputText", tc.getId());
                 }
             }
             // Fallback: wrap inputText as single input
@@ -334,9 +337,15 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     private String findContestIdBySubmissionId(String submissionId) {
-        ContestSubmission cs = contestSubmissionMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ContestSubmission>()
-                        .eq(ContestSubmission::getSubmissionId, submissionId));
-        return cs != null ? cs.getContestId() : null;
+        try {
+            ContestSubmission cs = contestSubmissionMapper.selectOne(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ContestSubmission>()
+                            .eq(ContestSubmission::getSubmissionId, submissionId));
+            return cs != null ? cs.getContestId() : null;
+        } catch (Exception e) {
+            log.warn("Failed to resolve contest id for submission {}; continuing without contest context",
+                    submissionId, e);
+            return null;
+        }
     }
 }

@@ -63,11 +63,6 @@ const editorFontFamily = computed(
 );
 
 const activeLanguageLabel = computed(() => {
-  if (languageMeta.value?.style) {
-    return languageMeta.value.style === "typescript"
-      ? "TypeScript"
-      : "JavaScript";
-  }
   return languageMeta.value?.label ?? t("problem.editor.language");
 });
 const starterCode = computed(() => languageMeta.value?.starterCode ?? "");

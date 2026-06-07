@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -168,8 +170,8 @@ public class SandboxServiceImpl implements SandboxService {
                 "--read-only",
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
-                "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
-                "--volume", resolveSeccompProfilePath() + ":/seccomp-profile:ro",
+                "--security-opt", "seccomp=" + resolveSeccompProfileFilePath(),
+                "--volume", resolveSeccompProfileDirectoryPath() + ":/seccomp-profile:ro",
                 sandboxConfig.image()
         ));
 
@@ -198,7 +200,7 @@ public class SandboxServiceImpl implements SandboxService {
                 : null;
         String effectiveMemory = langLimit != null ? langLimit.memory() : sandboxConfig.memory();
 
-        return new ArrayList<>(List.of(
+        List<String> cmd = new ArrayList<>(List.of(
                 "docker", "run", "--rm", "-i",
                 "--network", "none",
                 "--cap-drop", "ALL",
@@ -210,19 +212,54 @@ public class SandboxServiceImpl implements SandboxService {
                 "--read-only",
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
-                "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
-                "--volume", resolveSeccompProfilePath() + ":/seccomp-profile:ro",
-                sandboxConfig.image(),
-                "sh", "-c", wrapperScript
+                "--security-opt", "seccomp=" + resolveSeccompProfileFilePath(),
+                "--volume", resolveSeccompProfileDirectoryPath() + ":/seccomp-profile:ro",
+                sandboxConfig.image()
         ));
+
+        switch (language) {
+            case "javascript" -> cmd.addAll(List.of("node", "-e", wrapperScript));
+            case "python" -> cmd.addAll(List.of("python3", "-c", wrapperScript));
+            case "java", "c", "cpp" -> cmd.addAll(List.of("sh", "-c", wrapperScript));
+            default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
+        }
+        return cmd;
     }
 
-    private String resolveSeccompProfilePath() {
+    private String resolveSeccompProfileFilePath() {
         String path = sandboxConfig.seccompProfilePath();
         if (path != null && !path.isBlank()) {
-            return path;
+            Path configuredPath = resolvePathFromWorkingTree(Path.of(path));
+            if (Files.isDirectory(configuredPath)) {
+                return configuredPath.resolve("seccomp-profile.json").toString();
+            }
+            return configuredPath.toString();
+        }
+        return resolvePathFromWorkingTree(Path.of("docker", "sandbox", "seccomp-profile.json")).toString();
+    }
+
+    private String resolveSeccompProfileDirectoryPath() {
+        Path filePath = Path.of(resolveSeccompProfileFilePath());
+        Path parent = filePath.getParent();
+        return parent != null ? parent.toString() : filePath.toString();
+    }
+
+    private Path resolvePathFromWorkingTree(Path candidate) {
+        if (candidate.isAbsolute()) {
+            return candidate;
         }
         String cwd = System.getProperty("user.dir");
-        return cwd + "/docker/sandbox";
+        Path cwdCandidate = Path.of(cwd).resolve(candidate).normalize();
+        if (Files.exists(cwdCandidate)) {
+            return cwdCandidate;
+        }
+        Path parent = Path.of(cwd).getParent();
+        if (parent != null) {
+            Path parentCandidate = parent.resolve(candidate).normalize();
+            if (Files.exists(parentCandidate)) {
+                return parentCandidate;
+            }
+        }
+        return cwdCandidate;
     }
 }

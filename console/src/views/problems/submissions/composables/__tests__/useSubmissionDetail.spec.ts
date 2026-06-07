@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { normalizeDistributionBins } from "../useSubmissionDetail";
+import {
+  buildDistributionDisplayPoints,
+  normalizeDistributionBins,
+} from "../useSubmissionDetail";
 
 describe("normalizeDistributionBins", () => {
   it("keeps object bins with counts", () => {
@@ -28,6 +31,33 @@ describe("normalizeDistributionBins", () => {
     ).toEqual([
       { i: 0, bin: 16, count: 2 },
       { i: 1, bin: 32, count: 5 },
+    ]);
+  });
+});
+
+describe("buildDistributionDisplayPoints", () => {
+  it("keeps real counted distribution data", () => {
+    const points = normalizeDistributionBins([
+      { bin: 0, count: 2 },
+      { bin: 1, count: 3 },
+    ]);
+
+    expect(buildDistributionDisplayPoints(points, 1)).toEqual(points);
+  });
+
+  it("adds an honest current-submission bar when aggregate counts are missing", () => {
+    expect(buildDistributionDisplayPoints([], 6.6)).toEqual([
+      { i: 0, bin: 6.6, count: 1 },
+    ]);
+  });
+
+  it("promotes zero-count ticks to a visible current value bar", () => {
+    const points = normalizeDistributionBins([0, 1, 2]);
+
+    expect(buildDistributionDisplayPoints(points, 1)).toEqual([
+      { i: 0, bin: 0, count: 0 },
+      { i: 1, bin: 1, count: 1 },
+      { i: 2, bin: 2, count: 0 },
     ]);
   });
 });

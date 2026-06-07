@@ -185,11 +185,15 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="relative flex h-full w-full flex-col overflow-hidden">
+  <section
+    class="terminal-card relative flex h-full w-full flex-col overflow-hidden shadow-sm"
+  >
     <!-- Header 区域 -->
-    <header class="flex flex-col border-b border-border/30 bg-[var(--background)]">
+    <header
+      class="terminal-card-header flex flex-col gap-0 px-3 pb-2 pt-2 font-data"
+    >
       <!-- 顶部搜索和排序栏 -->
-      <div class="flex items-center gap-2 px-3 py-2">
+      <div class="flex items-center gap-2">
         <!-- 搜索框 -->
         <div class="relative flex-1">
           <Search
@@ -198,24 +202,24 @@ onMounted(async () => {
           <Input
             v-model="search"
             :placeholder="t('problem.solutions.searchPlaceholder')"
-            class="h-8 pl-8.5 text-xs rounded-none bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base03)] border-border focus-visible:border-[var(--accent-electric)] focus-visible:ring-1 focus-visible:ring-[var(--accent-electric)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
+            class="h-8 pl-8.5 text-xs rounded-none bg-card border-border text-foreground placeholder:text-muted-foreground focus-visible:border-[var(--accent-electric)] focus-visible:ring-1 focus-visible:ring-[var(--accent-electric)] focus-visible:ring-offset-0 focus-visible:ring-offset-transparent shadow-none"
           />
         </div>
 
         <!-- 排序按钮 -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs rounded-none bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base03)] border-border hover:bg-muted font-bold cursor-pointer h-8">
+            <Button variant="outline" size="sm" class="gap-1.5 text-xs rounded-none bg-card border-border text-foreground hover:bg-muted font-bold cursor-pointer h-8">
               <ArrowDownAZ class="h-3.5 w-3.5" />
               <span class="text-[11px] uppercase tracking-wider">{{ t("common.actions.sort") }}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="rounded-none">
+          <DropdownMenuContent align="end" class="rounded-none bg-popover text-popover-foreground border-border">
             <DropdownMenuItem
               v-for="option in sortOptions"
               :key="option.value"
               @click="sortBy = option.value"
-              class="text-xs cursor-pointer rounded-none"
+              class="text-xs cursor-pointer rounded-none focus:bg-muted"
             >
               {{ option.label }}
               <Check v-if="sortBy === option.value" class="ml-auto h-3.5 w-3.5 text-[var(--accent-electric)]" />
@@ -226,7 +230,7 @@ onMounted(async () => {
 
       <!-- 语言标签过滤栏 -->
       <div
-        class="relative w-full overflow-hidden px-3 py-1.5 border-t border-border/20"
+        class="relative w-full overflow-hidden border-t border-border/20 pt-1.5"
       >
         <div
           class="flex w-full items-center gap-1.5 overflow-x-auto scrollbar-hide"
@@ -237,7 +241,7 @@ onMounted(async () => {
             :class="
               languageFilter === 'all'
                 ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
-                : 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-muted-foreground hover:bg-[var(--silver-100)]/80 hover:text-foreground border-border/40'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = 'all'"
           >
@@ -254,7 +258,7 @@ onMounted(async () => {
             :class="
               languageFilter === option.value
                 ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
-                : 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-muted-foreground hover:bg-[var(--silver-100)]/80 hover:text-foreground border-border/40'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground border-border/40'
             "
             @click="languageFilter = option.value"
           >
@@ -264,9 +268,9 @@ onMounted(async () => {
       </div>
 
       <!-- 提交统计和操作栏 -->
-      <div class="mx-3 mb-2 lc-md:mx-2 lc-md:mb-1.5">
+      <div class="mt-1.5 lc-md:mt-1.5">
         <div
-          class="bg-[var(--silver-100)] dark:bg-[var(--solarized-base02)] border border-border/40 flex items-center justify-between gap-3 rounded-none p-2 lc-md:p-1.5"
+          class="bg-muted border border-border/40 flex items-center justify-between gap-3 rounded-none p-2 lc-md:p-1.5"
         >
           <div class="flex items-center gap-2 flex-1 min-w-0 pl-1">
             <template v-if="userSolution">
@@ -289,7 +293,7 @@ onMounted(async () => {
                   class="h-3 w-3 text-white"
                 />
               </div>
-              <span class="text-[11px] font-semibold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] leading-tight truncate">
+              <span class="text-[11px] font-semibold text-foreground leading-tight truncate">
                 {{
                   t("problem.solutions.runtimeBeats", {
                     percent: bestSubmission.runtimePercentile?.toFixed(1) ?? 0,
@@ -305,10 +309,10 @@ onMounted(async () => {
           </div>
           
           <button
-            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white dark:text-[var(--solarized-base03)] shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
-            <PenLine class="h-3.5 w-3.5 text-white" />
+            <PenLine class="h-3.5 w-3.5 text-white dark:text-[var(--solarized-base03)]" />
             <span>
               {{
                 userSolution
@@ -322,7 +326,7 @@ onMounted(async () => {
     </header>
 
     <!-- 题解列表 -->
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 overflow-y-auto bg-card">
       <div class="py-3">
         <div v-if="sortedItems.length" class="flex flex-col">
           <div

@@ -84,7 +84,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
   <section class="space-y-6">
     <section class="space-y-3">
       <!-- Title -->
-      <h1 class="text-xl font-bold tracking-tight text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+      <h1 class="text-xl font-bold tracking-tight text-foreground">
         {{ props.problem.id }}. {{ props.problem.title }}
       </h1>
 
@@ -105,7 +105,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Tags Button -->
         <button
           v-if="props.problem.tags?.length"
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-all duration-200 text-[11px] text-[var(--silver-600)] font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-[11px] text-muted-foreground font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
           @click="scrollToSection((tagsSection as any).$el)"
         >
           <svg
@@ -127,7 +127,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             Array.isArray(props.problem.companies) &&
             props.problem.companies.length
           "
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-all duration-200 text-[11px] text-[var(--terminal-amber)] font-data hover:bg-[var(--terminal-amber)] hover:text-white hover:border-[var(--terminal-amber)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-[11px] text-[var(--terminal-amber)] font-data hover:bg-[var(--terminal-amber)] hover:text-white hover:border-[var(--terminal-amber)]"
           @click="scrollToSection((companiesSection as any).$el)"
         >
           <span>{{ t("problem.detail.companies") }}</span>
@@ -136,7 +136,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Hint Button -->
         <button
           v-if="props.problem.followUp || props.problem.starterNotes?.length"
-          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-all duration-200 text-[11px] text-[var(--silver-600)] font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
+          class="relative inline-flex items-center justify-center px-2 py-0.5 gap-1 rounded-none border border-border cursor-pointer transition-all duration-200 text-[11px] text-muted-foreground font-data hover:bg-[var(--accent-electric)] hover:text-white hover:border-[var(--accent-electric)]"
           @click="scrollToSection((hintsSection as any)?.$el)"
         >
           <svg
@@ -161,7 +161,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="tag in props.problem.tags || []"
           :key="tag"
-          class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2.5 py-0.5 text-[11px] text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
+          class="rounded-none bg-muted px-2.5 py-0.5 text-[11px] text-foreground font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
         >
           {{ tag }}
         </span>
@@ -179,7 +179,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="company in props.problem.companies"
           :key="company.id"
-          class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
+          class="rounded-none bg-muted px-2.5 py-0.5 text-[11px] font-medium text-foreground font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
         >
           {{ company.name }}
         </span>
@@ -235,8 +235,8 @@ const problemDescription = computed<ProblemDescription>(() => ({
             value="tags"
             class="border-b-0"
           >
-            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-[var(--silver-100)]/30 transition-colors">
-              <div class="flex items-center gap-2 text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-muted/30 transition-colors">
+              <div class="flex items-center gap-2 text-foreground">
                 <svg
                   class="h-3.5 w-3.5 text-[var(--accent-electric)]"
                   xmlns="http://www.w3.org/2000/svg"
@@ -255,7 +255,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="tag in props.problem.tags || []"
                   :key="tag"
-                  class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2.5 py-0.5 text-[11px] text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
+                  class="rounded-none bg-muted px-2.5 py-0.5 text-[11px] text-foreground font-data border border-transparent hover:border-[var(--accent-electric)]/50 transition-colors"
                 >
                   {{ tag }}
                 </span>
@@ -273,8 +273,8 @@ const problemDescription = computed<ProblemDescription>(() => ({
             value="companies"
             class="border-b-0"
           >
-            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-[var(--silver-100)]/30 transition-colors">
-              <div class="flex items-center gap-2 text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-muted/30 transition-colors">
+              <div class="flex items-center gap-2 text-foreground">
                 <span class="text-[var(--terminal-amber)] font-data font-bold uppercase tracking-wider text-[11px]">{{
                   t("problem.detail.companies")
                 }}</span>
@@ -285,7 +285,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="company in props.problem.companies"
                   :key="company.id"
-                  class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
+                  class="rounded-none bg-muted px-2.5 py-0.5 text-[11px] font-medium text-foreground font-data border border-transparent hover:border-[var(--terminal-amber)]/50 transition-colors"
                 >
                   {{ company.name }}
                 </span>
@@ -300,8 +300,8 @@ const problemDescription = computed<ProblemDescription>(() => ({
             value="hints"
             class="border-b-0"
           >
-            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-[var(--silver-100)]/30 transition-colors">
-              <div class="flex items-center gap-2 text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+            <AccordionTrigger class="text-xs hover:no-underline py-2.5 px-1 hover:bg-muted/30 transition-colors">
+              <div class="flex items-center gap-2 text-foreground">
                 <svg
                   class="h-3.5 w-3.5 text-[var(--accent-electric)]"
                   xmlns="http://www.w3.org/2000/svg"
@@ -322,8 +322,8 @@ const problemDescription = computed<ProblemDescription>(() => ({
                   :key="index"
                   class="text-xs text-muted-foreground flex gap-1.5 items-start"
                 >
-                  <span class="font-bold text-[var(--accent-electric)] text-[10px] bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-1 rounded-none">{{ index + 1 }}</span>
-                  <span class="text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)]">{{ hint }}</span>
+                  <span class="font-bold text-[var(--accent-electric)] text-[10px] bg-muted px-1 rounded-none">{{ index + 1 }}</span>
+                  <span class="text-foreground">{{ hint }}</span>
                 </li>
               </ul>
             </AccordionContent>

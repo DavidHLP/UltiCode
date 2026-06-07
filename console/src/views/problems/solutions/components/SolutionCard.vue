@@ -52,7 +52,7 @@ const voteCounts = computed(() =>
 
 <template>
   <article
-    class="group flex cursor-pointer flex-col gap-2.5 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-border/40 p-4 rounded-none hover:border-[var(--accent-electric)]/50 hover:bg-[var(--solarized-base3)]/90 hover:shadow-xs transition-all duration-200"
+    class="group flex cursor-pointer flex-col gap-2.5 bg-card border border-border/40 p-4 rounded-none hover:border-[var(--accent-electric)]/50 hover:bg-muted hover:shadow-xs transition-all duration-200"
     tabindex="0"
     role="button"
     @click="handleSelect"
@@ -70,10 +70,10 @@ const voteCounts = computed(() =>
       </Avatar>
       <div class="flex flex-1 flex-col gap-0.5 text-xs leading-none">
         <div class="flex flex-wrap items-center gap-1.5">
-          <span class="font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+          <span class="font-bold text-foreground">
             {{ props.item.author.name }}
           </span>
-          <span class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-1 py-0.2 rounded-none">
+          <span class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none">
             {{ props.item.author.role }}
           </span>
           <span class="text-[10px] text-muted-foreground ml-auto">
@@ -89,16 +89,16 @@ const voteCounts = computed(() =>
         
         <!-- Language and Topic badging -->
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider">
+          <span class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider">
             {{ languageLabel }}
           </span>
-          <span class="rounded-none bg-[var(--silver-100)] dark:bg-[var(--silver-800)] px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider">
+          <span class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider">
             {{ topicLabel }}
           </span>
           <span
             v-for="badge in props.item.badges"
             :key="badge"
-            class="rounded-none border border-border px-2 py-0.5 text-[10px] font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] uppercase tracking-wider"
+            class="rounded-none border border-border px-2 py-0.5 text-[10px] font-bold text-foreground uppercase tracking-wider"
           >
             {{ badge }}
           </span>
@@ -114,11 +114,11 @@ const voteCounts = computed(() =>
         >
           {{ props.item.highlight }}
         </p>
-        <h3 class="text-sm font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1">
+        <h3 class="text-sm font-bold text-foreground group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1">
           {{ props.item.title }}
         </h3>
       </div>
-      <p class="line-clamp-2 text-xs text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] leading-relaxed">
+      <p class="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
         {{ props.item.summary }}
       </p>
     </section>
@@ -133,13 +133,13 @@ const voteCounts = computed(() =>
         <span
           v-for="tag in props.item.tags.slice(0, 2)"
           :key="tag"
-          class="rounded-none bg-[var(--silver-100)]/70 dark:bg-[var(--silver-800)]/70 px-2 py-0.5 text-[10px] text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
+          class="rounded-none bg-muted/70 px-2 py-0.5 text-[10px] text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
         >
           {{ tag }}
         </span>
         <span
           v-if="props.item.tags.length > 2"
-          class="text-[9px] font-bold text-muted-foreground bg-[var(--silver-100)]/40 dark:bg-[var(--silver-800)]/40 px-1 py-0.2"
+          class="text-[9px] font-bold text-muted-foreground bg-muted/40 px-1 py-0.2"
         >
           +{{ props.item.tags.length - 2 }}
         </span>

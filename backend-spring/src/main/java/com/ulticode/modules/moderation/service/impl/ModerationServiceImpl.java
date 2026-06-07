@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.entity.*;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
@@ -124,7 +125,31 @@ public class ModerationServiceImpl implements ModerationService {
         stats.setResolvedToday(queueMapper.countResolvedToday());
         stats.setPendingAppealsCount(appealMapper.countPending());
         stats.setAvgResolutionTimeHours(queueMapper.avgResolutionTimeHours());
+        stats.setByCategory(toCountMap(queueMapper.countByCategory()));
+        stats.setByEntityType(toCountMap(queueMapper.countByEntityType()));
         return stats;
+    }
+
+    /**
+     * Convert raw SQL group-by rows ({key, value}) to a Map<String, Long>.
+     * Preserves the order returned by the SQL (LinkedHashMap).
+     *
+     * @param raw list of row maps from a group-by query
+     * @return ordered map of key to count, empty if input is null/empty
+     */
+    private Map<String, Long> toCountMap(List<Map<String, Object>> raw) {
+        if (raw == null || raw.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : raw) {
+            Object key = row.get("key");
+            Object value = row.get("value");
+            if (key != null && value instanceof Number) {
+                result.put(key.toString(), ((Number) value).longValue());
+            }
+        }
+        return result;
     }
 
     @Override
@@ -249,10 +274,8 @@ public class ModerationServiceImpl implements ModerationService {
             }
         }
 
-        if (successCount == 0 && !errors.isEmpty()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "All batch operations failed");
-        }
-
+        // Always return BatchActionResultVO so callers receive per-item error details,
+        // even when every item fails. Caller inspects successCount/errors to decide UX.
         return new BatchActionResultVO(successCount, errors.size(), errors);
     }
 
@@ -443,10 +466,22 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
-    public AppealVO getAppeal(String id) {
+    public AppealVO getAppeal(String id, String currentUserId) {
         Appeal appeal = appealMapper.selectById(id);
         if (appeal == null) {
             throw new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND);
+        }
+        // Authorization guard: only appellant or MOD/ADMIN/SUPER_ADMIN may read.
+        // Use Objects.equals for null-safety on BOTH sides — if appellantId is null
+        // (data corruption), return false (deny) rather than NPE (HTTP 500).
+        boolean isOwner = Objects.equals(appeal.getAppellantId(), currentUserId);
+        boolean isModerator = SecurityUtil.hasRole("MODERATOR")
+                            || SecurityUtil.hasRole("ADMIN")
+                            || SecurityUtil.hasRole("SUPER_ADMIN");
+        if (!isOwner && !isModerator) {
+            log.warn("User {} attempted to read appeal {} owned by {}",
+                    currentUserId, id, appeal.getAppellantId());
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         return toAppealVO(appeal);
     }

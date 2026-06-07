@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * Admin controller for analytics and reporting.
  * Provides aggregated data for various analytics reports.
@@ -23,6 +25,17 @@ import org.springframework.web.bind.annotation.*;
 public class AdminAnalyticsController {
 
     private final AdminAnalyticsService adminAnalyticsService;
+
+    @Operation(summary = "Get analytics overview", description = "Get lightweight aggregated summary across all analytics dimensions. "
+            + "Returns a map with keys: totalUsers, activeUsers, totalSubmissions, acceptedSubmissions, "
+            + "acceptanceRate, totalContests, activeSubscriptions, systemUptimeSeconds, memoryUsagePercent, periodDays.")
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Map<String, Object>> getAnalyticsOverview(
+            @Parameter(description = "Number of days to analyze")
+            @RequestParam(defaultValue = "30") Integer days) {
+        return Result.success(adminAnalyticsService.getAnalyticsOverview(days));
+    }
 
     @Operation(summary = "Get user activity report", description = "Get user activity analytics with DAU, retention, and active hours")
     @GetMapping("/user-activity")

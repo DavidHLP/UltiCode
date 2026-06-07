@@ -321,13 +321,13 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      *
      * @return list of rows with difficulty, total_problems, solved_problems
      */
-    @Select("SELECT p.difficulty, "
+    @Select("SELECT UPPER(p.difficulty) as difficulty, "
             + "COUNT(DISTINCT p.id) as total_problems, "
             + "COUNT(DISTINCT CASE WHEN s.status = 'Accepted' THEN p.id END) as solved_problems "
             + "FROM problems p "
             + "LEFT JOIN submissions s ON s.problem_id = p.id AND s.status = 'Accepted' "
-            + "WHERE p.status = 'PUBLISHED' AND p.difficulty IS NOT NULL "
-            + "GROUP BY p.difficulty")
+            + "WHERE p.is_deleted = false AND p.difficulty IS NOT NULL "
+            + "GROUP BY UPPER(p.difficulty)")
     List<Map<String, Object>> countProblemCompletionByDifficulty();
 
     /**
@@ -366,19 +366,22 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Contest participation aggregation (replaces N+1 per-contest participant loading).
-     * NOTE: Uses ${contestIds} (string interpolation) because MyBatis #{} cannot
-     * expand comma-separated IN-lists. The calling code MUST construct the contestIds
-     * string safely from validated Long IDs to prevent SQL injection. Only pass numeric IDs.
+     * Daily active users aggregation based on submissions.
+     * Groups submissions by date and counts distinct users per day.
+     * This provides a more accurate DAU metric than audit_logs
+     * which only records admin operations.
      *
-     * @param contestIds comma-separated contest IDs (e.g., "1,2,3")
-     * @return list of rows with contest_id, participant_count
+     * @param startDate start of analysis period (inclusive)
+     * @param endDate   end of analysis period (exclusive)
+     * @return list of rows with date, count
      */
-    @Select("SELECT contest_id, COUNT(DISTINCT user_id) as participant_count "
-            + "FROM contest_participants "
-            + "WHERE contest_id IN (${contestIds}) "
-            + "GROUP BY contest_id")
-    List<Map<String, Object>> countParticipantsByContest(@Param("contestIds") String contestIds);
+    @Select("SELECT DATE(created_at) AS date, COUNT(DISTINCT user_id) AS count "
+            + "FROM submissions "
+            + "WHERE created_at >= #{startDate} AND created_at < #{endDate} "
+            + "GROUP BY DATE(created_at) ORDER BY date")
+    List<Map<String, Object>> countDailyActiveUsers(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 
     /**
      * Get global rank for a user based on accepted submission count.

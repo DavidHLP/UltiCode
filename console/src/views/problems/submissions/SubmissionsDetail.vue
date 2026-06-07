@@ -36,6 +36,26 @@ function formatPercentile(value: number | undefined): string {
   return Number.isFinite(value) ? (value as number).toFixed(1) : "0.0";
 }
 
+function readCssColor(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return value || fallback;
+}
+
+function chartColors() {
+  const foreground = readCssColor("--muted-foreground", "#839496");
+  const border = readCssColor("--border", "#174652");
+  const accent = readCssColor("--chart-series-1", "#268bd2");
+  return {
+    foreground,
+    border,
+    accent,
+    mutedBar: echarts.color.modifyAlpha(foreground, 0.32),
+  };
+}
+
 const props = defineProps({
   submission: {
     type: Object as () => SubmissionRecord,
@@ -94,8 +114,7 @@ function buildChartOption(
   userIndex: number,
   unit: string,
 ) {
-  // userAvatar was unused
-  "https://assets.leetcode.cn/aliyun-lc-upload/default_avatar.png";
+  const colors = chartColors();
 
   return {
     tooltip: {
@@ -127,20 +146,21 @@ function buildChartOption(
         interval: paired.length <= 8 ? 0 : Math.ceil(paired.length / 8),
         rotate: 0,
         fontSize: 10,
-        color: "var(--muted-foreground)",
+        color: colors.foreground,
         fontFamily:
           "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
       },
-      axisLine: { lineStyle: { color: "var(--border)" } },
+      axisLine: { lineStyle: { color: colors.border } },
     },
     yAxis: {
       type: "value",
+      minInterval: 1,
       axisLine: { show: false },
       axisTick: { show: false },
-      splitLine: { lineStyle: { color: "var(--border)" } },
+      splitLine: { lineStyle: { color: colors.border } },
       axisLabel: {
         fontSize: 10,
-        color: "var(--muted-foreground)",
+        color: colors.foreground,
         fontFamily:
           "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
       },
@@ -151,10 +171,7 @@ function buildChartOption(
         data: paired.map((d, i) => ({
           value: d.count,
           itemStyle: {
-            color:
-              i === userIndex
-                ? "var(--chart-series-1)"
-                : "color-mix(in oklch, var(--muted-foreground) 32%, transparent)",
+            color: i === userIndex ? colors.accent : colors.mutedBar,
             borderRadius: 0,
           },
         })),
@@ -271,12 +288,15 @@ onMounted(() => {
   if (showMemoryDetail.value) nextTick(() => initMemoryChart());
 });
 
-watch(activeChart, (newVal) => {
-  nextTick(() => {
-    if (newVal === "runtime") initRuntimeChart();
-    else initMemoryChart();
-  });
-});
+watch(
+  [activeChart, pairedDist, pairedMemoryDist, () => props.submission?.id],
+  ([newVal]) => {
+    nextTick(() => {
+      if (newVal === "runtime") initRuntimeChart();
+      else initMemoryChart();
+    });
+  },
+);
 
 const handleResubmit = () => {
   if (props.submission?.problem_id) {

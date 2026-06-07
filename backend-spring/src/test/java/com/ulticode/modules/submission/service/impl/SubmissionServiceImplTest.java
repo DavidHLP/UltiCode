@@ -297,6 +297,77 @@ class SubmissionServiceImplTest {
         }
 
         @Test
+        @DisplayName("accepted result stores percentiles and visible distribution bins")
+        void updateSubmissionResult_Accepted_updatesPerformanceDistribution() {
+            Submission submission = createValidSubmission();
+            submission.setStatus("Pending");
+
+            Submission faster = createValidSubmission();
+            faster.setId("sub-fast");
+            faster.setUserId("user-fast");
+            faster.setStatus("Accepted");
+            faster.setRuntime(80);
+            faster.setMemory(192.0);
+
+            Submission slower = createValidSubmission();
+            slower.setId("sub-slow");
+            slower.setUserId("user-slow");
+            slower.setStatus("Accepted");
+            slower.setRuntime(120);
+            slower.setMemory(320.0);
+
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(submissionMapper.selectList(any())).thenReturn(List.of(faster, slower));
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+
+            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+
+            verify(submissionMapper).updateById(argThat((Submission updated) -> {
+                assertThat(updated.getRuntimePercentile()).isEqualTo(33.3);
+                assertThat(updated.getMemoryPercentile()).isEqualTo(33.3);
+                assertThat(updated.getRuntimeDistBinsMs()).isInstanceOf(List.class);
+                assertThat((List<?>) updated.getRuntimeDistBinsMs()).isNotEmpty();
+                assertThat(updated.getMemoryDistBinsMb()).isInstanceOf(List.class);
+                assertThat((List<?>) updated.getMemoryDistBinsMb()).isNotEmpty();
+                return true;
+            }));
+        }
+
+        @Test
+        @DisplayName("accepted result uses one best score per user")
+        void updateSubmissionResult_Accepted_countsUsersNotRepeatedSubmissions() {
+            Submission submission = createValidSubmission();
+
+            Submission repeatedSlower = createValidSubmission();
+            repeatedSlower.setId("sub-repeat-slow");
+            repeatedSlower.setUserId("other-user");
+            repeatedSlower.setStatus("Accepted");
+            repeatedSlower.setRuntime(300);
+            repeatedSlower.setMemory(512.0);
+
+            Submission sameUserBetter = createValidSubmission();
+            sameUserBetter.setId("sub-repeat-fast");
+            sameUserBetter.setUserId("other-user");
+            sameUserBetter.setStatus("Accepted");
+            sameUserBetter.setRuntime(50);
+            sameUserBetter.setMemory(128.0);
+
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(submissionMapper.selectList(any())).thenReturn(List.of(repeatedSlower, sameUserBetter));
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+
+            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+
+            verify(submissionMapper).updateById(argThat((Submission updated) -> {
+                assertThat(updated.getRuntimePercentile()).isEqualTo(0.0);
+                assertThat(updated.getMemoryPercentile()).isEqualTo(0.0);
+                assertThat((List<?>) updated.getRuntimeDistBinsMs()).hasSize(2);
+                assertThat((List<?>) updated.getMemoryDistBinsMb()).hasSize(2);
+                return true;
+            }));
+        }
+
+        @Test
         @DisplayName("creates notification for Wrong Answer status")
         void updateSubmissionResult_WrongAnswer_createsNotification() {
             Submission submission = createValidSubmission();

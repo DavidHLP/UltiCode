@@ -2,5 +2,8 @@
   "dependencies": {
     "@letta-ai/letta-client": "^1.10.3",
     "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "playwright": "1.60.0"
   }
 }

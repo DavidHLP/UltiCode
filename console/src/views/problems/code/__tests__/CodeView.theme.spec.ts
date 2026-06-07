@@ -25,4 +25,9 @@ describe("problem code editor toolbar theme styles", () => {
     expect(editorToolbarSource).toContain("data-[state=open]:bg-accent");
     expect(editorToolbarSource).toContain("hover:bg-accent");
   });
+
+  it("uses the problem language label instead of mapping every style to JavaScript", () => {
+    expect(codeViewSource).toContain("languageMeta.value?.label");
+    expect(codeViewSource).not.toContain('languageMeta.value.style === "typescript"');
+  });
 });

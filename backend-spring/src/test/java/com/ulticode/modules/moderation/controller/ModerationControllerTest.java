@@ -316,6 +316,31 @@ class ModerationControllerTest {
                     .andExpect(jsonPath("$.data.avgResolutionTimeHours").value(4.5))
                     .andExpect(jsonPath("$.data.pendingAppealsCount").value(2));
         }
+
+        @Test
+        @DisplayName("should include byCategory and byEntityType breakdowns")
+        void getStats_includesByCategoryAndByEntityType() throws Exception {
+            // Verifies fix for LOW #3: byCategory and byEntityType must be non-null
+            // and contain group-by counts. Mock returns a populated map.
+            Map<String, Long> byCategory = new HashMap<>();
+            byCategory.put("SPAM", 50L);
+            byCategory.put("HARASSMENT", 30L);
+            Map<String, Long> byEntityType = new HashMap<>();
+            byEntityType.put("ForumPost", 60L);
+            byEntityType.put("Solution", 40L);
+
+            ModerationStatsVO stats = buildStatsVO();
+            stats.setByCategory(byCategory);
+            stats.setByEntityType(byEntityType);
+            when(moderationService.getStats()).thenReturn(stats);
+
+            mockMvc.perform(get("/moderation/queue/stats"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.byCategory.SPAM").value(50))
+                    .andExpect(jsonPath("$.data.byCategory.HARASSMENT").value(30))
+                    .andExpect(jsonPath("$.data.byEntityType.ForumPost").value(60))
+                    .andExpect(jsonPath("$.data.byEntityType.Solution").value(40));
+        }
     }
 
     // ==================== Queue Write Tests ====================
@@ -554,6 +579,35 @@ class ModerationControllerTest {
         }
 
         @Test
+        @DisplayName("should return 200 with all-failed details (no 400)")
+        void batchAction_allFailed_returns200WithErrors() throws Exception {
+            // Behavior change: all-failed now returns 200 + per-item errors instead of 400.
+            BatchActionResultVO result = new BatchActionResultVO(0, 3, List.of(
+                    new BatchActionResultVO.BatchError("fake-1", "Moderation queue item not found"),
+                    new BatchActionResultVO.BatchError("fake-2", "Moderation queue item not found"),
+                    new BatchActionResultVO.BatchError("fake-3", "Moderation queue item not found")
+            ));
+            when(moderationService.batchAction(any(), any())).thenReturn(result);
+
+            BatchModerationActionDTO dto = new BatchModerationActionDTO();
+            dto.setQueueIds(List.of("fake-1", "fake-2", "fake-3"));
+            dto.setAction(ModerationActionType.DISMISSED);
+            dto.setNote("all-failed test");
+
+            mockMvc.perform(post("/moderation/queue/batch-action")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(0))
+                    .andExpect(jsonPath("$.data.successCount").value(0))
+                    .andExpect(jsonPath("$.data.failureCount").value(3))
+                    .andExpect(jsonPath("$.data.errors", org.hamcrest.Matchers.hasSize(3)))
+                    .andExpect(jsonPath("$.data.errors[0].queueId").value("fake-1"))
+                    .andExpect(jsonPath("$.data.errors[0].message")
+                            .value(org.hamcrest.Matchers.containsString("not found")));
+        }
+
+        @Test
         @DisplayName("should return 400 when queueIds is empty")
         void batchAction_validationError_emptyQueueIds() throws Exception {
             BatchModerationActionDTO dto = new BatchModerationActionDTO();
@@ -775,7 +829,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with appeal details")
         void getAppeal_success() throws Exception {
-            when(moderationService.getAppeal("appeal-1")).thenReturn(buildAppealVO());
+            when(moderationService.getAppeal(eq("appeal-1"), any())).thenReturn(buildAppealVO());
 
             mockMvc.perform(get("/moderation/appeals/appeal-1"))
                     .andExpect(status().isOk())
@@ -789,11 +843,23 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 404 when appeal not found")
         void getAppeal_notFound() throws Exception {
-            when(moderationService.getAppeal("nonexistent"))
+            when(moderationService.getAppeal(eq("nonexistent"), any()))
                     .thenThrow(new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/appeals/nonexistent"))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("should return 403 when user is neither appellant nor moderator")
+        void getAppeal_forbidden_nonOwnerNonModerator() throws Exception {
+            // Service guard rejects when currentUserId != appellantId and user lacks MOD/ADMIN role.
+            when(moderationService.getAppeal(eq("appeal-1"), any()))
+                    .thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
+
+            mockMvc.perform(get("/moderation/appeals/appeal-1"))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value(40300));
         }
     }
 

@@ -12,6 +12,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -289,4 +290,26 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
             "#{item}</foreach> AND user_id = #{userId}</script>")
     List<ContestParticipant> findByContestIdsAndUserId(@Param("contestIds") List<String> contestIds, @Param("userId") String userId);
+
+    /**
+     * Batch count participants grouped by contest ID.
+     * Replaces N+1 per-contest count queries with a single GROUP BY query.
+     * Uses MyBatis safe parameter binding via {@code <foreach>} to prevent SQL injection.
+     *
+     * <p><b>Precondition:</b> {@code contestIds} must be non-empty. An empty list
+     * produces the SQL fragment {@code WHERE contest_id IN ()} which is a
+     * syntax error in MySQL. Callers must short-circuit before invoking this
+     * method when there are no contest IDs to look up.</p>
+     *
+     * @param contestIds non-empty list of contest IDs (UUIDs)
+     * @return list of rows with contest_id, participant_count
+     * @throws org.springframework.dao.DataAccessException if the generated SQL is invalid
+     */
+    @Select("<script>SELECT contest_id, COUNT(DISTINCT user_id) AS participant_count " +
+            "FROM contest_participants " +
+            "WHERE contest_id IN " +
+            "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
+            "#{item}</foreach> " +
+            "GROUP BY contest_id</script>")
+    List<Map<String, Object>> countParticipantsByContestIds(@Param("contestIds") List<String> contestIds);
 }

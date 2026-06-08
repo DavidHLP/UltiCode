@@ -1,8 +1,10 @@
 package com.ulticode.modules.admin.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.common.util.TraceIdUtil;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.AuditStatsVO;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Tag(name = "Admin - Audit", description = "审计日志管理接口")
@@ -50,7 +53,12 @@ public class AuditController {
                                 @RequestParam(defaultValue = "csv") String format,
                                 HttpServletResponse response) throws IOException {
         if (!"csv".equalsIgnoreCase(format) && !"json".equalsIgnoreCase(format)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unsupported format: " + format);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setContentType("application/json;charset=UTF-8");
+            String traceId = TraceIdUtil.current();
+            objectMapper.writeValue(response.getWriter(),
+                Result.error(ErrorCode.BAD_REQUEST.getCode(),
+                    "Unsupported format: " + format, traceId));
             return;
         }
         List<AuditLogVO> logs = auditService.getAuditLogsForExport(query);
@@ -74,7 +82,9 @@ public class AuditController {
                     escapeCsvField(log.getEntityId()),
                     escapeCsvField(log.getPerformer() != null ? log.getPerformer().getUsername() : ""),
                     escapeCsvField(log.getIpAddress() != null ? log.getIpAddress() : ""),
-                    escapeCsvField(log.getCreatedAt() != null ? log.getCreatedAt().toString() : "")
+                    escapeCsvField(log.getCreatedAt() != null
+                        ? log.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        : "")
                 ));
             }
             writer.flush();

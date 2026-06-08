@@ -103,8 +103,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     public ProblemListDetailVO getProblemList(String id) {
-        ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        ProblemList list = findByIdOrThrow(id);
 
         ProblemListDetailVO vo = new ProblemListDetailVO();
         vo.setId(list.getId());
@@ -195,7 +194,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
                 attemptedCount++;
             }
         }
-        int todoCount = totalCount - solvedCount - attemptedCount;
+        int todoCount = Math.max(0, totalCount - solvedCount - attemptedCount);
         double progress = totalCount == 0 ? 0.0 : ((double) solvedCount / totalCount) * 100.0;
         statsVO.setTotalCount(totalCount);
         statsVO.setSolvedCount(solvedCount);
@@ -220,10 +219,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
 
         AuditContext.setOldValues(java.util.Map.of(
             "name", list.getName() != null ? list.getName() : "",
@@ -274,10 +270,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Override
     @Audited(action = AuditActionUtil.DELETE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void deleteProblemList(String id) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
         AuditContext.setOldValues(java.util.Map.of(
             "name", list.getName() != null ? list.getName() : "",
             "authorId", list.getAuthorId() != null ? list.getAuthorId() : ""
@@ -289,10 +282,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void updateListProblems(String id, UpdateProblemListProblemsDTO dto) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
 
         problemListProblemMapper.deleteByListId(id);
 
@@ -315,10 +305,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
 
         AuditContext.setOldValues(java.util.Map.of(
             "name", list.getName() != null ? list.getName() : "",
@@ -341,10 +328,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
 
         AuditContext.setOldValues(java.util.Map.of(
             "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
@@ -371,10 +355,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
+        ProblemList list = findByIdOrThrow(id);
 
         AuditContext.setOldValues(java.util.Map.of(
             "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
@@ -403,6 +384,14 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         ));
 
         return toSummaryVO(list);
+    }
+
+    private ProblemList findByIdOrThrow(String id) {
+        ProblemList list = problemListMapper.selectById(id);
+        if (list == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
+        }
+        return list;
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {

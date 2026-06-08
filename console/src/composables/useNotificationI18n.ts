@@ -1,4 +1,3 @@
-import { computed, type ComputedRef } from "vue";
 import { useI18n } from "vue-i18n";
 import type { NotificationItem } from "@/types/notification";
 
@@ -43,22 +42,27 @@ function readMetaString(
 }
 
 /**
- * The achievement listener doesn't include the achievement name in metadata,
- * so we fall back to extracting it from the rendered title when needed.
+ * Fallback extractors for legacy notifications whose listeners did not write
+ * the relevant fields into `metadata`. They are **only** invoked when the
+ * metadata field is absent.
+ *
+ * Limitation: these patterns assume the backend title is the English template
+ * (e.g. "<user> followed you"). If the backend ever emits localized titles
+ * for a non-English locale, the regexes will silently fail and the
+ * notification will fall back to the raw `notification.title`. New listeners
+ * should populate `metadata` instead of relying on these patterns.
  */
 function extractFollowUsername(title: string): string {
-  // Backend title is "<username> followed you" (English)
+  // Backend title is "<username> followed you" (English template).
   const match = title.match(/^(.+?)\s+followed you/i);
-  if (match) return match[1] ?? "";
-  return "";
+  return match ? match[1] : "";
 }
 
 function extractContestTitle(title: string): string {
   // Backend title is "Contest '<title>' starts in 24 hours" or
   // "Contest '<title>' starts in 1 hour".
   const match = title.match(/^Contest\s+['"](.+?)['"]\s+starts in/i);
-  if (match) return match[1] ?? "";
-  return "";
+  return match ? match[1] : "";
 }
 
 function isContestReminder24h(title: string): boolean {
@@ -71,7 +75,7 @@ export interface NotificationDisplay {
 }
 
 export function useNotificationI18n(): {
-  display: (notification: NotificationItem) => ComputedRef<NotificationDisplay>;
+  display: (notification: NotificationItem) => NotificationDisplay;
 } {
   const { t } = useI18n();
 
@@ -161,7 +165,12 @@ export function useNotificationI18n(): {
     }
   }
 
+  // `t()` from vue-i18n is reactive to the current locale, and Vue templates
+  // re-render when locale changes. Wrapping the result in a `computed()` per
+  // call would create N reactive wrappers for an N-item list with no
+  // additional correctness. Callers should treat the return value as a plain
+  // object re-evaluated on every render.
   return {
-    display: (notification) => computed(() => buildDisplay(notification)),
+    display: (notification) => buildDisplay(notification),
   };
 }

@@ -114,7 +114,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Bulk action", description = "Perform action on multiple posts")
-    @RateLimit(key = "admin:forum-bulk", limit = 30, period = 60)
+    @RateLimit(key = "admin:forum-bulk", limit = 10, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BulkActionResult> bulkAction(
@@ -150,8 +150,10 @@ public class AdminForumController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminForumCommunityVO>> getCommunities(
             @Parameter(description = "Page number") @RequestParam(defaultValue = "1") Integer page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") Integer limit) {
-        return Result.success(adminForumService.getCommunities(page, limit));
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") Integer limit,
+            @Parameter(description = "Optional case-insensitive search across name, slug, and description")
+            @RequestParam(required = false) String search) {
+        return Result.success(adminForumService.getCommunities(page, limit, search));
     }
 
     /**

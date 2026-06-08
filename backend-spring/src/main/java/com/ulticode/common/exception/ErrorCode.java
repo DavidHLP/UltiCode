@@ -90,6 +90,7 @@ public enum ErrorCode {
     // Contest module (7xxxx)
     CONTEST_NOT_FOUND(70001, "Contest not found", HttpStatus.NOT_FOUND),
     CONTEST_ONLY_REGISTER_UPCOMING(70002, "Can only register for upcoming contests", HttpStatus.BAD_REQUEST),
+    CONTEST_ONLY_UPDATE_UPCOMING(70006, "Contest can only be updated when in UPCOMING status", HttpStatus.BAD_REQUEST),
     CONTEST_ALREADY_REGISTERED(70003, "Already registered for this contest", HttpStatus.CONFLICT),
     CONTEST_NOT_REGISTERED(70004, "Not registered for this contest", HttpStatus.BAD_REQUEST),
     CONTEST_REGISTRATION_CLOSED(70005, "Contest registration is closed", HttpStatus.BAD_REQUEST),

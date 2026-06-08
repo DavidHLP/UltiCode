@@ -1,10 +1,14 @@
 package com.ulticode.modules.contest.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
@@ -72,8 +76,9 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    @Audited(action = AuditActionUtil.CREATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, captureOldState = false)
     public ContestVO createContest(CreateContestDTO dto, String userId) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = new Contest();
         contest.setTitle(dto.getTitle());
         contest.setDescription(dto.getDescription());
@@ -90,6 +95,8 @@ public class ContestServiceImpl implements ContestService {
         contest.setIsDeleted(false);
         contest.setSlug(generateSlug(dto.getTitle()));
         contestMapper.insert(contest);
+        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "slug", contest.getSlug(), "status", contest.getStatus()));
+        AuditContext.setUserId(userId);
         log.info("Contest created: {} by user {}", contest.getId(), userId);
         return toVO(contest, userId);
     }
@@ -97,9 +104,19 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO updateContest(String id, UpdateContestDTO dto) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_ONLY_UPDATE_UPCOMING,
+                    "Contest can only be updated when in UPCOMING status, current: " + contest.getStatus());
+        }
+        Map<String, Object> oldValues = new java.util.HashMap<>();
+        oldValues.put("title", contest.getTitle());
+        oldValues.put("status", contest.getStatus());
         if (dto.getTitle() != null) { contest.setTitle(dto.getTitle()); contest.setSlug(generateSlug(dto.getTitle())); }
         if (dto.getDescription() != null) contest.setDescription(dto.getDescription());
         if (dto.getStartTime() != null) {
@@ -114,6 +131,8 @@ public class ContestServiceImpl implements ContestService {
         if (dto.getMaxParticipants() != null) contest.setMaxParticipants(dto.getMaxParticipants());
         if (dto.getIsPublished() != null) contest.setIsVisible(dto.getIsPublished());
         contestMapper.updateById(contest);
+        AuditContext.setOldValues(oldValues);
+        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
         log.info("Contest updated: {}", id);
         return toVO(contest, null);
     }
@@ -121,14 +140,24 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    @Audited(action = AuditActionUtil.DELETE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
-        contest.setIsDeleted(true);
-        contest.setDeletedAt(LocalDateTime.now());
-        contest.setDeletedBy(SecurityUtil.getCurrentUserId());
-        contestMapper.updateById(contest);
-        log.info("Contest deleted: {}", id);
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        // LambdaUpdateWrapper is required because Contest.isDeleted carries @TableLogic;
+        // mapper.updateById(entity) silently skips fields annotated with @TableLogic.
+        String deletedBy = SecurityUtil.getCurrentUserId();
+        LocalDateTime now = LocalDateTime.now();
+        contestMapper.update(null, new LambdaUpdateWrapper<Contest>()
+                .eq(Contest::getId, id)
+                .set(Contest::getIsDeleted, true)
+                .set(Contest::getDeletedAt, now)
+                .set(Contest::getDeletedBy, deletedBy));
+        AuditContext.setOldValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        AuditContext.setNewValues(null);
+        log.info("Contest deleted: {} by {}", id, deletedBy);
     }
 
     // =========================================================================
@@ -544,9 +573,12 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO startContest(String id, String userId) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
         String status = contest.getStatus();
         if (!ContestStatus.DRAFT.name().equals(status) && !ContestStatus.UPCOMING.name().equals(status)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be started from DRAFT or UPCOMING status");
@@ -554,6 +586,8 @@ public class ContestServiceImpl implements ContestService {
         contest.setStatus(ContestStatus.RUNNING.name());
         contest.setActualStartTime(LocalDateTime.now());
         contestMapper.updateById(contest);
+        AuditContext.setOldValues(Map.of("status", status));
+        AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
         log.info("Contest started: {} by user {}", id, userId);
         return toVO(contest, userId);
     }
@@ -561,15 +595,20 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO endContest(String id, String userId) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
         if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be ended from RUNNING status");
         }
         contest.setStatus(ContestStatus.FINISHED.name());
         contest.setActualEndTime(LocalDateTime.now());
         contestMapper.updateById(contest);
+        AuditContext.setOldValues(Map.of("status", ContestStatus.RUNNING.name()));
+        AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
         log.info("Contest ended: {} by user {}", id, userId);
         return toVO(contest, userId);
     }
@@ -577,9 +616,12 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = "contest", allEntries = true)
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        findById(contestId).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        findById(contestId)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
         ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, dto.getProblemId());
         if (existing != null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem already exists in this contest");
@@ -593,6 +635,7 @@ public class ContestServiceImpl implements ContestService {
         cp.setSolvedCount(0);
         cp.setSubmissionCount(0);
         contestProblemMapper.insert(cp);
+        AuditContext.setNewValues(Map.of("addedProblemId", dto.getProblemId(), "problemIndex", cp.getProblemIndex()));
         log.info("Problem {} added to contest {}", dto.getProblemId(), contestId);
         ContestProblemVO vo = new ContestProblemVO();
         vo.setId(cp.getId());
@@ -606,18 +649,27 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = "contest", allEntries = true)
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public void removeProblem(String contestId, Long problemId) {
-        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        findById(contestId)
+                .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
         ContestProblem cp = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (cp == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem not found in this contest");
         }
         contestProblemMapper.deleteById(cp.getId());
+        AuditContext.setNewValues(Map.of("removedProblemId", problemId));
         log.info("Problem {} removed from contest {}", problemId, contestId);
     }
 
     @Override
     public PageResult<ContestRankingVO> getAdminContestRanking(String contestId, Integer page, Integer limit) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
         return rankingService != null ? rankingService.getContestRanking(contestId, page, limit) : PageResult.of(List.of(), 0L, 1, 50);
     }
 

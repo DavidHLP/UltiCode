@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { Loader2 } from "lucide-vue-next";
 import {
   fetchSubmission,
@@ -15,12 +16,14 @@ import SubmissionsDetail from "@/views/problems/submissions/SubmissionsDetail.vu
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const { handleError } = useErrorHandler();
 
 const submission = ref<SubmissionRecord | null>(null);
 const statusMeta = ref<SubmissionStatusMeta[]>([]);
 const isLoading = ref(true);
 const notFound = ref(false);
+const forbidden = ref(false);
 
 const statusMetaByKey = computed<Record<string, SubmissionStatusMeta>>(() =>
   statusMeta.value.reduce(
@@ -40,6 +43,7 @@ const submissionId = computed(() => {
 const loadData = async (id: string) => {
   isLoading.value = true;
   notFound.value = false;
+  forbidden.value = false;
   submission.value = null;
   try {
     const [submissionResult, statusesResult] = await Promise.all([
@@ -53,15 +57,23 @@ const loadData = async (id: string) => {
       statusMeta.value = statusesResult;
     }
   } catch (error) {
-    handleError(error, {
-      fallbackMessage: "problem.submissions.error.loadFailed",
-      logToConsole: true,
-    });
+    // Extract HTTP status from axios-shaped error or other shapes.
     const status =
       (error as { response?: { status?: number } } | null)?.response?.status ??
       (error as { status?: number } | null)?.status;
     if (status === 404) {
       notFound.value = true;
+    } else if (status === 403) {
+      // Don't reveal whether the submission exists for non-owners.
+      forbidden.value = true;
+    } else if (status === 401) {
+      // Route has requiresAuth, so this should be rare; redirect defensively.
+      router.push({ name: "login", query: { redirect: route.fullPath } });
+    } else {
+      handleError(error, {
+        fallbackMessage: "problem.submissions.error.loadFailed",
+        logToConsole: true,
+      });
     }
   } finally {
     isLoading.value = false;
@@ -99,13 +111,26 @@ function handleBack() {
       v-else-if="notFound"
       class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 p-8 text-muted-foreground"
     >
-      <p class="text-lg font-medium">Submission not found</p>
+      <p class="text-lg font-medium">{{ t("personal.submissions.notFound") }}</p>
       <button
         type="button"
         class="text-sm text-primary underline-offset-4 hover:underline"
         @click="handleBack"
       >
-        Go back
+        {{ t("personal.submissions.goBack") }}
+      </button>
+    </div>
+    <div
+      v-else-if="forbidden"
+      class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 p-8 text-muted-foreground"
+    >
+      <p class="text-lg font-medium">{{ t("problem.submissions.error.forbidden") }}</p>
+      <button
+        type="button"
+        class="text-sm text-primary underline-offset-4 hover:underline"
+        @click="handleBack"
+      >
+        {{ t("personal.submissions.goBack") }}
       </button>
     </div>
     <SubmissionsDetail

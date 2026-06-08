@@ -164,6 +164,7 @@ const submissionDetailRoute: RouteRecordRaw = {
   path: "/submissions/:id",
   name: "submission-detail",
   component: () => import("@/views/submissions/SubmissionsDetailView.vue"),
+  meta: { requiresAuth: true },
 };
 
 const forumCreateRoute: RouteRecordRaw = {

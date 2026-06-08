@@ -17,6 +17,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.mybatis.spring.MyBatisSystemException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -142,6 +143,35 @@ public class GlobalExceptionHandler {
                 .body(Result.error(ErrorCode.NOT_FOUND.getCode(), "Not found", traceId));
     }
 
+    /**
+     * Map MyBatis/MyBatis-Plus persistence-layer failures to a dedicated error code
+     * (50001) rather than the generic 50000 "Unknown error" returned by
+     * {@link #handleGenericException}.  This preserves the original traceId so an
+     * operator can correlate the client response to the full server-side stack
+     * trace, which previously got swallowed as "Unknown error" (see
+     * docs/forum-api-curl-test-report-2026-06-08.md §3).
+     *
+     * <p>The fix for the underlying LocalDateTime serialization issue lives in
+     * {@link com.ulticode.common.config.JacksonConfig#objectMapper()}.</p>
+     */
+    @ExceptionHandler(MyBatisSystemException.class)
+    public ResponseEntity<Result<Void>> handleMyBatisSystemException(MyBatisSystemException ex) {
+        String traceId = TraceIdUtil.current();
+        // Log the full cause chain server-side (operator action); only surface a
+        // generic message to the client to avoid leaking internal class names
+        // (e.g. java.sql.SQLException, Jackson InvalidDefinitionException) and
+        // any column/SQL fragments embedded in the message.
+        log.error("MyBatis persistence error (traceId={}, rootCause={}: {})",
+                traceId, rootCauseClassName(ex), rootCauseMessage(ex), ex);
+
+        Result<Void> result = Result.error(
+                ErrorCode.DATABASE_ERROR.getCode(),
+                ErrorCode.DATABASE_ERROR.getMessage(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected error: ", ex);
@@ -153,6 +183,31 @@ public class GlobalExceptionHandler {
                 traceId
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Walk the cause chain and return the deepest non-null message. Server-side
+     * only — never expose to clients (use {@link ErrorCode#DATABASE_ERROR} instead)
+     * to avoid leaking internal exception class names or SQL fragments.
+     */
+    private static String rootCauseMessage(Throwable t) {
+        Throwable cur = t;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+        }
+        return cur.getMessage();
+    }
+
+    /**
+     * Walk the cause chain and return the deepest class name. Server-side only —
+     * used in log lines so operators can grep on exception type.
+     */
+    private static String rootCauseClassName(Throwable t) {
+        Throwable cur = t;
+        while (cur.getCause() != null && cur.getCause() != cur) {
+            cur = cur.getCause();
+        }
+        return cur.getClass().getName();
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

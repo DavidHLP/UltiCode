@@ -24,6 +24,7 @@ public enum ErrorCode {
     // Generic errors (0xxxx)
     SUCCESS(0, "success", HttpStatus.OK),
     UNKNOWN_ERROR(50000, "Unknown error", HttpStatus.INTERNAL_SERVER_ERROR),
+    DATABASE_ERROR(50001, "Database error", HttpStatus.INTERNAL_SERVER_ERROR),
     BAD_REQUEST(40000, "Bad request", HttpStatus.BAD_REQUEST),
     VALIDATION_FAILED(49999, "Validation failed", HttpStatus.BAD_REQUEST),
     UNAUTHORIZED(40100, "Unauthorized", HttpStatus.UNAUTHORIZED),

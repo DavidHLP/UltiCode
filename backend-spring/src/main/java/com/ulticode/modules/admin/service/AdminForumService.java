@@ -77,11 +77,13 @@ public interface AdminForumService {
     /**
      * Get paginated list of forum communities.
      *
-     * @param page  page number (1-based)
-     * @param limit page size
+     * @param page   page number (1-based)
+     * @param limit  page size
+     * @param search optional case-insensitive search across community name and slug
+     *               (null or blank to disable)
      * @return paginated result of admin forum community VOs
      */
-    PageResult<AdminForumCommunityVO> getCommunities(int page, int limit);
+    PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search);
 
     /**
      * Get audit history for a forum post.

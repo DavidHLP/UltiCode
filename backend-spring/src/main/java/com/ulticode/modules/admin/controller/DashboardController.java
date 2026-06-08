@@ -25,31 +25,48 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class DashboardController {
 
-    private final DashboardService dashboardService;
+  /**
+   * Whitelisted metric values for chart stats. Order is stable for OpenAPI docs.
+   * NOTE: {@link #METRICS_REGEX} and {@link #METRICS_HUMAN} must be kept in sync when this list
+   * changes — Java annotation arguments require compile-time constants, so they cannot be
+   * derived from the array at compile time.
+   */
+  static final String[] ALLOWED_METRICS =
+      {"users", "submissions", "contests", "problems", "solutions", "forum_posts"};
 
-    @Operation(summary = "Get dashboard stats", description = "Get comprehensive dashboard statistics")
-    @GetMapping("/stats")
-    public Result<DashboardStatsVO> getStats() {
-        DashboardStatsVO stats = dashboardService.getStats();
-        return Result.success(stats);
-    }
+  /** Whitelisted period values for chart stats. Same sync rule as {@link #ALLOWED_METRICS}. */
+  static final String[] ALLOWED_PERIODS = {"hour", "day", "week", "month", "year"};
 
-    @Operation(summary = "Get chart stats", description = "Get statistics for charts")
-    @GetMapping("/charts")
-    public Result<ChartStatsVO> getChartStats(
-            @RequestParam(defaultValue = "users")
-            @Pattern(regexp = "users|submissions|contests|problems|solutions|forum_posts",
-                    message = "Invalid metric. Allowed: users, submissions, contests, problems, solutions, forum_posts")
-            String metric,
-            @RequestParam(defaultValue = "day")
-            @Pattern(regexp = "hour|day|week|month|year",
-                    message = "Invalid period. Allowed: hour, day, week, month, year")
-            String period,
-            @RequestParam(required = false)
-            @Min(value = 1, message = "Days parameter must be at least 1")
-            @Max(value = 365, message = "Days parameter cannot exceed 365")
-            Integer days) {
-        ChartStatsVO stats = dashboardService.getChartStats(metric, period, days);
-        return Result.success(stats);
-    }
+  private static final String METRICS_REGEX =
+      "users|submissions|contests|problems|solutions|forum_posts";
+  private static final String METRICS_HUMAN =
+      "users, submissions, contests, problems, solutions, forum_posts";
+  private static final String PERIODS_REGEX = "hour|day|week|month|year";
+  private static final String PERIODS_HUMAN = "hour, day, week, month, year";
+
+  private final DashboardService dashboardService;
+
+  @Operation(summary = "Get dashboard stats", description = "Get comprehensive dashboard statistics")
+  @GetMapping("/stats")
+  public Result<DashboardStatsVO> getStats() {
+    DashboardStatsVO stats = dashboardService.getStats();
+    return Result.success(stats);
+  }
+
+  @Operation(summary = "Get chart stats", description = "Get statistics for charts")
+  @GetMapping("/charts")
+  public Result<ChartStatsVO> getChartStats(
+      @RequestParam(defaultValue = "users")
+      @Pattern(regexp = METRICS_REGEX, message = "Invalid metric. Allowed: " + METRICS_HUMAN)
+      String metric,
+      @RequestParam(defaultValue = "day")
+      @Pattern(regexp = PERIODS_REGEX, message = "Invalid period. Allowed: " + PERIODS_HUMAN)
+      String period,
+      @RequestParam(required = false)
+      @Min(value = 1, message = "Days parameter must be at least 1")
+      @Max(value = 365, message = "Days parameter cannot exceed 365")
+      Integer days) {
+    ChartStatsVO stats = dashboardService.getChartStats(metric, period, days);
+    return Result.success(stats);
+  }
 }

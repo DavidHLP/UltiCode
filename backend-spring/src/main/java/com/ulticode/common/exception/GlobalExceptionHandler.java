@@ -15,6 +15,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -172,6 +175,32 @@ public class GlobalExceptionHandler {
      * @param ex the OptimisticLockException
      * @return ResponseEntity containing the error Result
      */
+    /**
+     * Handle ConstraintViolationException thrown by @PathVariable / @RequestParam
+     * constraints (e.g. {@code @Pattern}, {@code @Size}) on controllers annotated with
+     * {@code @Validated}. Without this handler the exception falls through to
+     * {@link #handleGenericException} and returns HTTP 500. Mirrors the response shape
+     * of {@link #handleValidationException} (which handles {@code @Valid @RequestBody}).
+     *
+     * @param ex the ConstraintViolationException
+     * @return ResponseEntity with HTTP 400 and per-field error map
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Result<Map<String, String>>> handleConstraintViolation(
+            ConstraintViolationException ex) {
+        Map<String, String> errors = new HashMap<>();
+        for (ConstraintViolation<?> v : ex.getConstraintViolations()) {
+            String path = v.getPropertyPath().toString();
+            String fieldName = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+            errors.put(fieldName, v.getMessage());
+        }
+        log.warn("Constraint violation: {}", errors);
+        String traceId = TraceIdUtil.current();
+        Result<Map<String, String>> result = Result.errorWithData(
+                ErrorCode.BAD_REQUEST.getCode(), "Validation failed", errors, traceId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
+
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<Result<Map<String, Object>>> handleOptimisticLockException(OptimisticLockException ex) {
         log.warn("Optimistic lock conflict: {}", ex.getMessage());

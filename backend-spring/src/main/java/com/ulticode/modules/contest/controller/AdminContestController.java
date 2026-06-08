@@ -74,7 +74,7 @@ public class AdminContestController {
     @RateLimit(key = "admin-contest:create", limit = 30, period = 60)
     @PostMapping
     public Result<ContestVO> createContest(@Valid @RequestBody CreateContestDTO dto) {
-
+        rejectUnsafeTitleChars(dto.getTitle());
         String userId = getCurrentUserIdOrThrow();
         return Result.success(contestService.createContest(dto, userId));
     }
@@ -89,7 +89,7 @@ public class AdminContestController {
     public Result<ContestVO> updateContest(
             @Parameter(description = "Contest ID") @PathVariable String id,
             @Valid @RequestBody UpdateContestDTO dto) {
-
+        rejectUnsafeTitleChars(dto.getTitle());
         return Result.success(contestService.updateContest(id, dto));
     }
 
@@ -182,5 +182,19 @@ public class AdminContestController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
         return userId;
+    }
+
+    /**
+     * Defense-in-depth guard against HTML angle-bracket characters in titles.
+     * The {@code @Pattern} on {@code CreateContestDTO.title} accepts {@code \\p{P}}
+     * (Unicode punctuation), which includes {@code <} and {@code >}. While the
+     * rendering layer applies OWASP Encoder, the principle of "reject at the
+     * boundary" is enforced here so the stored value cannot contain
+     * HTML-significant characters regardless of downstream rendering.
+     */
+    private void rejectUnsafeTitleChars(String title) {
+        if (title != null && (title.contains("<") || title.contains(">"))) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Title must not contain < or >");
+        }
     }
 }

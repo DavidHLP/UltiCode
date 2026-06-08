@@ -15,7 +15,7 @@ import java.util.List;
 public class UpdateContestDTO {
 
     @Size(max = 255, message = "Title must not exceed 255 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9\\s\\p{P}]+$", message = "Title must contain only letters, numbers, spaces, and punctuation")
+    @Pattern(regexp = "^[\\p{L}\\p{N}\\s\\p{P}]+$", message = "Title must contain only letters, numbers, spaces, and punctuation")
     @Schema(description = "Contest title", example = "Weekly Contest #123")
     private String title;
 

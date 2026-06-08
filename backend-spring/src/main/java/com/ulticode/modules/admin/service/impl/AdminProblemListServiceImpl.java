@@ -23,14 +23,22 @@ import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.service.ProblemListService;
+import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +52,8 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
+    private final UserMapper userMapper;
+    private final ProblemMapper problemMapper;
 
     @Override
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
@@ -93,7 +103,112 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     public ProblemListDetailVO getProblemList(String id) {
-        return problemListService.getListOverview(id, null, "en");
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        ProblemListDetailVO vo = new ProblemListDetailVO();
+        vo.setId(list.getId());
+        vo.setName(list.getName());
+        vo.setDescription(list.getDescription());
+        vo.setAuthorId(list.getAuthorId());
+        vo.setIsPublic(list.getIsPublic());
+        vo.setIsFeatured(list.getIsFeatured());
+        vo.setBannerTag(list.getBannerTag());
+        vo.setBannerIcon(list.getBannerIcon());
+        vo.setBannerTheme(list.getBannerTheme());
+        vo.setBannerOrder(list.getBannerOrder());
+        vo.setCreatedAt(list.getCreatedAt());
+        vo.setUpdatedAt(list.getUpdatedAt());
+
+        // Admin view: not owner, not saved
+        vo.setIsOwner(false);
+        vo.setIsSaved(false);
+
+        // Get author info
+        User author = userMapper.selectById(list.getAuthorId());
+        if (author != null) {
+            vo.setAuthorName(author.getName());
+            vo.setAuthorUsername(author.getUsername());
+        }
+
+        // Get problems in the list
+        List<ProblemListProblemRelation> relations = problemListProblemMapper.findByListId(id);
+        if (!relations.isEmpty()) {
+            Set<Long> problemIds = relations.stream()
+                    .map(ProblemListProblemRelation::getProblemId)
+                    .collect(Collectors.toSet());
+            List<Problem> problems = problemMapper.selectBatchIds(problemIds);
+            Map<Long, Problem> problemMap = problems.stream()
+                    .collect(Collectors.toMap(Problem::getId, p -> p));
+
+            // Batch-fetch tags for problems in the list
+            List<ProblemMapper.ProblemTagDTO> tagDTOs = problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
+            Map<Long, List<com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
+                    .collect(Collectors.groupingBy(
+                            ProblemMapper.ProblemTagDTO::problemId,
+                            Collectors.mapping(dto -> {
+                                com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO tagVO = new com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO();
+                                tagVO.setId(dto.tagId());
+                                tagVO.setLabel(dto.tagName());
+                                return tagVO;
+                            }, Collectors.toList())
+                    ));
+
+            List<ProblemListDetailVO.ProblemInListVO> problemVOs = relations.stream()
+                    .map(rel -> {
+                        Problem problem = problemMap.get(rel.getProblemId());
+                        if (problem == null) return null;
+
+                        ProblemListDetailVO.ProblemInListVO pvo = new ProblemListDetailVO.ProblemInListVO();
+                        pvo.setId(problem.getId());
+                        pvo.setSlug(problem.getSlug());
+                        pvo.setTitle(problem.getTitle());
+                        pvo.setDifficulty(problem.getDifficulty());
+                        pvo.setStatus(problem.getStatus());
+                        pvo.setSortOrder(rel.getSortOrder());
+                        pvo.setAddedAt(rel.getAddedAt());
+                        pvo.setAcceptanceRate(problem.getAcceptanceRate());
+                        pvo.setIsPremium(problem.getIsPremium());
+                        pvo.setHasSolution(problem.getHasSolution());
+                        pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
+                        return pvo;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            vo.setProblems(problemVOs);
+        } else {
+            vo.setProblems(Collections.emptyList());
+        }
+
+        // Build stats
+        ProblemListDetailVO.ProblemListStatsVO statsVO = new ProblemListDetailVO.ProblemListStatsVO();
+        statsVO.setListId(id);
+        List<ProblemListDetailVO.ProblemInListVO> problems = vo.getProblems();
+        int totalCount = problems.size();
+        int solvedCount = 0;
+        int attemptedCount = 0;
+        for (ProblemListDetailVO.ProblemInListVO p : problems) {
+            String status = p.getStatus();
+            if ("solved".equalsIgnoreCase(status)) {
+                solvedCount++;
+            } else if ("attempted".equalsIgnoreCase(status)) {
+                attemptedCount++;
+            }
+        }
+        int todoCount = totalCount - solvedCount - attemptedCount;
+        double progress = totalCount == 0 ? 0.0 : ((double) solvedCount / totalCount) * 100.0;
+        statsVO.setTotalCount(totalCount);
+        statsVO.setSolvedCount(solvedCount);
+        statsVO.setAttemptedCount(attemptedCount);
+        statsVO.setTodoCount(todoCount);
+        statsVO.setProgress(progress);
+        vo.setStats(statsVO);
+
+        // Admin view: no viewer state, no categories
+        vo.setViewer(null);
+        vo.setCategories(Collections.emptyList());
+
+        return vo;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.ulticode.common.exception;
 
+import com.ulticode.common.util.TraceIdUtil;
 import lombok.Getter;
 
 /**
@@ -27,7 +28,7 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
-        this.traceId = generateTraceId();
+        this.traceId = TraceIdUtil.current();
     }
 
     /**
@@ -39,7 +40,7 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
-        this.traceId = generateTraceId();
+        this.traceId = TraceIdUtil.current();
     }
 
     /**
@@ -51,7 +52,7 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getMessage(), cause);
         this.errorCode = errorCode;
-        this.traceId = generateTraceId();
+        this.traceId = TraceIdUtil.current();
     }
 
     /**
@@ -64,7 +65,7 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode, String message, Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;
-        this.traceId = generateTraceId();
+        this.traceId = TraceIdUtil.current();
     }
 
     /**
@@ -96,15 +97,5 @@ public class BusinessException extends RuntimeException {
      */
     public org.springframework.http.HttpStatus getHttpStatus() {
         return errorCode.getHttpStatus();
-    }
-
-    /**
-     * Generate a trace ID for request tracking
-     * Format: t-{timestamp}
-     *
-     * @return generated trace ID
-     */
-    private static String generateTraceId() {
-        return "t-" + System.currentTimeMillis();
     }
 }

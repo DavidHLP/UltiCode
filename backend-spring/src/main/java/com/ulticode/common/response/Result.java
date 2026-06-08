@@ -1,9 +1,8 @@
 package com.ulticode.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.ulticode.common.util.TraceIdUtil;
 import lombok.Data;
-
-import java.time.Instant;
 
 /**
  * Generic response wrapper for all API responses.
@@ -53,7 +52,7 @@ public class Result<T> {
      * @return success Result with data
      */
     public static <T> Result<T> success(T data) {
-        return new Result<>(0, "success", data, generateTraceId());
+        return new Result<>(0, "success", data, TraceIdUtil.current());
     }
 
     /**
@@ -63,7 +62,7 @@ public class Result<T> {
      * @return success Result without data
      */
     public static <T> Result<T> success() {
-        return new Result<>(0, "success", null, generateTraceId());
+        return new Result<>(0, "success", null, TraceIdUtil.current());
     }
 
     /**
@@ -75,7 +74,7 @@ public class Result<T> {
      * @return error Result
      */
     public static <T> Result<T> error(Integer code, String message) {
-        return new Result<>(code, message, null, generateTraceId());
+        return new Result<>(code, message, null, TraceIdUtil.current());
     }
 
     /**
@@ -103,15 +102,5 @@ public class Result<T> {
      */
     public static <T> Result<T> errorWithData(Integer code, String message, T data, String traceId) {
         return new Result<>(code, message, data, traceId);
-    }
-
-    /**
-     * Generate a trace ID for request tracking
-     * Format: t-{timestamp}
-     *
-     * @return generated trace ID
-     */
-    private static String generateTraceId() {
-        return "t-" + Instant.now().toEpochMilli();
     }
 }

@@ -6,4 +6,5 @@ export default {
   loading: "加载通知中...",
   connected: "已连接",
   disconnected: "已断开",
+  unreadCountLabel: "{count} 条未读通知",
 } as const;

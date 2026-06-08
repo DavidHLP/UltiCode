@@ -7,6 +7,7 @@ import com.ulticode.modules.admin.service.DashboardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,10 +38,15 @@ public class DashboardController {
     @GetMapping("/charts")
     public Result<ChartStatsVO> getChartStats(
             @RequestParam(defaultValue = "users")
-            @Pattern(regexp = "users|submissions|contests|problems|solutions", message = "Invalid metric. Allowed: users, submissions, contests, problems, solutions")
+            @Pattern(regexp = "users|submissions|contests|problems|solutions|forum_posts",
+                    message = "Invalid metric. Allowed: users, submissions, contests, problems, solutions, forum_posts")
             String metric,
-            @RequestParam(defaultValue = "day") String period,
+            @RequestParam(defaultValue = "day")
+            @Pattern(regexp = "hour|day|week|month|year",
+                    message = "Invalid period. Allowed: hour, day, week, month, year")
+            String period,
             @RequestParam(required = false)
+            @Min(value = 1, message = "Days parameter must be at least 1")
             @Max(value = 365, message = "Days parameter cannot exceed 365")
             Integer days) {
         ChartStatsVO stats = dashboardService.getChartStats(metric, period, days);

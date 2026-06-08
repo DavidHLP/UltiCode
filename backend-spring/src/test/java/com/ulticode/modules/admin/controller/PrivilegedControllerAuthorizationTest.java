@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
 import com.ulticode.modules.admin.service.DashboardService;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,29 @@ class PrivilegedControllerAuthorizationTest {
   void superAdministratorCanReadAdminDashboard() {
     when(dashboardService.getStats()).thenReturn(new DashboardStatsVO());
     assertThatCode(dashboardController::getStats).doesNotThrowAnyException();
+  }
+
+  @Test
+  @WithMockUser(roles = "USER")
+  void ordinaryUserCannotReadAdminChartStats() {
+    assertThatThrownBy(() -> dashboardController.getChartStats("users", "day", 30))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  void administratorCanReadChartStatsWithAllMetrics() {
+    when(dashboardService.getChartStats("users", "day", 30)).thenReturn(new ChartStatsVO());
+    assertThatCode(() -> dashboardController.getChartStats("users", "day", 30))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  @WithMockUser(roles = "ADMIN")
+  void administratorCanReadChartStatsWithForumPostsMetric() {
+    when(dashboardService.getChartStats("forum_posts", "day", 7)).thenReturn(new ChartStatsVO());
+    assertThatCode(() -> dashboardController.getChartStats("forum_posts", "day", 7))
+        .doesNotThrowAnyException();
   }
 
   @Configuration

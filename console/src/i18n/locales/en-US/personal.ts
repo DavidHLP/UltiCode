@@ -164,6 +164,8 @@ export default {
     memory: "Memory",
     submittedAt: "Submitted At",
     viewCode: "View Code",
+    notFound: "Submission not found",
+    goBack: "Go back",
   },
 
   // Solutions

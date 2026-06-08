@@ -405,6 +405,11 @@ export default {
     beats: "击败了",
     detailsNotAvailable: "详情暂不可用。",
     code: "代码",
+    error: {
+      loadFailed: "加载提交失败",
+      notFound: "未找到该提交",
+      forbidden: "你没有权限查看此提交",
+    },
   },
 
   // Explorer

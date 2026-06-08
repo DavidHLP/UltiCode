@@ -157,6 +157,8 @@ export default {
     memory: "内存",
     submittedAt: "提交时间",
     viewCode: "查看代码",
+    notFound: "未找到该提交",
+    goBack: "返回",
   },
 
   // Solutions

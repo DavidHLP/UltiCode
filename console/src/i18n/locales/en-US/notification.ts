@@ -6,4 +6,5 @@ export default {
   loading: "Loading notifications...",
   connected: "Connected",
   disconnected: "Disconnected",
+  unreadCountLabel: "{count} unread notifications",
 } as const;

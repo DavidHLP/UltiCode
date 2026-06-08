@@ -93,62 +93,65 @@ function goToNotifications() {
           v-if="hasUnread"
           variant="destructive"
           class="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px] font-bold"
+          :aria-label="
+            t('notification.unreadCountLabel', { count: notificationStore.unreadCount })
+          "
         >
           {{ unreadLabel }}
         </Badge>
       </Button>
     </PopoverTrigger>
     <PopoverContent align="end" class="w-80 p-0">
-      <div class="flex items-center justify-between border-b px-4 py-3">
-        <h4 class="text-sm font-medium">{{ t("notification.title") }}</h4>
+      <div class="flex items-center justify-between border-b px-4 py-2.5">
+        <h4 class="text-sm font-semibold tracking-tight">{{ t("notification.title") }}</h4>
         <ConnectionStatus />
       </div>
       <div class="max-h-80 overflow-y-auto p-2">
         <div
           v-if="isLoadingList && !hasLoadedList"
-          class="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"
+          class="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground"
           role="status"
         >
-          <Loader2 class="h-4 w-4 animate-spin" />
+          <Loader2 class="h-3.5 w-3.5 animate-spin" />
           <span>{{ t("notification.loading") }}</span>
         </div>
         <div
           v-else-if="notificationStore.notifications.length === 0"
-          class="py-8 text-center text-sm text-muted-foreground"
+          class="py-10 text-center text-xs text-muted-foreground"
         >
           {{ t("notification.noNotifications") }}
         </div>
-        <div v-else class="space-y-1">
+        <div v-else class="px-1 py-1">
           <RouterLink
             v-for="notification in notificationStore.notifications.slice(0, 5)"
             :key="notification.id"
-            :to="notification.link || '#'"
-            class="block rounded-none p-2 transition-colors hover:bg-muted"
+            :to="notification.link || '/personal/notifications'"
+            class="group block rounded-none px-3 py-2.5 transition-colors hover:bg-muted/70"
           >
-            <div class="flex items-start gap-2">
+            <div class="flex items-start gap-2.5">
               <span
                 v-if="!notification.isRead"
-                class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
+                class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
               />
               <div
-                :class="cn('flex-1 space-y-1', notification.isRead && 'ml-4')"
+                :class="cn('flex-1 min-w-0', notification.isRead && 'ml-4')"
               >
-                <p class="text-sm font-medium leading-none">
-                  {{ localizedNotification(notification).value.title }}
+                <p class="text-[13px] font-semibold leading-snug text-foreground">
+                  {{ localizedNotification(notification).title }}
                 </p>
-                <p class="text-xs text-muted-foreground line-clamp-2">
-                  {{ localizedNotification(notification).value.body }}
+                <p class="mt-1 text-[12px] leading-relaxed text-muted-foreground line-clamp-2">
+                  {{ localizedNotification(notification).body }}
                 </p>
               </div>
             </div>
           </RouterLink>
         </div>
       </div>
-      <div class="border-t p-2">
+      <div class="border-t px-1 py-1">
         <Button
           variant="ghost"
           size="sm"
-          class="w-full"
+          class="w-full h-8 text-[12px] font-medium text-muted-foreground hover:text-foreground"
           @click="goToNotifications"
         >
           {{ t("notification.viewAll") }}

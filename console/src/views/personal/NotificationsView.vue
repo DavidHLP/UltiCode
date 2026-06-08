@@ -169,7 +169,7 @@ async function handleNotificationClick(notification: NotificationItem) {
   await handleMarkAsRead(notification);
   if (notification.link) {
     if (notification.link.startsWith("http")) {
-      window.open(notification.link, "_blank", "noopener");
+      window.open(notification.link, "_blank", "noopener,noreferrer");
       return;
     }
     router.push(notification.link);
@@ -316,7 +316,7 @@ watch(currentPage, () => {
                   <span
                     class="text-sm font-semibold truncate pr-2 text-foreground/90"
                   >
-                    {{ localizedNotification(notification).value.title }}
+                    {{ localizedNotification(notification).title }}
                   </span>
                   <span
                     class="text-xs text-muted-foreground whitespace-nowrap tabular-nums"
@@ -327,7 +327,7 @@ watch(currentPage, () => {
                 <p
                   class="text-sm text-muted-foreground line-clamp-2 leading-relaxed"
                 >
-                  {{ localizedNotification(notification).value.body }}
+                  {{ localizedNotification(notification).body }}
                 </p>
               </div>
             </div>

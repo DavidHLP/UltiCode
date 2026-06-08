@@ -93,12 +93,26 @@ public class AuditHelper {
 
         HttpServletRequest request = attributes.getRequest();
 
-        String ip = request.getHeader("X-Real-IP");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
+        // Order matters: X-Forwarded-For is the de-facto reverse-proxy/load-balancer
+        // header; X-Real-IP is the simplified single-value variant some proxies
+        // (notably older nginx configs) prefer. We honour whichever arrives first
+        // and isn't the literal "unknown" sentinel, and pick the leftmost address
+        // from comma-separated chains (that's the original client).
+        // A whitespace-only header value would otherwise pass `!isEmpty()` and
+        // be persisted as the empty string into audit_logs.ip_address — trim
+        // first, then re-check, so only meaningful values flow downstream.
+        String[] forwardedHeaders = {"X-Forwarded-For", "X-Real-IP"};
+        for (String header : forwardedHeaders) {
+            String value = request.getHeader(header);
+            if (value != null) {
+                String trimmed = value.trim();
+                if (!trimmed.isEmpty() && !"unknown".equalsIgnoreCase(trimmed)) {
+                    return trimmed.contains(",") ? trimmed.split(",")[0].trim() : trimmed;
+                }
+            }
         }
 
-        ip = request.getRemoteAddr();
+        String ip = request.getRemoteAddr();
         return ip != null ? ip : "unknown";
     }
 

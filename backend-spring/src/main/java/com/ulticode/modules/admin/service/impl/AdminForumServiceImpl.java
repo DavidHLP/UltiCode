@@ -7,6 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -254,12 +255,23 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void deletePost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        // The is_deleted column carries @TableLogic, so MyBatis-Plus's updateById
+        // silently drops the field — soft-delete must go through the dedicated
+        // mapper method (which uses SQL NOW() and avoids the JSR-310 round-trip
+        // through JacksonTypeHandler).
+        String performerId = SecurityUtil.getCurrentUserId();
+        if (performerId == null) {
+            performerId = "system";
+        }
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("isDeleted", post.getIsDeleted() != null ? post.getIsDeleted() : false);
         oldValues.put("deletedAt", post.getDeletedAt());
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("isDeleted", true);
         newValues.put("deletedAt", LocalDateTime.now());
+        newValues.put("deletedBy", performerId);
+        // Audit FIRST: if audit fails we roll back the soft delete (audit
+        // integrity beats delete throughput).
         auditHelper.logForUser(
             AuditActionUtil.DELETE_FORUM_POST,
             AuditActionUtil.ENTITY_FORUM_POST,
@@ -268,21 +280,36 @@ public class AdminForumServiceImpl implements AdminForumService {
             oldValues,
             newValues
         );
-        // Soft delete
-        post.setIsDeleted(true);
-        post.setDeletedAt(LocalDateTime.now());
-        forumPostMapper.updateById(post);
-        log.info("Post deleted: {}", id);
+        int affected = forumPostMapper.softDelete(id, performerId);
+        if (affected == 0) {
+            // Row was concurrently modified/deleted between selectById and softDelete.
+            // Throw to roll back the audit entry as well — a dangling audit row
+            // pointing at a non-existent soft delete is worse than a clean error.
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        log.info("Post soft-deleted: {} by {}", id, performerId);
     }
 
     @Override
-    public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit) {
+    public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search) {
         int safeLimit = limit > 0 ? Math.min(limit, 100) : 20;
         int safePage = page > 0 ? page : 1;
 
+        LambdaQueryWrapper<ForumCommunity> wrapper = new LambdaQueryWrapper<ForumCommunity>()
+                .orderByDesc(ForumCommunity::getMembers);
+
+        if (StringUtils.hasText(search)) {
+            String like = "%" + search.trim() + "%";
+            wrapper.and(w -> w
+                    .like(ForumCommunity::getName, like)
+                    .or()
+                    .like(ForumCommunity::getSlug, like)
+                    .or()
+                    .like(ForumCommunity::getDescription, like));
+        }
+
         Page<ForumCommunity> pageResult = new Page<>(safePage, safeLimit);
-        Page<ForumCommunity> result = forumCommunityMapper.selectPage(pageResult,
-                new LambdaQueryWrapper<ForumCommunity>().orderByDesc(ForumCommunity::getMembers));
+        Page<ForumCommunity> result = forumCommunityMapper.selectPage(pageResult, wrapper);
 
         List<AdminForumCommunityVO> voList = result.getRecords().stream()
                 .map(c -> {

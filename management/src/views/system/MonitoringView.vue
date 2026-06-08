@@ -110,7 +110,7 @@ function formatBytes(bytes: number): string {
 
 function getMemoryPercent(): number {
   if (!resourceUsage.value) return 0
-  return (resourceUsage.value.memory.heapUsed / resourceUsage.value.memory.heapTotal) * 100
+  return (resourceUsage.value.memory.heapUsed / resourceUsage.value.memory.heapMax) * 100
 }
 
 function getHealthIcon(status: string) {
@@ -259,8 +259,8 @@ onUnmounted(() => {
           <CardContent>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.nodeVersion') }}</span>
-                <span class="font-mono">{{ systemInfo?.nodeVersion }}</span>
+                <span class="text-muted-foreground">{{ t('system.monitoring.javaVersion') }}</span>
+                <span class="font-mono">{{ systemInfo?.javaVersion }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-muted-foreground">{{ t('system.monitoring.platform') }}</span>
@@ -302,15 +302,15 @@ onUnmounted(() => {
               </div>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span class="text-muted-foreground">{{ t('system.monitoring.heapTotal') }}:</span>
+                  <span class="text-muted-foreground">{{ t('system.monitoring.heapMax') }}:</span>
                   <span class="ml-1 font-mono">
-                    {{ resourceUsage ? formatBytes(resourceUsage.memory.heapTotal) : '-' }}
+                    {{ resourceUsage ? formatBytes(resourceUsage.memory.heapMax) : '-' }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-muted-foreground">{{ t('system.monitoring.rss') }}:</span>
+                  <span class="text-muted-foreground">{{ t('system.monitoring.nonHeapUsed') }}:</span>
                   <span class="ml-1 font-mono">
-                    {{ resourceUsage ? formatBytes(resourceUsage.memory.rss) : '-' }}
+                    {{ resourceUsage ? formatBytes(resourceUsage.memory.nonHeapUsed) : '-' }}
                   </span>
                 </div>
               </div>
@@ -395,7 +395,6 @@ onUnmounted(() => {
               <div v-for="queue in queueStats" :key="queue.name" class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="font-medium">{{ queue.name }}</span>
-                  <SemanticBadge v-if="queue.paused" color="warning" :label="t('system.monitoring.paused')" />
                 </div>
                 <div class="grid grid-cols-5 gap-2 text-xs">
                   <div class="text-center p-2 bg-muted rounded-none">

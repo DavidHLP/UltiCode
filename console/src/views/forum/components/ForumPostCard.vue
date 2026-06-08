@@ -299,7 +299,7 @@ function handleCardClick(event: MouseEvent) {
             class="block"
           >
             <h3
-              class="text-base sm:text-lg font-bold leading-snug text-[var(--solarized-base03)] dark:text-[var(--silver-900)] hover:text-[var(--accent-electric)] hover:underline transition-colors"
+              class="text-base sm:text-lg font-bold leading-snug text-foreground hover:text-[var(--accent-electric)] hover:underline transition-colors"
             >
               {{ post.title }}
             </h3>
@@ -314,7 +314,7 @@ function handleCardClick(event: MouseEvent) {
             class="markdown-view"
           >
             <div
-              class="text-sm text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+              class="text-[13px] leading-relaxed text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
               v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
             ></div>
           </div>
@@ -384,7 +384,7 @@ function handleCardClick(event: MouseEvent) {
               class="markdown-view"
             >
               <div
-                class="prose prose-sm dark:prose-invert max-w-none p-3"
+                class="prose prose-sm dark:prose-invert max-w-none p-3 text-[13px] leading-relaxed"
                 v-html="
                   sanitizeHtml(
                     renderMarkdown(media.markdown || media.body || ''),

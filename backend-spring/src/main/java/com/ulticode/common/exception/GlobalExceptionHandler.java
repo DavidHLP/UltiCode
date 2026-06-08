@@ -1,6 +1,7 @@
 package com.ulticode.common.exception;
 
 import com.ulticode.common.response.Result;
+import com.ulticode.common.util.TraceIdUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
 
         log.warn("Validation failed: {}", errors);
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         Result<Map<String, String>> result = Result.errorWithData(
                 ErrorCode.BAD_REQUEST.getCode(),
                 "Validation failed",
@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         Result<Void> result = Result.error(
                 ErrorCode.FORBIDDEN.getCode(),
                 ErrorCode.FORBIDDEN.getMessage(),
@@ -116,7 +116,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleAuthenticationException(AuthenticationException ex) {
         log.warn("Authentication failed: {}", ex.getMessage());
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         Result<Void> result = Result.error(
                 ErrorCode.UNAUTHORIZED.getCode(),
                 ErrorCode.UNAUTHORIZED.getMessage(),
@@ -134,7 +134,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Result<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Result.error(ErrorCode.NOT_FOUND.getCode(), "Not found", traceId));
     }
@@ -143,7 +143,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected error: ", ex);
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         Result<Void> result = Result.error(
                 ErrorCode.UNKNOWN_ERROR.getCode(),
                 ErrorCode.UNKNOWN_ERROR.getMessage(),
@@ -156,7 +156,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         log.warn("Method not supported: {}", ex.getMessage());
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
         Result<Void> result = Result.error(
                 ErrorCode.METHOD_NOT_ALLOWED.getCode(),
                 "Method not allowed: " + ex.getMethod(),
@@ -176,7 +176,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Map<String, Object>>> handleOptimisticLockException(OptimisticLockException ex) {
         log.warn("Optimistic lock conflict: {}", ex.getMessage());
 
-        String traceId = "t-" + Instant.now().toEpochMilli();
+        String traceId = TraceIdUtil.current();
 
         Map<String, Object> data = new HashMap<>();
         data.put("currentVersion", ex.getCurrentVersion());

@@ -1,6 +1,7 @@
 package com.ulticode.security.csrf;
 
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.util.TraceIdUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,7 +81,7 @@ public class CsrfValidationFilter extends OncePerRequestFilter {
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        String traceId = "t-" + System.currentTimeMillis();
+        String traceId = TraceIdUtil.current();
         String body = String.format(JSON_RESPONSE_TEMPLATE, code, escapeJson(message), traceId);
         response.getWriter().write(body);
     }

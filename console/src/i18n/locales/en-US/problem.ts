@@ -414,6 +414,11 @@ export default {
     beats: "Beats",
     detailsNotAvailable: "Details are not available yet.",
     code: "Code",
+    error: {
+      loadFailed: "Failed to load submission",
+      notFound: "Submission not found",
+      forbidden: "You don't have permission to view this submission",
+    },
   },
 
   // Explorer

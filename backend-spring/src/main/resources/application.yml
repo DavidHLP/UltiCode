@@ -73,9 +73,9 @@ spring:
 jwt:
   secret: ${JWT_SECRET:}
   access-token:
-    expiration: 900000  # 15 minutes in milliseconds
+    expiration: 900000 # 15 minutes in milliseconds
   refresh-token:
-    expiration: 604800000  # 7 days in milliseconds
+    expiration: 604800000 # 7 days in milliseconds
   cookie:
     access-token:
       name: access_token
@@ -83,14 +83,14 @@ jwt:
       secure: ${JWT_COOKIE_SECURE:false}
       same-site: lax
       path: /
-      max-age: 900  # 15 minutes in seconds
+      max-age: 900 # 15 minutes in seconds
     refresh-token:
       name: refresh_token
       http-only: true
       secure: ${JWT_COOKIE_SECURE:false}
       same-site: lax
       path: /
-      max-age: 604800  # 7 days in seconds
+      max-age: 604800 # 7 days in seconds
 
 # MyBatis-Plus Configuration
 mybatis-plus:
@@ -101,7 +101,7 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
-      id-type: input                    # 改为 input（UUID）
+      id-type: input # 改为 input（UUID）
 
 # SpringDoc Configuration
 springdoc:

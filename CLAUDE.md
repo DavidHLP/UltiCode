@@ -142,6 +142,38 @@ sc -d <class>                   # 搜索类详细信息
 - 线程死锁 → `thread -b`
 - 内存问题 → `dashboard` + `heapdump`
 
+## CSRF 机制测试
+
+Redis-backed CSRF token，格式 `tokenId:tokenValue`，POST/PUT/DELETE/PATCH 需要 `X-CSRF-Token` 头。
+
+```bash
+# 1. 登录获取 Token（保存 Cookie）
+curl -X POST http://localhost:9001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  -c cookies.txt | jq '.data.csrfToken'
+
+CSRF_TOKEN=$(grep csrf_token cookies.txt | awk '{print $NF}')
+
+# 2. 带 CSRF Token 的 POST 请求
+curl -X POST http://localhost:9001/problems \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -b cookies.txt \
+  -D headers.txt -d '{"title":"Test"}'
+
+# 3. 获取轮换后的新 Token
+NEW_CSRF=$(grep -i "x-new-csrf-token" headers.txt | awk '{print $2}' | tr -d '\r')
+
+# 4. 刷新失效 Token（GET 不需要 CSRF）
+curl -X GET http://localhost:9001/auth/me -b cookies.txt | jq '.data.csrfToken'
+
+# Redis 查看存储的 Token
+redis-cli KEYS "csrf:*"
+redis-cli GET "csrf:{userId}:{tokenId}"
+```
+
+**注意**: GET/HEAD/OPTIONS 不需要 CSRF；匿名用户不需要 CSRF；Token 24h TTL + 5m 宽限期。
+
 ---
 
 ## Project Overview

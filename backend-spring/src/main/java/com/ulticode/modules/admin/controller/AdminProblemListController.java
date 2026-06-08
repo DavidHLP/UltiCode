@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
@@ -53,7 +54,8 @@ public class AdminProblemListController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemListSummaryVO> createProblemList(
             @Valid @RequestBody CreateProblemListDTO dto,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         return Result.success(adminProblemListService.createProblemList(dto, userId));
     }
 
@@ -64,7 +66,8 @@ public class AdminProblemListController {
     public Result<ProblemListSummaryVO> updateProblemList(
             @PathVariable String id,
             @Valid @RequestBody UpdateProblemListDTO dto,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         return Result.success(adminProblemListService.updateProblemList(id, dto, userId));
     }
 
@@ -95,7 +98,8 @@ public class AdminProblemListController {
     public Result<ProblemListSummaryVO> updateBasicInfo(
             @PathVariable String id,
             @Valid @RequestBody UpdateBasicInfoDTO dto,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         return Result.success(adminProblemListService.updateBasicInfo(id, userId, dto));
     }
 
@@ -106,7 +110,8 @@ public class AdminProblemListController {
     public Result<ProblemListSummaryVO> updateVisibility(
             @PathVariable String id,
             @Valid @RequestBody UpdateVisibilityDTO dto,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         return Result.success(adminProblemListService.updateVisibility(id, userId, dto));
     }
 
@@ -117,7 +122,8 @@ public class AdminProblemListController {
     public Result<ProblemListSummaryVO> updateBanner(
             @PathVariable String id,
             @Valid @RequestBody UpdateBannerDTO dto,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            Principal principal) {
+        String userId = principal.getName();
         return Result.success(adminProblemListService.updateBanner(id, userId, dto));
     }
 }

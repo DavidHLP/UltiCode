@@ -29,9 +29,11 @@ public class DatabaseStatsVO {
     private Long queryCount;
 
     /**
-     * Number of slow queries detected.
+     * Number of slow queries detected since process start.
+     * Stored as {@code long} to avoid overflow on long-running processes
+     * (a busy OJ can easily produce > 2 billion slow queries in a year).
      */
-    private Integer slowQueries;
+    private Long slowQueries;
 
     /**
      * Database connection status.

@@ -32,7 +32,6 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
-    private final CsrfService csrfService;
     private final CorsProperties corsProperties;
 
     /**
@@ -75,7 +74,21 @@ public class SecurityConfig {
             // WebSocket endpoint
             "/ws/**",
             // Health check endpoint (for startup scripts and monitoring)
-            "/actuator/health"
+            "/actuator/health",
+            "/actuator/health/**",
+            "/actuator/info",
+            // Prometheus scrape endpoint.
+            // ⚠ PRODUCTION DEPLOYMENT: this is publicly readable by design so
+            //   that an in-cluster scraper without JWT capability can pull
+            //   /actuator/prometheus. MUST be gated by either:
+            //     (a) a network policy that restricts 9001 to internal IPs, or
+            //     (b) an nginx `allow <scraper-IP>; deny all;` block, or
+            //     (c) a separate management server port bound to loopback
+            //         (`management.server.port=9004`, port-forwarded to
+            //         localhost only).
+            //   Without one of these, the JVM internals (heap, GC, threads,
+            //   Hikari pool, Tomcat sessions) leak to any caller reaching 9001.
+            "/actuator/prometheus"
     };
 
     /**
@@ -86,7 +99,7 @@ public class SecurityConfig {
      * @throws Exception if configuration fails
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CsrfService csrfService) throws Exception {
         http
                 // Enable CORS (must be before other security rules)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -126,6 +139,10 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Default: any non-whitelisted /actuator/** path requires ADMIN
+                        // (defense-in-depth: protects against future endpoint exposure
+                        // without re-editing PUBLIC_ENDPOINTS).
+                        .requestMatchers("/actuator/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )

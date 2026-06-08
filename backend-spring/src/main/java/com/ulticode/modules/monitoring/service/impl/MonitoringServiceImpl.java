@@ -1,5 +1,6 @@
 package com.ulticode.modules.monitoring.service.impl;
 
+import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -10,6 +11,7 @@ import com.ulticode.modules.monitoring.service.MonitoringService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -33,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Implementation of the MonitoringService interface.
@@ -46,6 +47,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final MetricsCollector metricsCollector;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;
@@ -56,9 +58,8 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Value("${spring.profiles.active:development}")
     private String activeProfile;
 
-    private final AtomicLong queryCount = new AtomicLong(0);
-
     @Override
+    @Cacheable(value = "monitoring", key = "'system'")
     public SystemInfoVO getSystemInfo() {
         RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         Properties props = System.getProperties();
@@ -82,6 +83,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     @Override
+    @Cacheable(value = "monitoring", key = "'resources'")
     public ResourceUsageVO getResourceUsage() {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
@@ -127,6 +129,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     @Override
+    @Cacheable(value = "monitoring", key = "'database'")
     public DatabaseStatsVO getDatabaseStats() {
         int activeConnections = 0;
         int maxConnections = 0;
@@ -158,13 +161,14 @@ public class MonitoringServiceImpl implements MonitoringService {
         return DatabaseStatsVO.builder()
                 .activeConnections(activeConnections)
                 .maxConnections(maxConnections)
-                .queryCount(queryCount.get())
-                .slowQueries(0) // Would require query logging to track
+                .queryCount(metricsCollector.getQueryCount())
+                .slowQueries(metricsCollector.getSlowQueryCount())
                 .status(status)
                 .build();
     }
 
     @Override
+    @Cacheable(value = "monitoring", key = "'queues'")
     public List<QueueStatsVO> getQueueStats() {
         List<QueueStatsVO> queues = new ArrayList<>();
 
@@ -193,6 +197,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     @Override
+    @Cacheable(value = "monitoring", key = "'redis'")
     public RedisStatsVO getRedisStats() {
         try {
             Properties info = redisTemplate.execute((RedisCallback<Properties>) connection -> {
@@ -471,9 +476,13 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     /**
-     * Increment query count (can be called by query interceptors).
+     * Increment query count (kept for backward compatibility; new code
+     * should use {@link MetricsCollector#incrementQuery()} directly).
+     *
+     * @deprecated use {@code MetricsCollector.incrementQuery()} instead
      */
+    @Deprecated(since = "1.0.1", forRemoval = true)
     public void incrementQueryCount() {
-        queryCount.incrementAndGet();
+        metricsCollector.incrementQuery();
     }
 }

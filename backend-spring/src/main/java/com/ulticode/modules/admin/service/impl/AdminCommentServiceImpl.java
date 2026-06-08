@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
@@ -222,10 +223,13 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 "type", "forum"
             ));
             AuditContext.setNewValues(Map.of("isFlagged", false, "flaggedReason", "", "type", "forum"));
-            comment.setIsFlagged(false);
-            comment.setFlaggedReason(null);
-            comment.setFlaggedAt(null);
-            forumCommentMapper.updateById(comment);
+            // Use LambdaUpdateWrapper with explicit set() so null values are written
+            // (entity updateById is silently dropped by FieldStrategy.NOT_NULL).
+            forumCommentMapper.update(null, new LambdaUpdateWrapper<ForumComment>()
+                .eq(ForumComment::getId, id)
+                .set(ForumComment::getIsFlagged, false)
+                .set(ForumComment::getFlaggedReason, null)
+                .set(ForumComment::getFlaggedAt, null));
             log.info("Forum comment unflagged: {}", id);
         } else if ("solution".equals(type)) {
             SolutionComment comment = getSolutionCommentEntityOrThrow(id);
@@ -236,10 +240,11 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 "type", "solution"
             ));
             AuditContext.setNewValues(Map.of("isFlagged", false, "flaggedReason", "", "type", "solution"));
-            comment.setIsFlagged(false);
-            comment.setFlaggedReason(null);
-            comment.setFlaggedAt(null);
-            solutionCommentMapper.updateById(comment);
+            solutionCommentMapper.update(null, new LambdaUpdateWrapper<SolutionComment>()
+                .eq(SolutionComment::getId, id)
+                .set(SolutionComment::getIsFlagged, false)
+                .set(SolutionComment::getFlaggedReason, null)
+                .set(SolutionComment::getFlaggedAt, null));
             log.info("Solution comment unflagged: {}", id);
         }
         return getComment(id, type);
@@ -255,21 +260,28 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             AuditContext.setUserId(comment.getAuthorId());
             AuditContext.setOldValues(Map.of("isDeleted", comment.getIsDeleted(), "type", "forum"));
             AuditContext.setNewValues(Map.of("isDeleted", true, "type", "forum"));
-            comment.setIsDeleted(true);
-            comment.setDeletedAt(LocalDateTime.now());
-            comment.setDeletedBy(SecurityUtil.getCurrentUserId());
-            forumCommentMapper.updateById(comment);
-            log.info("Forum comment deleted: {}", id);
+            // Use LambdaUpdateWrapper to bypass MyBatis-Plus FieldStrategy and entity
+            // @TableField(updateStrategy=...) uncertainty, so is_deleted=true and other
+            // audit fields are reliably persisted in a single statement.
+            String currentUserId = SecurityUtil.getCurrentUserId();
+            forumCommentMapper.update(null, new LambdaUpdateWrapper<ForumComment>()
+                .eq(ForumComment::getId, id)
+                .set(ForumComment::getIsDeleted, true)
+                .set(ForumComment::getDeletedAt, LocalDateTime.now())
+                .set(ForumComment::getDeletedBy, currentUserId));
+            log.info("Forum comment deleted: {} by {}", id, currentUserId);
         } else if ("solution".equals(type)) {
             SolutionComment comment = getSolutionCommentEntityOrThrow(id);
             AuditContext.setUserId(comment.getUserId());
             AuditContext.setOldValues(Map.of("isDeleted", comment.getIsDeleted(), "type", "solution"));
             AuditContext.setNewValues(Map.of("isDeleted", true, "type", "solution"));
-            comment.setIsDeleted(true);
-            comment.setDeletedAt(LocalDateTime.now());
-            comment.setDeletedBy(SecurityUtil.getCurrentUserId());
-            solutionCommentMapper.updateById(comment);
-            log.info("Solution comment deleted: {}", id);
+            String currentUserId = SecurityUtil.getCurrentUserId();
+            solutionCommentMapper.update(null, new LambdaUpdateWrapper<SolutionComment>()
+                .eq(SolutionComment::getId, id)
+                .set(SolutionComment::getIsDeleted, true)
+                .set(SolutionComment::getDeletedAt, LocalDateTime.now())
+                .set(SolutionComment::getDeletedBy, currentUserId));
+            log.info("Solution comment deleted: {} by {}", id, currentUserId);
         }
     }
 

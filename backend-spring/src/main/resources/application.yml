@@ -185,6 +185,10 @@ app:
   email:
     enabled: ${EMAIL_ENABLED:false}
     from-name: ${EMAIL_FROM_NAME:UltiCode}
+  monitoring:
+    # Threshold (ms) above which a SQL execution counts as slow.
+    # Surfaced via /monitoring/database.slowQueries.
+    slow-query-ms: 500
 
 # Audit configuration
 audit:
@@ -193,9 +197,24 @@ audit:
 
 # Management/Actuator Configuration
 management:
+  endpoints:
+    web:
+      exposure:
+        # Health+info+prometheus are publicly accessible (see SecurityConfig).
+        # Sensitive endpoints (env, beans, mappings, heapdump) stay disabled.
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # Hide DB/Redis/queue hostnames from anonymous probes.
+      show-details: when-authorized
+      probes:
+        enabled: true
   health:
     mail:
       enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # OAuth Configuration
 oauth:

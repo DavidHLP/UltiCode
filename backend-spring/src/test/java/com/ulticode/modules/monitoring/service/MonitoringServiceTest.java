@@ -1,5 +1,6 @@
 package com.ulticode.modules.monitoring.service;
 
+import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -53,6 +54,9 @@ class MonitoringServiceTest {
 
     @Mock
     private RedisConnection redisConnection;
+
+    @Mock
+    private MetricsCollector metricsCollector;
 
     @InjectMocks
     private MonitoringServiceImpl monitoringService;
@@ -430,6 +434,42 @@ class MonitoringServiceTest {
                 monitoringService.incrementQueryCount();
                 monitoringService.incrementQueryCount();
             });
+        }
+
+        @Test
+        @DisplayName("deprecated incrementQueryCount delegates to MetricsCollector")
+        void deprecatedIncrementDelegatesToMetricsCollector() {
+            monitoringService.incrementQueryCount();
+            monitoringService.incrementQueryCount();
+            verify(metricsCollector, times(2)).incrementQuery();
+        }
+    }
+
+    @Nested
+    @DisplayName("MetricsCollector Integration Tests")
+    class MetricsCollectorIntegrationTests {
+
+        @Test
+        @DisplayName("getDatabaseStats reports the current MetricsCollector query count")
+        void getDatabaseStatsReportsQueryCountFromCollector() throws Exception {
+            // Arrange: simulate the interceptor having counted 42 queries
+            when(metricsCollector.getQueryCount()).thenReturn(42L);
+            when(metricsCollector.getSlowQueryCount()).thenReturn(7L);
+            // Stub the JDBC connection used for SHOW STATUS / SHOW VARIABLES
+            Connection conn = mock(Connection.class);
+            Statement stmt = mock(Statement.class);
+            ResultSet rs = mock(ResultSet.class);
+            when(dataSource.getConnection()).thenReturn(conn);
+            when(conn.createStatement()).thenReturn(stmt);
+            when(stmt.executeQuery(anyString())).thenReturn(rs);
+            when(rs.next()).thenReturn(false);
+
+            // Act
+            DatabaseStatsVO result = monitoringService.getDatabaseStats();
+
+            // Assert
+            assertEquals(42L, result.getQueryCount());
+            assertEquals(7, result.getSlowQueries());
         }
     }
 }

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
+import { useNotificationI18n } from "@/composables/useNotificationI18n";
 import {
   Sheet,
   SheetContent,
@@ -46,6 +47,7 @@ import NotificationPreferencesPanel from "@/components/notification/Notification
 const { t, locale } = useI18n();
 const router = useRouter();
 const notificationStore = useNotificationStore();
+const { display: localizedNotification } = useNotificationI18n();
 const hasUser = ref(false);
 const currentPage = ref(1);
 const pageSize = 20;
@@ -314,7 +316,7 @@ watch(currentPage, () => {
                   <span
                     class="text-sm font-semibold truncate pr-2 text-foreground/90"
                   >
-                    {{ notification.title }}
+                    {{ localizedNotification(notification).value.title }}
                   </span>
                   <span
                     class="text-xs text-muted-foreground whitespace-nowrap tabular-nums"
@@ -325,7 +327,7 @@ watch(currentPage, () => {
                 <p
                   class="text-sm text-muted-foreground line-clamp-2 leading-relaxed"
                 >
-                  {{ notification.body }}
+                  {{ localizedNotification(notification).value.body }}
                 </p>
               </div>
             </div>

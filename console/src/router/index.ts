@@ -160,6 +160,12 @@ const solutionEditRoute: RouteRecordRaw = {
     import("@/views/post-editor/solutions/SolutionsEditView.vue"),
 };
 
+const submissionDetailRoute: RouteRecordRaw = {
+  path: "/submissions/:id",
+  name: "submission-detail",
+  component: () => import("@/views/submissions/SubmissionsDetailView.vue"),
+};
+
 const forumCreateRoute: RouteRecordRaw = {
   path: "/forum/create",
   name: "forum-create",
@@ -253,6 +259,7 @@ const router = createRouter({
     },
     forumCreateRoute,
     forumEditRoute,
+    submissionDetailRoute,
     forumRoutes,
     contestRoutes,
     problemSetRoute,

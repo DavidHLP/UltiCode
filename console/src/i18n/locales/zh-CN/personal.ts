@@ -332,6 +332,61 @@ export default {
       submission: "提交结果更新",
       contest: "比赛更新",
     },
+    templates: {
+      submission: {
+        title: "提交判题: {status}",
+        body: "题目: {problemTitle}",
+        status: {
+          Pending: "等待中",
+          Judging: "判题中",
+          Accepted: "通过",
+          "Wrong Answer": "答案错误",
+          "Time Limit Exceeded": "超出时间限制",
+          "Memory Limit Exceeded": "超出内存限制",
+          "Output Limit Exceeded": "输出超限",
+          "Runtime Error": "运行错误",
+          "Compile Error": "编译错误",
+          "System Error": "系统错误",
+        },
+      },
+      achievement: {
+        title: "获得成就",
+        body: "你解锁了一个新徽章。",
+      },
+      follow: {
+        title: "{username} 关注了你",
+        body: "",
+      },
+      contestReminder: {
+        title24h: "比赛「{contestTitle}」还有 24 小时开始",
+        title1h: "比赛「{contestTitle}」还有 1 小时开始",
+        body: "请做好参赛准备。",
+      },
+      contest: {
+        title: "比赛更新: {contestTitle}",
+        body: "",
+      },
+      comment: {
+        title: "{username} 评论了你的帖子",
+        body: "",
+      },
+      reply: {
+        title: "{username} 回复了你",
+        body: "",
+      },
+      mention: {
+        title: "{username} 提到了你",
+        body: "",
+      },
+      upvote: {
+        title: "{username} 赞了你的帖子",
+        body: "",
+      },
+      system: {
+        title: "系统通知",
+        body: "",
+      },
+    },
   },
 
   // Messages

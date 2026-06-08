@@ -351,6 +351,61 @@ export default {
       submission: "Submission update",
       contest: "Contest update",
     },
+    templates: {
+      submission: {
+        title: "Submission judged: {status}",
+        body: "Problem: {problemTitle}",
+        status: {
+          Pending: "Pending",
+          Judging: "Judging",
+          Accepted: "Accepted",
+          "Wrong Answer": "Wrong Answer",
+          "Time Limit Exceeded": "Time Limit Exceeded",
+          "Memory Limit Exceeded": "Memory Limit Exceeded",
+          "Output Limit Exceeded": "Output Limit Exceeded",
+          "Runtime Error": "Runtime Error",
+          "Compile Error": "Compile Error",
+          "System Error": "System Error",
+        },
+      },
+      achievement: {
+        title: "Achievement Earned",
+        body: "You unlocked a new badge.",
+      },
+      follow: {
+        title: "{username} followed you",
+        body: "",
+      },
+      contestReminder: {
+        title24h: "Contest '{contestTitle}' starts in 24 hours",
+        title1h: "Contest '{contestTitle}' starts in 1 hour",
+        body: "Get ready to compete.",
+      },
+      contest: {
+        title: "Contest update: {contestTitle}",
+        body: "",
+      },
+      comment: {
+        title: "{username} commented on your post",
+        body: "",
+      },
+      reply: {
+        title: "{username} replied to you",
+        body: "",
+      },
+      mention: {
+        title: "{username} mentioned you",
+        body: "",
+      },
+      upvote: {
+        title: "{username} upvoted your post",
+        body: "",
+      },
+      system: {
+        title: "System notification",
+        body: "",
+      },
+    },
   },
 
   // Subscription

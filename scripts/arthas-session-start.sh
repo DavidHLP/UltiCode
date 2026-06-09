@@ -2,11 +2,11 @@
 # Claude Code SessionStart hook: 拉起 Arthas MCP wrapper (后台)
 #
 # 设计意图:
-#   - 跟随 Claude Code 生命周期 — SessionStart 时确保 MCP 端点可达,
-#     SessionEnd 时清理 wrapper,不再依赖 PM2 守护
+#   - 跟随 Claude Code 生命周期 — SessionStart 时确保 MCP 端点可达
+#   - SessionEnd 只清理 hook 自己拉起的 wrapper, 不会动 PM2 拉起的 (避免与 PM2 监督冲突)
 #   - 异步触发: hook 自身必须立即退出 (否则会阻塞 Claude Code 启动)
-#   - 重复进入安全: 端口已监听时直接返回 (避免重复 attach)
-#   - 单实例约束: 用 PID 文件 + flock 防止多会话同时拉起多个 wrapper
+#   - 重复进入安全: 端口已监听 / PID 文件已存在 → 直接返回 (避免重复 attach)
+#   - 单实例约束: 用 PID 文件 + 端口双重检测
 #
 # 退出语义:
 #   - 0  : hook 成功触发 (无论 wrapper 是否成功 attach,都不阻塞会话)
@@ -22,19 +22,23 @@ ARTHAS_PORT=8563
 
 mkdir -p "$PID_DIR"
 
-# 1) 端口已监听: 跳过启动 (上次的 agent 仍在 JVM 内, 或其他 wrapper 在跑)
+# 1) 端口已监听: 跳过启动
+#    场景: 上一轮 attach 留下的 agent 仍活, 或 PM2 在跑 wrapper
 if lsof -ti ":${ARTHAS_PORT}" >/dev/null 2>&1; then
   echo "[arthas-hook] Port ${ARTHAS_PORT} already listening, skip"
   exit 0
 fi
 
-# 2) 已有 wrapper PID 文件但进程不在: 清理陈旧文件
+# 2) 已有 wrapper PID 文件: 验证进程真在 (PM2/hook/cli 任何一路拉起的)
+#    PID 文件格式: "PID\nLAUNCHER" (两行)
 if [ -f "$PID_FILE" ]; then
-  OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+  OLD_PID="$(head -1 "$PID_FILE" 2>/dev/null || true)"
+  OLD_LAUNCHER="$(tail -1 "$PID_FILE" 2>/dev/null || true)"
   if [ -n "${OLD_PID}" ] && kill -0 "${OLD_PID}" 2>/dev/null; then
-    echo "[arthas-hook] Wrapper already running (PID ${OLD_PID}), skip"
+    echo "[arthas-hook] Wrapper already running (PID ${OLD_PID}, launcher=${OLD_LAUNCHER}), skip"
     exit 0
   fi
+  # 进程不在,清理陈旧文件
   rm -f "$PID_FILE"
 fi
 
@@ -47,10 +51,13 @@ fi
 # 4) 在后台拉起 wrapper,父 hook 立即退出
 #    nohup + setsid + disown 三重隔离,防止 Claude Code 退出时 SIGHUP 拖垮 wrapper
 #    stdin 重定向到 /dev/null,防止 hook 子进程阻塞在管道
-nohup setsid bash -c "$WRAPPER >> '$LOG_FILE' 2>&1" </dev/null >/dev/null 2>&1 &
+#    ULTICODE_ARTHAS_LAUNCHER=hook 让 wrapper 知道是被 hook 拉起的 (供 SessionEnd 互斥用)
+ULTICODE_ARTHAS_LAUNCHER=hook \
+  nohup setsid bash -c "ULTICODE_ARTHAS_LAUNCHER=hook '$WRAPPER' >> '$LOG_FILE' 2>&1" </dev/null >/dev/null 2>&1 &
 WRAPPER_PID=$!
 disown "$WRAPPER_PID" 2>/dev/null || true
 
-echo "$WRAPPER_PID" > "$PID_FILE"
+# 注意: 这里不写 PID_FILE — wrapper 自己会在第一时间写 (包括 launcher=hook 标记)
+# 这样可以避免 hook 写的 PID 和 wrapper 实际 PID 不一致的问题
 echo "[arthas-hook] Spawned arthas wrapper (PID ${WRAPPER_PID}), log: ${LOG_FILE}"
 exit 0

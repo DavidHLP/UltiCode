@@ -60,7 +60,7 @@ public interface ProblemMapper extends BaseMapper<Problem> {
             "</script>")
     List<ProblemTagDTO> selectTagsByProblemIds(@Param("problemIds") List<Long> problemIds);
 
-    @Update("UPDATE problems SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
+    @Update("UPDATE problems SET is_flagged = #{isFlagged}, flag_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
     int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
 
     @Update("<script>" +
@@ -118,7 +118,7 @@ public interface ProblemMapper extends BaseMapper<Problem> {
             "</script>")
     long countDeletedProblems(@Param("search") String search);
 
-    @Update("UPDATE problems SET is_flagged = true, flagged_reason = #{reason}, " +
+    @Update("UPDATE problems SET is_flagged = true, flag_reason = #{reason}, " +
             "flag_reported_by = #{reportedBy}, flag_reported_at = NOW(), flag_status = 'PENDING' " +
             "WHERE id = #{id}")
     int flagProblem(@Param("id") Long id, @Param("reason") String reason, @Param("reportedBy") String reportedBy);

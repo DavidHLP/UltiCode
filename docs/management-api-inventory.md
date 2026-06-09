@@ -257,11 +257,11 @@
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/admin/submissions/statistics` | 提交统计 |
-| GET | `/admin/submissions/statuses` | 提交状态选项 |
-| GET | `/admin/submissions/languages` | 语言选项 |
+| GET | `/admin/submissions/statuses` | 提交状态选项（11 项，与 statistics 对齐） |
+| GET | `/admin/submissions/languages` | 语言选项（带人类可读 label） |
 | GET | `/admin/submissions/{id}` | 提交详情 |
-| POST | `/admin/submissions/{id}/rejudge` | 重新评测 |
-| POST | `/admin/submissions/batch-rejudge` | 批量重新评测 |
+| POST | `/admin/submissions/{id}/rejudge` | 重新评测；body `{ "notifyUser": bool }`，响应含 `rejudgedAt` + `retryCount` |
+| POST | `/admin/submissions/batch-rejudge` | 批量重新评测；body `{ "submissionIds": [...], "notifyUsers": bool }`；最大 50 条；`submissionIds` 不可为空；旧字段名 `ids` 仍兼容 |
 
 ### tags（6 个）
 

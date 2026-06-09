@@ -11,9 +11,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import jakarta.validation.ConstraintViolation;
@@ -307,5 +309,62 @@ public class GlobalExceptionHandler {
                 traceId
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
+    }
+
+    /**
+     * Map Jackson deserialization failures (malformed JSON, wrong body shape,
+     * missing required body) to HTTP 400 with a descriptive message. Without
+     * this handler these errors fall through to the catch-all
+     * {@link #handleGenericException} and return HTTP 500, which both
+     * mis-classifies the response (it's a client error) and pollutes 5xx
+     * alerting. (Reported in docs/SETTINGS_API_TEST_REPORT_2026-06-09.md
+     * §5.3.)
+     *
+     * @param ex the Jackson failure
+     * @return 400 with a single-line, operator-friendly message
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        // Trim Jackson's verbose cause chain to the first line so the response
+        // payload stays compact. Full stack is still logged server-side.
+        String rootMsg = rootCauseMessage(ex);
+        String compact = rootMsg != null
+                ? rootMsg.split("\\R", 2)[0]
+                : ex.getMessage();
+        log.warn("Malformed request body: {}", compact);
+
+        String traceId = TraceIdUtil.current();
+        Result<Void> result = Result.error(
+                ErrorCode.BAD_REQUEST.getCode(),
+                "Malformed request body: " + compact,
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
+
+    /**
+     * Map Spring's type-conversion failures (e.g. putting {@code "abc"} into
+     * a {@code Long} path variable) to HTTP 400. Same rationale as
+     * {@link #handleHttpMessageNotReadable}.
+     *
+     * @param ex the conversion failure
+     * @return 400 with the parameter name and the expected type
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Result<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String expected = ex.getRequiredType() != null
+                ? ex.getRequiredType().getSimpleName()
+                : "?";
+        String message = "Invalid value for parameter '" + ex.getName()
+                + "': expected " + expected;
+        log.warn("Type mismatch: {}", message);
+
+        String traceId = TraceIdUtil.current();
+        Result<Void> result = Result.error(
+                ErrorCode.BAD_REQUEST.getCode(),
+                message,
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
     }
 }

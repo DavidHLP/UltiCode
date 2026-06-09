@@ -165,7 +165,13 @@ public enum ErrorCode {
     // Email module (19xxxx)
     EMAIL_TEMPLATE_NOT_FOUND(190001, "Email template not found", HttpStatus.NOT_FOUND),
     EMAIL_SEND_FAILED(190002, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
-    EMAIL_INVALID_RECIPIENT(190003, "Invalid email recipient", HttpStatus.BAD_REQUEST);
+    EMAIL_INVALID_RECIPIENT(190003, "Invalid email recipient", HttpStatus.BAD_REQUEST),
+
+    // Settings module (20xxxx)
+    SETTING_NOT_FOUND(200001, "Setting not found", HttpStatus.NOT_FOUND),
+    SETTING_INVALID_VALUE(200002, "Invalid setting value", HttpStatus.BAD_REQUEST),
+    SETTING_PERSISTENCE_FAILED(200003, "Failed to persist setting", HttpStatus.INTERNAL_SERVER_ERROR),
+    SETTING_CACHE_CLEAR_FAILED(200004, "Failed to clear setting cache", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final Integer code;
     private final String message;

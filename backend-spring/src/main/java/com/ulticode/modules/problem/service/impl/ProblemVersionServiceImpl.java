@@ -186,6 +186,14 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
             detail = new ProblemDetail();
             detail.setId(UUID.randomUUID().toString());
             detail.setProblemId(problemId);
+            // problem_details.slug NOT NULL — denormalize from Problem
+            // Defensive null check: problems.slug is also NOT NULL in DB, so this
+            // should never be null, but assert it to fail fast with a clear message.
+            java.util.Objects.requireNonNull(problem.getSlug(),
+                    "Problem.slug must not be null (DB constraint guarantees it, but assert defensively)");
+            detail.setSlug(problem.getSlug());
+            // constraints_json NOT NULL with no DB default — initialize to empty array
+            detail.setConstraintsJson(ProblemDetail.EMPTY_JSON_ARRAY);
         }
         detail.setSummary((String) snapshot.get("summary"));
         detail.setFollowUp((String) snapshot.get("followUp"));
@@ -291,8 +299,24 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
+        // Bug #3 修复：重复调用应返回业务错误而非 500 (uk_problem_version 唯一约束)
+        Integer existing = problemVersionMapper.selectLatestVersionNumber(problemId);
+        if (existing != null && existing >= 1) {
+            log.warn("Initial version already exists for problem {} (latest versionNumber={})",
+                    problemId, existing);
+            throw new BusinessException(ErrorCode.PROBLEM_VERSION_ALREADY_EXISTS,
+                    "Initial version already exists for problem " + problemId);
+        }
+
         Map<String, Object> snapshot = buildSnapshot(problemId);
-        return saveVersion(problemId, 1, "CREATE", "Initial version", operatorId, snapshot);
+        try {
+            return saveVersion(problemId, 1, "CREATE", "Initial version", operatorId, snapshot);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // M2 修复：兜底并发场景 — 两并发请求都通过 SELECT 查重但都尝试 INSERT,只有 1 个成功
+            log.warn("Race condition: initial version INSERT collided for problem {}", problemId, e);
+            throw new BusinessException(ErrorCode.PROBLEM_VERSION_ALREADY_EXISTS,
+                    "Initial version already exists for problem " + problemId);
+        }
     }
 
     @Override

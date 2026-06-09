@@ -449,3 +449,40 @@ curl -s -X POST -H "X-CSRF-Token: $CSRF" -b /tmp/cookies.txt \
 ---
 
 *测试完毕。后端 6 endpoint 可达, 鉴权/CSRF/限流/404 路径正常, 但输入校验和文档一致性需修。*
+
+---
+
+## 7. Fixes Applied (2026-06-09)
+
+| Issue | 状态 | 修复 commit (见 git log) | 备注 |
+|---|---|---|---|
+| 🔴 HIGH-1 batch 静默失败 | ✅ Fixed | `fix(admin-submissions): unify status enum, add @Valid, expose rejudge metadata` | `BatchRejudgeRequest` 加 `@NotEmpty + @Size(max=50)`; `rejudge` 加 `@Valid`; service 删 `null/empty` 静默分支 |
+| 🔴 HIGH-2 字段名错位 | ✅ Fixed | 同上 | DTO 字段名 `submissionIds` + `@JsonAlias({"ids"})` 兼容旧客户端 |
+| 🔴 HIGH-3 状态集不一致 | ✅ Fixed | 同上 | 新建 `SubmissionStatus` enum (11 项); `getStatuses()` 改 enum 派生; `byStatus` 与 dropdown 现在显示 11 项 |
+| 🟡 MEDIUM-1 缺 @Valid | ✅ Fixed | 同上 | 2 个 controller endpoint + 2 个 DTO 全部加 Bean Validation |
+| 🟡 MEDIUM-2 rejudge 响应 | ✅ Fixed | 同上 | `RejudgeResult` 加 `rejudgedAt` (Instant) + `retryCount` |
+| 🟡 MEDIUM-3 限流过紧 | ⏸ Deferred | — | 单实例 5/60s × 50 上限 = 250 rejudges/min/user, 当前规模可接受; 后续按压测再调 |
+| 🟢 LOW-1 OpenAPI 缺失 | ✅ Fixed | `fix(springdoc): expose OpenAPI at standard /v3/api-docs path` | yaml path 改 `/v3/api-docs` (272 paths 已验证) |
+| 🟢 LOW-2 languages shape | ✅ Fixed | 同 HIGH commit | 新建 `LanguageOption`; `getLanguages()` 返回 `[{key,label}]` (cpp → "C++") |
+| 🟢 LOW-3 幂等键 | ⏸ Deferred (P3) | — | 单独 PR, 不阻塞主修复 |
+
+**复现命令** (修复后):
+
+```bash
+# 静默失败已修复: 全部 400 而非 200 + total:0
+curl -X POST .../admin/submissions/batch-rejudge -d '{}'                              # 400
+curl -X POST .../admin/submissions/batch-rejudge -d '{"submissionIds":null}'          # 400
+curl -X POST .../admin/submissions/batch-rejudge -d '{"submissionIds":[]}'            # 400
+curl -X POST .../admin/submissions/batch-rejudge -d '{"ids":["x"]}'                    # 200 (alias 兼容)
+curl -X POST .../admin/submissions/batch-rejudge -d '{"submissionIds":["x"]*51}'      # 400
+curl -X POST .../admin/submissions/batch-rejudge -d '{"submissionIds":["x"]*50}'      # 200
+
+# 状态数修复
+curl .../admin/submissions/statuses | jq '.data | length'   # 11 (修复前 7)
+curl .../admin/submissions/languages | jq '.data[0]'        # {"key":"cpp","label":"C++"} (修复前 "cpp")
+
+# rejudge 响应含元数据
+curl -X POST .../admin/submissions/{id}/rejudge -d '{"notifyUser":false}' | jq '.data | {rejudgedAt,retryCount,oldStatus,newStatus}'
+```
+
+**测试**: `AdminSubmissionServiceImplTest` (16 cases) + `AdminSubmissionControllerTest` (12 cases) 全部通过。

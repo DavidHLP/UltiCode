@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.interceptor;
 
-import com.ulticode.common.constants.ErrorCode;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.service.TokenBlacklistService;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;

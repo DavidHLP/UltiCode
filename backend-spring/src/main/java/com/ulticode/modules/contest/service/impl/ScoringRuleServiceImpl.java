@@ -11,6 +11,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,7 +37,7 @@ public class ScoringRuleServiceImpl implements ScoringRuleService {
     public ScoringRuleVO findById(String id) {
         ScoringRule rule = scoringRuleMapper.selectById(id);
         if (rule == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SCORING_RULE_NOT_FOUND);
         }
         return toVO(rule);
     }
@@ -61,10 +62,13 @@ public class ScoringRuleServiceImpl implements ScoringRuleService {
     public ScoringRuleVO update(String id, UpdateScoringRuleDTO dto) {
         ScoringRule rule = scoringRuleMapper.selectById(id);
         if (rule == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SCORING_RULE_NOT_FOUND);
         }
         BeanUtils.copyProperties(dto, rule);
         rule.setId(id);
+        // Force updatedAt refresh on every PUT: MyBatis-Plus strictUpdateFill only
+        // fills when the field is null, but selectById has already populated it.
+        rule.setUpdatedAt(LocalDateTime.now());
         if (dto.getIsDefault() != null && dto.getIsDefault()) {
             scoringRuleMapper.clearDefault();
         }
@@ -77,7 +81,7 @@ public class ScoringRuleServiceImpl implements ScoringRuleService {
     public void delete(String id) {
         ScoringRule rule = scoringRuleMapper.selectById(id);
         if (rule == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+            throw new BusinessException(ErrorCode.SCORING_RULE_NOT_FOUND);
         }
         long count = scoringRuleMapper.countContestsUsingRule(id);
         if (count > 0) {

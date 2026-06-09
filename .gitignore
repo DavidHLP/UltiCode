@@ -117,6 +117,12 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .claude/PRPs/
 .claude/memory/
 .claude/reviews/
+# .claude/settings.json is COMMITTED (team-shared statusLine config).
+# .claude/settings.local.json holds per-user MCP / hooks / permissions and is
+# covered by the user-global gitignore, but we mirror the rule here for teams
+# where the global ignore isn't installed.
+.claude/settings.local.json
+.claude/.arthas/
 # ====================================================================
 # 6. 测试与覆盖率 (Tests & Coverage)
 # ====================================================================

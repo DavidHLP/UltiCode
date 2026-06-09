@@ -148,16 +148,21 @@ class AdminSubmissionServiceImplTest {
     class BatchRejudge {
 
         @Test
-        @DisplayName("rejects batch with more than 50 IDs")
-        void batchRejudge_exceeds50_throwsValidationFailed() {
+        @DisplayName("size>50 limit is enforced upstream by @Size on BatchRejudgeRequest")
+        void batchRejudge_exceeds50_isNoLongerEnforcedAtServiceLayer() {
+            // The 50-ID cap is now enforced at the controller boundary by
+            // @Size(max=50) on BatchRejudgeRequest, which returns 400 before
+            // reaching the service. The service no longer throws; it simply
+            // processes the list it's given. This test guards against
+            // re-introducing the service-layer size check that produced
+            // inconsistent error messages (VALIDATION_FAILED vs
+            // "size must not exceed 50").
             List<String> ids = java.util.Collections.nCopies(51, "sub-id");
+            when(submissionMapper.selectById("sub-id")).thenReturn(null);
 
-            assertThatThrownBy(() -> adminSubmissionService.batchRejudge(ids, false))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> {
-                        BusinessException be = (BusinessException) ex;
-                        assertThat(be.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-                    });
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(ids, false);
+            assertThat(response.getTotal()).isEqualTo(51);
+            assertThat(response.getFailed()).isEqualTo(51);
         }
 
         @Test
@@ -205,6 +210,104 @@ class AdminSubmissionServiceImplTest {
             assertThat(response.getTotal()).isEqualTo(50);
             assertThat(response.getFailed()).isEqualTo(50);
             assertThat(response.getSuccessful()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("no longer silently returns total=0 for null/empty (now 400 upstream)")
+        void nullList_doesNotSilentlyReturn_zeroCounts() {
+            // The @Valid annotation on BatchRejudgeRequest in the controller
+            // is what now prevents null/empty input. At the service layer we
+            // still iterate — the test guards against re-introducing the
+            // silent-return branch that hid client bugs in the original code.
+            when(submissionMapper.selectById("a")).thenReturn(null);
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(List.of("a"), false);
+            assertThat(response.getTotal()).isEqualTo(1);
+            assertThat(response.getFailed()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("rejudge() response metadata")
+    class RejudgeMetadata {
+
+        @Test
+        @DisplayName("populates rejudgedAt with the current time")
+        void populatesRejudgedAt() {
+            Submission submission = createValidSubmission();
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString())).thenReturn("job-1");
+
+            java.time.Instant before = java.time.Instant.now();
+            RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
+            java.time.Instant after = java.time.Instant.now();
+
+            assertThat(result.getRejudgedAt()).isNotNull();
+            assertThat(result.getRejudgedAt()).isBetween(before, after);
+        }
+
+        @Test
+        @DisplayName("populates retryCount equal to the post-increment value")
+        void populatesRetryCount() {
+            Submission submission = createValidSubmission();
+            submission.setRetryCount(5);
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString())).thenReturn("job-1");
+
+            RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
+
+            assertThat(result.getRetryCount()).isEqualTo(6);
+        }
+    }
+
+    @Nested
+    @DisplayName("getStatuses() — derived from SubmissionStatus enum")
+    class GetStatuses {
+
+        @Test
+        @DisplayName("returns 11 entries covering all DB-stored statuses")
+        void returnsElevenStatuses() {
+            var options = adminSubmissionService.getStatuses();
+            assertThat(options).hasSize(11);
+        }
+
+        @Test
+        @DisplayName("Compile Error key matches DB value (with space, not 'Compilation Error')")
+        void compileError_keyMatchesDb() {
+            var options = adminSubmissionService.getStatuses();
+            var compileError = options.stream()
+                .filter(o -> "COMPILE_ERROR".equals(o.getCode()))
+                .findFirst().orElseThrow();
+            assertThat(compileError.getKey()).isEqualTo("Compile Error");
+            assertThat(compileError.getCategory()).isEqualTo("error");
+        }
+
+        @Test
+        @DisplayName("Judging is included (was missing from the old hard-coded list)")
+        void judging_isIncluded() {
+            var options = adminSubmissionService.getStatuses();
+            assertThat(options).extracting(o -> o.getCode())
+                .contains("JUDGING", "OUTPUT_LIMIT_EXCEEDED",
+                          "PRESENTATION_ERROR", "SYSTEM_ERROR");
+        }
+    }
+
+    @Nested
+    @DisplayName("getLanguages() — returns LanguageOption with key + label")
+    class GetLanguages {
+
+        @Test
+        @DisplayName("humanises 'cpp' to 'C++' and 'javascript' to 'JavaScript'")
+        void humanisesLanguageCodes() {
+            when(submissionMapper.findDistinctLanguages())
+                .thenReturn(List.of("cpp", "java", "javascript", "python"));
+
+            var languages = adminSubmissionService.getLanguages();
+            assertThat(languages).extracting("key").containsExactly(
+                "cpp", "java", "javascript", "python");
+            assertThat(languages).extracting("label").containsExactly(
+                "C++", "Java", "JavaScript", "Python");
         }
     }
 }

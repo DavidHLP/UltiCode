@@ -69,8 +69,9 @@ public enum ErrorCode {
     SANDBOX_IMAGE_NOT_FOUND(40007, "Sandbox Docker image not found", HttpStatus.INTERNAL_SERVER_ERROR),
     SANDBOX_TIMEOUT(40008, "Code execution timed out", HttpStatus.REQUEST_TIMEOUT),
 
-    // Solution module (5xxxx)
-    SOLUTION_NOT_FOUND(50001, "Solution not found", HttpStatus.NOT_FOUND),
+    // Solution module (5xxxx) — code 50401 is SOLUTION_NOT_FOUND (was 50001; renumbered to
+    // avoid collision with DATABASE_ERROR(50001). Frontend consumers see HTTP 404 + 50401.)
+    SOLUTION_NOT_FOUND(50401, "Solution not found", HttpStatus.NOT_FOUND),
     SOLUTION_CANNOT_DELETE_OTHERS(50002, "Cannot delete others' solution", HttpStatus.FORBIDDEN),
     SOLUTION_CANNOT_UPDATE_OTHERS(50003, "Cannot update others' solution", HttpStatus.FORBIDDEN),
     SOLUTION_COMMENT_NOT_FOUND(50004, "Solution comment not found", HttpStatus.NOT_FOUND),

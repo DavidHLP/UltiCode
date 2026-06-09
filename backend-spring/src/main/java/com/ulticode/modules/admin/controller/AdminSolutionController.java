@@ -6,18 +6,22 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
+import com.ulticode.modules.admin.dto.BulkSolutionActionDto;
+import com.ulticode.modules.admin.dto.FlagSolutionDto;
 import com.ulticode.modules.admin.service.AdminSolutionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -40,7 +44,8 @@ public class AdminSolutionController {
         return Result.success(adminSolutionService.getSolutions(query));
     }
 
-    @Operation(summary = "Get flagged solutions", description = "Get paginated list of flagged solutions")
+    @Operation(summary = "Get flagged solutions",
+            description = "Get paginated list of currently-active (non-deleted) flagged solutions")
     @GetMapping("/flagged")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminSolutionListItemVO>> getFlaggedSolutions(AdminSolutionQueryDTO query) {
@@ -54,18 +59,17 @@ public class AdminSolutionController {
         return Result.success(adminSolutionService.getSolution(id));
     }
 
-    @Operation(summary = "Flag solution", description = "Flag a solution for review")
+    @Operation(summary = "Flag solution", description = "Flag a solution for review; requires a non-blank reason")
     @RateLimit(key = "admin:solution-flag", limit = 30, period = 60)
     @PostMapping("/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminSolutionVO> flagSolution(
             @PathVariable String id,
-            @Valid @RequestBody FlagSolutionDto dto,
-            @RequestHeader(value = "X-User-Id", required = false) String adminId) {
-        return Result.success(adminSolutionService.flagSolution(id, dto.getReason(), adminId));
+            @Valid @RequestBody FlagSolutionDto dto) {
+        return Result.success(adminSolutionService.flagSolution(id, dto.getReason()));
     }
 
-    @Operation(summary = "Unflag solution", description = "Remove flag from a solution")
+    @Operation(summary = "Unflag solution", description = "Remove flag from a solution (idempotent)")
     @RateLimit(key = "admin:solution-unflag", limit = 30, period = 60)
     @PostMapping("/{id}/unflag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
@@ -73,7 +77,10 @@ public class AdminSolutionController {
         return Result.success(adminSolutionService.unflagSolution(id));
     }
 
-    @Operation(summary = "Delete solution", description = "Permanently delete a solution")
+    @Operation(summary = "Delete solution (soft)",
+            description = "Soft-delete a solution by setting is_deleted=1. The row remains in the database "
+                    + "and can be inspected via GET /admin/solutions?isDeleted=true. Hard delete is not "
+                    + "exposed in this version.")
     @RateLimit(key = "admin:solution-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
@@ -82,31 +89,15 @@ public class AdminSolutionController {
         return Result.success();
     }
 
-    @Operation(summary = "Bulk action", description = "Perform bulk action on multiple solutions")
+    @Operation(summary = "Bulk action",
+            description = "Perform a bulk action on up to 100 solutions. Action must be one of: "
+                    + "publish, unpublish, delete, unflag. To flag solutions in bulk, use "
+                    + "POST /admin/solutions/{id}/flag individually with a per-solution reason.")
     @RateLimit(key = "admin:solution-bulk", limit = 30, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<AdminSolutionService.BulkActionResult>> bulkAction(
             @Valid @RequestBody BulkSolutionActionDto dto) {
         return Result.success(adminSolutionService.bulkAction(dto.getIds(), dto.getAction()));
-    }
-
-    /**
-     * DTO for flagging a solution.
-     */
-    @Data
-    public static class FlagSolutionDto {
-        @NotBlank(message = "Flag reason is required")
-        private String reason;
-    }
-
-    /**
-     * DTO for bulk action on solutions.
-     */
-    @Data
-    public static class BulkSolutionActionDto {
-        @NotEmpty(message = "Solution IDs must not be empty")
-        private List<@NotNull String> ids;
-        private String action; // publish, unpublish, delete, unflag
     }
 }

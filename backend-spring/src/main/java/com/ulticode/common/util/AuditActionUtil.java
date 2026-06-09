@@ -32,6 +32,7 @@ public final class AuditActionUtil {
     public static final String DELETE_SOLUTION = "DELETE_SOLUTION";
     public static final String FLAG_SOLUTION = "FLAG_SOLUTION";
     public static final String UNFLAG_SOLUTION = "UNFLAG_SOLUTION";
+    public static final String BULK_SOLUTION_ACTION = "BULK_SOLUTION_ACTION";
 
     public static final String CREATE_FORUM_POST = "CREATE_FORUM_POST";
     public static final String UPDATE_FORUM_POST = "UPDATE_FORUM_POST";

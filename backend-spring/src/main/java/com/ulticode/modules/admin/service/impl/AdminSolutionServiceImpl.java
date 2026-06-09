@@ -154,7 +154,10 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         flaggedQuery.setUserId(query.getUserId());
         flaggedQuery.setIsFlagged(true);
         flaggedQuery.setIsPublished(query.getIsPublished());
-        flaggedQuery.setIsDeleted(query.getIsDeleted());
+        // /admin/solutions/flagged always returns currently-active (non-deleted) solutions,
+        // even if the caller passes isDeleted=true; otherwise the endpoint title would be
+        // misleading (see docs/solutions-admin-api-qa-2026-06-09.md BUG-Q9).
+        flaggedQuery.setIsDeleted(false);
         flaggedQuery.setPage(query.getPage());
         flaggedQuery.setLimit(query.getLimit());
         flaggedQuery.setSortBy(query.getSortBy());
@@ -173,12 +176,18 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.FLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
-    public AdminSolutionVO flagSolution(String id, String reason, String adminId) {
+    @Audited(action = AuditActionUtil.FLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
+    public AdminSolutionVO flagSolution(String id, String reason) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        // Audit identity fix: the @Audited aspect no longer reads a method param named "id"
+        // (which would have been the solution id, not the author). Instead, the affected
+        // user is the solution author; the performer is resolved from SecurityContext.
+        AuditContext.setUserId(solution.getUserId());
+        AuditContext.setEntityId(id);
 
         AuditContext.setOldValues(Map.of(
             "isFlagged", solution.getIsFlagged() != null ? solution.getIsFlagged() : false,
@@ -195,19 +204,22 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : ""));
 
-        log.info("Solution flagged: {} by admin {}, reason: {}", id, adminId, reason);
+        log.info("Solution flagged: {} reason: {}", id, reason);
 
         return getSolution(id);
     }
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UNFLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
+    @Audited(action = AuditActionUtil.UNFLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
     public AdminSolutionVO unflagSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        AuditContext.setUserId(solution.getUserId());
+        AuditContext.setEntityId(id);
 
         AuditContext.setOldValues(Map.of(
             "isFlagged", solution.getIsFlagged() != null ? solution.getIsFlagged() : false,
@@ -231,12 +243,15 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
+    @Audited(action = AuditActionUtil.DELETE_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
     public void deleteSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        AuditContext.setUserId(solution.getUserId());
+        AuditContext.setEntityId(id);
 
         AuditContext.setOldValues(Map.of(
             "title", solution.getTitle() != null ? solution.getTitle() : "",
@@ -262,10 +277,23 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.BULK_SOLUTION_ACTION, entityType = AuditActionUtil.ENTITY_SOLUTION, captureNewState = false)
     public List<BulkActionResult> bulkAction(List<String> ids, String action) {
+        AuditContext.setEntityId(String.join(",", ids));
         List<BulkActionResult> results = new ArrayList<>();
 
+        // Pre-check existence in a single batched query (BUG-Q4, perf fix per code review
+        // M-1): replaces the previous N+1 selectById loop. MyBatis-Plus update returns 0
+        // affected rows silently for non-existent ids, so we must verify presence first.
+        Set<String> existingIds = solutionMapper.selectBatchIds(ids).stream()
+                .map(Solution::getId)
+                .collect(Collectors.toSet());
+
         for (String id : ids) {
+            if (!existingIds.contains(id)) {
+                results.add(BulkActionResult.failure(id, BulkActionResult.NOT_FOUND_MESSAGE));
+                continue;
+            }
             try {
                 switch (action) {
                     case "publish" -> {

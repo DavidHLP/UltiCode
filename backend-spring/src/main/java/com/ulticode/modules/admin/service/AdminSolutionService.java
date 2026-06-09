@@ -39,12 +39,14 @@ public interface AdminSolutionService {
     /**
      * Flag a solution for review.
      *
-     * @param id      the solution ID
-     * @param reason  the reason for flagging
-     * @param adminId the admin user ID who performed the action
+     * <p>The admin performer is resolved from the Spring Security context inside the
+     * service / aspect; callers should not pass admin id as a parameter.
+     *
+     * @param id     the solution ID
+     * @param reason the reason for flagging
      * @return the updated solution VO
      */
-    AdminSolutionVO flagSolution(String id, String reason, String adminId);
+    AdminSolutionVO flagSolution(String id, String reason);
 
     /**
      * Unflag a solution (remove flag).
@@ -55,7 +57,10 @@ public interface AdminSolutionService {
     AdminSolutionVO unflagSolution(String id);
 
     /**
-     * Delete a solution (hard delete).
+     * Soft-delete a solution by setting {@code is_deleted=1}.
+     *
+     * <p>The row remains in the database and can be inspected via the list endpoint
+     * with {@code isDeleted=true}. Hard delete is not exposed in this version.
      *
      * @param id the solution ID
      */
@@ -78,6 +83,9 @@ public interface AdminSolutionService {
             boolean success,
             String error
     ) {
+        /** Standard error message when a solution id is not found. */
+        public static final String NOT_FOUND_MESSAGE = "Solution not found";
+
         public static BulkActionResult success(String id) {
             return new BulkActionResult(id, true, null);
         }

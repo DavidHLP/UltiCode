@@ -125,23 +125,7 @@ module.exports = {
         ...envFromFile,
       },
     },
-    {
-      // Arthas MCP 服务: 自动附加到 Spring Boot (9001) 进程，提供 MCP 端点
-      // 启动依赖: ulticode-9001 必须先就绪（脚本内置等待逻辑）
-      // MCP 端点: http://localhost:8563/mcp (Streamable HTTP)
-      name: "ulticode-arthas",
-      script: "./scripts/start-arthas.sh",
-      interpreter: "bash",
-      // Arthas 附加后 HTTP/MCP agent 运行在目标 JVM 内，启动进程本身会退出
-      // 所以 autorestart=false，避免 PM2 反复重启
-      autorestart: false,
-      // 等待 Spring Boot 启动需要时间，给足启动窗口
-      kill_timeout: 10000,
-      wait_ready: false,
-      ...logConfig("arthas"),
-      env: {
-        ...envFromFile,
-      },
-    },
+    // Arthas MCP 不在此管理 — 由 Claude Code SessionStart / SessionEnd hook 驱动
+    // (见 .claude/settings.local.json + scripts/arthas-session-{start,end}.sh)
   ],
 };

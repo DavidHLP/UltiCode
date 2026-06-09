@@ -91,15 +91,26 @@ UPDATE users SET name = '正确的姓名' WHERE id = '...';
 | 项目 | 值 |
 |------|-----|
 | MCP 端点 | `http://localhost:8563/mcp` |
-| PM2 进程名 | `ulticode-arthas` |
-| 启动脚本 | `scripts/start-arthas.sh` |
+| 生命周期 | Claude Code SessionStart / SessionEnd hook (不由 PM2 管理) |
+| 启动 wrapper | `scripts/start-arthas.sh` |
+| SessionStart hook | `scripts/arthas-session-start.sh` (后台拉起 wrapper) |
+| SessionEnd hook | `scripts/arthas-session-end.sh` (SIGTERM wrapper) |
+| Hook 注册 | `.claude/settings.local.json` `hooks.SessionStart / SessionEnd` |
+| PID 文件 | `.claude/.arthas/wrapper.pid` |
+| Wrapper 日志 | `.claude/.arthas/wrapper.log` |
 | 配置文件 | `~/.arthas/arthas.properties` |
 
 ```bash
-# 启动 Arthas MCP (通过 PM2, 自动附加到 Spring Boot)
-pm2 start ecosystem.config.cjs --only ulticode-arthas
+# 正常流程: Claude Code 启动时 SessionStart hook 自动拉起 wrapper
+# 端口已监听时 hook 直接 noop,不会重复 attach
 
-# 手动启动 Arthas 并附加到指定进程
+# 手动启动 (绕过 hook,例如 SSH 到远程 / IDE 集成)
+bash scripts/arthas-session-start.sh
+
+# 手动停止 (SessionEnd 没机会跑的极端场景)
+bash scripts/arthas-session-end.sh
+
+# 手动 attach 到指定进程 (绕过 wrapper 等待 Spring Boot 的逻辑)
 java -jar tools/arthas-boot.jar --attach-only --http-port 8563 <PID>
 
 # 验证 MCP 端点
@@ -112,9 +123,10 @@ java -jar tools/arthas-boot.jar <PID>
 ```
 
 ### Arthas MCP 注意事项
+- **生命周期由 Claude Code 拥有**: SessionStart hook 在 `nohup setsid` 后立即返回,不阻塞会话启动;SessionEnd hook SIGTERM wrapper,arthas agent 留在目标 JVM 内 (下次 SessionStart 检测到端口已监听会跳过 attach)
 - `arthas-boot.jar` 不支持 `--properties-file` 参数; 配置文件放 `~/.arthas/arthas.properties` 自动加载
 - `--telnet-port -1` 不被支持 (port out of range); 如需禁用 telnet 不传该参数即可
-- `--attach-only` 模式: 启动进程退出但 HTTP/MCP agent 运行在目标 JVM 内, PM2 必须 `autorestart: false`
+- `--attach-only` 模式: 启动进程退出但 HTTP/MCP agent 运行在目标 JVM 内
 - Spring Boot 健康检查用 `lsof -ti :9001` 而非 `curl` (根路径可能返回 302/401)
 - 脚本中用 `$CLAUDE_PROJECT_DIR` 解析项目根目录, 非 `$SCRIPT_DIR`
 - Java 版本不一致 (arthas-boot Java 21 vs 目标 JVM Java 17) 会 WARN 但不影响功能
@@ -449,7 +461,7 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 | 9001 | ulticode-9001 | Spring Boot Backend |
 | 9002 | ulticode-9002 | Console Frontend (Vite) |
 | 9003 | ulticode-9003 | Management Frontend (Vite) |
-| 8563 | ulticode-arthas | Arthas MCP Server (HTTP/MCP, agent runs in target JVM) |
+| 8563 | (Claude Code hook) | Arthas MCP Server (SessionStart hook 拉起, 跟随会话生命周期) |
 | 28848 | (nacos container) | Nacos 控制台 `/nacos` (默认账号 nacos/nacos) |
 
 **Terminal Commands:**

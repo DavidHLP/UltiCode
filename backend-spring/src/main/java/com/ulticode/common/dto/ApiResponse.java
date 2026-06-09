@@ -1,7 +1,7 @@
 package com.ulticode.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.ulticode.common.constants.ErrorCode;
+import com.ulticode.common.exception.ErrorCode;
 
 /**
  * Standard API response wrapper for all REST endpoints.

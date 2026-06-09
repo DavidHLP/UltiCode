@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.dto;
 
-import com.ulticode.common.constants.ErrorCode;
+import com.ulticode.common.exception.ErrorCode;
 
 /** WebSocket error message sent to clients. */
 public record WebSocketErrorMessage(boolean success, String error, String message) {

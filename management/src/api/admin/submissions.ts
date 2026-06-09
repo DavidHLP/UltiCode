@@ -133,7 +133,10 @@ export const submissionsApi = {
     })
   },
 
-  async batchRejudge(submissionIds: string[], notifyUsers: boolean = false): Promise<BatchRejudgeResponse> {
+  async batchRejudge(
+    submissionIds: string[],
+    notifyUsers: boolean = false,
+  ): Promise<BatchRejudgeResponse> {
     return apiPost<BatchRejudgeResponse>('/admin/submissions/batch-rejudge', {
       submissionIds,
       notifyUsers,

@@ -107,7 +107,10 @@ mybatis-plus:
 springdoc:
   api-docs:
     enabled: ${SPRINGDOC_ENABLED:true}
-    path: /api-docs
+    # /v3/api-docs is the standard Spring Boot / springdoc path; previously
+    # we exposed /api-docs, which made tools and external callers that
+    # follow the convention (e.g. Swagger UI, Postman import) return empty.
+    path: /v3/api-docs
   swagger-ui:
     enabled: ${SPRINGDOC_ENABLED:true}
     path: /swagger-ui.html

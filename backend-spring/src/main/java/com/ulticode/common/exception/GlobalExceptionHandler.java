@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -174,15 +175,49 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleGenericException(Exception ex) {
-        log.error("Unexpected error: ", ex);
-
         String traceId = TraceIdUtil.current();
+        // 显式把 traceId 放进日志前缀，方便 grep 关联请求
+        log.error("Unexpected error (traceId={}, rootCause={}: {})",
+                traceId, rootCauseClassName(ex), rootCauseMessage(ex), ex);
+
         Result<Void> result = Result.error(
                 ErrorCode.UNKNOWN_ERROR.getCode(),
                 ErrorCode.UNKNOWN_ERROR.getMessage(),
                 traceId
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * 处理 MySQL 唯一约束冲突 / FK 冲突等数据完整性错误。
+     * 作为 createInitialVersion 等查重的二线防御：若 service 层未来漏掉 DuplicateKeyException 检查，
+     * 仍能返回 409 而非 50000 "Unknown error"。
+     *
+     * <p>根据 rootCause 消息区分场景：
+     * <ul>
+     *   <li>Duplicate entry  → 409 + 30004（与 service 层首线防御一致）</li>
+     *   <li>FK / NOT NULL  → 409 + CONFLICT(40900) + 通用 message</li>
+     * </ul>
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Result<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String traceId = TraceIdUtil.current();
+        String rootMsg = rootCauseMessage(ex);
+        log.warn("Data integrity violation (traceId={}, rootCause={}: {})",
+                traceId, rootCauseClassName(ex), rootMsg, ex);
+
+        boolean isDuplicate = rootMsg != null
+                && rootMsg.toLowerCase().contains("duplicate entry");
+
+        int code = isDuplicate
+                ? ErrorCode.PROBLEM_VERSION_ALREADY_EXISTS.getCode()  // 30004
+                : ErrorCode.CONFLICT.getCode();                          // 40900
+        String message = isDuplicate
+                ? "Duplicate resource"
+                : "Data integrity violation (FK or NOT NULL constraint)";
+
+        Result<Void> result = Result.error(code, message, traceId);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
     }
 
     /**

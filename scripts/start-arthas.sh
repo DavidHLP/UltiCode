@@ -2,7 +2,7 @@
 # Arthas MCP self-healing wrapper
 #
 # 由 Claude Code SessionStart hook (scripts/arthas-session-start.sh) 在后台拉起,
-# 也建议通过 PM2 监督本脚本 (本进程崩溃时自动重启, 见 README)。
+# 也通过 PM2 监督本脚本 (本进程崩溃时自动重启, 见 ecosystem.config.cjs)。
 #
 # 自愈 loop (修复: Claude Code 运行中 pm2 restart Spring Boot 后 arthas 断连问题):
 #   1) 等 Spring Boot (9001) 就绪
@@ -10,11 +10,16 @@
 #      - 是: 直接进入端口监控
 #      - 否: 调 arthas-boot attach 到 Spring Boot, 等 MCP 端点 ready
 #   3) 监控端口 8563: 端口死了不退出,而是回到顶端重试 attach
-#   4) SIGTERM/SIGINT: 干净退出 (SessionEnd hook 触发)
+#   4) SIGTERM/SIGINT: 干净退出 (SessionEnd hook 或 PM2 stop 触发)
 #
 # 退出语义:
 #   - 收到 SIGTERM/SIGINT → 0,agent 留在目标 JVM (下次 SessionStart 复用)
 #   - 其他原因退出 (如 5 次连续 attach 失败) → 0,PM2 监督下自动重启
+#
+# 互斥机制:
+#   - 启动时把 wrapper PID + launcher (pm2 / hook) 写入 ${PID_DIR}/wrapper.pid
+#   - Claude Code SessionStart hook 检测到 PID 文件或 8563 端口在用 → 跳过
+#   - 退出时清理 PID 文件 (让 hook / CLI 知道 wrapper 已下)
 set -uo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -26,6 +31,12 @@ MCP_READY_TIMEOUT=20
 MONITOR_INTERVAL=5
 RETRY_BACKOFF=5
 MAX_CONSECUTIVE_FAILURES=5
+PID_DIR="${PROJECT_DIR}/.claude/.arthas"
+PID_FILE="${PID_DIR}/wrapper.pid"
+# launcher: pm2 (PM2 拉起) / hook (Claude Code hook 拉起) / cli (arthas-cli.sh 拉起)
+LAUNCHER="${ULTICODE_ARTHAS_LAUNCHER:-cli}"
+
+mkdir -p "$PID_DIR"
 
 # 确保 ~/.arthas/ 目录存在,放置 arthas.properties
 # Arthas 启动时会自动加载 ~/.arthas/arthas.properties
@@ -46,8 +57,21 @@ if [ ! -f "$ARTHAS_JAR" ]; then
   exit 1
 fi
 
-# SIGTERM/SIGINT: 干净退出 (SessionEnd hook 触发, 或 PM2 stop)
-trap 'echo "[arthas] Received signal, wrapper exiting (arthas agent in target JVM stays alive if any)"; exit 0' INT TERM
+# === PID 文件: 在最早阶段写, 让 hook 能在端口起来前就检测到本 wrapper ===
+# 格式: "PID LAUNCHER" (两行: PID, launcher)
+# 双重检测: hook 看 PID 文件 + lsof, 任一在用都跳过
+echo $$ > "$PID_FILE"
+echo "$LAUNCHER" >> "$PID_FILE"
+
+# SIGTERM/SIGINT: 干净退出 + 清理 PID 文件
+cleanup() {
+  rm -f "$PID_FILE"
+  echo "[arthas] Wrapper exiting (PID file cleaned)"
+  exit 0
+}
+trap 'echo "[arthas] Received signal, wrapper exiting (arthas agent in target JVM stays alive if any)"; cleanup' INT TERM
+# 兜底: 任何非信号退出也清 PID (例如连续 attach 失败 PM2 重启时)
+trap 'rm -f "$PID_FILE"' EXIT
 
 # 端口存活监控: 不再直接 exit, 而是返回让外层 loop 决定
 monitor_port() {

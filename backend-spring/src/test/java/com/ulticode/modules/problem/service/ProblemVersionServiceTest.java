@@ -240,6 +240,53 @@ class ProblemVersionServiceTest {
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.PROBLEM_NOT_FOUND));
         }
+
+        @Test
+        @DisplayName("should throw PROBLEM_VERSION_ALREADY_EXISTS when initial version already exists")
+        void shouldThrowWhenInitialVersionAlreadyExists() {
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createProblem());
+            // simulate existing versionNumber=1 in DB
+            when(problemVersionMapper.selectLatestVersionNumber(PROBLEM_ID)).thenReturn(1);
+
+            assertThatThrownBy(() -> problemVersionService.createInitialVersion(PROBLEM_ID, OPERATOR_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> {
+                        BusinessException be = (BusinessException) ex;
+                        assertThat(be.getErrorCode())
+                                .isEqualTo(ErrorCode.PROBLEM_VERSION_ALREADY_EXISTS);
+                        assertThat(be.getMessage())
+                                .contains("Initial version already exists")
+                                .contains(PROBLEM_ID.toString());
+                    });
+
+            // Must not insert a new version
+            verify(problemVersionMapper, never()).insert(any(ProblemVersion.class));
+        }
+
+        @Test
+        @DisplayName("should translate DuplicateKeyException to PROBLEM_VERSION_ALREADY_EXISTS (race condition)")
+        void shouldTranslateDuplicateKeyOnRaceCondition() {
+            // SELECT sees no version (passes pre-check), but concurrent transaction inserted
+            // a row in the meantime, so INSERT throws DuplicateKeyException
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createProblem());
+            when(problemVersionMapper.selectLatestVersionNumber(PROBLEM_ID)).thenReturn(null);
+            mockBuildSnapshot();
+            org.mockito.Mockito.doThrow(
+                    new org.springframework.dao.DuplicateKeyException(
+                            "Duplicate entry '1' for key 'problem_versions.uk_problem_version'"))
+                    .when(problemVersionMapper).insert(any(ProblemVersion.class));
+
+            assertThatThrownBy(() -> problemVersionService.createInitialVersion(PROBLEM_ID, OPERATOR_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> {
+                        BusinessException be = (BusinessException) ex;
+                        assertThat(be.getErrorCode())
+                                .isEqualTo(ErrorCode.PROBLEM_VERSION_ALREADY_EXISTS);
+                        assertThat(be.getMessage())
+                                .contains("Initial version already exists")
+                                .contains(PROBLEM_ID.toString());
+                    });
+        }
     }
 
     @Nested

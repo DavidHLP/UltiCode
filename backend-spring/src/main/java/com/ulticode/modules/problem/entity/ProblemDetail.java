@@ -13,6 +13,13 @@ import java.time.LocalDateTime;
 @TableName("problem_details")
 public class ProblemDetail {
 
+    /**
+     * Empty JSON array literal for initializing JSON NOT NULL columns
+     * (e.g. {@code constraints_json}) on insert, since the column has no
+     * database default and callers may not always supply a value.
+     */
+    public static final String EMPTY_JSON_ARRAY = "[]";
+
     @TableId(type = IdType.INPUT)
     private String id;
 

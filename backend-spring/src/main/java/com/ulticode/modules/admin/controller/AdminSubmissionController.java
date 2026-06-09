@@ -8,6 +8,7 @@ import com.ulticode.modules.admin.service.AdminSubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -57,7 +58,7 @@ public class AdminSubmissionController {
     @Operation(summary = "Get languages", description = "Get available programming languages for filtering")
     @GetMapping("/languages")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<String>> getLanguages() {
+    public Result<List<LanguageOption>> getLanguages() {
         return Result.success(adminSubmissionService.getLanguages());
     }
 
@@ -67,7 +68,7 @@ public class AdminSubmissionController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<RejudgeResult> rejudge(
             @PathVariable String id,
-            @RequestBody RejudgeRequest request) {
+            @Valid @RequestBody RejudgeRequest request) {
         return Result.success(adminSubmissionService.rejudge(id, request.getNotifyUser()));
     }
 
@@ -75,7 +76,8 @@ public class AdminSubmissionController {
     @RateLimit(key = "admin:submission-batch-rejudge", limit = 5, period = 60)
     @PostMapping("/batch-rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<BatchRejudgeResponse> batchRejudge(@RequestBody BatchRejudgeRequest request) {
-        return Result.success(adminSubmissionService.batchRejudge(request.getIds(), request.getNotifyUsers()));
+    public Result<BatchRejudgeResponse> batchRejudge(@Valid @RequestBody BatchRejudgeRequest request) {
+        return Result.success(adminSubmissionService.batchRejudge(
+            request.getSubmissionIds(), request.getNotifyUsers()));
     }
 }

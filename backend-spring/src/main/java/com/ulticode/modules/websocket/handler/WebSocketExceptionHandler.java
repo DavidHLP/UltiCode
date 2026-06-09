@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.handler;
 
-import com.ulticode.common.constants.ErrorCode;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.dto.WebSocketErrorMessage;

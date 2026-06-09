@@ -100,6 +100,7 @@ public enum ErrorCode {
     CONTEST_NO_PERMISSION(70007, "No permission for this contest", HttpStatus.FORBIDDEN),
     CONTEST_NOT_STARTED(70008, "Contest has not started", HttpStatus.BAD_REQUEST),
     CONTEST_ENDED(70009, "Contest has ended", HttpStatus.BAD_REQUEST),
+    SCORING_RULE_NOT_FOUND(70010, "Scoring rule not found", HttpStatus.NOT_FOUND),
 
     // Bookmark module (8xxxx)
     BOOKMARK_FOLDER_NOT_FOUND(80001, "Bookmark folder not found", HttpStatus.NOT_FOUND),

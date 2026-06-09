@@ -88,42 +88,68 @@ UPDATE users SET name = '正确的姓名' WHERE id = '...';
 
 **Arthas MCP 服务**: 项目已配置 Arthas MCP (Model Context Protocol) 端点,Claude Code 可直接调用 Arthas 诊断工具。
 
+### 启动路径 (三选一, 自动互斥)
+
+Arthas wrapper (`scripts/start-arthas.sh`) 由 **三路** 都能拉起, **任何一路先起来, 其他路都会跳过** (基于端口 `:8563` + PID 文件双重检测):
+
+| 路径 | 触发方式 | 推荐场景 |
+|------|---------|---------|
+| **PM2** (主) | `pm2 start ecosystem.config.cjs` 启动 `ulticode-arthas` app | 本地开发、SSH 远程、CI、跟随 `pm2 save` 自启 |
+| **Claude Code hook** | `.claude/settings.json` 注册的 `SessionStart` / `SessionEnd` | Claude Code 会话内, 无 PM2 时 |
+| **CLI** (兜底) | `scripts/arthas-cli.sh start` | 任意环境手动/调试, 跨平台 |
+
+**互斥原则** (PID 文件 + 端口双重检测):
+- 任何一路检测到 `:8563` 已在监听 或 PID 文件存在 → 跳过
+- PID 文件格式: `PID\nLAUNCHER` (`pm2` / `hook` / `cli`)
+- SessionEnd 只停 launcher=hook 的 wrapper;`pm2` / `cli` 拉起的留给它们自己管理
+- `arthas-cli.sh stop` 只停 launcher=cli 的;`pm2` 拉起的提示用 `pm2 stop ulticode-arthas`
+
 | 项目 | 值 |
 |------|-----|
-| MCP 端点 | `http://localhost:8563/mcp` |
-| 生命周期 | Claude Code SessionStart / SessionEnd hook (不由 PM2 管理) |
-| 启动 wrapper | `scripts/start-arthas.sh` |
-| SessionStart hook | `scripts/arthas-session-start.sh` (后台拉起 wrapper) |
-| SessionEnd hook | `scripts/arthas-session-end.sh` (SIGTERM wrapper) |
-| Hook 注册 | `.claude/settings.local.json` `hooks.SessionStart / SessionEnd` |
+| MCP 端点 | `http://localhost:8563/mcp` (STREAMABLE) |
+| Wrapper | `scripts/start-arthas.sh` (自愈: 端口死了自动重 attach) |
+| SessionStart hook | `scripts/arthas-session-start.sh` |
+| SessionEnd hook | `scripts/arthas-session-end.sh` |
+| Hook 注册 | `.claude/settings.json` `hooks.SessionStart / SessionEnd` (已提交) |
+| PM2 app | `ecosystem.config.cjs` 中 `ulticode-arthas` |
+| 通用 CLI | `scripts/arthas-cli.sh {start\|stop\|restart\|status\|logs}` |
 | PID 文件 | `.claude/.arthas/wrapper.pid` |
 | Wrapper 日志 | `.claude/.arthas/wrapper.log` |
 | 配置文件 | `~/.arthas/arthas.properties` |
 
 ```bash
-# 正常流程: Claude Code 启动时 SessionStart hook 自动拉起 wrapper
-# 端口已监听时 hook 直接 noop,不会重复 attach
+# === 推荐: PM2 一键全起 (含 9001/9002/9003/arthas) ===
+pm2 start ecosystem.config.cjs
+pm2 status                 # 看 ulticode-arthas 状态
+pm2 logs ulticode-arthas   # 看 wrapper 日志
 
-# 手动启动 (绕过 hook,例如 SSH 到远程 / IDE 集成)
-bash scripts/arthas-session-start.sh
+# === Claude Code 会话内 (无 PM2) ===
+# SessionStart hook 自动拉起 wrapper, 无需手动
+# 端口已监听时 hook 直接 noop, 不会重复 attach
 
-# 手动停止 (SessionEnd 没机会跑的极端场景)
-bash scripts/arthas-session-end.sh
+# === 任意环境手动控制 (CLI 兜底) ===
+scripts/arthas-cli.sh start     # 后台拉起 wrapper
+scripts/arthas-cli.sh status    # 端口/PID/MCP/launcher 全景
+scripts/arthas-cli.sh stop      # 停 cli 自己拉起的
+scripts/arthas-cli.sh logs      # tail wrapper 日志
+scripts/arthas-cli.sh restart   # stop + start
 
-# 手动 attach 到指定进程 (绕过 wrapper 等待 Spring Boot 的逻辑)
+# === 手动 attach 到指定进程 (绕过 wrapper 等待 Spring Boot) ===
 java -jar tools/arthas-boot.jar --attach-only --http-port 8563 <PID>
 
-# 验证 MCP 端点
+# === 验证 MCP 端点 ===
 curl -s -X POST http://localhost:8563/mcp \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 
-# Arthas 交互式模式 (手动调试)
+# === Arthas 交互式模式 (手动调试) ===
 java -jar tools/arthas-boot.jar <PID>
 ```
 
 ### Arthas MCP 注意事项
-- **生命周期由 Claude Code 拥有**: SessionStart hook 在 `nohup setsid` 后立即返回,不阻塞会话启动;SessionEnd hook SIGTERM wrapper,arthas agent 留在目标 JVM 内 (下次 SessionStart 检测到端口已监听会跳过 attach)
+- **三路互斥**: PM2 / hook / cli 任何一路拉起 wrapper 后, 其他路检测到 PID 文件或端口在用都会跳过;SessionEnd 只清理 hook 自己拉起的, 不会动 PM2/cli 的
+- **自愈 loop**: wrapper 持续监控 `:8563`, 端口死了 (例如 `pm2 restart 9001`) 会自动重新 attach
+- **PID 文件格式**: `PID\nLAUNCHER` 两行, 供互斥判断;wrapper 启动时立即写, 退出时清理
 - `arthas-boot.jar` 不支持 `--properties-file` 参数; 配置文件放 `~/.arthas/arthas.properties` 自动加载
 - `--telnet-port -1` 不被支持 (port out of range); 如需禁用 telnet 不传该参数即可
 - `--attach-only` 模式: 启动进程退出但 HTTP/MCP agent 运行在目标 JVM 内
@@ -461,7 +487,7 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 | 9001 | ulticode-9001 | Spring Boot Backend |
 | 9002 | ulticode-9002 | Console Frontend (Vite) |
 | 9003 | ulticode-9003 | Management Frontend (Vite) |
-| 8563 | (Claude Code hook) | Arthas MCP Server (SessionStart hook 拉起, 跟随会话生命周期) |
+| 8563 | ulticode-arthas | Arthas MCP Server (PM2 主, hook/cli 兜底, 三路互斥) |
 | 28848 | (nacos container) | Nacos 控制台 `/nacos` (默认账号 nacos/nacos) |
 
 **Terminal Commands:**

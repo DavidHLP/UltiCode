@@ -125,7 +125,29 @@ module.exports = {
         ...envFromFile,
       },
     },
-    // Arthas MCP 不在此管理 — 由 Claude Code SessionStart / SessionEnd hook 驱动
-    // (见 .claude/settings.local.json + scripts/arthas-session-{start,end}.sh)
+    {
+      // Arthas MCP 自愈 wrapper — 跟随 PM2 启动
+      //   - 自愈 loop: 端口 8563 死了就重 attach (修复 pm2 restart 9001 后断连)
+      //   - 也可由 Claude Code SessionStart hook 拉起 (见 .claude/settings.json)
+      //   - 两路互斥: 任何一路发现 8563 已监听都会跳过, 不会重复 attach
+      //   - 端口: 8563 (HTTP MCP 端点 /mcp, 协议 STREAMABLE)
+      // 启动顺序: ulticode-9001 之后 (wrapper 等 Spring Boot 就绪再 attach)
+      name: "ulticode-arthas",
+      script: "./scripts/start-arthas.sh",
+      cwd: ".",
+      interpreter: "bash",
+      // autorestart 开启: wrapper 进程崩溃时 PM2 自动拉起 (例如 attach 连续失败)
+      autorestart: true,
+      // 跟随 PM2 自启 (下次机器重启后随 PM2 一起)
+      autostart: true,
+      // 不限制重启次数 (自愈 loop 本身就预期长跑; PM2 不接受 -1, 留 9999)
+      max_restarts: 9999,
+      ...logConfig("arthas"),
+      env: {
+        ...envFromFile,
+        // 标记本进程由 PM2 拉起, 供 arthas-session-start.sh 互斥判断
+        ULTICODE_ARTHAS_LAUNCHER: "pm2",
+      },
+    },
   ],
 };

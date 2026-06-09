@@ -6,6 +6,7 @@
 #   - arthas agent 本身在目标 JVM 内,默认保留: 留着可以避免下次 SessionStart
 #     重新 attach 时的 latency;若需彻底脱离,见下 "可选: detach agent"
 #   - SIGTERM 给 wrapper 一次优雅退出的机会;超时后 SIGKILL
+#   - **互斥**: 仅清理 launcher=hook 的 wrapper;PM2/cli 拉起的留给它们自己管理
 #
 # 退出语义: 永远 0 (hook 失败不应阻塞 SessionEnd)
 set -uo pipefail
@@ -18,7 +19,16 @@ if [ ! -f "$PID_FILE" ]; then
   exit 0
 fi
 
-WRAPPER_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+# PID 文件格式: "PID\nLAUNCHER" (两行)
+WRAPPER_PID="$(head -1 "$PID_FILE" 2>/dev/null || true)"
+WRAPPER_LAUNCHER="$(tail -1 "$PID_FILE" 2>/dev/null || true)"
+
+# 互斥: PM2 / cli 拉起的 wrapper, 留给它们自己管理
+if [ "${WRAPPER_LAUNCHER}" != "hook" ]; then
+  echo "[arthas-hook] Wrapper managed by ${WRAPPER_LAUNCHER:-unknown}, skip cleanup"
+  exit 0
+fi
+
 rm -f "$PID_FILE"
 
 if [ -z "${WRAPPER_PID}" ] || ! kill -0 "${WRAPPER_PID}" 2>/dev/null; then
@@ -38,5 +48,5 @@ fi
 # 兜底: 通过 pgrep 找名字像 start-arthas 的残留进程 (PID 文件丢失/被覆盖场景)
 # 跳过: 静默最佳 — SessionEnd 不该是噪声源
 
-echo "[arthas-hook] Stopped arthas wrapper (PID ${WRAPPER_PID})"
+echo "[arthas-hook] Stopped arthas wrapper (PID ${WRAPPER_PID}, launcher=hook)"
 exit 0

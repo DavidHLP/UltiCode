@@ -92,10 +92,14 @@ public class ProblemServiceImpl implements ProblemService {
     public PageResult<ProblemVO> listProblems(ProblemQueryDTO query) {
         // Set default pagination values
         int currentPage = (query.getPage() != null && query.getPage() > 0) ? query.getPage() : 1;
-        int currentPageSize = (query.getPageSize() != null && query.getPageSize() > 0) ? query.getPageSize() : 20;
+        int requestedLimit = (query.getPageSize() != null && query.getPageSize() > 0) ? query.getPageSize() : 20;
 
         // Limit page size to prevent large queries
-        currentPageSize = Math.min(currentPageSize, 100);
+        int currentPageSize = Math.min(requestedLimit, 100);
+        if (requestedLimit > 100) {
+            log.debug("listProblems: requested limit {} capped to 100 for query (search={})",
+                    requestedLimit, query.getSearch());
+        }
 
         // Handle ARCHIVED (soft-deleted) queries via raw SQL to bypass @TableLogic
         if (query.getPublishStatus() != null && "ARCHIVED".equalsIgnoreCase(query.getPublishStatus())) {
@@ -600,7 +604,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         problemMapper.updateById(problem);
 
-        updateProblemDetail(id, updateDTO);
+        updateProblemDetail(id, problem, updateDTO);
 
         String operatorId = SecurityUtil.getCurrentUserId();
         problemVersionService.createVersion(id, "UPDATE", null, operatorId);
@@ -609,7 +613,7 @@ public class ProblemServiceImpl implements ProblemService {
         return toVO(problem);
     }
 
-    private void updateProblemDetail(Long problemId, UpdateProblemDTO updateDTO) {
+    private void updateProblemDetail(Long problemId, Problem problem, UpdateProblemDTO updateDTO) {
         boolean hasDetailUpdate = updateDTO.getSummary() != null || updateDTO.getContent() != null
                 || updateDTO.getConstraintsJson() != null || updateDTO.getHints() != null;
         if (!hasDetailUpdate && updateDTO.getLanguages() == null
@@ -628,6 +632,14 @@ public class ProblemServiceImpl implements ProblemService {
                 detail = new ProblemDetail();
                 detail.setProblemId(problemId);
                 detail.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+                // problem_details.slug NOT NULL — denormalize from Problem on insert
+                // Defensive null check: problems.slug is also NOT NULL in DB, so this
+                // should never be null, but assert it to fail fast with a clear message.
+                java.util.Objects.requireNonNull(problem.getSlug(),
+                        "Problem.slug must not be null (DB constraint guarantees it, but assert defensively)");
+                detail.setSlug(problem.getSlug());
+                // constraints_json NOT NULL with no DB default — initialize to empty array
+                detail.setConstraintsJson(ProblemDetail.EMPTY_JSON_ARRAY);
                 isNew = true;
             }
 

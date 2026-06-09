@@ -54,6 +54,7 @@ public enum ErrorCode {
     PROBLEM_NOT_FOUND(30001, "Problem not found", HttpStatus.NOT_FOUND),
     PROBLEM_LOCKED(30002, "Problem is locked", HttpStatus.FORBIDDEN),
     PROBLEM_PREMIUM_REQUIRED(30003, "Premium subscription required", HttpStatus.FORBIDDEN),
+    PROBLEM_VERSION_ALREADY_EXISTS(30004, "Problem version already exists", HttpStatus.CONFLICT),
     PROBLEM_TAG_NOT_FOUND(30010, "Problem tag not found", HttpStatus.NOT_FOUND),
     PROBLEM_TAG_NAME_EXISTS(30011, "Problem tag name already exists", HttpStatus.CONFLICT),
     PROBLEM_TAG_SLUG_EXISTS(30012, "Problem tag slug already exists", HttpStatus.CONFLICT),

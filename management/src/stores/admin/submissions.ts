@@ -5,6 +5,7 @@ import {
   type SubmissionListItem,
   type SubmissionStatistics,
   type StatusOption,
+  type LanguageOption,
   type SubmissionQueryParams,
 } from '@/api/admin/submissions'
 
@@ -22,7 +23,7 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
 
   // Filter options
   const statuses = ref<StatusOption[]>([])
-  const languages = ref<string[]>([])
+  const languages = ref<LanguageOption[]>([])
 
   // Computed
   const stats = computed(() => {
@@ -84,8 +85,8 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     return submissionsApi.rejudge(id, notifyUser)
   }
 
-  async function batchRejudge(ids: string[], notifyUsers: boolean = false) {
-    return submissionsApi.batchRejudge(ids, notifyUsers)
+  async function batchRejudge(submissionIds: string[], notifyUsers: boolean = false) {
+    return submissionsApi.batchRejudge(submissionIds, notifyUsers)
   }
 
   async function getSubmissionDetail(id: string) {

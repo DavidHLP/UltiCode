@@ -67,6 +67,10 @@ export interface RejudgeResult {
   oldStatus: string
   newStatus?: string
   error?: string
+  /** ISO-8601 UTC timestamp; present on success. */
+  rejudgedAt?: string
+  /** Retry count after this rejudge; present on success. */
+  retryCount?: number
 }
 
 export interface BatchRejudgeResponse {
@@ -85,9 +89,21 @@ export interface SubmissionStatistics {
 }
 
 export interface StatusOption {
+  /** DB-stored status key (e.g. "Compile Error"). Use this for filter queries. */
   key: string
+  /** Display label, usually equal to {@link key}. */
   label: string
+  /** Coarse filter category (pending, accepted, error, system). */
   category: string
+  /** Stable enum-style code (e.g. "COMPILE_ERROR"). Use this for i18n lookups. */
+  code: string
+}
+
+export interface LanguageOption {
+  /** DB-stored language code (e.g. "cpp"). */
+  key: string
+  /** Humanised display label (e.g. "C++"). */
+  label: string
 }
 
 export const submissionsApi = {
@@ -107,8 +123,8 @@ export const submissionsApi = {
     return apiGet<StatusOption[]>('/admin/submissions/statuses')
   },
 
-  async getLanguages(): Promise<string[]> {
-    return apiGet<string[]>('/admin/submissions/languages')
+  async getLanguages(): Promise<LanguageOption[]> {
+    return apiGet<LanguageOption[]>('/admin/submissions/languages')
   },
 
   async rejudge(id: string, notifyUser: boolean = false): Promise<RejudgeResult> {
@@ -117,9 +133,9 @@ export const submissionsApi = {
     })
   },
 
-  async batchRejudge(ids: string[], notifyUsers: boolean = false): Promise<BatchRejudgeResponse> {
+  async batchRejudge(submissionIds: string[], notifyUsers: boolean = false): Promise<BatchRejudgeResponse> {
     return apiPost<BatchRejudgeResponse>('/admin/submissions/batch-rejudge', {
-      ids,
+      submissionIds,
       notifyUsers,
     })
   },

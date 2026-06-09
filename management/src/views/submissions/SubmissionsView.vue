@@ -77,7 +77,7 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[140px]',
     options: [
       { value: 'all', label: t('submissions.allLanguages') },
-      ...store.languages.map((lang) => ({ value: lang, label: lang })),
+      ...store.languages.map((lang) => ({ value: lang.key, label: lang.label })),
     ],
   },
 ])

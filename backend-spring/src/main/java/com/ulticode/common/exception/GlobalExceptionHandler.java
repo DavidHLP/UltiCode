@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -267,6 +268,54 @@ public class GlobalExceptionHandler {
      * @param ex the OptimisticLockException
      * @return ResponseEntity containing the error Result
      */
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<Result<Map<String, Object>>> handleOptimisticLockException(OptimisticLockException ex) {
+        log.warn("Optimistic lock conflict: {}", ex.getMessage());
+
+        String traceId = TraceIdUtil.current();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("currentVersion", ex.getCurrentVersion());
+
+        Result<Map<String, Object>> result = Result.errorWithData(
+                409,
+                "版本冲突",
+                data,
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
+    }
+
+    /**
+     * Map a missing required {@code @RequestParam} (e.g. {@code GET /admin/tags/{id}}
+     * without {@code ?type=}) to HTTP 400 with a per-field error. Without this handler
+     * Spring throws {@link MissingServletRequestParameterException} to the catch-all
+     * {@link #handleGenericException} which returns HTTP 500 / code=50000 "Unknown
+     * error" — reported in docs/admin-tags-test-plan.md §7 Bug #1.
+     *
+     * <p>Mirrors the response shape of {@link #handleValidationException} (which
+     * handles {@code @Valid @RequestBody}) and {@link #handleConstraintViolation}
+     * (which handles {@code @Validated} {@code @Pattern} / {@code @Size} on params).
+     * </p>
+     *
+     * @param ex the missing-param failure
+     * @return 400 with the parameter name and an explanatory message
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<Map<String, String>>> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException ex) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put(ex.getParameterName(),
+                "Missing required parameter '" + ex.getParameterName()
+                        + "' (type=" + ex.getParameterType() + ")");
+        log.warn("Missing request parameter: {}", errors);
+
+        String traceId = TraceIdUtil.current();
+        Result<Map<String, String>> result = Result.errorWithData(
+                ErrorCode.BAD_REQUEST.getCode(), "Validation failed", errors, traceId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
+
     /**
      * Handle ConstraintViolationException thrown by @PathVariable / @RequestParam
      * constraints (e.g. {@code @Pattern}, {@code @Size}) on controllers annotated with
@@ -291,24 +340,6 @@ public class GlobalExceptionHandler {
         Result<Map<String, String>> result = Result.errorWithData(
                 ErrorCode.BAD_REQUEST.getCode(), "Validation failed", errors, traceId);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
-    }
-
-    @ExceptionHandler(OptimisticLockException.class)
-    public ResponseEntity<Result<Map<String, Object>>> handleOptimisticLockException(OptimisticLockException ex) {
-        log.warn("Optimistic lock conflict: {}", ex.getMessage());
-
-        String traceId = TraceIdUtil.current();
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("currentVersion", ex.getCurrentVersion());
-
-        Result<Map<String, Object>> result = Result.errorWithData(
-                409,
-                "版本冲突",
-                data,
-                traceId
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
     }
 
     /**

@@ -14,6 +14,7 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -22,8 +23,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -212,63 +215,60 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     @Override
     public List<StatusOption> getStatuses() {
-        List<StatusOption> options = new ArrayList<>();
-
-        // Pending
-        StatusOption pending = new StatusOption();
-        pending.setKey("Pending");
-        pending.setLabel("Pending");
-        pending.setCategory("pending");
-        options.add(pending);
-
-        // Accepted
-        StatusOption accepted = new StatusOption();
-        accepted.setKey("Accepted");
-        accepted.setLabel("Accepted");
-        accepted.setCategory("accepted");
-        options.add(accepted);
-
-        // Wrong Answer
-        StatusOption wrongAnswer = new StatusOption();
-        wrongAnswer.setKey("Wrong Answer");
-        wrongAnswer.setLabel("Wrong Answer");
-        wrongAnswer.setCategory("error");
-        options.add(wrongAnswer);
-
-        // Time Limit Exceeded
-        StatusOption tle = new StatusOption();
-        tle.setKey("Time Limit Exceeded");
-        tle.setLabel("Time Limit Exceeded");
-        tle.setCategory("error");
-        options.add(tle);
-
-        // Memory Limit Exceeded
-        StatusOption mle = new StatusOption();
-        mle.setKey("Memory Limit Exceeded");
-        mle.setLabel("Memory Limit Exceeded");
-        mle.setCategory("error");
-        options.add(mle);
-
-        // Runtime Error
-        StatusOption runtimeError = new StatusOption();
-        runtimeError.setKey("Runtime Error");
-        runtimeError.setLabel("Runtime Error");
-        runtimeError.setCategory("error");
-        options.add(runtimeError);
-
-        // Compilation Error
-        StatusOption compilationError = new StatusOption();
-        compilationError.setKey("Compilation Error");
-        compilationError.setLabel("Compilation Error");
-        compilationError.setCategory("error");
-        options.add(compilationError);
-
-        return options;
+        // Derive filter options from the canonical enum so the dropdown
+        // stays in sync with both the DB (displayName) and statistics
+        // (category). Returns all 11 statuses including transient ones
+        // (Judging) so admins can see and filter on every observed state.
+        return Arrays.stream(SubmissionStatus.values())
+            .map(s -> {
+                StatusOption opt = new StatusOption();
+                opt.setKey(s.getDisplayName());
+                opt.setLabel(s.getDisplayName());
+                opt.setCode(s.name());
+                opt.setCategory(s.getCategory());
+                return opt;
+            })
+            .collect(Collectors.toList());
     }
 
     @Override
-    public List<String> getLanguages() {
-        return submissionMapper.findDistinctLanguages();
+    public List<LanguageOption> getLanguages() {
+        return submissionMapper.findDistinctLanguages().stream()
+            .map(code -> {
+                LanguageOption opt = new LanguageOption();
+                opt.setKey(code);
+                opt.setLabel(humanizeLanguage(code));
+                return opt;
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert a language code stored in the database to a human-readable
+     * display label. Falls back to title-cased code for unknown languages.
+     *
+     * @param code DB-stored language code (e.g. {@code "cpp"})
+     * @return display label (e.g. {@code "C++"})
+     */
+    private String humanizeLanguage(String code) {
+        if (code == null) {
+            return "";
+        }
+        return switch (code) {
+            case "cpp" -> "C++";
+            case "c" -> "C";
+            case "csharp" -> "C#";
+            case "java" -> "Java";
+            case "python" -> "Python";
+            case "javascript" -> "JavaScript";
+            case "typescript" -> "TypeScript";
+            case "go" -> "Go";
+            case "rust" -> "Rust";
+            case "ruby" -> "Ruby";
+            case "kotlin" -> "Kotlin";
+            case "swift" -> "Swift";
+            default -> code.substring(0, 1).toUpperCase() + code.substring(1);
+        };
     }
 
     @Override
@@ -308,6 +308,11 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
             result.setSuccess(true);
             result.setNewStatus("Pending");
+            // Surface rejudge metadata to the caller so the admin UI can
+            // detect that a rejudge actually happened even when old and
+            // new status are identical (e.g. Pending -> Pending).
+            result.setRejudgedAt(Instant.now());
+            result.setRetryCount(submission.getRetryCount());
             log.info("Rejudge initiated for submission: {} (retryCount={})",
                 id, submission.getRetryCount());
         // broad catch: all failures map to same error response
@@ -332,29 +337,18 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     }
 
     @Override
-    public BatchRejudgeResponse batchRejudge(List<String> ids, boolean notifyUsers) {
-        if (ids == null || ids.isEmpty()) {
-            BatchRejudgeResponse response = new BatchRejudgeResponse();
-            response.setTotal(0);
-            response.setSuccessful(0);
-            response.setFailed(0);
-            response.setResults(new ArrayList<>());
-            return response;
-        }
-
-        // D-05: Batch size limit of 50
-        if (ids.size() > 50) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                "Batch size exceeds maximum of 50");
-        }
-
+    public BatchRejudgeResponse batchRejudge(List<String> submissionIds, boolean notifyUsers) {
+        // Non-null, non-empty, and size<=50 are enforced by Bean Validation
+        // on the controller (see BatchRejudgeRequest @NotEmpty/@Size and
+        // @Valid on the @RequestBody), so we can drop the silent null/empty
+        // branch that previously masked client bugs.
         BatchRejudgeResponse response = new BatchRejudgeResponse();
-        response.setTotal(ids.size());
-        response.setResults(new ArrayList<>());
+        response.setTotal(submissionIds.size());
+        response.setResults(new ArrayList<>(submissionIds.size()));
         int successful = 0;
         int failed = 0;
 
-        for (String id : ids) {
+        for (String id : submissionIds) {
             RejudgeResult result = rejudge(id, notifyUsers);
             response.getResults().add(result);
             if (result.getSuccess()) {

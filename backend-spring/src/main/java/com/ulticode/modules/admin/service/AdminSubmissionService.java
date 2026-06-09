@@ -43,25 +43,26 @@ public interface AdminSubmissionService {
     /**
      * Get available programming languages for filtering.
      *
-     * @return list of language names
+     * @return list of language options (key = DB code, label = humanised name)
      */
-    List<String> getLanguages();
+    List<LanguageOption> getLanguages();
 
     /**
      * Rejudge a submission.
      *
      * @param id submission ID
      * @param notifyUser whether to notify the user
-     * @return rejudge result
+     * @return rejudge result including {@code rejudgedAt} and {@code retryCount}
      */
     RejudgeResult rejudge(String id, boolean notifyUser);
 
     /**
      * Batch rejudge multiple submissions.
      *
-     * @param ids list of submission IDs
+     * @param submissionIds list of submission IDs (non-null, non-empty, size &le; 50,
+     *                      validated upstream via Bean Validation)
      * @param notifyUsers whether to notify users
      * @return batch rejudge result
      */
-    BatchRejudgeResponse batchRejudge(List<String> ids, boolean notifyUsers);
+    BatchRejudgeResponse batchRejudge(List<String> submissionIds, boolean notifyUsers);
 }

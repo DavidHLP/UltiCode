@@ -11,8 +11,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -85,7 +90,7 @@ public class AdminTestCaseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<TestCase>> bulkImportTestCases(
             @PathVariable Long problemId,
-            @Valid @RequestBody List<CreateTestCaseDTO> dtos) {
+            @Valid @RequestBody @Size(min = 1, max = 500, message = "List must contain 1-500 items") List<CreateTestCaseDTO> dtos) {
         return Result.success(adminTestCaseService.bulkImportTestCases(problemId, dtos));
     }
 
@@ -95,16 +100,23 @@ public class AdminTestCaseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> reorderTestCases(
             @PathVariable Long problemId,
-            @Valid @RequestBody List<String> testCaseIds) {
+            @Valid @RequestBody @Size(min = 1, max = 1000, message = "List must contain 1-1000 items") List<String> testCaseIds) {
         adminTestCaseService.reorderTestCases(problemId, testCaseIds);
         return Result.success();
     }
 
-    @Operation(summary = "Export test cases", description = "Export all test cases for a problem as JSON")
+    @Operation(summary = "Export test cases", description = "Download all test cases for a problem as a JSON file")
     @RateLimit(key = "admin:testcase-export", limit = 30, period = 60)
     @GetMapping("/export")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<TestCase>> exportTestCases(@PathVariable Long problemId) {
-        return Result.success(adminTestCaseService.exportTestCases(problemId));
+    public ResponseEntity<byte[]> exportTestCases(@PathVariable Long problemId) {
+        String json = adminTestCaseService.exportTestCasesAsJson(problemId);
+        byte[] body = json.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"test-cases-" + problemId + ".json\"")
+                .contentLength(body.length)
+                .body(body);
     }
 }

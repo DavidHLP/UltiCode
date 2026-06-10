@@ -410,7 +410,7 @@ curl -s -X PATCH $BASE/users/me -H "X-CSRF-Token: $CSRF" \
 | 4 | 🟢 Low | /v3/api-docs 500 | 同 #1 | ✅ | `curl /v3/api-docs` → 200 |
 | 5 | 🟢 Low | UserProfile.bio 必填 | `713b5a763 fix(console): make UserProfile.bio and email optional` | ✅ | type-check 0 错, 241/241 测试过, build OK |
 
-**误诊说明**：原报告"UpdateUserDTO 缺 @Size"为误诊断。`UpdateUserDTO.bio` 实际已有 `@Size(max=5000)`（源文件 line 36），1000 字符本就应通过；当时表象源于 Lombok 失效导致 Jackson 反序列化绕过校验路径，重建后行为正常。UpdateUserDTO 本身未改动。
+**误诊说明**：经 C1 重建后核实，`UpdateUserDTO.bio` 已有 `@Size(max=5000)`（源文件 line 36），1000 字符本就应通过；当时表象源于 Lombok 失效导致 Jackson 反序列化绕过校验路径。`UpdateUserDTO` 本身不需要改动。
 
 **回归测试**：user 模块单测 28 个全部通过 (BUILD SUCCESS)；console 端 241/241 通过 + type-check 0 错 + build OK。management / shared/auth-core / DB schema 全部未改动。
 

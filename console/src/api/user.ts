@@ -1,6 +1,17 @@
 import { apiGet, apiPatch } from "@/utils/request";
 import type { UserStats, UserSkills } from "@/types/userStats";
 
+/**
+ * Profile data matching backend UserVO response.
+ * Returned by:
+ *   - GET /users/{userId}      → public profile (email stripped via toPublicVO)
+ *   - GET /users/me            → current authenticated user
+ *   - PATCH /users/me (response)
+ *
+ * Note: Backend returns snake_case fields (joined_at, submission_count, etc.)
+ * unchanged. See CLAUDE.md "Cross-stack DTO alignment" for the
+ * known snake_case/camelCase mismatch with ProfileData below.
+ */
 export interface UserProfile {
   id: string;
   username: string;
@@ -20,7 +31,13 @@ export interface UserProfile {
 
 /**
  * Profile data matching backend ProfileVO response.
- * Used for the public profile page at /profile/:username.
+ * Returned by:
+ *   - GET /users/{id}/profile
+ *   - GET /users/by-username/{username}/profile
+ *
+ * Note: Uses camelCase (joinedAt, submissionCount) — different
+ * naming convention from UserProfile above. Both shapes come
+ * from different backend VOs (UserVO vs ProfileVO).
  */
 export interface ProfileData {
   id: string;

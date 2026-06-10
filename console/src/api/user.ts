@@ -63,11 +63,10 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   return apiGet<UserProfile>(`/users/${userId}`);
 }
 
-export async function updateUserProfile(
-  userId: string,
+export async function updateMyProfile(
   data: Partial<UserProfile>,
 ): Promise<UserProfile> {
-  return apiPatch<UserProfile>(`/users/${userId}`, data);
+  return apiPatch<UserProfile>("/users/me", data);
 }
 
 export async function fetchUserStats(userId: string): Promise<UserStats> {

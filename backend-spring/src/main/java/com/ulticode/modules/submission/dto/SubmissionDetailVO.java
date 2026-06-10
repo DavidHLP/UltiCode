@@ -72,14 +72,14 @@ public class SubmissionDetailVO {
     private ProblemInfo problem;
 
     /**
-     * Runtime distribution bins in milliseconds (JSON)
+     * Runtime distribution bins in milliseconds (numeric array)
      */
-    private Object runtimeDistBinsMs;
+    private List<Integer> runtimeDistBinsMs;
 
     /**
-     * Memory distribution bins in MB (JSON)
+     * Memory distribution bins in MB (numeric array)
      */
-    private Object memoryDistBinsMb;
+    private List<Integer> memoryDistBinsMb;
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)

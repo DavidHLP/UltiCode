@@ -126,7 +126,26 @@ public class ProblemSubmissionController {
         return Result.success(submission);
     }
 
-    @Operation(summary = "Run code", description = "Execute code against test cases synchronously")
+    @Operation(
+            summary = "Run code",
+            description = """
+                    Execute user-submitted code against user-supplied test cases synchronously (no judging queue).
+
+                    **Entry function name conventions** (extracted by `CodeExecutionHelperImpl.extractFunctionName`):
+                    - JavaScript: `function name(...)` (function declaration; arrow functions `const x = () =>` are NOT detected)
+                    - Python:     `def name(...)` or `class Solution: def method(...)`
+                    - Java:       `class Solution { method }`
+                    - C / C++:    full source (compiled then executed)
+
+                    **Default entry name when no keyword match:** `solution`.
+
+                    **Response fields** (`RunResultDTO`):
+                    - `problemId`: `Long` (not string)
+                    - `verdict`: top-level status (e.g. `"Accepted"`, `"Runtime Error"`)
+                    - `runtime` / `memory`: pre-formatted strings (`"12ms"` / `"22.0MB"`)
+                    - `runtimeMs` / `memoryMb`: numeric values (v2 schema, may be absent for legacy callers)
+                    - `cases[]`: per-case results (each has its own `status`, `runtime`, `memory`)
+                    """)
     @RateLimit(key = "submission:problem-run", limit = 30, period = 60)
     @PostMapping("/run")
     public Result<RunResultDTO> runCode(

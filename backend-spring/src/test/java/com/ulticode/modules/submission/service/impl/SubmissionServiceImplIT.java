@@ -241,8 +241,10 @@ class SubmissionServiceImplIT {
         session.commit();
 
         // Create service with real mappers + mocked queueService
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService, realtimeService,
+                submissionMapper, userMapper, problemMapper, objectMapper, queueService, realtimeService,
                 contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
                 achievementTriggerService, notificationService);
     }

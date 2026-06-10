@@ -74,24 +74,17 @@ export const useAuthStore = defineStore("auth", () => {
   async function initialize(): Promise<void> {
     // If already ready, skip
     if (status.value === "ready") {
-      if (isDevelopment) {
-      }
       return;
     }
 
     // Return existing promise if initialization is in progress
     if (_initializationPromise) {
-      if (isDevelopment) {
-      }
       return _initializationPromise;
     }
 
     // Set loading state
     status.value = "loading";
     error.value = null;
-
-    if (isDevelopment) {
-    }
 
     // Create and store the promise
     _initializationPromise = (async () => {
@@ -104,18 +97,12 @@ export const useAuthStore = defineStore("auth", () => {
         if (hasCsrf) {
           await fetchUser();
         }
-        if (isDevelopment) {
-        }
       } catch {
         // Backend unavailable or not authenticated - still mark as ready
         // App will function in guest mode
-        if (isDevelopment) {
-        }
       } finally {
         status.value = "ready";
         _initializationPromise = null;
-        if (isDevelopment) {
-        }
       }
     })();
 
@@ -130,17 +117,12 @@ export const useAuthStore = defineStore("auth", () => {
    * Returns the user if authenticated, null otherwise.
    */
   async function ensureUser(): Promise<User | null> {
-    // If we already have user data, return it
+    // If we already have user data, return user.value
     if (user.value) {
-      if (isDevelopment) {
-      }
       return user.value;
     }
 
     // Otherwise, fetch from backend
-    if (isDevelopment) {
-    }
-
     try {
       return await fetchUser();
     } catch {
@@ -168,9 +150,6 @@ export const useAuthStore = defineStore("auth", () => {
         },
       );
 
-      if (isDevelopment) {
-      }
-
       if (!response?.user) {
         console.error("[Auth] Invalid /auth/me response:", response);
         throw new Error("Invalid user response from /auth/me");
@@ -183,39 +162,41 @@ export const useAuthStore = defineStore("auth", () => {
         csrfManager.refreshFromResponse(response);
       }
 
-      if (isDevelopment) {
-      }
-
       return response.user;
     } catch {
-      if (isDevelopment) {
-      } // 401 means no valid session - clear state
+      // 401 means no valid session - clear state
       user.value = null;
       return null;
     }
   }
 
   /**
-   * Login with username and password
-   * Stores CSRF token and updates user state
+   * Login with username and password.
+   *
+   * On a cold (anonymous) session, the server's CsrfValidationFilter bypasses
+   * CSRF for unauthenticated POSTs — so this call works without an
+   * X-CSRF-Token header. The response sets three HttpOnly cookies
+   * (access_token, refresh_token, csrf_token) and the user/csrfToken in body.
+   *
+   * Once a session is established, any subsequent POST — including to
+   * /auth/login itself — requires the X-CSRF-Token header. Re-submitting the
+   * login form while still logged in will return 403 "CSRF token is required";
+   * the UI must call `logout()` first or refresh the page to clear cookies.
+   *
+   * Persists the returned csrfToken via `csrfManager.refreshFromResponse`
+   * so subsequent state-changing requests can attach it.
    */
   async function login(credentials: LoginRequest): Promise<void> {
     status.value = "loading";
     error.value = null;
 
     try {
-      if (isDevelopment) {
-      }
-
       // /auth/login returns { csrfToken: string, user: User }
       // request.ts unwraps the Result<T> envelope
       const { user: fetchedUser, csrfToken } = await apiPost<LoginResponse>(
         "/auth/login",
         credentials,
       );
-
-      if (isDevelopment) {
-      }
 
       if (!fetchedUser) {
         throw new Error("Invalid login response");
@@ -229,9 +210,6 @@ export const useAuthStore = defineStore("auth", () => {
       // Update user state
       user.value = fetchedUser;
       status.value = "ready";
-
-      if (isDevelopment) {
-      }
     } catch (err) {
       status.value = "error";
       error.value = err instanceof Error ? err : new Error(String(err));
@@ -240,26 +218,27 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /**
-   * Register a new user account
-   * Stores CSRF token and updates user state
+   * Register a new user account.
+   *
+   * Register follows the same CSRF rule as login: it is only callable as a
+   * fresh (anonymous) visitor. If the visitor already holds a csrf_token
+   * cookie, the request will be rejected with 403 — the UI must clear the
+   * session first (logout or hard refresh) before re-registering.
+   *
+   * On success the response also logs the user in: it sets the same three
+   * HttpOnly cookies as login() and returns the user profile.
    */
   async function register(data: RegisterRequest): Promise<void> {
     status.value = "loading";
     error.value = null;
 
     try {
-      if (isDevelopment) {
-      }
-
       // /auth/register returns { csrfToken: string, user: User }
       // request.ts unwraps the Result<T> envelope
       const { user: fetchedUser, csrfToken } = await apiPost<LoginResponse>(
         "/auth/register",
         data,
       );
-
-      if (isDevelopment) {
-      }
 
       if (!fetchedUser) {
         throw new Error("Invalid register response");
@@ -273,9 +252,6 @@ export const useAuthStore = defineStore("auth", () => {
       // Update user state
       user.value = fetchedUser;
       status.value = "ready";
-
-      if (isDevelopment) {
-      }
     } catch (err) {
       status.value = "error";
       error.value = err instanceof Error ? err : new Error(String(err));
@@ -291,13 +267,7 @@ export const useAuthStore = defineStore("auth", () => {
     status.value = "loading";
 
     try {
-      if (isDevelopment) {
-      }
-
       await apiPost<void>("/auth/logout");
-
-      if (isDevelopment) {
-      }
     } catch (err) {
       console.error("[Auth] Logout error:", err);
     } finally {
@@ -310,8 +280,6 @@ export const useAuthStore = defineStore("auth", () => {
    * Called after 401/403 errors or manual logout
    */
   function clearUser(): void {
-    if (isDevelopment) {
-    }
     user.value = null;
     permissions.value.clear();
     csrfManager.clearToken();
@@ -351,11 +319,7 @@ export const useAuthStore = defineStore("auth", () => {
         skipErrorHandler: true,
       });
       permissions.value = new Set(response || []);
-      if (isDevelopment) {
-      }
     } catch {
-      if (isDevelopment) {
-      }
       permissions.value.clear();
     }
   }
@@ -377,7 +341,7 @@ export const useAuthStore = defineStore("auth", () => {
   /**
    * Check if user has a specific role
    * @param role - The role to check
-   * @returns true if user has the role
+   * @returns true if the user has the role
    */
   function hasRole(role: string): boolean {
     const userRoleValue = user.value?.role?.toUpperCase();

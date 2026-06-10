@@ -67,7 +67,19 @@ public class SubmissionController {
      * @param id the submission ID
      * @return the submission details
      */
-    @Operation(summary = "Get submission by ID", description = "Retrieve a specific submission")
+    @Operation(summary = "Get submission by ID",
+            description = """
+                    Retrieve a specific submission's full detail.
+
+                    **Distribution fields** (`runtimeDistBinsMs` / `memoryDistBinsMb`):
+                    Serialized as a JSON array of integers, e.g. `[8, 16, 32, 64, 128, 256, 512]`.
+                    Frontend should expect `number[]`, not a JSON string. Legacy callers
+                    may still receive a JSON string in transitional windows; the frontend
+                    `mapDistributionBins()` helper normalizes both shapes.
+
+                    See `docs/reports/submission-api-test-report-2026-06-10.md` for the
+                    full DTO contract.
+                    """)
     @ApiResponse(responseCode = "200", description = "Submission retrieved", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
     @ApiResponse(responseCode = "403", description = "Not authorized to view this submission")
     @ApiResponse(responseCode = "404", description = "Submission not found")

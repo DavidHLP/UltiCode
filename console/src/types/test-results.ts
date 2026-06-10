@@ -9,6 +9,10 @@ export interface ProblemRunCase {
   status: SubmissionStatusKey;
   runtime: string;
   memory: string;
+  /** v2 numeric runtime in milliseconds (may be absent for legacy callers). */
+  runtimeMs?: number;
+  /** v2 numeric memory in MB (may be absent for legacy callers). */
+  memoryMb?: number;
   detail?: string;
   output?: string;
   expectedOutput?: string;
@@ -25,6 +29,10 @@ export interface ProblemRunResult {
   verdict: SubmissionStatusKey;
   runtime: string;
   memory: string;
+  /** v2 numeric runtime in milliseconds. */
+  runtimeMs?: number;
+  /** v2 numeric memory in MB. */
+  memoryMb?: number;
   cases: ProblemRunCase[];
   // Legacy or optional fields
   passed_cases?: number;

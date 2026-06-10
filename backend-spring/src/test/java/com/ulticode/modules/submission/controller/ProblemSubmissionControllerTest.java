@@ -59,7 +59,7 @@ class ProblemSubmissionControllerTest {
         request.setCode("print('ok')");
         request.setTestCases(List.of(new RunSubmissionDTO.RunTestCase()));
         RunResultDTO expected = RunResultDTO.builder()
-                .problemId("1")
+                .problemId(1L)
                 .userId(null)
                 .verdict("Accepted")
                 .cases(List.of())

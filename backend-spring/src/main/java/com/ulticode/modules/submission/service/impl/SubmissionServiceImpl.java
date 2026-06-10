@@ -68,6 +68,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final QueueService queueService;
     private final RealtimeService realtimeService;
     private final ContestProblemMapper contestProblemMapper;
@@ -519,15 +520,76 @@ public class SubmissionServiceImpl implements SubmissionService {
         // that pass `PerformanceStats.EMPTY`).
         if (stats != null) {
             vo.setRuntimePercentile(stats.runtimePercentile());
-            vo.setRuntimeDistBinsMs(stats.runtimeDistBinsMs());
+            vo.setRuntimeDistBinsMs(normalizeBins(stats.runtimeDistBinsMs()));
             vo.setMemoryPercentile(stats.memoryPercentile());
-            vo.setMemoryDistBinsMb(stats.memoryDistBinsMb());
+            vo.setMemoryDistBinsMb(normalizeBins(stats.memoryDistBinsMb()));
         } else {
-            vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
-            vo.setMemoryDistBinsMb(submission.getMemoryDistBinsMb());
+            vo.setRuntimeDistBinsMs(normalizeBins(submission.getRuntimeDistBinsMs()));
+            vo.setMemoryDistBinsMb(normalizeBins(submission.getMemoryDistBinsMb()));
         }
 
         return vo;
+    }
+
+    /**
+     * Normalize distribution bins into {@code List<Integer>} for JSON serialization.
+     *
+     * <p>Accepts the various shapes the data may arrive in:
+     * <ul>
+     *   <li>{@code List<Integer>} — already the target shape, returned as-is (defensive copy).</li>
+     *   <li>{@code String} — JSON-encoded array (from {@code JacksonTypeHandler}
+     *       when the entity field is declared as {@code Object}). Parsed via Jackson.</li>
+     *   <li>{@code List<Map<String, Number>>} — performance-stats shape with
+     *       bin metadata. Extracted via the {@code bin} / {@code value} / numeric fields.</li>
+     *   <li>{@code null} / other — returns an empty list.</li>
+     * </ul>
+     *
+     * <p>Used to keep the VOs' {@code List<Integer>} contract intact regardless
+     * of upstream data shape changes.
+     */
+    private List<Integer> normalizeBins(Object raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        if (raw instanceof List<?> list) {
+            List<Integer> out = new ArrayList<>(list.size());
+            for (Object item : list) {
+                Integer v = extractIntegerValue(item);
+                if (v != null) {
+                    out.add(v);
+                }
+            }
+            return out;
+        }
+        if (raw instanceof String s) {
+            try {
+                Object parsed = objectMapper.readValue(s, Object.class);
+                return normalizeBins(parsed);
+            } catch (Exception e) {
+                log.debug("Failed to parse bins JSON string: {}", s, e);
+                return List.of();
+            }
+        }
+        return List.of();
+    }
+
+    /**
+     * Keys to inspect when extracting an integer value from a
+     * {@code List<Map<String, Number>>} performance-stats entry.
+     * Order matters: the first key that maps to a numeric value wins.
+     */
+    private static final String[] BIN_KEYS = {"value", "bin", "min", "max", "count"};
+
+    private static Integer extractIntegerValue(Object item) {
+        if (item == null) return null;
+        if (item instanceof Number n) return n.intValue();
+        if (item instanceof Map<?, ?> map) {
+            for (String key : BIN_KEYS) {
+                Object v = map.get(key);
+                if (v instanceof Number n) return n.intValue();
+            }
+        }
+        return null;
     }
 
     /**
@@ -550,7 +612,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         vo.setCreatedAt(submission.createdAt());
         vo.setRuntimePercentile(submission.runtimePercentile());
         vo.setMemoryPercentile(submission.memoryPercentile());
-        vo.setMemoryDistBinsMb(submission.memoryDistBinsMb());
+        vo.setMemoryDistBinsMb(normalizeBins(submission.memoryDistBinsMb()));
 
         // Add user info (still fetched per-submission for user data)
         User user = userMapper.selectById(submission.userId());
@@ -592,7 +654,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         vo.setCreatedAt(submission.getCreatedAt());
         vo.setRuntimePercentile(submission.getRuntimePercentile());
         vo.setMemoryPercentile(submission.getMemoryPercentile());
-        vo.setMemoryDistBinsMb(submission.getMemoryDistBinsMb());
+        vo.setMemoryDistBinsMb(normalizeBins(submission.getMemoryDistBinsMb()));
 
         // Convert test details to test results
         if (submission.getTestDetails() != null && !submission.getTestDetails().isEmpty()) {

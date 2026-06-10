@@ -44,6 +44,7 @@ class SubmissionServiceImplTest {
     @Mock private SubmissionMapper submissionMapper;
     @Mock private UserMapper userMapper;
     @Mock private ProblemMapper problemMapper;
+    @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock private QueueService queueService;
     @Mock private com.ulticode.modules.websocket.service.RealtimeService realtimeService;
     @Mock private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
@@ -63,9 +64,10 @@ class SubmissionServiceImplTest {
     @BeforeEach
     void setUp() {
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService, realtimeService,
-                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
-                achievementTriggerService, notificationService);
+                submissionMapper, userMapper, problemMapper, objectMapper, queueService,
+                realtimeService, contestProblemMapper, contestSubmissionMapper,
+                contestMapper, contestParticipantMapper, achievementTriggerService,
+                notificationService);
     }
 
     private Submission createValidSubmission() {

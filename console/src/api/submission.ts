@@ -3,7 +3,7 @@ import type {
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
-import type { ProblemRunResult } from "@/types/test-results";
+import type { ProblemRunResult, ProblemRunCase } from "@/types/test-results";
 
 // ============================================================================
 // Backend Response Interfaces (snake_case from Spring Boot)
@@ -37,6 +37,76 @@ interface BackendSubmissionStatusMeta {
   sortOrder?: unknown;
 }
 
+interface BackendRunResult {
+  id?: unknown;
+  problemId?: unknown;
+  userId?: unknown;
+  verdict?: unknown;
+  runtime?: unknown;
+  runtimeMs?: unknown;
+  memory?: unknown;
+  memoryMb?: unknown;
+  cases?: unknown;
+  passedCases?: unknown;
+  passed_cases?: unknown;
+  totalCases?: unknown;
+  total_cases?: unknown;
+  errorMessage?: unknown;
+  error_message?: unknown;
+  [key: string]: unknown;
+}
+
+interface BackendRunCase {
+  id?: unknown;
+  runId?: unknown;
+  submissionTestId?: unknown;
+  testCaseId?: unknown;
+  caseLabel?: unknown;
+  status?: unknown;
+  runtime?: unknown;
+  runtimeMs?: unknown;
+  memory?: unknown;
+  memoryMb?: unknown;
+  detail?: unknown;
+  output?: unknown;
+  expectedOutput?: unknown;
+  inputs?: unknown;
+  [key: string]: unknown;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Normalize backend `memoryDistBinsMb` / `runtimeDistBinsMs` field.
+ *
+ * <p>Since the v2 schema fix (2026-06-10), backend consistently returns
+ * `number[]` for these fields. This helper remains for backward compatibility
+ * with transitional windows where a JSON string may still be served, and as
+ * a defensive measure against future schema drift.
+ *
+ * <p>Always returns `number[]`; empty array on parse failure.
+ *
+ * @see docs/reports/submission-api-test-report-2026-06-10.md §4.2
+ */
+export function mapDistributionBins(raw: unknown): number[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((v): v is number => typeof v === "number");
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((v): v is number => typeof v === "number");
+      }
+    } catch {
+      // fall through to empty
+    }
+  }
+  return [];
+}
+
 // Helper to map backend snake_case to frontend camelCase
 export function mapSubmission(sub: unknown): SubmissionRecord {
   if (!sub || typeof sub !== "object") return sub as SubmissionRecord;
@@ -55,10 +125,13 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
     memoryPercentile: (s.memory_percentile ?? s.memoryPercentile) as
       | number
       | undefined,
-    runtimeDistBinsMs: (s.runtime_dist_bins_ms ??
-      s.runtimeDistBinsMs) as SubmissionRecord["runtimeDistBinsMs"],
-    memoryDistBinsMb: (s.memory_dist_bins_mb ??
-      s.memoryDistBinsMb) as SubmissionRecord["memoryDistBinsMb"],
+    // v2 schema: backend returns number[]; helper still tolerates legacy JSON string.
+    runtimeDistBinsMs: mapDistributionBins(
+      s.runtime_dist_bins_ms ?? s.runtimeDistBinsMs,
+    ),
+    memoryDistBinsMb: mapDistributionBins(
+      s.memory_dist_bins_mb ?? s.memoryDistBinsMb,
+    ),
   } as SubmissionRecord;
 }
 
@@ -76,6 +149,81 @@ function mapSubmissionStatus(meta: unknown): SubmissionStatusMeta {
     isTerminal: Boolean(m.is_terminal ?? m.isTerminal),
     sortOrder: Number(m.sort_order ?? m.sortOrder ?? 0),
   } as SubmissionStatusMeta;
+}
+
+/**
+ * Map backend `RunResultDTO` to frontend `ProblemRunResult`.
+ *
+ * <p>Distinct from `mapSubmission()` because Run endpoints have a different
+ * field shape:
+ * <ul>
+ *   <li>`problemId`: numeric `Long` since v2 (was `String` in legacy DTO)</li>
+ *   <li>`verdict`: top-level status (not `status`)</li>
+ *   <li>`cases[]`: per-case results (not `tests[]`)</li>
+ *   <li>`runtimeMs` / `memoryMb`: numeric v2 fields (alongside formatted strings)</li>
+ * </ul>
+ *
+ * @see docs/reports/submission-api-test-report-2026-06-10.md §4.1
+ */
+export function mapRunResult(raw: unknown): ProblemRunResult {
+  if (!raw || typeof raw !== "object") return raw as ProblemRunResult;
+  const r = raw as BackendRunResult;
+
+  const cases = Array.isArray(r.cases)
+    ? r.cases.map(mapRunCase)
+    : ([] as ProblemRunCase[]);
+
+  return {
+    id: String(r.id ?? ""),
+    submissionId: String(r.id ?? ""),
+    problemId: Number(r.problemId ?? 0),
+    userId: String(r.userId ?? ""),
+    verdict: String(r.verdict ?? "Runtime Error") as ProblemRunResult["verdict"],
+    runtime: String(r.runtime ?? ""),
+    memory: String(r.memory ?? ""),
+    runtimeMs: typeof r.runtimeMs === "number" ? r.runtimeMs : undefined,
+    memoryMb: typeof r.memoryMb === "number" ? r.memoryMb : undefined,
+    cases,
+    passed_cases: Number(r.passedCases ?? r.passed_cases ?? 0),
+    total_cases: Number(r.totalCases ?? r.total_cases ?? 0),
+    errorMessage: (r.errorMessage ?? r.error_message) as string | undefined,
+  };
+}
+
+function mapRunCase(raw: unknown): ProblemRunCase {
+  if (!raw || typeof raw !== "object") {
+    // Defensive fallback: backend should never send non-object cases, but
+    // keep a valid empty case rather than propagating null to the UI.
+    return {
+      id: "",
+      runId: "",
+      submissionTestId: "",
+      testCaseId: "",
+      caseLabel: "",
+      status: "Runtime Error",
+      runtime: "0ms",
+      memory: "0.0MB",
+    };
+  }
+  const c = raw as BackendRunCase;
+  return {
+    id: String(c.id ?? ""),
+    runId: String(c.runId ?? ""),
+    submissionTestId: (c.submissionTestId as string) ?? "",
+    testCaseId: (c.testCaseId as string) ?? "",
+    caseLabel: (c.caseLabel as string) ?? "",
+    status: String(c.status ?? "Runtime Error") as ProblemRunCase["status"],
+    runtime: String(c.runtime ?? "0ms"),
+    memory: String(c.memory ?? "0.0MB"),
+    runtimeMs: typeof c.runtimeMs === "number" ? c.runtimeMs : undefined,
+    memoryMb: typeof c.memoryMb === "number" ? c.memoryMb : undefined,
+    detail: c.detail as string | undefined,
+    output: c.output as string | undefined,
+    expectedOutput: c.expectedOutput as string | undefined,
+    inputs: Array.isArray(c.inputs)
+      ? (c.inputs as ProblemRunCase["inputs"])
+      : undefined,
+  };
 }
 
 export async function fetchProblemSubmissions(
@@ -161,11 +309,18 @@ export async function runSubmission(
         inputs: normalizedInputs.length > 0 ? normalizedInputs : undefined,
       };
     }) ?? [];
-  return apiPost<ProblemRunResult>(`/problems/${problemId}/submissions/run`, {
-    language: data.language,
-    code: data.code,
-    testCases: testCases.length > 0 ? testCases : undefined,
-  });
+  const response = await apiPost<unknown>(
+    `/problems/${problemId}/submissions/run`,
+    {
+      language: data.language,
+      code: data.code,
+      testCases: testCases.length > 0 ? testCases : undefined,
+    },
+  );
+  // Run endpoints use a distinct DTO (RunResultDTO) with different field
+  // shapes (verdict, cases[], runtimeMs/memoryMb). Decoupled from
+  // mapSubmission() to avoid silent type confusion.
+  return mapRunResult(response);
 }
 export async function fetchDailyActivity(year?: number): Promise<string[]> {
   const params = new URLSearchParams();

@@ -147,7 +147,7 @@ public class SubmissionVO {
     }
 
     /**
-     * Memory distribution bins in MB (JSON)
+     * Memory distribution bins in MB (numeric array, serialized as JSON array)
      */
-    private Object memoryDistBinsMb;
+    private List<Integer> memoryDistBinsMb;
 }

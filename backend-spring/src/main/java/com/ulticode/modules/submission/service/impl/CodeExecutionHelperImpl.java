@@ -424,7 +424,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     public RunResultDTO emptyResult(Long problemId, String userId) {
         return RunResultDTO.builder()
                 .id(UUID.randomUUID().toString())
-                .problemId(String.valueOf(problemId))
+                .problemId(problemId)
                 .userId(userId)
                 .verdict("System Error")
                 .runtime("0ms")
@@ -453,7 +453,11 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 .id(UUID.randomUUID().toString()).runId(runId)
                 .submissionTestId(testCase.getId()).testCaseId(testCase.getId())
                 .caseLabel(testCase.getLabel() != null ? testCase.getLabel() : testCase.getId())
-                .status(status).runtime(runtimeMs + "ms").memory(String.format("%.1fMB", memoryMb))
+                .status(status)
+                .runtime(runtimeMs + "ms")
+                .runtimeMs(runtimeMs)
+                .memory(String.format("%.1fMB", memoryMb))
+                .memoryMb(memoryMb)
                 .output(output).expectedOutput(testCase.getOutput()).detail(detail).inputs(inputs)
                 .build();
     }

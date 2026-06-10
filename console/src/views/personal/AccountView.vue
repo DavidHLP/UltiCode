@@ -81,7 +81,17 @@ const saveProfile = async () => {
   if (!user.value) return;
   saving.value = true;
   try {
-    await updateMyProfile(user.value);
+    // Only send fields the user can actually edit in this form.
+    // id / username / email / joined_at / rank / solved_count / submission_count
+    // are derived from auth or backend aggregation and must not be PATCHed.
+    await updateMyProfile({
+      name: user.value.name,
+      bio: user.value.bio,
+      location: user.value.location,
+      website: user.value.website,
+      twitter: user.value.twitter,
+      github: user.value.github,
+    });
     toast.success(t("personal.messages.profileUpdated"));
   } catch (error) {
     console.error("Failed to update profile", error);

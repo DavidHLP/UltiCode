@@ -151,4 +151,51 @@ describe("fetchProblemDetailById", () => {
       },
     ]);
   });
+
+  // ----- D-10: per-user viewer reaction (backend injects via SecurityContextHolder) -----
+
+  it("maps interactions.viewer.reaction when current user has reacted", () => {
+    const problem = mapProblemDetail({
+      ...mockBackendResponse,
+      interactions: {
+        likes: 12,
+        dislikes: 1,
+        favorites: 3,
+        viewer: { reaction: "like" },
+      },
+    });
+    expect(problem.interactions?.viewer?.reaction).toBe("like");
+    expect(problem.interactions?.counts.likes).toBe(12);
+  });
+
+  it("returns viewer.reaction undefined when current user has not reacted", () => {
+    const problem = mapProblemDetail({
+      ...mockBackendResponse,
+      interactions: {
+        likes: 12,
+        dislikes: 1,
+        favorites: 3,
+        viewer: { reaction: null },
+      },
+    });
+    expect(problem.interactions?.viewer?.reaction).toBeUndefined();
+  });
+
+  it("routes userId through ?userId= query param to differentiate viewer", async () => {
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        ...mockBackendResponse,
+        interactions: { likes: 1, dislikes: 0, favorites: 0, viewer: { reaction: "like" } },
+      })
+      .mockResolvedValueOnce({
+        ...mockBackendResponse,
+        interactions: { likes: 1, dislikes: 0, favorites: 0, viewer: { reaction: "dislike" } },
+      });
+    const a = await fetchProblemDetailById(1, "user-A");
+    const b = await fetchProblemDetailById(1, "user-B");
+    expect(a.interactions?.viewer?.reaction).toBe("like");
+    expect(b.interactions?.viewer?.reaction).toBe("dislike");
+    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(1, "/problems/1?userId=user-A");
+    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(2, "/problems/1?userId=user-B");
+  });
 });

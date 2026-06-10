@@ -10,6 +10,8 @@ import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.service.ProblemService;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,12 +21,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for problem-related operations.
  */
 @Tag(name = "Problem", description = "Problem management endpoints")
+@Validated
 @RestController
 @RequestMapping("/problems")
 @RequiredArgsConstructor
@@ -46,7 +50,7 @@ public class ProblemController {
     @Operation(summary = "List problems", description = "Get a paginated list of problems with optional filters")
     @ApiResponse(responseCode = "200", description = "Problems retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping
-    public Result<PageResult<ProblemVO>> listProblems(@ModelAttribute ProblemQueryDTO query) {
+    public Result<PageResult<ProblemVO>> listProblems(@Validated @ModelAttribute ProblemQueryDTO query) {
         PageResult<ProblemVO> result = problemService.listProblems(query);
         return Result.success(result);
     }
@@ -64,8 +68,16 @@ public class ProblemController {
     @GetMapping("/{id}")
     public Result<ProblemDetailPublicVO> getProblemById(
             @Parameter(description = "Problem ID")
-            @PathVariable Long id) {
-        ProblemDetailPublicVO problem = problemService.getProblemDetailResponse(id);
+            @PathVariable String id) {
+        // D-14: non-numeric id under /{id} path translates to 404 (not 400) so frontend can
+        // reuse the same "PROBLEM_NOT_FOUND" toast for both /abc and /99999.
+        Long problemId;
+        try {
+            problemId = Long.parseLong(id);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+        ProblemDetailPublicVO problem = problemService.getProblemDetailResponse(problemId);
         return Result.success(problem);
     }
 

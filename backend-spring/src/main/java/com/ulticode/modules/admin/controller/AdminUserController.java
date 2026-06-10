@@ -9,7 +9,9 @@ import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.dto.BanUserRequest;
 import com.ulticode.modules.admin.dto.BulkUserActionRequest;
+import com.ulticode.modules.admin.dto.GrantPermissionRequest;
 import com.ulticode.modules.admin.dto.ResetPasswordRequest;
+import com.ulticode.modules.admin.dto.RevokePermissionRequest;
 import com.ulticode.modules.admin.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -100,6 +102,53 @@ public class AdminUserController {
             @Valid @RequestBody ResetPasswordRequest request) {
         adminUserService.resetPassword(id, request.getPassword());
         return Result.success();
+    }
+
+    @Operation(summary = "Grant direct permission to a user",
+               description = "Assigns an action:resource permission directly to a user, " +
+                             "independent of their role. Idempotent: existing permission is updated.")
+    @RateLimit(key = "admin:user-permission-grant", limit = 30, period = 60)
+    @PostMapping("/{id}/permissions")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<AdminUserVO> grantUserPermission(
+            @PathVariable String id,
+            @Valid @RequestBody GrantPermissionRequest request) {
+        return Result.success(adminUserService.assignUserPermission(
+            id, request.getAction(), request.getResource(), request.getExpiresAt()));
+    }
+
+    @Operation(summary = "Revoke direct permission from a user",
+               description = "Removes a previously granted action:resource permission. " +
+                             "Returns 200 with updated VO even if the permission did not exist. " +
+                             "Supports both query string (?action=X&resource=Y) and request body " +
+                             "(Spring proxies / some curl wrappers drop DELETE bodies). " +
+                             "Query params take precedence when both are provided.")
+    @RateLimit(key = "admin:user-permission-revoke", limit = 30, period = 60)
+    @DeleteMapping("/{id}/permissions")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<AdminUserVO> revokeUserPermission(
+            @PathVariable String id,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String resource,
+            @RequestBody(required = false) RevokePermissionRequest request) {
+        String act = action;
+        String res = resource;
+        if ((act == null || res == null) && request != null) {
+            // body 优先级低于 query param(若两者都给,以 query 为准)
+            if (act == null) {
+                act = request.getAction();
+            }
+            if (res == null) {
+                res = request.getResource();
+            }
+        }
+        if (!org.springframework.util.StringUtils.hasText(act)
+                || !org.springframework.util.StringUtils.hasText(res)) {
+            throw new com.ulticode.common.exception.BusinessException(
+                com.ulticode.common.exception.ErrorCode.VALIDATION_FAILED,
+                "action and resource are required (via query string or request body)");
+        }
+        return Result.success(adminUserService.revokeUserPermission(id, act, res));
     }
 
     @Operation(summary = "Bulk ban users", description = "Ban multiple users at once")

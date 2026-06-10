@@ -58,7 +58,10 @@ public class AuthController {
 
     @Operation(summary = "Login", description = "Authenticate user with username and password")
     @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
-    @ApiResponse(responseCode = "400", description = "Invalid credentials")
+    @ApiResponse(responseCode = "400", description = "Validation failed (empty username/password)")
+    @ApiResponse(responseCode = "401", description = "Invalid credentials (wrong username or password)")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded — 10 attempts per minute per IP")
     @PostMapping("/login")
     @RateLimit(key = "login", limit = 10, period = 60)
     public Result<LoginResponse> login(
@@ -68,10 +71,13 @@ public class AuthController {
         return Result.success(loginResponse);
     }
 
-    @Operation(summary = "Register", description = "Register a new user account")
+    @Operation(summary = "Register", description = "Register a new user account. "
+            + "Only callable as a fresh (anonymous) visitor — already-authenticated sessions get 403 from CsrfValidationFilter.")
     @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "409", description = "Username already exists")
+    @ApiResponse(responseCode = "400", description = "Validation error (e.g. weak password, invalid email format)")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
+    @ApiResponse(responseCode = "409", description = "Username already taken")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded — 5 attempts per minute per IP")
     @PostMapping("/register")
     @RateLimit(key = "register", limit = 5, period = 60)
     public Result<LoginResponse> register(
@@ -84,6 +90,8 @@ public class AuthController {
     @Operation(summary = "Refresh token", description = "Refresh access token using refresh token from cookie")
     @ApiResponse(responseCode = "200", description = "Token refreshed", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
     @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded — 20 attempts per minute per IP")
     @RateLimit(key = "auth:refresh", limit = 20, period = 60)
     @PostMapping("/refresh")
     public Result<LoginResponse> refresh(
@@ -95,16 +103,22 @@ public class AuthController {
     }
 
     @Operation(summary = "Logout", description = "Logout current user and clear auth cookie")
-    @ApiResponse(responseCode = "200", description = "Logout successful")
+    @ApiResponse(responseCode = "200", description = "Logout successful (always 200 to avoid information disclosure)")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(extractRefreshToken(request), response);
         return Result.success();
     }
 
-    @Operation(summary = "Forgot password", description = "Send password reset email")
-    @ApiResponse(responseCode = "200", description = "Reset email sent")
-    @ApiResponse(responseCode = "404", description = "User not found")
+    @Operation(summary = "Forgot password",
+               description = "Send password reset email. "
+                       + "By design returns 200 whether or not the email is registered, "
+                       + "to prevent email enumeration — callers cannot distinguish the two cases.")
+    @ApiResponse(responseCode = "200", description = "Reset email sent (or silently no-op if email not registered)")
+    @ApiResponse(responseCode = "400", description = "Invalid email format")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded — 5 attempts per minute per IP")
     @RateLimit(key = "auth:forgot-password", limit = 5, period = 60)
     @PostMapping("/forgot-password")
     public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
@@ -114,7 +128,9 @@ public class AuthController {
 
     @Operation(summary = "Reset password", description = "Reset password using token from email")
     @ApiResponse(responseCode = "200", description = "Password reset successful")
-    @ApiResponse(responseCode = "400", description = "Invalid or expired reset token")
+    @ApiResponse(responseCode = "400", description = "Validation failed or invalid/expired reset token")
+    @ApiResponse(responseCode = "403", description = "CSRF token is required (already-authenticated sessions only)")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded — 5 attempts per minute per IP")
     @RateLimit(key = "auth:reset-password", limit = 5, period = 60)
     @PostMapping("/reset-password")
     public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {

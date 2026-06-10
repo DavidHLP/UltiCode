@@ -12,6 +12,20 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = computed(() => user.value?.role)
   const userName = computed(() => user.value?.name || user.value?.username)
 
+  /**
+   * Login with username and password.
+   *
+   * See `console/src/stores/auth.ts` for the full CSRF contract — the
+   * anonymous-only exemption and the "must logout first before re-login"
+   * pitfall apply identically on this side. In short: the server's
+   * CsrfValidationFilter bypasses CSRF for unauthenticated POSTs, so a
+   * cold-start login works without an X-CSRF-Token header. Re-submitting
+   * the login form while still logged in returns 403 "CSRF token is
+   * required"; the UI must call `logout()` first or refresh the page.
+   *
+   * Persists csrfToken via `csrfManager.refreshFromResponse` so subsequent
+   * state-changing requests can attach it.
+   */
   async function login(credentials: LoginCredentials) {
     try {
       const loginResponse = await authApi.login(credentials)

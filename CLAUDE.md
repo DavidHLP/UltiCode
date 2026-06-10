@@ -501,6 +501,20 @@ pm2 save                         # Save process list
 pm2 resurrect                    # Restore saved list
 ```
 
+### Startup Order (重要)
+
+1. Docker 基础设施 (`ulticode-mysql/redis/nacos`) 必须先 Up/Healthy,再 `pm2 start`
+2. 容器都 Exited 时直接 `pm2 start ecosystem.config.cjs` → init-db 报 `连接被拒绝` → 9001 反复崩溃 → 8563 永远空
+3. 一键修复: `./scripts/dev/up.sh --skip-install` (顺序处理基础设施 → 迁移 → 应用)
+4. 手动按序: `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis nacos` → `pm2 restart ulticode-init-db` → `pm2 restart ulticode-9001`
+
+### 故障诊断信号
+
+- `pm2 list` 中 `ulticode-9001` 的 ↺ (restart count) 快速增长 + `lsof -ti :9001` 为空 → 基础设施未就绪
+- `9001` 与 `8563` 共享 PID 是**预期**的 (Arthas agent 跑在目标 JVM 内)
+- `ulticode-init-db` 跑完进入 `stopped` 是**预期**的 (one-shot Flyway 任务);校验成功标志:`pm2 logs ulticode-init-db --nostream | grep "BUILD SUCCESS"`
+- 容器健康检查:`docker inspect --format='{{.State.Health.Status}}' ulticode-{mysql,nacos}`
+
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands
 

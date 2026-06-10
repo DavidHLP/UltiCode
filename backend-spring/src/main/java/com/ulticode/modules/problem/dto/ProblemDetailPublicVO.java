@@ -144,8 +144,19 @@ public class ProblemDetailPublicVO {
         private Integer dislikes;
         private Integer favorites;
 
-        @JsonProperty("viewer_reaction")
-        private String viewerReaction;
+        /**
+         * D-10: this viewer's own reaction. Null when anonymous or no reaction.
+         * Frontend mapper (console/src/api/problem-detail.ts) reads
+         * {@code response.interactions.viewer.reaction}.
+         */
+        private ViewerData viewer;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ViewerData {
+        /** "like" | "dislike" | "favorite" | null */
+        private String reaction;
     }
 
     @Data

@@ -1,7 +1,10 @@
 import { ref, watch, type Ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { toast } from "vue-sonner";
 import type { ProblemDetail } from "@/types/problem-detail";
 import type { ProblemRunResult } from "@/types/test-results";
 import { fetchProblemDetailById } from "@/api/problem-detail";
+import { ApiError } from "@/utils/request";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useBottomPanelStore } from "./test/test";
 import { runSubmission } from "@/api/submission";
@@ -12,6 +15,7 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
   const problem = ref<ProblemDetail | null>(null);
   const runResult = ref<ProblemRunResult | null>(null);
   const isLoading = ref(false);
+  const { t } = useI18n();
   const bottomPanelStore = useBottomPanelStore();
   const editorStore = useProblemEditorStore();
   const { code, language } = storeToRefs(editorStore);
@@ -26,7 +30,12 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
         problem: problem.value,
       });
     } catch (error) {
-      console.error("Failed to load problem detail", error);
+      // D-14 friendly toast: ApiError 30001/40000 → "题目不存在"; others → console.error fallback
+      if (error instanceof ApiError && (error.code === 30001 || error.code === 40000)) {
+        toast.error(t("errors.problem.PROBLEM_30001"));
+      } else {
+        console.error("Failed to load problem detail", error);
+      }
       problem.value = null;
       await problemHooks.emit("problem:load:error", { slug: value, error });
     } finally {

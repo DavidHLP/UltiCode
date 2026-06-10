@@ -39,7 +39,8 @@ interface BackendInteractionData {
   likes?: number;
   dislikes?: number;
   favorites?: number;
-  viewer_reaction?: string;
+  // D-10: nested viewer object keyed by current user via SecurityContextHolder
+  viewer?: { reaction?: string | null } | null;
 }
 
 interface BackendProblemResponse {
@@ -244,10 +245,12 @@ export function mapProblemDetail(
             favorites: response.interactions.favorites ?? 0,
           },
           reactions: [],
-          viewer: response.interactions.viewer_reaction
+          // D-10: backend now returns nested `interactions.viewer.reaction` (lowercase, e.g. "like")
+          // keyed by current user via SecurityContextHolder. Anonymous / no reaction → undefined.
+          viewer: response.interactions.viewer?.reaction
             ? {
-                reaction: response.interactions
-                  .viewer_reaction as ProblemReactionType,
+                reaction: response.interactions.viewer
+                  .reaction as ProblemReactionType,
               }
             : undefined,
         }

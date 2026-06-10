@@ -5,7 +5,6 @@ import type {
 } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { reactiveOmit } from "@vueuse/core";
-import { GripVertical } from "lucide-vue-next";
 import { SplitterResizeHandle, useForwardPropsEmits } from "reka-ui";
 import { cn } from "@/lib/utils";
 

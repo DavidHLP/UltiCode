@@ -6,7 +6,6 @@ import MarkdownView from "@/components/markdown/MarkdownView.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatar } from "@/composables/useAvatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { CommentThread } from "@/components/comments";
 import {

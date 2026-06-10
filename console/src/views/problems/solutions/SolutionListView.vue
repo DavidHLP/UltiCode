@@ -20,7 +20,6 @@ import Separator from "@/components/ui/separator/Separator.vue";
 import Badge from "@/components/ui/badge/Badge.vue";
 import {
   Search,
-  Plus,
   PenLine,
   ArrowDownAZ,
   Check,

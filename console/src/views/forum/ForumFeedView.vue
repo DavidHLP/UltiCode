@@ -33,8 +33,6 @@ import { toast } from "vue-sonner";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useI18n } from "vue-i18n";
 
-const isDevelopment = import.meta.env.DEV;
-
 const posts = ref<ForumPost[]>([]);
 const communities = ref<ForumCommunity[]>([]);
 const quickFilters = ref<Array<{ label: string; value: string }>>([]);

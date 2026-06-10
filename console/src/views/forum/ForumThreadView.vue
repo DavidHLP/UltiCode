@@ -236,11 +236,14 @@ const getPostContent = () => {
   if (!thread.value) return "";
   if (thread.value.body) return thread.value.body;
   if (thread.value.media) {
-    const m = thread.value.media as any;
+    const m = thread.value.media as { type?: string; markdown?: string; body?: string };
     if (m && m.type === "text") {
       return m.markdown || m.body || "";
     } else if (Array.isArray(m)) {
-      const textMedia = m.find((item: any) => item.type === "text");
+      const textMedia = m.find(
+        (item: { type?: string; markdown?: string; body?: string }) =>
+          item.type === "text",
+      );
       if (textMedia) return textMedia.markdown || textMedia.body || "";
     }
   }

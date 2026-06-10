@@ -18,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import ActionItem from "./ActionItem.vue";
 import { useBookmarkStore } from "@/stores/bookmark";
 import {
   addBookmark,

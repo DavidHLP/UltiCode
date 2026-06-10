@@ -12,9 +12,8 @@ import {
   fetchUserStats,
   fetchUserSkills,
   type UserProfile,
-  type UserStats,
-  type UserSkill,
 } from "@/api/user";
+import type { UserStats, UserSkill } from "@/types/userStats";
 import { fetchUserSubmissions } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
 import { useAuthStore } from "@/stores/auth";

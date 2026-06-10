@@ -11,7 +11,6 @@ import {
   User,
   MessageSquare,
   FileText,
-  ArrowRight,
 } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
 
@@ -113,36 +112,6 @@ function getTypeIcon(type: string) {
       return FileText;
     default:
       return Search;
-  }
-}
-
-function getTypeLabel(type: string) {
-  switch (type) {
-    case "problems":
-      return "Problem";
-    case "users":
-      return "User";
-    case "posts":
-      return "Post";
-    case "solutions":
-      return "Solution";
-    default:
-      return "Result";
-  }
-}
-
-function getTypeColor(type: string): string {
-  switch (type) {
-    case "problems":
-      return "bg-[var(--accent-electric)]/10 text-[var(--accent-electric)]";
-    case "users":
-      return "bg-[var(--terminal-green)]/10 text-[var(--terminal-green)]";
-    case "posts":
-      return "bg-[var(--terminal-purple)]/10 text-[var(--terminal-purple)]";
-    case "solutions":
-      return "bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)]";
-    default:
-      return "bg-muted text-muted-foreground";
   }
 }
 

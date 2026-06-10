@@ -276,7 +276,7 @@ describe("useNotificationI18n", () => {
       ["UPVOTE", "upvote", "{username} 赞了你的帖子"],
     ])(
       "%s uses metadata.username when present",
-      (type, _label, _expectedTemplate) => {
+      (type) => {
         const result = display(
           makeNotification({
             type: type as NotificationType,

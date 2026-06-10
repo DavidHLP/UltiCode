@@ -11,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { isFollowing, loading, fetchStatus, toggleFollow } = useFollowStatus(
+const { isFollowing, loading, toggleFollow } = useFollowStatus(
   props.targetUserId,
   props.initialIsFollowing ?? false,
 );

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Lock, ChevronRight, Target, Award, Check, AlertCircle } from "lucide-vue-next";
+import { Lock, ChevronRight, Target, Award, Check } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail, ContestProblemSummary } from "@/types/contest";
 

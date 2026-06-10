@@ -2,7 +2,6 @@
 import { computed, ref } from "vue";
 import { useDraggable, useDroppable } from "@vue-dnd-kit/core";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import type { HeaderModel } from "@/stores/headerStore";
 import * as LucideIcons from "lucide-vue-next";
 

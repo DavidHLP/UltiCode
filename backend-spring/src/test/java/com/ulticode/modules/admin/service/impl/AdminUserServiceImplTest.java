@@ -14,6 +14,7 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +22,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -61,6 +66,17 @@ class AdminUserServiceImplTest {
         adminUserService = new AdminUserServiceImpl(
                 userMapper, passwordEncoder, auditHelper,
                 submissionMapper, solutionMapper, permissionService, rolePermissionMapper);
+        // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
+        // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+            "test-super-admin", "n/a",
+            List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     private User createValidUser() {
@@ -173,6 +189,50 @@ class AdminUserServiceImplTest {
         }
 
         @Test
+        @DisplayName("MEDIUM-3: filters out expired direct permissions from VO")
+        void filtersExpiredPermissions() {
+            User user = createValidUser();
+            when(userMapper.selectById("user-123")).thenReturn(user);
+            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
+            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
+
+            UserPermission expired = new UserPermission();
+            expired.setAction("CREATE");
+            expired.setResource("PROBLEM");
+            expired.setExpiresAt(java.time.LocalDateTime.now().minusMinutes(1));
+
+            UserPermission active = new UserPermission();
+            active.setAction("READ");
+            active.setResource("USER");
+            active.setExpiresAt(java.time.LocalDateTime.now().plusHours(1));
+
+            UserPermission permanent = new UserPermission();
+            permanent.setAction("UPDATE");
+            permanent.setResource("SOLUTION");
+            // null expiresAt = 永久
+
+            when(permissionService.getUserPermissions("user-123"))
+                .thenReturn(List.of(expired, active, permanent));
+
+            AdminUserVO result = adminUserService.getUserById("user-123");
+
+            assertThat(result).isNotNull();
+            assertThat(result.getPermissions()).hasSize(2);
+            // 过期权限被过滤,顺序由 source 决定
+            assertThat(result.getPermissions())
+                .extracting("action")
+                .containsExactlyInAnyOrder("READ", "UPDATE");
+            // 同时验证 expiresAt 被正确传递(非 null 字段)
+            assertThat(result.getPermissions())
+                .filteredOn(p -> "READ".equals(p.getAction()))
+                .extracting("expiresAt")
+                .containsExactly((Object) active.getExpiresAt());
+        }
+
+        @Test
         @DisplayName("throws BusinessException when user not found")
         void userNotFound_throwsBusinessException() {
             when(userMapper.selectById("nonexistent")).thenReturn(null);
@@ -183,6 +243,110 @@ class AdminUserServiceImplTest {
                         BusinessException be = (BusinessException) ex;
                         assertThat(be.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
                     });
+        }
+    }
+
+    @Nested
+    @DisplayName("assignUserPermission()")
+    class AssignUserPermission {
+
+        @Test
+        @DisplayName("delegates to PermissionService and returns VO with permissions populated")
+        void grantNew_delegatesAndReturnsVO() {
+            User user = createValidUser();
+            user.setRole("USER");
+            when(userMapper.selectById("user-123")).thenReturn(user);
+            // before-snapshot: empty
+            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
+            when(permissionService.assignPermission(eq("user-123"), eq("MANAGE_PERMISSIONS"),
+                    eq("SYSTEM"), any())).thenReturn(new UserPermission());
+            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
+            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
+
+            AdminUserVO vo = adminUserService.assignUserPermission(
+                    "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null);
+
+            assertThat(vo).isNotNull();
+            assertThat(vo.getId()).isEqualTo("user-123");
+            verify(permissionService).assignPermission("user-123",
+                    "MANAGE_PERMISSIONS", "SYSTEM", null);
+        }
+
+        @Test
+        @DisplayName("throws USER_NOT_FOUND when user does not exist")
+        void userMissing_throws() {
+            when(userMapper.selectById("nope")).thenReturn(null);
+
+            assertThatThrownBy(() -> adminUserService.assignUserPermission(
+                    "nope", "READ", "USER", null))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.USER_NOT_FOUND));
+
+            verify(permissionService, never()).assignPermission(any(), any(), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("revokeUserPermission()")
+    class RevokeUserPermission {
+
+        @Test
+        @DisplayName("delegates and returns VO when permission exists")
+        void revokeExisting_delegates() {
+            User user = createValidUser();
+            user.setRole("USER");
+            when(userMapper.selectById("user-123")).thenReturn(user);
+            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
+            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(true);
+            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
+            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
+
+            AdminUserVO vo = adminUserService.revokeUserPermission(
+                    "user-123", "READ", "USER");
+
+            assertThat(vo).isNotNull();
+            verify(permissionService).revokePermission("user-123", "READ", "USER");
+        }
+
+        @Test
+        @DisplayName("returns VO without throwing when permission did not exist (REST idempotent)")
+        void revokeMissing_doesNotThrow() {
+            User user = createValidUser();
+            user.setRole("USER");
+            when(userMapper.selectById("user-123")).thenReturn(user);
+            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
+            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(false);
+            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
+            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
+            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
+
+            AdminUserVO vo = adminUserService.revokeUserPermission(
+                    "user-123", "READ", "USER");
+
+            assertThat(vo).isNotNull();
+        }
+
+        @Test
+        @DisplayName("throws USER_NOT_FOUND when user does not exist")
+        void userMissing_throws() {
+            when(userMapper.selectById("nope")).thenReturn(null);
+
+            assertThatThrownBy(() -> adminUserService.revokeUserPermission(
+                    "nope", "READ", "USER"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.USER_NOT_FOUND));
+
+            verify(permissionService, never()).revokePermission(any(), any(), any());
         }
     }
 }

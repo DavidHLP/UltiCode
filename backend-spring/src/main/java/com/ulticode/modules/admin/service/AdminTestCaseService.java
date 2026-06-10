@@ -17,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -66,7 +68,7 @@ public class AdminTestCaseService {
         }
         TestCase testCase = testCaseMapper.selectById(testCaseId);
         if (testCase == null || !testCase.getProblemId().equals(problemId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Test case not found");
+            throw new BusinessException(ErrorCode.TEST_CASE_NOT_FOUND);
         }
         return testCase;
     }
@@ -169,6 +171,10 @@ public class AdminTestCaseService {
         if (problemMapper.selectById(problemId) == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
+        Set<String> uniqueIds = new HashSet<>(testCaseIds);
+        if (uniqueIds.size() != testCaseIds.size()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Duplicate test case IDs");
+        }
         for (int i = 0; i < testCaseIds.size(); i++) {
             TestCase existing = getTestCase(problemId, testCaseIds.get(i));
             existing.setTestOrder(i);
@@ -186,5 +192,26 @@ public class AdminTestCaseService {
         wrapper.eq(TestCase::getProblemId, problemId);
         wrapper.orderByAsc(TestCase::getTestOrder);
         return testCaseMapper.selectList(wrapper);
+    }
+
+    /**
+     * Export all test cases for a problem as a JSON string.
+     * Used by the controller to return an octet-stream response.
+     *
+     * @param problemId the problem ID
+     * @return JSON string representation of the test cases list
+     * @throws BusinessException PROBLEM_NOT_FOUND if the problem doesn't exist
+     */
+    public String exportTestCasesAsJson(Long problemId) {
+        // Reuse exportTestCases() — it already pre-checks problem existence and
+        // throws BusinessException(PROBLEM_NOT_FOUND) on miss, so we don't need
+        // a duplicate problemMapper lookup here.
+        List<TestCase> cases = exportTestCases(problemId);
+        try {
+            return objectMapper.writeValueAsString(cases);
+        } catch (Exception e) {
+            log.error("Failed to serialize test cases for problem {}", problemId, e);
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "Failed to serialize test cases");
+        }
     }
 }

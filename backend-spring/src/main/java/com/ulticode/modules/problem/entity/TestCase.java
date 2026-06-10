@@ -68,4 +68,20 @@ public class TestCase {
 
     @TableField("updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * Soft delete flag. Mirrors submissions / problems table pattern — when
+     * set to true, MyBatis-Plus auto-filters the record out of all queries
+     * and deleteById() performs an UPDATE is_deleted=1 instead of a row
+     * removal. See {@code V20260610130000__Add_Test_Cases_Is_Deleted.sql}.
+     */
+    @TableLogic
+    @TableField("is_deleted")
+    private Boolean isDeleted;
+
+    /**
+     * Timestamp of soft deletion. Null when the record is still active.
+     */
+    @TableField("deleted_at")
+    private LocalDateTime deletedAt;
 }

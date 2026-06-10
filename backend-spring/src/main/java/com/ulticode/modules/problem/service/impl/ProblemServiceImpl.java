@@ -33,6 +33,7 @@ import com.ulticode.modules.problem.service.ProblemVersionService;
 import com.ulticode.modules.submission.service.CodeExecutionHelper;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
+import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -69,6 +70,7 @@ public class ProblemServiceImpl implements ProblemService {
     private final com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
     private final com.ulticode.modules.solution.mapper.SolutionMapper solutionMapper;
     private final EdgeOperationsService edgeOperationsService;
+    private final EdgeOperationMapper edgeOperationMapper;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -197,9 +199,13 @@ public class ProblemServiceImpl implements ProblemService {
 
         // Filter by tag via subquery
         if (query.getTag() != null && !query.getTag().isBlank()) {
+            // D-09: match by id-style string (e.g. "tag-linked-list") in addition to label/slug.
+            // pt.id is VARCHAR(40) so passing a string binds cleanly; the index edge_ops_target
+            // (target_type, target_id) is not used here, but problem_tag_relations has
+            // its own index on tag_id so the inner subquery stays at O(distinct problems).
             queryWrapper.apply("id IN (SELECT ptr.problem_id FROM problem_tag_relations ptr " +
                     "LEFT JOIN problem_tags pt ON ptr.tag_id = pt.id " +
-                    "WHERE pt.label = {0} OR pt.slug = {0})", query.getTag());
+                    "WHERE pt.label = {0} OR pt.slug = {0} OR pt.id = {0})", query.getTag());
         }
 
         // Filter by category via tag_id subquery (categories map to tag IDs)
@@ -220,8 +226,10 @@ public class ProblemServiceImpl implements ProblemService {
                 Long id = Long.parseLong(searchTerm);
                 queryWrapper.eq(Problem::getId, id);
             } catch (NumberFormatException e) {
-                // Search by title
-                queryWrapper.like(Problem::getTitle, searchTerm);
+                // D-08: Search by title OR slug. LambdaQueryWrapper#like needs SFunction so we use
+                // apply() with raw SQL; chained apply + or() avoids the {0}/{1} duplicate bind.
+                queryWrapper.apply("title LIKE CONCAT('%', {0}, '%')", searchTerm)
+                        .or().apply("slug LIKE CONCAT('%', {0}, '%')", searchTerm);
             }
         }
 
@@ -446,20 +454,23 @@ public class ProblemServiceImpl implements ProblemService {
         }
 
         String userId = SecurityUtil.getCurrentUserId();
-        if (userId != null && detail.getInteractions() != null && !detail.getInteractions().isBlank()) {
+        if (userId != null) {
+            // D-10: query this user's LIKE/DISLIKE/FAVORITE on this problem from edge_operations.
+            // Mapper returns the most recent reaction (ORDER BY created_at DESC) so a user
+            // with both LIKE and DISLIKE rows sees whichever they toggled last.
+            // Replaces the previous JSON-column single-viewer hack (problem_details.interactions
+            // held one viewer for everyone, so it never reflected the actual requester).
             try {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> interactionsMap = objectMapper.readValue(detail.getInteractions(), java.util.Map.class);
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> viewerMap = (java.util.Map<String, Object>) interactionsMap.get("viewer");
-                if (viewerMap != null) {
-                    Object reaction = viewerMap.get("reaction");
-                    if (reaction != null) {
-                        interactions.setViewerReaction(reaction.toString());
-                    }
+                String reaction = edgeOperationMapper.findViewerReaction(
+                        userId, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM.name());
+                if (reaction != null) {
+                    ProblemDetailPublicVO.ViewerData viewer = new ProblemDetailPublicVO.ViewerData();
+                    viewer.setReaction(reaction.toLowerCase());
+                    interactions.setViewer(viewer);
                 }
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to parse interactions JSON for problem {}", problemId);
+            } catch (Exception e) {
+                log.warn("Failed to query viewer reaction for problem {} user {}: {}",
+                        problemId, userId, e.getMessage());
             }
         }
         return interactions;
@@ -856,6 +867,14 @@ public class ProblemServiceImpl implements ProblemService {
 
     @Override
     public AdjacentProblemsVO getAdjacentProblems(Long id) {
+        // D-11: validate id exists before computing adjacent; missing id used to return 200 + wrong neighbors.
+        // M-2: use selectCount (LIMIT 1 implicit) instead of findById to avoid fetching the full row.
+        Long count = problemMapper.selectCount(
+                new LambdaQueryWrapper<Problem>().eq(Problem::getId, id));
+        if (count == null || count == 0) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+
         // Find the previous problem (ID less than current, ordered by ID desc, limit 1)
         LambdaQueryWrapper<Problem> prevWrapper = new LambdaQueryWrapper<>();
         prevWrapper.lt(Problem::getId, id)
@@ -887,7 +906,13 @@ public class ProblemServiceImpl implements ProblemService {
         if (problem == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND, "No published problems available");
         }
-        return ProblemVO.from(problem);
+        // D-12: enrich with tags + submission_count + solution_count so the random endpoint
+        // returns the same data shape as list endpoint (was returning empty tags and 0 counts).
+        Long id = problem.getId();
+        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(List.of(id));
+        Map<Long, Long> submissionCounts = batchFetchSubmissionCounts(List.of(id));
+        Map<Long, Long> solutionCounts = batchFetchSolutionCounts(List.of(id));
+        return toVO(problem, tagMap, submissionCounts, solutionCounts);
     }
 
     /**

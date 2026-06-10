@@ -2,8 +2,6 @@ package com.ulticode.modules.vote.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.vote.entity.EdgeOperation;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -98,5 +96,30 @@ public interface EdgeOperationMapper extends BaseMapper<EdgeOperation> {
     List<Map<String, Object>> findByOperatorAndTargets(
             @Param("operatorId") String operatorId,
             @Param("targetIds") List<String> targetIds,
+            @Param("targetType") String targetType);
+
+    /**
+     * D-10: find this operator's LIKE/DISLIKE/FAVORITE on a single target problem.
+     * Returns the most recent reaction (ORDER BY created_at DESC) when one user
+     * has multiple rows for the same problem (the UNIQUE constraint is
+     * (operator_id, operation_type, target_type, target_id) — does NOT span
+     * operation_types, so one user can hold LIKE + DISLIKE rows simultaneously).
+     * Returns null when the operator has no reaction.
+     *
+     * @param operatorId the operator ID
+     * @param targetId   the target problem ID (as String to match edge_operations.target_id VARCHAR(40))
+     * @param targetType the target type
+     * @return reaction type ("LIKE" / "DISLIKE" / "FAVORITE") or null
+     */
+    @Select("SELECT operation_type FROM edge_operations " +
+            "WHERE operator_id = #{operatorId} " +
+            "AND target_id = #{targetId} " +
+            "AND target_type = #{targetType} " +
+            "AND operation_type IN ('LIKE','DISLIKE','FAVORITE') " +
+            "ORDER BY created_at DESC " +
+            "LIMIT 1")
+    String findViewerReaction(
+            @Param("operatorId") String operatorId,
+            @Param("targetId") String targetId,
             @Param("targetType") String targetType);
 }

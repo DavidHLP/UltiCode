@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-06 | Token estimate: ~700 -->
+<!-- Generated: 2026-06-10 | Token estimate: ~700 -->
 
 # Dependencies & Integrations
 
@@ -84,7 +84,8 @@
 | ---------------------- | ------------------------------------------------------ |
 | `shared/auth-core`     | Vue composable: cookie/CSRF/auth-state/permission      |
 | `shared/badge-config`  | Achievement / badge token config (shared by both FEs)  |
-| `shared/design-system` | Design tokens + Tailwind preset + shared Vue components |
+| `shared/theme`         | Theme tokens + Vue composable + `public/theme-bootstrap.js` source |
+| `shared/design-system`  | Legacy `style.css` only — to be retired                |
 
 ## Infrastructure (docker-compose)
 
@@ -93,10 +94,19 @@
 | MySQL   | mysql:9.1                   | 23306      | ulticode-mysql       |
 | Redis   | redis:7-alpine              | 26379      | ulticode-redis       |
 | Nacos   | nacos/nacos-server:v2.3.2   | 28848      | ulticode-nacos       |
+| Sandbox | ulticode-sandbox:latest     | (internal) | (per submission)     |
 
 Backend / Console / Management run as host processes under PM2 (dev) or as
 container images from GHCR (prod). Base / production compose **does not**
-publish the infra ports externally.
+publish the infra ports externally. Sandbox image is built locally from
+`docker/sandbox/Dockerfile` and only used when `SANDBOX_ENABLED=true`.
+
+## Runtime Tooling
+
+- **PM2** (`ecosystem.config.cjs`): 4 apps — `ulticode-9001`, `ulticode-9002`, `ulticode-9003`, `ulticode-arthas`
+- **Arthas 4.1.9** (`tools/arthas-boot.jar`): runtime JVM diagnostics
+  - Wrapper: `scripts/start-arthas.sh` (port 8563, three-launcher mutex: PM2 / SessionStart hook / CLI)
+  - MCP endpoint: `http://localhost:8563/mcp`
 
 ## CI/CD
 
@@ -105,3 +115,4 @@ publish the infra ports externally.
 - Backend: Maven build + test (ci profile) + Flyway validation
 - Frontend: lint + type-check + test
 - Integration tests: MySQL 9.1 + Redis 7 via Testcontainers
+- Gitleaks scan on every push

@@ -85,8 +85,11 @@ Both Vue apps read the same Vite env block at build / dev time.
 
 | Variable | Development behavior |
 |----------|----------------------|
+| `NACOS_SERVER_ADDR` | `localhost:28848` (combined host:port for Spring discovery) |
 | `NACOS_HOST` / `NACOS_PORT` | `localhost:28848` |
 | `NACOS_GRPC_PORT` | `29848` |
+| `NACOS_NAMESPACE` | `public` |
+| `NACOS_GROUP` | `DEFAULT_GROUP` |
 | `NACOS_USERNAME` | `ulticode_dev_admin` |
 | `NACOS_PASSWORD` | Random, 16+ characters |
 | `NACOS_AUTH_TOKEN` | Random Base64 server token |

@@ -5,8 +5,8 @@ export interface UserProfile {
   id: string;
   username: string;
   name: string;
-  email: string;
-  bio: string;
+  email?: string;
+  bio?: string;
   avatar: string;
   location?: string;
   website?: string;

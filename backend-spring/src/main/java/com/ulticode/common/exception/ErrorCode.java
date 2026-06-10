@@ -59,6 +59,9 @@ public enum ErrorCode {
     PROBLEM_TAG_NAME_EXISTS(30011, "Problem tag name already exists", HttpStatus.CONFLICT),
     PROBLEM_TAG_SLUG_EXISTS(30012, "Problem tag slug already exists", HttpStatus.CONFLICT),
 
+    // Test case (3xxxx) — 测试用例属于题目子域,沿用 3xxxx 号段
+    TEST_CASE_NOT_FOUND(30020, "Test case not found", HttpStatus.NOT_FOUND),
+
     // Submission module (4xxxx)
     SUBMISSION_NOT_FOUND(40001, "Submission not found", HttpStatus.NOT_FOUND),
     SUBMISSION_USER_ID_REQUIRED(40002, "User ID is required", HttpStatus.BAD_REQUEST),

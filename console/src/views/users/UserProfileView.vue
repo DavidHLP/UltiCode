@@ -2,9 +2,13 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { fetchUserProfile, type UserProfile } from "@/api/user";
-import { userStatsApi } from "@/api/userStats";
-import type { UserStats, UserSkills } from "@/api/user";
+import {
+  fetchUserProfile,
+  fetchUserStats,
+  fetchUserSkills,
+  type UserProfile,
+} from "@/api/user";
+import type { UserStats, UserSkills } from "@/types/userStats";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
 import ActivityHeatmap from "@/components/dashboard/ActivityHeatmap.vue";
 import SkillRadarChart from "@/components/dashboard/SkillRadarChart.vue";
@@ -56,8 +60,8 @@ onMounted(async () => {
     loading.value = true;
     const [profileData, statsData, skillsData] = await Promise.all([
       fetchUserProfile(userId.value),
-      userStatsApi.getStats(userId.value),
-      userStatsApi.getSkills(userId.value),
+      fetchUserStats(userId.value),
+      fetchUserSkills(userId.value),
     ]);
     profile.value = profileData;
     stats.value = statsData;

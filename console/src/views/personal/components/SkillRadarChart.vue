@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import * as echarts from "echarts";
-import type { UserSkill } from "@/api/user";
+import type { UserSkill } from "@/types/userStats";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();

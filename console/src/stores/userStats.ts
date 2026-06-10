@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import type { UserStats, UserSkills } from "@/types/userStats";
-import { userStatsApi } from "@/api/userStats";
+import { fetchUserStats, fetchUserSkills } from "@/api/user";
 import { useAuthStore } from "./auth";
 
 export const useUserStatsStore = defineStore("userStats", () => {
@@ -77,7 +77,7 @@ export const useUserStatsStore = defineStore("userStats", () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await userStatsApi.getStats(authStore.userId);
+      const result = await fetchUserStats(authStore.userId);
       stats.value = result;
       lastFetch.value = Date.now();
       return result;
@@ -100,7 +100,7 @@ export const useUserStatsStore = defineStore("userStats", () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await userStatsApi.getSkills(authStore.userId);
+      const result = await fetchUserSkills(authStore.userId);
       skills.value = result;
       return result;
     } catch (err) {

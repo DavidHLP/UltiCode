@@ -1,4 +1,5 @@
 import { apiGet, apiPatch } from "@/utils/request";
+import type { UserStats, UserSkills } from "@/types/userStats";
 
 export interface UserProfile {
   id: string;
@@ -15,24 +16,6 @@ export interface UserProfile {
   rank?: number;
   solved_count?: number;
   submission_count?: number;
-}
-
-export interface UserStats {
-  stats: Record<"Easy" | "Medium" | "Hard", { count: number; total: number }>;
-  streak: number;
-  totalSolved: number;
-  heatmap: { date: string; level: number }[];
-}
-
-export interface UserSkill {
-  tagName: string;
-  tagSlug: string;
-  count: number;
-}
-
-export interface UserSkills {
-  skills: UserSkill[];
-  totalSolved: number;
 }
 
 /**

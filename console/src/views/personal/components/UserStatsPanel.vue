@@ -24,7 +24,7 @@ import ActivityHeatmap from "./ActivityHeatmap.vue";
 import SkillRadarChart from "./SkillRadarChart.vue";
 import SubmissionHistoryChart from "./SubmissionHistoryChart.vue";
 import LearningProgressChart from "./LearningProgressChart.vue";
-import type { UserStats, UserSkill } from "@/api/user";
+import type { UserStats, UserSkill } from "@/types/userStats";
 import type { SubmissionRecord } from "@/types/submission";
 
 const props = defineProps<{

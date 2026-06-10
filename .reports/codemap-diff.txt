@@ -1,103 +1,108 @@
-Codemap Update Report - 2026-06-06
+Codemap Update Report - 2026-06-10
 ==================================
 
-Files Scanned    : 1688 (was 1964 — ↓276 from last scan, due to
-                   removal of recommend-* services and stale .reports artefacts)
-Backend Java     : 667
-Console Vue/TS   : 341 / 206
-Management Vue   : 474
-Migrations       : 17 (was 1 baseline + V99-V108 → now timestamped V202606*)
+Files Scanned    : 1923 (was 1688 — ↑235)
+                   Java 708, Console Vue 344 / TS 211,
+                   Management Vue 476 / TS 234
+Backend Java     : 708  (was 667, +41)
+Console Vue/TS   : 344 / 211  (was 341 / 206, +3 / +5)
+Management Vue/TS: 476 / 234  (was 474 / n.a., +2 / first count)
+Migrations       : 20  (was 17, +3)
+Controllers      : 41  (was 43, -2 — previous count was off-by-2; see note)
+Shared Packages  : 4   (was 3, +1 — shared/theme added; design-system legacy)
 Codemaps Updated : 5 (all)
 
 Change Summary
 -------------
-[MAJOR] docs/CODEMAPS/architecture.md
-  - Removed `recommend-provider` (:20881) and `recommend-web` (:9005) services
-  - Simplified ASCII diagram to 3-service topology (FE / BE / infra)
-  - Shared packages: 1 → 3 (added badge-config, design-system)
-  - Removed Dubbo from service list
+[MINOR] docs/CODEMAPS/architecture.md
+  - Added Arthas MCP row (port 8563) to service boundaries
+  - Added Sandbox image line to data flow (optional)
+  - Refreshed migration listing (V2026061012*, V2026061013*, V2026061014*)
+  - Shared packages: 3 → 4 (added shared/theme/)
+  - Flagged shared/design-system/ as legacy residual (style.css only)
+  - Added "Runtime Tooling" section (PM2, Arthas, MailHog)
 
-[MAJOR] docs/CODEMAPS/backend.md
-  - Modules: 27 → 26 (recommendation/ removed entirely)
-  - Controllers: 41 → 43 (15 in admin incl. new audit + dashboard controllers)
-  - Removed Dubbo 3.2.14 dependency; recommend-* modules gone
-  - Flagged console/management `recommendation.ts` and `recommend-*` API files
-    as orphan / dead code (no backend endpoint)
+[MINOR] docs/CODEMAPS/backend.md
+  - Module count unchanged (26) — recommendation still absent
+  - Controllers: corrected 43 → 41 (actual count; previous was off)
+  - Added 4 new admin endpoint families:
+      /admin/test-cases (GET/POST)
+      /admin/users/{id}/permissions/grant (POST)
+      /admin/users/{id}/permissions/revoke (POST)
+      /admin/users/{id}/permissions (GET)
+  - Java file count refreshed (708)
 
-[MAJOR] docs/CODEMAPS/frontend.md
-  - Console: new `features/sider/AppLayout.vue` and `features/layout/...`
-    folder structure; forum + contest routes rewrap with this layout
-  - Console stores: added `stores/contest/` subfolder (index + rankingStore)
-  - Management stores: expanded to `stores/admin/` with 13 sub-stores incl.
-    `moderation/moderationStore.ts` (16.7 KB)
-  - Frontend dep versions bumped across the board
-    (vue 3.5.25→3.5.34, vite 8.0.8→8.0.14, vue-i18n 11.3.2→11.4.4, etc.)
-  - Console deps: added echarts 6, @vue-dnd-kit/core 1.7, @monaco-editor/loader,
-    @stomp/stompjs 7.3, dompurify 3.4.5
-  - Management deps: switched DnD from vue-dnd-kit to @dnd-kit/*; added
-    @tanstack/vue-table, @vee-validate/zod, date-fns
+[MINOR] docs/CODEMAPS/frontend.md
+  - Added per-frontend "Scripts" subtables with `pnpm verify:theme-sync`
+  - Console: 344 Vue / 211 TS (was 341 / 206)
+  - Management: 476 Vue / 234 TS (TS count first tracked)
+  - Shared packages: 3 → 4 (added shared/theme); flagged design-system legacy
 
-[MAJOR] docs/CODEMAPS/data.md
-  - Replaced V1–V108 numbering scheme with 17 timestamped migrations
-  - Latest security migration: V20260606130000 (Secure_Refresh_Tokens_And_Lock_Seed_Accounts)
-  - Documented seed/data migrations (V20260603*) separately from baseline
-  - Added edge_operations / refresh_tokens / oauth_states / csrf_tokens /
-    audit_logs / recommendation_seed_* to table groups
-  - Note: `recommendation_seed_*` tables are now orphaned since the
-    recommendation module is removed
+[MINOR] docs/CODEMAPS/data.md
+  - Migrations: 17 → 20
+      V20260608120000 Fix_Audit_Logs_Performer_Id
+      V20260610120000 Create_Test_Cases_Table
+      V20260610130000 Add_Test_Cases_Is_Deleted
+      V20260610140000 Add_User_Permission_Expires_At
+  - Added test_cases table to Problem group
+  - Added user_permissions + expires_at column to Permission group
+  - Updated relationships: users < user_permissions; problems < test_cases
 
-[MAJOR] docs/CODEMAPS/dependencies.md
-  - Removed Dubbo 3.2.14 + entire recommend-* module set
-  - Updated all FE dep versions (vue, vite, pinia, vue-router, vue-i18n, etc.)
-  - Added new FE deps: echarts, monaco-editor/loader, stompjs, dnd-kit, etc.
-  - Shared: 1 package → 3 packages
+[MINOR] docs/CODEMAPS/dependencies.md
+  - Added Sandbox image row to Infrastructure
+  - Added "Runtime Tooling" section (PM2 apps, Arthas 4.1.9)
+  - Shared: 3 → 4 packages (added shared/theme; flagged design-system legacy)
 
-Architecture Changes (since 2026-05-30)
+Architecture Changes (since 2026-06-06)
 ---------------------------------------
-1. RECOMMENDATION SYSTEM REMOVED
-   - Backend `modules/recommendation/` deleted
-   - Removed :20881 (Provider) and :9005 (Web) services from docker-compose
-   - Dubbo dependency dropped from pom.xml
-   - Frontend `recommendation.ts` / `recommend-*` API calls now hit non-existent
-     endpoints — **dead code**, schedule for cleanup
+1. TEST CASES MODULE
+   - New `test_cases` table (V20260610120000) with `is_deleted` (V20260610130000)
+   - `problem/` module now hosts `TestCase.java` entity
+   - `admin/` module exposes `AdminTestCaseController` (CRUD)
+   - Endpoint hardening: 400 on missing/invalid type, honor PROBLEM sortBy
 
-2. SHARED PACKAGE EXPANSION
-   - `shared/auth-core/` (existing)
-   - `shared/badge-config/` (new)
-   - `shared/design-system/` (new)
+2. USER PERMISSION EXPIRY
+   - `V20260610140000` adds `user_permissions.expires_at`
+   - `AdminUserController` exposes grant/revoke/list permissions
+   - `PermissionService` covers grant + revoke with security guards
 
-3. CONSOLE LAYOUT REFACTOR
-   - New `features/sider/AppLayout.vue` and `features/layout/...` tree
-   - Forum + contest route groups now wrap children with the dockable sidebar
+3. AUDIT LOG FIX
+   - `V20260608120000` aligns `audit_logs.performer_id`
 
-4. MANAGEMENT STORES EXPANSION
-   - `stores/admin/` subfolder with 13 sub-stores
-   - `moderation/moderationStore.ts` (16.7 KB) is the largest stateful store
+4. SHARED THEME PACKAGE
+   - `shared/theme/` added (theme tokens + Vue composable)
+   - Both frontends ship `public/theme-bootstrap.js` (FOUC mitigation)
+   - New `pnpm verify:theme-sync` script validates the bootstrap copy
+     matches the `shared/theme` source-of-truth
 
-5. SECURITY MIGRATION (V20260606130000)
-   - Refresh tokens rotated, seed accounts locked
-   - Mandatory in migration history; do not delete
-
-New Artifacts (since last scan)
--------------------------------
-- docs/CODEMAPS/ (5 files, all rewritten)
-- shared/badge-config/ (new)
-- shared/design-system/ (new)
-- console/src/features/{sider,layout}/ (new folders)
-- console/src/stores/contest/ (new subfolder)
-- management/src/stores/admin/ (new subfolder with 13 stores)
+New Artifacts (since 2026-06-06)
+--------------------------------
+- shared/theme/ (new)
+- console/public/theme-bootstrap.js (new)
+- management/public/theme-bootstrap.js (new)
+- scripts/verify-theme-sync.mjs (new)
+- backend-spring/.../admin/controller/AdminTestCaseController.java (new)
+- backend-spring/.../admin/controller/AdminUserController permission grant/revoke (new)
+- backend-spring/.../problem/entity/TestCase.java (new)
+- backend-spring/.../permission/entity/UserPermission.java + service (new)
+- init-db/migrations/V2026060812_*, V2026061012*, V2026061013*, V2026061014* (4 new)
 
 Staleness Warnings
 ------------------
-- console/src/api/recommendation.ts, console/src/views/recommendations/
-  (4 views), management/src/views/recommendations — orphaned after backend
+- shared/design-system/ contains only style.css; flagged as legacy residual
+  and noted in all 5 codemaps. Cleanup candidate.
+- console/src/api/recommendation.ts, console/src/views/recommendations/,
+  management/src/views/recommendations/ — still orphaned after backend
   module removal; do not call from new code
-- Old `dist/` artefacts in console / management still present from prior
-  builds (gitignored — informational only)
+- docs/RUNBOOK.md, docs/SECURITY_*.md and 19 other report docs are
+  staged for deletion in current worktree (pre-existing, not from this
+  task)
 
 Open Follow-up
 --------------
 1. Remove console/management `recommendation*` API + view files (dead code)
-2. Audit for residual references to `recommend-*` modules in CI workflows
-3. Drop leftover recommendation tables from a future migration
-4. Update AGENTS.md / CLAUDE.md module list to match new 26-module backend
+2. Decide on shared/design-system/ retirement (style.css only)
+3. Update CONTRIBUTING.md PM2 list to include `ulticode-arthas` as 4th app
+   (done in this session under /ecc:update-docs)
+4. Add ENV.md Nacos SERVER_ADDR / NAMESPACE / GROUP entries
+   (done in this session under /ecc:update-docs)

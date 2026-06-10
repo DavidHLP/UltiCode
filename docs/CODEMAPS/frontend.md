@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-06 | Console: 341 Vue + 206 TS | Management: 474 Vue | Token estimate: ~950 -->
+<!-- Generated: 2026-06-10 | Console: 344 Vue + 211 TS | Management: 476 Vue + 234 TS | Token estimate: ~950 -->
 
 # Frontend Architecture
 
@@ -49,7 +49,7 @@ api/
 └── __tests__/  (auth.spec.ts, problem-detail.spec.ts)
 ```
 
-### features/ (new: cross-view layout components)
+### features/ (cross-view layout components)
 ```
 features/
 ├── sider/   AppLayout.vue, AppSidebar.vue, SidebarNav.vue, NavUser.vue,
@@ -84,6 +84,12 @@ features/
 | vitest           | ^4.1.7   | Unit tests                             |
 | eslint           | ^10.4.0  | Lint                                   |
 | typescript       | ~6.0.3   | Type check                             |
+
+### Scripts
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | lint + type-check + format + test + vite |
+| `pnpm verify:theme-sync` | Verify `console/public/theme-bootstrap.js` matches `shared/theme` |
 
 ---
 
@@ -157,6 +163,13 @@ api/
 | typescript       | ~6.0.3   |                                        |
 | Playwright       | latest   | E2E (management only)                  |
 
+### Scripts
+| Command | Purpose |
+| --- | --- |
+| `pnpm validate:i18n-keys` | Validate i18n key consistency across locales |
+| `pnpm check:i18n` | Type-aware i18n key checker |
+| `pnpm verify:theme-sync` | Verify `management/public/theme-bootstrap.js` matches `shared/theme` |
+
 ---
 
 ## Shared packages
@@ -165,4 +178,5 @@ api/
 | ------------------- | ------------------------------------------------------ |
 | `shared/auth-core/` | Cookie utils, CSRF manager, auth state, permission check |
 | `shared/badge-config/` | Achievement / badge token configuration             |
-| `shared/design-system/` | Design tokens, Tailwind theme preset, shared Vue components |
+| `shared/theme/`     | Theme tokens + `applyThemeToDOM` + source of `public/theme-bootstrap.js` |
+| `shared/design-system/` | Legacy: `style.css` only — consolidated under `shared/theme` |

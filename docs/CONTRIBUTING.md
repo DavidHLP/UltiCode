@@ -70,7 +70,7 @@ cd management && pnpm dev
 
 ## Available Commands
 
-<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-06) -->
+<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-10) -->
 
 ### Console Frontend (console/)
 
@@ -83,21 +83,35 @@ cd management && pnpm dev
 | `pnpm type-check` | Run vue-tsc type checker |
 | `pnpm lint` | ESLint with auto-fix |
 | `pnpm format` | Prettier auto-format (no semicolons, single quotes) |
-| `pnpm test` | Vitest unit tests (excludes `**/auth-core/**`) |
+| `pnpm test` | Vitest unit tests (excludes `**/auth-core/**`, `**/shared/theme/**`) |
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:coverage` | Vitest with coverage report |
 | `pnpm validate:mocks` | Validate mock data files |
 | `pnpm validate:mocks:verbose` | Validate mock data (verbose output) |
 | `pnpm validate:mocks:strict` | Validate mock data (strict mode) |
+| `pnpm verify:theme-sync` | Verify `console/public/theme-bootstrap.js` matches `shared/theme` |
 
 ### Management Frontend (management/)
 
-Same scripts as console, plus:
+Same scripts as console (except `validate:mocks*`), plus:
 
 | Command | Description |
 |---------|-------------|
 | `pnpm validate:i18n-keys` | Validate i18n key consistency across locales |
 | `pnpm check:i18n` | Type-aware i18n key checker |
+| `pnpm verify:theme-sync` | Verify `management/public/theme-bootstrap.js` matches `shared/theme` |
+
+### Shared Packages (shared/auth-core/, shared/theme/)
+
+Both `@ulticode/auth-core` and `@ulticode/theme` expose the same script set:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm type-check` | `tsc --noEmit` |
+| `pnpm test` | Vitest unit tests (single run) |
+| `pnpm test:watch` | Vitest in watch mode |
+
+`shared/badge-config` ships source-only — no scripts.
 
 ### Backend (backend-spring/)
 

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-06 | Java files: 667 | Controllers: 43 | Modules: 26 | Token estimate: ~950 -->
+<!-- Generated: 2026-06-10 | Java files: 708 | Controllers: 41 | Modules: 26 | Token estimate: ~950 -->
 
 # Backend Architecture
 
@@ -20,8 +20,8 @@ modules/
 ├── moderation/       → /moderation
 ├── monitoring/       → /monitoring
 ├── notification/     → /notifications
-├── permission/       → (entity/service only, no REST)
-├── problem/          → /problems, /admin/problems (+ versions)
+├── permission/       → (entity/service only, no REST; backs admin user-permission endpoints)
+├── problem/          → /problems, /admin/problems (+ versions + test_cases)
 ├── problemlist/      → /problem-lists
 ├── queue/            → (background job processors, no REST)
 ├── refreshtoken/     → (entity/service only, no REST)
@@ -39,7 +39,7 @@ modules/
 > API directories remain in console/management but are no longer backed by
 > server endpoints — flagged as **orphan / dead code** for follow-up cleanup.
 
-## Controllers (43)
+## Controllers (41)
 
 ```
 admin/        : 15  (Account, Analytics, Comment, Forum, Notification, Problem,
@@ -78,6 +78,10 @@ GET/POST /admin/forum, /admin/comments, /admin/tags
 GET/POST /admin/settings, /admin/notifications, /admin/backups
 GET/POST /admin/analytics, /admin/audit, /admin/dashboard
 GET/POST /admin/subscriptions
+GET/POST /admin/test-cases                                    [new 2026-06-10]
+POST /admin/users/{id}/permissions/grant                      [new 2026-06-10]
+POST /admin/users/{id}/permissions/revoke                     [new 2026-06-10]
+GET  /admin/users/{id}/permissions                            [new 2026-06-10]
 GET  /admin/problems/{id}/versions
 GET  /admin/problems/{id}/versions/{versionId}
 GET  /admin/problems/{id}/versions/{from}/diff/{to}

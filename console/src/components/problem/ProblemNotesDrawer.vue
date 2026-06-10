@@ -29,7 +29,7 @@ onMounted(async () => {
       content.value = res.content;
     }
   } catch (e: unknown) {
-    const status = (e as any)?.response?.status;
+    const status = (e as { response?: { status?: number } })?.response?.status;
     if (status === 404) {
       endpointMissing.value = true;
     } else {

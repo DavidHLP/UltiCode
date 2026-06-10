@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
-import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
+import { resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
 import { ThumbsUp, Eye, MessageSquare } from "lucide-vue-next";

@@ -169,7 +169,7 @@ const groupFencesPlugin = (md: MarkdownIt) => {
 md.use(groupFencesPlugin);
 
 // Custom header open renderer to inject dynamic heading IDs for scroll-spy / TOC
-const defaultHeadingOpen = md.renderer.rules.heading_open || function (tokens, idx, options, env, self) {
+const defaultHeadingOpen = md.renderer.rules.heading_open || function (tokens, idx, options, _env, self) {
   return self.renderToken(tokens, idx, options);
 };
 
@@ -193,7 +193,7 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
 };
 
 // Custom fence renderer to add toolbar and copy buttons to standalone code blocks
-md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+md.renderer.rules.fence = (tokens, idx, options) => {
   const token = tokens[idx];
   const langName = token.info ? token.info.trim().split(/\s+/)[0] : "text";
   const content = token.content;

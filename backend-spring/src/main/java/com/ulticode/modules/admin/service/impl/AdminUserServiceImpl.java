@@ -25,6 +25,9 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +36,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -421,6 +425,111 @@ public class AdminUserServiceImpl implements AdminUserService {
         return results;
     }
 
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.GRANT_PERMISSION,
+             entityType = AuditActionUtil.ENTITY_PERMISSION,
+             userIdFrom = "id")
+    public AdminUserVO assignUserPermission(String id, String action, String resource,
+                                            LocalDateTime expiresAt) {
+        // HIGH-1 守卫:授予 MANAGE_PERMISSIONS:SYSTEM 必须 SUPER_ADMIN,
+        // 避免普通 ADMIN 通过授权他人权限间接放大自己的权限。
+        requireSuperAdminForManagePermissionsSystem(action, resource);
+
+        return performPermissionChange(id, action, resource, expiresAt, false);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.REVOKE_PERMISSION,
+             entityType = AuditActionUtil.ENTITY_PERMISSION,
+             userIdFrom = "id")
+    public AdminUserVO revokeUserPermission(String id, String action, String resource) {
+        // 撤销 MANAGE_PERMISSIONS:SYSTEM 同样限制为 SUPER_ADMIN,
+        // 防止 ADMIN 撤销他人 SUPER_ADMIN 权限导致锁死。
+        requireSuperAdminForManagePermissionsSystem(action, resource);
+
+        return performPermissionChange(id, action, resource, null, true);
+    }
+
+    /**
+     * MEDIUM-5 抽取:assign / revoke 公共逻辑(user 存在性 + before snapshot +
+     * AuditContext + 委托底层 + 返回最新 VO)。isRevoke 决定调哪个底层方法
+     * 以及 newValues 中写 removed 还是 grantedAt。
+     */
+    private AdminUserVO performPermissionChange(String id, String action, String resource,
+                                                 LocalDateTime expiresAt, boolean isRevoke) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // 抓 before 状态供审计 (expiresAt 可为 null,Map.of 禁用,改用 HashMap)
+        UserPermission before = permissionService.getUserPermissions(id).stream()
+            .filter(p -> action.equals(p.getAction()) && resource.equals(p.getResource()))
+            .findFirst()
+            .orElse(null);
+
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("action", action);
+        oldValues.put("resource", resource);
+        oldValues.put("expiresAt", before != null && before.getExpiresAt() != null
+            ? before.getExpiresAt() : "");
+        oldValues.put("grantedAt", before != null && before.getGrantedAt() != null
+            ? before.getGrantedAt() : "");
+        AuditContext.setOldValues(oldValues);
+
+        boolean removed;
+        if (isRevoke) {
+            removed = permissionService.revokePermission(id, action, resource);
+        } else {
+            permissionService.assignPermission(id, action, resource, expiresAt);
+            removed = false;
+        }
+
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("action", action);
+        newValues.put("resource", resource);
+        if (isRevoke) {
+            newValues.put("removed", removed);
+        } else {
+            newValues.put("expiresAt", expiresAt != null ? expiresAt : "");
+            newValues.put("grantedAt", LocalDateTime.now());
+        }
+        AuditContext.setNewValues(newValues);
+
+        if (isRevoke && !removed) {
+            log.info("Revoke no-op (permission not present): user={} {}:{}",
+                id, action, resource);
+        } else if (!isRevoke) {
+            log.info("Permission assigned: user={} {}:{} expiresAt={}",
+                id, action, resource, expiresAt);
+        }
+        return getUserById(id);
+    }
+
+    /**
+     * HIGH-1:MANAGE_PERMISSIONS:SYSTEM 是「管理他人权限」能力,属于特权操作,
+     * 与 deleteUser / bulkDelete 一致仅 SUPER_ADMIN 可执行。
+     * 当前 actor 不是 SUPER_ADMIN 时直接抛 FORBIDDEN。
+     */
+    private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {
+        boolean isManagePermissionsSystem =
+            "MANAGE_PERMISSIONS".equals(action) && "SYSTEM".equals(resource);
+        if (!isManagePermissionsSystem) {
+            return;
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth != null
+            && auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_SUPER_ADMIN"::equals);
+        if (!isSuperAdmin) {
+            throw new BusinessException(ErrorCode.FORBIDDEN,
+                "Granting/revoking MANAGE_PERMISSIONS:SYSTEM requires SUPER_ADMIN role");
+        }
+    }
+
     /**
      * Convert User entity to AdminUserVO (basic fields only)
      */
@@ -461,30 +570,48 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private void populatePermissions(AdminUserVO vo, String userId, String role) {
         List<AdminUserVO.PermissionInfo> permissions = new ArrayList<>();
-
         if (StringUtils.hasText(role)) {
-            List<RolePermission> rolePerms = rolePermissionMapper.selectList(
-                new LambdaQueryWrapper<RolePermission>()
-                    .eq(RolePermission::getRole, role));
-            for (RolePermission rp : rolePerms) {
-                AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-                info.setAction(rp.getAction());
-                info.setResource(rp.getResource());
-                info.setSource("role");
-                info.setExpiresAt(null);
-                permissions.add(info);
-            }
+            populateRolePermissions(permissions, role);
         }
+        populateDirectPermissions(permissions, userId);
+        vo.setPermissions(permissions);
+    }
 
+    /**
+     * LOW-3:从 populatePermissions 拆出,处理 role 权限。role 权限不带过期时间。
+     */
+    private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
+        List<RolePermission> rolePerms = rolePermissionMapper.selectList(
+            new LambdaQueryWrapper<RolePermission>()
+                .eq(RolePermission::getRole, role));
+        for (RolePermission rp : rolePerms) {
+            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
+            info.setAction(rp.getAction());
+            info.setResource(rp.getResource());
+            info.setSource("role");
+            info.setExpiresAt(null);
+            sink.add(info);
+        }
+    }
+
+    /**
+     * LOW-3:从 populatePermissions 拆出,处理 user 直接权限。过滤已过期项,避免 UI 显示无效授权。
+     */
+    private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
         List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
+        LocalDateTime now = LocalDateTime.now();
         for (UserPermission up : userPerms) {
+            // 过滤已过期的直接权限,避免 UI 显示无效授权
+            if (up.getExpiresAt() != null && !up.getExpiresAt().isAfter(now)) {
+                continue;
+            }
             AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
             info.setAction(up.getAction());
             info.setResource(up.getResource());
             info.setSource("direct");
-            info.setExpiresAt(null);
-            permissions.add(info);
+            // 修复: 之前硬编码 null 导致 VO 始终看不到 expiresAt
+            info.setExpiresAt(up.getExpiresAt());
+            sink.add(info);
         }
-        vo.setPermissions(permissions);
     }
 }

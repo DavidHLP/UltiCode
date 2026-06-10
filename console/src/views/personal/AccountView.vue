@@ -31,7 +31,7 @@ import {
 } from "lucide-vue-next";
 import {
   fetchUserProfile,
-  updateUserProfile,
+  updateMyProfile,
   type UserProfile,
 } from "@/api/user";
 import {
@@ -81,7 +81,7 @@ const saveProfile = async () => {
   if (!user.value) return;
   saving.value = true;
   try {
-    await updateUserProfile(user.value.id, user.value);
+    await updateMyProfile(user.value);
     toast.success(t("personal.messages.profileUpdated"));
   } catch (error) {
     console.error("Failed to update profile", error);

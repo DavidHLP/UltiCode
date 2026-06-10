@@ -9,7 +9,7 @@ export const useUserStatsStore = defineStore("userStats", () => {
   const skills = ref<UserSkills | null>(null);
   const loading = ref(false);
   const lastFetch = ref<number>(0);
-  const cacheTTL = 5 * 60 * 1000; // 5 minutes
+  const cacheTTL = 5 * 60 * 1000; // 5 分钟
   const error = ref<string | null>(null);
 
   // Computed properties

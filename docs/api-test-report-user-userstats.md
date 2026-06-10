@@ -398,6 +398,26 @@ curl -s -X PATCH $BASE/users/me -H "X-CSRF-Token: $CSRF" \
 
 ---
 
+## 修复进度 (2026-06-10)
+
+5 项缺陷在 PR `fix/user-api-defects-from-test-report` 中全部修复，验证完成：
+
+| # | 严重度 | 缺陷 | Commit | 状态 | 验证方式 |
+|---|--------|------|--------|------|---------|
+| 1 | 🔴 Critical | NoSuchMethodError | `9cf5e18f6 fix(backend): rebuild to restore Lombok-generated methods` | ✅ | javap 验证 `getCount` 复现 + 4 个原 500 端点 200 |
+| 2 | 🔴 High | PATCH /users/{userId} 错配 | `80cd482d4 fix(console): rename updateUserProfile to updateMyProfile` | ✅ | type-check 0 错, 241/241 测试过, build OK |
+| 3 | 🟡 Medium | userStatsApi 重复 | `880a9df9b refactor(console): consolidate userStatsApi into api/user.ts` | ✅ | type-check 0 错, 241/241 测试过, build OK |
+| 4 | 🟢 Low | /v3/api-docs 500 | 同 #1 | ✅ | `curl /v3/api-docs` → 200 |
+| 5 | 🟢 Low | UserProfile.bio 必填 | `713b5a763 fix(console): make UserProfile.bio and email optional` | ✅ | type-check 0 错, 241/241 测试过, build OK |
+
+**误诊说明**：原报告"UpdateUserDTO 缺 @Size"为误诊断。`UpdateUserDTO.bio` 实际已有 `@Size(max=5000)`（源文件 line 36），1000 字符本就应通过；当时表象源于 Lombok 失效导致 Jackson 反序列化绕过校验路径，重建后行为正常。UpdateUserDTO 本身未改动。
+
+**回归测试**：user 模块单测 28 个全部通过 (BUILD SUCCESS)；console 端 241/241 通过 + type-check 0 错 + build OK。management / shared/auth-core / DB schema 全部未改动。
+
+**端到端冒烟脚本**：`scripts/dev/api-smoke-user.sh`（详见上文"端到端复现脚本"段），覆盖全部 5 个 user/userStats 端点 + PATCH /users/me。
+
+---
+
 ## 附录 A: 报告元信息
 
 - 测试会话 ID: `session-2026-06-10-ulticode-user-api`

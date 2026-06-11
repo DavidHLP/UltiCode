@@ -5,7 +5,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Notification preference entity - matches notification_preferences table in Prisma schema.
+ * Notification preference entity - matches notification_preferences table.
+ *
+ * <p>Field {@code systemEnabled} maps to the {@code system_enabled} column.
+ * The original column name {@code system} collided with MySQL 9.x reserved
+ * keyword and was renamed via {@code V20260611120000}.
  */
 @Data
 @TableName("notification_preferences")
@@ -17,7 +21,9 @@ public class NotificationPreference {
     private Boolean communication;
     private Boolean marketing;
     private Boolean security;
-    private Boolean system;
+
+    @TableField("system_enabled")
+    private Boolean systemEnabled;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

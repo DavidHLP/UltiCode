@@ -1,6 +1,7 @@
 package com.ulticode.modules.achievement.listener;
 
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 public class AchievementNotificationListener {
 
     private final NotificationService notificationService;
+    private final NotificationDispatchService notificationDispatchService;
     private final RealtimeService realtimeService;
 
     /**
@@ -35,14 +37,18 @@ public class AchievementNotificationListener {
         try {
             String tierStr = getTierString(event.achievementTier());
 
-            notificationService.createNotification(
+            // Q20: use the dispatch service. "badge_earned" is not a known
+            // category so the switch falls through to enabled by default;
+            // achievements remain visible to all users.
+            notificationDispatchService.dispatch(
                     event.userId(),
                     "achievement",
                     "badge_earned",
                     "Achievement Earned: " + event.achievementName(),
                     event.achievementDescription() + " - " + tierStr + " badge, +" + event.points() + " points",
                     "/achievements",
-                    null
+                    null,
+                    false
             );
 
             // Also push via WebSocket (per D-05)

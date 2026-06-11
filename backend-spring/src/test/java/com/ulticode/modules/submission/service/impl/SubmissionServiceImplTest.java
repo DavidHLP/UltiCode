@@ -53,6 +53,7 @@ class SubmissionServiceImplTest {
     @Mock private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
     @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     @Mock private com.ulticode.modules.notification.service.NotificationService notificationService;
+    @Mock private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
 
     private SubmissionServiceImpl submissionService;
 
@@ -67,7 +68,7 @@ class SubmissionServiceImplTest {
                 submissionMapper, userMapper, problemMapper, objectMapper, queueService,
                 realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
-                notificationService);
+                notificationService, notificationDispatchService);
     }
 
     private Submission createValidSubmission() {
@@ -352,7 +353,7 @@ class SubmissionServiceImplTest {
 
             submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
 
-            verify(notificationService).createNotification(
+            verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
                     eq("SUBMISSION"),
                     eq("SYSTEM"),
@@ -361,7 +362,7 @@ class SubmissionServiceImplTest {
                     eq("/submissions/sub-123"),
                     argThat(map -> map.containsKey("submissionId")
                             && map.containsKey("isAccepted")
-                            && Boolean.TRUE.equals(map.get("isAccepted"))));
+                            && Boolean.TRUE.equals(map.get("isAccepted"))), eq(false));
         }
 
         @Test
@@ -432,7 +433,7 @@ class SubmissionServiceImplTest {
 
             submissionService.updateSubmissionResult("sub-123", "Wrong Answer", 50, 128.0, List.of());
 
-            verify(notificationService).createNotification(
+            verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
                     eq("SUBMISSION"),
                     eq("SYSTEM"),
@@ -441,7 +442,7 @@ class SubmissionServiceImplTest {
                     eq("/submissions/sub-123"),
                     argThat(map -> map.containsKey("submissionId")
                             && map.containsKey("isAccepted")
-                            && Boolean.FALSE.equals(map.get("isAccepted"))));
+                            && Boolean.FALSE.equals(map.get("isAccepted"))), eq(false));
         }
 
         @Test
@@ -452,9 +453,9 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
             doThrow(new RuntimeException("DB error"))
-                    .when(notificationService).createNotification(
+                    .when(notificationDispatchService).dispatch(
                             anyString(), anyString(), anyString(), anyString(),
-                            anyString(), anyString(), any(Map.class));
+                            anyString(), anyString(), any(Map.class), anyBoolean());
 
             // Should not throw
             submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());

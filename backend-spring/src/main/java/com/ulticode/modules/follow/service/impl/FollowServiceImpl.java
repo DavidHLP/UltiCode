@@ -92,8 +92,11 @@ public class FollowServiceImpl implements FollowService {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        followMapper.deleteRelation(currentUserId, targetUserId);
-        log.info("User {} unfollowed user {}", currentUserId, targetUserId);
+        if (followMapper.deleteIfExists(currentUserId, targetUserId) > 0) {
+            log.info("User {} unfollowed user {}", currentUserId, targetUserId);
+        } else {
+            log.debug("User {} already not following {}, skip", currentUserId, targetUserId);
+        }
 
         FollowStatsDTO stats = getFollowStats(targetUserId);
 
@@ -214,6 +217,12 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     public boolean isFollowing(String currentUserId, String targetUserId) {
+        if (currentUserId.equals(targetUserId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot query follow status of yourself");
+        }
+        if (userMapper.selectById(targetUserId) == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
         return followMapper.exists(currentUserId, targetUserId);
     }
 

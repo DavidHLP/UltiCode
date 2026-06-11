@@ -11,6 +11,8 @@ import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
+import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.achievement.service.impl.AchievementServiceImpl;
 import com.ulticode.modules.achievement.service.impl.AchievementTriggerServiceImpl;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
@@ -44,6 +46,12 @@ class AchievementServiceTest {
 
     @Mock
     private UserAchievementMapper userAchievementMapper;
+
+    @Mock
+    private SubmissionMapper submissionMapper;
+
+    @Mock
+    private ContestParticipantMapper contestParticipantMapper;
 
     @Mock
     private RealtimeService realtimeService;
@@ -96,6 +104,23 @@ class AchievementServiceTest {
         return dto;
     }
 
+    private Achievement createAchievementWithCriteria(String key, String type, int target) {
+        Achievement a = new Achievement();
+        a.setId("ach-" + key);
+        a.setKey(key);
+        a.setName("Name " + key);
+        a.setDescription("Desc " + key);
+        a.setCategory("problems");
+        a.setTier(1);
+        a.setPoints(10);
+        a.setIsActive(true);
+        Map<String, Object> criteria = new HashMap<>();
+        criteria.put("type", type);
+        criteria.put("target", target);
+        a.setCriteria(criteria);
+        return a;
+    }
+
     // ==================== AchievementServiceImpl Tests ====================
 
     @Nested
@@ -137,6 +162,73 @@ class AchievementServiceTest {
             BusinessException exception = assertThrows(BusinessException.class,
                     () -> achievementServiceImpl.create(dto));
             assertEquals(ErrorCode.CONFLICT.getCode(), exception.getCode());
+        }
+
+        // ==================== getUserAchievements progress (LOW #5) ====================
+        // Achievement criteria.type → SubmissionMapper counter, replacing the
+        // previously hard-coded dto.setProgress(0). See Task 4 in
+        // docs/.claude/PRPs/plans/achievement-api-fixes.plan.md.
+    }
+
+    @Nested
+    @DisplayName("AchievementServiceImpl#getUserAchievements progress tests")
+    class GetUserAchievementsProgressTests {
+
+        @Test
+        @DisplayName("problems_solved criteria → progress = countAcceptedProblemsByUserId")
+        void progress_fromProblemsSolved() {
+            Achievement a = createAchievementWithCriteria("ps", "problems_solved", 10);
+            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
+            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(7L);
+            when(submissionMapper.countByUserId(USER_ID)).thenReturn(20L);
+
+            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
+
+            assertEquals(1, result.size());
+            assertEquals(7, result.get(0).getProgress(),
+                    "progress must equal countAcceptedProblemsByUserId for problems_solved criteria");
+            assertEquals(10, result.get(0).getTarget());
+            assertFalse(result.get(0).getEarned());
+            verify(submissionMapper).countAcceptedProblemsByUserId(USER_ID);
+        }
+
+        @Test
+        @DisplayName("submissions_made criteria → progress = countByUserId")
+        void progress_fromSubmissionsMade() {
+            Achievement a = createAchievementWithCriteria("sm", "submissions_made", 100);
+            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
+            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(3L);
+            when(submissionMapper.countByUserId(USER_ID)).thenReturn(42L);
+
+            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
+
+            assertEquals(1, result.size());
+            assertEquals(42, result.get(0).getProgress(),
+                    "progress must equal countByUserId for submissions_made criteria");
+            assertEquals(100, result.get(0).getTarget());
+        }
+
+        @Test
+        @DisplayName("null criteria → progress=0, target=0 (does not throw)")
+        void progress_nullCriteria_zero() {
+            Achievement a = new Achievement();
+            a.setId("ach-null");
+            a.setKey("no_criteria");
+            a.setName("No criteria");
+            a.setIsActive(true);
+            a.setCriteria(null);
+            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
+            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(0L);
+            when(submissionMapper.countByUserId(USER_ID)).thenReturn(0L);
+
+            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
+
+            assertEquals(1, result.size());
+            assertEquals(0, result.get(0).getProgress());
+            assertEquals(0, result.get(0).getTarget());
         }
 
         @Test

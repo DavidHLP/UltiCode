@@ -15,7 +15,8 @@ public class Achievement {
     @TableId(type = IdType.ASSIGN_UUID)
     private String id;
 
-    /** Unique key for the achievement */
+    /** Unique key for the achievement (MySQL reserved word; column backticked via @TableField) */
+    @TableField(value = "`key`")
     private String key;
 
     /** Display name of the achievement */

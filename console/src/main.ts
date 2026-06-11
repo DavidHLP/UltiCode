@@ -44,7 +44,7 @@ async function bootstrap() {
 
   // Initialize auth context BEFORE auth store
   // This sets up global auth error handling
-  const { initializeAuthContext, onSessionExpired } =
+  const { initializeAuthContext, onSessionExpired, getSessionExpiredCallback } =
     await import("@/contexts/AuthContext");
   initializeAuthContext();
 
@@ -57,6 +57,17 @@ async function bootstrap() {
         router.push("/login");
       }
     }, 100);
+  });
+
+  // Bridge shared/auth-core's 401-refresh-failed signal into the existing
+  // session-expired flow. The shared interceptor handles 401 → refresh →
+  // replay; if refresh itself fails it calls onAuthFailure, which we forward
+  // to the same callback that the legacy 401/403 path uses. Single
+  // source of truth for "session is gone" UX.
+  const { setOnAuthFailure } = await import("@/shared/auth-core/src");
+  setOnAuthFailure(() => {
+    const cb = getSessionExpiredCallback();
+    if (cb) cb();
   });
 
   // Initialize auth store AFTER auth context is ready

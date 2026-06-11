@@ -65,6 +65,25 @@ async function bootstrap() {
     // Continue anyway - app will render with unauthenticated state
   }
 
+  // Register auth-failure handler for shared/auth-core's 401-refresh path.
+  // Currently `csrfInterceptors` in request.ts is created WITHOUT a
+  // refreshAccessToken callback, so the shared interceptor's 401 branch
+  // never triggers `triggerAuthFailure` — this handler is a no-op today.
+  // It is registered anyway so that when management's request.ts is
+  // updated to pass `createRefreshAccessToken(...)` (follow-up), the
+  // existing 401 → clearUser + push('/login') behavior moves into here
+  // with zero new code.
+  const { setOnAuthFailure } = await import('@/shared/auth-core/src')
+  setOnAuthFailure(async () => {
+    const store = useAuthStore()
+    if (store.isAuthenticated) {
+      store.clearUser()
+    }
+    if (router.currentRoute.value.name !== 'login') {
+      router.push('/login')
+    }
+  })
+
   // Now install router (auth status is already determined)
   app.use(router)
 

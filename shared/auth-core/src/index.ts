@@ -47,3 +47,18 @@ export {
   WILDCARD_PERMISSION,
   Permissions,
 } from './permission';
+
+// 401 auto-refresh coordinator
+export {
+  createRefreshAccessToken,
+  _resetRefreshCoordinator,
+  type RefreshResponse,
+} from './refreshCoordinator';
+export { rawAxios } from './rawAxios';
+export {
+  setOnAuthFailure,
+  clearOnAuthFailure,
+  triggerAuthFailure,
+  type AuthFailureReason,
+  type AuthFailureHandler,
+} from './auth-failure';

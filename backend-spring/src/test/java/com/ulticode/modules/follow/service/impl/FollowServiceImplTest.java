@@ -3,6 +3,7 @@ package com.ulticode.modules.follow.service.impl;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.mapper.FollowMapper;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -12,6 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,6 +37,9 @@ class FollowServiceImplTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private NotificationDispatchService notificationDispatchService;
+
     private FollowServiceImpl followService;
 
     private User testUser;
@@ -43,7 +50,8 @@ class FollowServiceImplTest {
             followMapper,
             userMapper,
             achievementTriggerService,
-            notificationService
+            notificationService,
+            notificationDispatchService
         );
 
         testUser = new User();
@@ -53,8 +61,8 @@ class FollowServiceImplTest {
     }
 
     @Test
-    @DisplayName("follow creates notification on first follow")
-    void follow_firstFollow_createsNotification() {
+    @DisplayName("follow dispatches notification on first follow (Q20 wiring)")
+    void follow_firstFollow_dispatchesNotification() {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
@@ -63,24 +71,31 @@ class FollowServiceImplTest {
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(false);
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
+        when(notificationDispatchService.dispatch(
+                eq(targetUserId), eq("FOLLOW"), eq("COMMUNICATION"),
+                anyString(), anyString(), anyString(), any(), eq(false)))
+            .thenReturn(Optional.empty());
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
 
         assertThat(result).isNotNull();
-        verify(notificationService).createNotification(
+        verify(notificationDispatchService).dispatch(
             eq(targetUserId),
             eq("FOLLOW"),
             eq("COMMUNICATION"),
             eq("alice followed you"),
             eq(""),
             eq("/profile/alice"),
-            isNull()
+            isNull(),
+            eq(false)
         );
+        // The legacy createNotification path is no longer called.
+        verifyNoInteractions(notificationService);
     }
 
     @Test
-    @DisplayName("follow does NOT create notification when already following")
-    void follow_alreadyFollowing_doesNotCreateNotification() {
+    @DisplayName("follow does NOT dispatch when already following")
+    void follow_alreadyFollowing_doesNotDispatch() {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
@@ -89,17 +104,16 @@ class FollowServiceImplTest {
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
 
-        FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
+        followService.follow(currentUserId, targetUserId);
 
-        assertThat(result).isNotNull();
-        verify(notificationService, never()).createNotification(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()
+        verify(notificationDispatchService, never()).dispatch(
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()
         );
     }
 
     @Test
-    @DisplayName("follow succeeds even if notification creation throws")
-    void follow_notificationThrows_doesNotBreakFollow() {
+    @DisplayName("follow succeeds even if dispatch throws")
+    void follow_dispatchThrows_doesNotBreakFollow() {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
@@ -109,22 +123,19 @@ class FollowServiceImplTest {
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
 
-        doThrow(new RuntimeException("Notification service unavailable"))
-            .when(notificationService).createNotification(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), isNull()
+        doThrow(new RuntimeException("Dispatch service unavailable"))
+            .when(notificationDispatchService).dispatch(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(), anyBoolean()
             );
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
 
         assertThat(result).isNotNull();
-        verify(notificationService).createNotification(
+        verify(notificationDispatchService).dispatch(
             eq(targetUserId),
             eq("FOLLOW"),
             eq("COMMUNICATION"),
-            eq("alice followed you"),
-            eq(""),
-            eq("/profile/alice"),
-            isNull()
+            anyString(), anyString(), anyString(), any(), eq(false)
         );
     }
 

@@ -18,6 +18,12 @@ public class ParticipationStatusDTO {
     private String contestId;
 
     /**
+     * Virtual session ID (only for virtual contests; null for regular contests).
+     * Frontend uses this to call virtual/finish.
+     */
+    private String id;
+
+    /**
      * Contest title
      */
     private String title;
@@ -48,9 +54,21 @@ public class ParticipationStatusDTO {
     private LocalDateTime startTime;
 
     /**
-     * Contest end time
+     * Contest end time.
+     *
+     * @deprecated Since 2026-06-11 the frontend's {@code VirtualContestSession} type
+     *             uses {@link #endsAt} (ISO string). Retain {@code endTime} for
+     *             MapStruct compatibility with {@code ContestVO.contest.endTime};
+     *             remove in a future breaking-change release.
      */
+    @Deprecated
     private LocalDateTime endTime;
+
+    /**
+     * When the virtual session ends (=endTime, exposed as ISO string for frontend).
+     * Frontend's VirtualContestSession type uses this field name.
+     */
+    private LocalDateTime endsAt;
 
     /**
      * User's ranking in the contest

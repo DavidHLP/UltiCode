@@ -179,12 +179,14 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
         ParticipationStatusDTO status = new ParticipationStatusDTO();
         status.setContestId(contestId);
+        status.setId(participant.getVirtualSessionId());
         status.setTitle(contest.getTitle());
         status.setStatus(participant.getStatus().toLowerCase());
         status.setRegisteredAt(participant.getRegisteredAt());
         status.setStartedAt(participant.getStartedAt());
         status.setStartTime(participant.getStartedAt());
         status.setEndTime(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
+        status.setEndsAt(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
         status.setHasStarted(true);
         status.setIsActive(ContestParticipantStatus.STARTED.name().equals(participant.getStatus()));
         status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(participant.getStatus()));
@@ -199,13 +201,26 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
         ContestParticipant participant = participantOpt.get();
         if (!Boolean.TRUE.equals(participant.getIsVirtual())) throw new BusinessException(ErrorCode.CONTEST_NOT_REGISTERED);
-        if (!sessionId.equals(participant.getVirtualSessionId())) throw new BusinessException(ErrorCode.BAD_REQUEST);
+
+        // sessionId is optional. If absent, fall back to the participant's stored
+        // virtualSessionId (single active session per user per contest, so unambiguous).
+        // If present, validate it matches to defend against tampering.
+        if (sessionId != null && !sessionId.isBlank()
+                && !sessionId.equals(participant.getVirtualSessionId())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid virtual session id");
+        }
+        String effectiveSessionId = (sessionId == null || sessionId.isBlank())
+                ? participant.getVirtualSessionId()
+                : sessionId;
+        if (effectiveSessionId == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "No active virtual session");
+        }
 
         participant.setStatus(ContestParticipantStatus.FINISHED.name());
         participant.setFinishedAt(LocalDateTime.now());
         participantMapper.updateById(participant);
 
-        log.info("User {} finished virtual contest {} session {}", userId, contestId, sessionId);
+        log.info("User {} finished virtual contest {} session {}", userId, contestId, effectiveSessionId);
     }
 
     private ContestVO toContestVO(Contest contest, String userId) {

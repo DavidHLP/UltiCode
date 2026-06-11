@@ -1,0 +1,186 @@
+package com.ulticode.modules.contest.service.impl;
+
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
+import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestParticipant;
+import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
+import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Focused unit tests for the new behaviour added in 2026-06-11
+ * (see PR `fix/contest-api-contracts`):
+ *  - {@link ContestSchedulerServiceImpl#getVirtualSession} populates
+ *    {@code id} and {@code endsAt} fields.
+ *  - {@link ContestSchedulerServiceImpl#finishVirtualContest} accepts a null
+ *    or blank sessionId and falls back to the stored virtualSessionId.
+ *
+ * These tests use Mockito only (no @WebMvcTest) to keep the test surface
+ * minimal and avoid coupling with other pre-existing test files.
+ */
+class ContestSchedulerServiceImplVirtualSessionTest {
+
+    private ContestMapper contestMapper;
+    private ContestParticipantMapper participantMapper;
+    private ContestSchedulerServiceImpl service;
+
+    private static final String CONTEST_ID = "contest-finished-001";
+    private static final String USER_ID = "user-001";
+    private static final int DURATION_MIN = 150;
+
+    @BeforeEach
+    void setUp() {
+        contestMapper = mock(ContestMapper.class);
+        participantMapper = mock(ContestParticipantMapper.class);
+        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper);
+    }
+
+    private ContestParticipant buildVirtualParticipant(String sessionId) {
+        ContestParticipant p = new ContestParticipant();
+        p.setContestId(CONTEST_ID);
+        p.setUserId(USER_ID);
+        p.setIsVirtual(true);
+        p.setVirtualSessionId(sessionId);
+        p.setStatus(ContestParticipantStatus.STARTED.name());
+        p.setRegisteredAt(LocalDateTime.now().minusHours(1));
+        p.setStartedAt(LocalDateTime.now().minusHours(1));
+        return p;
+    }
+
+    private Contest buildContest() {
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setTitle("Test Contest");
+        c.setDurationMinutes(DURATION_MIN);
+        return c;
+    }
+
+    // ============================================================
+    // getVirtualSession — id + endsAt
+    // ============================================================
+
+    @Test
+    @DisplayName("getVirtualSession populates id and endsAt with stored virtualSessionId")
+    void getVirtualSession_populatesIdAndEndsAt() {
+        String sessionUuid = UUID.randomUUID().toString();
+        ContestParticipant p = buildVirtualParticipant(sessionUuid);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest());
+
+        ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(sessionUuid);
+        assertThat(result.getEndsAt()).isNotNull();
+        assertThat(result.getEndsAt()).isEqualTo(result.getEndTime());
+    }
+
+    @Test
+    @DisplayName("getVirtualSession returns null for non-virtual participant")
+    void getVirtualSession_returnsNullForNonVirtual() {
+        ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
+        p.setIsVirtual(false);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    @DisplayName("getVirtualSession returns null when participant not found")
+    void getVirtualSession_returnsNullWhenNotFound() {
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.empty());
+
+        ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
+
+        assertThat(result).isNull();
+    }
+
+    // ============================================================
+    // finishVirtualContest — sessionId fallback + validation
+    // ============================================================
+
+    @Test
+    @DisplayName("finishVirtualContest accepts null sessionId and falls back to stored")
+    void finishVirtualContest_acceptsNullSessionId() {
+        String storedUuid = UUID.randomUUID().toString();
+        ContestParticipant p = buildVirtualParticipant(storedUuid);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        // Should not throw — null sessionId is allowed
+        service.finishVirtualContest(CONTEST_ID, null, USER_ID);
+
+        assertThat(p.getStatus()).isEqualTo(ContestParticipantStatus.FINISHED.name());
+        assertThat(p.getFinishedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("finishVirtualContest accepts blank sessionId and falls back to stored")
+    void finishVirtualContest_acceptsBlankSessionId() {
+        String storedUuid = UUID.randomUUID().toString();
+        ContestParticipant p = buildVirtualParticipant(storedUuid);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        service.finishVirtualContest(CONTEST_ID, "  ", USER_ID);
+
+        assertThat(p.getStatus()).isEqualTo(ContestParticipantStatus.FINISHED.name());
+    }
+
+    @Test
+    @DisplayName("finishVirtualContest accepts matching sessionId")
+    void finishVirtualContest_acceptsMatchingSessionId() {
+        String storedUuid = UUID.randomUUID().toString();
+        ContestParticipant p = buildVirtualParticipant(storedUuid);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        service.finishVirtualContest(CONTEST_ID, storedUuid, USER_ID);
+
+        assertThat(p.getStatus()).isEqualTo(ContestParticipantStatus.FINISHED.name());
+    }
+
+    @Test
+    @DisplayName("finishVirtualContest rejects mismatched sessionId with 400")
+    void finishVirtualContest_rejectsMismatchedSessionId() {
+        ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, "wrong-uuid", USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
+    }
+
+    @Test
+    @DisplayName("finishVirtualContest rejects non-virtual participant with CONTEST_NOT_REGISTERED")
+    void finishVirtualContest_rejectsNonVirtual() {
+        ContestParticipant p = buildVirtualParticipant(UUID.randomUUID().toString());
+        p.setIsVirtual(false);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, null, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_REGISTERED);
+    }
+}

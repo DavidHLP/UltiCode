@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { fetchLearningProgress } from "@/api/submission";
 import type { LearningProgress } from "@/api/submission";
+import { withSafeChartAnimation } from "./chartOptions";
 
 const { t } = useI18n();
 
@@ -170,7 +171,7 @@ const initChart = () => {
     series,
   };
 
-  chartInstance.setOption(option);
+  chartInstance.setOption(withSafeChartAnimation(option));
 };
 
 const handleResize = () => {
@@ -197,6 +198,12 @@ watch([hasData, dataLoading], () => {
   if (hasData.value && !dataLoading.value) {
     setTimeout(() => initChart(), 0);
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+  chartInstance?.dispose();
+  chartInstance = null;
 });
 </script>
 

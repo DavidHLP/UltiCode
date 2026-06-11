@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { fetchSubmissionHistory } from "@/api/submission";
 import type { SubmissionHistory } from "@/api/submission";
+import {
+  createAcceptedAreaGradient,
+  withSafeChartAnimation,
+} from "./chartOptions";
 
 const { t } = useI18n();
 
@@ -77,10 +81,7 @@ const initChart = () => {
         color: "oklch(0.6444 0.1508 118.6)",
       },
       areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "oklch(0.6444 0.1508 118.6 / 0.3)" },
-          { offset: 1, color: "oklch(0.6444 0.1508 118.6 / 0.05)" },
-        ]),
+        color: createAcceptedAreaGradient(),
       },
     },
   ];
@@ -176,7 +177,7 @@ const initChart = () => {
     series,
   };
 
-  chartInstance.setOption(option);
+  chartInstance.setOption(withSafeChartAnimation(option));
 };
 
 const handleResize = () => {
@@ -203,6 +204,12 @@ watch([hasData, dataLoading], () => {
   if (hasData.value && !dataLoading.value) {
     setTimeout(() => initChart(), 0);
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+  chartInstance?.dispose();
+  chartInstance = null;
 });
 </script>
 

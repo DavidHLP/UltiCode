@@ -46,16 +46,28 @@ public class MybatisPlusConfig {
     }
 
     public static class AutoFillMetaObjectHandler implements MetaObjectHandler {
+
+        // Field names declared on @TableField(fill = FieldFill.INSERT) / INSERT_UPDATE.
+        // Centralised so a rename only touches this block; entity annotations must
+        // stay in sync.
+        private static final String FIELD_CREATED_AT = "createdAt";
+        private static final String FIELD_UPDATED_AT = "updatedAt";
+        private static final String FIELD_ADDED_AT = "addedAt";
+
         @Override
         public void insertFill(MetaObject metaObject) {
-            this.strictInsertFill(metaObject, "createdAt", LocalDateTime::now, LocalDateTime.class);
-            this.strictInsertFill(metaObject, "updatedAt", LocalDateTime::now, LocalDateTime.class);
-            this.strictInsertFill(metaObject, "addedAt", LocalDateTime::now, LocalDateTime.class);
+            this.strictInsertFill(metaObject, FIELD_CREATED_AT, LocalDateTime::now, LocalDateTime.class);
+            this.strictInsertFill(metaObject, FIELD_UPDATED_AT, LocalDateTime::now, LocalDateTime.class);
+            this.strictInsertFill(metaObject, FIELD_ADDED_AT, LocalDateTime::now, LocalDateTime.class);
         }
 
         @Override
         public void updateFill(MetaObject metaObject) {
-            this.strictUpdateFill(metaObject, "updatedAt", LocalDateTime::now, LocalDateTime.class);
+            // 使用 setFieldValByName 而非 strictUpdateFill:后者在 entity 通过
+            // selectById 加载后已有非 null 值时会 SKIP 填充,导致 updated_at 永不刷新。
+            // setFieldValByName 无条件覆盖,符合「每次 UPDATE 都刷新审计时间」的直觉。
+            // 仅当目标实体声明了 @TableField(fill = FieldFill.INSERT_UPDATE) 才会被填充。
+            this.setFieldValByName(FIELD_UPDATED_AT, LocalDateTime.now(), metaObject);
         }
     }
 }

@@ -389,6 +389,33 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        String traceId = TraceIdUtil.current();
+
+        // Detect Jackson enum-conversion failures: root cause is
+        // com.fasterxml.jackson.databind.exc.InvalidFormatException with
+        // a Class<?> targetType that is an Enum. Strip the verbose
+        // "not one of the values accepted for Enum class: [...]" list
+        // to avoid leaking the full backend enum surface to clients.
+        // (Reported in docs/edge-operations-api-test-report-2026-06-11.md §4.3.)
+        Throwable root = ex.getCause();
+        while (root != null && root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        if (root instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException ife
+                && ife.getTargetType() != null
+                && ife.getTargetType().isEnum()) {
+            String fieldPath = ife.getPath().isEmpty()
+                    ? "body"
+                    : ife.getPath().get(ife.getPath().size() - 1).getFieldName();
+            String compact = "Invalid value for parameter '" + fieldPath + "'";
+            log.warn("Malformed enum in body: path={}, targetType={}, value={}",
+                    fieldPath, ife.getTargetType().getSimpleName(), ife.getValue());
+            Result<Void> result = Result.error(
+                    ErrorCode.BAD_REQUEST.getCode(), compact, traceId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+        }
+
+        // Fallback: existing behavior for non-enum Jackson failures
         // Trim Jackson's verbose cause chain to the first line so the response
         // payload stays compact. Full stack is still logged server-side.
         String rootMsg = rootCauseMessage(ex);
@@ -397,7 +424,6 @@ public class GlobalExceptionHandler {
                 : ex.getMessage();
         log.warn("Malformed request body: {}", compact);
 
-        String traceId = TraceIdUtil.current();
         Result<Void> result = Result.error(
                 ErrorCode.BAD_REQUEST.getCode(),
                 "Malformed request body: " + compact,

@@ -118,7 +118,9 @@ async function loadData() {
       getUserListsForProblem(props.problemId),
     ]);
 
-    itemFolders.value = folders;
+    // Backend returns ItemFoldersVO { isFavorited, folders[] }; the local
+    // component only needs the folder-id list, so extract once here.
+    itemFolders.value = folders.folders.map((f) => f.id);
     userLists.value = lists;
   } catch (error) {
     console.error("Failed to load data:", error);

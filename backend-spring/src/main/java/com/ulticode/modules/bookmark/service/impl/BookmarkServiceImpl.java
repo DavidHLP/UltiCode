@@ -12,6 +12,7 @@ import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,7 +61,19 @@ public class BookmarkServiceImpl implements BookmarkService {
         bookmark.setTargetId(targetId);
         bookmark.setTargetType(targetType.name());
         bookmark.setSortOrder(getNextSortOrder(defaultFolder.getId()));
-        bookmarkMapper.insert(bookmark);
+
+        try {
+            bookmarkMapper.insert(bookmark);
+        } catch (DuplicateKeyException ex) {
+            // 并发场景:在 findFolderIdsByTarget 与 insert 之间,另一线程已经插入了
+            // 相同的 (collection_id, target_type, target_id),触发 collection_items 的
+            // UNIQUE 索引。收敛到「当前真实状态」并返回成功,避免对用户暴露竞态错误。
+            log.warn("Concurrent quickFavorite collision for user={}, type={}, id={}; converging to current state",
+                    userId, targetType, targetId);
+            List<String> currentFolderIds = bookmarkMapper.findFolderIdsByTarget(
+                    userId, targetType.name(), targetId);
+            return new QuickFavoriteVO(!currentFolderIds.isEmpty(), currentFolderIds);
+        }
 
         log.debug("Quick favorited {}:{} for user {} in folder {}", targetType, targetId, userId, defaultFolder.getId());
         return new QuickFavoriteVO(true, List.of(defaultFolder.getId()));

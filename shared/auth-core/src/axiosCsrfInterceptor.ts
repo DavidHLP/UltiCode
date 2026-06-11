@@ -11,13 +11,18 @@ import type {
 } from 'axios';
 
 import type { CsrfTokenManager } from './csrf';
+import { triggerAuthFailure } from './auth-failure';
 
 /**
- * Extended config with CSRF retry metadata
+ * Extended config with CSRF + refresh retry metadata.
+ *
+ * `csrfRetried` and `refreshRetried` are independent — a request can go
+ * through at most one CSRF retry and at most one refresh retry.
  */
 interface ConfigWithCsrfMeta {
   _metadata?: {
     csrfRetried?: boolean;
+    refreshRetried?: boolean;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -33,15 +38,23 @@ export interface CsrfInterceptors {
  * Creates axios interceptors that handle CSRF token lifecycle:
  * - Request: attaches X-CSRF-Token for state-changing methods
  * - Response: captures x-new-csrf-token header to refresh token
- * - Error: retries once on 403 CSRF mismatch before propagating
+ * - Error (401): refreshes access token via /auth/refresh (deduped),
+ *   then replays the original request once. If refresh itself fails,
+ *   triggers onAuthFailure (console/management handle the UX).
+ * - Error (403 CSRF): fetches new CSRF via GET /auth/me, then replays once.
  *
  * @param csrfManager - The CSRF token manager instance
  * @param baseURL - The backend API base URL (e.g., 'http://localhost:9001').
  *                  Required for token refresh requests to reach the correct origin.
+ * @param refreshAccessToken - Optional refresh coordinator. When omitted,
+ *                  401s fall through (legacy behavior — caller has its own
+ *                  refresh path). Provide `createRefreshAccessToken(...)`
+ *                  to enable auto-refresh.
  */
 export function createCsrfAxiosInterceptor(
   csrfManager: CsrfTokenManager,
   baseURL?: string,
+  refreshAccessToken?: () => Promise<unknown>,
 ): CsrfInterceptors {
   /**
    * Attach CSRF token to state-changing requests.
@@ -72,13 +85,48 @@ export function createCsrfAxiosInterceptor(
   }
 
   /**
-   * Retry once on 403 CSRF mismatch, then propagate.
+   * Retry on 401 (refresh access token) or 403 (refresh CSRF token) mismatches,
+   * at most once per category per request, then propagate.
    */
   async function errorInterceptor(
     error: AxiosError,
   ): Promise<unknown> {
     const config = error.config as (InternalAxiosRequestConfig & ConfigWithCsrfMeta) | undefined;
 
+    // --- 401 path: refresh access token via /auth/refresh, then replay ---
+    if (
+      error.response?.status === 401 &&
+      config &&
+      !config._metadata?.refreshRetried &&
+      refreshAccessToken
+    ) {
+      // Mark BEFORE the await so a refresh that throws still leaves
+      // the config marked — without this, a refresh-failed request
+      // would re-enter the branch on the next 401 and hammer refresh.
+      config._metadata = {
+        ...config._metadata,
+        refreshRetried: true,
+      };
+      try {
+        await refreshAccessToken();
+        // Replay via rawAxios — it has `withCredentials: true` so the
+        // freshly-set HttpOnly access cookie is sent, AND it has no
+        // interceptors so the replay cannot re-enter this 401 branch
+        // (which would mark `_metadata.refreshRetried` already and
+        // therefore be a no-op, but bypassing it is cleaner).
+        // The previous implementation used `await import('axios')` +
+        // bare `axios(config)`, but the bare axios default has
+        // `withCredentials` undefined, so the replay would drop the
+        // HttpOnly cookies and the backend would re-401.
+        const { rawAxios } = await import('./rawAxios');
+        return rawAxios.request(config);
+      } catch (refreshErr) {
+        triggerAuthFailure('refresh-failed', refreshErr);
+        return Promise.reject(error);
+      }
+    }
+
+    // --- 403 path: refresh CSRF token via GET /auth/me, then replay ---
     if (
       error.response?.status === 403 &&
       config &&

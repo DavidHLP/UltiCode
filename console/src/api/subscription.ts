@@ -61,8 +61,18 @@ export interface UpcomingInvoice {
 }
 
 export const subscriptionApi = {
+  /**
+   * Get the current user's premium access status + active subscription.
+   *
+   * NOTE: We call `/subscriptions/check-premium` (not `/subscriptions/me`).
+   * The latter returns `Result<SubscriptionDTO>` whose `data` is serialized
+   * as `null` and then dropped by `Result.@JsonInclude(NON_NULL)`, leaving
+   * the frontend with `undefined` and breaking `.hasAccess` access.
+   * `/check-premium` returns the correct `SubscriptionCheckResultDTO` shape.
+   * See `docs/subscription-api-test-questions.md` (P0-2).
+   */
   async getMySubscription(): Promise<SubscriptionCheckResult> {
-    return apiGet<SubscriptionCheckResult>("/subscriptions/me");
+    return apiGet<SubscriptionCheckResult>("/subscriptions/check-premium");
   },
 
   async getPlans(): Promise<{ plans: SubscriptionPlan[] }> {
@@ -77,9 +87,17 @@ export const subscriptionApi = {
     return apiPost<BillingPortalResult>("/subscriptions/portal", data);
   },
 
-  async cancelSubscription(): Promise<{ message: string; cancelAt: string }> {
+  /**
+   * Cancel the current user's subscription by id.
+   *
+   * NOTE: The backend exposes `POST /subscriptions/{id}/cancel` (path param
+   * required). The previous implementation called `/subscriptions/cancel`
+   * with an empty body, which returned 404. See P1-1 in the test report.
+   * Callers should pass `subscription.subscription.id` from `getMySubscription()`.
+   */
+  async cancelSubscription(id: string): Promise<{ message: string; cancelAt: string }> {
     return apiPost<{ message: string; cancelAt: string }>(
-      "/subscriptions/cancel",
+      `/subscriptions/${id}/cancel`,
       {},
     );
   },

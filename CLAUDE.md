@@ -84,7 +84,7 @@ UPDATE users SET name = '正确的姓名' WHERE id = '...';
 
 ## 运行时调试 (Arthas)
 
-项目已安装 `arthas-boot.jar` (4.1.9) 于 `tools/` 目录,用于 Java 运行时诊断。
+项目已安装 `arthas-boot.jar` (4.2.2) 于 `tools/` 目录,用于 Java 运行时诊断。配置文件 `infrastructure/arthas/arthas.properties` 项目级维护, wrapper attach 时自动同步到 `~/.arthas/lib/<version>/arthas/arthas.properties` (arthas-agent 真正读的位置)。
 
 **Arthas MCP 服务**: 项目已配置 Arthas MCP (Model Context Protocol) 端点,Claude Code 可直接调用 Arthas 诊断工具。
 
@@ -106,7 +106,7 @@ Arthas wrapper (`scripts/start-arthas.sh`) 由 **三路** 都能拉起, **任何
 
 | 项目 | 值 |
 |------|-----|
-| MCP 端点 | `http://localhost:8563/mcp` (STREAMABLE) |
+| MCP 端点 | `http://localhost:8563/mcp` (STATELESS) |
 | Wrapper | `scripts/start-arthas.sh` (自愈: 端口死了自动重 attach) |
 | SessionStart hook | `scripts/arthas-session-start.sh` |
 | SessionEnd hook | `scripts/arthas-session-end.sh` |
@@ -115,7 +115,8 @@ Arthas wrapper (`scripts/start-arthas.sh`) 由 **三路** 都能拉起, **任何
 | 通用 CLI | `scripts/arthas-cli.sh {start\|stop\|restart\|status\|logs}` |
 | PID 文件 | `.claude/.arthas/wrapper.pid` |
 | Wrapper 日志 | `.claude/.arthas/wrapper.log` |
-| 配置文件 | `~/.arthas/arthas.properties` |
+| 项目级配置 | `infrastructure/arthas/arthas.properties` (wrapper 自动 sync) |
+| 实际生效位置 | `~/.arthas/lib/<version>/arthas/arthas.properties` |
 
 ```bash
 # === 推荐: PM2 一键全起 (含 9001/9002/9003/arthas) ===
@@ -150,7 +151,9 @@ java -jar tools/arthas-boot.jar <PID>
 - **三路互斥**: PM2 / hook / cli 任何一路拉起 wrapper 后, 其他路检测到 PID 文件或端口在用都会跳过;SessionEnd 只清理 hook 自己拉起的, 不会动 PM2/cli 的
 - **自愈 loop**: wrapper 持续监控 `:8563`, 端口死了 (例如 `pm2 restart 9001`) 会自动重新 attach
 - **PID 文件格式**: `PID\nLAUNCHER` 两行, 供互斥判断;wrapper 启动时立即写, 退出时清理
-- `arthas-boot.jar` 不支持 `--properties-file` 参数; 配置文件放 `~/.arthas/arthas.properties` 自动加载
+- **协议选 STATELESS (强制项目级约定)**: 4.2.2 默认是 STREAMABLE,会强制要求 `mcp-session-id` header。Claude Code 内置 MCP 客户端 (`mcp__arthas-mcp__*`) 不维护 session → 阻塞命令 (dashboard/thread/monitor 等) 持续收到 4.4KB "Session ID required" 错误堆栈,看起来"持续超时"。`infrastructure/arthas/arthas.properties` 锁死 `arthas.mcpProtocol=STATELESS`,wrapper attach 前 sync,新机器/升级都不回退。改协议需要 `pm2 restart ulticode-9001` 触发重 attach。
+- **配置实际位置**: arthas-agent 读 `~/.arthas/lib/<version>/arthas/arthas.properties` (arthas.home 下的解压文件),**不是** `~/.arthas/arthas.properties`。项目级 `infrastructure/arthas/arthas.properties` 由 `sync_arthas_properties()` 在每次 attach 前 diff 同步(内容一致就跳过,改后才写)。
+- **协议/类对应**: STATELESS 走 `McpStatelessHttpRequestHandler`;STREAMABLE 走 `McpStreamableHttpRequestHandler`(需 session)。简单命令 (dashboard/thread/jvm/sc/sysprop/ognl) 秒回;增强命令 (monitor/trace/watch) 需要在 `numberOfInvocations` 内实际触发目标方法,否则 30s timeout (arthas 行为,与协议无关)。
 - `--telnet-port -1` 不被支持 (port out of range); 如需禁用 telnet 不传该参数即可
 - `--attach-only` 模式: 启动进程退出但 HTTP/MCP agent 运行在目标 JVM 内
 - Spring Boot 健康检查用 `lsof -ti :9001` 而非 `curl` (根路径可能返回 302/401)

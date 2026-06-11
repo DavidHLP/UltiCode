@@ -203,6 +203,16 @@ export async function fetchParticipationStatus(
   return apiGet<ParticipationStatus>(`/contest/${contestId}/participation`);
 }
 
+/**
+ * Check in to a contest.
+ *
+ * Backend route added 2026-06-11 (alias for register; see `fix/contest-api-contracts`).
+ * The backend delegates to `registerForContest` — same business rules apply.
+ * Will split into a separate time-window operation if/when contest check-in
+ * windows become a real product feature.
+ *
+ * @param slug - Contest slug (e.g., "algorithm-marathon-2026") or contest ID.
+ */
 export async function checkIn(slug: string): Promise<void> {
   return apiPost<void>(`/contest/${slug}/check-in`);
 }
@@ -262,6 +272,22 @@ export interface ContestSubmissionDto {
 
 export type ContestSubmissionResult = SubmissionRecord;
 
+/**
+ * Submit code for a contest problem.
+ *
+ * ⚠️ `problemId` MUST come from the `problemId` field (number) of the
+ * `/contest/{slug}/problems` response — NOT the `id` field (e.g., "cp-u1-A").
+ *
+ * The backend `POST /contest/{id}/problems/{problemPath}/submissions` now
+ * accepts both:
+ *  - numeric problem id (e.g., `1`) — preferred
+ *  - composite contest_problem id (e.g., `cp-u1-A`) — defensively supported
+ *    since 2026-06-11; the backend resolves it via `contest_problems` lookup.
+ *
+ * @param contestId - Contest ID (e.g., "contest-upcoming-001")
+ * @param problemId - Numeric problem id (1, 2, ...) from `/problems` response
+ * @param dto - Submission payload
+ */
 export async function submitContestProblem(
   contestId: string,
   problemId: number,

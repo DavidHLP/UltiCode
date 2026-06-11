@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * MyBatis-Plus mapper for ContestProblem entity.
@@ -24,6 +25,19 @@ public interface ContestProblemMapper extends BaseMapper<ContestProblem> {
     ContestProblem findByContestIdAndProblemId(
             @Param("contestId") String contestId,
             @Param("problemId") Long problemId
+    );
+
+    /**
+     * Find a contest problem by its composite string id (e.g., "cp-u1-A") and contest.
+     * Used by submitContestProblem to resolve the string-form path variable into the
+     * underlying problem id before delegating to the submission service.
+     *
+     * @return Optional.empty() if no match (caller should map to 404)
+     */
+    @Select("SELECT * FROM contest_problems WHERE contest_id = #{contestId} AND id = #{id} LIMIT 1")
+    Optional<ContestProblem> findByContestIdAndId(
+            @Param("contestId") String contestId,
+            @Param("id") String id
     );
 
     @Select("SELECT COUNT(*) FROM contest_problems WHERE contest_id = #{contestId}")

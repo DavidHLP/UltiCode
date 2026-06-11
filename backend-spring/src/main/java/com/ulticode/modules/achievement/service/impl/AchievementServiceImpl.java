@@ -283,35 +283,60 @@ public class AchievementServiceImpl implements AchievementService {
                 .stream()
                 .collect(Collectors.toMap(UserAchievement::getAchievementId, ua -> ua));
 
+        // Pre-fetch current counts for progress calculation (mirror getUserProgress)
+        long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(userId);
+        long submissionsMade = submissionMapper.countByUserId(userId);
+
         return achievements.stream()
-                .map(a -> {
-                    AchievementProgressDTO dto = new AchievementProgressDTO();
-                    dto.setAchievementId(a.getId());
-                    dto.setKey(a.getKey());
-                    dto.setName(a.getName());
-                    dto.setDescription(a.getDescription());
-                    dto.setIcon(a.getIcon());
-                    dto.setCategory(a.getCategory());
-                    dto.setTier(a.getTier());
-                    dto.setPoints(a.getPoints());
-
-                    UserAchievement earned = earnedMap.get(a.getId());
-                    dto.setEarned(earned != null);
-                    dto.setEarnedAt(earned != null ? earned.getEarnedAt() : null);
-
-                    // Extract target from criteria
-                    Map<String, Object> criteria = a.getCriteria();
-                    if (criteria != null && criteria.containsKey("target")) {
-                        Object targetObj = criteria.get("target");
-                        if (targetObj instanceof Number) {
-                            dto.setTarget(((Number) targetObj).intValue());
-                        }
-                    }
-                    dto.setProgress(0);
-
-                    return dto;
-                })
+                .map(a -> buildProgressDTO(a, earnedMap, problemsSolved, submissionsMade))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Build a single progress DTO from an achievement plus the user's earned
+     * map and pre-fetched submission counters. Extracted from
+     * {@link #getUserAchievements} to keep that method under the 50-line
+     * guideline (review M1).
+     *
+     * <p>{@code criteria} may be {@code null} if the row was inserted with a
+     * non-JSON {@code criteria} column value (legacy seed data) — in that
+     * case both {@code target} and {@code currentValue} fall back to 0.</p>
+     */
+    private AchievementProgressDTO buildProgressDTO(Achievement a,
+            Map<String, UserAchievement> earnedMap,
+            long problemsSolved, long submissionsMade) {
+        AchievementProgressDTO dto = new AchievementProgressDTO();
+        dto.setAchievementId(a.getId());
+        dto.setKey(a.getKey());
+        dto.setName(a.getName());
+        dto.setDescription(a.getDescription());
+        dto.setIcon(a.getIcon());
+        dto.setCategory(a.getCategory());
+        dto.setTier(a.getTier());
+        dto.setPoints(a.getPoints());
+
+        UserAchievement earned = earnedMap.get(a.getId());
+        dto.setEarned(earned != null);
+        dto.setEarnedAt(earned != null ? earned.getEarnedAt() : null);
+
+        int target = 0;
+        int currentValue = 0;
+        Map<String, Object> criteria = a.getCriteria();
+        if (criteria != null) {
+            Object targetObj = criteria.get("target");
+            if (targetObj instanceof Number) {
+                target = ((Number) targetObj).intValue();
+            }
+            Object typeObj = criteria.get("type");
+            if ("problems_solved".equals(typeObj)) {
+                currentValue = (int) problemsSolved;
+            } else if ("submissions_made".equals(typeObj)) {
+                currentValue = (int) submissionsMade;
+            }
+        }
+        dto.setTarget(target);
+        dto.setProgress(currentValue);
+        return dto;
     }
 
     @Override

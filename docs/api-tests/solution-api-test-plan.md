@@ -534,6 +534,18 @@ $ curl -sS "http://localhost:9001/api/solutions//comments"
 **影响**：前端如果用类似 "失败重试 + token 自动轮换" 逻辑会陷入死循环。
 **建议**：在 `update_csrf` helper 中显式判断 `grep` 命中再覆盖（脚本已实现），并在测试报告中标注每一步的 CSRF 来源。
 
+**修复决策（2026-06-11）**：
+
+> **判定**：**不修改后端行为**。当前 4xx 不下发 `X-New-CSRF-Token` 是**预期安全设计**——避免在错误响应中向客户端（可能已被劫持的）泄漏下一个有效 token。
+
+**协议说明**：
+
+- 客户端**复用**当前持有的合法 token 即可继续发起请求；服务端**不消费**失败请求的 token，下次仍可成功消费。
+- 唯一的真实风险是"前端用旧 token 但服务端已轮换"——前端需在每次**成功响应**后即时更新 `X-New-CSRF-Token`（已在 §3 全链路脚本 `update_csrf` helper 中通过"grep 命中才覆盖"实现）。
+- 该决策与 `CsrfValidationFilter.writeErrorResponse` 第 80-87 行的"先 setStatus + 写 body，再 return"的执行顺序保持一致——不修改该 Filter。
+
+**变更**：仅在本节补充协议说明；代码与 Filter 不变。
+
 ### 🟥 BUG-3：`POST /api/views/solution/{sid}` 对不存在 sid 返回 50401，与 permitAll 语义矛盾
 
 **复现**：

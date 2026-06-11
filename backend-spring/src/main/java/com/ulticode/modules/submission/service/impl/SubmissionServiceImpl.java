@@ -38,6 +38,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +78,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final ContestParticipantMapper contestParticipantMapper;
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
+    private final NotificationDispatchService notificationDispatchService;
 
     /**
      * Supported languages for submission.
@@ -281,9 +283,12 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
         }
 
-        // Send submission result notification (fire-and-notify per D-11)
+        // Send submission result notification (fire-and-notify per D-11).
+        // Q20: use the dispatch service. force=true because submission result
+        // is system-originated — users opt out of category SYSTEM only via the
+        // systemEnabled flag, which we still respect (no force for SYSTEM).
         try {
-            notificationService.createNotification(
+            notificationDispatchService.dispatch(
                     submission.getUserId(),
                     "SUBMISSION",
                     "SYSTEM",
@@ -298,7 +303,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                                     : "",
                             "status", status,
                             "isAccepted", "Accepted".equals(status)
-                    ));
+                    ),
+                    false);
         } catch (Exception e) {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());

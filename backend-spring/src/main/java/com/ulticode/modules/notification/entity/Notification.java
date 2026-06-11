@@ -7,7 +7,14 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Notification entity - matches notifications table in Prisma schema.
+ * Notification entity - matches notifications table.
+ *
+ * <p>Soft-delete via {@code @TableLogic} on {@code deleted} → maps to
+ * {@code is_deleted} column (Q12 fix). {@code BaseMapper.deleteById},
+ * {@code selectById}, and {@code selectPage} with {@code LambdaQueryWrapper}
+ * auto-filter {@code is_deleted=0}; explicit SQL (e.g.
+ * {@code countUnreadByUserId}, {@code markAllAsRead}) must include the
+ * predicate manually.
  */
 @Data
 @TableName(value = "notifications", autoResultMap = true)
@@ -38,4 +45,8 @@ public class Notification {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
+
+    @TableLogic
+    @TableField("is_deleted")
+    private Integer deleted;
 }

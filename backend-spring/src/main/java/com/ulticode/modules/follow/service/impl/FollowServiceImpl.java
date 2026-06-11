@@ -10,6 +10,7 @@ import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
 import com.ulticode.modules.follow.service.FollowService;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -35,6 +36,7 @@ public class FollowServiceImpl implements FollowService {
     private final UserMapper userMapper;
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
+    private final NotificationDispatchService notificationDispatchService;
 
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
@@ -51,17 +53,19 @@ public class FollowServiceImpl implements FollowService {
             followMapper.insertIdempotent(currentUserId, targetUserId);
             log.info("User {} followed user {}", currentUserId, targetUserId);
 
-            // D-10: Only notify on first follow (idempotent insert)
+            // D-10: Only notify on first follow (idempotent insert).
+            // Q20: respect COMMUNICATION preference — opt-out users won't see this.
             User currentUser = userMapper.selectById(currentUserId);
             try {
-                notificationService.createNotification(
+                notificationDispatchService.dispatch(
                     targetUserId,
                     "FOLLOW",
                     "COMMUNICATION",
                     currentUser.getUsername() + " followed you",
                     "",
                     "/profile/" + currentUser.getUsername(),
-                    null
+                    null,
+                    false
                 );
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {

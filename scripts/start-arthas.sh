@@ -38,18 +38,13 @@ LAUNCHER="${ULTICODE_ARTHAS_LAUNCHER:-cli}"
 
 mkdir -p "$PID_DIR"
 
-# 确保 ~/.arthas/ 目录存在,放置 arthas.properties
-# Arthas 启动时会自动加载 ~/.arthas/arthas.properties
+# arthas 启动时读 arthas.home/lib/<version>/arthas/arthas.properties (解压后的内嵌文件),
+# **不是** ~/.arthas/arthas.properties。wrapper 在每次 attach 前 sync 项目级
+# infrastructure/arthas/arthas.properties 到 arthas.home, 保证新机器 / 升级不踩 STREAMABLE
+# 默认 (4.2.2 默认强制 mcp-session-id, 与 Claude Code 内置 MCP 客户端不维护 session 冲突)。
+PROJECT_ARTHAS_PROPS="${PROJECT_DIR}/infrastructure/arthas/arthas.properties"
 ARTHAS_HOME="${HOME}/.arthas"
 mkdir -p "$ARTHAS_HOME"
-if [ ! -f "${ARTHAS_HOME}/arthas.properties" ]; then
-  echo "[arthas] Installing arthas.properties to ${ARTHAS_HOME}/"
-  cat > "${ARTHAS_HOME}/arthas.properties" << 'EOF'
-# Arthas MCP (Model Context Protocol) configuration
-arthas.mcpEndpoint=/mcp
-arthas.mcpProtocol=STREAMABLE
-EOF
-fi
 
 # 检查 arthas-boot.jar
 if [ ! -f "$ARTHAS_JAR" ]; then
@@ -99,6 +94,40 @@ wait_for_spring_boot() {
   return 1
 }
 
+# 同步项目级 arthas.properties 到 arthas.home 下的解压目录 (arthas-agent 真正读的位置)
+# 解决: 4.2.2 jar 解压出的内嵌 arthas.properties 默认 mcpProtocol=STREAMABLE, 强制
+# mcp-session-id, 与 Claude Code MCP 客户端不维护 session 冲突 → 阻塞命令持续超时。
+# 强制项目级 STATELESS, 避免新机器/arthas 升级后回退到 STREAMABLE。
+sync_arthas_properties() {
+  if [ ! -f "$PROJECT_ARTHAS_PROPS" ]; then
+    echo "[arthas] WARN: $PROJECT_ARTHAS_PROPS not found, skip sync (mcpProtocol 用 jar 默认)"
+    return 0
+  fi
+  local arthas_lib_dir="${ARTHAS_HOME}/lib"
+  if [ ! -d "$arthas_lib_dir" ]; then
+    echo "[arthas] WARN: $arthas_lib_dir not found, arthas 还没解压过, skip sync"
+    return 0
+  fi
+  # 遍历所有解压版本, 同步项目级 properties 覆盖内嵌默认值
+  local synced=0
+  for version_dir in "$arthas_lib_dir"/*/arthas; do
+    [ -d "$version_dir" ] || continue
+    local target="${version_dir}/arthas.properties"
+    # 用 diff 快速判断要不要写 (避免每次 attach 刷 atime, 让 arthas 不必要地 reload)
+    if [ ! -f "$target" ] || ! diff -q "$PROJECT_ARTHAS_PROPS" "$target" > /dev/null 2>&1; then
+      cp "$PROJECT_ARTHAS_PROPS" "$target"
+      local ver
+      ver=$(basename "$(dirname "$version_dir")")
+      echo "[arthas] Synced project arthas.properties → $target (version $ver)"
+      synced=$((synced + 1))
+    fi
+  done
+  if [ "$synced" -eq 0 ]; then
+    echo "[arthas] arthas.properties already in sync (project == deployed)"
+  fi
+  return 0
+}
+
 # 尝试 attach 一次,返回 0 表示 MCP 端点已就绪,1 表示失败
 try_attach() {
   local app_pid
@@ -115,10 +144,13 @@ try_attach() {
     return 0
   fi
 
+  # attach 前同步项目级配置 (新机器 / 升级后第一次 attach 必跑, 之后 diff 命中直接跳过)
+  sync_arthas_properties
+
   echo "[arthas] Attaching Arthas to PID $app_pid (MCP on port $ARTHAS_PORT) ..."
   # --attach-only: 附加后 launcher 退出,agent 常驻目标 JVM
   # --http-port: 开启 HTTP 服务 (MCP 端点)
-  # MCP 配置由 ~/.arthas/arthas.properties 提供
+  # MCP 配置来自 arthas.home/lib/<version>/arthas/arthas.properties (由 sync_arthas_properties 同步)
   java -jar "$ARTHAS_JAR" \
     --attach-only \
     --http-port "$ARTHAS_PORT" \

@@ -1,6 +1,7 @@
 package com.ulticode.modules.achievement.listener;
 
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.notification.dto.NotificationVO;
 import com.ulticode.modules.websocket.service.RealtimeService;
@@ -13,11 +14,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
-import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class AchievementNotificationListenerTest {
@@ -26,18 +27,22 @@ class AchievementNotificationListenerTest {
     private NotificationService notificationService;
 
     @Mock
+    private NotificationDispatchService notificationDispatchService;
+
+    @Mock
     private RealtimeService realtimeService;
 
     private AchievementNotificationListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new AchievementNotificationListener(notificationService, realtimeService);
+        listener = new AchievementNotificationListener(
+                notificationService, notificationDispatchService, realtimeService);
     }
 
     @Test
-    @DisplayName("onAchievementEarned creates DB notification AND pushes WebSocket")
-    void onAchievementEarned_createsNotificationAndPushesWebSocket() {
+    @DisplayName("onAchievementEarned dispatches notification AND pushes WebSocket (Q20 wiring)")
+    void onAchievementEarned_dispatchesNotificationAndPushesWebSocket() {
         AchievementEarnedEvent event = AchievementEarnedEvent.of(
             "user-123", "ach-001", "badge-first-solve", "First Solve",
             "Solved your first problem", null, 3, 100
@@ -45,17 +50,19 @@ class AchievementNotificationListenerTest {
 
         NotificationVO mockVO = new NotificationVO();
         mockVO.setId("notif-abc");
-        when(notificationService.createNotification(
+        when(notificationDispatchService.dispatch(
             eq("user-123"), eq("achievement"), eq("badge_earned"),
-            contains("First Solve"), anyString(), eq("/achievements"), isNull()
-        )).thenReturn(mockVO);
+            contains("First Solve"), anyString(), eq("/achievements"), isNull(), eq(false)
+        )).thenReturn(Optional.of(mockVO));
 
         listener.onAchievementEarned(event);
 
-        verify(notificationService).createNotification(
+        verify(notificationDispatchService).dispatch(
             eq("user-123"), eq("achievement"), eq("badge_earned"),
-            contains("First Solve"), anyString(), eq("/achievements"), isNull()
+            contains("First Solve"), anyString(), eq("/achievements"), isNull(), eq(false)
         );
+        // Direct createNotification is no longer used.
+        verifyNoInteractions(notificationService);
 
         ArgumentCaptor<BadgeEarnedPayload> payloadCaptor = ArgumentCaptor.forClass(BadgeEarnedPayload.class);
         verify(realtimeService).sendNotification(eq("user-123"), payloadCaptor.capture());
@@ -78,13 +85,13 @@ class AchievementNotificationListenerTest {
 
         NotificationVO mockVO = new NotificationVO();
         mockVO.setId("notif-def");
-        when(notificationService.createNotification(any(), any(), any(), any(), any(), any(), isNull()))
-            .thenReturn(mockVO);
+        when(notificationDispatchService.dispatch(any(), any(), any(), any(), any(), any(), isNull(), anyBoolean()))
+            .thenReturn(Optional.of(mockVO));
         doThrow(new RuntimeException("WS unavailable")).when(realtimeService).sendNotification(any(), any());
 
         listener.onAchievementEarned(event);
 
-        verify(notificationService).createNotification(any(), any(), any(), any(), any(), any(), isNull());
+        verify(notificationDispatchService).dispatch(any(), any(), any(), any(), any(), any(), isNull(), anyBoolean());
         verify(realtimeService).sendNotification(any(), any());
     }
 }

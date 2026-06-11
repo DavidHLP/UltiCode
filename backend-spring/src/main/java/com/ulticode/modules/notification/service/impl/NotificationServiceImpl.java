@@ -21,15 +21,35 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Implementation of NotificationService.
+ *
+ * <p>Notable behaviors:
+ * <ul>
+ *   <li>{@link #getPreferences(String)} returns DDL defaults when no row exists
+ *       and does NOT eagerly create a row (Q18/Q19 fix).</li>
+ *   <li>{@link #updateNotification} handles the isRead=true/false transition
+ *       bidirectionally, clearing {@code readAt} on un-mark (Q6 fix).</li>
+ *   <li>{@link #clearAll(String)} batches deletes to avoid lock-wait on large
+ *       users (Q17 fix).</li>
+ * </ul>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
+
+    /** DDL defaults for {@code notification_preferences} — kept in sync with V20260602_120000. */
+    private static final boolean DEFAULT_COMMUNICATION = true;
+    private static final boolean DEFAULT_MARKETING = false;
+    private static final boolean DEFAULT_SECURITY = true;
+    private static final boolean DEFAULT_SYSTEM_ENABLED = true;
+
+    /** Batch size for clear/delete to keep individual transactions short (Q17). */
+    private static final int DELETE_BATCH_SIZE = 500;
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
@@ -70,9 +90,10 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public NotificationPreferenceVO getPreferences(String userId) {
-        NotificationPreference preference = preferenceMapper.findByUserId(userId)
-                .orElseGet(() -> createDefaultPreference(userId));
-        return toPreferenceVO(preference);
+        // Q18/Q19 fix: do NOT eagerly create a row on read; return DDL defaults when missing.
+        return preferenceMapper.findByUserId(userId)
+                .map(this::toPreferenceVO)
+                .orElseGet(this::defaultPreferenceVO);
     }
 
     @Override
@@ -90,8 +111,8 @@ public class NotificationServiceImpl implements NotificationService {
         if (dto.getSecurity() != null) {
             preference.setSecurity(dto.getSecurity());
         }
-        if (dto.getSystem() != null) {
-            preference.setSystem(dto.getSystem());
+        if (dto.getSystemEnabled() != null) {
+            preference.setSystemEnabled(dto.getSystemEnabled());
         }
 
         if (preference.getId() == null) {
@@ -112,9 +133,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void clearAll(String userId) {
-        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getUserId, userId);
-        notificationMapper.delete(wrapper);
+        // Q17 fix: batch deletes to avoid long-running single-statement locks on
+        // users with thousands of notifications.
+        int total;
+        do {
+            LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Notification::getUserId, userId).last("LIMIT " + DELETE_BATCH_SIZE);
+            total = notificationMapper.delete(wrapper);
+        } while (total >= DELETE_BATCH_SIZE);
         log.debug("Cleared all notifications for user {}", userId);
     }
 
@@ -127,13 +153,20 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         // Verify ownership
-        if (!notification.getUserId().equals(userId)) {
+        if (!Objects.equals(notification.getUserId(), userId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot update other user's notification");
         }
 
-        if (dto.getIsRead() != null && dto.getIsRead() && !notification.getIsRead()) {
-            notification.setIsRead(true);
-            notification.setReadAt(LocalDateTime.now());
+        // Q6 fix: handle isRead=true (mark) and isRead=false (un-mark) bidirectionally.
+        if (dto.getIsRead() != null) {
+            boolean newRead = dto.getIsRead();
+            if (newRead && !notification.getIsRead()) {
+                notification.setIsRead(true);
+                notification.setReadAt(LocalDateTime.now());
+            } else if (!newRead && notification.getIsRead()) {
+                notification.setIsRead(false);
+                notification.setReadAt(null);
+            }
             notificationMapper.updateById(notification);
         }
 
@@ -149,7 +182,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         // Verify ownership
-        if (!notification.getUserId().equals(userId)) {
+        if (!Objects.equals(notification.getUserId(), userId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot delete other user's notification");
         }
 
@@ -197,12 +230,18 @@ public class NotificationServiceImpl implements NotificationService {
     private NotificationPreference createDefaultPreference(String userId) {
         NotificationPreference preference = new NotificationPreference();
         preference.setUserId(userId);
-        preference.setCommunication(true);
-        preference.setMarketing(true);
-        preference.setSecurity(true);
-        preference.setSystem(true);
+        preference.setCommunication(DEFAULT_COMMUNICATION);
+        preference.setMarketing(DEFAULT_MARKETING);
+        preference.setSecurity(DEFAULT_SECURITY);
+        preference.setSystemEnabled(DEFAULT_SYSTEM_ENABLED);
         preferenceMapper.insert(preference);
         return preference;
+    }
+
+    private NotificationPreferenceVO defaultPreferenceVO() {
+        return new NotificationPreferenceVO(
+                DEFAULT_COMMUNICATION, DEFAULT_MARKETING,
+                DEFAULT_SECURITY, DEFAULT_SYSTEM_ENABLED);
     }
 
     private NotificationVO toVO(Notification notification) {
@@ -225,7 +264,7 @@ public class NotificationServiceImpl implements NotificationService {
         vo.setCommunication(preference.getCommunication());
         vo.setMarketing(preference.getMarketing());
         vo.setSecurity(preference.getSecurity());
-        vo.setSystem(preference.getSystem());
+        vo.setSystemEnabled(preference.getSystemEnabled());
         return vo;
     }
 }

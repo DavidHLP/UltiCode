@@ -454,6 +454,32 @@ git diff --check
 - 网络工具**默认只读**
 - **需用户显式批准**方可：push、merge、publish、改第三方资源、轮换远程凭据、改写 git 历史
 
+### Worktree 默认行为（避免污染 main）
+
+- **任何非平凡改动（多文件 / 多 commit / 跨模块）必须先用 worktree 隔离**，**不直接在 main 上工作**。这避免：(a) main 留半成品污染，(b) 误 `git push` 推送未评审代码，(c) 切换上下文时丢失改动。
+- 触发 worktree 的信号：
+  - 用户没明确说"切到 X 分支"或"在 main 上改"
+  - 工作树当前在 main 且有未提交改动
+  - 任务跨越 PRPs / PR / 长会话（>5 个文件）
+- 标准流程：
+  ```bash
+  # 1. 在合适基线分支上拉新 worktree
+  git fetch origin
+  git worktree add .claude/worktrees/<short-task-name> -b <type>/<task-name> origin/main
+  cd .claude/worktrees/<short-task-name>
+  # 2. 在 worktree 内做所有改动 / 跑测试 / 提交
+  # 3. 完成后让用户在主 worktree 评审 → 显式批准 merge
+  git checkout main && git merge --no-ff <type>/<task-name>
+  # 4. 清理
+  git worktree remove .claude/worktrees/<short-task-name>
+  git branch -d <type>/<task-name>
+  ```
+- **例外**（可直接在 main 工作，但**仍需用户在 commit 后显式批准 push/merge**）：
+  - 文档/注释/CLAUDE.md 自身的微调
+  - 用户**显式**说"在 main 上改" / "直接改 main" / "不要 worktree"
+  - 单文件 fix typo / 修一行配置等
+- **若发现已在 main 上做了非平凡改动但未提交**：立即 `git stash`，建 worktree，`git stash pop` 进 worktree。**禁止**直接在 main 上多次 commit。
+
 ## Key Conventions
 
 - **Commit format**: `<type>: <description>` (types: feat, fix, refactor, docs, test, chore, perf, ci)

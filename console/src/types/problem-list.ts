@@ -28,6 +28,15 @@ export interface ProblemListCategory {
   icon?: string;
   color?: string;
   listCount?: number;
+  /**
+   * Owner user ID (populated from backend CategorySummaryVO.userId).
+   * Optional for backward compatibility with older API responses.
+   *
+   * @remarks Future-use field. Wired through for type-contract completeness;
+   * currently no consumer in console logic (e.g., for "own categories" filtering).
+   * Adding a filter like `c.userId === currentUserId` is a non-breaking change.
+   */
+  userId?: string;
 }
 
 export interface ProblemListCategoryOption {

@@ -18,6 +18,7 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -381,6 +382,10 @@ public class ProblemListServiceImpl implements ProblemListService {
 
     @Override
     @Transactional
+    @com.ulticode.common.annotation.Audited(
+            action = com.ulticode.common.util.AuditActionUtil.DELETE_PROBLEM_LIST,
+            entityType = com.ulticode.common.util.AuditActionUtil.ENTITY_PROBLEM_LIST,
+            userIdFrom = "userId", entityIdFrom = "id")
     public void deleteList(String id, String userId) {
         ProblemList list = problemListMapper.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
@@ -398,7 +403,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
     @Override
     @Transactional
-    public String forkList(String id, String userId) {
+    public ProblemListSummaryVO forkList(String id, String userId) {
         ProblemList original = problemListMapper.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
@@ -426,7 +431,8 @@ public class ProblemListServiceImpl implements ProblemListService {
             problemListProblemMapper.insert(newRel);
         }
 
-        return newList.getId();
+        // Return full VO aligned with createList() contract (was: id-only String).
+        return toSummaryVO(newList);
     }
 
     @Override
@@ -445,9 +451,12 @@ public class ProblemListServiceImpl implements ProblemListService {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
-        // Check if already exists
+        // Check if already exists — throw BusinessException so API returns 409 instead of silent no-op.
+        // Note: this is a fast-path check. The database-level PRIMARY KEY (problem_id, list_id)
+        // enforces uniqueness regardless, and the catch below converts any race-condition
+        // duplicate into the same BusinessException for a deterministic 409 contract.
         if (problemListProblemMapper.findByListIdAndProblemId(listId, problemId).isPresent()) {
-            return; // Already in list, no-op
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
         }
 
         // Get max sort order
@@ -459,7 +468,13 @@ public class ProblemListServiceImpl implements ProblemListService {
         relation.setProblemId(problemId);
         relation.setSortOrder(sortOrder);
 
-        problemListProblemMapper.insert(relation);
+        try {
+            problemListProblemMapper.insert(relation);
+        } catch (DuplicateKeyException e) {
+            // Concurrent insert won the race; treat as duplicate per the same 409 contract.
+            log.debug("addProblem lost duplicate race for list={} problem={}", listId, problemId);
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE);
+        }
     }
 
     @Override
@@ -519,14 +534,27 @@ public class ProblemListServiceImpl implements ProblemListService {
         result.setProblemId(problemId);
 
         List<ProblemList> userLists = problemListMapper.findByAuthorId(userId);
+        if (userLists.isEmpty()) {
+            result.setLists(Collections.emptyList());
+            return result;
+        }
+
+        // Batch-load hasProblem + problemCount in 2 queries instead of 2*N (avoids N+1).
+        List<String> listIds = userLists.stream().map(ProblemList::getId).collect(Collectors.toList());
+        Set<String> listsContainingProblem = new HashSet<>(
+                problemListProblemMapper.findListIdsContainingProblem(listIds, problemId));
+        Map<String, Long> countByList = problemListProblemMapper.countByListIds(listIds).stream()
+                .collect(Collectors.toMap(
+                        row -> String.valueOf(row.get("list_id")),
+                        row -> ((Number) row.get("cnt")).longValue()));
+
         List<UserListsForProblemVO.ListStatusVO> listStatuses = userLists.stream()
                 .map(list -> {
                     UserListsForProblemVO.ListStatusVO status = new UserListsForProblemVO.ListStatusVO();
                     status.setId(list.getId());
                     status.setName(list.getName());
-                    status.setHasProblem(
-                            problemListProblemMapper.findByListIdAndProblemId(list.getId(), problemId).isPresent());
-                    status.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
+                    status.setHasProblem(listsContainingProblem.contains(list.getId()));
+                    status.setProblemCount(countByList.getOrDefault(list.getId(), 0L).intValue());
                     status.setCanEdit(true);
                     return status;
                 })

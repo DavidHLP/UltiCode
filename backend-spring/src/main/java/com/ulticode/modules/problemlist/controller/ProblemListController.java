@@ -80,10 +80,9 @@ public class ProblemListController {
     @RateLimit(key = "problem-list:fork", limit = 20, period = 60)
     @PostMapping("/{id}/fork")
     @SecurityRequirement(name = "Bearer")
-    public Result<ForkResultVO> forkList(@PathVariable String id) {
+    public Result<ProblemListSummaryVO> forkList(@PathVariable String id) {
         String userId = requireAuthenticatedUserId();
-        String forkedId = problemListService.forkList(id, userId);
-        return Result.success(new ForkResultVO(forkedId));
+        return Result.success(problemListService.forkList(id, userId));
     }
 
     @Operation(summary = "Add a problem to a list")

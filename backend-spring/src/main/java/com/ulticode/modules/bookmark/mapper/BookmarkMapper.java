@@ -2,6 +2,7 @@ package com.ulticode.modules.bookmark.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.bookmark.entity.Bookmark;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -88,12 +89,17 @@ public interface BookmarkMapper extends BaseMapper<Bookmark> {
     /**
      * Delete a bookmark by folder and target.
      *
+     * <p>NOTE: Must use {@link Delete} (not {@link Select}). Using {@link Select} with
+     * a DELETE statement causes MyBatis to return {@code null} for the affected row
+     * count, which then triggers a {@link org.apache.ibatis.binding.BindingException}
+     * when auto-unboxing into the primitive {@code int} return type.
+     *
      * @param folderId   the folder ID
      * @param targetType the target type
      * @param targetId   the target ID
      * @return number of rows deleted
      */
-    @Select("DELETE FROM collection_items WHERE collection_id = #{folderId} AND target_type = #{targetType} AND target_id = #{targetId}")
+    @Delete("DELETE FROM collection_items WHERE collection_id = #{folderId} AND target_type = #{targetType} AND target_id = #{targetId}")
     int deleteByFolderAndTarget(@Param("folderId") String folderId,
                                  @Param("targetType") String targetType,
                                  @Param("targetId") String targetId);

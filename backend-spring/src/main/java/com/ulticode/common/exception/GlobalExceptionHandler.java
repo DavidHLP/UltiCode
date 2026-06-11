@@ -21,6 +21,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.apache.ibatis.binding.BindingException;
 import org.mybatis.spring.MyBatisSystemException;
 
 import java.util.HashMap;
@@ -166,6 +167,38 @@ public class GlobalExceptionHandler {
         // (e.g. java.sql.SQLException, Jackson InvalidDefinitionException) and
         // any column/SQL fragments embedded in the message.
         log.error("MyBatis persistence error (traceId={}, rootCause={}: {})",
+                traceId, rootCauseClassName(ex), rootCauseMessage(ex), ex);
+
+        Result<Void> result = Result.error(
+                ErrorCode.DATABASE_ERROR.getCode(),
+                ErrorCode.DATABASE_ERROR.getMessage(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Handle MyBatis BindingException — raised when a mapper annotation/SQL
+     * mismatch causes MyBatis to return {@code null} for a primitive return
+     * type (e.g. {@code @Select} used with a DELETE statement on a method
+     * returning {@code int}).
+     *
+     * <p>Maps to {@code DATABASE_ERROR} instead of leaking through the
+     * catch-all {@link #handleGenericException}, which would return
+     * "Unknown error" (50000) and mask the real cause. The Spring-managed
+     * {@link MyBatisSystemException} handler above does NOT catch this
+     * exception, because {@link BindingException} extends MyBatis'
+     * {@code PersistenceException} directly and bypasses Spring's translation
+     * layer. (Reported in
+     * {@code docs/bookmark-api-test-report-2026-06-11.md} §T08, T10.)
+     *
+     * @param ex the BindingException
+     * @return 500 with {@code DATABASE_ERROR} code; full stack logged server-side
+     */
+    @ExceptionHandler(BindingException.class)
+    public ResponseEntity<Result<Void>> handleBindingException(BindingException ex) {
+        String traceId = TraceIdUtil.current();
+        log.error("MyBatis binding error (traceId={}, rootCause={}: {})",
                 traceId, rootCauseClassName(ex), rootCauseMessage(ex), ex);
 
         Result<Void> result = Result.error(

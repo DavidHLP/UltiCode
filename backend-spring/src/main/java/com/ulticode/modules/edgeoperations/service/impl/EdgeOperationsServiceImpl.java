@@ -2,6 +2,7 @@ package com.ulticode.modules.edgeoperations.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ulticode.modules.bookmark.entity.Bookmark;
+import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
@@ -107,7 +108,16 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
     }
 
     /**
-     * Toggle an operation: create if not exists, delete if exists.
+     * Toggle an edge operation: insert if absent, delete if present.
+     *
+     * <p>Used for non-vote operations (ANALYZE, VIEW, LIKE, DISLIKE,
+     * FAVORITE). The toggle is "silent" — the response VO only exposes
+     * aggregated vote counts ({@code likes}, {@code dislikes}) and
+     * bookmark count ({@code favorites}); it does NOT expose a per-user
+     * flag for whether this user has, e.g., liked via FAVORITE. Use
+     * {@code voteService.getVoteStatus} for vote operations if you need
+     * per-user state. See
+     * docs/edge-operations-api-test-report-2026-06-11.md §六.
      */
     private void toggleOperation(String userId, String targetId,
                                   EdgeOperationTargetType targetType, EdgeOperationType operationType) {
@@ -133,21 +143,29 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
 
     /**
      * Get the count of users who favorited/bookmarked a target.
-     * For PROBLEM target type: count unique users who bookmarked or added to problem list.
-     * For other types: return 0 (can be extended later).
+     *
+     * <p>Aggregates rows in the {@code bookmarks} table where
+     * {@code target_type} matches the given target. The set of
+     * bookmarkable target types is sourced from
+     * {@link BookmarkType#leafTypes()}; non-leaf types (e.g. {@code POST},
+     * {@code COMMENT}, {@code PROBLEM_LIST}) return 0 because the bookmark
+     * module does not store rows for them. When the bookmark module adds a
+     * new leaf type, this method picks it up automatically — no change
+     * required here.
+     *
+     * <p>NOTE: the {@link EdgeOperationType#FAVORITE} toggle path does NOT
+     * contribute to this counter; FAVORITE in edge_operations is a "viewer
+     * has marked this item" boolean stored separately. Aggregation here is
+     * the folder-based bookmark only.
      */
     private long getFavoritesCount(String targetId, EdgeOperationTargetType targetType) {
-        if (targetType == EdgeOperationTargetType.PROBLEM) {
-            // Count total bookmarks for this problem
-            // Note: This counts all bookmarks, not unique users
-            // For unique user count, a custom query would be needed in BookmarkMapper
-            QueryWrapper<Bookmark> wrapper = new QueryWrapper<>();
-            wrapper.eq("target_id", targetId)
-                   .eq("target_type", "PROBLEM");
-            return bookmarkMapper.selectCount(wrapper);
+        if (!BookmarkType.leafTypeNames().contains(targetType.getValue())) {
+            return 0L;
         }
-        // For other target types, return 0 (can be extended later)
-        return 0;
+        QueryWrapper<Bookmark> wrapper = new QueryWrapper<>();
+        wrapper.eq("target_id", targetId)
+               .eq("target_type", targetType.getValue());
+        return bookmarkMapper.selectCount(wrapper);
     }
 
     /**

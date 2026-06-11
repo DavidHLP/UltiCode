@@ -34,6 +34,19 @@ public interface FollowMapper extends BaseMapper<UserFollow> {
     @Delete("DELETE FROM user_follows WHERE follower_id = #{followerId} AND following_id = #{followingId}")
     void deleteRelation(@Param("followerId") String followerId, @Param("followingId") String followingId);
 
+    /**
+     * Idempotent delete that returns affected row count, eliminating the need
+     * for an explicit exists() check before delete. Use this in service code
+     * to keep the unfollow path to a single round-trip.
+     *
+     * @return 1 if the relation was deleted, 0 if it did not exist
+     */
+    @Delete("""
+        DELETE FROM user_follows
+        WHERE follower_id = #{followerId} AND following_id = #{followingId}
+        """)
+    int deleteIfExists(@Param("followerId") String followerId, @Param("followingId") String followingId);
+
     @Select("SELECT * FROM user_follows WHERE following_id = #{followingId} ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<UserFollow> selectByFollowingIdPaged(@Param("followingId") String followingId, @Param("offset") long offset, @Param("limit") long limit);
 

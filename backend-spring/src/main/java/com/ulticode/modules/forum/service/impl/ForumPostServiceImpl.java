@@ -55,7 +55,8 @@ public class ForumPostServiceImpl implements ForumPostService {
 
     @Override
     public PageResult<ForumPostVO> findAllPosts(String userId, String sortBy, int page, int pageSize) {
-        int limit = Math.min(pageSize, MAX_RECENT_POSTS), offset = (page - 1) * limit;
+        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS)),
+            offset = Math.max(0, (page - 1) * limit);
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
                 .eq(ForumPost::getIsDeleted, false);
         applySortBy(wrapper, sortBy);
@@ -95,7 +96,8 @@ public class ForumPostServiceImpl implements ForumPostService {
 
     @Override
     public PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize) {
-        int limit = Math.min(pageSize, MAX_RECENT_POSTS), offset = (page - 1) * limit;
+        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS)),
+            offset = Math.max(0, (page - 1) * limit);
         long total = postMapper.countByUserId(userId);
         List<ForumPost> posts = postMapper.findByUserId(userId);
         // Manual pagination since findByUserId returns full list

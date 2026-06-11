@@ -67,9 +67,9 @@ public interface ProblemListService {
      *
      * @param id     the list ID to fork
      * @param userId the user ID
-     * @return the new list ID
+     * @return the new problem list summary (full VO, aligned with createList)
      */
-    String forkList(String id, String userId);
+    ProblemListSummaryVO forkList(String id, String userId);
 
     /**
      * Add a problem to a list.

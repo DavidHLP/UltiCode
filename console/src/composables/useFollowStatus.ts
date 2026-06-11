@@ -16,7 +16,7 @@ export function useFollowStatus(
     if (!targetUserId) return;
     try {
       const result = await followApi.getFollowStatus(targetUserId);
-      isFollowing.value = result.isFollowing;
+      isFollowing.value = result.following;
     } catch {
       // Silently fail — follow button defaults to "Follow" state
     }

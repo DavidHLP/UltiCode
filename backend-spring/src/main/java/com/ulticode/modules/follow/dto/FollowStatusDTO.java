@@ -7,5 +7,5 @@ import lombok.Data;
  */
 @Data
 public class FollowStatusDTO {
-    private boolean isFollowing;
+    private boolean following;
 }

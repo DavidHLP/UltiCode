@@ -126,11 +126,11 @@ export function useProblemListOperations(listId: Ref<string>) {
 
     isForking.value = true;
     try {
-      const newListId = await forkProblemList(listId.value);
+      const newList = await forkProblemList(listId.value);
       toast.success(t("problem.problemList.messages.forkSuccess"), {
         description: t("problem.problemList.messages.forkSuccessDesc"),
       });
-      router.push(`/problemset/list/${newListId}`);
+      router.push(`/problemset/list/${newList.id}`);
     } catch {
       toast.error(t("problem.problemList.messages.forkFailed"));
     } finally {

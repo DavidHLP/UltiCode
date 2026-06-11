@@ -42,6 +42,10 @@ interface BackendProblemListCategory {
   icon?: string | null;
   color?: string | null;
   listCount?: number | null;
+  /**
+   * Owner user ID. Future-use field — see `ProblemListCategory.userId` JSDoc.
+   */
+  userId?: string | null;
 }
 
 interface BackendViewerState {
@@ -109,6 +113,7 @@ function mapCategory(input: unknown): ProblemListCategory {
     icon: typeof raw.icon === "string" ? raw.icon : undefined,
     color: typeof raw.color === "string" ? raw.color : undefined,
     listCount: typeof raw.listCount === "number" ? raw.listCount : undefined,
+    userId: typeof raw.userId === "string" ? raw.userId : undefined,
   };
 }
 
@@ -178,6 +183,19 @@ export async function fetchProblemListsOverview(): Promise<UserProblemListsRespo
   return mapUserProblemListsResponse(data);
 }
 
+/**
+ * Get featured problem lists (no independent HTTP request).
+ *
+ * This function is a convenience wrapper around {@link fetchProblemListsOverview}
+ * that returns its `featuredLists` field. It does NOT issue a separate network
+ * request to the backend, despite the naming — the backend exposes a single
+ * `/problem-lists/overview` endpoint that returns all three buckets.
+ *
+ * Use {@link fetchProblemListsOverview} when you need own + saved + featured
+ * in one call; reach for this only when the UI strictly renders the featured strip.
+ *
+ * @see fetchProblemListsOverview
+ */
 export async function fetchFeaturedProblemLists(): Promise<ProblemList[]> {
   const data = await fetchProblemListsOverview();
   return data.featuredLists;
@@ -255,9 +273,9 @@ export async function deleteProblemList(listId: string): Promise<void> {
   await apiDelete(`/problem-lists/${listId}`);
 }
 
-export async function forkProblemList(listId: string): Promise<string> {
-  const res = await apiPost<{ id: string }>(`/problem-lists/${listId}/fork`);
-  return res.id;
+export async function forkProblemList(listId: string): Promise<ProblemListItem> {
+  const res = await apiPost<unknown>(`/problem-lists/${listId}/fork`);
+  return mapProblemListItem(res);
 }
 
 // ============================================================================

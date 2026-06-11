@@ -1,8 +1,8 @@
 export enum SearchIndex {
-  PROBLEMS = "problems",
-  USERS = "users",
-  POSTS = "posts",
-  SOLUTIONS = "solutions",
+  PROBLEMS = "PROBLEMS",
+  USERS = "USERS",
+  POSTS = "POSTS",
+  SOLUTIONS = "SOLUTIONS",
 }
 
 export interface SearchResult {

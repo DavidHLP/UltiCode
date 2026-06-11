@@ -296,25 +296,51 @@ class EdgeOperationsServiceTest {
         }
 
         @Test
-        @DisplayName("should return zero favorites for non-PROBLEM target types")
-        void shouldReturnZeroFavoritesForNonProblemTargetTypes() {
-            // Arrange
-            EdgeOperationTargetType solutionType = EdgeOperationTargetType.SOLUTION;
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, solutionType.getValue(), 10L, 2L, -1);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, solutionType)).thenReturn(voteResult);
+        @DisplayName("should return zero favorites for non-leaf target types")
+        void shouldReturnZeroFavoritesForNonLeafTargetTypes() {
+            // Arrange — POST is NOT in BookmarkType.leafTypes(), so the bookmark
+            // mapper is never queried and favorites is hard-coded to 0.
+            EdgeOperationTargetType postType = EdgeOperationTargetType.POST;
+            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, postType.getValue(), 10L, 2L, -1);
+            when(voteService.getVoteStatus(USER_ID, TARGET_ID, postType)).thenReturn(voteResult);
 
             // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, solutionType);
+            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, postType);
 
             // Assert
             assertNotNull(result);
             assertEquals(10L, result.getLikes());
             assertEquals(2L, result.getDislikes());
-            assertEquals(0L, result.getFavorites()); // Should be 0 for non-PROBLEM types
+            assertEquals(0L, result.getFavorites()); // POST has no bookmark coverage → 0
             assertEquals(-1, result.getViewer().getVote());
 
-            // Verify bookmark query was NOT made for non-PROBLEM type
+            // Verify bookmark query was NOT made for non-leaf type
             verify(bookmarkMapper, never()).selectCount(any(QueryWrapper.class));
+        }
+
+        @Test
+        @DisplayName("should query bookmark for leaf target types like FORUM_POST")
+        void shouldQueryBookmarkForLeafTargetTypes() {
+            // Arrange — FORUM_POST IS in BookmarkType.leafTypes() (new behavior since
+            // the L1 refactor). Mock the bookmark mapper to return a non-zero count
+            // and verify the count is propagated.
+            EdgeOperationTargetType forumPostType = EdgeOperationTargetType.FORUM_POST;
+            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, forumPostType.getValue(), 3L, 0L, 0);
+            when(voteService.getVoteStatus(USER_ID, TARGET_ID, forumPostType)).thenReturn(voteResult);
+            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(7L);
+
+            // Act
+            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, forumPostType);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(3L, result.getLikes());
+            assertEquals(0L, result.getDislikes());
+            assertEquals(7L, result.getFavorites()); // FORUM_POST is a leaf type — count propagated
+            assertEquals(0, result.getViewer().getVote());
+
+            // Verify bookmark query WAS made for leaf type
+            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
         }
 
         @Test
@@ -396,7 +422,7 @@ class EdgeOperationsServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals(8L, result.getLikes());
-            assertEquals(0L, result.getFavorites()); // Non-PROBLEM types return 0 favorites
+            assertEquals(0L, result.getFavorites()); // POST has no BookmarkType coverage → 0
         }
 
         @Test

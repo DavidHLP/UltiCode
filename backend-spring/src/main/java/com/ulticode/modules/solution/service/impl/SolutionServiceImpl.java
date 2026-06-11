@@ -44,6 +44,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +85,14 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Override
     public void recordView(String solutionId, String userId) {
-        Solution solution = findById(solutionId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+        // Silently no-op when solution is missing: this endpoint is permitAll
+        // (埋点路径，期望静默成功，避免污染 5xx-equivalent error code 与监控告警)
+        Optional<Solution> opt = findById(solutionId);
+        if (opt.isEmpty()) {
+            log.debug("recordView: solution {} not found, skip (user {})", solutionId, userId);
+            return;
+        }
+        Solution solution = opt.get();
 
         // Increment view count
         solution.setViews(solution.getViews() != null ? solution.getViews() + 1 : 1);
@@ -338,7 +345,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setContent(createDTO.getContent());
         solution.setSummary(summary);
         solution.setLanguage(createDTO.getLanguage());
-        solution.setTags(createDTO.getTags() != null ? createDTO.getTags() : "[]");
+        solution.setTags(joinTags(createDTO.getTags()));
         solution.setViews(0);
         solution.setLikes(0);
         solution.setDislikes(0);
@@ -381,7 +388,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setSummary(summary);
         solution.setLanguage(updateDTO.getLanguage());
         if (updateDTO.getTags() != null) {
-            solution.setTags(updateDTO.getTags());
+            solution.setTags(joinTags(updateDTO.getTags()));
         }
 
         solutionMapper.updateById(solution);
@@ -581,21 +588,46 @@ public class SolutionServiceImpl implements SolutionService {
     }
 
     /**
-     * Parse tags JSON string to list.
+     * Parse tags stored string back to list.
+     * Supports both new comma-separated format ("a,b,c") and legacy JSON array ("[\"a\",\"b\"]")
+     * for backward compatibility with rows written by the previous implementation.
      *
-     * @param tagsJson the JSON string of tags
-     * @return list of tags
+     * @param tagsStr the stored tags string
+     * @return list of tags (empty when blank)
      */
-    private List<String> parseTags(String tagsJson) {
-        if (tagsJson == null || tagsJson.isBlank()) {
+    private List<String> parseTags(String tagsStr) {
+        if (tagsStr == null || tagsStr.isBlank()) {
             return Collections.emptyList();
         }
-        try {
-            return OBJECT_MAPPER.readValue(tagsJson, new TypeReference<List<String>>() {});
-        } catch (JsonProcessingException e) {
-            log.warn("Failed to parse tags JSON: {}", tagsJson, e);
-            return Collections.emptyList();
+        String trimmed = tagsStr.trim();
+        // Legacy: JSON array (best-effort parse, then fall through to comma split)
+        if (trimmed.startsWith("[")) {
+            try {
+                return OBJECT_MAPPER.readValue(trimmed, new TypeReference<List<String>>() {});
+            } catch (JsonProcessingException e) {
+                // Log the failure class only — do not echo the raw input
+                // (tags may be user-controlled; do not risk PII leak via logs).
+                log.warn("Failed to parse legacy tags JSON (length={}), falling back to comma split", trimmed.length(), e);
+                // fall through to comma split below
+            }
         }
+        return Arrays.stream(trimmed.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Join a tag list into the storage format (comma-separated, empty string for null/empty).
+     *
+     * @param tags the tag list
+     * @return storage string
+     */
+    private String joinTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+        return String.join(",", tags);
     }
 
     /**

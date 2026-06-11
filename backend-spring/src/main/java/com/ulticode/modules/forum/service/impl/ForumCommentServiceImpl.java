@@ -89,6 +89,10 @@ public class ForumCommentServiceImpl implements ForumCommentService {
 
         comment.setBody(dto.getBody());
         comment.setMarkdown(dto.getBody());
+        // Sync editedAt to in-memory object so convertToCommentVO returns the new
+        // timestamp instead of the pre-existing null. markAsEdited below only
+        // updates the DB; the memory copy needs the explicit set for VO mapping.
+        comment.setEditedAt(LocalDateTime.now());
         commentMapper.updateById(comment);
         commentMapper.markAsEdited(id);
 

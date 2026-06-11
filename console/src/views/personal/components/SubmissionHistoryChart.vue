@@ -58,7 +58,7 @@ const initChart = () => {
       data: submissionCounts,
       itemStyle: {
         color: "oklch(0.6149 0.1394 244.9 / 0.6)",
-        borderRadius: [4, 4, 0, 0],
+        borderRadius: 0,
       },
       emphasis: {
         itemStyle: {
@@ -108,7 +108,7 @@ const initChart = () => {
         },
       },
       itemStyle: {
-        borderRadius: 4,
+        borderRadius: 0,
         borderColor: "var(--background)",
         borderWidth: 2,
       },
@@ -120,6 +120,7 @@ const initChart = () => {
       trigger: "axis",
       backgroundColor: "oklch(0 0 0 / 0.8)",
       borderColor: "transparent",
+      borderRadius: 0,
       textStyle: {
         color: "#fff",
       },
@@ -217,7 +218,7 @@ onUnmounted(() => {
   <div class="relative">
     <div
       v-if="props.loading || dataLoading"
-      class="flex items-center justify-center h-[300px]"
+      class="flex items-center justify-center h-[230px]"
     >
       <div
         class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
@@ -225,12 +226,12 @@ onUnmounted(() => {
     </div>
     <div
       v-else-if="!hasData"
-      class="flex flex-col items-center justify-center h-[300px] text-center"
+      class="flex flex-col items-center justify-center h-[230px] text-center"
     >
       <p class="text-sm text-muted-foreground">
         {{ t("personal.history.noHistory") }}
       </p>
     </div>
-    <div v-else ref="chartRef" class="h-[300px] w-full"></div>
+    <div v-else ref="chartRef" class="h-[230px] w-full"></div>
   </div>
 </template>

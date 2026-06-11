@@ -1,4 +1,4 @@
-<!-- Updated: 2026-06-10 | Migrations: 20 | Baseline tables: 67 + test_cases (V20260610120000) | Token estimate: ~700 -->
+<!-- Updated: 2026-06-12 | Migrations: 25 | Baseline tables: 67 + test_cases + problem_notes + solution_topics + edge_operations enum | Token estimate: ~740 -->
 
 # Data Architecture
 
@@ -14,25 +14,28 @@ Identity       : users, roles, user_roles, user_follows, user_achievements,
                  achievements, badges
 Problem        : problems, problem_tags, problem_test_cases, problem_examples,
                  problem_versions, problem_lists, problem_lists_version,
-                 problem_details_content, test_cases          [new 2026-06-10]
+                 problem_details_content, test_cases,
+                 problem_notes                                                [new 2026-06-11]
 Submission     : submissions, submission_retry_count, submission_memory_nullable,
-                 solutions, solution_comments, solution_votes
+                 solutions, solution_comments, solution_votes,
+                 solution_topics                                              [new 2026-06-11]
 Contest        : contests, contest_problems, contest_participants,
                  contest_submissions, contest_actual_times, scoring_rules
 Forum          : forum_posts, post_comments, post_likes
 Moderation     : moderation_queue, reports, moderation_actions, appeals
-Notification   : notifications, notification_settings
+Notification   : notifications (is_deleted added 2026-06-11),
+                 notification_preferences (system → system_enabled 2026-06-11)
 Subscription   : subscriptions, subscription_plans
-Edge ops       : edge_operations (vote / analyze / bookmark)
+Edge ops       : edge_operations (enum extended: LIKE/DISLIKE/FAVORITE 2026-06-10)
 Auth           : refresh_tokens, password_reset_tokens, oauth_states,
                  csrf_tokens
-Permission     : user_permissions, user_permission_expires_at  [new column 2026-06-10]
+Permission     : user_permissions, user_permission_expires_at
 Audit          : audit_logs
 Recommendation : recommendation_seed_problems, recommendation_seed_submissions,
-                 daily_recommendations_feedback                [orphaned]
+                 daily_recommendations_feedback                                [orphaned]
 ```
 
-### Migrations (`init-db/migrations/`) — 20 files
+### Migrations (`init-db/migrations/`) — 25 files
 ```
 V20260602_120000  Create_All_Tables                          [baseline, 67 tables]
 V20260602_120100  Insert_Admin_User_And_Permissions          [seed admin + roles]
@@ -54,6 +57,11 @@ V20260608_120000  Fix_Audit_Logs_Performer_Id
 V20260610_120000  Create_Test_Cases_Table                       [new]
 V20260610_130000  Add_Test_Cases_Is_Deleted                     [new]
 V20260610_140000  Add_User_Permission_Expires_At                [new]
+V20260610_150000  Extend_Edge_Operations_For_Problem_Reactions [new — enum +LIKE/+DISLIKE/+FAVORITE]
+V20260611_120000  Rename_Notification_Pref_System_Column       [new — MySQL 9.x reserved keyword]
+V20260611_130000  Add_Notifications_Is_Deleted                 [new — logical delete]
+V20260611_140000  Create_Problem_Notes_Table                   [new — user×problem 1:1]
+V20260611_140000  Create_Solution_Topics_Table                 [new — 8 seeded topics]
 ```
 
 > **Security migration note**: `V20260606130000` revokes/rotates refresh tokens
@@ -74,7 +82,7 @@ init-db/
 ├── README.md
 ├── flyway.conf
 ├── pom.xml           (Maven, Flyway 10.10.0)
-├── migrations/       (20 SQL files)
+├── migrations/       (25 SQL files)
 ├── sql/              (one-time dumps)
 └── validate-migration.sh
 ```
@@ -83,7 +91,7 @@ init-db/
 ```
 V{YYYYMMDDHHMMSS}__{Description}.sql
 Example: V20260602120000__Create_All_Tables.sql
-         V20260610120000__Create_Test_Cases_Table.sql
+         V20260610150000__Extend_Edge_Operations_For_Problem_Reactions.sql
 ```
 
 ## Key Relationships
@@ -92,22 +100,25 @@ Example: V20260602120000__Create_All_Tables.sql
 users ─┬─< submissions (1:N)
        ├─< solutions (1:N)
        ├─< forum_posts (1:N)
-       ├─< edge_operations (1:N — bookmark / vote / analyze)
+       ├─< edge_operations (1:N — bookmark / vote / analyze / LIKE / DISLIKE / FAVORITE)
        ├─< user_follows (1:N, both follower / following)
        ├─< user_achievements (1:N)
-       └─< user_permissions (1:N, expires_at)             [new 2026-06-10]
+       ├─< user_permissions (1:N, expires_at)
+       └─< problem_notes (1:1 per user×problem)                          [new 2026-06-11]
 
 problems ─┬─< problem_test_cases (1:N)
-          ├─< test_cases (1:N, soft-deleted)              [new 2026-06-10]
+          ├─< test_cases (1:N, soft-deleted)
           ├─< problem_tags (M:N via join)
           ├─< problem_versions (1:N)
-          └─< submissions (1:N)
+          ├─< submissions (1:N)
+          └─< problem_notes (1:1 per user)                                [new 2026-06-11]
 
 contests ─┬─< contest_problems (1:N)
           └─< contest_participants (M:N)
 
 solutions ─┬─< solution_comments (1:N)
-           └─< solution_votes (1:N via edge_operations)
+           ├─< solution_votes (1:N via edge_operations)
+           └─< solution_topics (M:N, taxonomy)                             [new 2026-06-11]
 ```
 
 ## Redis (port 26379)

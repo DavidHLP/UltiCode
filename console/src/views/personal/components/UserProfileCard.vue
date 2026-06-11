@@ -24,7 +24,7 @@ const { t } = useI18n();
 
 <template>
   <div
-    class="relative overflow-hidden rounded-none border bg-card p-6 md:p-10 shadow-[var(--shadow-float)]"
+    class="relative overflow-hidden rounded-none border bg-card p-4 md:p-6 shadow-[var(--shadow-float)]"
   >
     <div
       class="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-primary/10 blur-3xl"
@@ -33,48 +33,48 @@ const { t } = useI18n();
       class="absolute bottom-0 left-0 h-32 w-32 translate-y-8 -translate-x-8 rounded-full bg-primary/5 blur-3xl"
     ></div>
 
-    <div class="relative flex flex-col gap-8 md:flex-row md:items-center">
+    <div class="relative flex flex-col gap-6 md:flex-row md:items-center">
       <div class="shrink-0 flex justify-center md:block">
         <div class="relative group">
           <div
-            class="absolute -inset-1 rounded-full bg-primary opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
+            class="absolute -inset-1 rounded-none bg-primary opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
           ></div>
           <Avatar
-            class="h-32 w-32 border-4 border-background shadow-[var(--shadow-float)] relative"
+            class="h-24 w-24 border-4 border-background shadow-[var(--shadow-float)] relative rounded-none"
           >
             <AvatarImage :src="user.avatar" :alt="user.name" />
-            <AvatarFallback class="text-2xl font-bold bg-muted">{{
+            <AvatarFallback class="text-xl font-bold bg-muted rounded-none">{{
               user.username.substring(0, 2).toUpperCase()
             }}</AvatarFallback>
           </Avatar>
           <div
-            class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-float)] border-4 border-background"
+            class="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-none bg-primary text-primary-foreground shadow-[var(--shadow-float)] border-4 border-background"
             :title="t('personal.profile.proMember')"
           >
-            <Zap class="h-4 w-4 fill-current" />
+            <Zap class="h-3.5 w-3.5 fill-current" />
           </div>
         </div>
       </div>
 
-      <div class="flex flex-1 flex-col space-y-4 text-center md:text-left">
+      <div class="flex flex-1 flex-col space-y-3 text-center md:text-left">
         <div
-          class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+          class="flex flex-col md:flex-row md:items-center justify-between gap-3"
         >
-          <div class="space-y-1">
+          <div class="space-y-0.5">
             <h1
-              class="text-3xl md:text-4xl font-extrabold tracking-tighter text-foreground"
+              class="text-2xl md:text-3xl font-extrabold tracking-tighter text-foreground"
             >
               {{ user.name || user.username }}
             </h1>
             <div
               class="flex items-center justify-center md:justify-start gap-2"
             >
-              <span class="text-lg font-medium text-muted-foreground"
+              <span class="text-base font-medium text-muted-foreground"
                 >@{{ user.username }}</span
               >
               <Badge
                 variant="secondary"
-                class="rounded-full px-2 py-0 h-5 text-[10px] font-semibold uppercase tracking-wider"
+                class="rounded-none px-2 py-0 h-5 text-[10px] font-semibold uppercase tracking-wider"
               >
                 {{ t("personal.profile.proBadge") }}
               </Badge>
@@ -83,7 +83,7 @@ const { t } = useI18n();
           <Button
             variant="outline"
             size="sm"
-            class="gap-2 self-center md:self-start rounded-full px-5 h-10 border-muted-foreground/20 hover:bg-muted"
+            class="gap-1.5 self-center md:self-start rounded-none px-4 h-9 text-xs border-muted-foreground/20 hover:bg-muted"
             as-child
           >
             <RouterLink to="/personal/account">

@@ -117,32 +117,33 @@ const recentActivity = computed(() => {
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-12">
+  <div class="grid gap-4 lg:grid-cols-4">
     <!-- Left & Center Columns: Stats & Progress -->
-    <div class="space-y-6 lg:col-span-8">
+    <div class="space-y-4 lg:col-span-3">
       <!-- Key Metrics Row -->
       <div class="grid gap-4 sm:grid-cols-3">
-        <Card class="relative overflow-hidden group rounded-none">
+        <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
-            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+            class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
           >
             <CardTitle
+              as="h3"
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.globalRank") }}</CardTitle
             >
             <Trophy class="h-4 w-4 text-[var(--accent-electric)]" />
           </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold tracking-tight">
+          <CardContent class="px-4 pb-1">
+            <div class="text-3xl font-bold tracking-tight text-foreground">
               #{{ (userRank || 12403).toLocaleString() }}
             </div>
-            <div class="mt-2 flex items-center gap-2">
+            <div class="mt-1 flex items-center gap-1.5">
               <Badge
                 variant="secondary"
-                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1.5 font-bold"
+                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1 py-0 h-4 text-[9px] font-bold"
               >
                 DIAMOND III
               </Badge>
@@ -154,51 +155,53 @@ const recentActivity = computed(() => {
           </CardContent>
         </Card>
 
-        <Card class="relative overflow-hidden group rounded-none">
+        <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
-            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+            class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
           >
             <CardTitle
+              as="h3"
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.solved") }}</CardTitle
             >
             <CheckCircle2 class="h-4 w-4 text-[var(--terminal-green)]" />
           </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold tracking-tight">
+          <CardContent class="px-4 pb-1">
+            <div class="text-3xl font-bold tracking-tight text-foreground">
               {{ statsData?.totalSolved || 0 }}
             </div>
-            <div class="mt-2 text-[11px] text-muted-foreground font-medium">
+            <div class="mt-1 text-[10px] text-muted-foreground font-medium">
               {{ t("personal.profile.totalProblems") }}
             </div>
           </CardContent>
         </Card>
 
-        <Card class="relative overflow-hidden group rounded-none">
+        <Card class="relative overflow-hidden group rounded-none py-3.5 gap-2">
           <div
-            class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"
+            class="absolute -right-2 -top-2 h-12 w-12 rounded-none bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <CardHeader
-            class="pb-2 space-y-0 flex flex-row items-center justify-between"
+            class="pb-1 px-4 space-y-0 flex flex-row items-center justify-between"
           >
             <CardTitle
+              as="h3"
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >{{ t("personal.profile.streak") }}</CardTitle
             >
             <Flame class="h-4 w-4 text-[var(--terminal-amber)]" />
           </CardHeader>
-          <CardContent>
-            <div class="text-3xl font-bold tracking-tight">
+          <CardContent class="px-4 pb-1">
+            <div class="text-3xl font-bold tracking-tight text-foreground">
               {{ statsData?.streak || 0 }}
             </div>
-            <div class="mt-2 flex gap-1">
+            <div class="mt-2 flex gap-0.5">
               <div
                 v-for="i in 7"
                 :key="i"
-                class="h-1.5 flex-1 rounded-full bg-muted overflow-hidden"
+                class="h-1 flex-1 rounded-none bg-muted overflow-hidden"
               >
                 <div
                   v-if="i <= (statsData?.streak || 0) % 7"
@@ -210,140 +213,143 @@ const recentActivity = computed(() => {
         </Card>
       </div>
 
-      <!-- Detailed Problem Stats -->
-      <Card class="border-none shadow-none bg-muted/30 rounded-none">
-        <CardHeader class="pb-4">
-          <div class="flex items-center justify-between">
-            <CardTitle class="text-lg font-bold flex items-center gap-2">
-              <Target class="h-5 w-5 text-primary" />
-              {{ t("personal.profile.solvingProgress") }}
-            </CardTitle>
-            <div class="text-xs font-bold text-muted-foreground">
-              {{ t("personal.profile.overallProgress") }}
-              {{
-                (
-                  ((statsData?.totalSolved || 0) /
-                    ((statsData?.stats?.Easy.total || 0) +
-                      (statsData?.stats?.Medium.total || 0) +
-                      (statsData?.stats?.Hard.total || 0) || 1)) *
-                  100
-                ).toFixed(1)
-              }}%
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-6">
-            <div
-              v-for="(stat, difficulty) in stats"
-              :key="difficulty"
-              class="space-y-2"
-            >
-              <div class="flex items-end justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold capitalize">{{
-                    t(`personal.stats.${difficulty}`)
-                  }}</span>
-                  <Badge
-                    variant="outline"
-                    class="text-[10px] h-4 px-1 border-muted-foreground/30 text-muted-foreground"
-                  >
-                    {{ stat.count }} / {{ stat.total }}
-                  </Badge>
-                </div>
-                <span class="text-xs font-black" :class="stat.color">
-                  {{ ((stat.count / (stat.total || 1)) * 100).toFixed(1) }}%
-                </span>
+      <!-- Solving Progress & Skill Radar Side-by-Side -->
+      <div class="grid gap-4 md:grid-cols-2">
+        <!-- Detailed Problem Stats -->
+        <Card class="border-none shadow-none bg-muted/30 rounded-none py-3.5 gap-2.5">
+          <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
+            <div class="flex items-center justify-between">
+              <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                <Target class="h-4 w-4 text-primary/80" />
+                {{ t("personal.profile.solvingProgress") }}
+              </CardTitle>
+              <div class="text-[11px] font-bold text-muted-foreground/80">
+                {{ t("personal.profile.overallProgress") }}
+                {{
+                  (
+                    ((statsData?.totalSolved || 0) /
+                      ((statsData?.stats?.Easy.total || 0) +
+                        (statsData?.stats?.Medium.total || 0) +
+                        (statsData?.stats?.Hard.total || 0) || 1)) *
+                    100
+                  ).toFixed(1)
+                }}%
               </div>
+            </div>
+          </CardHeader>
+          <CardContent class="px-4 pb-2">
+            <div class="space-y-3.5">
               <div
-                class="h-3 w-full overflow-hidden rounded-full bg-muted shadow-inner"
+                v-for="(stat, difficulty) in stats"
+                :key="difficulty"
+                class="space-y-1.5"
               >
+                <div class="flex items-baseline justify-between text-xs">
+                  <div class="flex items-baseline gap-1.5">
+                    <span class="font-bold capitalize text-foreground/90">{{
+                      t(`personal.stats.${difficulty}`)
+                    }}</span>
+                    <span class="font-mono text-muted-foreground/80 text-[10px]">
+                      {{ stat.count }} / {{ stat.total }}
+                    </span>
+                  </div>
+                  <span class="font-mono font-black text-[11px]" :class="stat.color">
+                    {{ ((stat.count / (stat.total || 1)) * 100).toFixed(1) }}%
+                  </span>
+                </div>
                 <div
-                  class="h-full transition-all duration-1000 ease-out"
-                  :class="stat.bg"
-                  :style="{
-                    width: (stat.count / (stat.total || 1)) * 100 + '%',
-                  }"
-                ></div>
+                  class="h-1.5 w-full overflow-hidden rounded-none bg-muted shadow-inner"
+                >
+                  <div
+                    class="h-full transition-all duration-1000 ease-out"
+                    :class="stat.bg"
+                    :style="{
+                      width: (stat.count / (stat.total || 1)) * 100 + '%',
+                    }"
+                  ></div>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <!-- Skill Radar Chart -->
+        <Card class="rounded-none py-3.5 gap-2.5">
+          <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
+            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+              <Target class="h-4 w-4 text-primary/80" />
+              {{ t("personal.skills.title") }}
+            </CardTitle>
+            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{ t("personal.skills.subtitle") }}</CardDescription>
+          </CardHeader>
+          <CardContent class="px-4 pb-2">
+            <SkillRadarChart :skills="skillsData" :loading="skillsLoading" />
+          </CardContent>
+        </Card>
+      </div>
 
       <!-- Activity Heatmap -->
-      <Card class="rounded-none">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-lg font-bold flex items-center gap-2">
-            <Activity class="h-5 w-5 text-primary" />
+      <Card class="rounded-none py-3.5 gap-2.5">
+        <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
+          <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+            <Activity class="h-4 w-4 text-primary/80" />
             {{ t("personal.profile.heatmapTitle") }}
           </CardTitle>
-          <CardDescription>{{
+          <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
             t("personal.profile.heatmapSubtitle")
           }}</CardDescription>
         </CardHeader>
-        <CardContent class="pt-2">
+        <CardContent class="px-4 pb-2">
           <ActivityHeatmap :data="statsData?.heatmap" />
         </CardContent>
       </Card>
 
-      <!-- Skill Radar Chart -->
-      <Card class="rounded-none">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-lg font-bold flex items-center gap-2">
-            <Target class="h-5 w-5 text-primary" />
-            {{ t("personal.skills.title") }}
-          </CardTitle>
-          <CardDescription>{{ t("personal.skills.subtitle") }}</CardDescription>
-        </CardHeader>
-        <CardContent class="pt-2">
-          <SkillRadarChart :skills="skillsData" :loading="skillsLoading" />
-        </CardContent>
-      </Card>
+      <!-- Submission History & Learning Progress Side-by-Side -->
+      <div class="grid gap-4 md:grid-cols-2">
+        <!-- Submission History Chart -->
+        <Card class="rounded-none py-3.5 gap-2.5">
+          <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
+            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+              <GitCommit class="h-4 w-4 text-primary/80" />
+              {{ t("personal.history.title") }}
+            </CardTitle>
+            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
+              t("personal.history.subtitle")
+            }}</CardDescription>
+          </CardHeader>
+          <CardContent class="px-4 pb-2">
+            <SubmissionHistoryChart />
+          </CardContent>
+        </Card>
 
-      <!-- Submission History Chart -->
-      <Card class="rounded-none">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-lg font-bold flex items-center gap-2">
-            <GitCommit class="h-5 w-5 text-primary" />
-            {{ t("personal.history.title") }}
-          </CardTitle>
-          <CardDescription>{{
-            t("personal.history.subtitle")
-          }}</CardDescription>
-        </CardHeader>
-        <CardContent class="pt-2">
-          <SubmissionHistoryChart />
-        </CardContent>
-      </Card>
-
-      <!-- Learning Progress Chart -->
-      <Card class="rounded-none">
-        <CardHeader class="pb-2">
-          <CardTitle class="text-lg font-bold flex items-center gap-2">
-            <Target class="h-5 w-5 text-primary" />
-            {{ t("personal.learning.title") }}
-          </CardTitle>
-          <CardDescription>{{
-            t("personal.learning.subtitle")
-          }}</CardDescription>
-        </CardHeader>
-        <CardContent class="pt-2">
-          <LearningProgressChart />
-        </CardContent>
-      </Card>
+        <!-- Learning Progress Chart -->
+        <Card class="rounded-none py-3.5 gap-2.5">
+          <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
+            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+              <Target class="h-4 w-4 text-primary/80" />
+              {{ t("personal.learning.title") }}
+            </CardTitle>
+            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
+              t("personal.learning.subtitle")
+            }}</CardDescription>
+          </CardHeader>
+          <CardContent class="px-4 pb-2">
+            <LearningProgressChart />
+          </CardContent>
+        </Card>
+      </div>
     </div>
 
     <!-- Right Column: Recent Activity -->
-    <div class="space-y-6 lg:col-span-4">
-      <Card class="h-full border-muted/50 rounded-none">
-        <CardHeader class="pb-4 border-b bg-muted/20">
-          <CardTitle class="text-base font-bold flex items-center gap-2">
-            <GitCommit class="h-4 w-4 text-primary" />
+    <div class="space-y-4 lg:col-span-1">
+      <Card class="h-full border-muted/50 rounded-none py-3.5 gap-2.5">
+        <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30 bg-muted/10">
+          <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+            <GitCommit class="h-4 w-4 text-primary/80" />
             {{ t("personal.profile.recentActivity") }}
           </CardTitle>
         </CardHeader>
-        <CardContent class="p-0">
+        <CardContent class="p-0 max-h-[380px] overflow-y-auto scrollbar-hide">
           <div
             v-if="recentActivity.length > 0"
             class="divide-y divide-border/50"
@@ -351,13 +357,13 @@ const recentActivity = computed(() => {
             <div
               v-for="(item, index) in recentActivity"
               :key="index"
-              class="group relative flex items-start gap-4 p-4 hover:bg-muted/40 transition-colors"
+              class="group relative flex items-start gap-3 p-3 hover:bg-muted/40 transition-colors"
             >
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors"
               >
                 <div
-                  class="h-3 w-3 rounded-full animate-pulse shadow-[0_0_8px_oklch(0.7_0.15_160)]"
+                  class="h-2 w-2 rounded-none animate-pulse shadow-[0_0_8px_oklch(0.7_0.15_160)]"
                   :class="
                     item.status === 'Accepted'
                       ? 'bg-[var(--terminal-green)]'
@@ -365,9 +371,9 @@ const recentActivity = computed(() => {
                   "
                 ></div>
               </div>
-              <div class="flex flex-1 flex-col gap-0.5 min-w-0">
+              <div class="flex flex-1 flex-col gap-0.5 min-w-0 leading-normal">
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-sm font-bold truncate">
+                  <span class="text-xs font-bold truncate">
                     {{ item.action }}
                     <RouterLink
                       :to="`/problems/${item.problemSlug}`"
@@ -377,13 +383,13 @@ const recentActivity = computed(() => {
                     </RouterLink>
                   </span>
                 </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-medium text-muted-foreground">{{
+                <div class="flex items-center justify-between gap-2 mt-0.5">
+                  <span class="text-[10px] font-medium text-muted-foreground/75">{{
                     item.time
                   }}</span>
                   <Badge
                     variant="outline"
-                    class="text-[9px] h-4 px-1 rounded-none font-bold uppercase tracking-tighter"
+                    class="text-[9px] h-3.5 px-1 rounded-none font-bold uppercase tracking-tighter"
                     :class="
                       item.status === 'Accepted'
                         ? 'border-[var(--terminal-green)]/50 text-[var(--terminal-green)]'
@@ -404,11 +410,11 @@ const recentActivity = computed(() => {
             <p class="text-sm">{{ t("personal.submissions.noSubmissions") }}</p>
           </div>
         </CardContent>
-        <div class="p-4 border-t bg-muted/5">
+        <div class="p-3 border-t bg-muted/5">
           <Button
             variant="ghost"
             size="sm"
-            class="w-full text-xs font-bold text-muted-foreground hover:text-primary gap-1"
+            class="w-full text-xs font-bold text-muted-foreground hover:text-primary gap-1 rounded-none h-8"
             as-child
           >
             <RouterLink to="/personal/submissions">

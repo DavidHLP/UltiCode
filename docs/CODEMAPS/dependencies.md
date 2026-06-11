@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-10 | Token estimate: ~700 -->
+<!-- Generated: 2026-06-12 | Token estimate: ~720 -->
 
 # Dependencies & Integrations
 

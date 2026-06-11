@@ -19,11 +19,12 @@ Welcome to the UltiCode project! This guide will help you get started with devel
 
 ```bash
 git clone <repository-url>
-cd UltiCode-Public-Next
+cd UltiCode
 
-# Install frontend dependencies
+# Install frontend dependencies (each package has its own lockfile)
 cd console && pnpm install && cd ..
 cd management && pnpm install && cd ..
+cd shared/auth-core && pnpm install && cd ../..
 ```
 
 ### 2. Configure Environment
@@ -70,7 +71,7 @@ cd management && pnpm dev
 
 ## Available Commands
 
-<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-10) -->
+<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-12) -->
 
 ### Console Frontend (console/)
 
@@ -100,6 +101,11 @@ Same scripts as console (except `validate:mocks*`), plus:
 | `pnpm validate:i18n-keys` | Validate i18n key consistency across locales |
 | `pnpm check:i18n` | Type-aware i18n key checker |
 | `pnpm verify:theme-sync` | Verify `management/public/theme-bootstrap.js` matches `shared/theme` |
+
+> **Test scope difference**: Console's `pnpm test` excludes both
+> `**/auth-core/**` and `**/shared/theme/**`. Management's `pnpm test`
+> excludes only `**/shared/theme/**`. Both rely on the shared `auth-core`
+> package's own `pnpm test` for that module's coverage.
 
 ### Shared Packages (shared/auth-core/, shared/theme/)
 
@@ -228,5 +234,17 @@ Types: feat, fix, refactor, docs, test, chore, perf, ci
 ## Getting Help
 
 - Check `docs/CODEMAPS/` for architecture documentation
-- Review `.env.example` for environment variables
+- Review `docs/ENV.md` for environment variables
+- See `docs/RUNBOOK.md` for deployment, health checks, and recovery procedures
 - See `CLAUDE.md` for project-specific guidance
+
+## Related Documentation
+
+| Document | Purpose |
+| --- | --- |
+| `docs/ENV.md` | All environment variables consumed by backend / frontends / compose / Flyway |
+| `docs/RUNBOOK.md` | Deployment, health checks, common-issue fixes, rollback |
+| `docs/CONTRIBUTING.md` | This file — dev setup, scripts, style, PR checklist |
+| `docs/CODEMAPS/` | Architecture / backend / frontend / data / dependencies maps |
+| `AGENTS.md` | Repository-level guide (project map, toolchain, startup) |
+| `CLAUDE.md` | Project-specific traps (charset, Arthas, conventions) |

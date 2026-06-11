@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-10 | Java files: 708 | Controllers: 41 | Modules: 26 | Token estimate: ~950 -->
+<!-- Generated: 2026-06-12 | Java files: 735 | Controllers: 43 | Modules: 26 | Token estimate: ~980 -->
 
 # Backend Architecture
 
@@ -12,21 +12,21 @@ modules/
 ├── backup/           → /admin/backups
 ├── bookmark/         → /bookmarks
 ├── contest/          → /contest, /admin/contest, /admin/scoring-rules
-├── edgeoperations/   → /edge-operations
+├── edgeoperations/   → /edge-operations (LIKE/DISLIKE/FAVORITE added 2026-06-10)
 ├── email/            → /email
 ├── follow/           → /users (follow endpoints)
 ├── forum/            → /forum
 ├── i18n/             → /i18n
 ├── moderation/       → /moderation
 ├── monitoring/       → /monitoring
-├── notification/     → /notifications
+├── notification/     → /notifications (logical delete added 2026-06-11)
 ├── permission/       → (entity/service only, no REST; backs admin user-permission endpoints)
-├── problem/          → /problems, /admin/problems (+ versions + test_cases)
+├── problem/          → /problems, /admin/problems (+ versions + test_cases + notes)   [notes NEW 2026-06-11]
 ├── problemlist/      → /problem-lists
 ├── queue/            → (background job processors, no REST)
 ├── refreshtoken/     → (entity/service only, no REST)
 ├── search/           → /search
-├── solution/         → /api/solutions
+├── solution/         → /api/solutions, /api/solutions/topics                        [topics NEW 2026-06-11]
 ├── submission/       → /submissions, /problems/{id}/submissions
 ├── subscription/     → /subscriptions, /admin/subscriptions
 ├── user/             → /users
@@ -35,23 +35,24 @@ modules/
 ```
 
 > **Removed since 2026-05-30**: `recommendation/` module + Dubbo RPC stack +
-> `:20881` / `:9005` services. The frontend `recommendation` and `recommend-*`
-> API directories remain in console/management but are no longer backed by
-> server endpoints — flagged as **orphan / dead code** for follow-up cleanup.
+> `:20881` / `:9005` services. Frontend `recommendation*` API directories
+> remain in console/management but are no longer backed by server endpoints —
+> flagged as **orphan / dead code** for follow-up cleanup.
 
-## Controllers (41)
+## Controllers (43)
 
 ```
 admin/        : 15  (Account, Analytics, Comment, Forum, Notification, Problem,
                     ProblemList, Settings, Solution, Submission, Tag, TestCase,
                     User, Audit, Dashboard)
 contest/      :  3  (Contest, AdminContest, ScoringRule)
+problem/      :  3  (Problem, AdminProblemVersion, ProblemNote)         [+1 ProblemNote 2026-06-11]
+solution/     :  2  (Solution, SolutionTopic)                            [+1 SolutionTopic 2026-06-11]
 subscription/ :  2  (Subscription, UserSubscription)
 submission/   :  2  (Submission, ProblemSubmission)
-problem/      :  2  (Problem, AdminProblemVersion)
-auth, backup, bookmark, edgeoperations, email, follow, forum, i18n,
-moderation, monitoring, notification, problemlist, search, solution,
-user, vote :  1 each
+auth, achievement, backup, bookmark, edgeoperations, email, follow,
+forum, i18n, moderation, monitoring, notification, problemlist,
+search, user, vote :  1 each
 ```
 
 ## Key API Routes
@@ -60,13 +61,16 @@ user, vote :  1 each
 ```
 POST /auth/login, /auth/register, /auth/refresh, /auth/logout
 GET  /problems, /problems/{slug}
+GET  /problems/{problemId}/note                                         [new 2026-06-11]
+POST /problems/{problemId}/note                                         [new 2026-06-11]
+GET  /api/solutions/topics                                              [new 2026-06-11]
 GET  /contest, /contest/{slug}
 GET  /forum, /forum/posts/{id}
 GET  /api/solutions, /api/problems/{id}/solutions
 GET  /submissions, /problems/{id}/submissions
 POST /bookmarks, /vote, /follow
 GET  /edge-operations/interactions, /edge-operations/{type}/{id}
-POST /edge-operations
+POST /edge-operations (LIKE/DISLIKE/FAVORITE now valid)                 [expanded 2026-06-10]
 GET  /search
 ```
 
@@ -78,10 +82,10 @@ GET/POST /admin/forum, /admin/comments, /admin/tags
 GET/POST /admin/settings, /admin/notifications, /admin/backups
 GET/POST /admin/analytics, /admin/audit, /admin/dashboard
 GET/POST /admin/subscriptions
-GET/POST /admin/test-cases                                    [new 2026-06-10]
-POST /admin/users/{id}/permissions/grant                      [new 2026-06-10]
-POST /admin/users/{id}/permissions/revoke                     [new 2026-06-10]
-GET  /admin/users/{id}/permissions                            [new 2026-06-10]
+GET/POST /admin/test-cases
+POST /admin/users/{id}/permissions/grant
+POST /admin/users/{id}/permissions/revoke
+GET  /admin/users/{id}/permissions
 GET  /admin/problems/{id}/versions
 GET  /admin/problems/{id}/versions/{versionId}
 GET  /admin/problems/{id}/versions/{from}/diff/{to}

@@ -155,6 +155,7 @@ export default {
     loadingSubmissions: "Retrieving submission history...",
     loginToView: "Please log in to view your submissions.",
     recentAttempts: "Recent Attempts",
+    attempted: "Attempted",
     latestSubmissions: "Displaying your latest {count} submissions.",
     totalSubmissions: "{count} Total",
     problem: "Problem",

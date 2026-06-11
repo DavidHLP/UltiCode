@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+    class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
   >
     <!-- Left: Search -->
     <div class="relative w-full max-w-md">
@@ -42,7 +42,9 @@ const emit = defineEmits<{
     </div>
 
     <!-- Right: Actions -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+    <div
+      class="flex w-full items-center gap-2 overflow-x-auto pb-1 lg:w-auto lg:pb-0"
+    >
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button

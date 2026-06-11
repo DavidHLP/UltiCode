@@ -89,6 +89,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
 
         comment.setBody(dto.getBody());
         comment.setMarkdown(dto.getBody());
+        comment.setEditedAt(LocalDateTime.now());
         commentMapper.updateById(comment);
         commentMapper.markAsEdited(id);
 

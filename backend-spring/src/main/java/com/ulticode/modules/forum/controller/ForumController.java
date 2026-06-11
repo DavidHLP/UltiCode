@@ -13,7 +13,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/forum")
 @RequiredArgsConstructor
+@Validated
 public class ForumController {
 
     private final ForumService forumService;
@@ -32,9 +36,15 @@ public class ForumController {
             @Parameter(description = "Sort by (hot, new, top)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1")
+            @Min(value = 1, message = "page must be at least 1")
+            @Max(value = 1000, message = "page cannot exceed 1000")
+            Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20")
+            @Min(value = 1, message = "pageSize must be at least 1")
+            @Max(value = 50, message = "pageSize cannot exceed 50")
+            Integer pageSize) {
         String userId = SecurityUtil.getCurrentUserId();
         PageResult<ForumPostVO> result = forumService.findAllPosts(userId, sortBy, page, pageSize);
         return Result.success(result);
@@ -55,9 +65,15 @@ public class ForumController {
     @GetMapping("/me/posts")
     public Result<PageResult<ForumPostVO>> getMyPosts(
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1")
+            @Min(value = 1, message = "page must be at least 1")
+            @Max(value = 1000, message = "page cannot exceed 1000")
+            Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20")
+            @Min(value = 1, message = "pageSize must be at least 1")
+            @Max(value = 50, message = "pageSize cannot exceed 50")
+            Integer pageSize) {
         String userId = getCurrentUserIdOrThrow();
         PageResult<ForumPostVO> result = forumService.findMyPosts(userId, page, pageSize);
         return Result.success(result);
@@ -177,9 +193,15 @@ public class ForumController {
             @Parameter(description = "Sort by (hot, new, top)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1")
+            @Min(value = 1, message = "page must be at least 1")
+            @Max(value = 1000, message = "page cannot exceed 1000")
+            Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20")
+            @Min(value = 1, message = "pageSize must be at least 1")
+            @Max(value = 50, message = "pageSize cannot exceed 50")
+            Integer pageSize) {
         String userId = SecurityUtil.getCurrentUserId();
         PageResult<ForumPostVO> result = forumService.findPostsByCommunity(slug, sortBy, userId, page, pageSize);
         return Result.success(result);

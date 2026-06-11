@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.BadSqlGrammarException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -206,6 +207,32 @@ public class GlobalExceptionHandler {
                 ErrorCode.DATABASE_ERROR.getMessage(),
                 traceId
         );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    /**
+     * Map Spring's {@link BadSqlGrammarException} (thrown by JDBC exception
+     * translator when SQL is invalid — e.g. MySQL reserved word unquoted in
+     * {@code @Select} annotation, or auto-generated column list referencing a
+     * reserved word) to a dedicated error code. Without this handler the
+     * exception falls through to {@link #handleGenericException} which returns
+     * 50000 "Unknown error" and masks the SQL root cause, making it impossible
+     * to debug from the response body alone.
+     *
+     * <p>{@code BadSqlGrammarException} extends Spring's {@code DataAccessException}
+     * directly, NOT MyBatis's {@code MyBatisSystemException}, so the existing
+     * MyBatis handler above does NOT catch it. (Reported in
+     * docs/achievement-api-test-report-2026-06-11.md §6 MEDIUM #4.)</p>
+     */
+    @ExceptionHandler(BadSqlGrammarException.class)
+    public ResponseEntity<Result<Void>> handleBadSqlGrammarException(BadSqlGrammarException ex) {
+        String traceId = TraceIdUtil.current();
+        log.error("Bad SQL grammar (traceId={}, rootCause={}: {})",
+                traceId, rootCauseClassName(ex), rootCauseMessage(ex), ex);
+        Result<Void> result = Result.error(
+                ErrorCode.DATABASE_ERROR.getCode(),
+                ErrorCode.DATABASE_ERROR.getMessage(),
+                traceId);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
     }
 

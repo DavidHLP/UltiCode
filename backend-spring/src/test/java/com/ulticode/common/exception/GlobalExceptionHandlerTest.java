@@ -209,4 +209,55 @@ class GlobalExceptionHandlerTest {
                     "traceId must follow project convention (t-<millis>), got: " + traceId);
         }
     }
+
+    /**
+     * Regression guard for the new {@code handleBadSqlGrammarException}
+     * added in Task 3 (docs/.claude/PRPs/plans/achievement-api-fixes.plan.md
+     * §MEDIUM #4). Without this handler the exception falls through to
+     * {@code handleGenericException} and returns code=50000 "Unknown error",
+     * which masks the SQL root cause. See
+     * docs/achievement-api-test-report-2026-06-11.md §6 MEDIUM #4.
+     */
+    @Nested
+    @DisplayName("BadSqlGrammarException handler (MEDIUM #4)")
+    class BadSqlGrammarExceptionTests {
+
+        @Test
+        @DisplayName("returns 500 with DATABASE_ERROR (50001), not generic UNKNOWN_ERROR (50000)")
+        void returns500WithDatabaseErrorCode() {
+            // Mirror the real failure path: SELECT referencing unquoted MySQL
+            // reserved word 'key' produces SQLSyntaxErrorException → Spring
+            // exception translator → BadSqlGrammarException.
+            java.sql.SQLException sqlEx = new java.sql.SQLException(
+                    "You have an error in your SQL syntax; ... near 'key' at line 1");
+            org.springframework.jdbc.BadSqlGrammarException ex =
+                    new org.springframework.jdbc.BadSqlGrammarException(
+                            "selectByKey",
+                            "SELECT id,key,name FROM achievements WHERE id=?",
+                            sqlEx);
+
+            ResponseEntity<Result<Void>> response = handler.handleBadSqlGrammarException(ex);
+
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertEquals(50001, response.getBody().getCode(),
+                    "Must use DATABASE_ERROR (50001), not UNKNOWN_ERROR (50000)");
+            assertEquals("Database error", response.getBody().getMessage());
+        }
+
+        @Test
+        @DisplayName("preserves traceId in the response")
+        void preservesTraceId() {
+            java.sql.SQLException sqlEx = new java.sql.SQLException("syntax error");
+            org.springframework.jdbc.BadSqlGrammarException ex =
+                    new org.springframework.jdbc.BadSqlGrammarException(
+                            "selectByKey", "SELECT * FROM achievements WHERE key = ?", sqlEx);
+
+            ResponseEntity<Result<Void>> response = handler.handleBadSqlGrammarException(ex);
+
+            String traceId = response.getBody().getTraceId();
+            assertNotNull(traceId, "traceId must be present");
+            assertTrue(traceId.startsWith("t-"),
+                    "traceId must follow project convention (t-<millis>), got: " + traceId);
+        }
+    }
 }

@@ -113,7 +113,6 @@ public class SolutionController {
     @Operation(summary = "Update solution", description = "Update an existing solution (author only)")
     @RateLimit(key = "solution:update", limit = 20, period = 60)
     @PutMapping("/api/solutions/{id}")
-    @PatchMapping("/api/solutions/{id}")
     public Result<SolutionVO> update(
             @Parameter(description = "Solution ID")
             @PathVariable String id,

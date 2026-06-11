@@ -186,11 +186,19 @@ const visiblePages = computed(() => {
         <Button
           v-for="page in visiblePages"
           :key="page"
-          :variant="page === currentPage ? 'default' : 'outline'"
+          variant="outline"
           size="icon"
           :disabled="page === '...' || loading"
-          class="h-9 w-9 text-xs"
-          :class="{ 'pointer-events-none': page === '...' }"
+          :aria-current="page === currentPage ? 'page' : undefined"
+          :data-testid="
+            page === currentPage ? 'past-contests-current-page' : undefined
+          "
+          class="h-9 w-9 rounded-none text-xs"
+          :class="{
+            'pointer-events-none': page === '...',
+            'border-[var(--terminal-amber)]/35 bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)] shadow-[2px_2px_0px_0px_var(--terminal-amber)] hover:bg-[oklch(0.6545_0.1340_85.7_/_0.2)] dark:border-[var(--terminal-amber)]/45 dark:bg-[oklch(0.6545_0.1340_85.7_/_0.18)] dark:text-[var(--terminal-amber)] dark:hover:bg-[oklch(0.6545_0.1340_85.7_/_0.25)]':
+              page === currentPage,
+          }"
           @click="typeof page === 'number' && emit('update:currentPage', page)"
         >
           {{ page }}

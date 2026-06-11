@@ -28,14 +28,14 @@ describe("ProblemSetView", () => {
     document.title = "";
   });
 
-  it("keeps the daily challenge visible after the problem list on narrow screens", () => {
+  it("keeps the daily challenge visible before the problem list on narrow screens", () => {
     const wrapper = shallowMount(ProblemSetView);
     const sidebar = wrapper.get('[data-testid="problem-set-sidebar"]');
     const problemList = wrapper.get("main");
 
     expect(sidebar.classes()).not.toContain("hidden");
-    expect(sidebar.classes()).toContain("order-2");
-    expect(sidebar.classes()).toContain("max-w-xs");
-    expect(problemList.classes()).toContain("order-1");
+    expect(sidebar.classes()).toContain("order-1");
+    expect(sidebar.classes()).toContain("max-w-md");
+    expect(problemList.classes()).toContain("order-2");
   });
 });

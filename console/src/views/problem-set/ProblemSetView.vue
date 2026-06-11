@@ -29,16 +29,16 @@ onMounted(() => {
     </section>
 
     <!-- Main Content Area -->
-    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
+    <div class="grid grid-cols-1 items-start gap-6 md:grid-cols-12 md:gap-8">
       <!-- Left Column: Problem List (9 cols) -->
-      <main class="order-1 min-w-0 space-y-6 lg:col-span-9">
+      <main class="order-2 md:order-1 min-w-0 space-y-6 md:col-span-8 lg:col-span-9">
         <ProblemExplorer :initial-category="category" />
       </main>
 
       <!-- Right Column: Sidebar (3 cols) -->
       <aside
         data-testid="problem-set-sidebar"
-        class="order-2 mx-auto w-full max-w-xs space-y-6 lg:col-span-3 lg:max-w-none lg:sticky lg:top-24"
+        class="order-1 md:order-2 w-full max-w-md mx-auto md:max-w-none md:mx-0 space-y-6 md:col-span-4 lg:col-span-3 md:sticky md:top-24"
       >
         <ProblemSetSidebar />
       </aside>

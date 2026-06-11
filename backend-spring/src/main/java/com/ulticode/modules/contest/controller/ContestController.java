@@ -9,6 +9,8 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
+import com.ulticode.modules.contest.entity.ContestProblem;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
@@ -43,6 +45,10 @@ public class ContestController {
     private final ContestService contestService;
     private final RankingService rankingService;
     private final Validator validator;
+    private final ContestProblemMapper contestProblemMapper;
+
+    /** Error messages — kept as constants for testability and i18n-future-readiness. */
+    private static final String MSG_PROBLEM_ID_REQUIRED = "Problem id is required";
 
     // =========================================================================
     // CONTEST QUERIES (Public)
@@ -344,9 +350,11 @@ public class ContestController {
      * Submit code for a contest problem.
      * Requires authentication.
      *
-     * @param id        the contest ID or slug
-     * @param problemId the problem ID
-     * @param createDTO the submission payload
+     * @param id          the contest ID or slug
+     * @param problemPath the problem identifier — accepts both numeric problem id
+     *                    (e.g., "1") and composite contest_problem id (e.g., "cp-u1-A").
+     *                    Resolved to the underlying numeric problem id before delegation.
+     * @param createDTO   the submission payload
      * @return created submission
      */
     @Operation(summary = "Submit contest problem", description = "Submit code for a problem in a contest")
@@ -360,8 +368,11 @@ public class ContestController {
     public Result<SubmissionVO> submitContestProblem(
             @Parameter(description = "Contest ID or slug")
             @PathVariable String id,
-            @Parameter(description = "Problem ID")
-            @PathVariable Long problemId,
+            // Path variable name kept as {problemId} for API compatibility;
+            // Java parameter renamed to `problemPath` since it accepts both a
+            // numeric id (e.g., "1") and a composite id (e.g., "cp-u1-A").
+            @Parameter(description = "Problem identifier (numeric id or contest_problem id)")
+            @PathVariable("problemId") String problemPath,
             @RequestBody CreateSubmissionDTO createDTO) {
 
         String resolvedId = resolveContestId(id);
@@ -369,10 +380,45 @@ public class ContestController {
         if (createDTO == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Submission payload is required");
         }
-        createDTO.setProblemId(problemId);
+        Long realProblemId = resolveContestProblemId(resolvedId, problemPath);
+        createDTO.setProblemId(realProblemId);
         validateSubmissionPayload(createDTO);
-        SubmissionVO submission = contestService.submitContestProblem(resolvedId, problemId, userId, createDTO);
+        SubmissionVO submission = contestService.submitContestProblem(resolvedId, realProblemId, userId, createDTO);
         return Result.success(submission);
+    }
+
+    /**
+     * Resolve a path-variable problem identifier into the underlying numeric problem id.
+     * Accepts either a numeric id (e.g., "1") or the composite contest_problem id
+     * (e.g., "cp-u1-A"). Throws 404 with a clear message if neither resolves.
+     */
+    private Long resolveContestProblemId(String contestId, String problemPath) {
+        if (problemPath == null || problemPath.isBlank()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, MSG_PROBLEM_ID_REQUIRED);
+        }
+        // 1) Try parsing as numeric (legacy & most common case).
+        try {
+            return Long.parseLong(problemPath);
+        } catch (NumberFormatException ignored) {
+            // fall through to contest_problem.id lookup
+        }
+        // 2) Look up the composite id in contest_problems.
+        return contestProblemMapper.findByContestIdAndId(contestId, problemPath)
+                .map(cp -> extractProblemIdOrThrow(cp, problemPath))
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND,
+                        "Contest problem not found: " + problemPath));
+    }
+
+    /**
+     * Extract the numeric problem id from a {@link ContestProblem}, throwing
+     * 404 if the row is missing the underlying problem id (data integrity issue).
+     */
+    private Long extractProblemIdOrThrow(ContestProblem cp, String contestProblemId) {
+        if (cp.getProblemId() == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND,
+                    "Contest problem has no underlying problem id: " + contestProblemId);
+        }
+        return cp.getProblemId();
     }
 
     // =========================================================================
@@ -396,6 +442,31 @@ public class ContestController {
     @PostMapping("/{id}/register")
     public Result<Void> registerForContest(
             @Parameter(description = "Contest ID")
+            @PathVariable String id) {
+
+        String resolvedId = resolveContestId(id);
+        String userId = getCurrentUserIdOrThrow();
+        contestService.registerForContest(resolvedId, userId);
+        return Result.success();
+    }
+
+    /**
+     * Check in to a contest. Currently an alias for register — added 2026-06-11
+     * because the frontend's {@code checkIn()} function expected this route.
+     * Will split into a separate time-window operation if/when contest check-in
+     * windows become a real feature.
+     */
+    @Operation(summary = "Check in to contest (alias for register)",
+            description = "Currently delegates to register. Same business rules apply.")
+    @ApiResponse(responseCode = "200", description = "Check-in successful")
+    @ApiResponse(responseCode = "400", description = "Already registered or contest not open")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:check-in", limit = 20, period = 60)
+    @PostMapping("/{id}/check-in")
+    public Result<Void> checkIn(
+            @Parameter(description = "Contest ID or slug")
             @PathVariable String id) {
 
         String resolvedId = resolveContestId(id);
@@ -509,12 +580,15 @@ public class ContestController {
      * Requires authentication.
      *
      * @param id        the contest ID
-     * @param sessionId the virtual session ID
+     * @param sessionId the virtual session ID — optional since 2026-06-11.
+     *                  When omitted, the service falls back to the participant's
+     *                  stored virtualSessionId. When supplied, it is validated
+     *                  against the stored value to defend against tampering.
      * @return success result
      */
     @Operation(summary = "Finish virtual contest", description = "Finish a virtual contest session")
     @ApiResponse(responseCode = "200", description = "Virtual contest finished")
-    @ApiResponse(responseCode = "400", description = "No active virtual session")
+    @ApiResponse(responseCode = "400", description = "No active virtual session or session id mismatch")
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @ApiResponse(responseCode = "404", description = "Virtual session not found")
     @SecurityRequirement(name = "Bearer")
@@ -523,8 +597,8 @@ public class ContestController {
     public Result<Void> finishVirtualContest(
             @Parameter(description = "Contest ID")
             @PathVariable String id,
-            @Parameter(description = "Virtual session ID")
-            @RequestParam String sessionId) {
+            @Parameter(description = "Virtual session ID (optional since 2026-06-11)")
+            @RequestParam(required = false) String sessionId) {
 
         String resolvedId = resolveContestId(id);
         String userId = getCurrentUserIdOrThrow();

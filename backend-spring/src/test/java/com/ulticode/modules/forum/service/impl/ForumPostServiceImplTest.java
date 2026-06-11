@@ -114,4 +114,45 @@ class ForumPostServiceImplTest {
         assertThat(result).isNotNull();
         assertThat(result.getItems()).isEmpty();
     }
+
+    @Test
+    @DisplayName("findMyPosts clamps page=0 without throwing (mirrors findAllPosts)")
+    void findMyPosts_clampsPageZero() {
+        when(postMapper.countByUserId(any())).thenReturn(0L);
+        when(postMapper.findByUserId(any())).thenReturn(Collections.emptyList());
+
+        // Pre-fix this threw BadSqlGrammarException (SQL: LIMIT 20 OFFSET -20).
+        // Post-fix the SUT clamps page to >=1 internally and returns a valid PageResult.
+        PageResult<ForumPostVO> result = forumPostService.findMyPosts("u-001", 0, 20);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getPage()).isEqualTo(0);
+        assertThat(result.getItems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findMyPosts clamps pageSize=0 without throwing")
+    void findMyPosts_clampsPageSizeZero() {
+        when(postMapper.countByUserId(any())).thenReturn(0L);
+        when(postMapper.findByUserId(any())).thenReturn(Collections.emptyList());
+
+        // Pre-fix this produced SQL "LIMIT 0" (always empty). Post-fix clamps to LIMIT 1.
+        PageResult<ForumPostVO> result = forumPostService.findMyPosts("u-001", 1, 0);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findMyPosts clamps negative page without throwing")
+    void findMyPosts_clampsNegativePage() {
+        when(postMapper.countByUserId(any())).thenReturn(0L);
+        when(postMapper.findByUserId(any())).thenReturn(Collections.emptyList());
+
+        // Pre-fix this would have produced LIMIT 20 OFFSET -120 (negative offset).
+        PageResult<ForumPostVO> result = forumPostService.findMyPosts("u-001", -5, 20);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getItems()).isEmpty();
+    }
 }

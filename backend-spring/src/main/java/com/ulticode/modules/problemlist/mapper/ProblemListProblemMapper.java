@@ -83,4 +83,40 @@ public interface ProblemListProblemMapper extends BaseMapper<ProblemListProblemR
      */
     @Select("SELECT MAX(sort_order) FROM problem_list_problem_relations WHERE list_id = #{listId}")
     Integer getMaxSortOrder(@Param("listId") String listId);
+
+    /**
+     * Find which of the given list IDs contain the given problem (batch IN query).
+     * Used by getUserListsForProblem to batch-load hasProblem status (avoids N+1).
+     *
+     * @param listIds the list IDs to inspect
+     * @param problemId the problem ID
+     * @return list IDs that contain the problem (subset of input)
+     */
+    @Select("<script>"
+            + "SELECT list_id FROM problem_list_problem_relations "
+            + "WHERE problem_id = #{problemId} AND list_id IN "
+            + "<foreach collection='listIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}"
+            + "</foreach>"
+            + "</script>")
+    List<String> findListIdsContainingProblem(@Param("listIds") List<String> listIds,
+                                             @Param("problemId") Long problemId);
+
+    /**
+     * Count problems per list for the given list IDs (single grouped query).
+     * Used by getUserListsForProblem to batch-load problem counts (avoids N+1).
+     * Returns rows of {list_id, cnt}; missing list_ids must be defaulted to 0 by caller.
+     *
+     * @param listIds the list IDs to count
+     * @return list of maps with keys "list_id" (String) and "cnt" (Long)
+     */
+    @Select("<script>"
+            + "SELECT list_id AS list_id, COUNT(*) AS cnt "
+            + "FROM problem_list_problem_relations WHERE list_id IN "
+            + "<foreach collection='listIds' item='id' open='(' separator=',' close=')'>"
+            + "#{id}"
+            + "</foreach>"
+            + " GROUP BY list_id"
+            + "</script>")
+    List<java.util.Map<String, Object>> countByListIds(@Param("listIds") List<String> listIds);
 }

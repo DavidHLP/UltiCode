@@ -115,6 +115,7 @@ public enum ErrorCode {
     PROBLEM_LIST_NOT_FOUND(90001, "Problem list not found", HttpStatus.NOT_FOUND),
     PROBLEM_LIST_CANNOT_EDIT(90002, "Cannot edit this problem list", HttpStatus.FORBIDDEN),
     PROBLEM_LIST_PRIVATE(90003, "Problem list is private", HttpStatus.FORBIDDEN),
+    PROBLEM_LIST_PROBLEM_DUPLICATE(90004, "This problem is already in the list", HttpStatus.CONFLICT),
 
     // Moderation module (10xxxx)
     MODERATION_QUEUE_NOT_FOUND(100001, "Moderation queue item not found", HttpStatus.NOT_FOUND),

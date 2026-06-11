@@ -159,6 +159,13 @@ java -jar tools/arthas-boot.jar <PID>
 - Spring Boot 健康检查用 `lsof -ti :9001` 而非 `curl` (根路径可能返回 302/401)
 - 脚本中用 `$CLAUDE_PROJECT_DIR` 解析项目根目录, 非 `$SCRIPT_DIR`
 - Java 版本不一致 (arthas-boot Java 21 vs 目标 JVM Java 17) 会 WARN 但不影响功能
+- **【强制】降级路径**：`dashboard` / `trace` / `watch` / `monitor` / `tt` 等阻塞型 Arthas 命令在 Claude Code 同步 MCP 上下文里固定 30s 超时；遇到时**不要重复重试**，按以下顺序降级：
+  1. **首选**：`pm2 logs ulticode-9001 --nostream --lines 200`（同步拉最近 200 行应用日志，绝大多数性能/异常问题能在日志中定位）
+  2. **次选**：`pm2 logs ulticode-9001 --nostream --lines 200 --raw`（含未格式化堆栈，便于与 `jad` 反编译后的类匹配）
+  3. **再次**：`scripts/arthas-cli.sh` 进入交互式 telnet（不受 MCP 30s 限制），执行 `dashboard -n 1`、`thread -n 3`、`trace <Class> <method> -n 3` 等
+  4. **回退**：`./mvnw -Dtest='*IT' test -B` 跑问题单测/集成测试做对照（验证 N+1 / 重复添加逻辑时直接走这条）
+  5. 同步 MCP 阻塞 30s 时，**用 `mcp__plugin_context-mode_context-mode__ctx_execute` 跑 java 反射/grep 类检查**（后台子进程，无 MCP 超时）
+- 见 `.claude/rules/backend/09-java-runtime-diagnostics.md` 的强制约束：阻塞命令必须带 `-n N` (N ≤ 5) 限制执行次数
 
 ### MCP 配置 (.mcp.json)
 - HTTP 远程服务器用 `type: "http"` (Claude Code 官方写法; `streamableHttp` 是 MCP 规范别名, 也接受)

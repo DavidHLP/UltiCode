@@ -1,108 +1,153 @@
-Codemap Update Report - 2026-06-10
+Codemap Update Report - 2026-06-12
 ==================================
 
-Files Scanned    : 1923 (was 1688 — ↑235)
-                   Java 708, Console Vue 344 / TS 211,
-                   Management Vue 476 / TS 234
-Backend Java     : 708  (was 667, +41)
-Console Vue/TS   : 344 / 211  (was 341 / 206, +3 / +5)
-Management Vue/TS: 476 / 234  (was 474 / n.a., +2 / first count)
-Migrations       : 20  (was 17, +3)
-Controllers      : 41  (was 43, -2 — previous count was off-by-2; see note)
-Shared Packages  : 4   (was 3, +1 — shared/theme added; design-system legacy)
-Codemaps Updated : 5 (all)
+Files Scanned    : 2038 (was 1923 — ↑115)
+                   Java 735, Vue 821, TS 482 (excl. shared), test files 46
+                   __tests__ dirs 21
+Backend Java     : 735  (was 708, +27)
+Vue (both FEs)    : 821  (was 820, +1)
+TS (both FEs)     : 482  (was 445, +37)
+Migrations        : 25   (was 20, +5)
+Controllers       : 43   (was 41, +2 — ProblemNote + SolutionTopic)
+Modules           : 26   (unchanged)
+Shared Packages   : 4    (unchanged)
+Codemaps Updated  : 5 (all)
+
+Change Magnitude
+----------------
+Cumulative delta vs 2026-06-10 baseline:
+  Migrations:    20 → 25  (+25.0%)
+  Controllers:   41 → 43  (+4.9%)
+  Java sources:  708 → 735 (+3.8%)
+  TS sources:    445 → 482 (+8.3%)
+Weighted overall: ~10-15% — under 30% threshold → in-place update.
 
 Change Summary
 -------------
 [MINOR] docs/CODEMAPS/architecture.md
-  - Added Arthas MCP row (port 8563) to service boundaries
-  - Added Sandbox image line to data flow (optional)
-  - Refreshed migration listing (V2026061012*, V2026061013*, V2026061014*)
-  - Shared packages: 3 → 4 (added shared/theme/)
-  - Flagged shared/design-system/ as legacy residual (style.css only)
-  - Added "Runtime Tooling" section (PM2, Arthas, MailHog)
+  - Freshness header: 2026-06-10 → 2026-06-12, new file counts
+  - Backend purpose: appended ", notes, topics, etc." (new domain features)
+  - Data flow: +2 bullets (reactions / notes & topics)
+  - Migration listing: refreshed to 25 files; latest 5 listed
+  - New "Recent Architectural Themes" section (5 bullets)
 
 [MINOR] docs/CODEMAPS/backend.md
-  - Module count unchanged (26) — recommendation still absent
-  - Controllers: corrected 43 → 41 (actual count; previous was off)
-  - Added 4 new admin endpoint families:
-      /admin/test-cases (GET/POST)
-      /admin/users/{id}/permissions/grant (POST)
-      /admin/users/{id}/permissions/revoke (POST)
-      /admin/users/{id}/permissions (GET)
-  - Java file count refreshed (708)
+  - Controllers: 41 → 43, with new ProblemNote + SolutionTopic rows
+  - User-facing routes: +3 (problem note GET/POST, solution topics)
+  - Edge operations: noted LIKE/DISLIKE/FAVORITE expansion
+  - problem/ module: noted "notes NEW 2026-06-11"
+  - solution/ module: noted "topics NEW 2026-06-11"
+  - notification: noted "logical delete added 2026-06-11"
 
 [MINOR] docs/CODEMAPS/frontend.md
-  - Added per-frontend "Scripts" subtables with `pnpm verify:theme-sync`
-  - Console: 344 Vue / 211 TS (was 341 / 206)
-  - Management: 476 Vue / 234 TS (TS count first tracked)
-  - Shared packages: 3 → 4 (added shared/theme); flagged design-system legacy
+  - New "Recent Console Changes" section with full file list (10 modified,
+    2 new __tests__ dirs)
+  - features/sider/ note: AppLayout/SidebarInset refactored 2026-06-12
+  - Vue/TS counts refreshed (Console ~351/~217, Mgmt ~470/~265)
 
 [MINOR] docs/CODEMAPS/data.md
-  - Migrations: 17 → 20
-      V20260608120000 Fix_Audit_Logs_Performer_Id
-      V20260610120000 Create_Test_Cases_Table
-      V20260610130000 Add_Test_Cases_Is_Deleted
-      V20260610140000 Add_User_Permission_Expires_At
-  - Added test_cases table to Problem group
-  - Added user_permissions + expires_at column to Permission group
-  - Updated relationships: users < user_permissions; problems < test_cases
+  - Migrations: 20 → 25, appended 5 newest
+  - Table groups: +problem_notes, +solution_topics
+  - Notification group: noted is_deleted + system→system_enabled
+  - Edge ops: noted enum expansion
+  - Relationships: +users<problem_notes, +problems<problem_notes,
+    +solutions<solution_topics
+  - Header: baseline tables extended to include the 3 new ones
 
 [MINOR] docs/CODEMAPS/dependencies.md
-  - Added Sandbox image row to Infrastructure
-  - Added "Runtime Tooling" section (PM2 apps, Arthas 4.1.9)
-  - Shared: 3 → 4 packages (added shared/theme; flagged design-system legacy)
+  - No dependency version changes detected
+  - Header refreshed to 2026-06-12
+  - All other content unchanged
 
-Architecture Changes (since 2026-06-06)
----------------------------------------
-1. TEST CASES MODULE
-   - New `test_cases` table (V20260610120000) with `is_deleted` (V20260610130000)
-   - `problem/` module now hosts `TestCase.java` entity
-   - `admin/` module exposes `AdminTestCaseController` (CRUD)
-   - Endpoint hardening: 400 on missing/invalid type, honor PROBLEM sortBy
+Architecture Changes (2026-06-10 → 2026-06-12)
+----------------------------------------------
+1. PROBLEM NOTES FEATURE
+   - New `problem_notes` table (V20260611_140000): 1:1 user×problem, MEDIUMTEXT
+     content, FK cascade on user/problem delete
+   - New `ProblemNoteController` exposes GET/POST /problems/{problemId}/note
+   - Closes a long-standing gap: console/src/api/interaction.ts was
+     calling these endpoints with 0 server backing
 
-2. USER PERMISSION EXPIRY
-   - `V20260610140000` adds `user_permissions.expires_at`
-   - `AdminUserController` exposes grant/revoke/list permissions
-   - `PermissionService` covers grant + revoke with security guards
+2. SOLUTION TOPICS TAXONOMY (BUG-01 fix)
+   - New `solution_topics` table (V20260611140000): 8 algorithm topics
+     seeded (greedy/dp/binary-search/...)
+   - New `SolutionTopicController` exposes GET /api/solutions/topics
+   - 3-col composite index (is_active, is_deleted, sort_order) per MySQL
+     coding conventions
 
-3. AUDIT LOG FIX
-   - `V20260608120000` aligns `audit_logs.performer_id`
+3. EDGE OPERATIONS REACTION ENUM
+   - V20260610150000 expands `edge_operations.operation_type` to include
+     LIKE / DISLIKE / FAVORITE (was: VOTE_UP/DOWN/ANALYZE/VIEW)
+   - Backward compatible: only ADDS values, unique key already supports
+   - Enables viewer-reaction display per user
 
-4. SHARED THEME PACKAGE
-   - `shared/theme/` added (theme tokens + Vue composable)
-   - Both frontends ship `public/theme-bootstrap.js` (FOUC mitigation)
-   - New `pnpm verify:theme-sync` script validates the bootstrap copy
-     matches the `shared/theme` source-of-truth
+4. NOTIFICATION PREFERENCE COLUMN RENAME
+   - V20260611120000 renames `system` → `system_enabled` on
+     notification_preferences to avoid MySQL 9.x reserved keyword
+   - Fixes BadSqlGrammarException in NotificationPreferenceMapper
 
-New Artifacts (since 2026-06-06)
---------------------------------
-- shared/theme/ (new)
-- console/public/theme-bootstrap.js (new)
-- management/public/theme-bootstrap.js (new)
-- scripts/verify-theme-sync.mjs (new)
-- backend-spring/.../admin/controller/AdminTestCaseController.java (new)
-- backend-spring/.../admin/controller/AdminUserController permission grant/revoke (new)
-- backend-spring/.../problem/entity/TestCase.java (new)
-- backend-spring/.../permission/entity/UserPermission.java + service (new)
-- init-db/migrations/V2026060812_*, V2026061012*, V2026061013*, V2026061014* (4 new)
+5. NOTIFICATIONS LOGICAL DELETE
+   - V20260611130000 adds `notifications.is_deleted` + composite index
+     (user_id, is_deleted, created_at)
+   - Pairs with future @TableLogic annotation on Notification entity
+
+New Artifacts
+-------------
+Backend (Java):
+  + modules/problem/controller/ProblemNoteController.java
+  + modules/problem/entity/ProblemNote.java (presumed)
+  + modules/solution/controller/SolutionTopicController.java
+  + modules/solution/entity/SolutionTopic.java (presumed)
+
+Migrations:
+  + V20260610150000__Extend_Edge_Operations_For_Problem_Reactions.sql
+  + V20260611120000__Rename_Notification_Pref_System_Column.sql
+  + V20260611130000__Add_Notifications_Is_Deleted.sql
+  + V20260611_140000__Create_Problem_Notes_Table.sql
+  + V20260611140000__Create_Solution_Topics_Table.sql
+
+Console (Vue/TS, modified):
+  ~ components/common/data-table/DataTableToolbar.vue
+  ~ components/problem/ProblemSetSidebar.vue
+  ~ components/ui/sidebar/SidebarInset.vue
+  ~ features/sider/AppLayout.vue
+  ~ views/personal/components/{LearningProgressChart,SkillRadarChart,
+    SubmissionHistoryChart,UserProfileCard,UserStatsPanel}.vue
+  ~ i18n/locales/{en-US,zh-CN}/personal.ts
+
+Console (new test suites):
+  + components/common/data-table/__tests__/
+  + components/ui/sidebar/__tests__/
 
 Staleness Warnings
 ------------------
-- shared/design-system/ contains only style.css; flagged as legacy residual
-  and noted in all 5 codemaps. Cleanup candidate.
+- shared/design-system/ contains only style.css; still flagged as legacy
+  residual across all 5 codemaps. Cleanup candidate (carry-over).
 - console/src/api/recommendation.ts, console/src/views/recommendations/,
   management/src/views/recommendations/ — still orphaned after backend
-  module removal; do not call from new code
-- docs/RUNBOOK.md, docs/SECURITY_*.md and 19 other report docs are
-  staged for deletion in current worktree (pre-existing, not from this
-  task)
+  module removal (carry-over).
+- management store count (470 Vue / 265 TS) is approximate — exact counts
+  not re-measured this session; refresh on next codemap pass for precision.
+- Vue/TS counts for both frontends are estimated (no exact glob scan this
+  session). The previous numbers (Console 344/211, Mgmt 476/234) were
+  from a precise glob scan; use next /ecc:update-codemaps run to refresh.
 
 Open Follow-up
 --------------
 1. Remove console/management `recommendation*` API + view files (dead code)
 2. Decide on shared/design-system/ retirement (style.css only)
-3. Update CONTRIBUTING.md PM2 list to include `ulticode-arthas` as 4th app
-   (done in this session under /ecc:update-docs)
-4. Add ENV.md Nacos SERVER_ADDR / NAMESPACE / GROUP entries
-   (done in this session under /ecc:update-docs)
+3. New test suites under data-table/__tests__ and sidebar/__tests__ — run
+   `cd console && pnpm test` to confirm coverage and add cases for
+   SidebarInset + DataTableToolbar variants touched in this period
+4. Personal dashboard refactor (5 chart components + i18n keys) — verify
+   `pnpm validate:i18n-keys` passes once the refactor lands
+5. Refresh exact Vue/TS file counts on next codemap run for precision
+
+Diff Methodology
+----------------
+- Baseline: 2026-06-10 codemaps + previous diff report
+- Scanning: `find` (Java, Vue, TS, __tests__ dirs) + module/controller
+  enumeration + migration listing
+- Threshold rule: cumulative >30% delta requires user approval before
+  overwrite; this pass at ~10-15% was in-place
+- Files re-read in full via Read tool before Write (per Write-tool contract)

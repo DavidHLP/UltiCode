@@ -29,14 +29,17 @@ onMounted(() => {
     </section>
 
     <!-- Main Content Area -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
       <!-- Left Column: Problem List (9 cols) -->
-      <main class="lg:col-span-9 space-y-6">
+      <main class="order-1 min-w-0 space-y-6 lg:col-span-9">
         <ProblemExplorer :initial-category="category" />
       </main>
 
       <!-- Right Column: Sidebar (3 cols) -->
-      <aside class="hidden lg:block lg:col-span-3 space-y-6 sticky top-24">
+      <aside
+        data-testid="problem-set-sidebar"
+        class="order-2 mx-auto w-full max-w-xs space-y-6 lg:col-span-3 lg:max-w-none lg:sticky lg:top-24"
+      >
         <ProblemSetSidebar />
       </aside>
     </div>

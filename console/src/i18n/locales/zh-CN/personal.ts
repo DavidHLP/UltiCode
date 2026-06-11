@@ -148,6 +148,7 @@ export default {
     loadingSubmissions: "正在检索提交历史...",
     loginToView: "请登录以查看您的提交记录。",
     recentAttempts: "最近尝试",
+    attempted: "已尝试",
     latestSubmissions: "显示您最近的 {count} 条提交。",
     totalSubmissions: "共 {count} 条",
     problem: "题目",

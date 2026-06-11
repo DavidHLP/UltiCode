@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-10 | Console: 344 Vue + 211 TS | Management: 476 Vue + 234 TS | Token estimate: ~950 -->
+<!-- Generated: 2026-06-12 | Console: ~351 Vue / ~217 TS | Management: ~470 Vue / ~265 TS | Token estimate: ~960 -->
 
 # Frontend Architecture
 
@@ -53,14 +53,26 @@ api/
 ```
 features/
 ├── sider/   AppLayout.vue, AppSidebar.vue, SidebarNav.vue, NavUser.vue,
-│            Calendars.vue + components/
+│            Calendars.vue + components/   [AppLayout/SidebarInset refactored 2026-06-12]
 └── layout/  panels/ (LayoutPanel, PanelDropOverlay, LayoutPanelHeader,
-│            LayoutPanelContent) + tree/ (LayoutTree, LayoutTreeNode)
+            LayoutPanelContent) + tree/ (LayoutTree, LayoutTreeNode)
 ```
 
-> The `forum` and `contest` route groups wrap their children with
-> `@/features/sider/AppLayout.vue` (a dockable sidebar layout with calendar +
-> nav). This is a 2026-06 refactor — pre-refactor routes used a flat layout.
+### Recent Console Changes (2026-06-10 → 2026-06-12)
+```
+M  components/common/data-table/DataTableToolbar.vue
+M  components/problem/ProblemSetSidebar.vue
+M  components/ui/sidebar/SidebarInset.vue
+M  features/sider/AppLayout.vue
+M  views/personal/components/LearningProgressChart.vue
+M  views/personal/components/SkillRadarChart.vue
+M  views/personal/components/SubmissionHistoryChart.vue
+M  views/personal/components/UserProfileCard.vue
+M  views/personal/components/UserStatsPanel.vue
+M  i18n/locales/{en-US,zh-CN}/personal.ts
+?? components/common/data-table/__tests__/           [new test suite]
+?? components/ui/sidebar/__tests__/                  [new test suite]
+```
 
 ### Key Dependencies
 | Dep              | Version  | Notes                                  |

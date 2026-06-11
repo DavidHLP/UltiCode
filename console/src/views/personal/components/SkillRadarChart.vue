@@ -44,6 +44,7 @@ const initChart = () => {
       trigger: "item",
       backgroundColor: "oklch(0 0 0 / 0.8)",
       borderColor: "transparent",
+      borderRadius: 0,
       textStyle: {
         color: "#fff",
       },
@@ -146,19 +147,19 @@ onUnmounted(() => {
 
 <template>
   <div class="relative">
-    <div v-if="loading" class="flex items-center justify-center h-[280px]">
+    <div v-if="loading" class="flex items-center justify-center h-[220px]">
       <div
         class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
       ></div>
     </div>
     <div
       v-else-if="!hasSkills"
-      class="flex flex-col items-center justify-center h-[280px] text-center"
+      class="flex flex-col items-center justify-center h-[220px] text-center"
     >
       <p class="text-sm text-muted-foreground">
         {{ t("personal.skills.noSkills") }}
       </p>
     </div>
-    <div v-else ref="chartRef" class="h-[280px] w-full"></div>
+    <div v-else ref="chartRef" class="h-[220px] w-full"></div>
   </div>
 </template>

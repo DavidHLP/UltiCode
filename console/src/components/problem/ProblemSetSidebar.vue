@@ -57,7 +57,7 @@ onMounted(async () => {
       <CardContent class="p-4 flex flex-col items-center bg-card">
         <Calendar
           v-model="date"
-          class="rounded-none border-0 p-0 w-full"
+          class="w-full rounded-none border-0 p-0 [&_[data-slot=calendar-grid]]:w-full [&_[data-slot=calendar-grid]]:table-fixed [&_[data-slot=calendar-grid-row]]:w-full [&_[data-slot=calendar-head-cell]]:min-w-0 [&_[data-slot=calendar-head-cell]]:flex-1 [&_[data-slot=calendar-cell]]:min-w-0 [&_[data-slot=calendar-cell]]:flex-1 [&_[data-slot=calendar-cell-trigger]]:!h-auto [&_[data-slot=calendar-cell-trigger]]:!w-full [&_[data-slot=calendar-cell-trigger]]:aspect-square"
           :completed-dates="completedDates"
         />
         <!-- Legend description -->

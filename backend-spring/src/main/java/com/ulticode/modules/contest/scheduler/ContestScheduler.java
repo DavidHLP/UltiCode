@@ -5,6 +5,7 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.RatingCalculationService;
+import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
 import com.ulticode.modules.websocket.service.RealtimeService;
@@ -31,6 +32,7 @@ public class ContestScheduler {
     private final RealtimeService realtimeService;
     private final RatingCalculationService ratingService;
     private final NotificationService notificationService;
+    private final NotificationDispatchService notificationDispatchService;
     private final ContestParticipantMapper participantMapper;
 
     @Scheduled(fixedRate = 10_000)
@@ -125,16 +127,19 @@ public class ContestScheduler {
             title = "Contest '" + contest.getTitle() + "' starts in 1 hour";
         }
 
-        // Fire-and-notify per D-13
+        // Fire-and-notify per D-13.
+        // Q20: respect SYSTEM category preference (contest reminders are
+        // system-originated but not security-critical; users can opt out).
         try {
-            notificationService.createNotification(
+            notificationDispatchService.dispatch(
                     participant.getUserId(),
                     "CONTEST_REMINDER",
-                    "CONTEST",
+                    "SYSTEM",
                     title,
                     "",  // body empty per D-06
                     "/contest/" + contest.getId(),  // link per D-07
-                    metadata);
+                    metadata,
+                    false);
             log.debug("Sent {} reminder for contest {} to user {}", reminderType, contest.getId(), participant.getUserId());
         } catch (Exception e) {
             log.warn("Failed to send {} reminder for contest {} to user {}: {}",

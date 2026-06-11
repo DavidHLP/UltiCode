@@ -19,13 +19,18 @@ import java.util.List;
 @Mapper
 public interface NotificationMapper extends BaseMapper<Notification> {
 
- @Select("SELECT COUNT(*) FROM notifications WHERE user_id = #{userId} AND is_read =0")
+ // Raw @Select/@Update bypass MyBatis-Plus @TableLogic, so we must add the
+ // is_deleted=0 predicate explicitly to keep soft-deleted rows invisible
+ // (Q12 follow-on). BaseMapper methods (selectById, deleteById, etc.)
+ // auto-apply the filter via @TableLogic.
+
+ @Select("SELECT COUNT(*) FROM notifications WHERE user_id = #{userId} AND is_read = 0 AND is_deleted = 0")
  long countUnreadByUserId(@Param("userId") String userId);
 
- @Update("UPDATE notifications SET is_read =1, read_at = NOW() WHERE user_id = #{userId} AND is_read =0")
+ @Update("UPDATE notifications SET is_read = 1, read_at = NOW(3) WHERE user_id = #{userId} AND is_read = 0 AND is_deleted = 0")
  int markAllAsRead(@Param("userId") String userId);
 
- @Update("UPDATE notifications SET is_read =1, read_at = NOW() WHERE id = #{id}")
+ @Update("UPDATE notifications SET is_read = 1, read_at = NOW(3) WHERE id = #{id} AND is_deleted = 0")
  int markAsRead(@Param("id") String id);
 
  /**
@@ -40,11 +45,11 @@ public interface NotificationMapper extends BaseMapper<Notification> {
  * Regression covered by {@code NotificationMapperBatchInsertTest}.
  */
  @Insert("<script>INSERT INTO notifications "
- + "(id, user_id, type, category, title, body, link, metadata, announcement_id, is_read, read_at, created_at, updated_at) VALUES "
+ + "(id, user_id, type, category, title, body, link, metadata, announcement_id, is_read, read_at, created_at, updated_at, is_deleted) VALUES "
  + "<foreach collection='list' item='item' separator=','>"
  + "(#{item.id}, #{item.userId}, #{item.type}, #{item.category}, #{item.title}, #{item.body}, #{item.link}, "
  + "#{item.metadata, typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler}, "
- + "#{item.announcementId}, #{item.isRead}, #{item.readAt}, #{item.createdAt}, #{item.updatedAt})"
+ + "#{item.announcementId}, #{item.isRead}, #{item.readAt}, #{item.createdAt}, #{item.updatedAt}, #{item.deleted})"
  + "</foreach></script>")
  int batchInsert(@Param("list") List<Notification> list);
 
@@ -57,12 +62,13 @@ public interface NotificationMapper extends BaseMapper<Notification> {
  + "INNER JOIN ("
  + " SELECT announcement_id, MIN(id) AS representative_id "
  + " FROM notifications "
- + " WHERE category = #{category} "
+ + " WHERE category = #{category} AND is_deleted = 0 "
  + " <if test='keyword != null and keyword != \"\"'> AND title LIKE CONCAT('%', #{keyword}, '%') </if>"
  + " <if test='type != null and type != \"\"'> AND type = #{type} </if>"
  + " <if test='announcementId != null and announcementId != \"\"'> AND announcement_id = #{announcementId} </if>"
  + " GROUP BY announcement_id"
  + ") dedup ON n.id = dedup.representative_id "
+ + "WHERE n.is_deleted = 0 "
  + "ORDER BY "
  + "<choose>"
  + " <when test='sortBy == \"title\"'>n.title</when>"

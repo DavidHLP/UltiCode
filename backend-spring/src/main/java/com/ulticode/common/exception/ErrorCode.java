@@ -59,6 +59,13 @@ public enum ErrorCode {
     PROBLEM_TAG_NAME_EXISTS(30011, "Problem tag name already exists", HttpStatus.CONFLICT),
     PROBLEM_TAG_SLUG_EXISTS(30012, "Problem tag slug already exists", HttpStatus.CONFLICT),
 
+    // Problem note (3xxxx) — 题目笔记(per-user 私有).
+    // The "problem does not exist" case reuses the existing PROBLEM_NOT_FOUND(30001)
+    // declared above — same semantics, no need for a second constant with the same
+    // enum name. Only note-specific codes are added here.
+    NOTE_NOT_FOUND(30013, "Note not found", HttpStatus.NOT_FOUND),
+    NOTE_FORBIDDEN(30014, "Cannot access another user's note", HttpStatus.FORBIDDEN),
+
     // Test case (3xxxx) — 测试用例属于题目子域,沿用 3xxxx 号段
     TEST_CASE_NOT_FOUND(30020, "Test case not found", HttpStatus.NOT_FOUND),
 

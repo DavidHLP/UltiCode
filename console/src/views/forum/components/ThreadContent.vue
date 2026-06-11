@@ -150,13 +150,13 @@ async function handleSave() {
   }
   try {
     const res = await toggleBookmark(BookmarkType.FORUM_POST, props.thread.id);
-    emit("save", res.isSaved);
+    emit("save", res.isFavorited);
     localStats.value.saves = Math.max(
       0,
-      (localStats.value.saves || 0) + (res.isSaved ? 1 : -1),
+      (localStats.value.saves || 0) + (res.isFavorited ? 1 : -1),
     );
     toast.success(
-      res.isSaved ? t("forum.messages.saved") : t("forum.messages.unsaved"),
+      res.isFavorited ? t("forum.messages.saved") : t("forum.messages.unsaved"),
     );
   } catch (error) {
     console.error("Failed to toggle save", error);

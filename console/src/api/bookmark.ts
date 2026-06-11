@@ -37,6 +37,18 @@ export interface BookmarkFolderDetail extends BookmarkFolder {
   items: BookmarkItem[];
 }
 
+/**
+ * Response shape for `GET /bookmarks/item/{targetType}/{targetId}` and
+ * `POST /bookmarks/quick`. Matches backend {@code ItemFoldersVO} /
+ * {@code QuickFavoriteVO}.
+ */
+export interface ItemFoldersVO {
+  targetId: string;
+  targetType: BookmarkType;
+  isFavorited: boolean;
+  folders: BookmarkFolder[];
+}
+
 export async function fetchFolders(): Promise<BookmarkFolder[]> {
   return apiGet<BookmarkFolder[]>("/bookmarks/folders");
 }
@@ -98,16 +110,23 @@ export async function removeBookmarkByTarget(
 export async function getBookmarkFolders(
   targetType: BookmarkType,
   targetId: string,
-): Promise<string[]> {
-  return apiGet<string[]>(`/bookmarks/item/${targetType}/${targetId}`);
+): Promise<ItemFoldersVO> {
+  return apiGet<ItemFoldersVO>(`/bookmarks/item/${targetType}/${targetId}`);
 }
 
 export async function reorderFolders(folderIds: string[]): Promise<void> {
   await apiPost("/bookmarks/folders/reorder", { folderIds });
 }
 
+/**
+ * Response shape for `POST /bookmarks/quick`. Matches backend
+ * {@code QuickFavoriteVO}: {@code isFavorited} reflects current state;
+ * {@code folderIds} lists the folders containing the item (empty when
+ * just un-favorited).
+ */
 export interface ToggleBookmarkResponse {
-  isSaved: boolean;
+  isFavorited: boolean;
+  folderIds: string[];
 }
 
 export async function toggleBookmark(

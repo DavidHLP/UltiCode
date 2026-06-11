@@ -209,12 +209,11 @@ export async function fetchUserSolutions(
 
 export async function fetchSolutionComments(
   solutionId: string,
-  userId?: string,
 ): Promise<SolutionComment[]> {
-  const url = userId
-    ? `/api/solutions/${solutionId}/comments?userId=${userId}`
-    : `/api/solutions/${solutionId}/comments`;
-  return apiGet<SolutionComment[]>(url);
+  if (!solutionId || solutionId.trim() === '') {
+    throw new TypeError('fetchSolutionComments: solutionId is required');
+  }
+  return apiGet<SolutionComment[]>(`/api/solutions/${solutionId}/comments`);
 }
 
 export async function createSolutionComment(

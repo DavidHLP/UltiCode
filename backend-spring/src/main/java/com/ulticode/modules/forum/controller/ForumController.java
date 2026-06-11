@@ -6,6 +6,8 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.validation.ForumPage;
+import com.ulticode.common.validation.ForumPageSize;
 import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.service.ForumService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/forum")
 @RequiredArgsConstructor
+@Validated
 public class ForumController {
 
     private final ForumService forumService;
@@ -32,9 +36,9 @@ public class ForumController {
             @Parameter(description = "Sort by (hot, new, top)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
         String userId = SecurityUtil.getCurrentUserId();
         PageResult<ForumPostVO> result = forumService.findAllPosts(userId, sortBy, page, pageSize);
         return Result.success(result);
@@ -55,9 +59,9 @@ public class ForumController {
     @GetMapping("/me/posts")
     public Result<PageResult<ForumPostVO>> getMyPosts(
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
         String userId = getCurrentUserIdOrThrow();
         PageResult<ForumPostVO> result = forumService.findMyPosts(userId, page, pageSize);
         return Result.success(result);
@@ -177,9 +181,9 @@ public class ForumController {
             @Parameter(description = "Sort by (hot, new, top)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
-            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
+            @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
         String userId = SecurityUtil.getCurrentUserId();
         PageResult<ForumPostVO> result = forumService.findPostsByCommunity(slug, sortBy, userId, page, pageSize);
         return Result.success(result);

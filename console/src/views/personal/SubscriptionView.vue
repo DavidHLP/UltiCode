@@ -217,32 +217,16 @@ import {
   subscriptionApi,
   type Invoice,
   type UpcomingInvoice,
+  type SubscriptionCheckResult,
+  type SubscriptionPlan,
 } from "@/api/subscription";
 
 const { t } = useI18n();
 
-interface SubscriptionResult {
-  hasAccess: boolean;
-  subscription: {
-    plan: string;
-    status: string;
-    expiresAt: string | null;
-  } | null;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  interval: string;
-  features: string[];
-}
-
 const loading = ref(true);
 const showPlans = ref(false);
-const currentSubscription = ref<SubscriptionResult | null>(null);
-const plans = ref<Plan[]>([]);
+const currentSubscription = ref<SubscriptionCheckResult | null>(null);
+const plans = ref<SubscriptionPlan[]>([]);
 const checkoutLoading = ref<string | null>(null);
 const portalLoading = ref(false);
 const invoices = ref<Invoice[]>([]);
@@ -265,6 +249,13 @@ async function loadSubscription() {
     currentSubscription.value = await subscriptionApi.getMySubscription();
   } catch (error) {
     console.error("Failed to load subscription:", error);
+    // Surface the failure so the card is not silently empty
+    toast.error(t("personal.subscription.error"), {
+      description:
+        error instanceof Error
+          ? error.message
+          : t("personal.subscription.unknownError"),
+    });
   }
 }
 
@@ -273,7 +264,19 @@ async function loadPlans() {
     const response = await subscriptionApi.getPlans();
     plans.value = response.plans;
   } catch (error) {
-    console.error("Failed to load plans:", error);
+    // The plans endpoint is not yet implemented in the backend (P0-1).
+    // Treat 404 as "not yet implemented" and hide silently; any other
+    // error (auth, network, 5xx) is a real failure the user should see.
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    if (status !== 404) {
+      console.error("Failed to load plans:", error);
+      toast.error(t("personal.subscription.error"), {
+        description:
+          error instanceof Error
+            ? error.message
+            : t("personal.subscription.unknownError"),
+      });
+    }
   }
 }
 

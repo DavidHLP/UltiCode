@@ -1,7 +1,7 @@
 import { apiGet, apiPost, apiDelete } from "@/utils/request";
 
 export interface FollowStatus {
-  isFollowing: boolean;
+  following: boolean;
 }
 
 export interface FollowStats {

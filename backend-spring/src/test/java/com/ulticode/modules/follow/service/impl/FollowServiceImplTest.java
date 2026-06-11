@@ -147,4 +147,73 @@ class FollowServiceImplTest {
         assertThatThrownBy(() -> followService.follow(userId, userId))
             .hasMessageContaining("Cannot follow yourself");
     }
+
+    @Test
+    @DisplayName("isFollowing 命中返回 true")
+    void isFollowing_relationExists_returnsTrue() {
+        String currentUserId = "user-current";
+        String targetUserId = "user-target";
+
+        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(followMapper.exists(currentUserId, targetUserId)).thenReturn(true);
+
+        boolean result = followService.isFollowing(currentUserId, targetUserId);
+
+        assertThat(result).isTrue();
+        verify(followMapper).exists(currentUserId, targetUserId);
+    }
+
+    @Test
+    @DisplayName("isFollowing 未命中返回 false")
+    void isFollowing_noRelation_returnsFalse() {
+        String currentUserId = "user-current";
+        String targetUserId = "user-target";
+
+        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(followMapper.exists(currentUserId, targetUserId)).thenReturn(false);
+
+        boolean result = followService.isFollowing(currentUserId, targetUserId);
+
+        assertThat(result).isFalse();
+        verify(followMapper).exists(currentUserId, targetUserId);
+    }
+
+    @Test
+    @DisplayName("isFollowing target 不存在抛 USER_NOT_FOUND")
+    void isFollowing_targetNotFound_throws() {
+        String currentUserId = "user-current";
+        String targetUserId = "user-ghost";
+
+        when(userMapper.selectById(targetUserId)).thenReturn(null);
+
+        assertThatThrownBy(() -> followService.isFollowing(currentUserId, targetUserId))
+            .hasMessageContaining("User not found");
+        verify(followMapper, never()).exists(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("isFollowing 自查抛 FORBIDDEN")
+    void isFollowing_selfQuery_throws() {
+        String userId = "user-same";
+
+        assertThatThrownBy(() -> followService.isFollowing(userId, userId))
+            .hasMessageContaining("Cannot query follow status of yourself");
+        verify(followMapper, never()).exists(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("unfollow 已未关注时不删除且只记录 debug")
+    void unfollow_alreadyNotFollowing_skipsDelete() {
+        String currentUserId = "user-current";
+        String targetUserId = "user-target";
+
+        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(followMapper.deleteIfExists(currentUserId, targetUserId)).thenReturn(0);
+        when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(0);
+        when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(0);
+
+        FollowStatsDTO result = followService.unfollow(currentUserId, targetUserId);
+
+        assertThat(result).isNotNull();
+    }
 }

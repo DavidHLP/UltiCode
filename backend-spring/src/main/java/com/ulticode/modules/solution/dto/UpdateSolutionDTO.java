@@ -2,7 +2,10 @@ package com.ulticode.modules.solution.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * DTO for updating an existing solution.
@@ -23,6 +26,7 @@ public class UpdateSolutionDTO {
     @Schema(description = "Programming language", example = "java")
     private String language;
 
+    @Size(max = 20, message = "Tags must not exceed 20 entries")
     @Schema(description = "Tags for the solution", example = "[\"dynamic-programming\", \"array\"]")
-    private String tags;
+    private List<String> tags;
 }

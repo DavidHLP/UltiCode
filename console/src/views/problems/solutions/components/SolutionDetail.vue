@@ -223,11 +223,7 @@ const loadComments = async () => {
     return;
   }
   try {
-    const userId = useAuthStore().fetchCurrentUserId();
-    comments.value = await fetchSolutionComments(
-      props.item.id,
-      userId || undefined,
-    );
+    comments.value = await fetchSolutionComments(props.item.id);
   } catch (error) {
     handleError(error, {
       fallbackMessage: "problem.solutions.error.commentsLoadFailed",

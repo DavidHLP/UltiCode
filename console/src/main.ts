@@ -59,11 +59,13 @@ async function bootstrap() {
     }, 100);
   });
 
-  // Bridge shared/auth-core's 401-refresh-failed signal into the existing
-  // session-expired flow. The shared interceptor handles 401 → refresh →
-  // replay; if refresh itself fails it calls onAuthFailure, which we forward
-  // to the same callback that the legacy 401/403 path uses. Single
-  // source of truth for "session is gone" UX.
+  // Wire up: 401 → refresh → replay is now ACTIVE (request.ts passes
+  // createRefreshAccessToken(csrfManager) as the third arg to
+  // createCsrfAxiosInterceptor). When refresh itself fails (refresh
+  // cookie expired, >7d idle), the shared interceptor calls
+  // onAuthFailure — we forward to the same onSessionExpired callback
+  // that the legacy 401/403 path uses. Single source of truth for
+  // "session is gone" UX.
   const { setOnAuthFailure } = await import("@/shared/auth-core/src");
   setOnAuthFailure(() => {
     const cb = getSessionExpiredCallback();

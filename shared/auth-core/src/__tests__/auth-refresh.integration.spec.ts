@@ -118,4 +118,22 @@ describe("auth-refresh integration — T6 regression (10-minute hang)", () => {
     await expect(errorInterceptor(error2)).rejects.toBeDefined();
     expect(rawAxios.post).not.toHaveBeenCalled();
   });
+
+  // wire-up regression guard: 2-arg factory call must NOT trigger refresh.
+  // If someone in the future accidentally drops the third arg from
+  // `createCsrfAxiosInterceptor(csrfManager, baseURL, refreshAccessToken)`
+  // in console/request.ts or management/request.ts, all unit tests stay
+  // green but production users get logged out at 15min. This test
+  // documents the contract: only 3-arg wires the 401 → refresh path.
+  // It does not directly catch the caller-side regression (tests don't
+  // read request.ts), but it ensures the factory still supports both
+  // 2-arg (legacy) and 3-arg (active) forms.
+  it("wire-up guard: WITHOUT refreshAccessToken arg, 401 does NOT fire refresh (legacy behavior)", async () => {
+    const legacy = createCsrfAxiosInterceptor(csrf, "http://test");
+    vi.mocked(rawAxios.post).mockClear();
+    vi.mocked(rawAxios.request).mockReset();
+    const error = make401Error();
+    await expect(legacy.errorInterceptor(error)).rejects.toBeDefined();
+    expect(rawAxios.post).not.toHaveBeenCalled();
+  });
 });

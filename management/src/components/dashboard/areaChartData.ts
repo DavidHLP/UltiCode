@@ -33,3 +33,10 @@ export function filterChartDataByPeriod<T extends DatedChartPoint>(
     .filter(({ timestamp }) => timestamp >= startDate && timestamp <= latestDate)
     .map(({ point }) => point)
 }
+
+export function formatChartDateTick(date: Date | number, locale: string): string {
+  return new Date(date).toLocaleDateString(locale, {
+    month: 'short',
+    day: 'numeric',
+  })
+}

@@ -99,19 +99,24 @@ function handleMouseLeave() {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float h-full overflow-hidden rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float h-full gap-0 py-0 overflow-hidden rounded-none"
   >
-    <CardHeader v-if="title" class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{ title }}</CardTitle>
+    <CardHeader
+      v-if="title"
+      class="px-4 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+    >
+      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
+        title
+      }}</CardTitle>
       <CardDescription v-if="description" class="text-xs text-[var(--silver-400)] mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
-    <CardContent class="px-5 pb-5 pt-5">
+    <CardContent class="p-4">
       <div v-if="data.length === 0" class="text-center py-8 text-[var(--silver-400)] text-sm">
         {{ $t('common.noData') }}
       </div>
-      <div v-else class="w-full flex justify-center py-2 overflow-x-auto">
+      <div v-else class="w-full flex justify-center overflow-x-auto">
         <div class="inline-flex flex-col">
           <!-- Column labels -->
           <div v-if="showLabels && columns" class="flex mb-1">

@@ -17,10 +17,13 @@ import { useNotificationsStore } from '@/stores/admin/notifications'
 import {
   NOTIFICATION_TYPES,
   NOTIFICATION_CATEGORIES,
+  type NotificationCategory,
+  type NotificationType,
   type SystemAnnouncement,
   type AdminNotificationQueryParams,
 } from '@/api/admin/notifications'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
+import { getNotificationCategoryLabel, getNotificationTypeLabel } from './notificationLabels'
 
 import { badge, NOTIFICATION_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 
@@ -103,7 +106,10 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[160px]',
     options: [
       { value: 'all', label: t('notifications.allTypes') },
-      ...NOTIFICATION_TYPES.map((type) => ({ value: type, label: type })),
+      ...NOTIFICATION_TYPES.map((type) => ({
+        value: type,
+        label: getNotificationTypeLabel(type, t),
+      })),
     ],
   },
   {
@@ -112,7 +118,10 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[160px]',
     options: [
       { value: 'all', label: t('notifications.allCategories') },
-      ...NOTIFICATION_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+      ...NOTIFICATION_CATEGORIES.map((category) => ({
+        value: category,
+        label: getNotificationCategoryLabel(category, t),
+      })),
     ],
   },
 ])
@@ -145,7 +154,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     cell: ({ row }) =>
       badge({
         color: NOTIFICATION_TYPE_COLOR_MAP[row.original.type] ?? 'info',
-        label: row.original.type,
+        label: getNotificationTypeLabel(row.original.type as NotificationType, t),
       }),
   },
   {
@@ -155,7 +164,9 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
       h(
         'span',
         { class: 'font-data text-xs uppercase tracking-wider text-[var(--silver-400)]' },
-        row.original.category ?? '—',
+        row.original.category
+          ? getNotificationCategoryLabel(row.original.category as NotificationCategory, t)
+          : '—',
       ),
   },
   {

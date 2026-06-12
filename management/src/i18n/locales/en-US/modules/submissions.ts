@@ -40,6 +40,7 @@ export default {
     PENDING: 'Pending',
     JUDGING: 'Judging',
     SYSTEM_ERROR: 'System Error',
+    SANDBOX_ERROR: 'Sandbox Error',
     OUTPUT_LIMIT_EXCEEDED: 'Output Limit Exceeded',
     PRESENTATION_ERROR: 'Presentation Error',
   },

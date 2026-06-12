@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UltiCode sandbox Java harness — standalone Maven project.
+
+  Purpose: develop / unit-test the harness locally with IDE support.
+  The actual sandbox image does NOT use Maven. The image's Dockerfile
+  invokes `javac` directly on the .java sources under src/main/java/ and
+  installs the resulting .class files into /opt/harness/java/. Runtime
+  has zero third-party dependencies.
+
+  All classes live in the default (unnamed) package because the user's
+  Solution.java is also in the default package — LeetCode convention.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.ulticode.sandbox</groupId>
+    <artifactId>ulticode-harness-java</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <junit.version>5.10.2</junit.version>
+        <assertj.version>3.25.3</assertj.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <!-- E2E tests need the path of compiled harness classes. -->
+                    <systemPropertyVariables>
+                        <harness.classes.dir>${project.build.outputDirectory}</harness.classes.dir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

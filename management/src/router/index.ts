@@ -324,12 +324,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/account/AccountView.vue'),
         meta: { titleKey: 'nav.account' },
       },
-      {
-        path: 'billing',
-        name: 'billing',
-        component: () => import('@/views/billing/BillingView.vue'),
-        meta: { titleKey: 'nav.billing' },
-      },
     ],
   },
 ]

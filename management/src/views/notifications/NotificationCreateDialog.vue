@@ -32,6 +32,7 @@ import {
   type NotificationTarget,
   type SystemAnnouncement,
 } from '@/api/admin/notifications'
+import { getNotificationCategoryLabel, getNotificationTypeLabel } from './notificationLabels'
 
 const { t } = useI18n()
 
@@ -239,7 +240,7 @@ async function handleSubmit() {
                           :value="type"
                           class="font-data"
                         >
-                          {{ type }}
+                          {{ getNotificationTypeLabel(type, t) }}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -263,7 +264,7 @@ async function handleSubmit() {
                           :value="category"
                           class="font-data"
                         >
-                          {{ category }}
+                          {{ getNotificationCategoryLabel(category, t) }}
                         </SelectItem>
                       </SelectContent>
                     </Select>

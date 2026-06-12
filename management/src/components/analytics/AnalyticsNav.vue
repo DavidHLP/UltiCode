@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { IconUsers, IconFileText, IconTrophy, IconCreditCard, IconServer } from '@tabler/icons-vue'
+import { IconUsers, IconFileText, IconTrophy, IconServer } from '@tabler/icons-vue'
 
 export interface NavItem {
   id: string

@@ -3,9 +3,16 @@ export { default as AnalyticsMetricCard } from './AnalyticsMetricCard.vue'
 export { default as AnalyticsBarList } from './AnalyticsBarList.vue'
 export { default as AnalyticsTagCloud } from './AnalyticsTagCloud.vue'
 export { default as AnalyticsHeatmap } from './AnalyticsHeatmap.vue'
+export { default as AnalyticsTopUsersChart } from './AnalyticsTopUsersChart.vue'
+export { default as AnalyticsOverviewPanel } from './AnalyticsOverviewPanel.vue'
+export { default as AnalyticsResourceUsage } from './AnalyticsResourceUsage.vue'
 
 export type { NavItem } from './AnalyticsNav.vue'
 export type { MetricData } from './AnalyticsMetricCard.vue'
 export type { BarListItem } from './AnalyticsBarList.vue'
 export type { TagItem } from './AnalyticsTagCloud.vue'
 export type { HeatmapCell, HeatmapRow, HeatmapColumn } from './AnalyticsHeatmap.vue'
+export type {
+  AnalyticsOverviewGroup,
+  AnalyticsOverviewItem,
+} from './AnalyticsOverviewPanel.vue'

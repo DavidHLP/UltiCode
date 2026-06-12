@@ -7,7 +7,7 @@ import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { IconChartBar } from '@tabler/icons-vue'
-import { filterChartDataByPeriod, type TimePeriod } from './areaChartData'
+import { filterChartDataByPeriod, formatChartDateTick, type TimePeriod } from './areaChartData'
 import {
   Empty,
   EmptyContent,
@@ -40,7 +40,7 @@ const props = withDefaults(
   },
 )
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const emit = defineEmits<{
   'update:period': [period: TimePeriod]
@@ -213,10 +213,10 @@ const yDomain = computed(() => {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none"
   >
     <CardHeader
-      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 px-6 pt-6 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
     >
       <div class="space-y-1">
         <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
@@ -250,7 +250,7 @@ const yDomain = computed(() => {
       </div>
     </CardHeader>
 
-    <CardContent class="px-2 pb-6 pt-6 sm:px-6">
+    <CardContent class="px-2 py-4 sm:px-5">
       <!-- Empty State -->
       <div
         v-if="filterRange.length === 0"
@@ -282,7 +282,7 @@ const yDomain = computed(() => {
       <ChartContainer
         v-else
         :config="chartConfig"
-        class="aspect-auto h-[280px] w-full"
+        class="aspect-auto h-[260px] w-full"
         :cursor="false"
       >
         <VisXYContainer
@@ -309,15 +309,7 @@ const yDomain = computed(() => {
             :domain-line="false"
             :grid-line="false"
             :num-ticks="6"
-            :tick-format="
-              (d: number, index: number) => {
-                const date = new Date(d)
-                return date.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })
-              }
-            "
+            :tick-format="(d: number, index: number) => formatChartDateTick(d, locale)"
           />
           <VisAxis
             type="y"

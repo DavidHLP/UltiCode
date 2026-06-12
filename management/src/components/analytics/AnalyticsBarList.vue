@@ -22,12 +22,14 @@ const props = withDefaults(
     maxValue?: number
     color?: string
     limit?: number
+    compact?: boolean
   }>(),
   {
     showValue: true,
     showPercentage: false,
     color: 'color-mix(in oklch, var(--accent-primary) 35%, var(--silver-300))',
     limit: 10,
+    compact: false,
   },
 )
 
@@ -40,28 +42,33 @@ const displayItems = computed(() => {
     color: item.color || props.color,
   }))
 })
-
-
 </script>
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float h-full overflow-hidden rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden rounded-none"
+    :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'"
   >
-    <CardHeader v-if="title" class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{ title }}</CardTitle>
+    <CardHeader
+      v-if="title"
+      class="bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
+    >
+      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
+        title
+      }}</CardTitle>
       <CardDescription v-if="description" class="text-xs text-[var(--silver-400)] mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
-    <CardContent class="px-5 pb-5 pt-5">
+    <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
       <div
         v-if="displayItems.length === 0"
         class="text-center py-8 text-[var(--silver-400)] text-sm"
       >
         {{ $t('common.noData') }}
       </div>
-      <div v-else class="space-y-3">
+      <div v-else data-testid="bar-list" :class="compact ? 'space-y-2' : 'space-y-3'">
         <div
           v-for="(item, index) in displayItems"
           :key="item.id"

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  IconCreditCard,
   IconDotsVertical,
   IconLogout,
   IconNotification,
@@ -45,10 +44,6 @@ const authStore = useAuthStore()
 
 function handleAccount() {
   router.push('/account')
-}
-
-function handleBilling() {
-  router.push('/billing')
 }
 
 function handleNotifications() {
@@ -126,10 +121,6 @@ async function handleLogout() {
             <DropdownMenuItem @click="handleAccount">
               <IconUserCircle />
               {{ t('nav.account') }}
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="handleBilling">
-              <IconCreditCard />
-              {{ t('nav.billing') }}
             </DropdownMenuItem>
             <DropdownMenuItem @click="handleNotifications">
               <IconNotification />

@@ -222,13 +222,15 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
             ),
             h(
               DropdownMenuContent,
-              { align: 'end' },
+              { align: 'end', variant: 'terminal' },
               {
                 default: () => [
                   h(
                     DropdownMenuItem,
                     {
-                      class: 'text-[var(--accent-electric)] focus:text-[var(--accent-electric)]',
+                      variant: 'terminal',
+                      class:
+                        'text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] focus:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_var(--card))] dark:hover:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] dark:focus:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] dark:data-[highlighted]:bg-[color-mix(in_oklch,_var(--accent-electric)_14%,_var(--card))] focus:text-[var(--accent-electric)] data-[highlighted]:text-[var(--accent-electric)] [&_svg]:!text-[var(--accent-electric)]',
                       onClick: () => startEdit(row.original),
                     },
                     {
@@ -242,7 +244,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
                   h(
                     DropdownMenuItem,
                     {
-                      class: 'text-[var(--terminal-red)] focus:text-[var(--terminal-red)]',
+                      variant: 'terminal_destructive',
                       onClick: () => startDelete(row.original),
                     },
                     {
@@ -295,32 +297,42 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('notifications.stats.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.system') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('notifications.stats.system') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.system
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.contest') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('notifications.stats.contest') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.contest
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('notifications.stats.submission') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('notifications.stats.submission') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.submission
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconBell class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('notifications.stats.badge') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('notifications.stats.badge')
+          }}</span>
         </div>
       </div>
     </div>

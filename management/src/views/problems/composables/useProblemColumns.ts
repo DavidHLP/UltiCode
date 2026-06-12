@@ -159,27 +159,18 @@ export function useProblemColumns(
       cell: ({ row }) => {
         const isPublished = row.getValue('isPublished') as boolean
         const isDeleted = row.original.isDeleted ?? row.original.is_deleted
-        if (isDeleted) {
-          return h(
-            Badge,
-            { variant: 'destructive' },
-            {
-              default: () => [h(IconX, { class: 'mr-1 h-3 w-3' }), t('problems.published.deleted')],
-            },
-          )
-        }
-        return h(
-          Badge,
-          { variant: isPublished ? 'default' : 'secondary' },
-          {
-            default: () => [
-              isPublished
-                ? h(IconCheck, { class: 'mr-1 h-3 w-3' })
-                : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-              isPublished ? t('problems.published.published') : t('problems.published.draft'),
-            ],
-          },
-        )
+        if (isDeleted)
+          return badge({
+            color: 'error',
+            label: t('problems.published.deleted'),
+            icon: IconX,
+          })
+
+        return badge({
+          color: isPublished ? 'success' : 'neutral',
+          label: isPublished ? t('problems.published.published') : t('problems.published.draft'),
+          icon: isPublished ? IconCheck : IconEyeOff,
+        })
       },
     },
     {

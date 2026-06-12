@@ -2,6 +2,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,12 @@ public final class Harness {
 
     /** Cycle guard for malicious or buggy linked lists. */
     static final int LIST_NODE_TRAVERSAL_CAP = 100_000;
+    /** Hard cap on JSON parse / serialize / jsonable nesting (defense vs. stack overflow). */
+    static final int MAX_NESTING_DEPTH = 512;
+    /** Hard cap on result jsonable node count (defense vs. memory exhaustion). */
+    static final int MAX_JSONABLE_NODES = 1_000_000;
+    /** Hard cap on serialized envelope size (defense vs. unbounded String growth). */
+    static final int MAX_JSON_OUTPUT_BYTES = 8 * 1024 * 1024;
 
     private Harness() {}
 
@@ -50,6 +57,10 @@ public final class Harness {
             parser.skipWhitespace();
             Object value = parser.parseValue();
             parser.skipWhitespace();
+            if (parser.pos < json.length()) {
+                throw new IllegalArgumentException(
+                        "Trailing data at position " + parser.pos);
+            }
             return value;
         } catch (StringIndexOutOfBoundsException eof) {
             // Bubble up as the documented exception type so callers don't
@@ -61,10 +72,12 @@ public final class Harness {
     private static final class JsonParser {
         private final String text;
         private int pos;
+        private int depth;
 
         JsonParser(String text) {
             this.text = text;
             this.pos = 0;
+            this.depth = 0;
         }
 
         void skipWhitespace() {
@@ -74,6 +87,10 @@ public final class Harness {
         }
 
         Object parseValue() {
+            if (depth > MAX_NESTING_DEPTH) {
+                throw new IllegalArgumentException(
+                        "JSON nesting exceeds limit " + MAX_NESTING_DEPTH + " at position " + pos);
+            }
             skipWhitespace();
             if (pos >= text.length()) {
                 throw new IllegalArgumentException("Unexpected EOF");
@@ -89,15 +106,20 @@ public final class Harness {
         }
 
         Map<String, Object> parseObject() {
+            depth++;
             Map<String, Object> map = new LinkedHashMap<>();
             pos++;
             skipWhitespace();
             if (pos < text.length() && text.charAt(pos) == '}') {
                 pos++;
+                depth--;
                 return map;
             }
             while (true) {
                 skipWhitespace();
+                if (pos >= text.length() || text.charAt(pos) != '"') {
+                    throw new IllegalArgumentException("Expected string key at position " + pos);
+                }
                 String key = parseString();
                 skipWhitespace();
                 if (pos >= text.length() || text.charAt(pos) != ':') {
@@ -116,6 +138,7 @@ public final class Harness {
                 }
                 if (c == '}') {
                     pos++;
+                    depth--;
                     return map;
                 }
                 throw new IllegalArgumentException("Expected ',' or '}' at position " + pos);
@@ -123,11 +146,13 @@ public final class Harness {
         }
 
         List<Object> parseArray() {
+            depth++;
             List<Object> list = new ArrayList<>();
             pos++;
             skipWhitespace();
             if (pos < text.length() && text.charAt(pos) == ']') {
                 pos++;
+                depth--;
                 return list;
             }
             while (true) {
@@ -143,6 +168,7 @@ public final class Harness {
                 }
                 if (c == ']') {
                     pos++;
+                    depth--;
                     return list;
                 }
                 throw new IllegalArgumentException("Expected ',' or ']' at position " + pos);
@@ -160,6 +186,10 @@ public final class Harness {
                 if (c == '"') {
                     pos++;
                     return sb.toString();
+                }
+                if (c < 0x20) {
+                    throw new IllegalArgumentException(
+                            "Unescaped control character " + (int) c + " in string at position " + pos);
                 }
                 if (c == '\\') {
                     pos++;
@@ -194,26 +224,81 @@ public final class Harness {
         }
 
         Object parseNumber() {
+            // Strict JSON.org grammar: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
+            // Rejects: leading zeros (01), naked dot (1.), missing exponent digits,
+            // Infinity/NaN literals (which JSON forbids).
             int start = pos;
             if (text.charAt(pos) == '-') {
                 pos++;
+                if (pos >= text.length()) {
+                    throw new IllegalArgumentException("Lone '-' at position " + start);
+                }
             }
-            while (pos < text.length()) {
-                char c = text.charAt(pos);
-                if ((c >= '0' && c <= '9') || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') {
+            // Integer part
+            char c = text.charAt(pos);
+            if (c == '0') {
+                pos++;
+                // After leading 0, next must be '.', 'e', 'E', or end of number
+                if (pos < text.length()) {
+                    char nc = text.charAt(pos);
+                    if (nc >= '0' && nc <= '9') {
+                        throw new IllegalArgumentException(
+                                "Leading zero in number at position " + start);
+                    }
+                }
+            } else if (c >= '1' && c <= '9') {
+                pos++;
+                while (pos < text.length() && Character.isDigit(text.charAt(pos))) {
                     pos++;
-                } else {
-                    break;
+                }
+            } else {
+                throw new IllegalArgumentException("Expected digit at position " + pos);
+            }
+            boolean isFloat = false;
+            // Fraction part
+            if (pos < text.length() && text.charAt(pos) == '.') {
+                isFloat = true;
+                pos++;
+                int fracStart = pos;
+                while (pos < text.length() && Character.isDigit(text.charAt(pos))) {
+                    pos++;
+                }
+                if (pos == fracStart) {
+                    throw new IllegalArgumentException(
+                            "Naked decimal point at position " + (pos - 1));
+                }
+            }
+            // Exponent part
+            if (pos < text.length() && (text.charAt(pos) == 'e' || text.charAt(pos) == 'E')) {
+                isFloat = true;
+                pos++;
+                if (pos < text.length() && (text.charAt(pos) == '+' || text.charAt(pos) == '-')) {
+                    pos++;
+                }
+                int expStart = pos;
+                while (pos < text.length() && Character.isDigit(text.charAt(pos))) {
+                    pos++;
+                }
+                if (pos == expStart) {
+                    throw new IllegalArgumentException(
+                            "Empty exponent at position " + (pos - 1));
                 }
             }
             String num = text.substring(start, pos);
-            if (num.indexOf('.') >= 0 || num.indexOf('e') >= 0 || num.indexOf('E') >= 0) {
-                return Double.parseDouble(num);
+            if (isFloat) {
+                double d = Double.parseDouble(num);
+                if (!Double.isFinite(d)) {
+                    throw new IllegalArgumentException(
+                            "Non-finite number " + num + " (parsed to " + d + ")");
+                }
+                return d;
             }
             try {
                 return Long.parseLong(num);
-            } catch (NumberFormatException e) {
-                return Double.parseDouble(num);
+            } catch (NumberFormatException nfe) {
+                // > Long.MAX_VALUE — reject rather than silently truncating to Double.
+                throw new IllegalArgumentException(
+                        "Integer out of range (>Long.MAX_VALUE) at position " + start + ": " + num, nfe);
             }
         }
 
@@ -240,14 +325,36 @@ public final class Harness {
 
     // ─── JSON serializer ────────────────────────────────────────────────────
 
-    /** Serializes a value (produced by {@link #parseJson} or {@link #jsonable}) to JSON text. */
+    /** Serializes a value (produced by {@link #parseJson} or {@link #jsonable}) to JSON text.
+     *  Detects identity cycles and enforces {@link #MAX_NESTING_DEPTH},
+     *  {@link #MAX_JSON_OUTPUT_BYTES}.
+     */
     public static String toJson(Object value) {
         StringBuilder sb = new StringBuilder();
-        writeJson(sb, value);
+        SerCtx ctx = new SerCtx();
+        writeJson(sb, value, ctx);
         return sb.toString();
     }
 
-    private static void writeJson(StringBuilder sb, Object value) {
+    private static final class SerCtx {
+        final IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>();
+        int depth = 0;
+    }
+
+    private static void checkOutputBudget(StringBuilder sb) {
+        // Approximate: 1 char ≈ 1-3 UTF-8 bytes worst case; check char count as a cheap upper bound.
+        if (sb.length() > MAX_JSON_OUTPUT_BYTES) {
+            throw new IllegalArgumentException(
+                    "Serialized output exceeds limit " + MAX_JSON_OUTPUT_BYTES + " bytes");
+        }
+    }
+
+    private static void writeJson(StringBuilder sb, Object value, SerCtx ctx) {
+        if (ctx.depth > MAX_NESTING_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Serialization nesting exceeds limit " + MAX_NESTING_DEPTH);
+        }
+        checkOutputBudget(sb);
         if (value == null) {
             sb.append("null");
             return;
@@ -264,42 +371,69 @@ public final class Harness {
             writeString(sb, String.valueOf(c));
             return;
         }
-        if (value instanceof String s) {
-            writeString(sb, s);
+        if (value instanceof String str) {
+            writeString(sb, str);
             return;
         }
         if (value instanceof List<?> list) {
-            sb.append('[');
-            boolean first = true;
-            for (Object item : list) {
-                if (!first) sb.append(',');
-                writeJson(sb, item);
-                first = false;
+            if (ctx.seen.put(list, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (List)");
             }
-            sb.append(']');
+            try {
+                ctx.depth++;
+                sb.append('[');
+                boolean first = true;
+                for (Object item : list) {
+                    if (!first) sb.append(',');
+                    writeJson(sb, item, ctx);
+                    first = false;
+                }
+                sb.append(']');
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(list);
+            }
             return;
         }
         if (value instanceof Map<?, ?> map) {
-            sb.append('{');
-            boolean first = true;
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (!first) sb.append(',');
-                writeString(sb, String.valueOf(entry.getKey()));
-                sb.append(':');
-                writeJson(sb, entry.getValue());
-                first = false;
+            if (ctx.seen.put(map, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (Map)");
             }
-            sb.append('}');
+            try {
+                ctx.depth++;
+                sb.append('{');
+                boolean first = true;
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    if (!first) sb.append(',');
+                    writeString(sb, String.valueOf(entry.getKey()));
+                    sb.append(':');
+                    writeJson(sb, entry.getValue(), ctx);
+                    first = false;
+                }
+                sb.append('}');
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(map);
+            }
             return;
         }
         if (value.getClass().isArray()) {
-            sb.append('[');
-            int len = Array.getLength(value);
-            for (int i = 0; i < len; i++) {
-                if (i > 0) sb.append(',');
-                writeJson(sb, Array.get(value, i));
+            if (ctx.seen.put(value, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (array)");
             }
-            sb.append(']');
+            try {
+                ctx.depth++;
+                sb.append('[');
+                int len = Array.getLength(value);
+                for (int i = 0; i < len; i++) {
+                    if (i > 0) sb.append(',');
+                    writeJson(sb, Array.get(value, i), ctx);
+                }
+                sb.append(']');
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(value);
+            }
             return;
         }
         writeString(sb, value.toString());
@@ -308,7 +442,11 @@ public final class Harness {
     private static void writeNumber(StringBuilder sb, Number n) {
         if (n instanceof Double || n instanceof Float) {
             double d = n.doubleValue();
-            if (Double.isFinite(d) && d == Math.floor(d) && Math.abs(d) < 1e15) {
+            if (!Double.isFinite(d)) {
+                throw new IllegalArgumentException(
+                        "Cannot serialize non-finite number " + d);
+            }
+            if (d == Math.floor(d) && Math.abs(d) < 1e15) {
                 sb.append((long) d);
                 return;
             }
@@ -442,6 +580,24 @@ public final class Harness {
     }
 
     static Object jsonableValue(Object value) {
+        return jsonableValue(value, new JsonableCtx());
+    }
+
+    static final class JsonableCtx {
+        final IdentityHashMap<Object, Boolean> seen = new IdentityHashMap<>();
+        int depth = 0;
+        int nodeCount = 0;
+    }
+
+    static Object jsonableValue(Object value, JsonableCtx ctx) {
+        if (++ctx.nodeCount > MAX_JSONABLE_NODES) {
+            throw new IllegalArgumentException(
+                    "Result exceeds node limit " + MAX_JSONABLE_NODES);
+        }
+        if (ctx.depth > MAX_NESTING_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Result nesting exceeds limit " + MAX_NESTING_DEPTH);
+        }
         if (value == null) {
             return null;
         }
@@ -451,33 +607,70 @@ public final class Harness {
         if (value instanceof TreeNode node) {
             return fromTreeNode(node);
         }
-        if (value instanceof Boolean || value instanceof Number || value instanceof String) {
+        if (value instanceof Number n) {
+            if (n instanceof Double || n instanceof Float) {
+                double d = n.doubleValue();
+                if (!Double.isFinite(d)) {
+                    throw new IllegalArgumentException(
+                            "Non-finite number in result: " + d);
+                }
+            }
+            return value;
+        }
+        if (value instanceof Boolean || value instanceof String) {
             return value;
         }
         if (value instanceof Character c) {
             return String.valueOf(c);
         }
         if (value instanceof List<?> list) {
-            List<Object> out = new ArrayList<>(list.size());
-            for (Object item : list) {
-                out.add(jsonableValue(item));
+            if (ctx.seen.put(list, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (List)");
             }
-            return out;
+            try {
+                ctx.depth++;
+                List<Object> out = new ArrayList<>(list.size());
+                for (Object item : list) {
+                    out.add(jsonableValue(item, ctx));
+                }
+                return out;
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(list);
+            }
         }
         if (value instanceof Map<?, ?> map) {
-            Map<String, Object> out = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                out.put(String.valueOf(entry.getKey()), jsonableValue(entry.getValue()));
+            if (ctx.seen.put(map, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (Map)");
             }
-            return out;
+            try {
+                ctx.depth++;
+                Map<String, Object> out = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : map.entrySet()) {
+                    out.put(String.valueOf(entry.getKey()), jsonableValue(entry.getValue(), ctx));
+                }
+                return out;
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(map);
+            }
         }
         if (value.getClass().isArray()) {
-            int len = Array.getLength(value);
-            List<Object> out = new ArrayList<>(len);
-            for (int i = 0; i < len; i++) {
-                out.add(jsonableValue(Array.get(value, i)));
+            if (ctx.seen.put(value, Boolean.TRUE) != null) {
+                throw new IllegalArgumentException("Cyclic reference in result (array)");
             }
-            return out;
+            try {
+                ctx.depth++;
+                int len = Array.getLength(value);
+                List<Object> out = new ArrayList<>(len);
+                for (int i = 0; i < len; i++) {
+                    out.add(jsonableValue(Array.get(value, i), ctx));
+                }
+                return out;
+            } finally {
+                ctx.depth--;
+                ctx.seen.remove(value);
+            }
         }
         return value.toString();
     }

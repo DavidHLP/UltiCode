@@ -329,43 +329,42 @@ const endpointBarItems = computed(() => {
 
       <!-- Header Control & Info Bar -->
       <div
-        class="flex flex-wrap items-center gap-3 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none"
+        class="grid w-full grid-cols-1 gap-2 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none sm:w-auto sm:grid-cols-3"
       >
         <!-- Monospace Status/Date Display -->
         <div
-          class="flex items-center gap-2 px-2.5 py-1 bg-card border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none"
+          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none sm:w-36"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success)] animate-pulse"></span>
           <span class="text-[var(--silver-400)] font-data">{{ formattedDate }}</span>
           <span class="font-bold text-foreground font-data tabular-nums">{{ formattedTime }}</span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <Select v-model="days">
-            <SelectTrigger
-              class="w-[130px] h-8 text-xs rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent class="rounded-none">
-              <SelectItem :value="7">{{ t('analytics.periods.7days') }}</SelectItem>
-              <SelectItem :value="30">{{ t('analytics.periods.30days') }}</SelectItem>
-              <SelectItem :value="90">{{ t('analytics.periods.90days') }}</SelectItem>
-              <SelectItem :value="365">{{ t('analytics.periods.1year') }}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
+        <Select v-model="days">
+          <SelectTrigger
             size="sm"
-            @click="loadReport"
-            :disabled="loading"
-            class="h-8 rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card"
+            class="h-8 w-full text-xs rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card sm:w-36"
           >
-            <IconRefresh class="h-3.5 w-3.5 mr-1" :class="{ 'animate-spin': loading }" />
-            {{ t('common.refresh') }}
-          </Button>
-        </div>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent class="rounded-none">
+            <SelectItem :value="7">{{ t('analytics.periods.7days') }}</SelectItem>
+            <SelectItem :value="30">{{ t('analytics.periods.30days') }}</SelectItem>
+            <SelectItem :value="90">{{ t('analytics.periods.90days') }}</SelectItem>
+            <SelectItem :value="365">{{ t('analytics.periods.1year') }}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant="outline"
+          size="sm"
+          @click="loadReport"
+          :disabled="loading"
+          class="h-8 w-full rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card sm:w-36"
+        >
+          <IconRefresh class="h-3.5 w-3.5 mr-1" :class="{ 'animate-spin': loading }" />
+          {{ t('common.refresh') }}
+        </Button>
       </div>
     </header>
 

@@ -52,40 +52,15 @@ const getTrendStyles = (trend: string) => {
 const getCardAccent = (index: number) => {
   switch (index) {
     case 0: // Total Users
-      return {
-        topBorder: 'border-t-4 border-t-[var(--solarized-blue)]',
-        iconBg:
-          'border-[var(--solarized-blue)]/30 bg-[var(--solarized-blue)]/8 text-[var(--solarized-blue)] group-hover:bg-[var(--solarized-blue)]/15',
-        valueColor: 'text-[var(--solarized-blue)]',
-      }
+      return 'var(--solarized-blue)'
     case 1: // Total Problems
-      return {
-        topBorder: 'border-t-4 border-t-[var(--solarized-cyan)]',
-        iconBg:
-          'border-[var(--solarized-cyan)]/30 bg-[var(--solarized-cyan)]/8 text-[var(--solarized-cyan)] group-hover:bg-[var(--solarized-cyan)]/15',
-        valueColor: 'text-[var(--solarized-cyan)]',
-      }
+      return 'var(--solarized-cyan)'
     case 2: // Active Contests
-      return {
-        topBorder: 'border-t-4 border-t-[var(--solarized-yellow)]',
-        iconBg:
-          'border-[var(--solarized-yellow)]/30 bg-[var(--solarized-yellow)]/8 text-[var(--solarized-yellow)] group-hover:bg-[var(--solarized-yellow)]/15',
-        valueColor: 'text-[var(--solarized-yellow)]',
-      }
+      return 'var(--solarized-yellow)'
     case 3: // Flagged Content
-      return {
-        topBorder: 'border-t-4 border-t-[var(--status-error)]',
-        iconBg:
-          'border-[var(--status-error)]/30 bg-[var(--status-error)]/8 text-[var(--status-error)] group-hover:bg-[var(--status-error)]/15',
-        valueColor: 'text-[var(--status-error)]',
-      }
+      return 'var(--status-error)'
     default:
-      return {
-        topBorder: 'border-t-4 border-t-[var(--silver-300)]',
-        iconBg:
-          'border-[var(--silver-300)] bg-[var(--silver-200)]/8 text-[var(--silver-500)] group-hover:bg-[var(--silver-200)]/15',
-        valueColor: 'text-foreground',
-      }
+      return 'var(--silver-400)'
   }
 }
 </script>
@@ -97,20 +72,22 @@ const getCardAccent = (index: number) => {
       v-for="(stat, index) in stats"
       :key="index"
       :href="stat.href"
-      class="group relative block overflow-hidden rounded-none border-2 border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card p-0 shadow-float transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent-primary)] hover:shadow-float-hover"
-      :class="[getCardAccent(index).topBorder, { 'cursor-pointer': stat.href }]"
+      data-testid="dashboard-stat-card"
+      class="dashboard-stat-card group relative block overflow-hidden rounded-none p-0"
+      :class="{ 'cursor-pointer': stat.href }"
+      :style="{ '--stat-accent': getCardAccent(index) }"
     >
       <!-- Retro Terminal Window Header -->
       <div
-        class="flex items-center justify-between px-3 py-1.5 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]/35 text-[var(--silver-500)] font-mono text-[9px] uppercase tracking-wider font-bold"
+        class="dashboard-stat-card__header flex items-center justify-between px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider font-bold"
       >
         <div class="flex items-center gap-1 shrink-0">
-          <span class="size-1.5 bg-[var(--silver-300)] dark:bg-[var(--silver-400)]"></span>
-          <span class="size-1.5 bg-[var(--silver-300)] dark:bg-[var(--silver-400)]"></span>
-          <span class="size-1.5 bg-[var(--silver-300)] dark:bg-[var(--silver-400)]"></span>
+          <span class="dashboard-stat-card__dot size-1.5"></span>
+          <span class="dashboard-stat-card__dot size-1.5"></span>
+          <span class="dashboard-stat-card__dot size-1.5"></span>
         </div>
-        <span class="truncate mx-2">{{ stat.title }}</span>
-        <span class="opacity-30 select-none shrink-0 font-normal">SYS_V1.0</span>
+        <span class="dashboard-stat-card__title truncate mx-2">{{ stat.title }}</span>
+        <span class="dashboard-stat-card__version select-none shrink-0 font-normal">SYS_V1.0</span>
       </div>
 
       <!-- Card content -->
@@ -119,8 +96,7 @@ const getCardAccent = (index: number) => {
           <div class="space-y-1">
             <!-- Numeric Value -->
             <span
-              class="text-3.5xl font-extrabold font-data tabular-nums tracking-tight leading-none block"
-              :class="getCardAccent(index).valueColor"
+              class="dashboard-stat-card__value text-3.5xl font-extrabold font-data tabular-nums tracking-tight leading-none block"
             >
               {{ stat.value }}
             </span>
@@ -129,8 +105,7 @@ const getCardAccent = (index: number) => {
           <!-- Color-Coded Icon Block -->
           <div v-if="stat.icon">
             <div
-              class="flex h-11 w-11 shrink-0 items-center justify-center border rounded-none transition-all duration-300"
-              :class="getCardAccent(index).iconBg"
+              class="dashboard-stat-card__icon flex h-11 w-11 shrink-0 items-center justify-center border rounded-none transition-colors duration-300"
             >
               <component :is="stat.icon" class="h-5.5 w-5.5" stroke-width="1.8" />
             </div>
@@ -138,7 +113,7 @@ const getCardAccent = (index: number) => {
         </div>
 
         <!-- Divider -->
-        <div class="precision-divider !my-2"></div>
+        <div class="dashboard-stat-card__divider !my-2"></div>
 
         <!-- Footer Stats Info -->
         <div class="flex items-center gap-2 flex-wrap text-xs">
@@ -165,3 +140,103 @@ const getCardAccent = (index: number) => {
     </component>
   </div>
 </template>
+
+<style scoped>
+.dashboard-stat-card {
+  border: 1px solid color-mix(in oklch, var(--silver-200) 68%, transparent);
+  border-top: 3px solid var(--stat-accent);
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+  color: var(--card-foreground);
+  transition:
+    transform var(--transition-normal),
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.dashboard-stat-card:hover {
+  border-color: color-mix(in oklch, var(--stat-accent) 65%, var(--silver-200));
+  border-top-color: var(--stat-accent);
+  box-shadow: var(--shadow-float-hover);
+  transform: translateY(-2px);
+}
+
+.dashboard-stat-card__header {
+  border-bottom: 1px solid color-mix(in oklch, var(--silver-200) 58%, transparent);
+  background: color-mix(in oklch, var(--stat-accent) 5%, var(--surface-sunken));
+  color: var(--muted-foreground);
+}
+
+.dashboard-stat-card__title {
+  color: var(--foreground);
+}
+
+.dashboard-stat-card__version {
+  color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+}
+
+.dashboard-stat-card__dot {
+  background: color-mix(in oklch, var(--stat-accent) 42%, var(--silver-200));
+}
+
+.dashboard-stat-card__value {
+  color: var(--stat-accent);
+}
+
+.dashboard-stat-card__icon {
+  border-color: color-mix(in oklch, var(--stat-accent) 42%, transparent);
+  background: color-mix(in oklch, var(--stat-accent) 8%, var(--card));
+  color: var(--stat-accent);
+}
+
+.dashboard-stat-card:hover .dashboard-stat-card__icon {
+  background: color-mix(in oklch, var(--stat-accent) 14%, var(--card));
+}
+
+.dashboard-stat-card__divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklch, var(--silver-200) 70%, transparent),
+    transparent
+  );
+}
+
+:global(.dark .dashboard-stat-card) {
+  border-color: color-mix(in oklch, var(--silver-300) 55%, transparent);
+  border-top-color: var(--stat-accent);
+}
+
+:global(.dark .dashboard-stat-card:hover) {
+  border-color: color-mix(in oklch, var(--stat-accent) 58%, var(--silver-300));
+  border-top-color: var(--stat-accent);
+}
+
+:global(.dark .dashboard-stat-card__header) {
+  border-bottom-color: color-mix(in oklch, var(--silver-300) 48%, transparent);
+  background: color-mix(in oklch, var(--stat-accent) 8%, var(--surface-sunken));
+}
+
+:global(.dark .dashboard-stat-card__dot) {
+  background: color-mix(in oklch, var(--stat-accent) 52%, var(--silver-300));
+}
+
+:global(.dark .dashboard-stat-card__icon) {
+  border-color: color-mix(in oklch, var(--stat-accent) 48%, transparent);
+  background: color-mix(in oklch, var(--stat-accent) 12%, var(--card));
+}
+
+:global(.dark .dashboard-stat-card:hover .dashboard-stat-card__icon) {
+  background: color-mix(in oklch, var(--stat-accent) 18%, var(--card));
+}
+
+:global(.dark .dashboard-stat-card__divider) {
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in oklch, var(--silver-300) 55%, transparent),
+    transparent
+  );
+}
+</style>

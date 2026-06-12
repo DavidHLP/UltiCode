@@ -1,0 +1,9 @@
+# Maven / IDE build artifacts (Java harness develops as a standalone Maven
+# project; the actual sandbox image bypasses Maven and uses raw javac).
+target/
+.idea/
+*.iml
+.vscode/
+__pycache__/
+.pytest_cache/
+*.pyc

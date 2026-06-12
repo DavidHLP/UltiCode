@@ -168,6 +168,7 @@ export default {
     cacheCleared: '缓存已清除',
     clearCacheFailed: '清除缓存失败',
     resetFailed: '重置设置失败',
+    resetSuccess: '设置已重置',
   },
 
   // 按钮

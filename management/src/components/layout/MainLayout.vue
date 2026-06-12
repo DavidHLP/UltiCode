@@ -3,7 +3,6 @@ import { RouterView } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import SiteHeader from './SiteHeader.vue'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
 </script>
 
 <template>
@@ -17,6 +16,5 @@ import { Toaster } from '@/components/ui/sonner'
         </div>
       </main>
     </SidebarInset>
-    <Toaster />
   </SidebarProvider>
 </template>

@@ -40,6 +40,7 @@ export default {
     PENDING: '等待中',
     JUDGING: '评测中',
     SYSTEM_ERROR: '系统错误',
+    SANDBOX_ERROR: '沙箱错误',
     OUTPUT_LIMIT_EXCEEDED: '输出超限',
     PRESENTATION_ERROR: '格式错误',
   },

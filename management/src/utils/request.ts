@@ -7,7 +7,7 @@ import axios, {
 } from 'axios'
 import { LOCALE_HEADER_KEY, getActiveLocale, i18n } from '@/i18n'
 import { csrfManager } from '@/utils/csrf'
-import { createCsrfAxiosInterceptor } from '@/shared/auth-core/src'
+import { createCsrfAxiosInterceptor, createRefreshAccessToken } from '@/shared/auth-core/src'
 import router from '@/router'
 
 /**
@@ -122,7 +122,8 @@ const service: AxiosInstance = axios.create({
   },
 })
 
-const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL)
+const refreshAccessToken = createRefreshAccessToken(csrfManager)
+const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL, refreshAccessToken)
 // Cast to any to handle axios version mismatch between auth-core (1.16.0) and management (1.14.0)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 service.interceptors.request.use(csrfInterceptors.requestInterceptor as any)

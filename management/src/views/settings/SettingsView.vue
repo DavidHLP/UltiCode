@@ -92,8 +92,19 @@ async function loadSettings() {
 async function saveSettings() {
   saving.value = true
   try {
-    const { settings: updatedSettings, message } = await settingsApi.updateSettings(settings.value)
-    settings.value = updatedSettings
+    const result = await settingsApi.updateSettings(settings.value)
+    // Backend may return { message, settings } or AllSettings directly after unwrap
+    const updatedSettings =
+      result && typeof result === 'object' && 'settings' in result
+        ? (result as { settings: AllSettings }).settings
+        : result
+    if (updatedSettings) {
+      settings.value = updatedSettings
+    }
+    const message =
+      result && typeof result === 'object' && 'message' in result
+        ? (result as { message: string }).message
+        : t('settings.toast.saveSuccess')
     toast.success(message)
   } catch (error) {
     toast.error(t('settings.toast.saveFailed'))
@@ -118,8 +129,19 @@ async function clearCache() {
 
 async function resetToDefaults() {
   try {
-    const { settings: defaultSettings, message } = await settingsApi.resetToDefaults()
-    settings.value = defaultSettings
+    const result = await settingsApi.resetToDefaults()
+    // Backend may return { message, settings } or AllSettings directly after unwrap
+    const defaultSettings =
+      result && typeof result === 'object' && 'settings' in result
+        ? (result as { settings: AllSettings }).settings
+        : result
+    if (defaultSettings) {
+      settings.value = defaultSettings
+    }
+    const message =
+      result && typeof result === 'object' && 'message' in result
+        ? (result as { message: string }).message
+        : t('settings.toast.resetSuccess')
     toast.success(message)
   } catch (error) {
     toast.error(t('settings.toast.resetFailed'))

@@ -170,6 +170,7 @@ export default {
     cacheCleared: 'Cache cleared successfully',
     clearCacheFailed: 'Failed to clear cache',
     resetFailed: 'Failed to reset settings',
+    resetSuccess: 'Settings reset to defaults',
   },
 
   // Buttons

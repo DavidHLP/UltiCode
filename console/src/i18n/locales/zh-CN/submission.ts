@@ -11,6 +11,7 @@ export default {
     compileError: "编译错误",
     outputLimitExceeded: "输出超限",
     presentationError: "格式错误",
+    sandboxError: "沙箱错误",
     systemError: "系统错误",
   },
 

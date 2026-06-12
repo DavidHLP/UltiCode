@@ -11,6 +11,7 @@ export default {
     compileError: "Compile Error",
     outputLimitExceeded: "Output Limit Exceeded",
     presentationError: "Presentation Error",
+    sandboxError: "Sandbox Error",
     systemError: "System Error",
   },
 

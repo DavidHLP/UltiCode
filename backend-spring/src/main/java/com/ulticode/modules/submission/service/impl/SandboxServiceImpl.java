@@ -256,6 +256,13 @@ public class SandboxServiceImpl implements SandboxService {
         String effectiveMemory = langLimit != null ? langLimit.memory() : sandboxConfig.memory();
         int effectiveTimeout = langLimit != null ? langLimit.timeoutSeconds() : sandboxConfig.timeout();
 
+        // SECURITY INVARIANT (H1 review): `--cap-drop ALL` and `--user 1000:1000` MUST stay in this
+        // list. They are the ONLY line of defense against multi-flag clone() bypass
+        // (e.g. clone(CLONE_NEWNS|CLONE_NEWPID)) because Docker 29.x + libseccomp cannot
+        // express OR-semantics for clone() via SCMP_CMP_MASKED_EQ (see seccomp-profile.json
+        // _comments). CAP_SYS_ADMIN absence (from --cap-drop ALL) is what blocks kernel-side
+        // namespace creation; SandboxForkE2EIT.multiFlag_clone_isBlockedByCapabilityGate
+        // guards this dependency. Removing these flags silently re-enables namespace creation.
         List<String> cmd = new ArrayList<>(List.of(
                 "docker", "run", "--rm", "-i",
                 "--network", "none",

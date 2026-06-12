@@ -15,7 +15,9 @@ const props = defineProps<{
   activities: TimelineActivity[]
 }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
+
+const formatEnumValue = (value: string): string => value.replaceAll('_', ' ')
 
 const getIconColor = (action: string) => {
   const colorMap: Record<string, string> = {
@@ -47,13 +49,52 @@ const getIconColor = (action: string) => {
     UNLOCK_POST: 'var(--status-success)',
     FLAG_POST: 'var(--status-error)',
     UNFLAG_POST: 'var(--status-success)',
+    GRANT_PERMISSION: 'var(--accent-primary)',
+    REVOKE_PERMISSION: 'var(--accent-primary)',
+    CREATE_USER: 'var(--status-success)',
+    DELETE_USER: 'var(--status-error)',
+    CREATE_PROBLEM: 'var(--status-success)',
+    UPDATE_PROBLEM: 'var(--status-warning)',
+    DELETE_PROBLEM: 'var(--status-error)',
+    CREATE_CONTEST: 'var(--status-success)',
+    UPDATE_CONTEST: 'var(--status-warning)',
+    DELETE_CONTEST: 'var(--status-error)',
+    CREATE_CONTEST_ANNOUNCEMENT: 'var(--status-success)',
+    UPDATE_CONTEST_ANNOUNCEMENT: 'var(--status-warning)',
+    DELETE_CONTEST_ANNOUNCEMENT: 'var(--status-error)',
+    CREATE_SOLUTION: 'var(--status-success)',
+    UPDATE_SOLUTION: 'var(--status-warning)',
+    DELETE_SOLUTION: 'var(--status-error)',
+    FLAG_SOLUTION: 'var(--status-error)',
+    UNFLAG_SOLUTION: 'var(--status-success)',
+    BULK_SOLUTION_ACTION: 'var(--status-warning)',
+    FLAG_COMMENT: 'var(--status-error)',
+    UNFLAG_COMMENT: 'var(--status-success)',
+    DELETE_COMMENT: 'var(--status-error)',
+    CREATE_TAG: 'var(--status-success)',
+    UPDATE_TAG: 'var(--status-warning)',
+    DELETE_TAG: 'var(--status-error)',
+    UPDATE_SETTINGS: 'var(--status-warning)',
+    UPDATE_PROBLEM_LIST: 'var(--status-warning)',
+    DELETE_PROBLEM_LIST: 'var(--status-error)',
+    CREATE_NOTIFICATION: 'var(--status-success)',
+    UPDATE_NOTIFICATION: 'var(--status-warning)',
+    DELETE_NOTIFICATION: 'var(--status-error)',
+    REQUEUE_SUBMISSION: 'var(--status-warning)',
+    DELETE_SUBMISSION: 'var(--status-error)',
+    MODERATE_CONTENT: 'var(--accent-primary)',
   }
   return colorMap[action] || 'var(--silver-400)'
 }
 
 const getActivityLabel = (action: string): string => {
   const key = `dashboard.timeline.activityTypes.${action}` as const
-  return t(key)
+  return te(key) ? t(key) : formatEnumValue(action)
+}
+
+const getTargetLabel = (target: string): string => {
+  const key = `audit.entityTypes.${target}` as const
+  return te(key) ? t(key) : formatEnumValue(target)
 }
 
 const displayActivities = computed(() => {
@@ -70,9 +111,10 @@ const displayActivities = computed(() => {
     >
       <div class="flex items-center justify-between">
         <div>
-          <CardTitle class="text-base font-bold font-mono uppercase tracking-wide text-foreground">{{
-            t('dashboard.timeline.title')
-          }}</CardTitle>
+          <CardTitle
+            class="text-base font-bold font-mono uppercase tracking-wide text-foreground"
+            >{{ t('dashboard.timeline.title') }}</CardTitle
+          >
           <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
             {{ t('dashboard.timeline.description') }}
           </CardDescription>
@@ -144,12 +186,12 @@ const displayActivities = computed(() => {
               <!-- Target & Context Description -->
               <div class="text-xs text-[var(--silver-500)] flex items-center gap-1.5">
                 <span class="text-[var(--silver-400)] text-[10px] uppercase font-mono tracking-wide"
-                  >Target:</span
+                  >{{ t('audit.columns.target') }}:</span
                 >
                 <span
                   class="font-mono bg-[var(--silver-100)] dark:bg-[var(--silver-200)]/20 px-1.5 py-0.5 text-[var(--silver-700)] dark:text-[var(--silver-300)] text-[11px] truncate max-w-[170px] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 rounded-none"
                 >
-                  {{ activity.target }}
+                  {{ getTargetLabel(activity.target) }}
                 </span>
               </div>
             </div>

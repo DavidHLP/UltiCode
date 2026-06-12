@@ -15,7 +15,6 @@ import problemLists from './modules/problemLists'
 import audit from './modules/audit'
 import account from './modules/account'
 import analytics from './modules/analytics'
-import billing from './modules/billing'
 import comments from './modules/comments'
 import notifications from './modules/notifications'
 import submissions from './modules/submissions'
@@ -42,7 +41,6 @@ export default {
   audit,
   account,
   analytics,
-  billing,
   comments,
   notifications,
   submissions,

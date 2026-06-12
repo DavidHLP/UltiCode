@@ -1,4 +1,5 @@
 import java.io.ByteArrayOutputStream;
+import java.security.Permission;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,7 +50,25 @@ public final class Main {
     private Main() {}
 
     public static void main(String[] args) {
+        // Install a SecurityManager that BLOCKS user code from calling
+        // System.exit / Runtime.halt. Without this, a malicious or buggy
+        // user method skips per-case error handling and prevents the
+        // envelope from being emitted (CR finding #1 — process control).
+        //
+        // SecurityManager is deprecated for removal in future JDKs but
+        // still functional in JDK 17. When the JDK eventually removes it,
+        // Phase 2+ will need to switch to per-case child-process isolation.
+        NoExitSecurityManager sm = new NoExitSecurityManager();
+        try {
+            System.setSecurityManager(sm);
+        } catch (UnsupportedOperationException ignored) {
+            // JDK 18+ without -Djava.security.manager=allow: fall through and
+            // rely on the backend's ProcessBuilder destroyForcibly() as the
+            // outer kill. Image build pins this flag explicitly.
+        }
+
         PrintStream realOut = System.out;
+        int exitCode = 0;
         try {
             String inputPath = (args.length > 0) ? args[0] : DEFAULT_INPUT_PATH;
             Map<String, Object> input = readInput(inputPath);
@@ -57,9 +76,10 @@ public final class Main {
             long perCaseTimeoutMs = ((Number) input.getOrDefault(
                     "per_case_timeout_ms", DEFAULT_PER_CASE_TIMEOUT_MS)).longValue();
             List<?> cases = asList(input.get("cases"));
+            String methodHint = stringOrNull(input.get("method_name"));
 
             Class<?> solutionClass = Class.forName("Solution");
-            Method method = findFirstPublicInstanceMethod(solutionClass);
+            Method method = resolveSolutionMethod(solutionClass, methodHint);
 
             List<Object> results = new ArrayList<>(cases.size());
             long totalStartNs = System.nanoTime();
@@ -77,12 +97,112 @@ public final class Main {
 
             realOut.print(Harness.toJson(envelope));
             realOut.flush();
-            System.exit(0);
         } catch (Throwable t) {
             // Harness-level panic. By contract: stderr = stack, exit != 0.
-            t.printStackTrace(System.err);
-            System.exit(2);
+            try {
+                t.printStackTrace(System.err);
+            } catch (Throwable ignored) {
+                // stderr may itself be blocked by the SecurityManager.
+            }
+            exitCode = 2;
+        } finally {
+            // Permit the harness's own clean exit (the only legal exit path).
+            sm.permitExit();
         }
+        System.exit(exitCode);
+    }
+
+    /**
+     * Blocks user code from terminating the JVM. Installed before any
+     * reflective Solution invocation; the only legal exit is the harness's
+     * own {@code System.exit} after permitExit().
+     *
+     * <p>Blocks both {@code System.exit} (which goes through {@code checkExit})
+     * and {@code Runtime.halt} (which goes through {@code checkPermission}
+     * with the {@code exitVM.*} permission). JDK 17's SecurityManager is
+     * deprecated for removal but still functional; Phase 2+ will switch to
+     * per-case child-process isolation.
+     */
+    static final class NoExitSecurityManager extends SecurityManager {
+        private volatile boolean allowExit = false;
+
+        void permitExit() {
+            this.allowExit = true;
+        }
+
+        @Override
+        public void checkPermission(Permission perm) {
+            // Block Runtime.halt / Runtime.exit-style VM termination that
+            // bypasses checkExit. checkPermission is the SM hook for the
+            // RuntimePermission("exitVM.<n>") that halt() requests.
+            if (!allowExit && perm != null && "exitVM".equals(perm.getName())) {
+                throw new SecurityException(
+                        "User code attempted to terminate the harness JVM (halt via "
+                                + perm.getName() + ")");
+            }
+            // Allow all other permissions. Harness needs file IO, reflection, etc.
+        }
+
+        @Override
+        public void checkPermission(Permission perm, Object context) {
+            checkPermission(perm);
+        }
+
+        @Override
+        public void checkExit(int status) {
+            if (!allowExit) {
+                throw new SecurityException(
+                        "User code attempted to terminate the harness JVM (exit " + status + ")");
+            }
+        }
+    }
+
+    /** Resolve which method on Solution to invoke. Deterministic, fails loudly on ambiguity. */
+    static Method resolveSolutionMethod(Class<?> cls, String methodHint) {
+        if (methodHint != null && !methodHint.isEmpty()) {
+            Method match = null;
+            for (Method m : cls.getDeclaredMethods()) {
+                int mod = m.getModifiers();
+                if (Modifier.isPublic(mod) && !Modifier.isStatic(mod) && m.getName().equals(methodHint)) {
+                    if (match != null) {
+                        throw new IllegalStateException(
+                                "Multiple public instance methods named '" + methodHint
+                                        + "' on " + cls.getName() + " (overloads not supported)");
+                    }
+                    match = m;
+                }
+            }
+            if (match == null) {
+                throw new IllegalStateException(
+                        "Method '" + methodHint + "' not found on " + cls.getName()
+                                + ". Must be public, non-static, and exist on Solution.");
+            }
+            return match;
+        }
+        // No hint: require exactly one public instance method.
+        Method singleton = null;
+        for (Method m : cls.getDeclaredMethods()) {
+            int mod = m.getModifiers();
+            if (Modifier.isPublic(mod) && !Modifier.isStatic(mod)) {
+                if (singleton != null) {
+                    throw new IllegalStateException(
+                            "Solution has multiple public instance methods (" + singleton.getName()
+                                    + ", " + m.getName() + ", ...); supply 'method_name' in input.json"
+                                    + " to disambiguate.");
+                }
+                singleton = m;
+            }
+        }
+        if (singleton == null) {
+            throw new IllegalStateException(
+                    "No public instance method found on " + cls.getName()
+                            + ". User code must declare 'class Solution { public ReturnType methodName(...) ... }'.");
+        }
+        return singleton;
+    }
+
+    private static String stringOrNull(Object o) {
+        return (o == null) ? null : String.valueOf(o);
     }
 
     static Map<String, Object> readInput(String path) throws java.io.IOException {
@@ -94,16 +214,9 @@ public final class Main {
         return asMap(parsed);
     }
 
+    /** Backwards-compatible no-hint resolver. New code should call {@link #resolveSolutionMethod}. */
     static Method findFirstPublicInstanceMethod(Class<?> cls) {
-        for (Method m : cls.getDeclaredMethods()) {
-            int mod = m.getModifiers();
-            if (Modifier.isPublic(mod) && !Modifier.isStatic(mod)) {
-                return m;
-            }
-        }
-        throw new IllegalStateException(
-                "No public instance method found on " + cls.getName()
-                        + ". User code must declare 'class Solution { public ReturnType methodName(...) ... }'.");
+        return resolveSolutionMethod(cls, null);
     }
 
     private static Map<String, Object> runCase(Class<?> solutionClass, Method method,
@@ -186,8 +299,17 @@ public final class Main {
             return finishCase(result, "Runtime Error", elapsedMs, null, userException, userStdout);
         }
 
-        Object jsonable = Harness.jsonable(methodResult, method);
-        String actualJson = Harness.toJson(jsonable);
+        Object jsonable;
+        String actualJson;
+        try {
+            jsonable = Harness.jsonable(methodResult, method);
+            actualJson = Harness.toJson(jsonable);
+        } catch (Throwable t) {
+            // CR fix #2/#7/#8: jsonable() raises on cycles, depth, node-count,
+            // and non-finite floats. Convert to per-case Runtime Error so the
+            // envelope stays well-formed (and the next case still runs).
+            return finishCase(result, "Runtime Error", elapsedMs, null, t, userStdout);
+        }
         String expectedJson = (expectedOutput == null)
                 ? null
                 : Harness.normalizeJson(String.valueOf(expectedOutput));
@@ -253,8 +375,8 @@ public final class Main {
             // Hide harness frames (Main, Harness, java.lang.reflect.*). Keep
             // user frames (Solution and any user-declared helper classes).
             if (cn.equals("Main") || cn.equals("Harness")
-                    || cn.startsWith("Harness$") || cn.startsWith("java.")
-                    || cn.startsWith("jdk.") || cn.startsWith("sun.")) {
+                    || cn.startsWith("Main$") || cn.startsWith("Harness$")
+                    || cn.startsWith("java.") || cn.startsWith("jdk.") || cn.startsWith("sun.")) {
                 continue;
             }
             stack.add(ste.toString());

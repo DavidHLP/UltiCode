@@ -20,11 +20,13 @@ const props = withDefaults(
     showValue?: boolean
     valueFormat?: 'number' | 'percent'
     limit?: number
+    compact?: boolean
   }>(),
   {
     showValue: true,
     valueFormat: 'number',
     limit: 20,
+    compact: false,
   },
 )
 
@@ -59,28 +61,42 @@ function formatValue(value: number): string {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float h-full overflow-hidden rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden rounded-none"
+    :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'"
   >
-    <CardHeader v-if="title" class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{ title }}</CardTitle>
+    <CardHeader
+      v-if="title"
+      class="bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      :class="compact ? 'px-4 py-3.5' : 'pb-4 pt-5 px-5'"
+    >
+      <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">{{
+        title
+      }}</CardTitle>
       <CardDescription v-if="description" class="text-xs text-[var(--silver-400)] mt-1">
         {{ description }}
       </CardDescription>
     </CardHeader>
-    <CardContent class="px-5 pb-5 pt-5">
+    <CardContent :class="compact ? 'p-4' : 'px-5 pb-5 pt-5'">
       <div
         v-if="displayTags.length === 0"
         class="text-center py-8 text-[var(--silver-400)] text-sm"
       >
         {{ $t('common.noData') }}
       </div>
-      <div v-else class="flex flex-wrap gap-2">
+      <div
+        v-else
+        data-testid="tag-cloud"
+        class="flex flex-wrap"
+        :class="compact ? 'gap-1.5' : 'gap-2'"
+      >
         <span
           v-for="tag in displayTags"
           :key="tag.id"
-          class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
+          data-testid="tag-item"
+          class="group inline-flex items-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/5 transition-all duration-200 cursor-default"
+          :class="compact ? 'gap-1 px-2 py-0.5' : 'gap-1.5 px-2.5 py-1'"
           :style="{
-            fontSize: tag.fontSize + 'rem',
+            fontSize: (compact ? Math.min(tag.fontSize, 0.875) : tag.fontSize) + 'rem',
             opacity: tag.opacity,
           }"
         >

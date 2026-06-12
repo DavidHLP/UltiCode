@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { filterChartDataByPeriod, type DatedChartPoint, type TimePeriod } from './areaChartData'
+import {
+  filterChartDataByPeriod,
+  formatChartDateTick,
+  type DatedChartPoint,
+  type TimePeriod,
+} from './areaChartData'
 
 function createDailyData(days: number): Array<DatedChartPoint & { users: number }> {
   return Array.from({ length: days }, (_, index) => ({
@@ -23,4 +28,16 @@ describe('AreaChart time period filtering', () => {
       expect(result.at(-1)?.date).toEqual(new Date(2026, 5, 12))
     },
   )
+})
+
+describe('AreaChart date localization', () => {
+  const date = new Date(2026, 4, 31)
+
+  it('formats chart dates in Chinese', () => {
+    expect(formatChartDateTick(date, 'zh-CN')).toBe('5月31日')
+  })
+
+  it('formats chart dates in English', () => {
+    expect(formatChartDateTick(date, 'en-US')).toBe('May 31')
+  })
 })

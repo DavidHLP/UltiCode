@@ -11,22 +11,17 @@ import {
 } from '@/components/ui/select'
 import { IconRefresh } from '@tabler/icons-vue'
 import { useAnalyticsReports } from './composables/useAnalyticsReports'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   AnalyticsHeatmap,
   AnalyticsTagCloud,
   AnalyticsBarList,
+  AnalyticsTopUsersChart,
+  AnalyticsOverviewPanel,
+  AnalyticsResourceUsage,
 } from '@/components/analytics'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
 import type { TimePeriod } from '@/components/dashboard/areaChartData'
-import {
-  IconUsers,
-  IconFileText,
-  IconTrophy,
-  IconServer,
-  IconChartBar,
-  IconClock,
-} from '@tabler/icons-vue'
+import { IconUsers, IconFileText, IconTrophy, IconServer } from '@tabler/icons-vue'
 
 const { t } = useI18n()
 
@@ -107,19 +102,24 @@ const metricGroups = computed(() => {
         {
           label: t('analytics.userActivity.retention1d'),
           value: formatPercent(u.userRetention.day1),
-          change: u.userRetention.day1 > 50 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+          change:
+            u.userRetention.day1 > 50
+              ? t('analytics.status.good')
+              : t('analytics.status.needsWork'),
           changeStyle: getTrendStyle(u.userRetention.day1 > 50 ? 'up' : 'down'),
         },
         {
           label: t('analytics.userActivity.retention7d'),
           value: formatPercent(u.userRetention.day7),
-          change: u.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
+          change:
+            u.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
           changeStyle: getTrendStyle(u.userRetention.day7 > 30 ? 'up' : 'neutral'),
         },
         {
           label: t('analytics.userActivity.retention30d'),
           value: formatPercent(u.userRetention.day30),
-          change: u.userRetention.day30 > 10 ? t('analytics.status.good') : t('analytics.status.average'),
+          change:
+            u.userRetention.day30 > 10 ? t('analytics.status.good') : t('analytics.status.average'),
           changeStyle: getTrendStyle(u.userRetention.day30 > 10 ? 'up' : 'neutral'),
         },
       ],
@@ -141,7 +141,10 @@ const metricGroups = computed(() => {
         {
           label: t('analytics.problemCompletion.completionRate'),
           value: formatPercent(p.overallCompletionRate),
-          change: p.overallCompletionRate > 30 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+          change:
+            p.overallCompletionRate > 30
+              ? t('analytics.status.good')
+              : t('analytics.status.needsWork'),
           changeStyle: getTrendStyle(p.overallCompletionRate > 30 ? 'up' : 'down'),
         },
         {
@@ -181,7 +184,10 @@ const metricGroups = computed(() => {
         {
           label: t('analytics.performance.uptime'),
           value: formatUptime(s.systemUptime),
-          change: s.systemUptime > 86400 * 7 ? t('analytics.status.excellent') : t('analytics.status.good'),
+          change:
+            s.systemUptime > 86400 * 7
+              ? t('analytics.status.excellent')
+              : t('analytics.status.good'),
           changeStyle: getTrendStyle(s.systemUptime > 86400 * 7 ? 'up' : 'neutral'),
         },
         {
@@ -191,13 +197,17 @@ const metricGroups = computed(() => {
         {
           label: t('analytics.performance.errorRate'),
           value: formatPercent(s.errorRate),
-          change: s.errorRate > 1 ? t('analytics.status.needsAttention') : t('analytics.status.excellent'),
+          change:
+            s.errorRate > 1
+              ? t('analytics.status.needsAttention')
+              : t('analytics.status.excellent'),
           changeStyle: getTrendStyle(s.errorRate > 1 ? 'down' : 'up'),
         },
         {
           label: t('analytics.performance.memoryUsage'),
           value: formatPercent(s.resourceUsage.memory),
-          change: s.resourceUsage.memory > 80 ? t('analytics.status.high') : t('analytics.status.normal'),
+          change:
+            s.resourceUsage.memory > 80 ? t('analytics.status.high') : t('analytics.status.normal'),
           changeStyle: getTrendStyle(s.resourceUsage.memory > 80 ? 'down' : 'neutral'),
         },
       ],
@@ -233,31 +243,6 @@ const topUsers = computed(() => {
     .sort((a, b) => b.loginCount - a.loginCount)
     .slice(0, 10)
 })
-
-const maxVal = computed(() => {
-  if (!userActivityReport.value) return 1
-  const counts = userActivityReport.value.topActiveUsers.map((u) => u.loginCount)
-  return Math.max(...counts, 1)
-})
-
-function truncateUsername(username: string) {
-  if (username.length > 7) {
-    return username.slice(0, 6) + '..'
-  }
-  return username
-}
-
-function formatLastActive(dateStr?: string) {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-}
 
 const difficultyBarItems = computed(() => {
   if (!problemCompletionReport.value) return []
@@ -328,7 +313,7 @@ const endpointBarItems = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 min-h-full bg-background">
+  <div class="flex flex-col gap-5 px-4 py-5 lg:px-6 min-h-full bg-background">
     <!-- Precision Header -->
     <header
       class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/60"
@@ -343,9 +328,13 @@ const endpointBarItems = computed(() => {
       </div>
 
       <!-- Header Control & Info Bar -->
-      <div class="flex flex-wrap items-center gap-3 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none">
+      <div
+        class="flex flex-wrap items-center gap-3 bg-[var(--surface-sunken)] border border-[var(--border)] p-2 shadow-sm rounded-none"
+      >
         <!-- Monospace Status/Date Display -->
-        <div class="flex items-center gap-2 px-2.5 py-1 bg-card border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none">
+        <div
+          class="flex items-center gap-2 px-2.5 py-1 bg-card border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none"
+        >
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success)] animate-pulse"></span>
           <span class="text-[var(--silver-400)] font-data">{{ formattedDate }}</span>
           <span class="font-bold text-foreground font-data tabular-nums">{{ formattedTime }}</span>
@@ -396,7 +385,13 @@ const endpointBarItems = computed(() => {
       <div v-else-if="showRefreshSession" class="flex items-center justify-center py-16">
         <div class="text-center space-y-4">
           <p class="text-[var(--silver-400)] font-mono">{{ t('analytics.permissionDenied') }}</p>
-          <Button variant="outline" size="sm" @click="refreshSession" :disabled="loading" class="rounded-none">
+          <Button
+            variant="outline"
+            size="sm"
+            @click="refreshSession"
+            :disabled="loading"
+            class="rounded-none"
+          >
             <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': loading }" />
             {{ t('analytics.refreshSession') }}
           </Button>
@@ -404,35 +399,20 @@ const endpointBarItems = computed(() => {
       </div>
 
       <!-- Unified Dashboard Content Grid -->
-      <div v-else-if="userActivityReport && problemCompletionReport && contestParticipationReport && performanceReport" class="space-y-6">
-        
-        <!-- Row 1: Metrics Command Panel (Overview Grid) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-          <Card v-for="panel in metricGroups" :key="panel.title" class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden flex flex-col rounded-none shadow-sm">
-            <CardHeader class="pb-3 pt-4 px-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-              <div class="flex items-center gap-2">
-                <component :is="panel.icon" class="h-4 w-4 text-[var(--accent-primary)]" />
-                <CardTitle class="text-[11px] font-bold font-mono uppercase tracking-wide text-foreground">
-                  {{ panel.title }}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent class="p-4 space-y-2.5">
-              <div v-for="item in panel.items" :key="item.label" class="flex items-center justify-between text-xs border-b border-[var(--silver-100)]/50 dark:border-[var(--silver-200)]/20 pb-1.5 last:border-b-0 last:pb-0">
-                <span class="text-[var(--silver-500)] font-mono">{{ item.label }}</span>
-                <div class="flex items-center gap-1.5 font-data tabular-nums">
-                  <span class="font-bold text-foreground">{{ item.value }}</span>
-                  <span v-if="item.change" class="text-[9px] font-bold px-1.5 py-0.5 rounded-none border border-transparent font-mono" :style="item.changeStyle">
-                    {{ item.change }}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div
+        v-else-if="
+          userActivityReport &&
+          problemCompletionReport &&
+          contestParticipationReport &&
+          performanceReport
+        "
+        class="space-y-5"
+      >
+        <!-- Row 1: Continuous overview panel -->
+        <AnalyticsOverviewPanel :groups="metricGroups" />
 
         <!-- Row 2: User Activity Trends & Heatmap -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           <div class="lg:col-span-2">
             <AreaChart
               :title="t('analytics.userActivity.activeUsersTrend')"
@@ -462,178 +442,80 @@ const endpointBarItems = computed(() => {
           </div>
         </div>
 
-        <!-- Row 3: Top Users, Resource Usage, Slowest Endpoints -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <!-- Top Active Users SVG Chart -->
-          <Card
-            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
-          >
-            <CardHeader class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-              <div class="flex items-center gap-2">
-                <IconChartBar class="h-4 w-4 text-[var(--accent-primary)]" />
-                <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
-                  {{ t('analytics.userActivity.topUsers') }}
-                </CardTitle>
-              </div>
-              <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
-                {{ t('analytics.userActivity.topUsersDesc') }}
-              </CardDescription>
-            </CardHeader>
-            <CardContent class="p-6">
-              <div class="w-full overflow-hidden">
-                <svg viewBox="0 0 600 240" class="w-full h-auto text-foreground select-none overflow-visible">
-                  <!-- Horizontal grid lines -->
-                  <line x1="45" y1="200" x2="580" y2="200" stroke="color-mix(in oklch, var(--border) 60%, transparent)" stroke-width="1" />
-                  <line x1="45" y1="160" x2="580" y2="160" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-                  <line x1="45" y1="120" x2="580" y2="120" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-                  <line x1="45" y1="80" x2="580" y2="80" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-                  <line x1="45" y1="40" x2="580" y2="40" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-
-                  <!-- Y-Axis labels (ticks) -->
-                  <text x="35" y="203" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">0</text>
-                  <text x="35" y="163" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.25)) }}</text>
-                  <text x="35" y="123" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.5)) }}</text>
-                  <text x="35" y="83" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.75)) }}</text>
-                  <text x="35" y="43" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(maxVal) }}</text>
-
-                  <!-- Bars loop -->
-                  <g v-for="(user, i) in topUsers" :key="user.userId" class="group/bar">
-                    <rect
-                      :x="45 + i * 53"
-                      :y="200 - (user.loginCount / maxVal) * 160"
-                      width="28"
-                      :height="(user.loginCount / maxVal) * 160"
-                      class="fill-[color-mix(in oklch,var(--accent-primary)_35%,var(--silver-300))] group-hover/bar:fill-[var(--accent-primary)] stroke-[var(--silver-200)] dark:stroke-[var(--silver-700)] stroke-1 transition-all duration-200 cursor-pointer"
-                    />
-                    <text
-                      :x="45 + i * 53 + 14"
-                      :y="200 - (user.loginCount / maxVal) * 160 - 6"
-                      class="text-[9px] font-mono font-bold fill-foreground text-center opacity-70 group-hover/bar:opacity-100 origin-bottom transition-all duration-150"
-                      text-anchor="middle"
-                    >
-                      {{ user.loginCount }}
-                    </text>
-                    <text
-                      :x="45 + i * 53 + 14"
-                      :y="216"
-                      class="text-[9px] font-mono fill-[var(--silver-500)] group-hover/bar:fill-foreground text-center font-medium transition-colors"
-                      text-anchor="middle"
-                    >
-                      {{ truncateUsername(user.username) }}
-                    </text>
-                  </g>
-                </svg>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- Resource Usage Card -->
-          <Card class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none">
-            <CardHeader class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
-              <div class="flex items-center gap-2">
-                <IconServer class="h-4 w-4 text-[var(--accent-primary)]" />
-                <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
-                  {{ t('analytics.performance.resourceUsage') }}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent class="p-5 space-y-4">
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.cpu') }}</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.cpu) }}</span>
-                </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.cpu > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.cpu > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--accent-primary)]'"
-                    :style="{ width: performanceReport.resourceUsage.cpu + '%' }"
-                  />
-                </div>
-              </div>
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.memory') }}</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.memory) }}</span>
-                </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.memory > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.memory > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"
-                    :style="{ width: performanceReport.resourceUsage.memory + '%' }"
-                  />
-                </div>
-              </div>
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.disk') }}</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.disk) }}</span>
-                </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-200)] rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.disk > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.disk > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"
-                    :style="{ width: performanceReport.resourceUsage.disk + '%' }"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- Slowest Endpoints -->
-          <AnalyticsBarList
-            :title="t('analytics.performance.slowestEndpoints')"
-            :description="t('analytics.performance.slowestEndpointsDesc')"
-            :items="endpointBarItems"
-            :limit="10"
-          />
+        <!-- Row 3: User and problem insights -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 items-start">
+          <div class="lg:col-span-5">
+            <AnalyticsTopUsersChart :data="topUsers" />
+          </div>
+          <div class="grid gap-4 md:grid-cols-2 lg:col-span-7">
+            <AnalyticsResourceUsage
+              :usage="performanceReport.resourceUsage"
+              :format-percent="formatPercent"
+            />
+            <AnalyticsBarList
+              :title="t('analytics.problemCompletion.byDifficulty')"
+              :description="t('analytics.problemCompletion.byDifficultyDesc')"
+              :items="difficultyBarItems"
+              :show-percentage="true"
+              :limit="5"
+              compact
+            />
+          </div>
         </div>
 
-        <!-- Row 4: Problem Completion Details -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <AnalyticsBarList
-            :title="t('analytics.problemCompletion.byDifficulty')"
-            :description="t('analytics.problemCompletion.byDifficultyDesc')"
-            :items="difficultyBarItems"
-            :show-percentage="true"
-            :limit="5"
-          />
-          <AnalyticsBarList
-            :title="t('analytics.problemCompletion.hardestProblems')"
-            :description="t('analytics.problemCompletion.hardestProblemsDesc')"
-            :items="hardestBarItems"
-            :show-percentage="true"
-            :limit="5"
-          />
-        </div>
-
-        <!-- Row 5: Tags & Contests -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div class="lg:col-span-2">
+        <!-- Row 4: Contest intelligence -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 items-start">
+          <div class="lg:col-span-8">
+            <AnalyticsBarList
+              :title="t('analytics.contestParticipation.topContests')"
+              :description="t('analytics.contestParticipation.topContestsDesc')"
+              :items="topContestBarItems"
+              :limit="5"
+              compact
+            />
+          </div>
+          <div class="grid gap-4 lg:col-span-4">
+            <AnalyticsBarList
+              :title="t('analytics.contestParticipation.byType')"
+              :description="t('analytics.contestParticipation.byTypeDesc')"
+              :items="typeBarItems"
+              :limit="5"
+              compact
+            />
             <AnalyticsTagCloud
               :title="t('analytics.problemCompletion.topTags')"
               :description="t('analytics.problemCompletion.topTagsDesc')"
               :tags="tagItems"
               :value-format="'percent'"
               :limit="20"
-            />
-          </div>
-          <div class="lg:col-span-1 flex flex-col gap-5">
-            <AnalyticsBarList
-              :title="t('analytics.contestParticipation.byType')"
-              :description="t('analytics.contestParticipation.byTypeDesc')"
-              :items="typeBarItems"
-              :limit="5"
-            />
-            <AnalyticsBarList
-              :title="t('analytics.contestParticipation.topContests')"
-              :description="t('analytics.contestParticipation.topContestsDesc')"
-              :items="topContestBarItems"
-              :limit="5"
+              compact
             />
           </div>
         </div>
 
+        <!-- Row 5: Diagnostics only when actionable data exists -->
+        <div
+          v-if="hardestBarItems.length > 0 || endpointBarItems.length > 0"
+          class="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start"
+        >
+          <AnalyticsBarList
+            v-if="hardestBarItems.length > 0"
+            :title="t('analytics.problemCompletion.hardestProblems')"
+            :description="t('analytics.problemCompletion.hardestProblemsDesc')"
+            :items="hardestBarItems"
+            :show-percentage="true"
+            :limit="5"
+            compact
+          />
+          <AnalyticsBarList
+            v-if="endpointBarItems.length > 0"
+            :title="t('analytics.performance.slowestEndpoints')"
+            :description="t('analytics.performance.slowestEndpointsDesc')"
+            :items="endpointBarItems"
+            :limit="10"
+            compact
+          />
+        </div>
       </div>
 
       <!-- No Data State -->

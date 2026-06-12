@@ -18,6 +18,7 @@ import {
   AnalyticsBarList,
 } from '@/components/analytics'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
+import type { TimePeriod } from '@/components/dashboard/areaChartData'
 import {
   IconUsers,
   IconFileText,
@@ -47,6 +48,13 @@ const {
 } = useAnalyticsReports()
 
 // --- Computed properties for layout ---
+
+const chartTimePeriod = computed<TimePeriod>(() => {
+  if (days.value >= 365) return 'all'
+  if (days.value >= 90) return '90d'
+  if (days.value >= 30) return '30d'
+  return '7d'
+})
 
 const metricGroups = computed(() => {
   if (
@@ -351,10 +359,10 @@ const endpointBarItems = computed(() => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent class="rounded-none">
-              <SelectItem value="7">{{ t('analytics.periods.7days') }}</SelectItem>
-              <SelectItem value="30">{{ t('analytics.periods.30days') }}</SelectItem>
-              <SelectItem value="90">{{ t('analytics.periods.90days') }}</SelectItem>
-              <SelectItem value="365">{{ t('analytics.periods.1year') }}</SelectItem>
+              <SelectItem :value="7">{{ t('analytics.periods.7days') }}</SelectItem>
+              <SelectItem :value="30">{{ t('analytics.periods.30days') }}</SelectItem>
+              <SelectItem :value="90">{{ t('analytics.periods.90days') }}</SelectItem>
+              <SelectItem :value="365">{{ t('analytics.periods.1year') }}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -430,6 +438,8 @@ const endpointBarItems = computed(() => {
               :title="t('analytics.userActivity.activeUsersTrend')"
               :description="t('analytics.userActivity.activeUsersTrendDesc')"
               :data="chartData"
+              :period="chartTimePeriod"
+              :show-period-selector="false"
               :series-keys="['users']"
               :config="{
                 users: {

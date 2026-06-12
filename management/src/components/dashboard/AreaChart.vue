@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
 import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +7,7 @@ import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { IconChartBar } from '@tabler/icons-vue'
+import { filterChartDataByPeriod, type TimePeriod } from './areaChartData'
 import {
   Empty,
   EmptyContent,
@@ -28,15 +29,22 @@ const props = withDefaults(
     data?: ChartDataPoint[]
     seriesKeys?: string[]
     config?: ChartConfig
+    period?: TimePeriod
+    showPeriodSelector?: boolean
   }>(),
   {
     title: 'Area Chart - Interactive',
     description: 'Showing total visitors for the last 3 months',
     seriesKeys: () => ['mobile', 'desktop'],
+    showPeriodSelector: true,
   },
 )
 
 const { t } = useI18n()
+
+const emit = defineEmits<{
+  'update:period': [period: TimePeriod]
+}>()
 
 // Default chart data if not provided
 const defaultData: ChartDataPoint[] = [
@@ -148,9 +156,19 @@ const defaultConfig: ChartConfig = {
 
 const chartConfig = computed(() => props.config || defaultConfig)
 
-// Time period selector (visual only initially)
-type TimePeriod = '7d' | '30d' | '90d' | 'all'
-const timePeriod = ref<TimePeriod>('90d')
+const timePeriod = ref<TimePeriod>(props.period ?? '90d')
+
+watch(
+  () => props.period,
+  (period) => {
+    if (period) timePeriod.value = period
+  },
+)
+
+function selectTimePeriod(period: TimePeriod) {
+  timePeriod.value = period
+  emit('update:period', period)
+}
 
 const timePeriods: { value: TimePeriod; label: string }[] = [
   { value: '7d', label: 'dashboard.timePeriod.last7Days' },
@@ -159,24 +177,7 @@ const timePeriods: { value: TimePeriod; label: string }[] = [
   { value: 'all', label: 'dashboard.timePeriod.allTime' },
 ]
 
-const filterRange = computed(() => {
-  const data = chartData.value
-  if (timePeriod.value === 'all') return data
-
-  const referenceDate = new Date('2024-06-30')
-  let daysToSubtract = 90
-  if (timePeriod.value === '30d') {
-    daysToSubtract = 30
-  } else if (timePeriod.value === '7d') {
-    daysToSubtract = 7
-  }
-  const startDate = new Date(referenceDate)
-  startDate.setDate(startDate.getDate() - daysToSubtract)
-  return data.filter((item) => {
-    const date = new Date(item.date)
-    return date >= startDate
-  })
-})
+const filterRange = computed(() => filterChartDataByPeriod(chartData.value, timePeriod.value))
 
 const seriesKeys = computed(() => props.seriesKeys || ['mobile', 'desktop'])
 
@@ -228,6 +229,7 @@ const yDomain = computed(() => {
 
       <!-- Time period selector - Segmented Control style -->
       <div
+        v-if="props.showPeriodSelector"
         class="flex items-center gap-0.5 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-100)] p-0.5"
       >
         <Button
@@ -241,7 +243,7 @@ const yDomain = computed(() => {
               ? 'bg-card text-[var(--accent-primary)] font-bold shadow-sm border border-[var(--silver-200)] dark:border-[var(--silver-300)]'
               : 'text-[var(--silver-500)] hover:text-foreground hover:bg-[var(--silver-200)]/50'
           "
-          @click="timePeriod = period.value"
+          @click="selectTimePeriod(period.value)"
         >
           {{ t(period.label) }}
         </Button>

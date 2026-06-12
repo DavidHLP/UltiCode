@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import type { ApiError } from '@/utils/request'
 import { formatNumberByLocale, formatCompactNumber } from '@/i18n/utils'
+import { formatAnalyticsDate, formatAnalyticsTime } from './analyticsDateTime'
 import {
   analyticsApi,
   type UserActivityReport,
@@ -12,17 +13,10 @@ import {
   type PerformanceReport,
 } from '@/api/admin/analytics'
 
-export type ReportTab =
-  | 'user_activity'
-  | 'problem_completion'
-  | 'contest_participation'
-  | 'performance'
-
 export function useAnalyticsReports() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const authStore = useAuthStore()
 
-  const activeTab = ref<ReportTab>('user_activity')
   const loading = ref(false)
   const days = ref(30)
   const showRefreshSession = ref(false)
@@ -35,19 +29,11 @@ export function useAnalyticsReports() {
   // Current time display
   const currentTime = ref(new Date())
   const formattedTime = computed(() => {
-    return currentTime.value.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
+    return formatAnalyticsTime(currentTime.value, locale.value)
   })
 
   const formattedDate = computed(() => {
-    return currentTime.value.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
+    return formatAnalyticsDate(currentTime.value, locale.value)
   })
 
   // Update time every minute

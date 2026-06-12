@@ -18,7 +18,6 @@ export default {
   getHelp: 'Get Help',
   search: 'Search',
   account: 'Account',
-  billing: 'Billing',
   logout: 'Log out',
   system: 'System',
   content: 'Content',
@@ -32,4 +31,3 @@ export default {
   discussion: 'Discussions',
   moderationGroup: 'Moderation',
 } as const
-

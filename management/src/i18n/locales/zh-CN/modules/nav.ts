@@ -18,7 +18,6 @@ export default {
   getHelp: '获取帮助',
   search: '搜索',
   account: '账户设置',
-  billing: '计费管理',
   logout: '退出登录',
   system: '系统',
   content: '内容',
@@ -32,4 +31,3 @@ export default {
   discussion: '讨论与题解',
   moderationGroup: '审核管理',
 } as const
-

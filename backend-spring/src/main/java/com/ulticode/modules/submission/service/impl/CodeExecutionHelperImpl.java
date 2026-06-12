@@ -28,6 +28,250 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
 
     private final ObjectMapper objectMapper;
 
+    // ── Sandbox-embedded Java source constants ──────────────────────────────
+    // These are concatenated into /tmp/Main.java inside the Docker sandbox.
+    // The sandbox has JDK 17 but NO external libraries (no Jackson, no Gson),
+    // so all JSON handling must be self-contained.
+
+    /** Standard LeetCode-style singly-linked list node. */
+    private static final String LIST_NODE_CLASS =
+            "class ListNode {\n" +
+            "    int val;\n" +
+            "    ListNode next;\n" +
+            "    ListNode() {}\n" +
+            "    ListNode(int val) { this.val = val; }\n" +
+            "    ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n" +
+            "}\n";
+
+    /**
+     * Minimal recursive-descent JSON parser embedded in the sandbox Main class.
+     *
+     * <p>Implemented as three sibling static methods ({@code parseJson}, {@code _j_ws},
+     * {@code _j_parse}) plus three static fields ({@code _j_s}, {@code _j_p}, {@code _j_len})
+     * for shared cursor state. Java does not allow nested function declarations inside a
+     * method body, so {@code ws} and {@code _parse} must live at the same level as
+     * {@code parseJson}.
+     */
+    private static final String JAVA_JSON_PARSER =
+            "static String _j_s;\n" +
+            "static int _j_p, _j_len;\n" +
+            "static void _j_ws() { while (_j_p < _j_len && _j_s.charAt(_j_p) <= ' ') _j_p++; }\n" +
+            "static Object _j_parse() {\n" +
+            "    _j_ws(); if (_j_p >= _j_len) return null;\n" +
+            "    char c = _j_s.charAt(_j_p);\n" +
+            "    if (c == '\"') {\n" +
+            "        _j_p++; StringBuilder sb = new StringBuilder();\n" +
+            "        while (_j_p < _j_len && _j_s.charAt(_j_p) != '\"') {\n" +
+            "            if (_j_s.charAt(_j_p) == '\\\\') { _j_p++; if (_j_p < _j_len) sb.append(_j_s.charAt(_j_p)); }\n" +
+            "            else sb.append(_j_s.charAt(_j_p));\n" +
+            "            _j_p++;\n" +
+            "        }\n" +
+            "        if (_j_p < _j_len) _j_p++;\n" +
+            "        return sb.toString();\n" +
+            "    }\n" +
+            "    if (c == '[') {\n" +
+            "        _j_p++; List<Object> r = new ArrayList<>(); _j_ws();\n" +
+            "        if (_j_p < _j_len && _j_s.charAt(_j_p) != ']') {\n" +
+            "            r.add(_j_parse()); _j_ws();\n" +
+            "            while (_j_p < _j_len && _j_s.charAt(_j_p) == ',') { _j_p++; r.add(_j_parse()); _j_ws(); }\n" +
+            "        }\n" +
+            "        if (_j_p < _j_len) _j_p++;\n" +
+            "        return r;\n" +
+            "    }\n" +
+            "    if (c == '{') {\n" +
+            "        _j_p++; Map<String,Object> r = new LinkedHashMap<>(); _j_ws();\n" +
+            "        if (_j_p < _j_len && _j_s.charAt(_j_p) != '}') {\n" +
+            "            String k = (String)_j_parse(); _j_ws(); _j_p++;\n" +
+            "            r.put(k, _j_parse()); _j_ws();\n" +
+            "            while (_j_p < _j_len && _j_s.charAt(_j_p) == ',') {\n" +
+            "                _j_p++; k = (String)_j_parse(); _j_ws(); _j_p++;\n" +
+            "                r.put(k, _j_parse()); _j_ws();\n" +
+            "            }\n" +
+            "        }\n" +
+            "        if (_j_p < _j_len) _j_p++;\n" +
+            "        return r;\n" +
+            "    }\n" +
+            "    if (c == 't') { _j_p += 4; return Boolean.TRUE; }\n" +
+            "    if (c == 'f') { _j_p += 5; return Boolean.FALSE; }\n" +
+            "    if (c == 'n') { _j_p += 4; return null; }\n" +
+            "    int st = _j_p;\n" +
+            "    if (_j_p < _j_len && _j_s.charAt(_j_p) == '-') _j_p++;\n" +
+            "    boolean hasExp = false;\n" +
+            "    while (_j_p < _j_len) {\n" +
+            "        char ch = _j_s.charAt(_j_p);\n" +
+            "        if (Character.isDigit(ch) || ch == '.') { _j_p++; continue; }\n" +
+            "        if ((ch == 'e' || ch == 'E') && !hasExp) { hasExp = true; _j_p++; continue; }\n" +
+            "        if (hasExp && (ch == '+' || ch == '-')) { _j_p++; continue; }\n" +
+            "        break;\n" +
+            "    }\n" +
+            "    String n = _j_s.substring(st, _j_p);\n" +
+            "    return n.contains(\".\") || hasExp ? (Object)Double.parseDouble(n) : (Object)Long.parseLong(n);\n" +
+            "}\n" +
+            "static Object parseJson(String s) {\n" +
+            "    _j_s = s; _j_p = 0; _j_len = s.length();\n" +
+            "    return _j_parse();\n" +
+            "}\n";
+
+    /** JSON serializer that handles null, String, Number, Boolean, List, Map, and Java arrays. */
+    private static final String JAVA_JSON_SERIALIZER =
+            "static String toJson(Object o) {\n" +
+            "    if (o == null) return \"null\";\n" +
+            "    if (o instanceof String) {\n" +
+            "        String s = (String)o;\n" +
+            "        StringBuilder sb = new StringBuilder(\"\\\"\");\n" +
+            "        for (int i = 0; i < s.length(); i++) {\n" +
+            "            char ch = s.charAt(i);\n" +
+            "            if (ch == '\\\\') sb.append(\"\\\\\\\\\");\n" +
+            "            else if (ch == '\"') sb.append(\"\\\\\\\"\");\n" +
+            "            else if (ch == '\\n') sb.append(\"\\\\n\");\n" +
+            "            else sb.append(ch);\n" +
+            "        }\n" +
+            "        sb.append('\"'); return sb.toString();\n" +
+            "    }\n" +
+            "    if (o instanceof Number || o instanceof Boolean) return o.toString();\n" +
+            "    if (o instanceof List) {\n" +
+            "        List<?> l = (List<?>)o; StringBuilder sb = new StringBuilder(\"[\");\n" +
+            "        for (int i = 0; i < l.size(); i++) { if (i > 0) sb.append(','); sb.append(toJson(l.get(i))); }\n" +
+            "        sb.append(']'); return sb.toString();\n" +
+            "    }\n" +
+            "    if (o instanceof Map) {\n" +
+            "        Map<?,?> m = (Map<?,?>)o; StringBuilder sb = new StringBuilder(\"{\");\n" +
+            "        boolean f = true;\n" +
+            "        for (Map.Entry<?,?> e : m.entrySet()) {\n" +
+            "            if (!f) sb.append(','); f = false;\n" +
+            "            sb.append(toJson(e.getKey())).append(':').append(toJson(e.getValue())); }\n" +
+            "        sb.append('}'); return sb.toString();\n" +
+            "    }\n" +
+            "    if (o.getClass().isArray()) {\n" +
+            "        int len = java.lang.reflect.Array.getLength(o);\n" +
+            "        StringBuilder sb = new StringBuilder(\"[\");\n" +
+            "        for (int i = 0; i < len; i++) { if (i > 0) sb.append(','); sb.append(toJson(java.lang.reflect.Array.get(o, i))); }\n" +
+            "        sb.append(']'); return sb.toString();\n" +
+            "    }\n" +
+            "    return o.toString();\n" +
+            "}\n";
+
+    /**
+     * Argument adapter and ListNode conversion utilities (embedded in Main class).
+     * Uses reflection parameter types to convert JSON-parsed values.
+     */
+    private static final String JAVA_ARG_ADAPTER =
+            "static ListNode toListNode(Object val) {\n" +
+            "    if (val == null) return null;\n" +
+            "    List<?> list = (List<?>) val;\n" +
+            "    ListNode dummy = new ListNode(0), cur = dummy;\n" +
+            "    for (Object item : list) cur = cur.next = new ListNode(((Number)item).intValue());\n" +
+            "    return dummy.next;\n" +
+            "}\n" +
+            "static Object fromListNode(ListNode node) {\n" +
+            "    List<Integer> r = new ArrayList<>();\n" +
+            "    int seen = 0;\n" +
+            "    while (node != null && seen++ < 10000) { r.add(node.val); node = node.next; }\n" +
+            "    return r;\n" +
+            "}\n" +
+            "static Object adaptArg(Object val, Class<?> type) {\n" +
+            "    if (val == null) {\n" +
+            "        if (type.isPrimitive()) {\n" +
+            "            if (type == int.class) return 0;\n" +
+            "            if (type == long.class) return 0L;\n" +
+            "            if (type == double.class) return 0.0;\n" +
+            "            if (type == boolean.class) return false;\n" +
+            "            if (type == char.class) return '\\0';\n" +
+            "        }\n" +
+            "        return null;\n" +
+            "    }\n" +
+            "    if (type == int.class || type == Integer.class) return ((Number)val).intValue();\n" +
+            "    if (type == long.class || type == Long.class) return ((Number)val).longValue();\n" +
+            "    if (type == double.class || type == Double.class) return ((Number)val).doubleValue();\n" +
+            "    if (type == float.class || type == Float.class) return ((Number)val).floatValue();\n" +
+            "    if (type == boolean.class || type == Boolean.class) return val;\n" +
+            "    if (type == char.class || type == Character.class) return val.toString().charAt(0);\n" +
+            "    if (type == String.class) return val.toString();\n" +
+            "    if (type == ListNode.class) return toListNode(val);\n" +
+            "    if (type.isArray()) {\n" +
+            "        if (type.getComponentType() == int.class) {\n" +
+            "            List<?> l = (List<?>)val; int[] a = new int[l.size()];\n" +
+            "            for (int i = 0; i < l.size(); i++) a[i] = ((Number)l.get(i)).intValue(); return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == long.class) {\n" +
+            "            List<?> l = (List<?>)val; long[] a = new long[l.size()];\n" +
+            "            for (int i = 0; i < l.size(); i++) a[i] = ((Number)l.get(i)).longValue(); return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == double.class) {\n" +
+            "            List<?> l = (List<?>)val; double[] a = new double[l.size()];\n" +
+            "            for (int i = 0; i < l.size(); i++) a[i] = ((Number)l.get(i)).doubleValue(); return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == String.class) {\n" +
+            "            List<?> l = (List<?>)val; String[] a = new String[l.size()];\n" +
+            "            for (int i = 0; i < l.size(); i++) a[i] = l.get(i).toString(); return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == ListNode.class) {\n" +
+            "            List<?> l = (List<?>)val; ListNode[] a = new ListNode[l.size()];\n" +
+            "            for (int i = 0; i < l.size(); i++) a[i] = toListNode(l.get(i)); return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == int[].class) {\n" +
+            "            List<?> l = (List<?>)val; int[][] a = new int[l.size()][];\n" +
+            "            for (int i = 0; i < l.size(); i++) {\n" +
+            "                List<?> row = (List<?>)l.get(i); int[] r = new int[row.size()];\n" +
+            "                for (int j = 0; j < row.size(); j++) r[j] = ((Number)row.get(j)).intValue(); a[i] = r;\n" +
+            "            }\n" +
+            "            return a;\n" +
+            "        }\n" +
+            "        if (type.getComponentType() == String[].class) {\n" +
+            "            List<?> l = (List<?>)val; String[][] a = new String[l.size()][];\n" +
+            "            for (int i = 0; i < l.size(); i++) {\n" +
+            "                List<?> row = (List<?>)l.get(i); a[i] = row.toArray(new String[0]);\n" +
+            "            }\n" +
+            "            return a;\n" +
+            "        }\n" +
+            "    }\n" +
+            "    if (val instanceof List && type.isAssignableFrom(List.class)) return val;\n" +
+            "    return val;\n" +
+            "}\n";
+
+    /** Result jsonifier: converts method return values to JSON-serializable form. */
+    private static final String JAVA_RESULT_JSONABLE =
+            "static Object jsonable(Object result, Method m) {\n" +
+            "    if (result == null) return null;\n" +
+            "    Class<?> rt = m.getReturnType();\n" +
+            "    if (rt == void.class) return null;\n" +
+            "    if (rt == ListNode.class) return fromListNode((ListNode) result);\n" +
+            "    if (rt.isArray()) {\n" +
+            "        if (rt.getComponentType() == int.class) {\n" +
+            "            int[] a = (int[]) result; List<Integer> r = new ArrayList<>();\n" +
+            "            for (int v : a) r.add(v); return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == long.class) {\n" +
+            "            long[] a = (long[]) result; List<Long> r = new ArrayList<>();\n" +
+            "            for (long v : a) r.add(v); return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == double.class) {\n" +
+            "            double[] a = (double[]) result; List<Double> r = new ArrayList<>();\n" +
+            "            for (double v : a) r.add(v); return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == boolean.class) {\n" +
+            "            boolean[] a = (boolean[]) result; List<Boolean> r = new ArrayList<>();\n" +
+            "            for (boolean v : a) r.add(v); return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == ListNode.class) {\n" +
+            "            ListNode[] a = (ListNode[]) result; List<Object> r = new ArrayList<>();\n" +
+            "            for (ListNode n : a) r.add(fromListNode(n)); return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == int[].class) {\n" +
+            "            int[][] a = (int[][]) result; List<Object> r = new ArrayList<>();\n" +
+            "            for (int[] row : a) { List<Integer> rl = new ArrayList<>();\n" +
+            "                for (int v : row) rl.add(v); r.add(rl); }\n" +
+            "            return r;\n" +
+            "        }\n" +
+            "        if (rt.getComponentType() == String[].class) {\n" +
+            "            String[][] a = (String[][]) result; List<Object> r = new ArrayList<>();\n" +
+            "            for (String[] row : a) { List<String> rl = Arrays.asList(row); r.add(rl); }\n" +
+            "            return r;\n" +
+            "        }\n" +
+            "    }\n" +
+            "    return result;\n" +
+            "}\n";
+
     @Override
     public String buildWrapperScript(String language, String code, List<RunSubmissionDTO.RunTestCase> testCases) {
         return switch (language) {
@@ -189,7 +433,8 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     }
 
     public String buildJavaBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
-        String b64 = Base64.getEncoder().encodeToString(code.getBytes(StandardCharsets.UTF_8));
+        String mainSource = buildJavaMainSource(code);
+        String b64 = Base64.getEncoder().encodeToString(mainSource.getBytes(StandardCharsets.UTF_8));
         int perCaseTimeout = resolvePerCaseTimeoutSeconds(testCases.size());
         return "echo '" + b64 + "' | base64 -d > /tmp/Main.java && javac /tmp/Main.java && " +
                 "cat | python3 -c \"" +
@@ -212,6 +457,72 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 "  except Exception as e:\\n" +
                 "    results.append({'output':str(e),'runtime':0,'status':'error','memory':0})\\n" +
                 "print(json.dumps(results))\"";
+    }
+
+    /**
+     * Build the full {@code /tmp/Main.java} source for a Java user submission. If the user code
+     * defines a {@code class Solution}, the generated {@code main} method uses reflection to find
+     * and invoke its first public method. Otherwise it falls back to stdin pass-through.
+     *
+     * <p>All reflection-based helpers ({@code ListNode} class, {@code adaptArg}, {@code jsonable})
+     * are always included regardless of whether the user references {@code ListNode}, so the
+     * generated main is a single uniform shape. The user never needs to declare
+     * {@code class ListNode} themselves.
+     *
+     * <p>Java files allow at most one {@code public} top-level class, so the user's
+     * {@code public} modifiers on top-level class declarations are stripped via
+     * {@link #stripPublicModifier(String)} before assembly.
+     */
+    private String buildJavaMainSource(String code) {
+        boolean hasSolutionClass = code.contains("class Solution");
+        String userCode = stripPublicModifier(code);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("import java.util.*;\n");
+        sb.append("import java.lang.reflect.*;\n\n");
+        sb.append(LIST_NODE_CLASS).append("\n");
+        sb.append(userCode).append("\n");
+        sb.append("public class Main {\n");
+        sb.append(JAVA_JSON_PARSER).append("\n");
+        sb.append(JAVA_JSON_SERIALIZER).append("\n");
+        sb.append(JAVA_ARG_ADAPTER).append("\n");
+        sb.append(JAVA_RESULT_JSONABLE).append("\n");
+        sb.append("    public static void main(String[] args) throws Exception {\n");
+        sb.append("        String input = new java.util.Scanner(System.in).useDelimiter(\"\\\\A\").next();\n");
+        sb.append("        Object parsed = parseJson(input);\n");
+        if (hasSolutionClass) {
+            // Reflection-based invocation: find the first public method on Solution, adapt
+            // parsed JSON args to declared parameter types, invoke, JSON-serialize the result.
+            sb.append("        Class<?> sc = Class.forName(\"Solution\");\n");
+            sb.append("        Method m = null;\n");
+            sb.append("        for (Method mt : sc.getDeclaredMethods()) {\n");
+            sb.append("            if (java.lang.reflect.Modifier.isPublic(mt.getModifiers())) { m = mt; break; }\n");
+            sb.append("        }\n");
+            sb.append("        if (m == null) throw new RuntimeException(\"No public method found on Solution class\");\n");
+            sb.append("        Class<?>[] pt = m.getParameterTypes();\n");
+            sb.append("        List<Object> argList = (parsed instanceof List) ? (List<Object>)parsed : List.of(parsed);\n");
+            sb.append("        Object[] adapted = new Object[pt.length];\n");
+            sb.append("        for (int i = 0; i < pt.length; i++)\n");
+            sb.append("            adapted[i] = adaptArg(i < argList.size() ? argList.get(i) : null, pt[i]);\n");
+            sb.append("        Object result = m.invoke(sc.getDeclaredConstructor().newInstance(), adapted);\n");
+            sb.append("        System.out.print(toJson(jsonable(result, m)));\n");
+        } else {
+            // Free-form code: no Solution class, just echo the input back unchanged.
+            sb.append("        System.out.print(input);\n");
+        }
+        sb.append("    }\n");
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Strips the {@code public} modifier from top-level class declarations in user code to avoid
+     * conflicts with the generated {@code public class Main}. Java allows only one public class
+     * per .java file. Recognises optional intervening modifiers like {@code final}, {@code abstract},
+     * {@code static}, and {@code sealed}/{@code non-sealed}.
+     */
+    private String stripPublicModifier(String code) {
+        return code.replaceAll("(?m)^public\\s+(static\\s+|final\\s+|abstract\\s+|sealed\\s+|non-sealed\\s+)*class\\s+", "class ");
     }
 
     @Override
@@ -340,21 +651,9 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
 
     @Override
     public String wrapJava(String code) {
-        return """
-                import java.util.*;
-                public class Main {
-                    public static void main(String[] args) throws Exception {
-                        Scanner sc = new Scanner(System.in);
-                        StringBuilder sb = new StringBuilder();
-                        while (sc.hasNextLine()) sb.append(sc.nextLine());
-                        String input = sb.toString();
-                        input = input.substring(1, input.length() - 1);
-                        String[] parts = input.split(",");
-                        %s
-                        System.out.print(result);
-                    }
-                }
-                """.formatted(code);
+        String mainSource = buildJavaMainSource(code);
+        String b64 = Base64.getEncoder().encodeToString(mainSource.getBytes(StandardCharsets.UTF_8));
+        return "echo '" + b64 + "' | base64 -d > /tmp/Main.java && javac /tmp/Main.java && java -cp /tmp Main";
     }
 
     @Override

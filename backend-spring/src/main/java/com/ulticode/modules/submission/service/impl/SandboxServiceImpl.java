@@ -33,6 +33,78 @@ public class SandboxServiceImpl implements SandboxService {
     private final DockerSandboxConfig sandboxConfig;
     private final CodeExecutionHelper helper;
 
+    /** Verdict returned to the client when the sandbox itself fails to fork (not user code). */
+    static final String SANDBOX_FORK_FAILURE_VERDICT = "Sandbox Error";
+
+    /** Detail prefix prepended to the original sandbox output for ops triage. */
+    static final String SANDBOX_FORK_FAILURE_DETAIL_PREFIX =
+            "Sandbox fork failed (likely PID/cgroup/seccomp pressure): ";
+
+    /** Truncate log detail to this many bytes to keep structured log aggregators healthy. */
+    private static final int MAX_LOG_DETAIL_BYTES = 1024;
+
+    /**
+     * Detects sandbox-level fork failures that are NOT caused by user code.
+     * Symptoms of host/cgroup/seccomp pressure rather than user program bugs:
+     * busybox sh, kernel cgroup, docker daemon, or libc fwrite all surface here.
+     *
+     * <p>Match heuristics: covers the three dominant failure surfaces observed
+     * in production (busybox sh "Cannot fork", glibc / dockerd
+     * "Resource temporarily unavailable", and seccomp OOM/fork kill).
+     *
+     * @param output merged stdout/stderr (sandbox uses {@code redirectErrorStream(true)})
+     * @return true if output strongly suggests an environmental fork failure
+     */
+    static boolean isSandboxForkFailure(String output) {
+        if (output == null || output.isEmpty()) {
+            return false;
+        }
+        return output.contains("Cannot fork")
+                || output.contains("Resource temporarily unavailable")
+                || output.contains("fork: Cannot allocate memory");
+    }
+
+    /**
+     * Detects docker daemon-side fork failures surfaced as {@link IOException#getMessage()}.
+     * Stricter than {@link #isSandboxForkFailure(String)} because docker daemon messages
+     * commonly include "pids" in unrelated contexts (e.g. configuration warnings).
+     *
+     * <p>Accepts only phrases that unambiguously identify a fork failure at the
+     * daemon layer: kernel cgroup pressure, RLIMIT_NPROC exhaustion, or
+     * dockerd PID-controller refusal.
+     *
+     * @param msg docker daemon IOException message; may be null
+     * @return true if the message unambiguously indicates a fork failure
+     */
+    static boolean isDockerDaemonForkFailure(String msg) {
+        if (msg == null || msg.isEmpty()) {
+            return false;
+        }
+        return msg.contains("Cannot fork")
+                || msg.contains("fork: Cannot allocate memory")
+                || msg.contains("pids-limit reached")
+                || msg.contains("cgroup pids limit")
+                || msg.contains("RLIMIT_NPROC");
+    }
+
+    /**
+     * Truncates detail text for log emission to keep structured log aggregators healthy.
+     * Appends a marker so the operator can see the original length if relevant.
+     *
+     * @param detail raw detail text (may be null)
+     * @return detail unchanged if short; truncated with a length marker otherwise
+     */
+    private static String truncateForLog(String detail) {
+        if (detail == null) {
+            return "<null>";
+        }
+        if (detail.length() <= MAX_LOG_DETAIL_BYTES) {
+            return detail;
+        }
+        return detail.substring(0, MAX_LOG_DETAIL_BYTES)
+                + "... [truncated, original=" + detail.length() + " bytes]";
+    }
+
     @Override
     public RunResultDTO.RunCaseResult executeInSandbox(String language, String code,
                                                       RunSubmissionDTO.RunTestCase testCase,
@@ -68,6 +140,13 @@ public class SandboxServiceImpl implements SandboxService {
             int exitCode = process.exitValue();
 
             if (exitCode != 0) {
+                if (isSandboxForkFailure(stdout)) {
+                    log.warn("Sandbox fork failure detected for language={} runId={} detail={}",
+                            language, runId, truncateForLog(helper.sanitizeSandboxOutput(stdout)));
+                    return helper.buildCaseResult(testCase, runId, userId, SANDBOX_FORK_FAILURE_VERDICT,
+                            elapsedMs, null,
+                            SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0);
+                }
                 return helper.buildCaseResult(testCase, runId, userId, "Runtime Error",
                         elapsedMs, null, helper.sanitizeSandboxOutput(stdout), 0.0);
             }
@@ -90,6 +169,10 @@ public class SandboxServiceImpl implements SandboxService {
                 throw new BusinessException(ErrorCode.SANDBOX_IMAGE_NOT_FOUND,
                         "Sandbox image '" + sandboxConfig.image() + "' not found. Build it first: docker build -t "
                                 + sandboxConfig.image() + " -f docker/sandbox/Dockerfile docker/sandbox/");
+            }
+            if (isDockerDaemonForkFailure(detail)) {
+                throw new BusinessException(ErrorCode.SANDBOX_ERROR,
+                        "Sandbox daemon-level fork failure (likely PID/cgroup pressure): " + detail);
             }
             throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Sandbox execution failed: " + detail);
         }
@@ -134,6 +217,16 @@ public class SandboxServiceImpl implements SandboxService {
             int exitCode = process.exitValue();
 
             if (exitCode != 0) {
+                if (isSandboxForkFailure(stdout)) {
+                    log.warn("Sandbox fork failure detected in batch for language={} runId={} cases={} detail={}",
+                            language, runId, testCases.size(),
+                            truncateForLog(helper.sanitizeSandboxOutput(stdout)));
+                    return testCases.stream()
+                            .map(tc -> helper.buildCaseResult(tc, runId, userId, SANDBOX_FORK_FAILURE_VERDICT,
+                                    elapsedMs / testCases.size(), null,
+                                    SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0))
+                            .collect(Collectors.toList());
+                }
                 return testCases.stream()
                         .map(tc -> helper.buildCaseResult(tc, runId, userId, "Runtime Error",
                                 elapsedMs / testCases.size(), null, helper.sanitizeSandboxOutput(stdout), 0.0))
@@ -146,7 +239,12 @@ public class SandboxServiceImpl implements SandboxService {
             Thread.currentThread().interrupt();
             throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Batch execution interrupted");
         } catch (IOException e) {
-            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Batch execution failed: " + e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (isDockerDaemonForkFailure(msg)) {
+                throw new BusinessException(ErrorCode.SANDBOX_ERROR,
+                        "Sandbox daemon-level fork failure (likely PID/cgroup pressure): " + msg);
+            }
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Batch execution failed: " + msg);
         }
     }
 

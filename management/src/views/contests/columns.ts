@@ -121,10 +121,12 @@ export function createColumns(
           h(
             'div',
             {
+              'data-testid': 'contest-title-icon',
               class: [
                 'h-9 w-9 border flex items-center justify-center',
-                'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-                'border-[var(--silver-200)] dark:border-[var(--silver-600)]',
+                'bg-[var(--surface-sunken)]',
+                'border-[color-mix(in_oklch,_var(--accent-electric)_28%,_var(--silver-200))]',
+                'dark:border-[color-mix(in_oklch,_var(--accent-electric)_38%,_var(--silver-300))]',
                 'text-[var(--accent-electric)]',
               ].join(' '),
             },
@@ -134,13 +136,21 @@ export function createColumns(
             h(
               'span',
               {
+                'data-testid': 'contest-title',
                 class:
                   'font-medium text-sm text-[var(--foreground)] cursor-pointer hover:text-[var(--accent-electric)] transition-colors',
                 onClick: () => actions.viewContest(contest),
               },
               contest.title,
             ),
-            h('span', { class: 'font-data text-xs text-[var(--silver-400)]' }, contest.slug),
+            h(
+              'span',
+              {
+                'data-testid': 'contest-slug',
+                class: 'font-data text-xs text-[var(--muted-foreground)]',
+              },
+              contest.slug,
+            ),
           ]),
         ])
       },

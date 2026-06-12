@@ -184,10 +184,11 @@ async function handleSubmit() {
                     id="notification-title"
                     v-model="form.title"
                     type="text"
+                    variant="terminal"
                     required
                     :disabled="loading"
                     :placeholder="t('notifications.form.notificationTitlePlaceholder')"
-                    class="terminal-input font-data text-sm"
+                    class="font-data text-sm"
                   />
                 </Field>
 
@@ -202,7 +203,7 @@ async function handleSubmit() {
                     :disabled="loading"
                     :placeholder="t('notifications.form.notificationContentPlaceholder')"
                     rows="4"
-                    class="terminal-input font-data text-sm min-h-[100px] resize-y"
+                    class="terminal-input font-data text-sm min-h-[100px] resize-y selection:bg-[var(--accent-electric)] selection:text-[var(--solarized-base3)]"
                   />
                 </Field>
               </FieldGroup>

@@ -63,7 +63,7 @@ export function renderInlineContent(text: string): (string | VNode)[] {
           'code',
           {
             class:
-              'font-data text-xs px-1 py-0.5 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-800)] text-[var(--terminal-cyan)] rounded-none mx-0.5 font-bold',
+              'font-data text-xs px-1 py-0.5 bg-[color-mix(in_oklch,_var(--terminal-cyan)_7%,_var(--surface-sunken))] dark:bg-[color-mix(in_oklch,_var(--terminal-cyan)_10%,_var(--surface-sunken))] border border-[color-mix(in_oklch,_var(--terminal-cyan)_24%,_var(--silver-200))] dark:border-[var(--silver-300)] text-[var(--terminal-cyan)] rounded-none mx-0.5 font-bold',
           },
           codeText,
         )

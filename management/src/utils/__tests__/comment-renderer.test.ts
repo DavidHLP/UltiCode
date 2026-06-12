@@ -48,6 +48,9 @@ describe('comment-renderer', () => {
     expect(isVNode(result[1])).toBe(true)
     expect(result[1].type).toBe('code')
     expect(result[1].children).toBe('map')
+    expect(result[1].props.class).toContain('bg-[color-mix(in_oklch')
+    expect(result[1].props.class).toContain('dark:border-[var(--silver-300)]')
+    expect(result[1].props.class).not.toContain('dark:border-[var(--silver-800)]')
     expect(result[2]).toBe(' here')
   })
 

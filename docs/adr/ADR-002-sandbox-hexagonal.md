@@ -2,12 +2,13 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | Proposed |
+| **状态 (Status)** | **Accepted** (2026-06-13) |
+| **关闭 Milestone** | M2a (`ea6031466`..`348525e63` round-1 + `6b234771c`..`361233470` round-2) |
 | **日期 (Date)** | 2026-06-13 |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | (原 §2.1 中**未**被 Codex 否决的部分) |
 | **依赖 ADR** | [ADR-001](./ADR-001-verdict-status-codec.md) (RunResult 含 SubmissionStatus 字段) |
-| **关联代码** | `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SandboxServiceImpl.java`,`CodeExecutionHelperImpl.java`,`DockerSandboxConfig.java` |
+| **关联代码** | `backend-spring/src/main/java/com/ulticode/modules/submission/sandbox/{SandboxExecutor,SandboxJob,TestCase,RunCaseResult,LanguageProfile,SandboxExecutorImpl,InMemorySandboxAdapter,profile/*}.java`,`CodeExecutionService.java`,`DockerSandboxConfig.java` |
 
 ---
 

@@ -130,6 +130,12 @@ public class SandboxServiceImpl implements SandboxService {
                             elapsedMs, null,
                             SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0);
                 }
+                if ("java".equals(language) && isJavaCompileFailure(stdout)) {
+                    log.info("Java compile failure for runId={}: {}", runId,
+                            truncateForLog(helper.sanitizeSandboxOutput(stdout)));
+                    return helper.buildCaseResult(testCase, runId, userId, "Compile Error",
+                            elapsedMs, null, helper.sanitizeSandboxOutput(stdout), 0.0);
+                }
                 return helper.buildCaseResult(testCase, runId, userId, "Runtime Error",
                         elapsedMs, null, helper.sanitizeSandboxOutput(stdout), 0.0);
             }
@@ -174,9 +180,11 @@ public class SandboxServiceImpl implements SandboxService {
                                     SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0))
                             .toList();
                 }
+                String batchStatus = ("java".equals(language) && isJavaCompileFailure(stdout))
+                        ? "Compile Error" : "Runtime Error";
                 long perCase = elapsedMs / Math.max(testCases.size(), 1);
                 return testCases.stream()
-                        .map(tc -> helper.buildCaseResult(tc, runId, userId, "Runtime Error",
+                        .map(tc -> helper.buildCaseResult(tc, runId, userId, batchStatus,
                                 perCase, null, helper.sanitizeSandboxOutput(stdout), 0.0))
                         .toList();
             }
@@ -387,6 +395,43 @@ public class SandboxServiceImpl implements SandboxService {
                     .sorted(java.util.Comparator.reverseOrder())
                     .forEach(p -> { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });
         } catch (IOException ignored) { /* best-effort cleanup */ }
+    }
+
+    /**
+     * Heuristic: is this stdout/stderr stream the output of a Java
+     * compiler failure (not a runtime error)?
+     *
+     * <p>CR fix (Phase 5.5 #5): the Java harness dispatch runs
+     * {@code javac ... && java ...} as a single shell pipeline, so a
+     * compile failure aborts before the harness ever runs and emits
+     * zero envelope bytes. We can't tell javac and java apart from
+     * the process exit code alone ({@code &&} short-circuits both ways),
+     * so we look for the {@code javac} signature: lines starting with
+     * {@code Solution.java:} or generic {@code error: } markers.
+     *
+     * <p>Returns false for Python (which would emit a traceback) and for
+     * runtime exceptions (which usually have {@code at com....} frames).
+     */
+    static boolean isJavaCompileFailure(String mergedStdoutStderr) {
+        if (mergedStdoutStderr == null || mergedStdoutStderr.isEmpty()) {
+            return false;
+        }
+        // Most reliable: the file:line:column prefix javac emits.
+        if (mergedStdoutStderr.contains("Solution.java:")) {
+            // Need a real "error:" annotation, not just a code excerpt.
+            for (String line : mergedStdoutStderr.split("\n")) {
+                if (line.contains("error:") || line.contains("cannot find symbol")
+                        || line.contains("incompatible types")
+                        || line.contains("reached end of file while parsing")) {
+                    return true;
+                }
+            }
+        }
+        // Fallback: generic javac output without file:line prefix (e.g.
+        // when stdin is also captured). Risky for runtime errors that
+        // happen to contain "error:"; only use when no envelope was
+        // emitted AND the run timed out without a real exception.
+        return false;
     }
 
     private String resolveSeccompProfileFilePath() {

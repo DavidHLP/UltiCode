@@ -144,14 +144,18 @@ code-execution:
     seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
     # D-form (LeetCode/HackerRank harness) refactor — see
     # docker/sandbox/harness/README.md and .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md
-    # Phase 5 rollout: D-form is now the default dispatch path. The legacy
-    # Form A (per-request bash wrapper) path remains in
-    # CodeExecutionHelperImpl as a fallback gated by this flag for any
-    # deployment that needs to roll back (e.g. a C/C++ problem the
-    # Phase 1.5 C/C++ skeleton doesn't yet support, or a harness image
-    # that hasn't been rebuilt with the d-form artifacts). To roll back,
-    # set SANDBOX_DFORM_ENABLED=false. The fallback is on the deletion
-    # list for the next release.
+    # Phase 5.5: D-form is the sole dispatch path. The flag below is
+    # read by CodeExecutionService.execute() to validate the language
+    # set against the actual executable harnesses (java + python only).
+    # It does NOT toggle the dispatcher — D-form is always on.
+    #
+    # ROLLBACK: the legacy Form A (per-request bash wrapper) path is
+    # gone as of commit 8c13ec61f. The only way to roll back D-form
+    # is to revert the relevant commits and rebuild the sandbox image:
+    #   git revert 8c13ec61f 095a01fd5
+    #   cd docker/sandbox && ./harness/build.sh && docker build -t ulticode-sandbox:latest .
+    # The env var SANDBOX_DFORM_ENABLED=false no longer does anything
+    # useful — it was removed alongside the Form A code.
     d-form:
       enabled: ${SANDBOX_DFORM_ENABLED:true}
       # Path inside the runtime image where the pre-compiled harness lives.

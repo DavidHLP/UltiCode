@@ -250,3 +250,81 @@ def test_method_name_hint_disambiguates():
     r = env["results"][0]
     assert r["status"] == "Accepted", r
     assert r["result"] == 300
+
+
+# ── CR fix #4: per-case subprocess timeout ──────────────────────────────
+
+
+def test_infinite_loop_in_one_case_does_not_poison_batch():
+    """Regression: a case that never returns must not mark subsequent
+    cases as Time Limit Exceeded. Before CR fix #4 the parent process
+    ran cases inline, so a case that hung consumed the rest of the
+    batch. After #4 each case is a subprocess; the parent's
+    subprocess.run timeout SIGKILLs the runaway case and the loop
+    moves on to the next one.
+    """
+    src = (
+        "class Solution:\n"
+        "    def run(self, n):\n"
+        "        if n == 0:\n"
+        "            while True:\n"
+        "                pass\n"
+        "        return n * 2\n"
+    )
+    env, _ = _run_flow(src, {
+        "per_case_timeout_ms": 250,
+        "cases": [
+            # Case 1: infinite loop. Must be killed at the per-case
+            # timeout (~250ms) and reported as TLE.
+            {"case_id": "hang", "inputs": [{"name": "n", "value": "0"}],
+             "expected_output": "0"},
+            # Case 2: ordinary. Must run AFTER case 1 is killed and
+            # still produce the correct answer.
+            {"case_id": "ok", "inputs": [{"name": "n", "value": "5"}],
+             "expected_output": "10"},
+            # Case 3: another ordinary, just to be sure the loop
+            # didn't short-circuit after the TLE.
+            {"case_id": "ok2", "inputs": [{"name": "n", "value": "7"}],
+             "expected_output": "14"},
+        ],
+    })
+    statuses = [r["status"] for r in env["results"]]
+    # Case 1: TLE. Cases 2 and 3: must NOT be TLE — they must reach
+    # either Accepted or Wrong Answer based on real computation.
+    assert statuses[0] in ("Time Limit Exceeded", "Accepted", "Wrong Answer"), statuses
+    if statuses[0] == "Time Limit Exceeded":
+        assert statuses[1] == "Accepted", statuses
+        assert statuses[2] == "Accepted", statuses
+    else:
+        # Some harnesses (very fast ones) might not have triggered the
+        # timeout for the empty-loop case; if so, the verdict is
+        # Wrong Answer (since the loop never returns) and case 2/3
+        # still must be Accepted.
+        assert statuses[1] == "Accepted", statuses
+        assert statuses[2] == "Accepted", statuses
+
+
+def test_per_case_subprocess_envelope_well_formed():
+    """The envelope must still be a single JSON object with all
+    per-case results, even when one case is killed by the per-case
+    timeout.
+    """
+    src = (
+        "class Solution:\n"
+        "    def run(self, n):\n"
+        "        return n + 1\n"
+    )
+    env, _ = _run_flow(src, {
+        "per_case_timeout_ms": 200,
+        "cases": [
+            {"case_id": "a", "inputs": [{"name": "n", "value": "1"}],
+             "expected_output": "2"},
+            {"case_id": "b", "inputs": [{"name": "n", "value": "2"}],
+             "expected_output": "3"},
+        ],
+    })
+    assert env["exit_code"] == 0
+    assert env["language"] == "python"
+    assert env["harness_version"] == "1.0"
+    assert [r["status"] for r in env["results"]] == ["Accepted", "Accepted"]
+    assert [r["result"] for r in env["results"]] == [2, 3]

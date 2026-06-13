@@ -133,16 +133,18 @@ Worker 启动 M3c 后, **同时识别 v1 + v2** ; M3d cutover 后 envelope v1 �
 | 一次 `pm2 reload ulticode-9001` 后 verdict 接受流转无中断 (集成测试 30 min 持续提交) | ✅ |
 | 前端 i18n key coverage 100% (M1b 起 CI gate) | ✅ |
 
-### 2.6 Rollback Drill (每 milestone 一次)
+### 2.6 Rollback Drill (每 milestone 一次, 实际耗时由 §4 #2 沉淀)
 
-部署前在 staging 环境**主动**执行以下回滚演练并记录耗时:
+部署前在 dev 拓扑 (与 staging 等价, 详见 RUNBOOK §7) **主动**执行以下回滚演练并记录耗时.
+`TBD` 表示待首次 drill 后填写, 不阻塞 ADR 自身验收. 详细 drill 协议见
+`docs/adr/ADR-005-rollback-drill-protocol.md`.
 
-| Milestone | Rollback 动作 | 期望耗时 |
-|---|---|---|
-| M2a | `ulticode.features.sandbox.executor: legacy` → Nacos hot reload | < 30s |
-| M3a | 停 `JudgeOutboxDispatcher`,outbox 表保留, 新 submit 走旧 afterCommit (flag) | < 1min |
-| M3c | `ulticode.features.judge-queue.use-port: false` , 老 worker 直接 RQueue | < 30s |
-| M4a | `ulticode.features.notification.use-dispatcher: false` , 业务模块走旧 path | < 30s |
+| Milestone | Rollback 动作 | 期望耗时 | 实际耗时 | 完成时间 (UTC) | 执行人 | 备注 |
+|-----------|--------------|----------|----------|---------------|--------|------|
+| M2a | `app.features.sandbox.executor: legacy` (待 ADR-002 校核 flag 名) + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| M3a | `app.features.use-judge-outbox: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| M3c | `app.features.judge-queue.use-port: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| M4a | `app.features.use-notification-intent: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 
 Cutover milestone (M2b / M3d / M4b) 回滚需要 git revert + 重新部署, 不在热回滚范围, 因此**只在前一个 milestone 至少 7 天平稳后**才执行。
 
@@ -212,10 +214,10 @@ public class OutboxShadowComparator {
 ```
 
 ```diff
-- M2a rollback: ulticode.features.sandbox.executor: legacy → Nacos hot reload, < 30s
+- M2a rollback: `app.features.sandbox.executor: legacy` → Nacos hot reload, < 30s
 + M2a rollback: `application.yml` 改 sandbox.executor: legacy → git revert 该配置 commit + `pm2 reload ulticode-9001`, 端到端 < 5min
 - M3a rollback: 停 JudgeOutboxDispatcher → Nacos toggle, < 1min
-+ M3a rollback: 配置 ulticode.features.submission.use-outbox: false → `pm2 reload`, < 5min
++ M3a rollback: 配置 `app.features.use-judge-outbox: false` → `pm2 reload`, < 5min
 ```
 
 **Canary Gate** (§2.5) 不受影响, 仍然成立。Rollback drill (§2.6) 每个 milestone 仍然必须做, 期望耗时由 "< 30s" 调整为 "< 5min" (含 `pm2 reload` + 健康检查) 。

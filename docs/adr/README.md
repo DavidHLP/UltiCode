@@ -113,6 +113,7 @@ Proposed → Accepted → Implemented
 - 例: M2a (ADR-002) 不涉及 F11-F14, merged 即可转 Accepted — **2026-06-13 转 Accepted ✓** (含 round-1 5 commit + round-2 codex 评审 5 finding 修复)
 - 例: M3a+M3b (ADR-003 前 2 milestone) 已 merged (commit `09c97d1b8`, 含 java-reviewer 3 finding + codex 5 finding 修复, 两个 flag 默认 off) — **ADR-003 仍 Proposed**, 因只完成 4 个 milestone 中的 2 个, 且 F12 (M3c cutover 故障注入) 未验证
 - 例: M3c (ADR-003 cutover) merged 时必须勾选 F12 验证通过, 才能把 ADR-003 status 转 Accepted — **2026-06-13 转 Accepted ✓** (M3c-1/2/3a + 9-case InMemory F12 等价契约测试; 真实 Streams F12 IT 留 canary 阶段 follow-up, M3c 真投递 flag 切 canary 主机时跑)
+- 例: **review-driven 修复可 post-Accepted 发生** (ADR-003 round-3, commit `5148275d1`): Accepted 状态不降回 Proposed, 因为修复等价于补完 F12 验证; commit message 明确列 3 P1 + 残留 follow-up, ADR §2.8 记录审计轨迹; `ecc:code-review` Skill 默认 uncommitted 模式对 N commit diff 范围不适用, 启动二路审查冗余跳过
 - 例: M4a (ADR-004) merged 时必须勾选 F11 验证通过, 才能把 ADR-004 status 转 Accepted
 
 ---

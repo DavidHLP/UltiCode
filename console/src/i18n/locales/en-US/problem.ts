@@ -305,6 +305,7 @@ export default {
     memoryDistribution: "Memory Distribution",
     beats: "Beats {percent}%",
     noPredefinedInputs: "No predefined inputs for this case.",
+    noResultDetails: "No input or output details were returned for this case.",
     noTestResults: "No test results yet",
     runCodeToSeeResults: "Please run code first to see test results.",
     input: "Input",

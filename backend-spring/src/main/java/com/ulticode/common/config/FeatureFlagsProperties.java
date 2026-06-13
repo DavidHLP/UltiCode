@@ -47,6 +47,27 @@ public class FeatureFlagsProperties {
    */
   private boolean useGenerationFence = false;
 
+  /**
+   * Route judge dispatches through the {@code JudgeQueue} port (ADR-003 M3c)
+   * instead of the legacy {@code RQueue.add}. When {@code true}, the outbox
+   * dispatcher hands each PENDING row to the port's {@code enqueue} method
+   * and workers poll/ack through the port. Default {@code false}: the legacy
+   * {@code RQueue} path remains the sole active producer. M3c-1 ships the
+   * port interface; M3c-2 ships the Redisson Streams adapter; M3c-3 wires
+   * the worker.
+   */
+  private boolean judgeQueueUsePort = false;
+
+  /**
+   * Envelope version the port writes (ADR-003 M3c / ADR-005 §2.4). When
+   * {@code 1} (default), envelopes carry only the legacy job fields; when
+   * {@code 2}, envelopes also carry {@code generation} and {@code attemptId}
+   * so workers can run the fence-CAS write path. The port accepts both
+   * versions on decode (dual-read), and writes whichever version this flag
+   * names. Bumping this flag is the M3c-3 cutover for fence-aware dispatches.
+   */
+  private int judgeQueueEnvelopeVersion = 1;
+
   // Getters and setters
   public boolean isUseNewContestSystem() {
     return useNewContestSystem;
@@ -102,5 +123,21 @@ public class FeatureFlagsProperties {
 
   public void setUseGenerationFence(boolean useGenerationFence) {
     this.useGenerationFence = useGenerationFence;
+  }
+
+  public boolean isJudgeQueueUsePort() {
+    return judgeQueueUsePort;
+  }
+
+  public void setJudgeQueueUsePort(boolean judgeQueueUsePort) {
+    this.judgeQueueUsePort = judgeQueueUsePort;
+  }
+
+  public int getJudgeQueueEnvelopeVersion() {
+    return judgeQueueEnvelopeVersion;
+  }
+
+  public void setJudgeQueueEnvelopeVersion(int judgeQueueEnvelopeVersion) {
+    this.judgeQueueEnvelopeVersion = judgeQueueEnvelopeVersion;
   }
 }

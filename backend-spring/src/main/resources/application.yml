@@ -221,6 +221,18 @@ app:
     # crashed JUDGING rows. flag-off behavior is byte-for-byte identical to the
     # legacy selectById+updateById path.
     use-generation-fence: ${USE_GENERATION_FENCE:false}
+    # ADR-003 M3c-1: route judge dispatches through the JudgeQueue port
+    # (Redisson Streams adapter) instead of the legacy RQueue. M3c-1 ships
+    # the port interface; flipping this to true activates the M3c-2
+    # dispatcher cutover + M3c-3 worker poll. Default false — no behavior
+    # change until M3c-2/3 are also shipped and the canary gate clears.
+    judge-queue:
+      use-port: ${JUDGE_QUEUE_USE_PORT:false}
+      # Envelope version the port writes (1 = legacy fields only, 2 = adds
+      # generation/attemptId for fence). The port dual-reads both versions
+      # on decode; flipping this to 2 is the M3c-3 cutover for fence-aware
+      # dispatches.
+      envelope-version: ${JUDGE_QUEUE_ENVELOPE_VERSION:1}
 
 # Audit configuration
 audit:

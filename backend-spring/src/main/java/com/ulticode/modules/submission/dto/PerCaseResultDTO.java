@@ -16,6 +16,7 @@ public record PerCaseResultDTO(
         String caseId,
         String label,
         long elapsedMs,
+        long peakMemoryBytes,
         String status,
         Object result,
         Boolean interrupted,
@@ -35,6 +36,9 @@ public record PerCaseResultDTO(
         String caseId = strOrNull(m.get("case_id"));
         String label = strOrNull(m.get("label"));
         long elapsedMs = longOrZero(m.get("elapsed_ms"));
+        // peak_memory_bytes is emitted by Main.java since the M3 memory-
+        // reporting patch; tolerate older harnesses by defaulting to 0.
+        long peakMemoryBytes = longOrZero(m.get("peak_memory_bytes"));
         String status = strOrNull(m.get("status"));
         Object result = m.get("result");
         Boolean interrupted = m.get("interrupted") instanceof Boolean b ? b : null;
@@ -50,7 +54,7 @@ public record PerCaseResultDTO(
                             : List.of());
         }
         return new PerCaseResultDTO(
-                caseId, label, elapsedMs, status, result, interrupted,
+                caseId, label, elapsedMs, peakMemoryBytes, status, result, interrupted,
                 err,
                 strOrNull(m.get("user_stdout")),
                 strOrNull(m.get("user_stderr")));

@@ -155,7 +155,8 @@ Worker 启动 M3c 后, **同时识别 v1 + v2** ; M3d cutover 后 envelope v1 �
   (java + python only),**不**切换 dispatcher 路径
 - D-form 自 commit `8c13ec61f` 后是**唯一** dispatch 路径, Form A 旧 path 已删
 - 想真 rollback D-form 需 `git revert 8c13ec61f 095a01fd5` + 重建 sandbox image
-  (`cd docker/sandbox && ./harness/build.sh && docker build -t ulticode-sandbox:latest .`)
+  (`cd docker/sandbox && ./harness/build.sh` — 自 commit `9xxx` 起 build.sh 内部完成 pre-compile + docker build + tag `:latest`,
+  无需单独再 `docker build`. 见 [ADR-002 §7.1](./ADR-002-sandbox-hexagonal.md#71-docker-latest-tag-自动重打-close-65-1))
 - 故 M2a 不在本 ADR "5min 热回滚"演练范围, 需另起 ADR-009 (D-form rollback)
 
 Cutover milestone (M2b / M3d / M4b) 回滚需要 git revert + 重新部署, 不在热回滚范围, 因此**只在前一个 milestone 至少 7 天平稳后**才执行。

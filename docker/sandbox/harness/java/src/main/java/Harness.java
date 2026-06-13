@@ -592,7 +592,23 @@ public final class Harness {
         if (returnType == void.class || returnType == Void.class) {
             return null;
         }
+        // OJ policy (matches LeetCode-style judges): a null return from a
+        // list-like method (ListNode / TreeNode / array / List<T>) is
+        // reported as the empty representation [] rather than JSON null,
+        // because the OJ test data for "empty input" cases uses [] as
+        // the canonical answer. Without this, LeetCode-style code that
+        // returns null on empty input fails the empty-case with a
+        // Wrong Answer verdict (null vs [] mismatch).
+        if (value == null && isListLike(returnType)) {
+            return new java.util.ArrayList<>();
+        }
         return jsonableValue(value);
+    }
+
+    private static boolean isListLike(Class<?> t) {
+        if (t.isArray()) return true;
+        if (List.class.isAssignableFrom(t)) return true;
+        return ListNode.class.isAssignableFrom(t) || TreeNode.class.isAssignableFrom(t);
     }
 
     static Object jsonableValue(Object value) {

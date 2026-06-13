@@ -217,6 +217,39 @@ jobs:
             zricethezav/gitleaks:v8.24.2 \
             dir /repo --config=/repo/.gitleaks.toml --redact --no-banner
 
+  # --- Backend: Flyway Filename Lint ---
+  # ADR-005 §4 #5: DB 迁移文件名遵守 V{ts}__{description}.sql (CLAUDE.md 约定)
+  # 正则 ^V[0-9]{8}_?[0-9_]*__[A-Za-z0-9_]+\.sql$ 兼容两种时间戳写法
+  # (V20260604_110000 与 V20260604110000), 与现有 28 个文件全部合规.
+  flyway-filename-lint:
+    name: Flyway Filename Lint
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Lint migration filenames
+        run: |
+          set -e
+          PATTERN='^V[0-9]{8}_?[0-9_]*__[A-Za-z0-9_]+\.sql$'
+          cd init-db/migrations
+          fails=0
+          total=0
+          for f in V*.sql; do
+            [[ -e "$f" ]] || continue
+            total=$((total+1))
+            if [[ ! "$f" =~ $PATTERN ]]; then
+              echo "::error file=$f::must match $PATTERN (V<14-digit-ts>__<desc>.sql)"
+              fails=$((fails+1))
+            fi
+          done
+          if [[ $fails -gt 0 ]]; then
+            echo "::error::$fails of $total migration file(s) violate naming convention"
+            exit 1
+          fi
+          echo "✅ all $total migration filenames conform to V<14-digit-ts>__<desc>.sql"
+
   # --- Frontend: Lint ---
   frontend-lint:
     name: Lint (${{ matrix.app }})

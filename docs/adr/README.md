@@ -7,7 +7,7 @@
 | ADR | 状态 | 主题 | 摘要 |
 |-----|------|------|------|
 | **[ADR-000](./ADR-000-hexagonal-grilling-session.md)** | Superseded → ADR-001/002/003/004/005 | Hexagonal 化设计访谈与对抗评审记录 | 记录 `/grill-me` 访谈过程 + Codex 对抗评审 5 条 finding + 永久拒绝清单 |
-| **[ADR-001](./ADR-001-verdict-status-codec.md)** | Proposed | Verdict / SubmissionStatus codec 演化 | 在不动 DB 持久化值 + 前端 i18n key 的前提下, 把字符串 verdict 升级为强类型 enum + 三层 Codec |
+| **[ADR-001](./ADR-001-verdict-status-codec.md)** | **Accepted** (2026-06-13) | Verdict / SubmissionStatus codec 演化 | 在不动 DB 持久化值 + 前端 i18n key 的前提下, 把字符串 verdict 升级为强类型 enum + 三层 Codec |
 | **[ADR-002](./ADR-002-sandbox-hexagonal.md)** | Proposed | Sandbox Hexagonal Port + LanguageProfile Strategy | `SandboxExecutor` port + Docker/InMemory 双 adapter; 5 个 LanguageProfile 集合注入 fail-fast |
 | **[ADR-003](./ADR-003-queue-outbox-fencing.md)** | Proposed | Queue + Outbox + Generation Fence + JUDGING Lease | 任务投递走 Outbox 表 + 唯一约束去重; submission 加 generation/lease 列防旧 worker 覆盖与 JUDGING 卡死 |
 | **[ADR-004](./ADR-004-notification-intents.md)** | Proposed | NotificationIntent + Per-Channel Projection | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; channel-level preference 列入未来 ADR |

@@ -150,6 +150,23 @@ class InMemorySandboxAdapterTest {
         }
 
         @Test
+        @DisplayName("M2a-round-2 (codex F6): unknown languageId returns SANDBOX_ERROR (matches production)")
+        void run_unknownLanguageId_returnsSandboxError() {
+            // The production SandboxExecutorImpl returns SANDBOX_ERROR
+            // when no LanguageProfile is registered for the job's
+            // languageId; before the round-2 fix, the in-memory
+            // adapter fell through to the heuristic and silently
+            // returned ACCEPTED, letting unit tests pass for
+            // requests that production would correctly reject.
+            RunCaseResult r = adapter.run(
+                    job("ruby", "puts 'hello'"),
+                    singleCase());
+            assertThat(r.status()).isEqualTo(SubmissionStatus.SANDBOX_ERROR);
+            assertThat(r.detail()).contains("D-form harness not implemented");
+            assertThat(r.detail()).contains("ruby");
+        }
+
+        @Test
         @DisplayName("unknown explicit marker falls through to heuristic, not throws")
         void run_unknownMarker_fallsThroughToHeuristic() {
             // Bogus marker should not crash the adapter — it should

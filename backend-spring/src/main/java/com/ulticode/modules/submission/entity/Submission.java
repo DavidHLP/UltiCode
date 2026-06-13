@@ -71,6 +71,37 @@ public class Submission {
     private Integer retryCount = 0;
 
     /**
+     * Generation fence token (ADR-003 M3b). Monotonically incremented on every
+     * rejudge and on every lease-expiry recovery. Verdict writes carry the
+     * generation they observed at acquire time so a stale worker that wakes up
+     * after a superseding rejudge cannot overwrite the newer result. Defaults to
+     * {@code 1L} to match the DB column {@code NOT NULL DEFAULT 1}; legacy rows
+     * are backfilled by the migration.
+     */
+    @TableField("generation")
+    private Long generation = 1L;
+
+    /**
+     * Attempt identifier of the worker currently holding the JUDGING lease
+     * (ADR-003 M3b). {@code null} when the submission is not being judged.
+     * Populated by {@code acquireLease}, cleared by {@code writeVerdictFenced}
+     * and the lease reaper. Used as the second fence axis so a worker that loses
+     * the lease (reaper bumped generation) cannot renew or write a verdict.
+     */
+    @TableField("current_attempt_id")
+    private String currentAttemptId;
+
+    /**
+     * Absolute expiry of the current JUDGING lease (ADR-003 M3b). The worker
+     * heartbeats this forward every {@code leaseTtl/3} seconds while judging.
+     * When it lapses, {@link com.ulticode.modules.submission.reaper.JudgingLeaseReaper}
+     * recovers the row (bumps generation, resets to Pending, re-enqueues).
+     * {@code null} when the submission is not being judged.
+     */
+    @TableField("judging_lease_expires_at")
+    private LocalDateTime judgingLeaseExpiresAt;
+
+    /**
      * Submission creation timestamp
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)

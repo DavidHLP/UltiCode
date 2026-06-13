@@ -44,8 +44,14 @@ class AdminSubmissionServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // ADR-003 M3b: flag-off FeatureFlagsProperties so rejudge takes the
+        // legacy path. judgeOutboxMapper + transactionTemplate unused on that
+        // path, so they can be null.
+        com.ulticode.common.config.FeatureFlagsProperties flags =
+                new com.ulticode.common.config.FeatureFlagsProperties();
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService);
+                submissionMapper, userMapper, problemMapper, queueService,
+                null, flags, null);
     }
 
     private Submission createValidSubmission() {

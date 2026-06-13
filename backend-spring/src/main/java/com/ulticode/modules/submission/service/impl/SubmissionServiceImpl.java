@@ -24,6 +24,9 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
+import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
+import com.ulticode.common.config.FeatureFlagsProperties;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -79,6 +82,18 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
+    /**
+     * ADR-003 M3a outbox mapper. Null-safe in tests that do not exercise the
+     * outbox path; production wiring is via constructor injection.
+     */
+    private final JudgeOutboxMapper judgeOutboxMapper;
+    private final FeatureFlagsProperties featureFlags;
+    /**
+     * Metrics registry for {@code judge.stale_result.dropped} (ADR-003 §5).
+     * Nullable so integration tests that do not wire a registry still work;
+     * a null registry means the counter is a silent no-op.
+     */
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     /**
      * Supported languages for submission.
@@ -142,6 +157,24 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionMapper.insert(submission);
 
         log.info("Created submission {} for user {} and problem {}", submission.getId(), userId, createDTO.getProblemId());
+
+        // ADR-003 M3a: write a shadow outbox row in the same transaction so the
+        // dispatch intent is durable. The real delivery still goes through the
+        // legacy RQueue (enqueueJudgeJob below); the outbox dispatcher stays in
+        // shadow mode (claim + log + metric, no enqueue) until M3c cutover.
+        // Flag-gated: flag-off is byte-for-byte identical to the legacy path.
+        if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
+            try {
+                long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+                judgeOutboxMapper.insert(JudgeOutboxRecord.of(
+                        submission, String.valueOf(createDTO.getProblemId()), generation, true));
+            } catch (Exception e) {
+                // Shadow write failure must not break submission; the real
+                // enqueue below is still the source of truth at this stage.
+                log.warn("Shadow outbox write failed for submission {} (continuing with legacy enqueue): {}",
+                        submission.getId(), e.getMessage());
+            }
+        }
 
         // --- Contest submission recording (D-04, D-05, D-06) ---
         try {
@@ -301,6 +334,208 @@ public class SubmissionServiceImpl implements SubmissionService {
                             "problemTitle", problemMapper.selectById(submission.getProblemId()) != null
                                     ? problemMapper.selectById(submission.getProblemId()).getTitle()
                                     : "",
+                            "status", status,
+                            "isAccepted", "Accepted".equals(status)
+                    ),
+                    false);
+        } catch (Exception e) {
+            log.warn("Failed to create submission notification for submission {}: {}",
+                    submission.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * ADR-003 M3b fenced verdict write. The worker calls this with the
+     * {@code generation} and {@code attemptId} it observed at acquire time; the
+     * underlying {@link SubmissionMapper#writeVerdictFencedWithStats} CAS rejects
+     * the write if the generation has since been bumped (rejudge / reaper) or the
+     * attempt lost its lease. On rejection the result is silently dropped and
+     * the {@code judge.stale_result.dropped} counter increments.
+     *
+     * <p><b>F4 fix:</b> the computed performance stats (percentile + distribution
+     * bins) are folded into the SAME generation+attempt CAS as the verdict, via
+     * {@link SubmissionMapper#writeVerdictFencedWithStats}. The previous two-step
+     * path (writeVerdictFenced CAS, then a separate unfenced
+     * {@code submissionMapper.updateById} to persist the percentile columns)
+     * had a window where an admin rejudge could bump the generation between the
+     * CAS and the {@code updateById}; the unfenced update would then write the
+     * stale Accepted status + old generation back over the rejudge, defeating
+     * the fence exactly when {@code computePerformanceStats} is slow. Computing
+     * the stats BEFORE the CAS and persisting them in the CAS eliminates the
+     * second write entirely — all six data columns land (or are rejected)
+     * atomically behind the fence.
+     *
+     * <p>The performance stats are computed only for the Accepted verdict; all
+     * other verdicts pass nulls so the columns are cleared (matching the legacy
+     * {@code updateSubmissionResult} behavior of always setting the field).
+     *
+     * <p>Achievements / notifications side-effects run only when the verdict
+     * actually lands (affected = 1).
+     *
+     * @param submissionId  submission id
+     * @param generation    generation observed at acquire (fence axis 1)
+     * @param attemptId     attempt UUID held by the worker (fence axis 2)
+     * @param status        terminal verdict wire value
+     * @param runtime       runtime in ms
+     * @param memory        memory in MB
+     * @param testDetails   test case details (serialized to JSON)
+     * @return {@code true} if the verdict was written; {@code false} if the
+     *         fence rejected it (stale result dropped)
+     */
+    public boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
+                                                String status, int runtime, Double memory,
+                                                List<Submission.TestCaseDetail> testDetails) {
+        // Serialize test details to JSON for the json column. Mirror the entity's
+        // JacksonTypeHandler semantics by using the same ObjectMapper the service
+        // already holds.
+        String testDetailsJson = serializeTestDetails(testDetails);
+
+        // F4: compute performance stats BEFORE the CAS and persist them in the
+        // same fenced write. We read the row pre-CAS to get the problemId /
+        // language / userId needed by computePerformanceStats (these columns are
+        // not fenced — only status/runtime/memory/test_details/percentile/lease
+        // are — so reading them now is safe even though the generation may move
+        // between this read and the CAS). For non-Accepted verdicts we pass
+        // nulls so the CAS clears the percentile columns, matching the legacy
+        // updateSubmissionResult behavior of always overwriting the field.
+        Double runtimePercentile = null;
+        Double memoryPercentile = null;
+        String runtimeDistBinsJson = null;
+        String memoryDistBinsJson = null;
+        if ("Accepted".equals(status)) {
+            Submission pre = submissionMapper.selectById(submissionId);
+            if (pre != null) {
+                PerformanceStats stats = computePerformanceStats(pre, runtime, memory);
+                runtimePercentile = stats.runtimePercentile();
+                memoryPercentile = stats.memoryPercentile();
+                runtimeDistBinsJson = serializeBins(stats.runtimeDistBinsMs());
+                memoryDistBinsJson = serializeBins(stats.memoryDistBinsMb());
+            }
+        }
+
+        int affected = submissionMapper.writeVerdictFencedWithStats(
+                submissionId, generation, attemptId, status, runtime, memory, testDetailsJson,
+                runtimePercentile, memoryPercentile, runtimeDistBinsJson, memoryDistBinsJson);
+
+        if (affected == 0) {
+            // Fence mismatch: the generation was bumped (rejudge / reaper) or
+            // the attempt lost the lease. Drop the result and record the metric.
+            incrementStaleResultDropped();
+            log.debug("Stale judge result dropped for submission {} (gen={}, attempt={}, verdict={})",
+                    submissionId, generation, attemptId, status);
+            return false;
+        }
+
+        // Verdict landed. Re-read to get the canonical row for side-effects.
+        Submission submission = submissionMapper.selectById(submissionId);
+        if (submission == null) {
+            log.warn("Fenced verdict wrote but submission {} not found on re-read", submissionId);
+            return true;
+        }
+        log.info("Updated submission {} (fenced) status={}, runtime={}ms, memory={}",
+                submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+
+        // Achievements + notifications. F4: the fenced path no longer persists
+        // performance stats here — they were written in the CAS above. The
+        // side-effects (achievements / notifications) are not DB verdict writes,
+        // so they are safe to run post-CAS without weakening the fence.
+        triggerPostVerdictSideEffects(submission, status);
+        return true;
+    }
+
+    /**
+     * Serialize a distribution-bin list to a JSON string for the
+     * {@code runtimeDistBinsMs} / {@code memoryDistBinsMb} json columns. Returns
+     * {@code null} for an empty/null list so the CAS clears the column (matching
+     * the legacy behavior of writing the field even when empty).
+     */
+    private String serializeBins(List<Map<String, Number>> bins) {
+        if (bins == null || bins.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(bins);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.warn("Failed to serialize distribution bins for fenced verdict: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Serialize test details to a JSON string for the {@code test_details} json
+     * column. Returns {@code null} when the list is null/empty so the column is
+     * cleared (matching legacy updateSubmissionResult which always sets the
+     * field, but the fenced CAS writes NULL when null).
+     */
+    private String serializeTestDetails(List<Submission.TestCaseDetail> testDetails) {
+        if (testDetails == null || testDetails.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(testDetails);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.warn("Failed to serialize test details for fenced verdict: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Increment the {@code judge.stale_result.dropped} counter. No-op when no
+     * meter registry is wired (e.g. integration tests).
+     */
+    private void incrementStaleResultDropped() {
+        if (meterRegistry != null) {
+            meterRegistry.counter("judge.stale_result.dropped").increment();
+        }
+    }
+
+    /**
+     * Run the achievement triggers and the submission-result notification for a
+     * fenced verdict that just landed.
+     *
+     * <p><b>F4:</b> this method no longer persists performance stats. The fenced
+     * path computes the stats BEFORE the verdict CAS and folds them into
+     * {@link SubmissionMapper#writeVerdictFencedWithStats} so all six data
+     * columns land atomically behind the generation+attempt fence. The previous
+     * {@code computePerformanceStats} + {@code submissionMapper.updateById}
+     * here was an <b>unfenced</b> write that could clobber a concurrent rejudge
+     * bump happening between the verdict CAS and this side-effect step. The
+     * legacy {@link #updateSubmissionResult} path keeps its own (unfenced, by
+     * design — flag-off) {@code updateById} and does not call this method.
+     */
+    private void triggerPostVerdictSideEffects(Submission submission, String status) {
+        // Achievements (no DB verdict write here — F4 moved performance stats
+        // into the verdict CAS).
+        if ("Accepted".equals(status)) {
+            try {
+                Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
+                achievementTriggerService.onProblemSolved(submission.getUserId(), problemsSolved != null ? problemsSolved.intValue() : 0);
+                achievementTriggerService.onFirstProblemSolved(submission.getUserId());
+
+                String language = submission.getLanguage();
+                if (language != null && !language.isBlank()) {
+                    Long languageCount = submissionMapper.countByUserIdAndLanguage(submission.getUserId(), language);
+                    achievementTriggerService.onLanguageMilestone(submission.getUserId(), language, languageCount != null ? languageCount.intValue() : 0);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to trigger achievements for submission {}: {}", submission.getId(), e.getMessage());
+            }
+        }
+
+        // Notification
+        try {
+            Problem problem = problemMapper.selectById(submission.getProblemId());
+            notificationDispatchService.dispatch(
+                    submission.getUserId(),
+                    "SUBMISSION",
+                    "SYSTEM",
+                    "Submission judged: " + status,
+                    "",
+                    "/submissions/" + submission.getId(),
+                    java.util.Map.of(
+                            "submissionId", submission.getId(),
+                            "problemId", submission.getProblemId(),
+                            "problemTitle", problem != null ? problem.getTitle() : "",
                             "status", status,
                             "isAccepted", "Accepted".equals(status)
                     ),

@@ -61,6 +61,38 @@ class JudgeWorkerProcessorTest {
     private QueueConfig queueConfig;
 
     /**
+     * ADR-003 M3b: mapper for the lease CAS. Mocked so the legacy path
+     * (flag-off) is exercised — processJob guards on the flag and never reaches
+     * acquireLease when {@link #featureFlags} is flag-off.
+     */
+    @Mock
+    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+
+    /**
+     * ADR-003 M3b: flag-off properties so {@code processJob} takes the legacy
+     * branch. Declared as a {@link Spy} of a real instance so Mockito injects
+     * it via constructor ({@link InjectMocks} only picks up {@link Mock}/{@link Spy}
+     * fields, per the mockito5-lombok-constructor-injection rule).
+     */
+    @Spy
+    private com.ulticode.common.config.FeatureFlagsProperties featureFlags =
+            new com.ulticode.common.config.FeatureFlagsProperties();
+
+    /**
+     * ADR-003 M3b: metrics registry mock; never invoked on the flag-off path.
+     */
+    @Mock
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+
+    /**
+     * ObjectMapper used by {@code buildRunSubmissionDTO}. Real instance wrapped
+     * as a {@link Spy} so {@link InjectMocks} injects it via the constructor.
+     */
+    @Spy
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /**
      * VerdictResolver is a pure function; use a real spy so the existing
      * determineVerdict tests exercise the real reduction logic without
      * needing per-test stubbing. {@link InjectMocks} picks up spies the

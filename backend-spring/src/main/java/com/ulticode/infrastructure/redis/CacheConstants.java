@@ -67,6 +67,23 @@ public final class CacheConstants {
      */
     public static final String PASSWORD_RESET_PREFIX = "pwd_reset:";
 
+    /**
+     * Judge dispatch seen-set prefix (ADR-003 M3a shadow comparator).
+     * Tracks which {@code (submissionId, generation)} pairs have actually been
+     * enqueued onto the active producer (the legacy RQueue) so the shadow
+     * outbox dispatcher can diff against outbox rows. Format:
+     * {@code judge:dispatch:seen:{submissionId}:{generation}}.
+     */
+    public static final String JUDGE_DISPATCH_SEEN_PREFIX = "judge:dispatch:seen:";
+
+    /**
+     * Judge lease Redis prefix (ADR-003 M3b). Reserved for a future Redis-backed
+     * heartbeat variant; the current implementation keeps leases in the
+     * {@code submissions.judging_lease_expires_at} column. Format:
+     * {@code judge:lease:{submissionId}:{attemptId}}.
+     */
+    public static final String JUDGE_LEASE_PREFIX = "judge:lease:";
+
     // ==================== TTL Constants ====================
 
     /**

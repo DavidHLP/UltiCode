@@ -192,6 +192,19 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
+     * ADR-003 M3c-3b: process a reclaimed handle routed from the
+     * unacked Streams reaper (codex P1 #3 fix). The handle is a normal
+     * {@link JudgeJobHandle} returned by {@code claimIdle}; this method
+     * is a public entry point so the reaper (in
+     * {@code queue.outbox.reaper}) can drive the same fenced execution
+     * path the worker uses for neverDelivered entries. Synchronous so
+     * the reaper's claim-then-ack window stays small.
+     */
+    public void processReclaimedHandle(JudgeQueue port, JudgeJobHandle handle) {
+        processJobFromPort(port, handle);
+    }
+
+    /**
      * ADR-003 M3c-3a fenced judging path for envelopes read from the
      * {@link JudgeQueue} port. The v2 envelope carries its own
      * {@code attemptId} and {@code generation} (set by the dispatcher on

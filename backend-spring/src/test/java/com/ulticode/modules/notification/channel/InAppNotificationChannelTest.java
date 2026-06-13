@@ -100,6 +100,7 @@ class InAppNotificationChannelTest {
     private static AchievementEarnedIntent sampleAchievement() {
         return new AchievementEarnedIntent(
                 "user-1", "ach-1", "key", "Name", "desc", null, 1, 10,
+                java.time.Instant.now(),
                 NotificationCategory.SYSTEM);
     }
 

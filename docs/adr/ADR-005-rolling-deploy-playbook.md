@@ -34,18 +34,18 @@
 
 ### 2.1 Milestone 拆分 (M1→M5 共 5 个独立可部署单元)
 
-| Milestone | ADR | 改动范围 | 可独立部署 | 可独立回滚 |
-|---|---|---|---|---|
-| **M1a** | ADR-001 (§2.1-§2.4) | enum 改 + Codec + VerdictResolver, **仅扩不写新值** | ✅ | ✅ (revert commit) |
-| **M1b** | ADR-001 (§2.5) | i18n coverage test 接入 CI | ✅ | ✅ |
-| **M2a** | ADR-002 | Sandbox port + DockerAdapter + InMemoryAdapter + 5 LanguageProfile, 通过 `sandbox.executor` flag 灰度 | ✅ (默认 flag=legacy) | ✅ (flag 切回 legacy) |
-| **M2b** | ADR-002 (cutover) | flag 默认值切 `hexagonal`, 删旧 SandboxServiceImpl 内联实现 | ✅ | ⚠️ (需 revert) |
-| **M3a** | ADR-003 (§2.1) | Outbox 表 + dispatcher worker, **dual-write** (旧 afterCommit + 新 outbox 同时跑) | ✅ | ✅ (停 dispatcher) |
-| **M3b** | ADR-003 (§2.2-§2.3) | generation + lease 列加入, dual-CAS 兼容旧 worker | ✅ (DB 加列 + 默认 NULL) | ✅ (列保留, 代码 revert) |
-| **M3c** | ADR-003 (§2.4 cutover) | JudgeQueue port + Redisson adapter, envelope v2 (含 generation) | ✅ (envelope dual-read) | ✅ (flag) |
-| **M3d** | ADR-003 (cutover) | 删旧 afterCommit + reaper, 关闭 envelope v1 | ⚠️ | ⚠️ (需 revert + 旧 envelope 排空) |
-| **M4a** | ADR-004 | NotificationIntent + Dispatcher + 3 Channel, 旧 `NotificationDispatchService` 共存 | ✅ | ✅ (废弃 dispatcher 调用即可) |
-| **M4b** | ADR-004 (cutover) | 业务模块切到 `notificationDispatcher.dispatch(intent)` , 删旧 path | ⚠️ | ⚠️ |
+| Milestone | ADR | 改动范围 | 可独立部署 | 可独立回滚 | shipped at |
+|---|---|---|---|---|---|
+| **M1a** | ADR-001 (§2.1-§2.4) | enum 改 + Codec + VerdictResolver, **仅扩不写新值** | ✅ | ✅ (revert commit) | — |
+| **M1b** | ADR-001 (§2.5) | i18n coverage test 接入 CI | ✅ | ✅ | — |
+| **M2a** | ADR-002 | Sandbox port + DockerAdapter + InMemoryAdapter + 5 LanguageProfile, 通过 `sandbox.executor` flag 灰度 | ✅ (默认 flag=legacy) | ✅ (flag 切回 legacy) | — |
+| **M2b** | ADR-002 (cutover) | flag 默认值切 `hexagonal`, 删旧 SandboxServiceImpl 内联实现 | ✅ | ⚠️ (需 revert) | — |
+| **M3a** | ADR-003 (§2.1) | Outbox 表 (含 `is_shadow`) + dispatcher **shadow-only** (只观察不入队, §2.8 F8 修订) | ✅ | ✅ (停 dispatcher / `useJudgeOutbox=off`) | **2026-06-13 `09c97d1b8`** |
+| **M3b** | ADR-003 (§2.2-§2.3) | generation/lease 列 + CAS fence + reaper + worker heartbeat, dual-CAS 兼容旧 worker | ✅ (DB 加列 + DEFAULT) | ✅ (列保留, 代码 revert / `useGenerationFence=off`) | **2026-06-13 `09c97d1b8`** |
+| **M3c** | ADR-003 (§2.4 cutover) | JudgeQueue port + Redisson adapter, envelope v2 (含 generation) | ✅ (envelope dual-read) | ✅ (flag) | — |
+| **M3d** | ADR-003 (cutover) | 删旧 afterCommit + reaper, 关闭 envelope v1 | ⚠️ | ⚠️ (需 revert + 旧 envelope 排空) | — |
+| **M4a** | ADR-004 | NotificationIntent + Dispatcher + 3 Channel, 旧 `NotificationDispatchService` 共存 | ✅ | ✅ (废弃 dispatcher 调用即可) | — |
+| **M4b** | ADR-004 (cutover) | 业务模块切到 `notificationDispatcher.dispatch(intent)` , 删旧 path | ⚠️ | ⚠️ | — |
 
 **关键原则**: 每个 milestone 落地后 main 必须**双轨可运行** (老路径 + 新路径都能跑) , 直到 cutover milestone 才删旧路径。
 

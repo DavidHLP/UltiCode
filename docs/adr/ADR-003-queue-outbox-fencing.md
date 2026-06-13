@@ -281,6 +281,28 @@ FOR UPDATE SKIP LOCKED;
 
 M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-round-2-codex-revision-2026-06-13) 修订。本 ADR 仅声明: **任何时刻最多一个 active producer 写 Redis Streams**。
 
+### 2.7 实施进度 (Implementation Progress)
+
+> 状态转换遵循 [ADR README §Status 转换规则补丁](./README.md#status-转换规则补丁):ADR-003 **Status 保持 Proposed**。M3a+M3b 不涉及 F11-F14,但仅落地 4 个 milestone 中的前 2 个;ADR-003 转 `Accepted` 的硬门禁是 **M3c merged + F12 (Redis Streams 故障注入) 验证通过**。
+
+| Milestone | 状态 | Commit | 范围 | Feature Flag (默认) |
+|---|---|---|---|---|
+| **M3a** Outbox shadow | ✅ shipped | `09c97d1b8` | `judge_outbox` 表 (含 `is_shadow`,F13) + `JudgeOutboxDispatcher` (**shadow-only**,只观察不入队) + `OutboxShadowComparator` + submit/rejudge/reaper 双写 | `useJudgeOutbox = false` |
+| **M3b** Generation fence + lease | ✅ shipped | `09c97d1b8` | `submissions` 加 `generation`/`current_attempt_id`/`judging_lease_expires_at` 列 + CAS fence (`acquireLease`/`renewLease`/`writeVerdictFencedWithStats`/`bumpGenerationAndReset`/`forceLeaseExpiry`/`bumpRetryCount`) + `JudgingLeaseReaper` (单事务 + afterCommit 入队) + worker heartbeat + `SubmissionStateMachine` | `useGenerationFence = false` |
+| **M3c** JudgeQueue port + cutover | ⏳ 待做 | — | `JudgeQueue` 端口 + Redisson Streams adapter (`XREADGROUP`/`XACK`/`XCLAIM`) + envelope v2 (含 generation/attemptId) + outbox dispatcher 接管真投递 (`is_shadow=0`,F13 watermark) | `judge-queue.use-port` |
+| **M3d** Cleanup | ⏳ 待做 | — | 删旧 RQueue `enqueueJudgeJob` + envelope v1 decode (保留 ≥2 周排空残留) | — |
+
+**两轮对抗审查** (commit `09c97d1b8` 前完成):
+
+| 轮次 | 审查者 | 发现 | 处置 |
+|---|---|---|---|
+| R1 | `ecc:java-reviewer` | C1 (rejudgeFenced JUDGING 分支 `updateById` 覆盖 lease → 永卡)/ H1 (reaper Redis 入队在 `@Transactional` 内)/ H2 (rejudge 发件箱用过期 generation) | 全修 |
+| R2 | `codex exec review` | F1-F4 (P1:terminal 分支 `updateById` 覆盖 Pending 重置 / `forceLeaseExpiry` 未作废 attempt / rejudge 入队在事务内 / Accepted 后 stats `updateById` 破坏 fence)+ F5 (P2:outbox seen-set diff) | F1-F4 全修;F5 降级 M3c (依赖 envelope v2 的 generation) |
+
+**落地后运行时行为**:两个 flag 默认 `false`,此 commit 合入后**零行为变化**——旧 RQueue + 旧 `updateById` 路径仍是唯一 active producer / 写回路径;新代码经 flag 守护,默认不生效。灰度路径:`app.features.use-generation-fence=true` → `pm2 reload ulticode-9001` → 提交判题 + 制造卡死/rejudge 场景观察指标 `judge.stale_result.dropped` / `judge.lease.expired`。
+
+**转 Accepted 前的硬门禁 (F12, M3c)**:故障注入测试——① kill worker after `XACK` before DB write,验证 `recoverUnackedStreamEntries()` 把 entry 经 `XCLAIM` 转给新 consumer 且不丢;② rejudge 一个正在 JUDGING 的提交,旧 worker 结果被 generation fence 丢弃。
+
 ## 3. Consequences
 
 ### 3.1 Positive

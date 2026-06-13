@@ -62,7 +62,60 @@ Proposed → Accepted → Implemented
 - 文档 / 注释修订
 - 依赖小版本升级 (除非有 breaking change)
 
-## References
+## Open Findings — Deferred to Implementation
+
+经 3 轮 `/codex:adversarial-review` 共发现 14 条 finding。Round 1 (5) + Round 2 (5) 已就地补丁。**Round 3 (4 条 high, 0 critical) 不再做文档修订**, 转化为实施期 acceptance criteria — 在对应 milestone 落地 PR 中勾选验证。
+
+判定依据:
+
+- 三轮顶层方向 (Hexagonal / Outbox / Sealed Intent / 11-milestone) 零 critical 攻破
+- 严重度逐轮下降 (critical=3→3→0), 性质从"设计错"转到"实现 corner case"
+- 后续 corner case (Redis Streams PEL 语义 / cutover watermark / prod vs dev 拓扑 / ledger 重试状态机) 在 PoC + 故障注入测试中验证比再读 ADR 更有效
+
+### Round 3 残留 Findings (实现期必须解决)
+
+| # | Severity | 关联 ADR / Milestone | 验证要求 | 推荐修法 (实现时确认) |
+|---|---|---|---|---|
+| **F11** | high | ADR-004 / M4a | Ledger 失败重试不被永久压制; transient SMTP 失败可被新 lease 接管; INSERT 必带初始 `delivery_state` | ledger 四态 `PENDING/DELIVERED/FAILED/DEAD` + `lease_expires_at`; claim 写 PENDING + lease; send 成功转 DELIVERED, retryable 失败留 PENDING 待新 lease 接管; terminal 转 DEAD |
+| **F12** | high | ADR-003 / M3c | `XCLAIM` 转过来的 entry 真被 worker 处理, 不挂在 PEL 里; 故障注入测试: kill worker after XACK before DB write, 验证不丢 | `recoverUnackedStreamEntries()` 直接处理 `XCLAIM` 返回 entries, 或 `poll()` 先 `XREADGROUP 0` 读本 consumer PEL 再 `XREADGROUP >` 读新 entries |
+| **F13** | high | ADR-005 / M3a→M3c | M3c cutover 不会重判 M3a 累积的历史 shadow 行 | outbox 加 `is_shadow BOOLEAN`; M3a 写入 `is_shadow=TRUE`; M3c 部署记 `cutover_at`,dispatcher 仅挑 `created_at > cutover_at AND is_shadow=FALSE`,M3a 行批量标 ARCHIVED |
+| **F14** | high | ADR-005 / 全部 cutover milestone | Prod rollback 不依赖 PM2 (prod 跑 immutable Docker image, 无 PM2) | Dev/prod rollback 分离: dev 用 `pm2 reload`; **prod** 用"pin 上一个 docker tag + env var / external config volume 注入 feature flag + `docker compose up -d ulticode-backend` 健康检查门禁" |
+
+### 实施期检查清单生成
+
+每个 milestone PR 创建时, 在描述中列出该 PR 应验证的 finding 编号 (例如 M3c PR 必勾选 F12 + F13)。Reviewer 在 PR 评审时用 codex 引用的具体场景做故障注入测试, 而不是再读 ADR。
+
+### 完整 finding 历史 (F1-F10 已就地补丁)
+
+| # | Severity | 修订位置 | 状态 |
+|---|---|---|---|
+| F1 | critical | ADR-001 整文 | resolved (split) |
+| F2 | critical | ADR-003 §2.2-§2.3 | resolved (split) |
+| F3 | critical | ADR-003 §2.1 | resolved (split) |
+| F4 | high | ADR-004 整文 | resolved (split) |
+| F5 | high | ADR-005 整文 | resolved (split) |
+| F6 | critical | ADR-003 §2.6 | resolved (Round 2 patch) |
+| F7 | critical | ADR-003 §2.6 | resolved (Round 2 patch) |
+| F8 | critical | ADR-005 §2.8 | resolved (Round 2 patch) |
+| F9 | high | ADR-004 §2.7 | resolved (Round 2 patch) |
+| F10 | high | ADR-005 §2.8 | resolved (Round 2 patch) |
+| F11 | high | ADR-004 / M4a | **deferred to implementation** |
+| F12 | high | ADR-003 / M3c | **deferred to implementation** |
+| F13 | high | ADR-005 / M3a→M3c | **deferred to implementation** |
+| F14 | high | ADR-005 / cutover | **deferred to implementation** |
+
+### Status 转换规则补丁
+
+6 个 ADR 状态保持 `Proposed`。状态升级规则:
+
+- `Proposed → Accepted`: 对应 milestone PR merged, 且 F11-F14 中相关 finding 在 PR 验证通过
+- 例: M1a (ADR-001) 不涉及 F11-F14, merged 即可转 Accepted
+- 例: M3c (ADR-003 cutover) merged 时必须勾选 F12 验证通过, 才能把 ADR-003 status 转 Accepted
+- 例: M4a (ADR-004) merged 时必须勾选 F11 验证通过, 才能把 ADR-004 status 转 Accepted
+
+---
+
+
 
 - Michael Nygard, "Documenting Architecture Decisions" (2011) — ADR 起源
 - Joel Parker Henderson, [adr-templates](https://github.com/joelparkerhenderson/architecture-decision-record) — 多种模板对比

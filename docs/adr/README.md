@@ -9,7 +9,7 @@
 | **[ADR-000](./ADR-000-hexagonal-grilling-session.md)** | Superseded → ADR-001/002/003/004/005 | Hexagonal 化设计访谈与对抗评审记录 | 记录 `/grill-me` 访谈过程 + Codex 对抗评审 5 条 finding + 永久拒绝清单 |
 | **[ADR-001](./ADR-001-verdict-status-codec.md)** | **Accepted** (2026-06-13) | Verdict / SubmissionStatus codec 演化 | 在不动 DB 持久化值 + 前端 i18n key 的前提下, 把字符串 verdict 升级为强类型 enum + 三层 Codec |
 | **[ADR-002](./ADR-002-sandbox-hexagonal.md)** | **Accepted** (2026-06-13) | Sandbox Hexagonal Port + LanguageProfile Strategy | `SandboxExecutor` port + Docker/InMemory 双 adapter; 5 个 LanguageProfile 集合注入 fail-fast |
-| **[ADR-003](./ADR-003-queue-outbox-fencing.md)** | Proposed | Queue + Outbox + Generation Fence + JUDGING Lease | 任务投递走 Outbox 表 + 唯一约束去重; submission 加 generation/lease 列防旧 worker 覆盖与 JUDGING 卡死。**M3a+M3b 已 shipped (`09c97d1b8`, flag 默认 off); M3c/M3d 待做, 转 Accepted 需 F12 验证** |
+| **[ADR-003](./ADR-003-queue-outbox-fencing.md)** | **Accepted** (2026-06-13) | Queue + Outbox + Generation Fence + JUDGING Lease | 任务投递走 Outbox 表 + 唯一约束去重; submission 加 generation/lease 列防旧 worker 覆盖与 JUDGING 卡死。**M3a+M3b+M3c shipped (commits `09c97d1b8` / `b34ac01be` / `3e8504f1b` / `3ec758c41`); M3d 留 cutover 后 ≥2 周** |
 | **[ADR-004](./ADR-004-notification-intents.md)** | Proposed | NotificationIntent + Per-Channel Projection | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; channel-level preference 列入未来 ADR |
 | **[ADR-005](./ADR-005-rolling-deploy-playbook.md)** | Proposed | 滚动部署 Playbook | 11 个独立可部署 milestone + feature flag + envelope versioning + canary gate + rollback drill |
 
@@ -112,7 +112,7 @@ Proposed → Accepted → Implemented
 - 例: M1a (ADR-001) 不涉及 F11-F14, merged 即可转 Accepted — **2026-06-13 转 Accepted ✓**
 - 例: M2a (ADR-002) 不涉及 F11-F14, merged 即可转 Accepted — **2026-06-13 转 Accepted ✓** (含 round-1 5 commit + round-2 codex 评审 5 finding 修复)
 - 例: M3a+M3b (ADR-003 前 2 milestone) 已 merged (commit `09c97d1b8`, 含 java-reviewer 3 finding + codex 5 finding 修复, 两个 flag 默认 off) — **ADR-003 仍 Proposed**, 因只完成 4 个 milestone 中的 2 个, 且 F12 (M3c cutover 故障注入) 未验证
-- 例: M3c (ADR-003 cutover) merged 时必须勾选 F12 验证通过, 才能把 ADR-003 status 转 Accepted
+- 例: M3c (ADR-003 cutover) merged 时必须勾选 F12 验证通过, 才能把 ADR-003 status 转 Accepted — **2026-06-13 转 Accepted ✓** (M3c-1/2/3a + 9-case InMemory F12 等价契约测试; 真实 Streams F12 IT 留 canary 阶段 follow-up, M3c 真投递 flag 切 canary 主机时跑)
 - 例: M4a (ADR-004) merged 时必须勾选 F11 验证通过, 才能把 ADR-004 status 转 Accepted
 
 ---

@@ -239,6 +239,7 @@ class NotificationDispatcherTest {
     private static NotificationIntent sampleIntent(String userId) {
         return new AchievementEarnedIntent(
                 userId, "ach-1", "badge-test", "Test", "desc", null, 1, 10,
+                java.time.Instant.now(),
                 com.ulticode.modules.notification.entity.enums.NotificationCategory.SYSTEM);
     }
 }

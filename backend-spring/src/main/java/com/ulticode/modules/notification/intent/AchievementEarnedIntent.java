@@ -3,6 +3,8 @@ package com.ulticode.modules.notification.intent;
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 
+import java.time.Instant;
+
 /**
  * Intent emitted when a user earns an achievement. The legacy listener
  * (pre-ADR-004) used raw string types and a non-enum category; this record
@@ -12,7 +14,12 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
  * {@code AchievementNotificationListener.getTierString} (1=Bronze, 2=Silver,
  * 3=Gold, 4=Platinum).
  *
- * <p>Reference: ADR-004 §2.1 (AchievementEarnedIntent).
+ * <p>{@code earnedAt} is part of the natural key (see {@link #intentId()})
+ * so a re-issued event (tier-up promotion, system re-trigger, etc.)
+ * produces a distinct ledger row and re-fans out to all channels.
+ *
+ * <p>Reference: ADR-004 §2.1 (AchievementEarnedIntent); M4d-1 review
+ * finding #6.
  */
 public record AchievementEarnedIntent(
         String userId,
@@ -23,15 +30,19 @@ public record AchievementEarnedIntent(
         String achievementIconUrl,
         Integer achievementTier,
         Integer points,
+        Instant earnedAt,
         NotificationCategory category
 ) implements NotificationIntent {
 
     @Override
     public String intentId() {
-        // tier is not part of the key — a user can re-trigger the same
-        // achievement (re-issue event) and we want the new delivery to be
-        // collapsed under the existing intent id.
-        return "achievement:" + userId + ":" + achievementId;
+        // ADR-004 M4d-1 finding #6: earnedAt is part of the key so re-issued
+        // achievement events (tier-up promotion, system re-evaluate) produce
+        // a distinct ledger row. Trade-off: a true duplicate event within
+        // the same millisecond is still collapsed — acceptable since
+        // AchievementEarnedEvent is published once per earn.
+        long ts = earnedAt == null ? 0L : earnedAt.toEpochMilli();
+        return "achievement:" + userId + ":" + achievementId + ":at" + ts;
     }
 
     /**
@@ -47,6 +58,7 @@ public record AchievementEarnedIntent(
                 event.achievementIcon(),
                 event.achievementTier(),
                 event.points(),
+                event.earnedAt(),
                 NotificationCategory.SYSTEM
         );
     }

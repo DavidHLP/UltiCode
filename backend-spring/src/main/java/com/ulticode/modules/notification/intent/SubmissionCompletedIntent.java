@@ -49,6 +49,15 @@ public record SubmissionCompletedIntent(
      * {@code contestScoreDelta} default to {@code null} for non-contest
      * submissions; pass non-null values from the contest module to surface
      * ranking-impact context.
+     *
+     * <p><b>generation is required.</b> The factory throws
+     * {@link IllegalStateException} when {@code submission.getGeneration()}
+     * is null rather than silently falling back to {@code 0L} — a null
+     * generation indicates a transient hydration bug (the field is
+     * defaulted to {@code 1L} on the entity, so null is never valid
+     * business data). Silently substituting 0 would collide with a real
+     * generation-0 submission's intentId and drop the second dispatch
+     * (ADR-004 M4d-1 review finding #5).
      */
     public static SubmissionCompletedIntent of(Submission submission,
                                                 SubmissionStatus status,
@@ -57,10 +66,16 @@ public record SubmissionCompletedIntent(
                                                 long memoryBytes,
                                                 String contestId,
                                                 Long contestScoreDelta) {
+        Long gen = submission.getGeneration();
+        if (gen == null) {
+            throw new IllegalStateException(
+                    "Submission " + submission.getId() + " has null generation; "
+                            + "the row is not yet hydrated or the schema is broken");
+        }
         return new SubmissionCompletedIntent(
                 submission.getUserId(),
                 submission.getId(),
-                submission.getGeneration() == null ? 0L : submission.getGeneration(),
+                gen,
                 status,
                 submission.getProblemId() == null ? null : String.valueOf(submission.getProblemId()),
                 problemTitle,

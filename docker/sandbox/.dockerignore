@@ -1,0 +1,11 @@
+target/
+__pycache__/
+*.pyc
+*.class
+.git/
+node_modules/
+.gradle/
+build/
+dist/
+out/
+harness-staging/

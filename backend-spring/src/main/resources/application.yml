@@ -142,6 +142,14 @@ code-execution:
     timeout: ${SANDBOX_TIMEOUT:10}
     pids-limit: ${SANDBOX_PIDS_LIMIT:128}
     seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
+    # D-form (LeetCode/HackerRank harness) refactor — see
+    # docker/sandbox/harness/README.md and .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md
+    # Phase 2 ships the image; Phase 3 wires CodeExecutionHelperImpl to the new dispatch
+    # path; Phase 5 deletes the legacy Form A wrappers. Default false until Phase 3 lands.
+    d-form:
+      enabled: ${SANDBOX_DFORM_ENABLED:false}
+      # Path inside the runtime image where the pre-compiled harness lives.
+      harness-root: ${SANDBOX_DFORM_HARNESS_ROOT:/opt/harness}
     languages:
       java:
         timeout-seconds: 10

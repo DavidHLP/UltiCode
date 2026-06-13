@@ -9,7 +9,7 @@
 | **依赖 ADR** | [ADR-001](./ADR-001-verdict-status-codec.md) (SubmissionCompletedIntent 含 SubmissionStatus), [ADR-003](./ADR-003-queue-outbox-fencing.md) (含 submissionId+generation) |
 | **关联代码** | `notification/service/NotificationDispatchService.java`,`websocket/service/RealtimeService.java`,`email/service/EmailService.java`,`achievement/.../AchievementTriggerServiceImpl.java` (event 风格参考) |
 | **关联 DB** | 不修改 `notification_preferences` 表 (channel-level preference 列入未来 ADR) |
-| **实施 commits** | M4a: `feat(notification): ADR-004 M4a — ledger + intent records + dispatcher skeleton` · M4b: `feat(notification): ADR-004 M4b — 3 channel impls + EmailTemplates` · M4c: `refactor(notification): ADR-004 M4c — migrate 4 callers to typed intent dispatch` · M4d: `test(notification): ADR-004 M4d — dispatcher contract + idempotency + perf + per-channel tests` |
+| **实施 commits** | M4a: `feat(notification): ADR-004 M4a — ledger + intent records + dispatcher skeleton` (`e38e340`) · M4b: `feat(notification): ADR-004 M4b — 3 channel impls + EmailTemplates` (`bf02f48ec`) · M4c: `refactor(notification): ADR-004 M4c — migrate 4 callers to typed intent dispatch` (`9ecf10ec9`) · M4d: `test(notification): ADR-004 M4d — dispatcher contract + idempotency + perf + per-channel tests` (`62a4dcabe`); **M4d-1 follow-up** (2026-06-14): `fix(notification): ADR-004 M4d-1 review — NPE / wire-contract / silent-skip` (`d32882198`) · `feat(notification): ADR-004 M4d-1 — intentId 防撞` (`b7dc1378c`) · `refactor(notification): ADR-004 M4d-1 — 删 NotificationCategory.CONTEST dead branch` (`ce629194b`) · `feat(notification): ADR-004 M4d-1 — NotificationLedgerReaper` (`33c9a41ba`) |
 
 ---
 
@@ -275,6 +275,30 @@ ledger 状态 `FAILED` 不自动重试 (一些 channel 的失败不该重试, �
 - channel × category 二维 preference 仍列入未来 ADR
 - 邮件模板 i18n 完整化仍列入 frontend 后续工作
 
+## 2.8 M4d-1 Review Follow-up (2026-06-14)
+
+M4d 后跑了 7-angle adversarial review (line-by-line / removed-behavior / cross-file / reuse / simplification / efficiency / altitude), 7 个候选 findings 经 1-vote recall-biased verify 后**确认 6 个需修复** + 1 个细化 (Tier 4 副本) 列入 backlog。4 个 commit 落地,代码净增量 169 行,测试调整 5 个文件。
+
+| # | Finding | 修复 | Commit |
+|---|---|---|---|
+| 1 | `EmailTemplates.forIntent` 5 处 `Map.of(...)` 对 `achievementName`/`contestTitle`/`replierUsername`/`title` 缺 null 合并 → null 字段导致 NPE | 加 `== null ? "" : ...` 守卫 | `d32882198` |
+| 2 | `WebSocketNotificationChannel.send` 5 个 intent 的 `NotificationPayload.type` 用 lowercase (`"submission"`/`"follow"`/`"contest_reminder"`/`"reply"`/`"system"`),与 legacy 大写契约不符 — 前端 `payload.type === 'FOLLOW'` 等 case-sensitive 比较会失配 | 改回大写 (`SUBMISSION`/`FOLLOW`/`CONTEST REMINDER`/`REPLY`/`SYSTEM`) 对齐 legacy | `d32882198` |
+| 3 | `EmailNotificationChannel.send` 在用户无 email 时 throw `BusinessException` → dispatcher 标 FAILED + warn spam;旧路径是静默 no-op | 改 throw 为 silent return + `log.debug`,ledger 自然 DELIVERED | `d32882198` |
+| 4 | `tryClaim` 对已存在的 `CLAIMED` 行(进程 crash 后未转 DELIVERED/FAILED)也返回 0 → dispatcher 当 "已交付" 跳过,**永久丢该 channel 的投递**;`DeliveryState` Javadoc 显式承认 "future reaper" 缺失 | 新增 `NotificationLedgerReaper` (`@Scheduled(fixedDelay=5min)`) + mapper `reapStaleClaimed()` SQL;10min grace 覆盖慢 SMTP;非零 reaper 计数暴露在 `notification.ledger.reaper.reaped` 指标 | `33c9a41ba` |
+| 5 | `SubmissionCompletedIntent.of()` 在 `submission.getGeneration() == null` 时 fallback 到 `0L` → 与真实 `generation=0` 撞 intentId,第二次 dispatch 静默 drop | factory 抛 `IllegalStateException` 强制 fail-fast (null gen 是 hydration bug,非用户数据) | `b7dc1378c` |
+| 6 | `AchievementEarnedIntent.intentId()` 不含 `earnedAt` → tier-up 重新发布时同 intentId 被 ledger 去重,新事件 InApp/Email/WS 全部静默 drop;ADR §2.1 docstring 已承认是缺陷 | intent record 加 `earnedAt` 字段,intentId 格式 `achievement:{userId}:{achievementId}:at{epochMs}` | `b7dc1378c` |
+| 7 | `NotificationCategory.CONTEST` 枚举值无 caller(全部 caller 用 `SYSTEM`);dispatcher 有 dead-branch 映射到 `p.getSystemEnabled()` 与 `SYSTEM` 分支等价 → typo 风险 | 删 enum 值 + 删 dead branch;未来有专用 preference 列时再加回 | `ce629194b` |
+
+**未修列入 ADR-007 backlog** (低 severity,值得做但不阻塞 Accepted 状态):
+
+- **#8 Tier 4 副本** — `tierSlug` (WebSocket) / `tierName` (EmailTemplates) / `getTierString` (AchievementNotificationListener + AchievementTriggerServiceImpl) 4 份 `1→Bronze/2→Silver/3→Gold/4→Platinum` 映射。建议抽到 `com.ulticode.modules.achievement.constants.Tier` enum with `displayName()`/`slug()`,由 achievement 模块拥有。
+- **#9 sealed-type `IllegalStateException` 死代码** — 6 处 instanceof 链末尾的 `throw new IllegalStateException("Unhandled intent: " + ...)` 在 sealed `NotificationIntent` 下 unreachable;Java 17 无 switch pattern 只能保留,但 Javadoc 应说明 "sealed guarantees this is dead code; kept for future defensive programming"。
+- **#10 4 处 flag-gated 重复** — `SubmissionServiceImpl` × 2 + `AchievementNotificationListener` + `FollowServiceImpl` + `ContestScheduler` 各有 ~20 行 `if (featureFlags.isUseNotificationIntent()) { typed } else { legacy }`。建议抽 `NotificationFacade` 集中管理。
+- **Reaper IT 缺失** — `NotificationLedgerReaper` 本身没有 IT (Testcontainers + 时钟控制);加 `NotificationLedgerReaperIT` 验证 stuck CLAIMED → FAILED 转换。
+- **Channel-level preference (ADR §1.3 列入未来)** — 真正的 channel × category 二维 preference 仍是 follow-up,需要先做前端 UI 改造。
+
+**Long-term**: ADR-007 "durable notifications" — `@RequiresDurable` intent 走另一条 outbox path (复用 ADR-003 的 `judge_outbox` 设计),`NotificationDispatcher.dispatch` 失败累计 `attempts` 退避重投;本 ADR 的 ledger `UNIQUE(intent_id, channel_id)` 已经为重投的去重提供了物理保证。
+
 ## 3. Consequences
 
 ### 3.1 Positive
@@ -285,21 +309,25 @@ ledger 状态 `FAILED` 不自动重试 (一些 channel 的失败不该重试, �
 - **业务模块只 import `NotificationDispatcher` + `*Intent`** — 不再耦合 EmailService / RealtimeService 实现
 - **加 channel 只新增 1 个 `NotificationChannel` bean** — 开闭原则 (#11) 落地
 - **Codex F4 全部要求满足** (typed intent, per-channel projection, supports 强制调, 失败隔离)
+- **M4d-1 后 ledger 真实可恢复** — Reaper 堵上了 ADR §2.5 留的 "future reaper" TODO;crash-recovery 不会永久丢通知
 
 ### 3.2 Negative
 
 - 每种业务事件都要定义一个 record, 类数膨胀 (预估 8-12 个 intent)
-- 渠道适配代码量增加 (每 channel 对每 intent 一个 switch arm)
+- 渠道适配代码量增加 (每 channel 对每 intent 一个 instanceof arm)
 - 重复信息 (intent record 与现有 `Notification` entity 字段有重叠) — 维护双向映射
+- **per-intent projection 在 3 个 channel 各实现一份** (InApp/Email/WS) — 加 1 个 intent 改 3 处;M4d-1 暂未合并 (列入 backlog)
 
 ### 3.3 Risks
 
 | 风险 | 缓解 |
 |---|---|
 | Channel preference 维度缺失 → 用户想关 email 关不掉 | 现状 category 级已能粗粒度关 COMMUNICATION → email 不会发 SUBMISSION_RESULT;UI 文案 + 帮助说明同步 |
-| 老代码 (`NotificationDispatchService.dispatch(...)`) 与新 `NotificationDispatcher.dispatch(intent)` 共存期 | M3a 加 `@Deprecated` , M3c 删除;coverage by code review |
-| `NotificationCategory` enum 与 `NotificationPreference` 列名不一致 | 单独 Codec 类映射, 加 round-trip 单测 |
-| Email 模板分散在 `EmailTemplates.xxx(intent)` 多处 | `EmailTemplates` 单一类聚合 + 模板 i18n 兜底 |
+| 老代码 (`NotificationDispatchService.dispatch(...)`) 与新 `NotificationDispatcher.dispatch(intent)` 共存期 | M4a 加 `@Deprecated` , M4c 切完,M4d 末段已删注,M4d-1 仍保留二者(等 prod flag-on ≥1 cycle 后删) |
+| `NotificationCategory` enum 与 `NotificationPreference` 列名不一致 | 单独 Codec 类映射, 加 round-trip 单测 (M4d-1 删了未用的 `CONTEST` 死枚举,减少误读面) |
+| Email 模板分散在 `EmailTemplates.xxx(intent)` 多处 | `EmailTemplates` 单一类聚合 + 模板 i18n 兜底;M4d-1 加 null 合并防 NPE |
+| `WebSocketNotificationChannel` 标 `DELIVERED` 即使用户离线 (best-effort) | 离线用户确实未收到推送;ledger 行为符合 ADR §2.5 语义;但 `notification.dispatch.delivered` 指标会"虚高",M4d-1 标 backfill:在指标上加 `delivered_but_offline` 标签或换 `attempted` 命名 |
+| `tryClaim` 0 返回的语义模糊 (delivered / claim failed / channel不支持) | 调度器内部 3 路径清晰 (skipped/delivered/failed 各走各的 ledger 转换);M4d-1 加 reaper 处理"claim 后 channel 死"的 edge case |
 
 ## 4. Validation
 

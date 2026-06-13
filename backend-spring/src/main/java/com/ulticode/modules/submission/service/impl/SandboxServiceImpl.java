@@ -109,6 +109,9 @@ public class SandboxServiceImpl implements SandboxService {
     public RunResultDTO.RunCaseResult executeInSandbox(String language, String code,
                                                       RunSubmissionDTO.RunTestCase testCase,
                                                       String runId, String userId) {
+        if (useDForm(language)) {
+            return executeInSandboxD(language, code, testCase, runId, userId);
+        }
         try {
             String inputsJson = helper.buildInputsJson(testCase);
             List<String> command = buildDockerCommand(language, code);
@@ -182,6 +185,9 @@ public class SandboxServiceImpl implements SandboxService {
     public List<RunResultDTO.RunCaseResult> executeBatch(String language, String code,
                                                         List<RunSubmissionDTO.RunTestCase> testCases,
                                                         String runId, String userId) {
+        if (useDForm(language)) {
+            return executeBatchD(language, code, testCases, runId, userId);
+        }
         try {
             String testCasesJson = helper.buildBatchInputsJson(testCases);
             String wrapperScript = helper.buildWrapperScript(language, code, testCases);
@@ -366,5 +372,241 @@ public class SandboxServiceImpl implements SandboxService {
             }
         }
         return cwdCandidate;
+    }
+
+    // ── D-form dispatch (LeetCode/HackerRank harness) ────────────────────────
+    // The legacy executeInSandbox / executeBatch above builds a per-request
+    // bash wrapper via helper.buildWrapperScript. D-form instead pre-compiles
+    // the harness into the sandbox image (docker/sandbox/Dockerfile Phase 2
+    // build) and ships a static input.json. These methods are the dispatcher.
+
+    /** Gate the D-form path. Both the global flag and the language support set must agree. */
+    private boolean useDForm(String language) {
+        return sandboxConfig.dFormEnabled()
+                && CodeExecutionHelper.DFORM_SUPPORTED_LANGUAGES.contains(language);
+    }
+
+    /** Maps a language to the file name the harness expects in /job/. */
+    private static String dFormSolutionFileName(String language) {
+        return switch (language) {
+            case "java" -> "Solution.java";
+            case "python" -> "solution.py";   // lowercase: harness does `import solution`
+            case "c" -> "Solution.c";
+            case "cpp" -> "Solution.cpp";
+            default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
+        };
+    }
+
+    /** Writes user code + input.json to a per-run temp dir, returns the dir path. */
+    private Path materializeDFormJob(String language, String code, String inputJson, String runId) {
+        Path jobDir;
+        try {
+            jobDir = Files.createTempDirectory("ulticode-sandbox-" + runId + "-");
+            Files.writeString(jobDir.resolve(dFormSolutionFileName(language)),
+                    code == null ? "" : code, StandardCharsets.UTF_8);
+            Files.writeString(jobDir.resolve("input.json"),
+                    inputJson == null ? "{}" : inputJson, StandardCharsets.UTF_8);
+            // :ro mount requires the *contents* to be read-only, not the dir.
+            // chmod 0444 on each file makes the container-side reads safe even if
+            // a buggy harness attempted to write back.
+            Files.setPosixFilePermissions(jobDir.resolve(dFormSolutionFileName(language)),
+                    java.util.Set.of(java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                                       java.nio.file.attribute.PosixFilePermission.GROUP_READ,
+                                       java.nio.file.attribute.PosixFilePermission.OTHERS_READ));
+            Files.setPosixFilePermissions(jobDir.resolve("input.json"),
+                    java.util.Set.of(java.nio.file.attribute.PosixFilePermission.OWNER_READ,
+                                       java.nio.file.attribute.PosixFilePermission.GROUP_READ,
+                                       java.nio.file.attribute.PosixFilePermission.OTHERS_READ));
+            return jobDir;
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR,
+                    "Failed to materialize D-form job for runId=" + runId + ": " + e.getMessage());
+        }
+    }
+
+    /** Hard timeout the docker container's wall clock. Soft TLE is per-case inside the harness. */
+    private int dFormHardTimeoutSeconds() {
+        DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                ? sandboxConfig.languages().get("dform")
+                : null;
+        if (langLimit != null) return langLimit.timeoutSeconds();
+        // Fall back to Java's per-language budget (typically the longest). D-form's
+        // hard kill is process-level; a per-case TLE will be reported by the
+        // harness before this fires.
+        DockerSandboxConfig.LanguageLimit javaLimit = sandboxConfig.languages() != null
+                ? sandboxConfig.languages().get("java")
+                : null;
+        if (javaLimit != null) return javaLimit.timeoutSeconds();
+        return sandboxConfig.timeout();
+    }
+
+    /** Per-case soft timeout forwarded to the harness (Thread.interrupt inside the worker). */
+    private long dFormPerCaseTimeoutMs() {
+        // Conservative default: 1s. Tunable via a future code-execution.sandbox.d-form
+        // config field if/when needed.
+        return 1_000L;
+    }
+
+    /** Per-language `sh -c` body that compiles + runs the user code via the pre-compiled harness. */
+    private String dFormDispatchShell(String language, String harnessRoot) {
+        return switch (language) {
+            case "java" -> "cd /job && javac -cp " + harnessRoot + "/java -d . "
+                    + dFormSolutionFileName(language)
+                    + " && java -cp " + harnessRoot + "/java:. Main /job/input.json";
+            case "python" -> "cd /job && SOLUTION_DIR=/job python3 "
+                    + harnessRoot + "/python/main.py /job/input.json";
+            case "c" -> "cd /job && gcc -O2 -o /tmp/sol " + dFormSolutionFileName(language)
+                    + " && /tmp/sol /job/input.json";
+            case "cpp" -> "cd /job && g++ -O2 -std=c++17 -o /tmp/sol " + dFormSolutionFileName(language)
+                    + " && /tmp/sol /job/input.json";
+            default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
+        };
+    }
+
+    private List<String> buildDDockerCommand(String language, Path jobDir) {
+        DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                ? sandboxConfig.languages().get(language)
+                : null;
+        String effectiveMemory = langLimit != null ? langLimit.memory() : sandboxConfig.memory();
+        String harnessRoot = sandboxConfig.dFormHarnessRoot();
+        String hostJobDir = jobDir.toAbsolutePath().toString();
+        return new ArrayList<>(List.of(
+                "docker", "run", "--rm", "-i",
+                "--network", "none",
+                "--cap-drop", "ALL",
+                "--memory", effectiveMemory,
+                "--cpus", sandboxConfig.cpus(),
+                "--pids-limit", String.valueOf(sandboxConfig.pidsLimit()),
+                "--ulimit", "nofile=128:128",
+                "--tmpfs", "/tmp:rw,exec,size=64m",
+                "--read-only",
+                "--user", "1000:1000",
+                "--security-opt", "no-new-privileges:true",
+                "--security-opt", "seccomp=" + resolveSeccompProfileFilePath(),
+                "--volume", hostJobDir + ":/job:ro",
+                "--volume", resolveSeccompProfileDirectoryPath() + ":/seccomp-profile:ro",
+                sandboxConfig.image(),
+                "sh", "-c", dFormDispatchShell(language, harnessRoot)
+        ));
+    }
+
+    /** Single-case D-form dispatch. */
+    private RunResultDTO.RunCaseResult executeInSandboxD(String language, String code,
+                                                        RunSubmissionDTO.RunTestCase testCase,
+                                                        String runId, String userId) {
+        Path jobDir = null;
+        try {
+            String inputJson = helper.buildDInputsJson(testCase, dFormPerCaseTimeoutMs());
+            jobDir = materializeDFormJob(language, code, inputJson, runId);
+            List<String> command = buildDDockerCommand(language, jobDir);
+            int hardTimeout = dFormHardTimeoutSeconds();
+            long startTime = System.nanoTime();
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            boolean finished = process.waitFor(hardTimeout, java.util.concurrent.TimeUnit.SECONDS);
+            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
+            if (!finished) {
+                process.destroyForcibly();
+                return helper.buildCaseResult(testCase, runId, userId, "Time Limit Exceeded",
+                        elapsedMs, null, "D-form dispatch timed out after " + hardTimeout + "s", 0.0);
+            }
+            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            int exitCode = process.exitValue();
+            if (exitCode != 0) {
+                if (isSandboxForkFailure(stdout)) {
+                    log.warn("D-form sandbox fork failure for runId={}: {}", runId,
+                            truncateForLog(helper.sanitizeSandboxOutput(stdout)));
+                    return helper.buildCaseResult(testCase, runId, userId, SANDBOX_FORK_FAILURE_VERDICT,
+                            elapsedMs, null,
+                            SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0);
+                }
+                return helper.buildCaseResult(testCase, runId, userId, "Runtime Error",
+                        elapsedMs, null, helper.sanitizeSandboxOutput(stdout), 0.0);
+            }
+            List<RunResultDTO.RunCaseResult> results =
+                    helper.parseDEnvelope(stdout, java.util.List.of(testCase), runId, userId);
+            return results.isEmpty()
+                    ? helper.buildCaseResult(testCase, runId, userId, "Runtime Error",
+                            elapsedMs, null, "D-form envelope empty", 0.0)
+                    : results.get(0);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch interrupted");
+        } catch (IOException e) {
+            log.error("D-form I/O failed for runId={}", runId, e);
+            String detail = e.getMessage();
+            if (detail != null && detail.contains("Unable to find image")) {
+                throw new BusinessException(ErrorCode.SANDBOX_IMAGE_NOT_FOUND,
+                        "Sandbox image '" + sandboxConfig.image() + "' not found. Build it first: "
+                                + "docker build -t " + sandboxConfig.image()
+                                + " -f docker/sandbox/Dockerfile docker/sandbox/");
+            }
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch failed: " + detail);
+        } finally {
+            if (jobDir != null) {
+                try {
+                    Files.walk(jobDir)
+                            .sorted(java.util.Comparator.reverseOrder())
+                            .forEach(p -> { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });
+                } catch (IOException ignored) { /* best-effort cleanup */ }
+            }
+        }
+    }
+
+    /** Multi-case D-form dispatch. */
+    private List<RunResultDTO.RunCaseResult> executeBatchD(String language, String code,
+                                                           List<RunSubmissionDTO.RunTestCase> testCases,
+                                                           String runId, String userId) {
+        Path jobDir = null;
+        try {
+            String inputJson = helper.buildDBatchInputsJson(testCases, dFormPerCaseTimeoutMs());
+            jobDir = materializeDFormJob(language, code, inputJson, runId);
+            List<String> command = buildDDockerCommand(language, jobDir);
+            int hardTimeout = dFormHardTimeoutSeconds();
+            long startTime = System.nanoTime();
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            boolean finished = process.waitFor(hardTimeout, java.util.concurrent.TimeUnit.SECONDS);
+            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
+            if (!finished) {
+                process.destroyForcibly();
+                return testCases.stream()
+                        .map(tc -> helper.buildCaseResult(tc, runId, userId, "Time Limit Exceeded",
+                                elapsedMs / testCases.size(), null,
+                                "D-form batch dispatch timed out after " + hardTimeout + "s", 0.0))
+                        .collect(Collectors.toList());
+            }
+            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            int exitCode = process.exitValue();
+            if (exitCode != 0) {
+                if (isSandboxForkFailure(stdout)) {
+                    return testCases.stream()
+                            .map(tc -> helper.buildCaseResult(tc, runId, userId, SANDBOX_FORK_FAILURE_VERDICT,
+                                    elapsedMs / testCases.size(), null,
+                                    SANDBOX_FORK_FAILURE_DETAIL_PREFIX + helper.sanitizeSandboxOutput(stdout), 0.0))
+                            .collect(Collectors.toList());
+                }
+                return testCases.stream()
+                        .map(tc -> helper.buildCaseResult(tc, runId, userId, "Runtime Error",
+                                elapsedMs / testCases.size(), null, helper.sanitizeSandboxOutput(stdout), 0.0))
+                        .collect(Collectors.toList());
+            }
+            return helper.parseDEnvelope(stdout, testCases, runId, userId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form batch dispatch interrupted");
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form batch dispatch failed: " + e.getMessage());
+        } finally {
+            if (jobDir != null) {
+                try {
+                    Files.walk(jobDir)
+                            .sorted(java.util.Comparator.reverseOrder())
+                            .forEach(p -> { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });
+                } catch (IOException ignored) { /* best-effort cleanup */ }
+            }
+        }
     }
 }

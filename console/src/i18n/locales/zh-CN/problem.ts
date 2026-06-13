@@ -298,6 +298,7 @@ export default {
     memoryDistribution: "内存占用分布",
     beats: "击败了 {percent}% 的用户",
     noPredefinedInputs: "此用例没有预定义输入。",
+    noResultDetails: "此用例未返回可展示的输入输出详情。",
     noTestResults: "暂无测试结果",
     runCodeToSeeResults: "请先执行代码以查看测试结果。",
     input: "输入",

@@ -16,6 +16,11 @@ import type {
   ProblemCaseResultDetail,
   ProblemRunResult,
 } from "@/types/test-results";
+import {
+  getCaseOutput,
+  hasDisplayValue,
+  hasResultDetails,
+} from "./testResultDisplay";
 
 const props = defineProps<{
   runResult: ProblemRunResult | null;
@@ -51,6 +56,14 @@ const activeResult = computed<ProblemCaseResultDetail | undefined>(() => {
     cases.value[0]
   );
 });
+
+const activeOutput = computed(() =>
+  activeResult.value ? getCaseOutput(activeResult.value) : "",
+);
+
+const hasActiveResultDetails = computed(
+  () => activeResult.value != null && hasResultDetails(activeResult.value),
+);
 
 const verdictLabel = computed(() => {
   const verdict = props.runResult?.verdict;
@@ -221,7 +234,10 @@ const selectCase = (label: string) => {
           </Button>
         </div>
 
-        <div v-if="activeResult" class="space-y-4 text-xs md:text-sm">
+        <div
+          v-if="activeResult && hasActiveResultDetails"
+          class="space-y-4 text-xs md:text-sm"
+        >
           <div class="space-y-3">
             <div class="space-y-2">
               <template v-if="activeResult.inputs?.length">
@@ -245,18 +261,21 @@ const selectCase = (label: string) => {
               </p>
             </div>
 
-            <div class="space-y-2">
+            <div v-if="hasDisplayValue(activeOutput)" class="space-y-2">
               <div class="text-xs font-medium text-muted-foreground">
                 {{ t("problem.layout.output") }} =
               </div>
               <Input
-                :model-value="activeResult.output ?? activeResult.detail ?? ''"
+                :model-value="activeOutput"
                 readonly
                 class="font-mono text-xs md:text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
 
-            <div class="space-y-2">
+            <div
+              v-if="hasDisplayValue(activeResult.expectedOutput)"
+              class="space-y-2"
+            >
               <div class="text-xs font-medium text-muted-foreground">
                 {{ t("problem.layout.expected") }} =
               </div>
@@ -267,6 +286,13 @@ const selectCase = (label: string) => {
               />
             </div>
           </div>
+        </div>
+
+        <div
+          v-else-if="activeResult"
+          class="border border-dashed border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+        >
+          {{ t("problem.layout.noResultDetails") }}
         </div>
       </div>
     </template>

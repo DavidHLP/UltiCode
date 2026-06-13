@@ -6,6 +6,7 @@ import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
+import com.ulticode.modules.submission.service.CodeExecutionHelper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -102,12 +103,32 @@ public class InMemorySandboxAdapter implements SandboxExecutor {
     }
 
     private RunCaseResult route(SandboxJob job, TestCase tc) {
-        // If the language id is empty or unknown, mirror the
-        // production behavior: surface as SANDBOX_ERROR with a
-        // structured detail so the caller can react.
+        // If the language id is empty, mirror the production
+        // behavior: surface as SANDBOX_ERROR with a structured
+        // detail so the caller can react.
         if (job.languageId() == null || job.languageId().isBlank()) {
             return RunCaseResult.rejected(SubmissionStatus.SANDBOX_ERROR,
                     "InMemorySandboxAdapter: missing languageId", 0L, 0L);
+        }
+        // M2a-round-2 fix (codex review F6): an unknown language id
+        // (e.g. "ruby") must surface as SANDBOX_ERROR the same way
+        // the production SandboxExecutorImpl does when no
+        // LanguageProfile is registered. Previously the in-memory
+        // adapter fell through to the heuristic and returned
+        // ACCEPTED, which let unit tests pass for requests that
+        // production would correctly reject.
+        //
+        // We mirror CodeExecutionHelper.SUPPORTED_LANGUAGES — the
+        // set of ids the production executor has a
+        // (potentially-disabled) LanguageProfile for. The 3 stub
+        // profiles (JavaScript / C / C++) are excluded by default
+        // but still present at the languageId level, so the
+        // known-set check happens here before the routing layer.
+        if (!CodeExecutionHelper.SUPPORTED_LANGUAGES.contains(job.languageId())) {
+            return RunCaseResult.rejected(SubmissionStatus.SANDBOX_ERROR,
+                    "InMemorySandboxAdapter: D-form harness not implemented for language: "
+                            + job.languageId(),
+                    0L, 0L);
         }
 
         Optional<RunCaseResult> explicit = explicitVerdict(job);

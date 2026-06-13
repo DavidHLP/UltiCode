@@ -154,6 +154,26 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             }
 
             if (outcome.exitCode() != 0) {
+                // M2a-round-2 fix (codex review F5): distinguish
+                // infrastructure launch failures from user
+                // compile / runtime errors. Pre-M2a code surfaced
+                // these as SANDBOX_ERROR; M2a regressed by treating
+                // them as user errors.
+                if (outcome.cause() != null) {
+                    log.warn("D-form sandbox launch failure for runId={}: {}",
+                            job.runId(), outcome.cause().toString());
+                    String detail = "sandbox launch failure: "
+                            + outcome.cause().getClass().getSimpleName() + ": "
+                            + (outcome.cause().getMessage() == null
+                                    ? "(no message)" : outcome.cause().getMessage());
+                    long perCase = (System.nanoTime() - start) / 1_000_000
+                            / Math.max(cases.size(), 1);
+                    return new BatchRunResult(cases.stream()
+                            .map(c -> RunCaseResult.rejected(
+                                    SubmissionStatus.SANDBOX_ERROR,
+                                    detail, perCase, 0L))
+                            .toList());
+                }
                 if (isSandboxForkFailure(outcome.stdout())) {
                     return forkFailureBatch(cases, outcome, start);
                 }
@@ -174,11 +194,17 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
                     .map(this::toRunTestCase)
                     .toList();
-            List<RunCaseResult> parsed = helper.parseDEnvelope(
-                    outcome.stdout(), runCases, job.runId(), job.userId())
-                    .stream()
-                    .map(this::toPortResult)
-                    .toList();
+            List<RunResultDTO.RunCaseResult> parsedDto = helper.parseDEnvelope(
+                    outcome.stdout(), runCases, job.runId(), job.userId());
+            // F3: zip with the original port-owned cases so each
+            // toPortResult call can preserve the original input
+            // metadata (the DTO already has the harness's actual
+            // output; the port only needs the inputs and expected
+            // output from the request).
+            List<RunCaseResult> parsed = new ArrayList<>(parsedDto.size());
+            for (int i = 0; i < parsedDto.size(); i++) {
+                parsed.add(toPortResult(parsedDto.get(i), cases.get(i)));
+            }
             return new BatchRunResult(parsed);
 
         } catch (UnsupportedLanguageException e) {
@@ -200,6 +226,20 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                         elapsedMs, 0L);
             }
             if (outcome.exitCode() != 0) {
+                // M2a-round-2 fix (codex review F5): infrastructure
+                // launch failures must surface as SANDBOX_ERROR, not
+                // as a user compile/runtime error. Pre-M2a code
+                // handled this; M2a regressed by treating any
+                // non-zero exit as a user problem.
+                if (outcome.cause() != null) {
+                    log.warn("D-form sandbox launch failure for runId={}: {}",
+                            job.runId(), outcome.cause().toString());
+                    return rejected(SubmissionStatus.SANDBOX_ERROR,
+                            "sandbox launch failure: " + outcome.cause().getClass().getSimpleName()
+                                    + ": " + (outcome.cause().getMessage() == null
+                                            ? "(no message)" : outcome.cause().getMessage()),
+                            elapsedMs, 0L);
+                }
                 if (isSandboxForkFailure(outcome.stdout())) {
                     log.warn("D-form sandbox fork failure for runId={}: {}",
                             job.runId(),
@@ -221,7 +261,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     outcome.stdout(), List.of(toRunTestCase(tc)),
                     job.runId(), job.userId())
                     .stream()
-                    .map(this::toPortResult)
+                    .map(dto -> toPortResult(dto, tc))
                     .toList();
             if (parsed.isEmpty()) {
                 return rejected(SubmissionStatus.RUNTIME_ERROR,
@@ -288,12 +328,13 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                                             LanguageProfile profile,
                                             Path workspace,
                                             SandboxLimits limits) {
-        // Resolve per-language memory override (matches the pre-M2a
-        // buildDDockerCommand logic).
-        String effectiveMemory = Optional.ofNullable(config.languages())
-                .map(m -> m.get(job.languageId()))
-                .map(DockerSandboxConfig.LanguageLimit::memory)
-                .orElse(config.memory());
+        // M2a-round-2 fix (codex review F4): honor the profile's
+        // effective limits (ADR-002 §2.2) — the per-run
+        // SandboxLimits returned by profile.effectiveLimits(job) is
+        // the single source of truth for what the executor actually
+        // applies. Profiles are free to tighten/relax per-language
+        // memory; the executor never re-derives from config.
+        String effectiveMemory = limits.memoryMb() + "m";
 
         List<String> cmd = new ArrayList<>();
         cmd.add(DOCKER_BIN);
@@ -508,7 +549,8 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      * present and fall back to the formatted strings for legacy
      * callers, matching the pre-M2a behavior.
      */
-    private RunCaseResult toPortResult(RunResultDTO.RunCaseResult dto) {
+    private RunCaseResult toPortResult(RunResultDTO.RunCaseResult dto,
+                                       TestCase originalCase) {
         SubmissionStatus status = SubmissionStatusCodec.fromWire(dto.getStatus());
         long elapsedMs = dto.getRuntimeMs() != null
                 ? dto.getRuntimeMs()
@@ -517,7 +559,20 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 ? (long) (dto.getMemoryMb() * 1024L * 1024L)
                 : 0L;
         double score = status == SubmissionStatus.ACCEPTED ? 1.0 : 0.0;
-        return new RunCaseResult(status, elapsedMs, memoryBytes, dto.getDetail(), score);
+        // M2a-round-2 fix (codex review F3): preserve the harness's
+        // reported actual output, expected output, and the input
+        // metadata so the facade can hand them back to
+        // JudgeWorkerProcessor (which persists them on the
+        // submission_cases row) and to the /run response.
+        String output = dto.getOutput();
+        String expectedOutput = originalCase == null
+                ? null
+                : originalCase.expectedOutput();
+        List<TestCase.Input> inputs = originalCase == null
+                ? null
+                : originalCase.inputs();
+        return new RunCaseResult(status, elapsedMs, memoryBytes,
+                dto.getDetail(), score, output, expectedOutput, inputs);
     }
 
     private static final Set<PosixFilePermission> READ_ONLY_POSIX =
@@ -586,7 +641,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     // ── Local DTO for runDProcess results ────────────────────────────────────
 
     private record DFormRunOutcome(boolean timedOut, long elapsedMs,
-                                   String stdout, int exitCode, Throwable error) {
+                                   String stdout, int exitCode, Throwable cause) {
         static DFormRunOutcome finished(long elapsedMs, String stdout, int exitCode) {
             return new DFormRunOutcome(false, elapsedMs, stdout, exitCode, null);
         }
@@ -599,8 +654,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     -1, e);
         }
         static DFormRunOutcome interrupted() {
-            return new DFormRunOutcome(false, 0L, "", -1,
-                    new BusinessException(ErrorCode.SANDBOX_ERROR, "interrupted"));
+            return new DFormRunOutcome(false, 0L, "", -1, new BusinessException(ErrorCode.SANDBOX_ERROR, "interrupted"));
         }
     }
 }

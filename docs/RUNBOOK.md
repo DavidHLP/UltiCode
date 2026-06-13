@@ -462,3 +462,45 @@ pm2 logs ulticode-9001 --nostream --lines 200 | grep -E "app\.features|FeatureFl
 
 如果看不到 flag 启动打印, 确认 `application.yml` 暴露 `app.features` 段
 (在 `backend-spring/src/main/resources/application.yml:213-246`).
+
+### 10.6 产品功能 flag 详表 (5 个, 与 §10.1 重复处详见)
+
+| Flag key                                            | 默认   | 何时切                                   | 关联模块 / 文件 |
+|-----------------------------------------------------|--------|------------------------------------------|-----------------|
+| `app.features.use-new-contest-system`               | `false` | 新计分系统 (point-based) 取代 Elo 切换   | contest verdict 路径 |
+| `app.features.realtime-ranking-enabled`             | `true`  | WebSocket 实时榜降级到轮询               | WebSocketRealtimeRankingService |
+| `app.features.first-solve-notifications-enabled`    | `true`  | 首杀通知关闭 (运营 spam 投诉场景)        | NotificationDispatcher → WS/email |
+| `app.features.anticheat-enabled`                    | `false` | 反作弊 (high CPU 开销, peak 时不开)      | AnticheatService |
+| `app.features.contest-analytics-enabled`            | `true`  | 比赛分析生成 (慢查询可能影响榜单)        | ContestAnalyticsJob |
+
+### 10.7 Sandbox 切换 (不在 FeatureFlagsProperties 范围, 单独节)
+
+> 此 flag 体系**不**走 §10.1 - §10.6 通用协议. sandbox 切换自 ADR-002 落地,
+> 文档来源 `backend-spring/src/main/resources/application.yml:130-165`
+> (Section "Code Execution Sandbox Configuration").
+
+**唯一相关 flag** (env var):
+
+| Flag (yml)                                          | Env var                  | 默认   | 实际作用 |
+|-----------------------------------------------------|--------------------------|--------|----------|
+| `code-execution.sandbox.d-form.enabled`            | `SANDBOX_DFORM_ENABLED`  | `true` | **不切换 dispatcher**. 仅验证 CodeExecutionService 收到的 language 集合 vs 实际可执行 harness (java + python only) |
+
+**D-form 不可热回滚** (R-A2 修复后明确):
+
+- 自 commit `8c13ec61f` (Phase 5.5 D-form refactor) 起, D-form 是**唯一**
+  dispatch 路径, Form A (per-request bash wrapper) 旧 path 已删
+- 设 `SANDBOX_DFORM_ENABLED=false` **不再** toggle dispatcher 路径,
+  只影响 language validation
+- 真要回滚 D-form → Form A 需:
+  ```bash
+  git revert 8c13ec61f 095a01fd5
+  cd docker/sandbox && ./harness/build.sh
+  docker build -t ulticode-sandbox:latest .
+  pm2 reload ulticode-9001 --update-env
+  ```
+  端到端 ≥ 15min, 不在本 ADR "5min 热回滚" 演练范围
+- 详见 ADR-005 §2.6 表脚注 ¹
+
+**M2a 演练替代项**: 因 M2a 不可热回滚, 演练协议 (ADR-005-rollback-drill-protocol.md)
+矩阵中 M2a 行 strike through, 替换为 "演练 git revert + 重建 sandbox image" 的
+"重建演练" 协议, 时间窗口 30min.

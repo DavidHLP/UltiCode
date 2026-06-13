@@ -2,13 +2,14 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | Proposed |
+| **状态 (Status)** | Accepted |
 | **日期 (Date)** | 2026-06-13 |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | [ADR-000 / F4](./ADR-000-hexagonal-grilling-session.md#2-codex-adversarial-review-摘要) |
 | **依赖 ADR** | [ADR-001](./ADR-001-verdict-status-codec.md) (SubmissionCompletedIntent 含 SubmissionStatus), [ADR-003](./ADR-003-queue-outbox-fencing.md) (含 submissionId+generation) |
 | **关联代码** | `notification/service/NotificationDispatchService.java`,`websocket/service/RealtimeService.java`,`email/service/EmailService.java`,`achievement/.../AchievementTriggerServiceImpl.java` (event 风格参考) |
 | **关联 DB** | 不修改 `notification_preferences` 表 (channel-level preference 列入未来 ADR) |
+| **实施 commits** | M4a: `feat(notification): ADR-004 M4a — ledger + intent records + dispatcher skeleton` · M4b: `feat(notification): ADR-004 M4b — 3 channel impls + EmailTemplates` · M4c: `refactor(notification): ADR-004 M4c — migrate 4 callers to typed intent dispatch` · M4d: `test(notification): ADR-004 M4d — dispatcher contract + idempotency + perf + per-channel tests` |
 
 ---
 
@@ -302,12 +303,12 @@ ledger 状态 `FAILED` 不自动重试 (一些 channel 的失败不该重试, �
 
 ## 4. Validation
 
-- [ ] 每种 intent 至少 1 个 channel `supports()` 返回 true (无孤儿 intent)
-- [ ] Dispatcher 单测: 注入 3 mock channel, 其一抛异常, 验证其余两个仍被调用
-- [ ] `intentId` 幂等性测试: 同一 intent 发 3 次, In-App channel 写一行 (DB 唯一约束) , Email 也只发 1 次 (channel 内部去重 cache)
-- [ ] 现有 `Notification` 表 schema 不变 (Flyway 校验)
-- [ ] grep 确认业务模块不再直接 import `EmailService` / `RealtimeService` (只允许 channel 实现 import)
-- [ ] 性能: dispatcher 单次 dispatch 延迟 < 50ms (3 channel 串行, 大头是 Email SMTP)
+- [x] 每种 intent 至少 1 个 channel `supports()` 返回 true (无孤儿 intent) — `NotificationChannelContractTest#everyIntentHasAtLeastOneChannel`
+- [x] Dispatcher 单测: 注入 3 mock channel, 其一抛异常, 验证其余两个仍被调用 — `NotificationDispatcherTest#channelFailureDoesNotBlockOthers`
+- [x] `intentId` 幂等性测试: 同一 intent 发 3 次, In-App channel 写一行 (DB 唯一约束) , Email 也只发 1 次 (channel 内部去重 cache) — `NotificationDispatcherTest#idempotencyThreeDispatches`
+- [x] 现有 `Notification` 表 schema 不变 (Flyway 校验) — M4a migration 仅新增 `notification_delivery_ledger`,无 ALTER
+- [x] grep 确认业务模块不再直接 import `EmailService` / `RealtimeService` (只允许 channel 实现 import) — `git grep` audit clean post-M4c
+- [x] 性能: dispatcher 单次 dispatch 延迟 < 50ms (3 channel 串行, 大头是 Email SMTP) — `NotificationDispatcherTest#dispatcherLatencyUnder50ms`
 
 ## 5. References
 

@@ -23,6 +23,9 @@
    确认启动成功且 flag 已切 (记录 T_logs)
 5. 业务验证: 提交 1 个测试用例, 走完判题, 确认 verdict 正常落地
    (如果 milestone 关联到 verdict 路径, 例 M3a → 提交后 outbox 不写只观察)
+   **断言 (drill 成功条件 1/3)**: `verdict.overall == ACCEPTED` (或对应 milestone
+   期望的 intermediate 状态, e.g. M3a shadow 模式 → outbox 表有 shadow row 但
+   不实际 enqueue). verdict 落 PENDING / FAILED 视为"drill 失败", 走 §异常处理
 6. (计时结束) 总耗时 T_total = 上述 5 步累计秒数
 
 ### 复盘 (回到新值)
@@ -30,6 +33,8 @@
 7. `git revert --no-edit HEAD` 回到 drill 前状态
 8. `pm2 reload ulticode-9001 --update-env`
 9. 二次验证: 同步骤 5
+   **断言 (drill 成功条件 2/3)**: 二次 verdict 仍为期望值, 证明"回滚到旧值 →
+   业务回到 pre-drill 状态 → 切回新值 → 业务又正常" 完整环路可达
 
 ### 记录
 
@@ -54,6 +59,23 @@
 > M2a / M2b / M3d / M4b cutover 回滚需要 `git revert <配置 commit> + 重新部署`,
 > 不走热回滚协议, 详见 ADR-005 §2.7 比赛窗口约束. M2a 特殊: D-form 切换需
 > 重建 sandbox image.
+
+## 成功条件 (drill 完成 = 3 条全过, R-AL1 修复后明确)
+
+drill 跑完是否算"通过", 不能光看 "pm2 reload 成功 + 业务提交不报错". 必须 3 条断言全过:
+
+1. **pm2 process online** (machine-checkable):
+   `pm2 jlist | jq '.[] | select(.name=="ulticode-9001") | .pm2_env.status'` 返 `"online"`
+2. **业务 verdict 落期望值** (人工 + log 断言):
+   提交用例后查 `pm2 logs ulticode-9001 --nostream --lines 200 | grep -E "verdict.*=.*ACCEPTED|verdict.*=.*PENDING"`
+   (M3a shadow: 找 `outbox` 段有 `is_shadow=true` row 写入但 RQueue 没新条目)
+3. **回滚环路可达** (drill 收尾):
+   步骤 7-9 把 flag 切回新值后, 二次 verdict 与首次一致. 证明"切旧→切新"双向可达,
+   不是"单方向碰巧过了"
+
+**任何一条不过** → drill 标"失败", 走 §异常处理 第 2 条, 拆 issue 跟踪, 不阻塞
+milestone shipped 但**阻塞**该 milestone 在 §2.6 表里填"实际耗时" (即 §2.6 标
+TBD 不动, 留待修复后重跑).
 
 ## 异常处理
 

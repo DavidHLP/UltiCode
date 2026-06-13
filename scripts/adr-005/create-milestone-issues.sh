@@ -35,8 +35,8 @@ done
 declare -a MILESTONES=(
   "M1a|ADR-001|verdict-status-codec §2.1-§2.4|true|app.features.judge-queue.envelope-version|APP_FEATURES_JUDGE_QUEUE_ENVELOPE_VERSION|1|"
   "M1b|ADR-001|verdict-status-codec §2.5|partial|app.features.first-solve-notifications-enabled|APP_FEATURES_FIRST_SOLVE_NOTIFICATIONS_ENABLED|true|"
-  "M2a|ADR-002|sandbox-hexagonal §2|true|app.features.sandbox.executor|APP_FEATURES_SANDBOX_EXECUTOR|hexagonal|"
-  "M2b|ADR-002|sandbox-hexagonal §3 cutover|false||N/A|legacy|status:cutover-blocked"
+  "M2a|ADR-002|sandbox-hexagonal §2|true|code-execution.sandbox.d-form.enabled|SANDBOX_DFORM_ENABLED|true|"
+  "M2b|ADR-002|sandbox-hexagonal §3 cutover|false||N/A|N/A|status:cutover-blocked"
   "M3a|ADR-003|queue-outbox-fencing §2.1|true|app.features.use-judge-outbox|USE_JUDGE_OUTBOX|false|"
   "M3b|ADR-003|queue-outbox-fencing §2.2-§2.3|true|app.features.use-generation-fence|USE_GENERATION_FENCE|false|"
   "M3c|ADR-003|queue-outbox-fencing §2.4|true|app.features.judge-queue.use-port|JUDGE_QUEUE_USE_PORT|false|"

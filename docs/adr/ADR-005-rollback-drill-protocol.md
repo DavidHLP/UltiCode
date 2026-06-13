@@ -46,13 +46,14 @@
 
 | Milestone | flag | 旧值 (drill 前) | 新值 (drill 后回滚) |
 |-----------|------|-----------------|---------------------|
-| M2a | `app.features.sandbox.executor` (待 ADR-002 校核 flag 名) | `hexagonal` | `legacy` |
+| ~~M2a~~ | ~~`app.features.sandbox.executor`~~ **不可 hot rollback** — 实际 flag `code-execution.sandbox.d-form.enabled` 自 commit `8c13ec61f` 起不再 toggle dispatcher (D-form 永远 on). M2a 走 git revert + 重建 sandbox image, 不在本协议范围. 见 ADR-005 §2.6 表脚注 ¹ | _N/A_ | _N/A_ |
 | M3a | `app.features.use-judge-outbox` | `true` | `false` |
 | M3c | `app.features.judge-queue.use-port` | `true` | `false` |
 | M4a | `app.features.use-notification-intent` | `true` | `false` |
 
-> M2b / M3d / M4b cutover 回滚需要 `git revert <配置 commit> + 重新部署`,
-> 不走热回滚协议, 详见 ADR-005 §2.7 比赛窗口约束.
+> M2a / M2b / M3d / M4b cutover 回滚需要 `git revert <配置 commit> + 重新部署`,
+> 不走热回滚协议, 详见 ADR-005 §2.7 比赛窗口约束. M2a 特殊: D-form 切换需
+> 重建 sandbox image.
 
 ## 异常处理
 

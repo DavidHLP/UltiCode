@@ -760,4 +760,127 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 .output(output).expectedOutput(testCase.getOutput()).detail(detail).inputs(inputs)
                 .build();
     }
+
+    // ── D-form (LeetCode/HackerRank harness) ─────────────────────────────────
+    // These three methods replace the per-request Form A bash wrapper with a
+    // static input.json contract. The harness image (docker/sandbox/Dockerfile
+    // Phase 2 build) has the pre-compiled harness at /opt/harness/{lang}/.
+    //
+    // Schema reference: docker/sandbox/harness/{java,python}/ — see
+    // .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md (D3 + D4 + D9).
+
+    private static final java.util.Set<String> DFORM_TYPES = java.util.Set.of(
+            "int", "long", "double", "boolean",
+            "String", "int[]", "int[][]", "long[]", "String[]",
+            "ListNode", "ListNode[]", "TreeNode", "TreeNode[]"
+    );
+
+    @Override
+    public String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase, long perCaseTimeoutMs) {
+        java.util.List<RunSubmissionDTO.RunTestCase> one = java.util.List.of(testCase);
+        return buildDBatchInputsJson(one, perCaseTimeoutMs);
+    }
+
+    @Override
+    public String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases, long perCaseTimeoutMs) {
+        java.util.LinkedHashMap<String, Object> root = new java.util.LinkedHashMap<>();
+        root.put("per_case_timeout_ms", perCaseTimeoutMs);
+        java.util.List<java.util.Map<String, Object>> cases = new java.util.ArrayList<>();
+        for (RunSubmissionDTO.RunTestCase tc : testCases) {
+            java.util.LinkedHashMap<String, Object> c = new java.util.LinkedHashMap<>();
+            c.put("case_id", String.valueOf(tc.getId() != null ? tc.getId() : ""));
+            c.put("label", tc.getLabel() != null ? tc.getLabel() : c.get("case_id"));
+            c.put("expected_output", tc.getOutput() != null ? tc.getOutput() : "");
+            c.put("inputs", buildDInputSpecs(tc));
+            cases.add(c);
+        }
+        root.put("cases", cases);
+        try {
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize D-form input.json", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<java.util.Map<String, Object>> buildDInputSpecs(RunSubmissionDTO.RunTestCase tc) {
+        List<RunSubmissionDTO.RunInput> inputs = tc.getInputs();
+        if (inputs == null || inputs.isEmpty()) {
+            return java.util.List.of();
+        }
+        java.util.List<java.util.Map<String, Object>> specs = new java.util.ArrayList<>();
+        for (RunSubmissionDTO.RunInput in : inputs) {
+            java.util.LinkedHashMap<String, Object> spec = new java.util.LinkedHashMap<>();
+            spec.put("name", in.getName());
+            // value is stored on the backend as a JSON-encoded literal; ship as-is
+            spec.put("value", in.getValue() == null ? "null" : in.getValue());
+            // RunInput doesn't carry a type field yet (Phase 4 will wire it from
+            // problem_method_signature). When that field lands, the harness
+            // honors spec["type"] over any Java annotation on user code.
+            specs.add(spec);
+        }
+        return specs;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<RunResultDTO.RunCaseResult> parseDEnvelope(String stdout,
+                                                          List<RunSubmissionDTO.RunTestCase> testCases,
+                                                          String runId, String userId) {
+        if (stdout == null || stdout.isBlank()) {
+            return testCases.stream()
+                    .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                            0L, null, "D-form harness emitted no envelope (process killed mid-run?)", 0.0))
+                    .collect(Collectors.toList());
+        }
+        java.util.Map<String, Object> env;
+        try {
+            env = objectMapper.readValue(stdout, java.util.Map.class);
+        } catch (Exception parseFail) {
+            String detail = "D-form envelope unparseable: " + sanitizeSandboxOutput(stdout);
+            return testCases.stream()
+                    .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                            0L, null, detail, 0.0))
+                    .collect(Collectors.toList());
+        }
+        com.ulticode.modules.submission.dto.EnvelopeDTO envelope =
+                com.ulticode.modules.submission.dto.EnvelopeDTO.fromMap(env);
+        if (envelope.exitCode() != 0) {
+            // Harness itself panicked (parse failure, javac failure, ambiguous
+            // Solution, etc.). Surface a single Runtime Error for the whole batch.
+            String detail = "D-form harness panic (exit_code=" + envelope.exitCode() + "): "
+                    + sanitizeSandboxOutput(stdout);
+            return testCases.stream()
+                    .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                            0L, null, detail, 0.0))
+                    .collect(Collectors.toList());
+        }
+        java.util.List<com.ulticode.modules.submission.dto.PerCaseResultDTO> parsed = envelope.results();
+        java.util.List<RunResultDTO.RunCaseResult> out = new java.util.ArrayList<>();
+        for (int i = 0; i < testCases.size(); i++) {
+            RunSubmissionDTO.RunTestCase tc = testCases.get(i);
+            com.ulticode.modules.submission.dto.PerCaseResultDTO pr = i < parsed.size() ? parsed.get(i) : null;
+            if (pr == null) {
+                out.add(buildCaseResult(tc, runId, userId, "Runtime Error",
+                        0L, null, "D-form envelope missing per-case result for index " + i, 0.0));
+                continue;
+            }
+            String status = pr.status() == null ? "Runtime Error" : pr.status();
+            // TLE in D-form manifests as "Time Limit Exceeded" + interrupted=true.
+            // Match the legacy verdict spellings to keep API consumers happy.
+            String detail = null;
+            if (pr.error() != null && pr.error().message() != null) {
+                detail = "[" + (pr.error().type() == null ? "Error" : pr.error().type()) + "] "
+                        + pr.error().message();
+            }
+            out.add(buildCaseResult(
+                    tc, runId, userId,
+                    status,
+                    pr.elapsedMs(),
+                    pr.result() == null ? null : String.valueOf(pr.result()),
+                    detail,
+                    0.0));
+        }
+        return out;
+    }
 }

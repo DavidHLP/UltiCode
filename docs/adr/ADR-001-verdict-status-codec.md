@@ -2,7 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | Proposed |
+| **状态 (Status)** | **Accepted** |
+| **接受日期 (Accepted on)** | 2026-06-13 |
+| **关闭 Milestone** | M1a (`bf6560679`, `789f85411`) + M1b (`774638e87`) |
 | **日期 (Date)** | 2026-06-13 |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | [ADR-000 / F1](./ADR-000-hexagonal-grilling-session.md#2-codex-adversarial-review-摘要) |

@@ -7,6 +7,7 @@ import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -266,10 +267,10 @@ class AdminSubmissionServiceImplTest {
     class GetStatuses {
 
         @Test
-        @DisplayName("returns 11 entries covering all DB-stored statuses")
-        void returnsElevenStatuses() {
+        @DisplayName("returns one entry per SubmissionStatus enum constant")
+        void returnsOneEntryPerEnumConstant() {
             var options = adminSubmissionService.getStatuses();
-            assertThat(options).hasSize(11);
+            assertThat(options).hasSize(SubmissionStatus.values().length);
         }
 
         @Test

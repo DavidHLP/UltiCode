@@ -239,7 +239,7 @@ public final class Main {
                 adapted[i] = Harness.adaptArg(raw, paramTypes[i]);
             }
         } catch (Throwable t) {
-            return finishCase(result, "Runtime Error", 0L, null, t, "");
+            return finishCase(result, "Runtime Error", 0L, peakMemoryBytes(), null, t, "");
         }
 
         // --- invoke under timeout, capturing user stdout -------------------
@@ -284,10 +284,14 @@ public final class Main {
             System.setOut(realOut);
         }
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
+        // Sample peak heap AFTER user code ran (GC may not have triggered
+        // since; this is best-effort, not a strict cgroup-level measurement).
+        long peakBytes = peakMemoryBytes();
         String userStdout = truncateUserOutput(userOut.toString(StandardCharsets.UTF_8));
 
         if (timedOut) {
             result.put("elapsed_ms", elapsedMs);
+            result.put("peak_memory_bytes", peakBytes);
             result.put("status", "Time Limit Exceeded");
             result.put("result", null);
             result.put("interrupted", true);
@@ -296,7 +300,7 @@ public final class Main {
             return result;
         }
         if (userException != null) {
-            return finishCase(result, "Runtime Error", elapsedMs, null, userException, userStdout);
+            return finishCase(result, "Runtime Error", elapsedMs, peakBytes, null, userException, userStdout);
         }
 
         Object jsonable;
@@ -308,7 +312,7 @@ public final class Main {
             // CR fix #2/#7/#8: jsonable() raises on cycles, depth, node-count,
             // and non-finite floats. Convert to per-case Runtime Error so the
             // envelope stays well-formed (and the next case still runs).
-            return finishCase(result, "Runtime Error", elapsedMs, null, t, userStdout);
+            return finishCase(result, "Runtime Error", elapsedMs, peakBytes, null, t, userStdout);
         }
         String expectedJson = (expectedOutput == null)
                 ? null
@@ -316,6 +320,7 @@ public final class Main {
         boolean passed = (expectedJson != null) && expectedJson.equals(Harness.normalizeJson(actualJson));
 
         result.put("elapsed_ms", elapsedMs);
+        result.put("peak_memory_bytes", peakBytes);
         result.put("status", passed ? "Accepted" : "Wrong Answer");
         result.put("result", jsonable);
         result.put("user_stdout", userStdout);
@@ -324,9 +329,10 @@ public final class Main {
     }
 
     private static Map<String, Object> finishCase(Map<String, Object> result, String status,
-                                                  long elapsedMs, Object value,
-                                                  Throwable error, String userStdout) {
+                                                  long elapsedMs, long peakMemoryBytes,
+                                                  Object value, Throwable error, String userStdout) {
         result.put("elapsed_ms", elapsedMs);
+        result.put("peak_memory_bytes", peakMemoryBytes);
         result.put("status", status);
         result.put("result", value);
         if (error != null) {
@@ -335,6 +341,24 @@ public final class Main {
         result.put("user_stdout", userStdout);
         result.put("user_stderr", "");
         return result;
+    }
+
+    /**
+     * Best-effort peak memory in bytes for the harness JVM. Uses
+     * {@code totalMemory() - freeMemory()} so it works across all GCs
+     * (G1 reports 0 from getHeapMemoryUsage().getUsed() in some heap
+     * shapes, which would make the OJ UI show 0.0MB for every submission).
+     * The harness and user code run in the same JVM (via reflection), so
+     * this is a reasonable proxy for "user code memory" — not a
+     * cgroup-level measurement, but far better than reporting 0.
+     */
+    private static long peakMemoryBytes() {
+        try {
+            Runtime rt = Runtime.getRuntime();
+            return Math.max(0L, rt.totalMemory() - rt.freeMemory());
+        } catch (Throwable t) {
+            return 0L;
+        }
     }
 
     /**

@@ -58,9 +58,13 @@ public class JavaLanguageProfile implements LanguageProfile {
         // harnessRoot is fixed for the D-form image (see
         // DockerSandboxConfig.dFormHarnessRoot).
         String harnessRoot = config.dFormHarnessRoot();
+        // Sandbox image WORKDIR is /home/sandbox, but the user's Solution.java
+        // lives under the mounted /job volume. Use the absolute /job/ path
+        // so javac finds the source regardless of cwd. (M3 fix: relative
+        // path broke once the image WORKDIR drifted from the volume mount.)
         String dispatchShell =
                 "mkdir -p /tmp/classes && javac -cp " + harnessRoot + "/java -d /tmp/classes "
-                        + SOLUTION_FILE_NAME
+                        + "/job/" + SOLUTION_FILE_NAME
                         + " && java -Djava.security.manager=allow -cp "
                         + harnessRoot + "/java:/tmp/classes Main /job/input.json";
         return List.of(config.image(), "sh", "-c", dispatchShell);

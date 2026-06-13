@@ -222,9 +222,15 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                             0L, null, "D-form harness emitted no envelope (process killed mid-run?)", 0.0))
                     .collect(Collectors.toList());
         }
+        // The Java harness Main emits JVM WARNING lines (e.g.
+        // "SecurityManager has been called") before the JSON envelope,
+        // which breaks a strict Jackson parse. Strip everything before
+        // the first '{' so we land on the envelope object.
+        int jsonStart = stdout.indexOf('{');
+        String envelopeSource = jsonStart >= 0 ? stdout.substring(jsonStart) : stdout;
         java.util.Map<String, Object> env;
         try {
-            env = objectMapper.readValue(stdout, java.util.Map.class);
+            env = objectMapper.readValue(envelopeSource, java.util.Map.class);
         } catch (Exception parseFail) {
             String detail = "D-form envelope unparseable: " + sanitizeSandboxOutput(stdout);
             return testCases.stream()
@@ -262,13 +268,21 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 detail = "[" + (pr.error().type() == null ? "Error" : pr.error().type()) + "] "
                         + pr.error().message();
             }
+            // Convert harness-reported peak bytes to MiB (floored at 1 if
+            // non-zero, like CodeExecutionService.toDtoCaseResult does).
+            // Older harnesses that don't emit peak_memory_bytes report 0
+            // here — we keep that as a visible signal "unknown" rather
+            // than silently injecting 256M.
+            long memoryMb = pr.peakMemoryBytes() <= 0
+                    ? 0L
+                    : Math.max(1L, pr.peakMemoryBytes() / (1024L * 1024L));
             out.add(buildCaseResult(
                     tc, runId, userId,
                     status,
                     pr.elapsedMs(),
                     pr.result() == null ? null : String.valueOf(pr.result()),
                     detail,
-                    0.0));
+                    (double) memoryMb));
         }
         return out;
     }

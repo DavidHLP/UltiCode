@@ -19,12 +19,17 @@
 #   - g++ 12+                       for C++ harness (C++17)
 #
 # Usage:
-#   ./harness/build.sh              # build all 4
-#   ./harness/build.sh java python  # build only the listed ones
-#   ./harness/build.sh --clean      # nuke staging/ before building
+#   ./harness/build.sh                  # build all 4 + docker build + tag :latest
+#   ./harness/build.sh java python      # build only the listed ones
+#   ./harness/build.sh --clean          # nuke staging/ before building
+#   ./harness/build.sh --no-docker      # skip docker build (CI matrix stage)
 #
-# CI: this script is what `./docker build` of the sandbox image assumes has
-# already run.  Wire it ahead of `docker build` in your pipeline.
+# Default end-to-end behavior (per ADR-002 §6.5):
+#   1. mvn / py_compile / gcc / g++ to populate harness-staging/
+#   2. docker build -t ulticode-sandbox-dform:phase2 .
+#   3. docker tag  ulticode-sandbox-dform:phase2  ulticode-sandbox:latest
+# So a fresh `./harness/build.sh` makes SANDBOX_IMAGE=ulticode-sandbox:latest
+# (the project default) actually point at the dform harness.
 # =============================================================================
 
 set -euo pipefail
@@ -38,12 +43,14 @@ ALL_LANGS=(java python c cpp)
 
 # ── arg parsing ──────────────────────────────────────────────────────────────
 CLEAN=0
+NO_DOCKER=0
 LANGS=()
 for arg in "$@"; do
     case "${arg}" in
         --clean) CLEAN=1 ;;
+        --no-docker) NO_DOCKER=1 ;;
         --help|-h)
-            sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+            sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         -*) echo "unknown flag: ${arg}" >&2; exit 2 ;;
@@ -120,19 +127,47 @@ for lang in "${LANGS[@]}"; do
     "build_${lang}"
 done
 
-# ── post-build hint: ensure the base image is present and version-pinned ───
+# ── post-build: fail-fast on missing base image, then build + retag ───────
 # The Dockerfile FROM-clause references ulticode-sandbox:base-17. If that
-# tag is missing locally, `docker build` will (correctly) fail with a
-# "manifest not found" error rather than silently inheriting whatever
-# `ulticode-sandbox:latest` happens to be. Tag the existing local image
-# once on first-time setup, or build it from scratch with the original
-# apt-based recipe.
+# tag is missing locally, `docker build` will fail with "manifest not
+# found" — fail fast here so the message is clear, instead of inside the
+# docker build step where it surfaces with noisy context.
 if ! docker image inspect ulticode-sandbox:base-17 >/dev/null 2>&1; then
-    echo "[build.sh] WARNING: ulticode-sandbox:base-17 not found."
-    echo "[build.sh]   First-time setup:"
-    echo "[build.sh]     docker tag <existing-sandbox-image> ulticode-sandbox:base-17"
-    echo "[build.sh]   or rebuild the base from apt:"
-    echo "[build.sh]     docker build -t ulticode-sandbox:base-17 -f Dockerfile.base ."
+    echo "[build.sh] ERROR: ulticode-sandbox:base-17 not found." >&2
+    echo "[build.sh]   First-time setup:" >&2
+    echo "[build.sh]     docker tag <existing-sandbox-image> ulticode-sandbox:base-17" >&2
+    echo "[build.sh]   or rebuild the base from apt:" >&2
+    echo "[build.sh]     docker build -t ulticode-sandbox:base-17 -f Dockerfile.base ." >&2
+    exit 2
 fi
 
-echo "[build.sh] done. Next: docker build -t ulticode-sandbox-dform ."
+# ── Build the D-form sandbox image + retag :latest ─────────────────────────
+# ADR-002 §6.5 hardening: previously the dform image was built with a
+# pinned tag (ulticode-sandbox-dform:phase2) but :latest kept pointing at
+# the pre-dform Form-A image. A default SANDBOX_IMAGE=ulticode-sandbox:latest
+# then silently launched the broken image and produced "Runtime Error"
+# for every submission. We now (a) build the dform image, (b) tag it as
+# :latest so the default SANDBOX_IMAGE works out-of-the-box, and (c) keep
+# the phase2 tag alive so the version-pin path
+# (SANDBOX_IMAGE=...:phase2-pinned) still works.
+#
+# Skip with --no-docker if you only want the harness binaries (e.g. CI
+# matrix job that builds images in a separate stage, or local dev that
+# only edits harness sources).
+DFORM_TAG="ulticode-sandbox-dform:phase2"
+DFORM_BUILD_FLAGS=()
+if [ "${CLEAN}" = "1" ]; then
+    DFORM_BUILD_FLAGS+=(--no-cache)
+fi
+
+if [ "${NO_DOCKER:-0}" != "1" ]; then
+    echo "[build.sh] docker build -t ${DFORM_TAG} ${DFORM_BUILD_FLAGS[*]} ${SANDBOX_DIR}"
+    docker build -t "${DFORM_TAG}" "${DFORM_BUILD_FLAGS[@]}" "${SANDBOX_DIR}"
+    echo "[build.sh] docker tag ${DFORM_TAG} ulticode-sandbox:latest"
+    docker tag "${DFORM_TAG}" ulticode-sandbox:latest
+    echo "[build.sh] built + tagged ${DFORM_TAG} and ulticode-sandbox:latest"
+else
+    echo "[build.sh] --no-docker: skipping docker build/tag (you must run it manually)"
+fi
+
+echo "[build.sh] done. Override with SANDBOX_IMAGE in .env if you want a different tag."

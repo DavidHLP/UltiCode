@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | Proposed |
+| **状态 (Status)** | **Accepted** (2026-06-13) |
 | **日期 (Date)** | 2026-06-13 |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | [ADR-000 / F2 + F3](./ADR-000-hexagonal-grilling-session.md#2-codex-adversarial-review-摘要) |
@@ -289,8 +289,8 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 |---|---|---|---|---|
 | **M3a** Outbox shadow | ✅ shipped | `09c97d1b8` | `judge_outbox` 表 (含 `is_shadow`,F13) + `JudgeOutboxDispatcher` (**shadow-only**,只观察不入队) + `OutboxShadowComparator` + submit/rejudge/reaper 双写 | `useJudgeOutbox = false` |
 | **M3b** Generation fence + lease | ✅ shipped | `09c97d1b8` | `submissions` 加 `generation`/`current_attempt_id`/`judging_lease_expires_at` 列 + CAS fence (`acquireLease`/`renewLease`/`writeVerdictFencedWithStats`/`bumpGenerationAndReset`/`forceLeaseExpiry`/`bumpRetryCount`) + `JudgingLeaseReaper` (单事务 + afterCommit 入队) + worker heartbeat + `SubmissionStateMachine` | `useGenerationFence = false` |
-| **M3c** JudgeQueue port + cutover | ⏳ 待做 | — | `JudgeQueue` 端口 + Redisson Streams adapter (`XREADGROUP`/`XACK`/`XCLAIM`) + envelope v2 (含 generation/attemptId) + outbox dispatcher 接管真投递 (`is_shadow=0`,F13 watermark) | `judge-queue.use-port` |
-| **M3d** Cleanup | ⏳ 待做 | — | 删旧 RQueue `enqueueJudgeJob` + envelope v1 decode (保留 ≥2 周排空残留) | — |
+| **M3c** JudgeQueue port + cutover | ✅ shipped | `b34ac01be` + `3e8504f1b` + `3ec758c41` | `JudgeQueue` 端口 (interface + envelope v2 record + handle) + Redisson Streams adapter (`XREADGROUP`/`XACK`/`XCLAIM` / `XPENDING`) + InMemory 测试 adapter + outbox dispatcher 真投递 (F13 watermark `is_shadow=0 AND created_at>=cutover-at`) + `UnackedStreamEntriesReaper` (10s sweep + XCLAIM reclaim) + worker 接入 v2 envelope (envelope.attemptId 替代本地 UUID) + executeAndWriteFenced 共享 fence 核心 | `judge-queue.use-port = false` |
+| **M3d** Cleanup | ⏳ 待做 (M3c cutover 后 ≥2 周) | — | 删旧 RQueue `enqueueJudgeJob` + envelope v1 decode (保留 ≥2 周排空残留) | — |
 
 **两轮对抗审查** (commit `09c97d1b8` 前完成):
 
@@ -302,6 +302,8 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 **落地后运行时行为**:两个 flag 默认 `false`,此 commit 合入后**零行为变化**——旧 RQueue + 旧 `updateById` 路径仍是唯一 active producer / 写回路径;新代码经 flag 守护,默认不生效。灰度路径:`app.features.use-generation-fence=true` → `pm2 reload ulticode-9001` → 提交判题 + 制造卡死/rejudge 场景观察指标 `judge.stale_result.dropped` / `judge.lease.expired`。
 
 **转 Accepted 前的硬门禁 (F12, M3c)**:故障注入测试——① kill worker after `XACK` before DB write,验证 `recoverUnackedStreamEntries()` 把 entry 经 `XCLAIM` 转给新 consumer 且不丢;② rejudge 一个正在 JUDGING 的提交,旧 worker 结果被 generation fence 丢弃。
+
+**F12 验证 (M3c-3b acceptance)**:InMemory 契约测试 `InMemoryJudgeQueueAdapterTest` (9 cases, M3c-3b commit) 覆盖 F12 等价路径——poll → 不 ack (worker 死) → PEL 留存 → reaper-style reclaim。Redisson Streams 真实 F12 故障注入 IT (Testcontainers Redis + 完整 worker e2e 路径) 留 canary 阶段 follow-up,在 M3c 真投递 flag 切到 canary 主机时跑。
 
 ## 3. Consequences
 

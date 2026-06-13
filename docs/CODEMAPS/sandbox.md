@@ -1,7 +1,7 @@
 # Sandbox (OJ 代码执行沙箱)
 
 > 状态：active  
-> 最后更新：2026-06-12  
+> 最后更新：2026-06-13（M2a: Hexagonal refactor）  
 > 维护者：submission 模块
 
 ## 概述
@@ -111,3 +111,120 @@ batch wrapper 是 **single-process** Python 跑完所有用例（`totalCases` �
 | 日期 | 事件 | 详情 |
 |---|---|---|
 | 2026-06-12 | PE-007 提交报 `sh: 0: Cannot fork` | 用户提交合并 K 个有序链表，verdict 误标 `Runtime Error`。诊断结论：当前 sandbox 镜像在生产参数下可正常执行 wrapper（Task 3 复现失败），H1（pids-limit=128 不足）证伪。verdict 分类改进作为独立可观测性改进落地。完整诊断见 `.claude/PRPs/reports/oj-sandbox-cannot-fork-diagnose-report.md`（待生成） |
+| 2026-06-13 | **M2a: Hexagonal refactor (ADR-002)** | `SandboxServiceImpl` 拆为 `SandboxExecutor` port + `LanguageProfile` strategy + 5 个 LanguageProfile + `SandboxExecutorImpl` (生产) + `InMemorySandboxAdapter` (测试)。`switch (language)` 拆点归零；`ProcessBuilder` 只在 `SandboxExecutorImpl` 内；fork-failure 静态方法保留在 executor；DTO↔port 翻译集中于 `SandboxExecutorImpl.toRunTestCase` / `toPortResult` 与 `CodeExecutionService.toSandboxTestCase` / `toDtoCaseResult`。详见下文"M2a Hexagonal Refactor"章节 |
+
+## M2a Hexagonal Refactor（ADR-002）
+
+M2a 把 `SandboxServiceImpl`（476 行，混合语言分发 + Docker CLI + 失败分类）拆为 Hexagonal 架构，对应 [ADR-002](../adr/ADR-002-sandbox-hexagonal.md)。
+
+### 新 package 布局
+
+```
+com.ulticode.modules.submission.sandbox/
+├── SandboxExecutor              # port interface (run / runBatch)
+├── SandboxJob                   # record: runId, userId, submissionId, generation, lang, code, limits
+├── TestCase                     # port 内部 record (含 Input 子 record)
+├── RunCaseResult                # record: status(SubmissionStatus enum) + elapsedMs + memoryBytes + detail + score
+├── BatchRunResult               # record: List<RunCaseResult> (1:1 input contract)
+├── SandboxLimits                # record: per-language effective limits
+├── UnsupportedLanguageException # 业务异常
+├── LanguageProfile              # Strategy interface
+├── executor/
+│   └── SandboxExecutorImpl      # 默认 docker 实现 (@ConditionalOnProperty matchIfMissing=true)
+├── adapter/
+│   └── InMemorySandboxAdapter   # 测试桩 (@ConditionalOnProperty havingValue=inmemory)
+└── profile/
+    ├── JavaLanguageProfile           # 完整 (Phase 5b 行为)
+    ├── PythonLanguageProfile         # 完整 (Phase 5b 行为)
+    ├── JavaScriptLanguageProfile     # stub (@ConditionalOnProperty matchIfMissing=false)
+    ├── CLanguageProfile              # stub
+    └── CppLanguageProfile            # stub
+```
+
+### 拆点映射（ADR-002 §1.1 → M2a 落地）
+
+| 旧位置（`SandboxServiceImpl`） | 新位置 | 备注 |
+|---|---|---|
+| `switch (language)` line 201（文件名） | `LanguageProfile.materializeWorkspace` | 5 个 profile 各自写 `Solution.java` / `solution.py` 等 |
+| `switch (language)` line 270（docker 命令） | `LanguageProfile.dockerCommand` | 5 个 profile 各自返回 `[image, sh, -c, dispatchShell]` |
+| `isJavaCompileFailure` line 133 | `JavaLanguageProfile.isCompileFailure` | 5 个 profile 各自判定（Python 无 compile 步返 false） |
+| `isSandboxForkFailure` / `isDockerDaemonForkFailure` line 72/84 | **`SandboxExecutorImpl` 静态方法**（ADR-002 §2.5） | 跨语言基础设施失败，留在 executor |
+| `ProcessBuilder` line 320 + line 281 docker run 拼装 | `SandboxExecutorImpl.runDProcess` + `buildDockerCommand` + `commonSecurityArgs` | ProcessBuilder 只在 `SandboxExecutorImpl` 内 |
+| `executeInSandbox` / `executeBatch` 接口方法 | `SandboxExecutor.run` / `runBatch` | 入参改为 `SandboxJob` + `TestCase` (port 自有) |
+| 内部 `RunResultDTO.RunCaseResult` 返回 | `RunCaseResult` record（port） | 含 `SubmissionStatus` enum（ADR-001），wire 字符串转换在 DTO 边界 |
+
+### 新 executor 的 docker run 拼装（顺序固定）
+
+```
+docker run --rm -i
+  <commonSecurityArgs>          # --network none / --cap-drop ALL / --read-only /
+                                #   --user 1000:1000 / --security-opt no-new-privileges /
+                                #   --security-opt seccomp=...
+  --memory <effective>          # 来自 languages.<lang>.memory 或 sandbox.memory 默认
+  --cpus <cpus>                 # 来自 sandbox.cpus
+  --pids-limit <N>              # 来自 sandbox.pidsLimit
+  --ulimit nofile=128:128
+  --tmpfs /tmp:rw,exec,size=64m
+  --volume <workspace>:/job:ro
+  --volume <seccompDir>:/seccomp-profile:ro
+  <image> sh -c <dispatchShell>  # 来自 profile.dockerCommand
+```
+
+`commonSecurityArgs()` 在 `SandboxExecutorImpl` 内部统一拼接，**profile 不能 override**（ADR-002 §3.3 风险表）。
+
+### LanguageProfile 集合注入 + fail-fast
+
+```java
+public SandboxExecutorImpl(List<LanguageProfile> all, DockerSandboxConfig config, CodeExecutionHelper helper) {
+    this.profiles = all.stream().collect(toUnmodifiableMap(
+        LanguageProfile::languageId,
+        p -> p,
+        (a, b) -> { throw new IllegalStateException("Duplicate LanguageProfile: " + a.languageId()); }
+    ));
+    ...
+}
+```
+
+启动期重复 `languageId` → `IllegalStateException` 立即崩，**避免运行期 fallback 暗坑**（ADR-002 §2.2 强调）。
+
+### DTO ↔ Port 翻译（边界处集中）
+
+| 翻译点 | 方向 | 方法 |
+|---|---|---|
+| `CodeExecutionService.toSandboxTestCase` | DTO → port | 把 `RunSubmissionDTO.RunTestCase` 翻译成 `sandbox.TestCase` |
+| `CodeExecutionService.toDtoCaseResult` | port → DTO | 把 `sandbox.RunCaseResult` 翻译回 `RunResultDTO.RunCaseResult`（含 `SubmissionStatusCodec.toWire` 字符串化） |
+| `SandboxExecutorImpl.toRunTestCase` | port → DTO | 把 `sandbox.TestCase` 翻译成 `RunSubmissionDTO.RunTestCase`（喂 `CodeExecutionHelper.buildDInputsJson`） |
+| `SandboxExecutorImpl.toPortResult` | DTO → port | 把 `helper.parseDEnvelope` 返的 DTO 翻译成 `sandbox.RunCaseResult`（含 `SubmissionStatusCodec.fromWire` enum 化） |
+
+`SubmissionStatusCodec`（ADR-001）是 enum ↔ wire 字符串唯一边界；sandbox 内部 0 处出现 `"Wrong Answer"` / `"Compile Error"` 等 wire 字符串。
+
+### 激活切换
+
+`application.yml`（或环境变量）：
+
+```yaml
+sandbox:
+  executor: docker   # 默认；显式锁定以防 prod 误启 InMemory
+  profile:
+    javascript: { enabled: false }   # M2a stub 默认关
+    c:         { enabled: false }   # M2a stub 默认关
+    cpp:       { enabled: false }   # M2a stub 默认关
+    # java + python 无开关（默认 enabled）
+```
+
+### ADR-002 §4 Validation 落地验证
+
+| 验证项 | 命令 / 产物 | 状态 |
+|---|---|---|
+| `switch (language)` 在 `submission/` 子树为零 | `grep -rn 'switch\s*(\s*language\b' src/main/java/com/ulticode/modules/submission/` | ✅ 0 处 |
+| `ProcessBuilder` 只在 `DockerSandboxAdapter` 内 | `grep -rln ProcessBuilder src/main/java/com/ulticode/modules/submission/` → 仅 `SandboxExecutorImpl.java` | ✅ 1 处 |
+| SandboxExecutor 单元测试用 InMemoryAdapter 100% 通过 | `mvn test -Dtest=InMemorySandboxAdapterTest` 19/19 ✓ | ✅ |
+| 5 个语言 profile 各自单测 | Java(5) + Python(5) + JavaScript(2) + C(3) + Cpp(3) = 18 ✓ | ✅ |
+| Testcontainers IT 跑核心矩阵 | `SandboxForkE2EIT` / `SandboxNamespaceIsolationIT` pre-existing, **M2a 沿用**；未重写到新 port（保留为 follow-up） | ⏳ follow-up |
+| `docs/CODEMAPS/sandbox.md` 新增 "Port / Adapter / LanguageProfile" 章节 | 本节 | ✅ |
+
+### 后续 follow-up（M2b 候选）
+
+- 把 `SandboxForkE2EIT` / `SandboxNamespaceIsolationIT` 迁到 `sandbox.executor=inmemory` 跑更快（不用 docker daemon）
+- C/C++/JS 的 D-form harness 落地时，只需打开 `sandbox.profile.<lang>.enabled=true` + 替换对应 profile 的 `dockerCommand` + 写单测（**不动 `SandboxExecutorImpl` / `SandboxExecutor` / `CodeExecutionService`**，开闭原则 #11）
+- ADR-003 generation fence 落地后，`SandboxJob.submissionGeneration` 字段已经从"0L for /run" 升级到 "读 `submissions.generation`"，本 refactor 已为此预留字段

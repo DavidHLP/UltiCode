@@ -1,11 +1,23 @@
 # =============================================================================
 # UltiCode sandbox — D-form (LeetCode/HackerRank harness) image.
 #
-# Base image: ulticode-sandbox:latest (the project's pre-existing sandbox
-# image, which already has openjdk-17-jdk-headless + python3 + gcc + g++ on
-# Debian bookworm, plus a `sandbox` uid=1000 user). Building FROM scratch
-# with apt-get installs is slow on this host's mirror and adds nothing
-# beyond what ulticode-sandbox already provides.
+# Base image: ulticode-sandbox:base-17 — a separately tagged, JDK-17-pinned
+# base that provides openjdk-17-jdk-headless + python3 + gcc + g++ on Debian
+# bookworm, plus a `sandbox` uid=1000 user. We do NOT FROM ulticode-sandbox
+# `:latest` because that's the project's rolling sandbox tag (currently
+# pointing at the Form A image); an unversioned dependency on `:latest` makes
+# builds silently inherit whatever happens to be on the host and the output
+# tag of this Dockerfile would also be `:latest`, which is a self-dependency
+# cycle.
+#
+# Build the base (once per host, rarely changes):
+#   docker build -t ulticode-sandbox:base-17 -f Dockerfile.base .
+# or, on first-time setup, point an apt-cached existing image:
+#   docker tag <existing-sandbox-image> ulticode-sandbox:base-17
+#
+# Then build this Dockerfile:
+#   ./harness/build.sh
+#   docker build -t ulticode-sandbox-dform:phase2 .
 #
 # Strategy
 # --------
@@ -35,11 +47,9 @@
 #                && /job/Solution /job/input.json
 #   - stdout = single JSON envelope, exit 0 = OK, exit 2 = harness panic
 #   - stderr = harness stack trace on panic (never user output)
-#
-# Build:  ./harness/build.sh  (or `docker build` after staging exists)
 # =============================================================================
 
-FROM ulticode-sandbox:latest AS runtime
+FROM ulticode-sandbox:base-17 AS runtime
 
 # Pull pre-compiled harnesses from the host-side staging dir produced by
 # harness/build.sh. The .dockerignore keeps `target/`, `__pycache__/`, `*.pyc`,

@@ -349,6 +349,19 @@ public final class Harness {
         }
     }
 
+    /**
+     * Strict check helper for use AFTER appending. writeString / writeNumber /
+     * the main writeJson dispatch call this on the way out so a single large
+     * scalar cannot blow past {@link #MAX_JSON_OUTPUT_BYTES} in one shot
+     * before the recursive pre-check would re-evaluate.
+     */
+    private static void assertWithinBudget(StringBuilder sb) {
+        if (sb.length() > MAX_JSON_OUTPUT_BYTES) {
+            throw new IllegalArgumentException(
+                    "Serialized output exceeds limit " + MAX_JSON_OUTPUT_BYTES + " bytes");
+        }
+    }
+
     private static void writeJson(StringBuilder sb, Object value, SerCtx ctx) {
         if (ctx.depth > MAX_NESTING_DEPTH) {
             throw new IllegalArgumentException(
@@ -448,10 +461,12 @@ public final class Harness {
             }
             if (d == Math.floor(d) && Math.abs(d) < 1e15) {
                 sb.append((long) d);
+                assertWithinBudget(sb);
                 return;
             }
         }
         sb.append(n);
+        assertWithinBudget(sb);
     }
 
     private static void writeString(StringBuilder sb, String s) {
@@ -476,6 +491,7 @@ public final class Harness {
             }
         }
         sb.append('"');
+        assertWithinBudget(sb);
     }
 
     /** Canonicalizes a JSON document by parse → serialize. Used for output comparison. */
@@ -743,6 +759,11 @@ public final class Harness {
         if (root == null) {
             return raw;
         }
+        // CR fix: identity-based cycle guard + shared MAX_JSONABLE_NODES cap so a
+        // user-returned cyclic tree (e.g. root.left = root) gets converted to a
+        // per-case Runtime Error via the IAE, not an OOM that takes the whole
+        // harness down. Same contract as fromListNode.
+        IdentityHashMap<TreeNode, Boolean> visited = new IdentityHashMap<>();
         // LinkedList (not ArrayDeque) — must hold nulls representing absent
         // children so the LeetCode level-order encoding can be produced.
         Queue<TreeNode> queue = new java.util.LinkedList<>();
@@ -752,6 +773,14 @@ public final class Harness {
             if (node == null) {
                 raw.add(null);
             } else {
+                if (visited.put(node, Boolean.TRUE) != null) {
+                    throw new IllegalArgumentException(
+                            "Cyclic reference in TreeNode result");
+                }
+                if (raw.size() > MAX_JSONABLE_NODES) {
+                    throw new IllegalArgumentException(
+                            "TreeNode exceeds node limit " + MAX_JSONABLE_NODES);
+                }
                 raw.add(node.val);
                 queue.offer(node.left);
                 queue.offer(node.right);

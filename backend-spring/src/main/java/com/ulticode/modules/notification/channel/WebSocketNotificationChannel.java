@@ -70,7 +70,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
             realtimeService.sendNotification(intent.userId(),
                     NotificationPayload.of(
                             s.intentId(),
-                            "submission",
+                            "SUBMISSION",
                             "Submission judged: " + s.status().wireValue(),
                             s.problemTitle() == null ? "" : s.problemTitle(),
                             java.util.Map.of(
@@ -85,7 +85,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
             realtimeService.sendNotification(intent.userId(),
                     NotificationPayload.of(
                             c.intentId(),
-                            "contest_reminder",
+                            "CONTEST_REMINDER",
                             "Contest '" + c.contestTitle() + "' starts in " + c.reminderType(),
                             "",
                             java.util.Map.of(
@@ -96,7 +96,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
             realtimeService.sendNotification(intent.userId(),
                     NotificationPayload.of(
                             f.intentId(),
-                            "follow",
+                            "FOLLOW",
                             f.followerUsername() + " followed you",
                             "",
                             java.util.Map.of(
@@ -106,7 +106,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
             realtimeService.sendNotification(intent.userId(),
                     NotificationPayload.of(
                             r.intentId(),
-                            "reply",
+                            "REPLY",
                             r.replierUsername() + " replied to your comment",
                             r.preview() == null ? "" : r.preview(),
                             java.util.Map.of(
@@ -116,7 +116,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
             realtimeService.sendNotification(intent.userId(),
                     NotificationPayload.of(
                             sy.intentId(),
-                            "system",
+                            "SYSTEM",
                             sy.title(),
                             sy.body() == null ? "" : sy.body(),
                             java.util.Map.of("alertKey", sy.alertKey())));

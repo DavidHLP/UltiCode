@@ -1,6 +1,5 @@
 package com.ulticode.modules.notification.channel;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
@@ -17,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -56,14 +54,17 @@ class EmailNotificationChannelTest {
     }
 
     @Test
-    void sendThrowsBusinessExceptionWhenUserHasNoEmail() {
+    void sendSilentlySkipsWhenUserHasNoEmail() {
+        // ADR-004 M4d-1 finding #3: missing email is "channel cannot reach
+        // user", not a delivery failure. The channel logs at debug and
+        // returns normally so the dispatcher marks the ledger row DELIVERED
+        // (we tried, no error) rather than FAILED (we tried and failed).
         EmailNotificationChannel ch = new EmailNotificationChannel(emailService);
         ch.userMapper = userMapper;
         when(userMapper.selectById("user-1")).thenReturn(null);
 
-        assertThatThrownBy(() -> ch.send(sampleSubmission()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("user-1");
+        // No exception thrown.
+        ch.send(sampleSubmission());
         verify(emailService, never()).sendEmail(any());
     }
 
@@ -93,6 +94,7 @@ class EmailNotificationChannelTest {
     private static AchievementEarnedIntent sampleAchievement() {
         return new AchievementEarnedIntent(
                 "user-1", "ach-1", "key", "Name", "desc", null, 1, 10,
+                java.time.Instant.now(),
                 NotificationCategory.SYSTEM);
     }
 

@@ -34,7 +34,7 @@ class WebSocketNotificationChannelTest {
         WebSocketNotificationChannel ch = new WebSocketNotificationChannel(realtimeService);
         AchievementEarnedIntent intent = new AchievementEarnedIntent(
                 "user-1", "ach-1", "badge-key", "Badge Name", "desc",
-                "icon.png", 3, 100, NotificationCategory.SYSTEM);
+                "icon.png", 3, 100, java.time.Instant.now(), NotificationCategory.SYSTEM);
 
         ch.send(intent);
 
@@ -60,7 +60,9 @@ class WebSocketNotificationChannelTest {
         verify(realtimeService).sendNotification(org.mockito.ArgumentMatchers.eq("user-1"), cap.capture());
         assertThat(cap.getValue()).isInstanceOf(NotificationPayload.class);
         NotificationPayload payload = (NotificationPayload) cap.getValue();
-        assertThat(payload.type()).isEqualTo("submission");
+        // ADR-004 M4d-1 finding #2: WS type string kept UPPERCASE to match
+        // the legacy wire contract (frontend branches on payload.type).
+        assertThat(payload.type()).isEqualTo("SUBMISSION");
         assertThat(payload.data()).containsEntry("isAccepted", true);
         assertThat(payload.data()).containsEntry("submissionId", "sub-1");
     }
@@ -77,7 +79,8 @@ class WebSocketNotificationChannelTest {
         ArgumentCaptor<Object> cap = ArgumentCaptor.forClass(Object.class);
         verify(realtimeService).sendNotification(org.mockito.ArgumentMatchers.eq("user-1"), cap.capture());
         NotificationPayload payload = (NotificationPayload) cap.getValue();
-        assertThat(payload.type()).isEqualTo("contest_reminder");
+        // ADR-004 M4d-1 finding #2: type kept UPPERCASE.
+        assertThat(payload.type()).isEqualTo("CONTEST_REMINDER");
         assertThat(payload.data()).containsEntry("reminderType", "24h");
     }
 }

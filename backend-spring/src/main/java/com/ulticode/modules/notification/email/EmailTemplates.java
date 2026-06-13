@@ -51,7 +51,7 @@ public final class EmailTemplates {
         } else if (intent instanceof com.ulticode.modules.notification.intent.AchievementEarnedIntent a) {
             dto.setTemplateId(TEMPLATE_ACHIEVEMENT_EARNED);
             dto.setVariables(java.util.Map.of(
-                    "achievementName", a.achievementName(),
+                    "achievementName", a.achievementName() == null ? "" : a.achievementName(),
                     "achievementDescription", a.achievementDescription() == null ? "" : a.achievementDescription(),
                     "achievementIcon", a.achievementIconUrl() == null ? "" : a.achievementIconUrl(),
                     "tier", a.achievementTier() == null ? "Bronze" : tierName(a.achievementTier()),
@@ -60,20 +60,20 @@ public final class EmailTemplates {
         } else if (intent instanceof com.ulticode.modules.notification.intent.ContestStartingIntent c) {
             dto.setTemplateId(TEMPLATE_CONTEST_STARTING);
             dto.setVariables(java.util.Map.of(
-                    "contestTitle", c.contestTitle(),
+                    "contestTitle", c.contestTitle() == null ? "" : c.contestTitle(),
                     "startTime", c.startTime() == null ? "" : c.startTime().toString(),
                     "reminderType", c.reminderType()
             ));
         } else if (intent instanceof com.ulticode.modules.notification.intent.CommentReplyIntent r) {
             dto.setTemplateId(TEMPLATE_COMMENT_REPLY);
             dto.setVariables(java.util.Map.of(
-                    "replierUsername", r.replierUsername(),
+                    "replierUsername", r.replierUsername() == null ? "" : r.replierUsername(),
                     "preview", r.preview() == null ? "" : r.preview()
             ));
         } else if (intent instanceof com.ulticode.modules.notification.intent.SystemAlertIntent sy) {
             dto.setTemplateId(TEMPLATE_SYSTEM_ALERT);
             dto.setVariables(java.util.Map.of(
-                    "title", sy.title(),
+                    "title", sy.title() == null ? "" : sy.title(),
                     "body", sy.body() == null ? "" : sy.body()
             ));
         } else if (intent instanceof com.ulticode.modules.notification.intent.FollowReceivedIntent) {

@@ -79,9 +79,16 @@ public class EmailNotificationChannel implements NotificationChannel {
     public void send(NotificationIntent intent) {
         String recipient = resolveRecipientEmail(intent.userId());
         if (recipient == null) {
-            // Throwing causes dispatcher to mark FAILED with a clear reason.
-            throw new BusinessException(com.ulticode.common.exception.ErrorCode.EMAIL_INVALID_RECIPIENT,
-                    "No email on file for user " + intent.userId());
+            // ADR-004 §2.5: email failures are best-effort. A user without
+            // an email on file is not a delivery failure — it is a "this
+            // channel cannot reach this user" condition. We log at debug
+            // and return normally so the dispatcher marks the ledger row
+            // DELIVERED (we tried, no error) instead of FAILED (we tried
+            // and failed). Throwing here used to cause warn-spam per
+            // dispatch for every user that hasn't filled in an email.
+            log.debug("Skipping email channel for intent {}: no email on user {}",
+                    intent.intentId(), intent.userId());
+            return;
         }
         SendEmailDTO dto = EmailTemplates.forIntent(intent);
         dto.setTo(recipient);

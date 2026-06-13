@@ -45,9 +45,16 @@ public class CodeExecutionService {
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage().toLowerCase().trim();
 
-        if (!CodeExecutionHelper.SUPPORTED_LANGUAGES.contains(language)) {
+        // CR fix (Phase 5.5 #1): validate against the actual executable language
+        // set (DFORM_SUPPORTED_LANGUAGES), not the API-advertised
+        // SUPPORTED_LANGUAGES. After Form A was deleted, the dispatcher can
+        // only run java + python. javascript / c / cpp would have been
+        // accepted by SUPPORTED_LANGUAGES and then crashed at the
+        // dispatcher with an opaque "unsupported language" exception.
+        if (!CodeExecutionHelper.DFORM_SUPPORTED_LANGUAGES.contains(language)) {
             throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED,
-                    "Unsupported language: " + language + ". Supported: " + CodeExecutionHelper.SUPPORTED_LANGUAGES);
+                    "Unsupported language: " + language + ". Supported: "
+                            + CodeExecutionHelper.DFORM_SUPPORTED_LANGUAGES);
         }
 
         List<RunSubmissionDTO.RunTestCase> testCases = request.getTestCases();

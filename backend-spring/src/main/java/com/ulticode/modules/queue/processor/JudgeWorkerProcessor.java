@@ -308,6 +308,16 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                         ri.setName(name);
                         Object valueObj = item.get("value");
                         ri.setValue(valueObj != null ? valueObj.toString() : "");
+                        // CR fix (Phase 5.5 #3): forward the OJ data-type hint
+                        // from the stored problem input to RunInput so the
+                        // D-form harness's adapt_arg() can materialize
+                        // ListNode / TreeNode from a raw list. Without this,
+                        // unannotated Python solutions calling reverse(head)
+                        // would crash on .next access.
+                        Object typeObj = item.get("type");
+                        if (typeObj != null && !typeObj.toString().isBlank()) {
+                            ri.setType(typeObj.toString());
+                        }
                         runInputs.add(ri);
                     }
                 } catch (JsonProcessingException e) {

@@ -36,9 +36,13 @@ public class EmailNotificationChannel implements NotificationChannel {
      * User lookup is optional: in dev/test environments the user table may
      * not be wired in. We tolerate the bean being absent and treat lookup
      * failure as a missing-recipient (handled in {@link #send}).
+     *
+     * <p>Package-private to allow unit tests in the same package to inject
+     * a mock directly (the {@code @Autowired(required = false)} path is
+     * exercised by Spring in production).
      */
     @Autowired(required = false)
-    private UserMapper userMapper;
+    UserMapper userMapper;
 
     @Override
     public String channelId() {

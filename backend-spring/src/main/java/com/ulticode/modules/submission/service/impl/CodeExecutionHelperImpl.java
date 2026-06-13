@@ -814,9 +814,16 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             spec.put("name", in.getName());
             // value is stored on the backend as a JSON-encoded literal; ship as-is
             spec.put("value", in.getValue() == null ? "null" : in.getValue());
-            // RunInput doesn't carry a type field yet (Phase 4 will wire it from
-            // problem_method_signature). When that field lands, the harness
-            // honors spec["type"] over any Java annotation on user code.
+            // CR fix: forward the OJ data-type hint when set. The harness
+            // honors spec["type"] over a Java annotation or Python type hint
+            // on the Solution method's argument, which is the only signal
+            // for unannotated user code (the typical LeetCode/HackerRank
+            // style). Empty / null / unknown types are omitted so the
+            // harness falls back to whatever the annotation says.
+            String type = in.getType();
+            if (type != null && !type.isBlank() && DFORM_TYPES.contains(type)) {
+                spec.put("type", type);
+            }
             specs.add(spec);
         }
         return specs;

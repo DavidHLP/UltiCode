@@ -25,6 +25,7 @@ class SandboxServiceImplTest {
                     30,
                     128,
                     "/tmp/seccomp",
+                    null,            // d-form: null → D-form disabled, Form A path is exercised
                     Map.of()
             ),
             mock(CodeExecutionHelper.class)
@@ -58,6 +59,7 @@ class SandboxServiceImplTest {
                         30,
                         128,
                         null,
+                        null,            // d-form disabled
                         Map.of()
                 ),
                 mock(CodeExecutionHelper.class)
@@ -84,6 +86,7 @@ class SandboxServiceImplTest {
                         30,
                         128,
                         "docker/sandbox/seccomp-profile.json",
+                        null,            // d-form disabled
                         Map.of()
                 ),
                 mock(CodeExecutionHelper.class)

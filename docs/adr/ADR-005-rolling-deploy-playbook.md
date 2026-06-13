@@ -49,14 +49,12 @@
 
 **关键原则**: 每个 milestone 落地后 main 必须**双轨可运行** (老路径 + 新路径都能跑) , 直到 cutover milestone 才删旧路径。
 
-### 2.2 Feature Flag 矩阵
+### 2.2 Feature Flag 矩阵 (cutover 相关, prefix = `app.features.*`)
 
 ```yaml
-# application.yml
-ulticode:
+# application.yml — 仅与 ADR-003 / ADR-004 cutover 相关的 flag 子集
+app:
   features:
-    sandbox:
-      executor: legacy            # legacy | hexagonal
     judge-queue:
       use-port: false             # false=直接 Redisson | true=走 JudgeQueue port
       envelope-version: 1         # 1=旧 JudgeJob | 2=含 generation
@@ -65,9 +63,16 @@ ulticode:
       use-generation-fence: false # false=无 generation 校验 | true=CAS 带 generation
     notification:
       use-dispatcher: false       # false=旧三模块直调 | true=新 NotificationDispatcher
+# 其余 5 个产品功能 flag (useNewContestSystem / realtimeRankingEnabled /
+# firstSolveNotificationsEnabled / anticheatEnabled / contestAnalyticsEnabled)
+# 见 docs/RUNBOOK.md §10.6
+#
+# 注意: sandbox 切换 (`sandbox.executor`) 已在 ADR-002 落地, 不在
+# FeatureFlagsProperties 范围内, 详见 docs/RUNBOOK.md §10.7 (待 ADR-002 校核)
+# 与本 ADR §2.6 Rollback Drill 演练的 M2a 行同步
 ```
 
-每个 flag 独立可切, 切换无需重启 (用 `@RefreshScope` + Nacos config, 项目已有 Nacos 集成) 。
+每个 flag 独立可切, 切换需 `pm2 reload ulticode-9001` (重启级, 详见 §2.8 F10 修订). Nacos Config client 集成是 ADR-008 范围, 不在本 ADR.
 
 ### 2.3 DB 迁移策略 (expand-contract)
 
@@ -242,18 +247,18 @@ public class OutboxShadowComparator {
 | 风险 | 缓解 |
 |---|---|
 | Feature flag 长时间未清理 → 代码遍布 `if (flag)` 分支变僵尸 | 每个 flag 在引入 ADR 中标注 "removal milestone" , cutover 完成立即开 cleanup PR |
-| Nacos 配置漂移 → 生产 flag 与代码默认值不一致 | 启动时打印所有 `ulticode.features.*` 当前值, 写 prod runbook |
+| Nacos 配置漂移 → 生产 flag 与代码默认值不一致 | 启动时打印所有 `app.features.*` 当前值, 写 prod runbook |
 | 双轨期一致性 bug (新旧 path 行为微差) | M2a/M3a/M4a 各加"双跑校验" 模式 (shadow mode): 新 path 跑但不写结果, 比对与旧 path 是否一致, 不一致告警 |
 | 11 milestone 拖战线过长 → 人换团队失忆 | 每完成一个 milestone 更新本 ADR 状态表, ADR-005 § 2.1 表格添加 "shipped at" 列 |
 | Contest 窗口限制让进度卡死 | 与运营对齐 12 周 release cadence, 每周固定窗口 |
 
 ## 4. Validation (针对本 ADR 自身)
 
-- [ ] 11 个 milestone 全部录入项目 issue tracker (每 milestone 一个 issue + acceptance criteria)
-- [ ] Staging 环境**首次** rollback drill 完成时间记录到本 ADR § 2.6 表中
-- [ ] Nacos `ulticode.features.*` 配置项交接给运维, 文档化在 `docs/RUNBOOK.md`
-- [ ] CI 加入 "all features off" 与 "all features on" 两套测试 profile
-- [ ] DB 迁移文件名遵守 `V{ts}__{description}.sql` 格式 (CLAUDE.md 约定)
+- [ ] **10** 个 milestone 全部录入项目 issue tracker (每 milestone 一个 issue + acceptance criteria) — 见 `scripts/adr-005/create-milestone-issues.sh` 脚本 (commit 待用户手动跑)
+- [ ] Dev 拓扑 (与 staging 等价) **首次** rollback drill 完成时间记录到本 ADR § 2.6 表中
+- [ ] `app.features.*` 配置项交接给运维, 文档化在 `docs/RUNBOOK.md` §10
+- [ ] CI 加入 "all features off" 与 "all features on" 两套测试 profile — `application-features-{off,on}.yml` + ci.yml matrix
+- [ ] DB 迁移文件名遵守 `V{ts}__{description}.sql` 格式 (CLAUDE.md 约定) — `flyway-filename-lint` job
 
 ## 5. References
 

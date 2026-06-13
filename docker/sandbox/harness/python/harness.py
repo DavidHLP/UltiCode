@@ -23,6 +23,8 @@ from oj_types import ListNode, TreeNode
 LIST_NODE_TRAVERSAL_CAP = 100_000
 MAX_JSONABLE_DEPTH = 512
 MAX_JSONABLE_NODES = 1_000_000
+MAX_USER_STDOUT_BYTES = 64 * 1024
+MAX_USER_STDERR_BYTES = 64 * 1024
 
 
 def to_list_node(values: Optional[List[Any]]) -> Optional[ListNode]:

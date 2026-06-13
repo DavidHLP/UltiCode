@@ -10,6 +10,9 @@ import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.job.JobProcessor;
+import com.ulticode.modules.queue.port.JudgeJobEnvelope;
+import com.ulticode.modules.queue.port.JudgeJobHandle;
+import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
@@ -30,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -87,6 +91,13 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final FeatureFlagsProperties featureFlags;
     /** Nullable; {@code judge.lease.miss_renew} is a no-op without a registry. */
     private final MeterRegistry meterRegistry;
+    /**
+     * ADR-003 M3c-3a: provider (not direct injection) so the worker compiles
+     * even when no {@link JudgeQueue} bean is registered (i.e. before the
+     * M3c-2 cutover). Resolves to null in M3a/M3b; resolves to the Streams
+     * adapter once the port flag is on.
+     */
+    private final ObjectProvider<JudgeQueue> judgeQueueProvider;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
 
@@ -132,6 +143,103 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         } catch (Exception e) {
             log.error("JudgeWorkerProcessor.pollAndProcess failed", e);
         }
+    }
+
+    /**
+     * ADR-003 M3c-3a: poll the {@link JudgeQueue} port for v1/v2 envelopes
+     * and process them through the fenced path. Runs in parallel to
+     * {@link #pollAndProcess()}; whichever port is active drives
+     * production. The two loops are mutually exclusive at the broker
+     * (ADR-005 F8): when {@code app.features.judge-queue.use-port=true}
+     * the dispatcher stops writing to the legacy RQueue, so this loop
+     * is the only consumer.
+     *
+     * <p>No-op when the port flag is off or the port bean is not
+     * registered (i.e. before the M3c-2 cutover); the legacy loop above
+     * keeps running unchanged.
+     */
+    @Scheduled(
+            fixedDelayString = "${judge.port.poll-interval-ms:1000}",
+            initialDelayString = "${judge.port.initial-delay-ms:5000}"
+    )
+    public void pollAndProcessFromPort() {
+        if (!featureFlags.isJudgeQueueUsePort()) {
+            return;
+        }
+        JudgeQueue port = judgeQueueProvider.getIfAvailable();
+        if (port == null) {
+            return;
+        }
+        try {
+            if (activeJobs.get() >= queueConfig.getMaxConcurrentJobs()) {
+                return;
+            }
+            // Short poll so the loop can drain a few entries per tick.
+            java.util.Optional<JudgeJobHandle> maybeHandle = port.poll(500L);
+            if (maybeHandle.isEmpty()) {
+                return;
+            }
+            JudgeJobHandle handle = maybeHandle.get();
+            activeJobs.incrementAndGet();
+            try {
+                processJobFromPort(port, handle);
+            } finally {
+                activeJobs.decrementAndGet();
+            }
+        } catch (Exception e) {
+            log.error("JudgeWorkerProcessor.pollAndProcessFromPort failed", e);
+        }
+    }
+
+    /**
+     * ADR-003 M3c-3a fenced judging path for envelopes read from the
+     * {@link JudgeQueue} port. The v2 envelope carries its own
+     * {@code attemptId} and {@code generation} (set by the dispatcher on
+     * commit) so the worker does not generate either: it uses the
+     * dispatcher's claim token, ensuring the fence CAS targets the same
+     * (generation, attemptId) pair the dispatcher recorded in the
+     * outbox row.
+     */
+    private void processJobFromPort(JudgeQueue port, JudgeJobHandle handle) {
+        JudgeJobEnvelope envelope = handle.envelope();
+        String submissionId = envelope.submissionId();
+        String problemId = envelope.problemId();
+        String userId = envelope.userId();
+        String attemptId = envelope.attemptId() != null
+                ? envelope.attemptId()
+                : UUID.randomUUID().toString();
+        long generation = envelope.generation() != null ? envelope.generation() : 1L;
+
+        // 1. Acquire the lease using the dispatcher's attemptId so the
+        //    fence CAS matches the outbox row's intent. affected = 0 ->
+        //    already judging or generation moved; abandon + nack so the
+        //    reaper's visibility timer can reclaim.
+        int acquired = submissionMapper.acquireLease(
+                submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
+        if (acquired != 1) {
+            log.debug("Port fenced judge: lease not acquired for submission {} gen {} (already moved)",
+                    submissionId, generation);
+            // nack with a reason so the broker retains the entry in the
+            // PEL and the unacked reaper (M3c-2) can reclaim it after
+            // visibilityTimeoutMs elapses. ack would lose the work
+            // entirely; leaving it undelivered leaves the entry stuck.
+            port.nack(handle, "lease-not-acquired:gen=" + generation);
+            return;
+        }
+
+        ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
+        try {
+            executeAndWriteFenced(
+                    submissionId, problemId, userId,
+                    envelope.language(), envelope.code(),
+                    attemptId, generation);
+        } finally {
+            stopHeartbeat(heartbeatTask);
+        }
+
+        // Ack on success. Acquire-failure path above already returned
+        // without ack; the reaper will reclaim those entries.
+        port.ack(handle);
     }
 
     /**
@@ -268,7 +376,10 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
         ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
         try {
-            executeAndWriteFenced(job, submissionId, problemId, userId, attemptId, generation);
+            executeAndWriteFenced(
+                    submissionId, problemId, userId,
+                    job.getLanguage(), job.getCode(),
+                    attemptId, generation);
         } finally {
             stopHeartbeat(heartbeatTask);
         }
@@ -276,10 +387,15 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
     /**
      * Execute the judging and write the verdict through the fenced CAS. Shared
-     * by the fenced path; isolated so the heartbeat lifecycle stays readable.
+     * by the M3b fenced path (JudgeJob from legacy RQueue) and the M3c-3a
+     * port path (JudgeJobEnvelope from {@link JudgeQueue}). Inputs are
+     * primitive strings + the dispatcher's (or locally-generated)
+     * {@code attemptId} + {@code generation} so neither caller has to
+     * expose its envelope/job structure to the other.
      */
-    private void executeAndWriteFenced(JudgeJob job, String submissionId, String problemId,
-                                       String userId, String attemptId, long generation) {
+    private void executeAndWriteFenced(String submissionId, String problemId, String userId,
+                                       String language, String code,
+                                       String attemptId, long generation) {
         try {
             // Load examples as judge cases.
             List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(Long.parseLong(problemId));
@@ -293,7 +409,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                 return;
             }
 
-            RunSubmissionDTO runDto = buildRunSubmissionDTO(job, examples);
+            RunSubmissionDTO runDto = buildRunSubmissionDTO(language, code, examples);
             RunResultDTO result = codeExecutionService.execute(runDto, Long.parseLong(problemId), userId);
 
             String verdict = determineVerdict(result.getCases());
@@ -533,9 +649,18 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     private RunSubmissionDTO buildRunSubmissionDTO(JudgeJob job, List<ProblemExample> examples) {
+        return buildRunSubmissionDTO(job.getLanguage(), job.getCode(), examples);
+    }
+
+    /**
+     * Primitive-input overload shared by the M3b fenced path (JudgeJob)
+     * and the M3c-3a port path (JudgeJobEnvelope). Extracted so neither
+     * caller has to expose its envelope type to the other.
+     */
+    private RunSubmissionDTO buildRunSubmissionDTO(String language, String code, List<ProblemExample> examples) {
         RunSubmissionDTO runDto = new RunSubmissionDTO();
-        runDto.setLanguage(job.getLanguage());
-        runDto.setCode(job.getCode());
+        runDto.setLanguage(language);
+        runDto.setCode(code);
         runDto.setTestCases(examples.stream().map(tc -> {
             RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
             rtc.setId(String.valueOf(tc.getId()));

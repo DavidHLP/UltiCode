@@ -13,8 +13,10 @@ import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import com.ulticode.modules.contest.entity.ContestSubmission;
@@ -58,15 +60,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 )
 public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
-    private static final Map<String, Integer> VERDICT_PRIORITY = Map.of(
-            "Runtime Error", 5,
-            "Memory Limit Exceeded", 4,
-            "Time Limit Exceeded", 3,
-            "Wrong Answer", 2,
-            "Presentation Error", 1,
-            "Accepted", 0
-    );
-
     private final QueueService queueService;
     private final CodeExecutionService codeExecutionService;
     private final SubmissionService submissionService;
@@ -75,6 +68,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final ProblemExampleMapper problemExampleMapper;
     private final QueueConfig queueConfig;
     private final ObjectMapper objectMapper;
+    private final VerdictResolver verdictResolver;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
 
@@ -230,27 +224,22 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     /**
-     * Determine the final verdict from case results using priority ordering.
-     * Priority: Runtime Error > Memory Limit Exceeded > Time Limit Exceeded
-     * > Wrong Answer > Presentation Error > Accepted.
+     * Determine the final verdict from case results using {@link VerdictResolver}
+     * (ADR-001). Severity priority embedded in {@link SubmissionStatus#getSeverity()}:
+     * Sandbox Error / System Error > Compile Error > Runtime Error > Memory/Output
+     * Limit Exceeded > Time Limit Exceeded > Wrong Answer > Presentation Error > Accepted.
+     * Returns the wire-string form so callers that still hold String-typed status
+     * fields keep working unchanged.
      */
     String determineVerdict(List<RunResultDTO.RunCaseResult> cases) {
         if (cases == null || cases.isEmpty()) {
-            return "System Error";
+            return SubmissionStatus.SYSTEM_ERROR.wireValue();
         }
-
-        int highestPriority = -1;
-        String worstVerdict = "Accepted";
-
+        List<String> caseWireValues = new ArrayList<>(cases.size());
         for (RunResultDTO.RunCaseResult caseResult : cases) {
-            int priority = VERDICT_PRIORITY.getOrDefault(caseResult.getStatus(), 0);
-            if (priority > highestPriority) {
-                highestPriority = priority;
-                worstVerdict = caseResult.getStatus();
-            }
+            caseWireValues.add(caseResult.getStatus());
         }
-
-        return worstVerdict;
+        return verdictResolver.reduceWire(caseWireValues).wireValue();
     }
 
     /**

@@ -233,6 +233,12 @@ app:
       # on decode; flipping this to 2 is the M3c-3 cutover for fence-aware
       # dispatches.
       envelope-version: ${JUDGE_QUEUE_ENVELOPE_VERSION:1}
+      # F13 cutover watermark: only outbox rows with created_at >=
+      # cutover-at AND is_shadow=0 are real-dispatched. Default epoch
+      # (1970-01-01) means "no row qualifies" — i.e. real dispatch is
+      # inert until an operator sets this on the canary host. The M3c
+      # cutover runbook specifies the exact ISO-8601 timestamp to set.
+      cutover-at: ${JUDGE_QUEUE_CUTOVER_AT:1970-01-01T00:00:00}
 
 # Audit configuration
 audit:

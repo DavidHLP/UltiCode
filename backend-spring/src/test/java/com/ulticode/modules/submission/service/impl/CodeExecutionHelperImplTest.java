@@ -6,55 +6,221 @@ import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Base64;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DisplayName("CodeExecutionHelperImpl")
+@DisplayName("CodeExecutionHelperImpl (D-form)")
 class CodeExecutionHelperImplTest {
 
     private final CodeExecutionHelperImpl helper = new CodeExecutionHelperImpl(new ObjectMapper());
 
+    // ── buildDInputsJson / buildDBatchInputsJson ────────────────────────────
+
     @Test
-    @DisplayName("Python batch wrapper runs Solution.addTwoNumbers with list-node inputs")
-    void buildPythonBatchWrapper_solutionClassListNodeInputs_returnsSerializedList() throws Exception {
-        RunSubmissionDTO.RunTestCase testCase = createTestCase();
-        String script = helper.buildPythonBatchWrapper("""
-                class Solution:
-                    def addTwoNumbers(self, l1, l2):
-                        dummy = ListNode(0)
-                        cur, carry = dummy, 0
-                        while l1 or l2 or carry:
-                            v1 = l1.val if l1 else 0
-                            v2 = l2.val if l2 else 0
-                            s = v1 + v2 + carry
-                            cur.next = ListNode(s % 10)
-                            carry = s // 10
-                            cur = cur.next
-                            l1 = l1.next if l1 else None
-                            l2 = l2.next if l2 else None
-                        return dummy.next
-                """, List.of(testCase));
+    @DisplayName("buildDInputsJson wraps a single test case in the harness input.json schema")
+    void buildDInputsJson_singleCase() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        String json = helper.buildDInputsJson(tc, 1_000L);
 
-        String stdout = runPython(script, helper.buildBatchInputsJson(List.of(testCase)));
-
-        List<RunResultDTO.RunCaseResult> results = helper.parseBatchResults(
-                stdout, List.of(testCase), "run-1", null);
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getOutput()).isEqualTo("[7, 0, 8]");
-        assertThat(results.get(0).getStatus()).isEqualTo("Accepted");
+        // snake_case keys, per_case_timeout_ms at top, cases[].inputs[]
+        assertThat(json).contains("\"per_case_timeout_ms\":1000");
+        assertThat(json).contains("\"cases\":[");
+        assertThat(json).contains("\"case_id\":\"pe-002-1\"");
+        assertThat(json).contains("\"expected_output\":\"[7,0,8]\"");
+        assertThat(json).contains("\"name\":\"l1\"");
+        assertThat(json).contains("\"value\":\"[2,4,3]\"");
+        // no type field on RunInput yet
+        assertThat(json).doesNotContain("\"type\"");
     }
 
-    private RunSubmissionDTO.RunTestCase createTestCase() {
+    @Test
+    @DisplayName("buildDInputsJson forwards the RunInput.type field when set and supported")
+    void buildDInputsJson_typeFieldForwarded() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        tc.getInputs().get(0).setType("ListNode");
+        tc.getInputs().get(1).setType("ListNode[]");
+        String json = helper.buildDInputsJson(tc, 1_000L);
+        assertThat(json).contains("\"type\":\"ListNode\"");
+        assertThat(json).contains("\"type\":\"ListNode[]\"");
+    }
+
+    @Test
+    @DisplayName("buildDInputsJson drops unsupported type silently (defense in depth)")
+    void buildDInputsJson_unsupportedTypeDropped() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        tc.getInputs().get(0).setType("NotARealType");
+        String json = helper.buildDInputsJson(tc, 1_000L);
+        assertThat(json).doesNotContain("NotARealType");
+        // but the field is omitted cleanly — no junk like "type":null
+        assertThat(json).doesNotContain("\"type\":null");
+    }
+
+    @Test
+    @DisplayName("buildDBatchInputsJson emits one cases[] entry per test case in order")
+    void buildDBatchInputsJson_multipleCases() throws Exception {
+        RunSubmissionDTO.RunTestCase tc1 = singleCase();
+        RunSubmissionDTO.RunTestCase tc2 = singleCase();
+        tc2.setId("pe-002-2");
+        String json = helper.buildDBatchInputsJson(List.of(tc1, tc2), 2_000L);
+        assertThat(json).contains("\"per_case_timeout_ms\":2000");
+        // Both case_ids present, in input order
+        int idx1 = json.indexOf("\"case_id\":\"pe-002-1\"");
+        int idx2 = json.indexOf("\"case_id\":\"pe-002-2\"");
+        assertThat(idx1).isGreaterThan(0);
+        assertThat(idx2).isGreaterThan(idx1);
+    }
+
+    // ── parseDEnvelope ───────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("parseDEnvelope returns one Accepted result per case for a clean envelope")
+    void parseDEnvelope_happyPath() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        String envelope = """
+                {
+                  "harness_version":"1.0",
+                  "language":"java",
+                  "exit_code":0,
+                  "total_elapsed_ms":42,
+                  "results":[
+                    {"case_id":"pe-002-1","label":"Case 1","elapsed_ms":2,"status":"Accepted","result":7,"interrupted":false}
+                  ]
+                }
+                """;
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope(envelope, List.of(tc), "run-1", "user-1");
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getStatus()).isEqualTo("Accepted");
+        assertThat(out.get(0).getOutput()).isEqualTo("7");
+        assertThat(out.get(0).getRuntime()).isEqualTo("2ms");
+    }
+
+    @Test
+    @DisplayName("parseDEnvelope surfaces per-case error as Runtime Error")
+    void parseDEnvelope_perCaseError() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        String envelope = """
+                {
+                  "exit_code":0,
+                  "results":[
+                    {"case_id":"pe-002-1","label":"Case 1","elapsed_ms":5,
+                     "status":"Runtime Error",
+                     "error":{"type":"java.lang.NullPointerException",
+                             "message":"user code blew up",
+                             "stack":["Solution.java:14 in bomb"]}}
+                  ]
+                }
+                """;
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope(envelope, List.of(tc), "run-1", "user-1");
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getStatus()).isEqualTo("Runtime Error");
+        assertThat(out.get(0).getDetail())
+                .contains("[java.lang.NullPointerException]")
+                .contains("user code blew up");
+    }
+
+    @Test
+    @DisplayName("parseDEnvelope returns Runtime Error for every case when exit_code != 0 (harness panic)")
+    void parseDEnvelope_harnessPanic() throws Exception {
+        RunSubmissionDTO.RunTestCase tc1 = singleCase();
+        RunSubmissionDTO.RunTestCase tc2 = singleCase();
+        tc2.setId("pe-002-2");
+        String envelope = """
+                {"exit_code":2,"results":[]}
+                """;
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope(envelope, List.of(tc1, tc2), "run-1", null);
+        assertThat(out).hasSize(2);
+        assertThat(out).allMatch(r -> "Runtime Error".equals(r.getStatus()));
+        assertThat(out).allMatch(r -> r.getDetail().contains("D-form harness panic"));
+    }
+
+    @Test
+    @DisplayName("parseDEnvelope returns Runtime Error for every case when stdout is empty")
+    void parseDEnvelope_emptyStdout() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope("", List.of(tc), "run-1", "user-1");
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getStatus()).isEqualTo("Runtime Error");
+        assertThat(out.get(0).getDetail()).contains("no envelope");
+    }
+
+    @Test
+    @DisplayName("parseDEnvelope returns Runtime Error for every case when stdout is unparseable JSON")
+    void parseDEnvelope_unparseableJson() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope("not json at all", List.of(tc), "run-1", "user-1");
+        assertThat(out).hasSize(1);
+        assertThat(out.get(0).getStatus()).isEqualTo("Runtime Error");
+        assertThat(out.get(0).getDetail()).contains("envelope unparseable");
+    }
+
+    @Test
+    @DisplayName("parseDEnvelope maps a wrong-answer verdict to Wrong Answer with output")
+    void parseDEnvelope_wrongAnswer() throws Exception {
+        RunSubmissionDTO.RunTestCase tc = singleCase();
+        String envelope = """
+                {"exit_code":0,"results":[
+                  {"case_id":"pe-002-1","label":"Case 1","elapsed_ms":3,
+                   "status":"Wrong Answer","result":"[9,9,9]"}
+                ]}
+                """;
+        List<RunResultDTO.RunCaseResult> out = helper.parseDEnvelope(envelope, List.of(tc), "run-1", null);
+        assertThat(out.get(0).getStatus()).isEqualTo("Wrong Answer");
+        assertThat(out.get(0).getOutput()).isEqualTo("[9,9,9]");
+    }
+
+    // ── utility helpers (kept from Form A, regression) ───────────────────────
+
+    @Test
+    @DisplayName("parseRuntimeMs handles 'ms' suffix, 's' suffix, and bare numbers")
+    void parseRuntimeMs_formats() {
+        assertThat(helper.parseRuntimeMs("42ms")).isEqualTo(42L);
+        assertThat(helper.parseRuntimeMs("  100ms  ")).isEqualTo(100L);
+        assertThat(helper.parseRuntimeMs("0.5s")).isEqualTo(500L);
+        assertThat(helper.parseRuntimeMs("3")).isEqualTo(3L);
+        assertThat(helper.parseRuntimeMs(null)).isEqualTo(0L);
+        assertThat(helper.parseRuntimeMs("garbage")).isEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("extractFunctionName finds the user method name after a keyword")
+    void extractFunctionName_basic() {
+        // The identifier scanner walks back from '(' to the start of the
+        // last Java-identifier-prefixed token. For "public int[] twoSum("
+        // that lands on "twoSum" (the return type "int[]" is a Java type
+        // expression, not an identifier, and is skipped).
+        String java = "class Solution {\n    public int[] twoSum(int[] a, int b) { return a; }\n}";
+        assertThat(helper.extractFunctionName(java, "public ")).isEqualTo("twoSum");
+        // Python def
+        String py = "class Solution:\n    def reverse(self, head):\n        return None";
+        assertThat(helper.extractFunctionName(py, "def ")).isEqualTo("reverse");
+    }
+
+    @Test
+    @DisplayName("sanitizeSandboxOutput returns 'Runtime error' for null input")
+    void sanitizeSandboxOutput_nullInput() {
+        assertThat(helper.sanitizeSandboxOutput(null)).isEqualTo("Runtime error");
+    }
+
+    @Test
+    @DisplayName("normalizeOutput collapses whitespace and removes trailing commas before ] or }")
+    void normalizeOutput_trimsAndDedupes() {
+        // Whitespace gets collapsed to single spaces (including interior);
+        // trailing commas before ] or } are stripped.
+        assertThat(helper.normalizeOutput("  [1, 2, 3,]  ")).isEqualTo("[1,2,3]");
+        assertThat(helper.normalizeOutput("{\"a\": 1, }")).isEqualTo("{\"a\": 1}");
+    }
+
+    @Test
+    @DisplayName("emptyResult is a 'System Error' envelope with no cases")
+    void emptyResult_isSystemErrorEnvelope() {
+        RunResultDTO r = helper.emptyResult(42L, "user-1");
+        assertThat(r.getVerdict()).isEqualTo("System Error");
+        assertThat(r.getCases()).isEmpty();
+        assertThat(r.getProblemId()).isEqualTo(42L);
+    }
+
+    private RunSubmissionDTO.RunTestCase singleCase() {
         RunSubmissionDTO.RunTestCase testCase = new RunSubmissionDTO.RunTestCase();
         testCase.setId("pe-002-1");
         testCase.setLabel("Case 1");
@@ -70,264 +236,5 @@ class CodeExecutionHelperImplTest {
 
         testCase.setInputs(List.of(l1, l2));
         return testCase;
-    }
-
-    private String runPython(String script, String input) throws IOException, InterruptedException {
-        Process process = new ProcessBuilder("python3", "-c", script).start();
-        process.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8));
-        process.getOutputStream().close();
-
-        boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-        assertThat(finished).isTrue();
-
-        String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-        String stderr = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-        assertThat(process.exitValue()).as(stderr).isZero();
-        return stdout;
-    }
-
-    @Test
-    @DisplayName("per-case timeout floor prevents subprocess.run(timeout=0) when many cases")
-    void resolvePerCaseTimeoutSeconds_largeCaseCount_floorsAtOneSecond() {
-        // Regression for review H2: 30 cases splits the budget to 1s
-        // per case; 31+ would previously degrade to 0s which is invalid for
-        // subprocess.run and would crash the wrapper.
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(30)).isEqualTo(1);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(31)).isEqualTo(1);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(100)).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("per-case timeout returns the full 30s budget when no cases")
-    void resolvePerCaseTimeoutSeconds_empty_returnsFullBudget() {
-        // Harmless edge case: an empty case list still produces a
-        // well-formed wrapper, and the full budget means no spurious
-        // timeout if the wrapper does emit any work.
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(0)).isEqualTo(30);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(-1)).isEqualTo(30);
-    }
-
-    @Test
-    @DisplayName("per-case timeout splits evenly for small case counts")
-    void resolvePerCaseTimeoutSeconds_smallCount_splitsEvenly() {
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(1)).isEqualTo(30);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(2)).isEqualTo(15);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(3)).isEqualTo(10);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(6)).isEqualTo(5);
-        assertThat(CodeExecutionHelperImpl.resolvePerCaseTimeoutSeconds(15)).isEqualTo(2);
-    }
-
-    // ── Java sandbox wrapper regression tests ──────────────────────────────
-    // These tests guard review findings C1 (illegal local-method syntax in
-    // generated Main.java), H1 (helper extraction), H2 (zero coverage), and
-    // M1/M2 (regex + silent-null). The single most important check is that
-    // the assembled Main.java is *syntactically valid Java* — sandbox javac
-    // will fail on any uncaught syntax error in the generated constants.
-
-    @Test
-    @DisplayName("Java batch wrapper decodes to syntactically valid Main.java (ListNode path)")
-    void buildJavaBatchWrapper_listNode_decodesToValidJava() throws Exception {
-        String code = """
-                public class Solution {
-                    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
-                        return l1;
-                    }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.buildJavaBatchWrapper(code, List.of()));
-        Path tmp = writeMainSource(mainSource);
-        try {
-            assertCompiles(tmp);
-            assertThat(mainSource)
-                    .as("Generated source should declare ListNode class and conversion helpers")
-                    .contains("class ListNode")
-                    .contains("static ListNode toListNode")
-                    .contains("static Object fromListNode");
-        } finally {
-            Files.deleteIfExists(tmp);
-        }
-    }
-
-    @Test
-    @DisplayName("Java batch wrapper decodes to syntactically valid Main.java (no ListNode path)")
-    void buildJavaBatchWrapper_simpleClass_decodesToValidJava() throws Exception {
-        String code = """
-                public class Solution {
-                    public int[] twoSum(int[] nums, int target) {
-                        return new int[]{0, 1};
-                    }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.buildJavaBatchWrapper(code, List.of()));
-        Path tmp = writeMainSource(mainSource);
-        try {
-            assertCompiles(tmp);
-            // Helpers are always included now so the generated main is a single uniform shape.
-            assertThat(mainSource)
-                    .as("Helpers are always present (uniform generated main shape)")
-                    .contains("class ListNode")
-                    .contains("static ListNode toListNode")
-                    .contains("static Object adaptArg")
-                    .contains("static Object jsonable");
-        } finally {
-            Files.deleteIfExists(tmp);
-        }
-    }
-
-    @Test
-    @DisplayName("Java batch wrapper decodes to valid Main.java even with no class Solution (free-form pass-through)")
-    void buildJavaBatchWrapper_freeForm_decodesToValidJava() throws Exception {
-        String code = """
-                public class Hello {
-                    public static void main(String[] args) {
-                        System.out.println("hi");
-                    }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.buildJavaBatchWrapper(code, List.of()));
-        Path tmp = writeMainSource(mainSource);
-        try {
-            assertCompiles(tmp);
-            assertThat(mainSource)
-                    .as("Free-form code path echoes input unchanged")
-                    .contains("System.out.print(input)");
-        } finally {
-            Files.deleteIfExists(tmp);
-        }
-    }
-
-    @Test
-    @DisplayName("Java batch wrapper strips public from class Solution to avoid clash with public class Main")
-    void buildJavaBatchWrapper_stripsPublicFromUserClass() throws Exception {
-        String code = """
-                public class Solution {
-                    public int answer() { return 42; }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.buildJavaBatchWrapper(code, List.of()));
-        // Only one public top-level class per .java file. After stripping,
-        // the file's public class must be Main, not the user's Solution.
-        long publicClassCount = mainSource.lines()
-                .filter(line -> line.trim().startsWith("public class "))
-                .count();
-        assertThat(publicClassCount)
-                .as("Exactly one public top-level class (Main) must remain after stripping")
-                .isEqualTo(1L);
-        assertThat(mainSource)
-                .as("User class must lose its 'public' modifier")
-                .contains("class Solution {")
-                .doesNotContainPattern("(?m)^public\\s+class\\s+Solution");
-    }
-
-    @Test
-    @DisplayName("stripPublicModifier handles final, abstract, sealed, and non-sealed modifiers")
-    void stripPublicModifier_handlesAllModifierCombinations() throws Exception {
-        Method m = CodeExecutionHelperImpl.class.getDeclaredMethod("stripPublicModifier", String.class);
-        m.setAccessible(true);
-        String input = String.join("\n",
-                "public final class FinalSolution { void f() {} }",
-                "public abstract class AbstractSolution { void f(); }",
-                "public sealed class SealedSolution permits Child { }",
-                "public non-sealed class NonSealedSolution extends Parent { }",
-                "public static class StaticSolution { void f() {} }",
-                "public class PlainSolution { void f() {} }");
-        String stripped = (String) m.invoke(helper, input);
-        // All leading 'public ... class' must be reduced to 'class '.
-        assertThat(stripped)
-                .contains("class FinalSolution")
-                .contains("class AbstractSolution")
-                .contains("class SealedSolution")
-                .contains("class NonSealedSolution")
-                .contains("class StaticSolution")
-                .contains("class PlainSolution")
-                .doesNotContain("public final class")
-                .doesNotContain("public abstract class")
-                .doesNotContain("public sealed class")
-                .doesNotContain("public non-sealed class")
-                .doesNotContain("public static class")
-                .doesNotContain("public class PlainSolution");
-    }
-
-    @Test
-    @DisplayName("Java batch wrapper throws a RuntimeException (not silent null) when Solution has no public method")
-    void buildJavaBatchWrapper_noPublicMethod_throwsRuntimeException() throws Exception {
-        // A Solution class where every method is private — the reflective
-        // selector must throw, not silently emit "null" and pass.
-        String code = """
-                public class Solution {
-                    private int hidden() { return 0; }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.buildJavaBatchWrapper(code, List.of()));
-        assertThat(mainSource)
-                .as("Generated main must throw, not emit 'null' silently")
-                .contains("throw new RuntimeException")
-                .doesNotContainPattern("System\\.out\\.print\\(\"null\"\\)");
-    }
-
-    @Test
-    @DisplayName("wrapJava single-execution path also decodes to valid Main.java")
-    void wrapJava_decodesToValidJava() throws Exception {
-        String code = """
-                public class Solution {
-                    public int answer() { return 42; }
-                }
-                """;
-        String mainSource = decodeMainSource(helper.wrapJava(code));
-        Path tmp = writeMainSource(mainSource);
-        try {
-            assertCompiles(tmp);
-        } finally {
-            Files.deleteIfExists(tmp);
-        }
-    }
-
-    /**
-     * Pulls the base64-encoded Main.java source out of the shell wrapper the
-     * helper produces. The wrapper is shaped like
-     * {@code echo '<b64>' | base64 -d > /tmp/Main.java && javac ...}, so a single
-     * regex recovers the payload.
-     */
-    private String decodeMainSource(String wrapper) {
-        Matcher m = Pattern.compile("echo '([A-Za-z0-9+/=]+)' \\| base64").matcher(wrapper);
-        assertThat(m.find()).as("Wrapper should contain a base64 payload: " + wrapper).isTrue();
-        return new String(Base64.getDecoder().decode(m.group(1)), StandardCharsets.UTF_8);
-    }
-
-    /**
-     * Writes the decoded Main.java source to a temp file named {@code Main.java} in a fresh
-     * directory. Java requires the file name to match the public class name, so the temp file
-     * cannot be a random UUID-suffixed name. The returned path is the file itself; the
-     * directory is intentionally left in place (one-shot test).
-     */
-    private Path writeMainSource(String mainSource) throws IOException {
-        Path dir = Files.createTempDirectory("UltiCodeMain_");
-        Path file = dir.resolve("Main.java");
-        Files.writeString(file, mainSource, StandardCharsets.UTF_8);
-        return file;
-    }
-
-    /**
-     * Compile the given Java source with the system {@code javac}. Throws an
-     * {@link AssertionError} with the compiler's stderr if compilation fails.
-     * This is the regression net for review finding C1: any future string
-     * constant that produces illegal local-method syntax will be caught here
-     * instead of in the sandbox.
-     */
-    private void assertCompiles(Path javaFile) throws IOException, InterruptedException {
-        Path outDir = Files.createTempDirectory("UltiCodeMainOut_");
-        try {
-            Process javac = new ProcessBuilder("javac", "-d", outDir.toString(), javaFile.toString())
-                    .redirectErrorStream(true)
-                    .start();
-            String output = new String(javac.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            boolean finished = javac.waitFor(30, TimeUnit.SECONDS);
-            assertThat(finished).as("javac timed out: " + output).isTrue();
-            assertThat(javac.exitValue())
-                    .as("javac failed for " + javaFile + ":\n" + output)
-                    .isZero();
-        } finally {
-            // Best-effort cleanup; ignore failures
-        }
     }
 }

@@ -7,34 +7,49 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Helper service for code execution: per-language wrappers, result parsing, and utilities.
- * No Docker or security concerns -- pure logic.
+ * Helper service for the D-form (LeetCode/HackerRank) sandbox dispatch.
+ *
+ * <p>Owns three responsibilities:
+ * <ol>
+ *   <li>Build the {@code input.json} payload the pre-compiled harness
+ *       reads from {@code /job/input.json}.
+ *   <li>Parse the JSON envelope the harness writes to stdout and map
+ *       per-case verdicts into {@link RunResultDTO.RunCaseResult}.
+ *   <li>Small utility helpers (sanitize, normalize, build empty
+ *       result) that both the dispatcher and downstream services need.
+ * </ol>
+ *
+ * <p>No Docker, security, or per-language wrapper code lives here —
+ * the harness in the sandbox image does that. This is pure data
+ * shaping against the wire contract.
  */
 public interface CodeExecutionHelper {
 
+    /**
+     * Languages the codebase advertises in the API. Kept as a Set
+     * so the controller can validate before reaching the dispatcher.
+     * (The actual set of languages whose execution paths are
+     * implemented lives in {@link #DFORM_SUPPORTED_LANGUAGES}.)
+     */
     Set<String> SUPPORTED_LANGUAGES = Set.of(
             "javascript", "python", "java", "c", "cpp"
     );
 
-    String buildWrapperScript(String language, String code, List<RunSubmissionDTO.RunTestCase> testCases);
-
-    String buildBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases);
-
-    List<RunResultDTO.RunCaseResult> parseBatchResults(String stdout,
-                                                        List<RunSubmissionDTO.RunTestCase> testCases,
-                                                        String runId, String userId);
-
-    String wrapJavaScript(String code);
-
-    String wrapPython(String code);
-
-    String wrapJava(String code);
+    /**
+     * Languages the D-form harness actually supports. Smaller than
+     * {@link #SUPPORTED_LANGUAGES} because:
+     * <ul>
+     *   <li>JavaScript isn't part of the migration (no JS harness yet)
+     *   <li>C and C++ D-form dispatch needs a complete harness
+     *       implementation (the {@code docker/sandbox/harness/{c,cpp}/}
+     *       trees are Phase 1 smoke skeletons that don't read
+     *       {@code input.json}). Re-add after envelope-producing
+     *       C/C++ harnesses ship.
+     * </ul>
+     */
+    Set<String> DFORM_SUPPORTED_LANGUAGES = Set.of("java", "python");
 
     String extractFunctionName(String code, String keyword);
-
-    String buildInputsJson(RunSubmissionDTO.RunTestCase testCase);
-
-    String parseInputValue(String value);
 
     String normalizeOutput(String output);
 
@@ -50,17 +65,9 @@ public interface CodeExecutionHelper {
                                                String output, String detail,
                                                double memoryMb);
 
-    // ── D-form (LeetCode/HackerRank harness) ─────────────────────────────────
-    // The legacy buildWrapperScript / buildBatchInputsJson / parseBatchResults
-    // trio above builds a per-request bash wrapper. D-form instead pre-compiles
-    // the harness into the sandbox image (docker/sandbox/harness/{lang}/) and
-    // ships a single static input.json to it. These three methods produce
-    // and parse that contract.
-
     /**
      * Build the single-case {@code input.json} payload that the D-form
-     * harness reads from {@code /job/input.json}. Mirrors the Java harness's
-     * {@link com.ulticode.modules.submission.dto.InputSpecDTO} contract.
+     * harness reads from {@code /job/input.json}.
      *
      * @param perCaseTimeoutMs soft timeout forwarded to the harness
      *                         (Thread.interrupt inside the harness worker)
@@ -76,24 +83,11 @@ public interface CodeExecutionHelper {
     /**
      * Parse the JSON envelope the harness wrote to stdout. Returns one
      * {@link RunResultDTO.RunCaseResult} per test case (in the same order
-     * as {@code testCases}). On envelope parse failure, returns a single
-     * Runtime Error result for the whole batch so the caller still gets
-     * a well-formed list back.
+     * as {@code testCases}). On envelope parse failure, returns one
+     * Runtime Error per test case so the caller still gets a
+     * well-formed list back.
      */
     List<RunResultDTO.RunCaseResult> parseDEnvelope(String stdout,
                                                      List<RunSubmissionDTO.RunTestCase> testCases,
                                                      String runId, String userId);
-
-    /**
-     * Languages the D-form harness currently supports. Smaller than
-     * {@link #SUPPORTED_LANGUAGES} because:
-     * <ul>
-     *   <li>JavaScript isn't part of the Phase 3 migration (no JS harness yet)
-     *   <li>C and C++ D-form dispatch needs a complete harness implementation
-     *       (current {@code docker/sandbox/harness/{c,cpp}/} are Phase 1 smoke
-     *       skeletons that don't read {@code input.json}). Re-add after
-     *       Phase 3.X ships envelope-producing C/C++ harnesses.
-     * </ul>
-     */
-    java.util.Set<String> DFORM_SUPPORTED_LANGUAGES = java.util.Set.of("java", "python");
 }

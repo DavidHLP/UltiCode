@@ -77,7 +77,13 @@ public interface NotificationService {
     void deleteNotification(String userId, String notificationId);
 
     /**
-     * Create a notification for a user.
+     * Create a notification for a user. Also mirrors to the WebSocket
+     * {@code /user/queue/notifications} topic so connected sessions receive
+     * a real-time {@code NotificationPayload}. This is the legacy
+     * {@code NotificationDispatchService} entry point; the new
+     * {@code InAppNotificationChannel} (ADR-004 M4b) uses
+     * {@link #createNotificationRowOnly} instead so the WebSocket push is
+     * owned by {@code WebSocketNotificationChannel} on its own.
      *
      * @param userId   the user ID
      * @param type     the notification type
@@ -91,4 +97,19 @@ public interface NotificationService {
     NotificationVO createNotification(String userId, String type, String category,
                                        String title, String body, String link,
                                        Map<String, Object> metadata);
+
+    /**
+     * Insert a notification row only — no WebSocket mirror. ADR-004 M4b entry
+     * point used by {@code InAppNotificationChannel}; the WebSocket push is
+     * handled separately by {@code WebSocketNotificationChannel} so the
+     * dispatcher fan-out controls the failure-isolation boundary.
+     *
+     * <p>Behavior is otherwise identical to {@link #createNotification} — same
+     * defaults (isRead=false, id=ASSIGN_UUID, metadata JSON-serialized) — so
+     * the existing {@code notification} row shape is unchanged from the
+     * legacy path. Validation matrix (ADR-004 §4 #4): row schema unchanged.
+     */
+    NotificationVO createNotificationRowOnly(String userId, String type, String category,
+                                              String title, String body, String link,
+                                              Map<String, Object> metadata);
 }

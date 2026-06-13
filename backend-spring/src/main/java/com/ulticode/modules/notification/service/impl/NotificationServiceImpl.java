@@ -195,6 +195,34 @@ public class NotificationServiceImpl implements NotificationService {
     public NotificationVO createNotification(String userId, String type, String category,
                                               String title, String body, String link,
                                               Map<String, Object> metadata) {
+        // Legacy path (ADR-004 M4b): the row insert is shared with the new
+        // InAppNotificationChannel; only this legacy wrapper also mirrors to
+        // the WebSocket USER_QUEUE_NOTIFICATIONS topic. The new path pushes
+        // via WebSocketNotificationChannel so failure isolation works per-channel.
+        NotificationVO vo = createNotificationRowOnly(userId, type, category, title, body, link, metadata);
+
+        // WebSocket push (fire-and-forget per D-11)
+        try {
+            realtimeService.sendNotification(userId,
+                NotificationPayload.of(
+                    vo.getId(),
+                    vo.getType(),
+                    vo.getTitle(),
+                    vo.getBody(),
+                    vo.getMetadata()
+                ));
+        } catch (Exception e) {
+            log.warn("Failed to push notification via WebSocket for user {}: {}", userId, e.getMessage());
+        }
+
+        return vo;
+    }
+
+    @Override
+    @Transactional
+    public NotificationVO createNotificationRowOnly(String userId, String type, String category,
+                                                     String title, String body, String link,
+                                                     Map<String, Object> metadata) {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setType(type);
@@ -207,21 +235,6 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationMapper.insert(notification);
         log.debug("Created notification {} for user {}", notification.getId(), userId);
-
-        // WebSocket push (fire-and-forget per D-11)
-        try {
-            realtimeService.sendNotification(userId,
-                NotificationPayload.of(
-                    notification.getId(),
-                    notification.getType(),
-                    notification.getTitle(),
-                    notification.getBody(),
-                    notification.getMetadata()
-                ));
-        } catch (Exception e) {
-            log.warn("Failed to push notification via WebSocket for user {}: {}", userId, e.getMessage());
-        }
-
         return toVO(notification);
     }
 

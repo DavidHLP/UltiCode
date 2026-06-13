@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +50,9 @@ class CodeExecutionServiceTest {
     @Mock
     private CodeExecutionHelper helper;
 
+    @Mock
+    private DockerSandboxConfig sandboxConfig;
+
     @Spy
     private VerdictResolver verdictResolver = new VerdictResolver();
 
@@ -55,7 +60,19 @@ class CodeExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        codeExecutionService = new CodeExecutionService(sandboxExecutor, helper, verdictResolver);
+        // M2a-round-2 fix (codex review F2): the facade now reads
+        // per-run defaults from DockerSandboxConfig instead of
+        // hard-coding 2s / 256 MiB. Mock the config to 10s / 256m
+        // so the existing cases exercise the same effective
+        // values the controller used to pass.
+        // lenient() because three early-return cases (unsupported
+        // language / empty / null testCases) never reach the
+        // deriveDefault* helpers, and Mockito strict-stubbing
+        // would otherwise flag the unused stubs.
+        lenient().when(sandboxConfig.timeout()).thenReturn(10);
+        lenient().when(sandboxConfig.memory()).thenReturn("256m");
+        codeExecutionService = new CodeExecutionService(
+                sandboxExecutor, helper, verdictResolver, sandboxConfig);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {

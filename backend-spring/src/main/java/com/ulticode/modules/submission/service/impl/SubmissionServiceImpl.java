@@ -83,6 +83,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
     /**
+     * ADR-004 M4c: typed intent dispatcher. Active when
+     * {@link FeatureFlagsProperties#isUseNotificationIntent()} is true.
+     * Injected here so the new path is wired; the legacy
+     * {@code NotificationDispatchService} stays injected for the rollback
+     * path.
+     */
+    private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+    /**
      * ADR-003 M3a outbox mapper. Null-safe in tests that do not exercise the
      * outbox path; production wiring is via constructor injection.
      */
@@ -331,24 +339,46 @@ public class SubmissionServiceImpl implements SubmissionService {
         // Q20: use the dispatch service. force=true because submission result
         // is system-originated — users opt out of category SYSTEM only via the
         // systemEnabled flag, which we still respect (no force for SYSTEM).
+        // ADR-004 M4c: when useNotificationIntent flag is on, fan out via
+        // the typed SubmissionCompletedIntent (InApp + Email + WebSocket,
+        // failure-isolated). Otherwise the legacy path stays active.
         try {
-            notificationDispatchService.dispatch(
-                    submission.getUserId(),
-                    "SUBMISSION",
-                    "SYSTEM",
-                    "Submission judged: " + status,
-                    "",
-                    "/submissions/" + submission.getId(),
-                    java.util.Map.of(
-                            "submissionId", submission.getId(),
-                            "problemId", submission.getProblemId(),
-                            "problemTitle", problemMapper.selectById(submission.getProblemId()) != null
-                                    ? problemMapper.selectById(submission.getProblemId()).getTitle()
-                                    : "",
-                            "status", status,
-                            "isAccepted", "Accepted".equals(status)
-                    ),
-                    false);
+            if (featureFlags.isUseNotificationIntent()) {
+                Problem problem = problemMapper.selectById(submission.getProblemId());
+                com.ulticode.modules.submission.enums.SubmissionStatus statusEnum =
+                        com.ulticode.modules.submission.enums.SubmissionStatus.fromDbName(status);
+                long elapsedMs = Math.max(0L, (long) runtime);
+                long memBytes = memory == null ? 0L : (long) (memory * 1024 * 1024);
+                notificationDispatcher.dispatch(
+                        com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
+                                submission,
+                                statusEnum != null
+                                        ? statusEnum
+                                        : com.ulticode.modules.submission.enums.SubmissionStatus.SYSTEM_ERROR,
+                                problem != null ? problem.getTitle() : "",
+                                elapsedMs,
+                                memBytes,
+                                null,
+                                null));
+            } else {
+                notificationDispatchService.dispatch(
+                        submission.getUserId(),
+                        "SUBMISSION",
+                        "SYSTEM",
+                        "Submission judged: " + status,
+                        "",
+                        "/submissions/" + submission.getId(),
+                        java.util.Map.of(
+                                "submissionId", submission.getId(),
+                                "problemId", submission.getProblemId(),
+                                "problemTitle", problemMapper.selectById(submission.getProblemId()) != null
+                                        ? problemMapper.selectById(submission.getProblemId()).getTitle()
+                                        : "",
+                                "status", status,
+                                "isAccepted", "Accepted".equals(status)
+                        ),
+                        false);
+            }
         } catch (Exception e) {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());
@@ -534,23 +564,45 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
 
         // Notification
+        // ADR-004 M4c: route through the typed dispatcher when the flag is on.
         try {
-            Problem problem = problemMapper.selectById(submission.getProblemId());
-            notificationDispatchService.dispatch(
-                    submission.getUserId(),
-                    "SUBMISSION",
-                    "SYSTEM",
-                    "Submission judged: " + status,
-                    "",
-                    "/submissions/" + submission.getId(),
-                    java.util.Map.of(
-                            "submissionId", submission.getId(),
-                            "problemId", submission.getProblemId(),
-                            "problemTitle", problem != null ? problem.getTitle() : "",
-                            "status", status,
-                            "isAccepted", "Accepted".equals(status)
-                    ),
-                    false);
+            if (featureFlags.isUseNotificationIntent()) {
+                Problem problem = problemMapper.selectById(submission.getProblemId());
+                com.ulticode.modules.submission.enums.SubmissionStatus statusEnum =
+                        com.ulticode.modules.submission.enums.SubmissionStatus.fromDbName(status);
+                Integer runtimeVal = submission.getRuntime();
+                Double memMb = submission.getMemory();
+                long elapsedMs = runtimeVal == null ? 0L : Math.max(0L, runtimeVal.longValue());
+                long memBytes = memMb == null ? 0L : (long) (memMb * 1024 * 1024);
+                notificationDispatcher.dispatch(
+                        com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
+                                submission,
+                                statusEnum != null
+                                        ? statusEnum
+                                        : com.ulticode.modules.submission.enums.SubmissionStatus.SYSTEM_ERROR,
+                                problem != null ? problem.getTitle() : "",
+                                elapsedMs,
+                                memBytes,
+                                null,
+                                null));
+            } else {
+                Problem problem = problemMapper.selectById(submission.getProblemId());
+                notificationDispatchService.dispatch(
+                        submission.getUserId(),
+                        "SUBMISSION",
+                        "SYSTEM",
+                        "Submission judged: " + status,
+                        "",
+                        "/submissions/" + submission.getId(),
+                        java.util.Map.of(
+                                "submissionId", submission.getId(),
+                                "problemId", submission.getProblemId(),
+                                "problemTitle", problem != null ? problem.getTitle() : "",
+                                "status", status,
+                                "isAccepted", "Accepted".equals(status)
+                        ),
+                        false);
+            }
         } catch (Exception e) {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());

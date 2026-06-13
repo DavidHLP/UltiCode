@@ -21,8 +21,14 @@ import java.util.Optional;
  * preference row, the dispatch defaults to <em>enabled</em> (matches the
  * DDL defaults: communication=true, marketing=false, security=true,
  * system_enabled=true).
+ *
+ * <p><b>Deprecated since ADR-004 M4a:</b> kept as the flag-off fallback
+ * while the 4 caller modules are migrated at M4c. Will be removed at M4d.
+ *
+ * @deprecated use the typed {@code NotificationDispatcher} path instead.
  */
 @Slf4j
+@Deprecated
 @Service
 @RequiredArgsConstructor
 public class NotificationDispatchServiceImpl implements NotificationDispatchService {

@@ -88,6 +88,8 @@ class SubmissionServiceImplIT {
     @Mock
     private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
     @Mock
+    private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+    @Mock
     private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
 
     private SubmissionServiceImpl submissionService;
@@ -257,6 +259,7 @@ class SubmissionServiceImplIT {
                 submissionMapper, userMapper, problemMapper, objectMapper, queueService, realtimeService,
                 contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
                 achievementTriggerService, notificationService, notificationDispatchService,
+                notificationDispatcher,
                 null, flags, null);
     }
 

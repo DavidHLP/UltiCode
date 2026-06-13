@@ -54,6 +54,7 @@ class SubmissionServiceImplTest {
     @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     @Mock private com.ulticode.modules.notification.service.NotificationService notificationService;
     @Mock private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
+    @Mock private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
 
     private SubmissionServiceImpl submissionService;
 
@@ -66,13 +67,15 @@ class SubmissionServiceImplTest {
     void setUp() {
         // ADR-003 M3a/M3b: pass null outbox mapper + flag-off FeatureFlagsProperties
         // so the legacy submit/judge path is exercised. meterRegistry null = no-op metrics.
+        // ADR-004 M4c: pass a mock NotificationDispatcher alongside the legacy
+        // dispatch service. Flags default to false → legacy path is active.
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, objectMapper, queueService,
                 realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
-                notificationService, notificationDispatchService,
+                notificationService, notificationDispatchService, notificationDispatcher,
                 null, flags, null);
     }
 

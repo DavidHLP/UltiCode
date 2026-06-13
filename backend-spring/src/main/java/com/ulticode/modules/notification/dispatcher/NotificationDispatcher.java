@@ -131,7 +131,6 @@ public class NotificationDispatcher {
                     case MARKETING    -> Boolean.TRUE.equals(p.getMarketing());
                     case SECURITY     -> Boolean.TRUE.equals(p.getSecurity());
                     case SYSTEM       -> Boolean.TRUE.equals(p.getSystemEnabled());
-                    case CONTEST      -> Boolean.TRUE.equals(p.getSystemEnabled());
                 })
                 .orElseGet(() -> intent.category() != NotificationCategory.MARKETING);
     }

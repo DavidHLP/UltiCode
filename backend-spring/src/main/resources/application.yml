@@ -144,10 +144,16 @@ code-execution:
     seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
     # D-form (LeetCode/HackerRank harness) refactor — see
     # docker/sandbox/harness/README.md and .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md
-    # Phase 2 ships the image; Phase 3 wires CodeExecutionHelperImpl to the new dispatch
-    # path; Phase 5 deletes the legacy Form A wrappers. Default false until Phase 3 lands.
+    # Phase 5 rollout: D-form is now the default dispatch path. The legacy
+    # Form A (per-request bash wrapper) path remains in
+    # CodeExecutionHelperImpl as a fallback gated by this flag for any
+    # deployment that needs to roll back (e.g. a C/C++ problem the
+    # Phase 1.5 C/C++ skeleton doesn't yet support, or a harness image
+    # that hasn't been rebuilt with the d-form artifacts). To roll back,
+    # set SANDBOX_DFORM_ENABLED=false. The fallback is on the deletion
+    # list for the next release.
     d-form:
-      enabled: ${SANDBOX_DFORM_ENABLED:false}
+      enabled: ${SANDBOX_DFORM_ENABLED:true}
       # Path inside the runtime image where the pre-compiled harness lives.
       harness-root: ${SANDBOX_DFORM_HARNESS_ROOT:/opt/harness}
     languages:

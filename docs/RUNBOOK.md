@@ -395,3 +395,70 @@ If a CI job fails:
   (`dashboard -n 1`, `thread -n 3`, `trace <Class> <method> -n 3`).
 - **Unrecoverable corruption**: dispose local data with the
   "Hard reset" recipe in §2 and re-import from backup.
+
+---
+
+## 10. Feature Flag 切换手册
+
+> 本节是 ADR-005 §4 #3 的落地. flag 定义在
+> `backend-spring/src/main/java/com/ulticode/common/config/FeatureFlagsProperties.java`,
+> 全部以 `app.features.*` 为 prefix. 切换走 `pm2 reload ulticode-9001`
+> (重启级, 详见 ADR-005 §2.8 F10 修订 + §2.6). Nacos Config client 集成是
+> ADR-008 范围, 不在本节.
+
+### 10.1 Flag 总览 (10 个, 5 产品 + 5 cutover)
+
+| Flag key (yml)                                              | Env var                                | 默认    | 切换场景                              | 风险 |
+|-------------------------------------------------------------|----------------------------------------|---------|---------------------------------------|------|
+| `app.features.use-new-contest-system`                       | `USE_NEW_CONTEST_SYSTEM`               | `false` | 新计分系统启用                        | 影响 contest verdict 流程 |
+| `app.features.realtime-ranking-enabled`                     | `REALTIME_RANKING_ENABLED`             | `true`  | WebSocket 实时榜                      | 客户端断连需 fallback 轮询 |
+| `app.features.first-solve-notifications-enabled`            | `FIRST_SOLVE_NOTIFICATIONS_ENABLED`    | `true`  | 首杀通知                              | WS 推送失败需 retry |
+| `app.features.anticheat-enabled`                            | `ANTICHEAT_ENABLED`                    | `false` | 反作弊检测                            | 高 CPU 开销, peak 风险 |
+| `app.features.contest-analytics-enabled`                    | `CONTEST_ANALYTICS_ENABLED`            | `true`  | 比赛分析生成                          | 慢查询可能影响榜单 |
+| `app.features.use-judge-outbox`                             | `USE_JUDGE_OUTBOX`                     | `false` | M3a → M3c cutover 后                  | 双 producer 重复入队 (M3c 前禁止) |
+| `app.features.use-generation-fence`                         | `USE_GENERATION_FENCE`                 | `false` | M3b 后                                | stale result 落地 (M3a 阴影期禁止) |
+| `app.features.judge-queue.use-port`                         | `JUDGE_QUEUE_USE_PORT`                 | `false` | M3c cutover                           | Redisson Streams 与旧 RQueue 路由不一致 |
+| `app.features.judge-queue.envelope-version`                 | `JUDGE_QUEUE_ENVELOPE_VERSION`         | `1`     | M3c-3 fence-aware 切 `2`              | v2 写入但 worker 还是 v1 路径会反序列化失败 |
+| `app.features.use-notification-intent`                      | `USE_NOTIFICATION_INTENT`              | `false` | M4a → M4b caller 迁移完               | 老 path 漏迁移会导致 notification 静默丢失 |
+
+注: env var 名取自 `application.yml` 中 `${XXX:default}` 占位符 — 项目自定义了
+非 Spring Boot 默认的 `APP_FEATURES_*` 转换. CI 矩阵见 `.github/workflows/ci.yml`
+中 `backend-test-features-off` / `backend-test-features-on` 两个 job.
+
+### 10.2 切换流程 (单 flag 切 1 次)
+
+1. 改 `backend-spring/src/main/resources/application-{dev,prod}.yml` (或
+   `ecosystem.config.cjs` env 段写 env var)
+2. 单 commit 切换: `flag(judge-queue.use-port): false → true, ADR-005 M3c cutover step 1`
+3. 推 PR, 等 CI 中 `backend-test` / `backend-test-features-off` /
+   `backend-test-features-on` 3 个 job 全绿
+4. `pm2 reload ulticode-9001 --update-env` (zero-downtime)
+5. `pm2 logs ulticode-9001 --nostream --lines 100 | grep -E "Started|ERROR|app.features"`
+   验证启动 + flag 加载
+6. Canary gate 24h: 见 ADR-005 §2.5
+
+### 10.3 紧急回滚
+
+```bash
+# 1. 找上次 flag 切换的 commit
+git log --oneline -5 -- backend-spring/src/main/resources/application-*.yml
+# 2. revert
+git revert <commit-sha> --no-edit
+# 3. push, CI 重跑后 pm2 reload
+pm2 reload ulticode-9001 --update-env
+# 4. 记录到 ADR-005 §2.6 表
+```
+
+### 10.4 演练 (rollback drill)
+
+每次部署到 dev 拓扑后, 至少跑 1 次对应 milestone 的 rollback drill, 记录实际耗时.
+详见 ADR-005 §2.6 + `docs/adr/ADR-005-rollback-drill-protocol.md` (新).
+
+### 10.5 启动日志确认 (临时, 等 ADR-008)
+
+```bash
+pm2 logs ulticode-9001 --nostream --lines 200 | grep -E "app\.features|FeatureFlagsStartupLogger"
+```
+
+如果看不到 flag 启动打印, 确认 `application.yml` 暴露 `app.features` 段
+(在 `backend-spring/src/main/resources/application.yml:213-246`).

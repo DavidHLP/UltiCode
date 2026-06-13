@@ -3,6 +3,7 @@ package com.ulticode.modules.submission.service;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
+import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
@@ -44,6 +45,16 @@ public class CodeExecutionService {
     private final SandboxExecutor sandboxExecutor;
     private final CodeExecutionHelper helper;
     private final VerdictResolver verdictResolver;
+    /**
+     * M2a-round-2 fix (codex review F2): defaults were hard-coded to
+     * 2s / 256 MiB which silently regressed both /run and /submit
+     * timeouts versus the pre-M2a code that read
+     * {@code sandboxConfig.timeout()} / {@code sandboxConfig.memory()}.
+     * The per-problem controller path remains the source of truth;
+     * this is the fallback when a controller has not supplied a
+     * per-run value.
+     */
+    private final DockerSandboxConfig sandboxConfig;
 
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage() == null
@@ -172,16 +183,60 @@ public class CodeExecutionService {
     }
 
     // ── Per-run defaults ─────────────────────────────────────────────────────
-    // Conservative fallbacks for /run (preview) requests where the
-    // problem's resource configuration is not on the request. The
-    // real per-run values come from the controller when this is
-    // reached from the submission/judge path; M2a keeps the diff
-    // minimal by leaving the controller wiring alone for now.
+    // M2a-round-2 fix (codex review F2): the pre-M2a code read
+    // {@code sandboxConfig.timeout()} / {@code sandboxConfig.memory()}
+    // (with the controller supplying a per-problem override for
+    // /submit). M2a's hard-coded 2s / 256 MiB silently regressed both
+    // /run and /submit; restored the config-derived defaults.
+    //
+    // The real per-run values come from the controller for /submit;
+    // /run still uses these as a fallback when the problem record
+    // has no resource configuration.
     private int deriveDefaultTimeoutSeconds() {
-        return 2;
+        // sandboxConfig.timeout() is the global default in seconds.
+        // Floor at 1s so a misconfigured 0 doesn't immediately TLE
+        // every preview.
+        return Math.max(1, sandboxConfig.timeout());
     }
 
     private int deriveDefaultMemoryMb() {
-        return 256;
+        // sandboxConfig.memory() is a docker-style string such as
+        // "256m" / "1g". Parse the numeric prefix into MiB. Anything
+        // we can't parse falls back to 256 MiB.
+        return parseMemoryMbOrDefault(sandboxConfig.memory(), 256);
+    }
+
+    /**
+     * Parse a docker-style memory string into integer MiB. Supports
+     * {@code "256m" / "1g" / "512M" / "1024"} (no suffix = MiB
+     * for backwards compatibility with the legacy config that
+     * emitted bare integers). Unknown units fall back to
+     * {@code defaultMb}.
+     */
+    static int parseMemoryMbOrDefault(String memory, int defaultMb) {
+        if (memory == null || memory.isBlank()) {
+            return defaultMb;
+        }
+        String s = memory.trim();
+        int suffixStart = s.length();
+        char last = s.charAt(suffixStart - 1);
+        if (Character.isLetter(last)) {
+            suffixStart = suffixStart - 1;
+        }
+        long n;
+        try {
+            n = Long.parseLong(s.substring(0, suffixStart).trim());
+        } catch (NumberFormatException e) {
+            return defaultMb;
+        }
+        String unit = s.substring(suffixStart).toLowerCase();
+        return switch (unit) {
+            case "" -> (int) Math.max(1, n);     // bare integer → MiB
+            case "b" -> (int) Math.max(1, n / (1024L * 1024L));
+            case "k" -> (int) Math.max(1, n / 1024L);
+            case "m" -> (int) Math.max(1, n);
+            case "g" -> (int) Math.max(1, n * 1024L);
+            default -> defaultMb;
+        };
     }
 }

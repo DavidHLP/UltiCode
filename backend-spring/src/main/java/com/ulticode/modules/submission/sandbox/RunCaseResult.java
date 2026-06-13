@@ -2,6 +2,8 @@ package com.ulticode.modules.submission.sandbox;
 
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 
+import java.util.List;
+
 /**
  * Per-test-case result produced by {@link SandboxExecutor}.
  *
@@ -32,14 +34,23 @@ import com.ulticode.modules.submission.enums.SubmissionStatus;
  *       {@code 0.0} for any other status. Partial credit problems
  *       may report a fractional value; the executor does not enforce
  *       a value-range invariant.</li>
+ *   <li>{@code output} — M2a-round-2 (codex review F3): the actual
+ *       stdout (or whatever the harness writes for the case). The
+ *       port preserves it so the DTO can hand it to
+ *       {@code JudgeWorkerProcessor}, which persists it on the
+ *       {@code submission_cases} row. May be {@code null} when the
+ *       harness did not report it (e.g. compile failure that never
+ *       ran user code).</li>
+ *   <li>{@code expectedOutput} — M2a-round-2: the expected output
+ *       the harness compared against. Carried through so the UI can
+ *       show "got X / expected Y" for {@code WRONG_ANSWER} cases.
+ *       May be {@code null} when the test case has no expected
+ *       output or the harness did not echo it back.</li>
+ *   <li>{@code inputs} — M2a-round-2: the input parameters the
+ *       harness bound to the solution. Used by the judge persistence
+ *       path to record what the case actually ran with. May be
+ *       {@code null} for legacy callers that do not supply inputs.</li>
  * </ul>
- *
- * <h2>What is NOT here</h2>
- * <p>Display-only fields (pre-formatted {@code "12ms"} /
- * {@code "22.0MB"}, {@code runId}, {@code caseLabel}, raw
- * {@code output} / {@code expectedOutput} / {@code inputs}) live on
- * the wire DTO, not on the port. The port's job is verdict + raw
- * numbers; presentation is the DTO's job.
  *
  * @see SandboxExecutor#run(SandboxJob, TestCase)
  * @see BatchRunResult
@@ -49,20 +60,39 @@ public record RunCaseResult(
         long elapsedMs,
         long memoryBytes,
         String detail,
-        double score
+        double score,
+        String output,
+        String expectedOutput,
+        List<TestCase.Input> inputs
 ) {
 
     /**
      * Convenience: build an {@link SubmissionStatus#ACCEPTED} result
-     * with score 1.0 and an empty detail.
+     * with score 1.0 and no per-case output. Use
+     * {@link #acceptedWithOutput} when the harness reported the
+     * actual stdout.
      */
     public static RunCaseResult accepted(long elapsedMs, long memoryBytes) {
-        return new RunCaseResult(SubmissionStatus.ACCEPTED, elapsedMs, memoryBytes, null, 1.0);
+        return new RunCaseResult(SubmissionStatus.ACCEPTED, elapsedMs, memoryBytes,
+                null, 1.0, null, null, null);
+    }
+
+    /**
+     * Convenience: build an {@link SubmissionStatus#ACCEPTED} result
+     * with the harness's reported stdout, expected output, and
+     * inputs preserved.
+     */
+    public static RunCaseResult acceptedWithOutput(long elapsedMs, long memoryBytes,
+                                                   String output, String expectedOutput,
+                                                   List<TestCase.Input> inputs) {
+        return new RunCaseResult(SubmissionStatus.ACCEPTED, elapsedMs, memoryBytes,
+                null, 1.0, output, expectedOutput, inputs);
     }
 
     /**
      * Convenience: build a rejected result for a non-accepted status
-     * with score 0.0 and the given detail.
+     * with score 0.0 and the given detail. Failure paths rarely have
+     * a useful {@code output}; the convenience leaves it null.
      */
     public static RunCaseResult rejected(SubmissionStatus status, String detail,
                                          long elapsedMs, long memoryBytes) {
@@ -70,6 +100,24 @@ public record RunCaseResult(
             throw new IllegalArgumentException(
                     "rejected() is for non-accepted statuses; use accepted() for ACCEPTED");
         }
-        return new RunCaseResult(status, elapsedMs, memoryBytes, detail, 0.0);
+        return new RunCaseResult(status, elapsedMs, memoryBytes,
+                detail, 0.0, null, null, null);
+    }
+
+    /**
+     * Convenience: build a rejected result that still preserves the
+     * harness's reported output (e.g. {@code WRONG_ANSWER} where the
+     * "got vs expected" comparison matters to the UI).
+     */
+    public static RunCaseResult rejectedWithOutput(SubmissionStatus status, String detail,
+                                                   long elapsedMs, long memoryBytes,
+                                                   String output, String expectedOutput,
+                                                   List<TestCase.Input> inputs) {
+        if (status == SubmissionStatus.ACCEPTED) {
+            throw new IllegalArgumentException(
+                    "rejectedWithOutput() is for non-accepted statuses; use acceptedWithOutput() for ACCEPTED");
+        }
+        return new RunCaseResult(status, elapsedMs, memoryBytes,
+                detail, 0.0, output, expectedOutput, inputs);
     }
 }

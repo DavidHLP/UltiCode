@@ -24,9 +24,11 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 echo "📋 Creating labels (idempotent)..."
+# NAME 是除最后一段外的全部 (status:shipped 类含 :, 需用 awk 反向 split)
 for LABEL in "milestone:0E8A16" "adr-005:1D76DB" "status:shipped:0E8A16" "status:pending:BFD4F2" "status:cutover-blocked:D93F0B"; do
-  NAME="${LABEL%%:*}"
-  COLOR="${LABEL##*:}"
+  COLOR="${LABEL##*:}"                      # 最后一段 = 颜色
+  NAME="${LABEL%:"$COLOR"}"                 # 去掉尾段 ":COLOR" = label 名
+  NAME="${NAME%:}"                          # 兜底去掉残留 ":"
   gh label create "$NAME" --color "$COLOR" --description "ADR-005 milestone tracking" --force >/dev/null 2>&1 || true
 done
 

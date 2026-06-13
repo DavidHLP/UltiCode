@@ -68,8 +68,11 @@ app:
 # 见 docs/RUNBOOK.md §10.6
 #
 # 注意: sandbox 切换 (`sandbox.executor`) 已在 ADR-002 落地, 不在
-# FeatureFlagsProperties 范围内, 详见 docs/RUNBOOK.md §10.7 (待 ADR-002 校核)
-# 与本 ADR §2.6 Rollback Drill 演练的 M2a 行同步
+# FeatureFlagsProperties 范围内. 实际项目用 `code-execution.sandbox.d-form.enabled`
+# (env `SANDBOX_DFORM_ENABLED`, 详见 docs/RUNBOOK.md §10.7), 自 commit `8c13ec61f`
+# 起 D-form 是唯一 dispatch 路径, **flag 不再 toggle dispatcher** — M2a 不在本
+# ADR "5min 热回滚" 演练范围, 见 §2.6 表脚注 ¹. 真正的 D-form rollback 需另起
+# ADR-009 (git revert + 重建 sandbox image).
 ```
 
 每个 flag 独立可切, 切换需 `pm2 reload ulticode-9001` (重启级, 详见 §2.8 F10 修订). Nacos Config client 集成是 ADR-008 范围, 不在本 ADR.
@@ -141,10 +144,19 @@ Worker 启动 M3c 后, **同时识别 v1 + v2** ; M3d cutover 后 envelope v1 �
 
 | Milestone | Rollback 动作 | 期望耗时 | 实际耗时 | 完成时间 (UTC) | 执行人 | 备注 |
 |-----------|--------------|----------|----------|---------------|--------|------|
-| M2a | `app.features.sandbox.executor: legacy` (待 ADR-002 校核 flag 名) + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+| M2a | ~~`app.features.sandbox.executor: legacy`~~ **不可 hot rollback**: 实际 flag `code-execution.sandbox.d-form.enabled` (env `SANDBOX_DFORM_ENABLED`) 在 commit `8c13ec61f` 后**不再 toggle dispatcher** (D-form 永远 on). 见脚注 ¹ | _N/A_ | _N/A_ | _N/A_ | M2a rollback 需 `git revert 8c13ec61f 095a01fd5` + 重建 sandbox image |
 | M3a | `app.features.use-judge-outbox: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | M3c | `app.features.judge-queue.use-port: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
 | M4a | `app.features.use-notification-intent: false` + `pm2 reload ulticode-9001` | < 5min | _TBD_ | _TBD_ | _TBD_ | _TBD_ |
+
+¹ **M2a 实际机制** (来自 `backend-spring/src/main/resources/application.yml:130-165`):
+- `code-execution.sandbox.d-form.enabled` (env `SANDBOX_DFORM_ENABLED`) 唯一作用是
+  验证 CodeExecutionService 收到的 language 集合 vs 实际可执行 harness 集合
+  (java + python only),**不**切换 dispatcher 路径
+- D-form 自 commit `8c13ec61f` 后是**唯一** dispatch 路径, Form A 旧 path 已删
+- 想真 rollback D-form 需 `git revert 8c13ec61f 095a01fd5` + 重建 sandbox image
+  (`cd docker/sandbox && ./harness/build.sh && docker build -t ulticode-sandbox:latest .`)
+- 故 M2a 不在本 ADR "5min 热回滚"演练范围, 需另起 ADR-009 (D-form rollback)
 
 Cutover milestone (M2b / M3d / M4b) 回滚需要 git revert + 重新部署, 不在热回滚范围, 因此**只在前一个 milestone 至少 7 天平稳后**才执行。
 

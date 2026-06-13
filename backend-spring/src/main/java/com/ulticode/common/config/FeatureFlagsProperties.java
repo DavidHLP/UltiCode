@@ -68,6 +68,21 @@ public class FeatureFlagsProperties {
    */
   private int judgeQueueEnvelopeVersion = 1;
 
+  /**
+   * Route notification dispatches through the {@code NotificationDispatcher}
+   * (ADR-004 M4a). When {@code true}, business callers that have been
+   * migrated build a {@link com.ulticode.modules.notification.intent.NotificationIntent}
+   * and call {@code notificationDispatcher.dispatch(intent)}; the dispatcher
+   * then fans out to the registered {@link com.ulticode.modules.notification.channel.NotificationChannel}
+   * beans ({@code in_app} / {@code email} / {@code websocket}) with
+   * per-channel {@code supports()} checks and ledger-backed idempotency.
+   * When {@code false} (default), the legacy
+   * {@code NotificationDispatchService} path stays active. The flag flips
+   * caller-by-caller at M4c; once every caller is migrated, M4d deletes
+   * the legacy service and removes this flag.
+   */
+  private boolean useNotificationIntent = false;
+
   // Getters and setters
   public boolean isUseNewContestSystem() {
     return useNewContestSystem;
@@ -139,5 +154,13 @@ public class FeatureFlagsProperties {
 
   public void setJudgeQueueEnvelopeVersion(int judgeQueueEnvelopeVersion) {
     this.judgeQueueEnvelopeVersion = judgeQueueEnvelopeVersion;
+  }
+
+  public boolean isUseNotificationIntent() {
+    return useNotificationIntent;
+  }
+
+  public void setUseNotificationIntent(boolean useNotificationIntent) {
+    this.useNotificationIntent = useNotificationIntent;
   }
 }

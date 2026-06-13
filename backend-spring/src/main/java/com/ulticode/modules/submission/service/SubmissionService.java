@@ -125,4 +125,24 @@ public interface SubmissionService {
      */
     void updateSubmissionResult(String submissionId, String status, int runtime,
                                 Double memory, List<Submission.TestCaseDetail> testDetails);
+
+    /**
+     * ADR-003 M3b fenced verdict write. Writes the verdict behind the
+     * generation+attempt CAS so a stale worker whose generation was bumped
+     * (rejudge / reaper) cannot overwrite the newer result. On fence mismatch
+     * the result is dropped and {@code judge.stale_result.dropped} increments.
+     *
+     * @param submissionId  submission id
+     * @param generation    generation the worker observed at acquire (fence axis 1)
+     * @param attemptId     attempt UUID held by the worker (fence axis 2)
+     * @param status        terminal verdict wire value
+     * @param runtime       runtime in ms
+     * @param memory        memory in MB
+     * @param testDetails   test case details
+     * @return {@code true} if the verdict was written; {@code false} if the
+     *         fence rejected it (stale result dropped)
+     */
+    boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
+                                         String status, int runtime, Double memory,
+                                         List<Submission.TestCaseDetail> testDetails);
 }

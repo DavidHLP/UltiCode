@@ -10,11 +10,28 @@ import com.ulticode.common.metrics.SqlTimingInterceptor;
 import org.apache.ibatis.reflection.MetaObject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 
 @Configuration
 public class MybatisPlusConfig {
+
+    /**
+     * Expose a {@link TransactionTemplate} built from the auto-configured
+     * {@link PlatformTransactionManager} so services (e.g. the ADR-003 fenced
+     * rejudge path) can run programmatic transactions without a separate
+     * {@code @Transactional} proxy hop. Used to keep the flag-off legacy branch
+     * non-transactional while the fenced branch runs in a single atomic txn.
+     *
+     * @param transactionManager the Spring-managed transaction manager
+     * @return a reusable transaction template
+     */
+    @Bean
+    public TransactionTemplate transactionTemplate(PlatformTransactionManager transactionManager) {
+        return new TransactionTemplate(transactionManager);
+    }
 
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {

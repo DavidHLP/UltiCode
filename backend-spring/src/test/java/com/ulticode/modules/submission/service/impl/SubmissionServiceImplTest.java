@@ -64,11 +64,16 @@ class SubmissionServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // ADR-003 M3a/M3b: pass null outbox mapper + flag-off FeatureFlagsProperties
+        // so the legacy submit/judge path is exercised. meterRegistry null = no-op metrics.
+        com.ulticode.common.config.FeatureFlagsProperties flags =
+                new com.ulticode.common.config.FeatureFlagsProperties();
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, objectMapper, queueService,
                 realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
-                notificationService, notificationDispatchService);
+                notificationService, notificationDispatchService,
+                null, flags, null);
     }
 
     private Submission createValidSubmission() {

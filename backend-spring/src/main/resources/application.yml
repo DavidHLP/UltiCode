@@ -210,6 +210,17 @@ app:
     # Threshold (ms) above which a SQL execution counts as slow.
     # Surfaced via /monitoring/database.slowQueries.
     slow-query-ms: 500
+  features:
+    # ADR-003 M3a: write a shadow judge_outbox row on submit/rejudge/reaper.
+    # The outbox dispatcher stays in shadow mode (never enqueues); the legacy
+    # RQueue remains the sole active producer until M3c cutover.
+    use-judge-outbox: ${USE_JUDGE_OUTBOX:false}
+    # ADR-003 M3b: claim submissions via CAS acquireLease, heartbeat the lease
+    # while judging, and write verdicts through writeVerdictFenced so stale
+    # results from a superseded generation are discarded. A reaper recovers
+    # crashed JUDGING rows. flag-off behavior is byte-for-byte identical to the
+    # legacy selectById+updateById path.
+    use-generation-fence: ${USE_GENERATION_FENCE:false}
 
 # Audit configuration
 audit:

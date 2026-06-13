@@ -198,6 +198,9 @@ class SubmissionServiceImplIT {
                     test_details json DEFAULT NULL,
                     memoryDistBinsMb json DEFAULT NULL,
                     runtimeDistBinsMs json DEFAULT NULL,
+                    generation bigint NOT NULL DEFAULT 1,
+                    current_attempt_id varchar(40) DEFAULT NULL,
+                    judging_lease_expires_at datetime(3) DEFAULT NULL,
                     PRIMARY KEY (id),
                     KEY submissions_user_id_fkey (user_id),
                     CONSTRAINT submissions_problem_id_fkey FOREIGN KEY (problem_id) REFERENCES problems (id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -245,10 +248,16 @@ class SubmissionServiceImplIT {
         // Create service with real mappers + mocked queueService
         com.fasterxml.jackson.databind.ObjectMapper objectMapper =
                 new com.fasterxml.jackson.databind.ObjectMapper();
+        // ADR-003 M3a/M3b: pass null outbox mapper + flag-off properties so the
+        // legacy submit path is exercised (flag-off is byte-for-byte identical
+        // to the pre-fence behavior). meterRegistry null = metrics no-op.
+        com.ulticode.common.config.FeatureFlagsProperties flags =
+                new com.ulticode.common.config.FeatureFlagsProperties();
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, objectMapper, queueService, realtimeService,
                 contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
-                achievementTriggerService, notificationService, notificationDispatchService);
+                achievementTriggerService, notificationService, notificationDispatchService,
+                null, flags, null);
     }
 
     @AfterEach

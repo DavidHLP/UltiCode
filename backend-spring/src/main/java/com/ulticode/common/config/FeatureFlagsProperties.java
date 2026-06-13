@@ -27,6 +27,26 @@ public class FeatureFlagsProperties {
   /** Enable contest analytics generation. */
   private boolean contestAnalyticsEnabled = true;
 
+  /**
+   * Enable the judge outbox shadow write (ADR-003 M3a). When {@code true},
+   * submit/rejudge/reaper write a {@code judge_outbox} row alongside the
+   * existing RQueue enqueue, but the outbox dispatcher stays in shadow mode
+   * (it never enqueues — the old RQueue remains the sole active producer).
+   * Default {@code false} so the production path is unchanged until M3c cutover.
+   */
+  private boolean useJudgeOutbox = false;
+
+  /**
+   * Enable the generation fence + JUDGING lease mechanism (ADR-003 M3b). When
+   * {@code true}, the worker claims submissions via a CAS {@code acquireLease},
+   * heartbeats the lease while judging, and writes verdicts through
+   * {@code writeVerdictFenced} so stale results from a superseded generation are
+   * discarded. A {@link com.ulticode.modules.submission.reaper.JudgingLeaseReaper}
+   * recovers crashed JUDGING rows. Default {@code false}; flag-off behavior is
+   * byte-for-byte identical to the legacy selectById+updateById path.
+   */
+  private boolean useGenerationFence = false;
+
   // Getters and setters
   public boolean isUseNewContestSystem() {
     return useNewContestSystem;
@@ -66,5 +86,21 @@ public class FeatureFlagsProperties {
 
   public void setContestAnalyticsEnabled(boolean contestAnalyticsEnabled) {
     this.contestAnalyticsEnabled = contestAnalyticsEnabled;
+  }
+
+  public boolean isUseJudgeOutbox() {
+    return useJudgeOutbox;
+  }
+
+  public void setUseJudgeOutbox(boolean useJudgeOutbox) {
+    this.useJudgeOutbox = useJudgeOutbox;
+  }
+
+  public boolean isUseGenerationFence() {
+    return useGenerationFence;
+  }
+
+  public void setUseGenerationFence(boolean useGenerationFence) {
+    this.useGenerationFence = useGenerationFence;
   }
 }

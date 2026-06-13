@@ -17,6 +17,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -456,6 +457,246 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
     Long countTotalSubmissionsByUserId(@Param("userId") String userId);
+
+    // ==================== ADR-003 M3b: Generation Fence + Lease CAS ====================
+    //
+    // All four updates below are single-statement atomic CAS operations. They
+    // return the number of affected rows so callers can detect fence mismatches
+    // (affected = 0) and act accordingly:
+    //   - acquireLease / renewLease affected = 0  -> lease lost, give up
+    //   - writeVerdictFenced affected = 0         -> stale result, drop + metric
+    //   - bumpGenerationAndReset affected = 0     -> concurrent bump, skip
+    //
+    // Times use the DB clock (NOW() / DATE_ADD) rather than the JVM clock to
+    // stay correct under container clock drift (ADR-003 §1.1 F3 sub-issue 5).
+
+    /**
+     * Atomically transition a submission from Pending to Judging and acquire a
+     * lease (ADR-003 §2.3). CAS on {@code status='Pending' AND generation=#{generation}}
+     * so a worker that polled a stale queue entry for a generation that has
+     * since been bumped cannot grab the lease. Sets {@code current_attempt_id}
+     * to the worker's attempt UUID and arms {@code judging_lease_expires_at}.
+     *
+     * @param id           submission id
+     * @param attemptId    worker attempt UUID (this attempt's fence identity)
+     * @param generation   generation the worker observed when it polled
+     * @param ttlSeconds   lease TTL in seconds
+     * @return 1 if the lease was acquired, 0 otherwise (already judging or gen mismatch)
+     */
+    @Update("UPDATE submissions "
+            + "SET status = 'Judging', current_attempt_id = #{attemptId}, "
+            + "    judging_lease_expires_at = DATE_ADD(NOW(), INTERVAL #{ttlSeconds} SECOND) "
+            + "WHERE id = #{id} AND status = 'Pending' AND generation = #{generation}")
+    int acquireLease(@Param("id") String id,
+                     @Param("attemptId") String attemptId,
+                     @Param("generation") long generation,
+                     @Param("ttlSeconds") long ttlSeconds);
+
+    /**
+     * Heartbeat renewal (ADR-003 §2.3). Extends the lease only for the current
+     * attempt holder; any other writer (reaper, a re-acquired attempt) leaves
+     * {@code current_attempt_id} changed, so this CAS returns 0 and the worker
+     * knows it has lost the lease and must discard its in-flight verdict.
+     *
+     * @param id          submission id
+     * @param attemptId   worker attempt UUID (must still match)
+     * @param ttlSeconds  lease TTL in seconds
+     * @return 1 if renewed, 0 if the attempt no longer holds the lease
+     */
+    @Update("UPDATE submissions "
+            + "SET judging_lease_expires_at = DATE_ADD(NOW(), INTERVAL #{ttlSeconds} SECOND) "
+            + "WHERE id = #{id} AND current_attempt_id = #{attemptId}")
+    int renewLease(@Param("id") String id,
+                   @Param("attemptId") String attemptId,
+                   @Param("ttlSeconds") long ttlSeconds);
+
+    /**
+     * Write a terminal verdict behind the generation+attempt fence (ADR-003
+     * §2.2). Clears the lease fields so the row leaves JUDGING. affected = 0
+     * means the generation was bumped (rejudge / reaper) or the attempt lost
+     * the lease after acquisition — the caller must drop the result and increment
+     * the {@code judge.stale_result.dropped} metric.
+     *
+     * <p>{@code runtime}/{@code memory}/{@code testDetailsJson} are nullable for
+     * the System-Error-no-details path; MyBatis renders NULL for null params.
+     *
+     * @param id                submission id
+     * @param generation        generation the worker observed
+     * @param attemptId         attempt UUID the worker holds
+     * @param status            terminal status wire value
+     * @param runtime           runtime in ms (may be null)
+     * @param memory            memory in MB (may be null)
+     * @param testDetailsJson   serialized test details JSON (may be null)
+     * @return 1 if written, 0 if the fence rejected the write
+     */
+    @Update("UPDATE submissions "
+            + "SET status = #{status}, runtime = #{runtime}, memory = #{memory}, "
+            + "    test_details = #{testDetailsJson}, "
+            + "    current_attempt_id = NULL, judging_lease_expires_at = NULL "
+            + "WHERE id = #{id} AND generation = #{generation} AND current_attempt_id = #{attemptId}")
+    int writeVerdictFenced(@Param("id") String id,
+                           @Param("generation") long generation,
+                           @Param("attemptId") String attemptId,
+                           @Param("status") String status,
+                           @Param("runtime") Integer runtime,
+                           @Param("memory") Double memory,
+                           @Param("testDetailsJson") String testDetailsJson);
+
+    /**
+     * Write a terminal verdict behind the generation+attempt fence, atomically
+     * persisting the computed performance stats (percentile + distribution bins)
+     * in the SAME CAS (ADR-003 M3b, F4 fix).
+     *
+     * <p><b>Why this overload exists (F4):</b> the original two-step path wrote
+     * the verdict via the 7-arg {@link #writeVerdictFenced} CAS, then ran a
+     * separate full-entity {@code submissionMapper.updateById(submission)} to
+     * persist the percentile/bin columns computed by
+     * {@code computePerformanceStats}. That second update is <b>unfenced</b>:
+     * between the CAS commit and the {@code updateById}, an admin rejudge could
+     * bump the generation, and the unfenced update would write the stale
+     * Accepted status + old generation + cleared lease fields back over the
+     * rejudge — silently defeating the fence exactly when
+     * {@code computePerformanceStats} is slow. Folding the performance columns
+     * into the verdict CAS eliminates the second write entirely: all six
+     * data columns land (or are rejected) behind the same generation+attempt
+     * fence.
+     *
+     * <p>The performance params are nullable: non-Accepted verdicts and the
+     * System-Error path pass nulls so the columns are cleared, matching the
+     * legacy {@code updateSubmissionResult} behavior of always setting the
+     * field. MyBatis renders NULL for null params.
+     *
+     * @param id                   submission id
+     * @param generation           generation the worker observed
+     * @param attemptId            attempt UUID the worker holds
+     * @param status               terminal status wire value
+     * @param runtime              runtime in ms (may be null)
+     * @param memory               memory in MB (may be null)
+     * @param testDetailsJson      serialized test details JSON (may be null)
+     * @param runtimePercentile    computed runtime percentile (may be null)
+     * @param memoryPercentile     computed memory percentile (may be null)
+     * @param runtimeDistBinsJson  serialized runtime distribution bins JSON (may be null)
+     * @param memoryDistBinsJson   serialized memory distribution bins JSON (may be null)
+     * @return 1 if written, 0 if the fence rejected the write
+     */
+    @Update("UPDATE submissions "
+            + "SET status = #{status}, runtime = #{runtime}, memory = #{memory}, "
+            + "    test_details = #{testDetailsJson}, "
+            + "    runtime_percentile = #{runtimePercentile}, "
+            + "    memory_percentile = #{memoryPercentile}, "
+            + "    runtimeDistBinsMs = #{runtimeDistBinsJson}, "
+            + "    memoryDistBinsMb = #{memoryDistBinsJson}, "
+            + "    current_attempt_id = NULL, judging_lease_expires_at = NULL "
+            + "WHERE id = #{id} AND generation = #{generation} AND current_attempt_id = #{attemptId}")
+    int writeVerdictFencedWithStats(@Param("id") String id,
+                                    @Param("generation") long generation,
+                                    @Param("attemptId") String attemptId,
+                                    @Param("status") String status,
+                                    @Param("runtime") Integer runtime,
+                                    @Param("memory") Double memory,
+                                    @Param("testDetailsJson") String testDetailsJson,
+                                    @Param("runtimePercentile") Double runtimePercentile,
+                                    @Param("memoryPercentile") Double memoryPercentile,
+                                    @Param("runtimeDistBinsJson") String runtimeDistBinsJson,
+                                    @Param("memoryDistBinsJson") String memoryDistBinsJson);
+
+    /**
+     * Bump generation and reset a submission back to Pending (ADR-003 §2.2).
+     * Used by the lease reaper (single transaction, F7) and by admin rejudge on
+     * non-JUDGING rows. CAS on {@code generation = #{expectedGen}} so a
+     * concurrent reaper / rejudge cannot double-bump.
+     *
+     * @param id          submission id
+     * @param expectedGen generation the caller observed
+     * @param newGen      target generation (expectedGen + 1)
+     * @return 1 if bumped, 0 if generation already moved
+     */
+    @Update("UPDATE submissions "
+            + "SET status = 'Pending', generation = #{newGen}, "
+            + "    current_attempt_id = NULL, judging_lease_expires_at = NULL "
+            + "WHERE id = #{id} AND generation = #{expectedGen}")
+    int bumpGenerationAndReset(@Param("id") String id,
+                               @Param("expectedGen") long expectedGen,
+                               @Param("newGen") long newGen);
+
+    /**
+     * Force the current JUDGING lease to expire immediately AND revoke the active
+     * attempt, without bumping the generation (ADR-003 §3.3, ADR-005
+     * rejudge-on-JUDGING path; F2 fix). Used by admin rejudge when the target is
+     * currently JUDGING: rather than racing the worker to bump generation, the
+     * caller forces lease expiry + attempt revocation and lets the reaper perform
+     * the atomic bump in its single transaction (F7).
+     *
+     * <p><b>Why current_attempt_id is NULLed (F2):</b> the original SQL only
+     * stamped {@code judging_lease_expires_at = NOW()-1s} but left
+     * {@code current_attempt_id} intact. In the up-to-5s window before the
+     * reaper swept the row, the still-running worker holding that attempt could
+     * {@link #renewLease} (CAS keyed only on {@code current_attempt_id}) or land
+     * a {@link #writeVerdictFenced} — both succeed because the attempt id still
+     * matches — silently overwriting the requested rejudge. NULLing the attempt
+     * id in this same CAS makes the worker's very next {@code renewLease} /
+     * {@code writeVerdictFenced} fail immediately (their
+     * {@code WHERE current_attempt_id = #{attemptId}} clause no longer matches),
+     * so the rejudge cannot be lost before the reaper bumps the generation. CAS
+     * on {@code current_attempt_id = #{attemptId}} so a rejudge that targets an
+     * already-recovered row (attempt already cleared by a prior reaper bump) is
+     * a no-op.
+     *
+     * @param id          submission id
+     * @param attemptId   attempt UUID currently holding the lease; the caller must
+     *                    pass the loaded submission's {@code currentAttemptId}.
+     *                    NULL renders the {@code = #{attemptId}} clause unsatisfiable,
+     *                    so callers guard with a non-null check (matches
+     *                    {@code rejudgeFenced}'s {@code if (currentAttemptId != null)}).
+     * @return 1 if the lease was forced to expire and the attempt revoked, 0 otherwise
+     */
+    @Update("UPDATE submissions "
+            + "SET judging_lease_expires_at = DATE_SUB(NOW(), INTERVAL 1 SECOND), "
+            + "    current_attempt_id = NULL "
+            + "WHERE id = #{id} AND status = 'Judging' AND current_attempt_id IS NOT NULL "
+            + "  AND current_attempt_id = #{attemptId}")
+    int forceLeaseExpiry(@Param("id") String id,
+                         @Param("attemptId") String attemptId);
+
+    /**
+     * Increment {@code retry_count} on a submission without touching any other
+     * column (ADR-003 M3b, C1 fix). Used by the JUDGING branch of the fenced
+     * rejudge: that branch must <b>not</b> call {@code updateById} because
+     * MyBatis-Plus's default {@code NOT_NULL} update strategy would write the
+     * entity's stale (pre-{@code forceLeaseExpiry}) in-memory
+     * {@code judging_lease_expires_at} back to the DB, silently restoring the
+     * lease the reaper needs to expire. This targeted update leaves the lease
+     * columns at whatever {@code forceLeaseExpiry} just wrote, so the reaper can
+     * still observe the forced expiry and perform the atomic generation bump.
+     *
+     * <p>Rule 05-(8): update only the column that changed.
+     *
+     * @param id        submission id
+     * @param increment amount to add to {@code retry_count} (typically 1)
+     * @return affected rows (1 on success)
+     */
+    @Update("UPDATE submissions SET retry_count = retry_count + #{increment} WHERE id = #{id}")
+    int bumpRetryCount(@Param("id") String id, @Param("increment") int increment);
+
+    /**
+     * Select expired JUDGING rows for recovery, locking them with
+     * {@code FOR UPDATE SKIP LOCKED} so multiple reaper instances (or a reaper
+     * racing a rejudge) never grab the same row (ADR-003 §2.3, F7). MySQL 8.0+
+     * supports SKIP LOCKED; the project targets 9.1.
+     *
+     * <p>Returns full Submission entities so the reaper has the observed
+     * generation in hand for the bump CAS.
+     *
+     * @param batchSize max rows to recover in one sweep
+     * @return list of expired judging submissions (empty when none)
+     */
+    @Select("SELECT * FROM submissions "
+            + "WHERE status = 'Judging' AND judging_lease_expires_at IS NOT NULL "
+            + "  AND judging_lease_expires_at < NOW() "
+            + "ORDER BY judging_lease_expires_at "
+            + "LIMIT #{batchSize} "
+            + "FOR UPDATE SKIP LOCKED")
+    List<Submission> selectExpiredJudgingForUpdate(@Param("batchSize") int batchSize);
 
     /**
      * DTO record holding Submission fields plus joined problem data.

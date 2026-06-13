@@ -194,6 +194,86 @@ In-App channel 写 `Notification` 表 (DB 原子保证); Email 走 SMTP 调用, 
 
 **本 ADR 不引入** — 保持现有 4 category 模型。前端 UI / DB 迁移 / 用户引导是另一个工程, 列入未来 ADR-006 (notification-channel-preference) 。Dispatcher 此时通过 category 粗粒度过滤, channel 通过 `supports()` 自我裁决。
 
+### 2.7 Round 2 Codex Revision (2026-06-13)
+
+第二轮 codex 评审发现一处 high finding, 不动 typed intent 顶层方向, 仅修补幂等存储:
+
+#### F9 修订 — Notification 幂等性必须有持久化存储
+
+**原 §2.5 缺陷**: 我承诺 `(intentId, channelId)` 幂等, 但又声称"现有 `Notification` 表 schema 不变":
+
+- `Notification` 表无 `intent_id` / `channel_id` 列, 无对应唯一索引
+- §2.3 Email channel 的"内部去重 cache" 是 in-memory, 进程重启即丢
+- 多副本 / pm2 reload 场景, 同 intent 可能投递 N 次
+
+**修订**: 新增**独立** delivery ledger 表, 不动 `Notification` 业务表 schema:
+
+```sql
+-- V20260613xxxxxx__Create_Notification_Delivery_Ledger.sql
+CREATE TABLE notification_delivery_ledger (
+    id              BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    intent_id       VARCHAR(64)  NOT NULL,           -- NotificationIntent.intentId()
+    channel_id      VARCHAR(32)  NOT NULL,           -- "in_app" / "email" / "websocket"
+    user_id         VARCHAR(36)  NOT NULL,           -- 索引 + 故障排查
+    intent_type     VARCHAR(64)  NOT NULL,           -- record class simpleName
+    delivered_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delivery_state  VARCHAR(16)  NOT NULL,           -- DELIVERED / SKIPPED / FAILED
+    failure_reason  VARCHAR(500) NULL,
+    UNIQUE KEY uniq_intent_channel (intent_id, channel_id),
+    KEY idx_user_time (user_id, delivered_at)
+);
+```
+
+**Dispatcher 改造**:
+
+```java
+public void dispatch(NotificationIntent intent) {
+    var pref = preferences.get(intent.userId());
+    if (!pref.allowsCategory(intent.category())) return;
+
+    for (var channel : channels) {
+        if (!channel.supports(intent)) continue;
+
+        // 1. 预占 ledger (INSERT IGNORE), 已存在 → 跳过 (幂等)
+        int inserted = ledgerMapper.tryClaim(
+            intent.intentId(), channel.channelId(),
+            intent.userId(), intent.getClass().getSimpleName());
+        if (inserted == 0) {
+            log.debug("intent {} channel {} already delivered, skip",
+                      intent.intentId(), channel.channelId());
+            continue;
+        }
+
+        // 2. 发送
+        try {
+            channel.send(intent);
+            ledgerMapper.markDelivered(intent.intentId(), channel.channelId());
+        } catch (Exception e) {
+            ledgerMapper.markFailed(intent.intentId(), channel.channelId(), truncate(e));
+            log.error("channel {} failed for intent {}", channel.channelId(), intent.intentId(), e);
+            // 不 rethrow, 继续下一 channel (失败隔离仍生效)
+        }
+    }
+}
+```
+
+`tryClaim` 用 `INSERT ... ON DUPLICATE KEY UPDATE id=id` 或者 `INSERT IGNORE`, 返回 affected rows == 0 表示已存在。
+
+**In-App channel 内部**仍写 `Notification` 表 (业务可见的通知列表), 但**不再依赖 `Notification` 表做幂等** — 由 ledger 兜底。如果某 intent 已在 ledger 标 DELIVERED, In-App channel 直接 skip, 不会插入第二条 `Notification` 行。
+
+#### 重试策略
+
+ledger 状态 `FAILED` 不自动重试 (一些 channel 的失败不该重试, 例如用户邮箱无效)。需重试的 intent (例如 Contest 关键通知) 走另一路径:
+
+- 标 `@RequiresDurable` 的 intent → dispatcher 提前写 `judge_outbox` 同款 outbox 表 ([ADR-003](./ADR-003-queue-outbox-fencing.md))
+- Outbox dispatcher 拉出后调用 `NotificationDispatcher.dispatch(intent)` , 失败累计 `attempts`, 退避重投
+- 这条路径**列入未来 ADR-007** (durable notifications), 本 ADR 仅声明: ledger UNIQUE 约束保证即使重投也不会重复投递
+
+#### 不在本 ADR 修订范围
+
+- channel × category 二维 preference 仍列入未来 ADR
+- 邮件模板 i18n 完整化仍列入 frontend 后续工作
+
 ## 3. Consequences
 
 ### 3.1 Positive

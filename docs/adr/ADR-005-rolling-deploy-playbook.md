@@ -147,6 +147,79 @@ Cutover milestone (M2b / M3d / M4b) 回滚需要 git revert + 重新部署, 不�
 - M3a / M3b 涉及 DB schema 变更, 必须在比赛结束后 4 小时内执行 (避开实时 peak)
 - 部署前查 `contest.start_time` 表确认无 active contest
 
+### 2.8 Round 2 Codex Revision (2026-06-13)
+
+第二轮 codex 评审发现两条 finding (1 critical + 1 high), 修订如下:
+
+#### F8 修订 — M3a 必须避免双 producer
+
+**原 §2.1 缺陷**: M3a 让 "旧 afterCommit 入队" + "新 outbox dispatcher 入队" **同时跑**, 但 Redis dedup (M3c) 与 generation fence (M3b) 都还没上。两条 producer 路径独立, 同一 submission 入队两次 → 双重判题 → 双 verdict 写 → 双 notification。
+
+**修订**: M3a 的 outbox 改为 **shadow-only** (写不投), 仅在所有 fence 都上线后才接管投递。
+
+| Milestone | 修订前 | 修订后 |
+|---|---|---|
+| M3a | Outbox 表 + dispatcher 真 enqueue (dual-write) | Outbox 表 + dispatcher **只比对** (旧 path 入了什么 vs outbox 记录了什么) , 不 enqueue |
+| M3b | 加 generation/lease 列 | 加 generation/lease 列 + **fence CAS 写入路径上线** (worker 写结果前校验 generation) |
+| M3c | JudgeQueue port + envelope v2 + Redis Streams ack 化 (ADR-003 §2.6 F6 修订) | + **cutover**: outbox dispatcher 接管真 enqueue, 旧 afterCommit 入队删除 |
+| M3d | 删旧 afterCommit + envelope v1 关闭 | 仅清理 envelope v1 decode + 旧代码 |
+
+**关键不变量**: 任何时刻**最多一个 active producer** 写 Redis Streams。M3a 阶段只有"旧 afterCommit" 是 active, outbox 只观察; M3c cutover 后只有"outbox dispatcher" 是 active, 旧 path 彻底关。
+
+新增 shadow-mode 实现要求:
+
+```java
+@Component
+public class OutboxShadowComparator {
+    /**
+     * M3a 阶段: submission 落库 + outbox 落库 (同事务) , 但 outbox dispatcher
+     * 处于 shadow 模式 — 只比对 Redis 队列里是否已经存在对应 submission 的入队记录
+     * (用 Redis Set tracking key), 不实际 enqueue。差异计入指标 outbox.shadow.diff。
+     * 累计 7 天 diff = 0 是 M3b cutover 进入的硬门禁。
+     */
+    @Scheduled(fixedDelay = 5000)
+    void shadowCompare() { ... }
+}
+```
+
+#### F10 修订 — Rollback 机制要可执行
+
+**原 §2.2 缺陷**: 我声称 "切换无需重启 (用 @RefreshScope + Nacos config, 项目已有 Nacos 集成)" , 但:
+
+- 项目仅运行 Nacos **服务端容器** (Nacos 控制台 `:28848`)
+- backend `pom.xml` **没有** `spring-cloud-starter-alibaba-nacos-config` 依赖
+- 代码库**没有** `@RefreshScope` 使用, 没有 `bootstrap.yml` 配置导入
+- "亚分钟 hot rollback" 的承诺**无法实现**
+
+**修订**: 两条平行路径, 选其一作为 M2a 上线的硬前置:
+
+| 路径 | 内容 | 工作量 |
+|---|---|---|
+| **A (推荐, 短期)** | 重新定义 rollback 为 **"重启级"**: `pm2 reload ulticode-9001` (zero-downtime 重启, 重新读 `application.yml` 中的 feature flag); 配合 git revert 配置改动 | 0 — 用现有机制 |
+| B (长期, 单独 ADR-008) | 真正引入 Nacos Config client: 加 `spring-cloud-starter-alibaba-nacos-config` 依赖 + bootstrap.yml + `@RefreshScope` 注解 + Nacos namespace/group 划分 + auth + 自动 refresh 集成测试 | 1-2 周专项 PRD + ADR-008 |
+
+**本 ADR 默认采用路径 A**, 重写本节 §2.2 + §2.6 的 rollback 表如下:
+
+```diff
+- 切换无需重启 (用 @RefreshScope + Nacos config, 项目已有 Nacos 集成)
++ 切换需 `pm2 reload ulticode-9001` (zero-downtime 重启, < 5s 接入新 flag)
++ Nacos Config client 集成是未来 ADR-008 范围, 不阻塞 M2a 上线
+```
+
+```diff
+- M2a rollback: ulticode.features.sandbox.executor: legacy → Nacos hot reload, < 30s
++ M2a rollback: `application.yml` 改 sandbox.executor: legacy → git revert 该配置 commit + `pm2 reload ulticode-9001`, 端到端 < 5min
+- M3a rollback: 停 JudgeOutboxDispatcher → Nacos toggle, < 1min
++ M3a rollback: 配置 ulticode.features.submission.use-outbox: false → `pm2 reload`, < 5min
+```
+
+**Canary Gate** (§2.5) 不受影响, 仍然成立。Rollback drill (§2.6) 每个 milestone 仍然必须做, 期望耗时由 "< 30s" 调整为 "< 5min" (含 `pm2 reload` + 健康检查) 。
+
+#### 不在本 ADR 修订范围
+
+- Nacos Config client 集成 → ADR-008
+- 多副本部署 → 当前项目单副本 backend, 多副本是另一专项
+
 ## 3. Consequences
 
 ### 3.1 Positive

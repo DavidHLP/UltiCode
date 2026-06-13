@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -29,11 +30,14 @@ class CodeExecutionServiceTest {
     @Mock
     private CodeExecutionHelper helper;
 
+    @Spy
+    private VerdictResolver verdictResolver = new VerdictResolver();
+
     private CodeExecutionService codeExecutionService;
 
     @BeforeEach
     void setUp() {
-        codeExecutionService = new CodeExecutionService(sandboxService, helper);
+        codeExecutionService = new CodeExecutionService(sandboxService, helper, verdictResolver);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {

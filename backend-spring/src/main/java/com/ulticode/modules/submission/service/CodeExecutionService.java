@@ -9,14 +9,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Thin facade for code execution.
  * Delegates Docker sandbox lifecycle to SandboxService and per-language logic to CodeExecutionHelper.
+ * <p>
+ * M1a round-4 (Codex F15): verdict aggregation now delegates to the shared
+ * {@link VerdictResolver} so the {@code /run} and {@code /submit} paths
+ * cannot disagree on the same case set. The legacy {@code VERDICT_PRIORITY}
+ * map has been removed; its ordering was inverse to the adjudicator's
+ * severity convention which would have produced {@code Presentation Error}
+ * for {Wrong Answer + Presentation Error} on /run but {Wrong Answer} on
+ * /submit.
  */
 @Slf4j
 @Service
@@ -25,22 +32,7 @@ public class CodeExecutionService {
 
     private final SandboxService sandboxService;
     private final CodeExecutionHelper helper;
-
-    private static final Map<String, Integer> VERDICT_PRIORITY = new LinkedHashMap<>();
-
-    static {
-        VERDICT_PRIORITY.put("System Error", 0);
-        VERDICT_PRIORITY.put("Compile Error", 1);
-        VERDICT_PRIORITY.put("Runtime Error", 2);
-        VERDICT_PRIORITY.put("Time Limit Exceeded", 3);
-        VERDICT_PRIORITY.put("Memory Limit Exceeded", 4);
-        VERDICT_PRIORITY.put("Output Limit Exceeded", 5);
-        VERDICT_PRIORITY.put("Presentation Error", 6);
-        VERDICT_PRIORITY.put("Wrong Answer", 7);
-        VERDICT_PRIORITY.put("Accepted", 8);
-        VERDICT_PRIORITY.put("Judging", 9);
-        VERDICT_PRIORITY.put("Pending", 10);
-    }
+    private final VerdictResolver verdictResolver;
 
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage().toLowerCase().trim();
@@ -79,7 +71,9 @@ public class CodeExecutionService {
                     .count();
         }
 
-        String verdict = determineVerdict(results);
+        String verdict = verdictResolver.reduceWire(
+                results.stream().map(RunResultDTO.RunCaseResult::getStatus).collect(Collectors.toList())
+        ).wireValue();
         long totalRuntimeMs = results.stream()
                 .mapToLong(r -> helper.parseRuntimeMs(r.getRuntime()))
                 .sum();
@@ -103,19 +97,5 @@ public class CodeExecutionService {
                 .passedCases(passedCases)
                 .totalCases(testCases.size())
                 .build();
-    }
-
-    private String determineVerdict(List<RunResultDTO.RunCaseResult> results) {
-        if (results == null || results.isEmpty()) {
-            return "Pending";
-        }
-        return results.stream()
-                .min((a, b) -> {
-                    int pa = VERDICT_PRIORITY.getOrDefault(a.getStatus(), Integer.MAX_VALUE);
-                    int pb = VERDICT_PRIORITY.getOrDefault(b.getStatus(), Integer.MAX_VALUE);
-                    return Integer.compare(pa, pb);
-                })
-                .map(RunResultDTO.RunCaseResult::getStatus)
-                .orElse("Pending");
     }
 }

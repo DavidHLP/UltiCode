@@ -190,6 +190,97 @@ public final class SubmissionStateMachine {
 
 Admin rejudge 调用 `AdminSubmissionServiceImpl.rejudge(submissionId)` 内部走 generation bump + outbox 重投, 不走 SYSTEM_ALLOWED 通道。
 
+### 2.6 Round 2 Codex Revision (2026-06-13)
+
+第二轮 `/codex:adversarial-review` (base `e34e4efbd`) 发现本 ADR 在**实施细节**上有两个 critical race, 不动顶层方向, 仅修补细节:
+
+#### F6 修订 — Redis adapter 不能用 destructive poll
+
+**原 §2.4 缺陷**: `RList/RQueue.poll` 是 destructive — worker poll 拿到 `JudgeJob` 后, 任务从 list 中移除。如果 worker 在调用 `submissionMapper.acquireLease(...)` (CAS PENDING→JUDGING) **之前**进程崩, 此时:
+
+- 队列里已无该 job
+- outbox 行已是 SENT
+- §2.3 reaper 只扫 `judging_lease_expires_at < NOW()` 的 JUDGING (而非 PENDING)
+- 旧版 5min PENDING reaper 已删
+- **结果**: 任务永久丢失
+
+**修订**: Redis adapter 改为 **ack-based 消费**, 两种实现可选:
+
+| 方案 | 实现 | 推荐 |
+|---|---|---|
+| A. Redis Streams + Consumer Group | `XREADGROUP` 读 + `XACK` 确认; pending entries list 自动追踪未 ack 任务 + `XCLAIM` 把超时未 ack 任务转给另一 consumer | ✅ Redis 7+ 原生支持, 语义最干净 |
+| B. RBLPOPLPUSH 处理列表模式 | `BLPOP judge:queue → RPUSH judge:processing:{workerId}`,worker 完整处理完再 `LREM judge:processing:{workerId}`,reaper 周期扫 `judge:processing:*` 列表超时项重投回 `judge:queue` | 兼容 Redis 6, 实现复杂 |
+
+**默认采用方案 A** (Redis 7 已在项目栈)。`JudgeQueueImpl.poll(timeout)` 内部:
+
+```java
+StreamMessageId[] ids = redisson.getStream(STREAM_KEY)
+    .readGroup(GROUP_NAME, consumerId(),
+        StreamReadGroupArgs.greaterThan(StreamMessageId.NEVER_DELIVERED).count(1).timeout(timeout));
+// 关键: ack 移到 worker 处理完后, 非 poll 时
+return Optional.ofNullable(parseJob(ids)).map(j -> j.withAckHandle(ids[0]));
+```
+
+`JudgeQueue` 接口加 `ack(JudgeJob job)` + `nack(JudgeJob job, String reason)` 方法。Outbox 状态 `SENT` 的语义改为"已交付 Redis Streams (broker 持有)", 不代表"worker 已成功消费"。
+
+**新 reaper 路径** (除现有 lease 过期 reaper 外, 增加):
+
+```java
+@Scheduled(fixedDelay = 10_000)
+public void recoverUnackedStreamEntries() {
+    // 用 XPENDING + XCLAIM 把 idle > visibilityTimeout 的未 ack entry 转给本 consumer
+    // 转过来的 entry 重新走 poll 路径
+}
+```
+
+#### F7 修订 — Lease 恢复必须与替代 outbox 创建同事务
+
+**原 §2.3 缺陷**: 我写了
+
+> 然后为这批补 outbox 记录 (新 generation)
+
+却没声明事务边界。如果 reaper 在"bump generation 完成"和"补 outbox"之间崩, submission 处于"新 generation + PENDING + 无 outbox 行"的孤儿态, 永久卡。
+
+**修订**: reaper 改为**单事务**操作:
+
+```java
+@Transactional
+public int recoverExpiredLeases() {
+    // 1. SELECT FOR UPDATE SKIP LOCKED 锁定过期行 (避免多 reaper 抢同一行)
+    List<Submission> expired = submissionMapper.selectExpiredJudgingForUpdate(NOW, batchSize=20);
+    if (expired.isEmpty()) return 0;
+
+    // 2. 同事务内: bump generation + reset status + insert outbox
+    for (Submission s : expired) {
+        long newGen = s.generation() + 1;
+        int rows = submissionMapper.bumpGenerationAndReset(
+            s.id(), s.generation() /*expected*/, newGen);
+        if (rows != 1) continue;   // 被另一并发请求改了, 跳过
+        judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(s, newGen));
+    }
+    return expired.size();
+}
+```
+
+`selectExpiredJudgingForUpdate`:
+
+```sql
+SELECT * FROM submission
+WHERE status = 'Judging'
+  AND judging_lease_expires_at < NOW()
+ORDER BY judging_lease_expires_at
+LIMIT #{batchSize}
+FOR UPDATE SKIP LOCKED;
+```
+
+**事务隔离**: 项目 MySQL 默认 REPEATABLE-READ; `FOR UPDATE SKIP LOCKED` 在 MySQL 8.0+ 支持 (项目 9.1 满足), 多 reaper 并发不抢同一行。
+
+`AdminSubmissionServiceImpl.rejudge` 同样改为 `@Transactional` 单事务: lease expire + generation bump + insert outbox 三步 atomic, 不再依赖 reaper 接管 (回应 codex F2 (d) "reaper 被暂停" 担忧)。
+
+#### F8 部分修订 (协同 ADR-005)
+
+M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-round-2-codex-revision-2026-06-13) 修订。本 ADR 仅声明: **任何时刻最多一个 active producer 写 Redis Streams**。
+
 ## 3. Consequences
 
 ### 3.1 Positive

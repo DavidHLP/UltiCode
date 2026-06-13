@@ -114,4 +114,35 @@ public interface JudgeOutboxMapper extends BaseMapper<JudgeOutboxRecord> {
             + "WHERE state = 'PENDING' AND next_retry_at < #{staleBefore} "
             + "ORDER BY next_retry_at")
     List<JudgeOutboxRecord> selectStalePending(@Param("staleBefore") LocalDateTime staleBefore);
+
+    /**
+     * Claim rows for real (non-shadow) dispatch (ADR-003 M3c-2 cutover).
+     * Filters out {@code is_shadow = 1} rows (M3a/M3b legacy) and rows
+     * written before the cutover watermark so the real dispatcher cannot
+     * double-dispatch a row the shadow dispatcher already observed.
+     *
+     * <p>Locking and batch size mirror {@link #claim(int)}.
+     *
+     * @param batchSize   max rows to claim
+     * @param cutoverAt   watermark — only rows with {@code created_at >= cutoverAt}
+     *                    are eligible (F13)
+     * @return real-dispatch-eligible rows
+     */
+    @Select("SELECT * FROM judge_outbox "
+            + "WHERE state = 'PENDING' AND next_retry_at <= NOW() "
+            + "  AND is_shadow = 0 AND created_at >= #{cutoverAt} "
+            + "ORDER BY next_retry_at "
+            + "LIMIT #{batchSize} "
+            + "FOR UPDATE SKIP LOCKED")
+    List<JudgeOutboxRecord> claimRealDispatch(@Param("batchSize") int batchSize,
+                                              @Param("cutoverAt") LocalDateTime cutoverAt);
+
+    /**
+     * Count shadow rows older than the cutover watermark — candidates for
+     * archival once the real-dispatch path is the only active producer
+     * (F13 follow-up). Read-only.
+     */
+    @Select("SELECT COUNT(*) FROM judge_outbox "
+            + "WHERE is_shadow = 1 AND created_at < #{cutoverAt}")
+    long countStaleShadowRows(@Param("cutoverAt") LocalDateTime cutoverAt);
 }

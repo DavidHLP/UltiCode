@@ -84,6 +84,32 @@ public final class CacheConstants {
      */
     public static final String JUDGE_LEASE_PREFIX = "judge:lease:";
 
+    /**
+     * Redis Streams key for judge job dispatches (ADR-003 M3c-2 §2.4). A
+     * single stream carries both v1 (legacy) and v2 (fence-aware) envelopes;
+     * the {@code version} field on each entry discriminates. Each entry is a
+     * single-field record whose {@code payload} holds the JSON-serialized
+     * {@link com.ulticode.modules.queue.port.JudgeJobEnvelope}.
+     */
+    public static final String JUDGE_STREAM_KEY = "judge:stream";
+
+    /**
+     * Consumer group on the {@link #JUDGE_STREAM_KEY} stream. Single group,
+     * single consumer (current JVM); multi-consumer / multi-JVM is M3d
+     * scope (ADR-005 §2.6 cutover).
+     */
+    public static final String JUDGE_STREAM_GROUP = "judge-workers";
+
+    /**
+     * Visibility timeout (ms) for the M3c-2 Streams adapter. After this
+     * many ms without an {@code XACK}, the unacked reaper
+     * ({@link com.ulticode.modules.queue.outbox.reaper.UnackedStreamEntriesReaper})
+     * will {@code XCLAIM} the entry. Defaults to 60s — same cadence as
+     * {@link com.ulticode.modules.submission.fence.LeaseConstants#LEASE_TTL_SECONDS}
+     * so the two reclaim paths are tuned together.
+     */
+    public static final long JUDGE_STREAM_VISIBILITY_TIMEOUT_MS = 60_000L;
+
     // ==================== TTL Constants ====================
 
     /**

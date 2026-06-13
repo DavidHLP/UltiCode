@@ -1,9 +1,15 @@
 package com.ulticode.modules.queue.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.infrastructure.redis.CacheConstants;
 import com.ulticode.modules.queue.constants.QueueConstants;
+import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Data;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -73,5 +79,31 @@ public class QueueConfig {
     @Bean(name = "notificationQueue")
     public RQueue<Object> notificationQueue(RedissonClient redissonClient) {
         return redissonClient.getQueue(QueueConstants.NOTIFICATION_QUEUE);
+    }
+
+    /**
+     * ADR-003 M3c-2: the {@link JudgeQueue} port backed by Redisson Streams.
+     * Dedup SETNX is delegated to Redisson {@code RBucket} so no separate
+     * {@code RedisService} dependency is needed here.
+     *
+     * <p>Only active when {@code app.features.judge-queue.use-port=true}.
+     */
+    @Bean
+    @ConditionalOnProperty(
+            name = "app.features.judge-queue.use-port",
+            havingValue = "true")
+    public JudgeQueue redissonStreamsJudgeQueue(
+            RedissonClient redissonClient,
+            ObjectMapper objectMapper,
+            MeterRegistry meterRegistry) {
+        String consumerId = "ulticode-9001-" + ProcessHandle.current().pid();
+        return new RedissonStreamsJudgeQueueAdapter(
+                redissonClient,
+                objectMapper,
+                CacheConstants.JUDGE_STREAM_KEY,
+                CacheConstants.JUDGE_STREAM_GROUP,
+                consumerId,
+                CacheConstants.JUDGE_STREAM_VISIBILITY_TIMEOUT_MS,
+                meterRegistry);
     }
 }

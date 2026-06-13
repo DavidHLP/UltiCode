@@ -391,8 +391,6 @@ public class SandboxServiceImpl implements SandboxService {
         return switch (language) {
             case "java" -> "Solution.java";
             case "python" -> "solution.py";   // lowercase: harness does `import solution`
-            case "c" -> "Solution.c";
-            case "cpp" -> "Solution.cpp";
             default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
         };
     }
@@ -447,18 +445,22 @@ public class SandboxServiceImpl implements SandboxService {
         return 1_000L;
     }
 
-    /** Per-language `sh -c` body that compiles + runs the user code via the pre-compiled harness. */
+    /** Per-language `sh -c` body that compiles + runs the user code via the pre-compiled harness.
+     *
+     * <p>CR fix: Java previously used {@code javac -d .} from inside the
+     * {@code :ro} mount of {@code /job}, which deterministically failed at
+     * write time. Compilation now targets a per-run tmpfs path that the
+     * docker command pre-creates as writable, and the runtime classpath
+     * reads from that same path.
+     */
     private String dFormDispatchShell(String language, String harnessRoot) {
         return switch (language) {
-            case "java" -> "cd /job && javac -cp " + harnessRoot + "/java -d . "
+            case "java" -> "mkdir -p /tmp/classes && javac -cp " + harnessRoot + "/java -d /tmp/classes "
                     + dFormSolutionFileName(language)
-                    + " && java -cp " + harnessRoot + "/java:. Main /job/input.json";
-            case "python" -> "cd /job && SOLUTION_DIR=/job python3 "
+                    + " && java -Djava.security.manager=allow -cp "
+                    + harnessRoot + "/java:/tmp/classes Main /job/input.json";
+            case "python" -> "SOLUTION_DIR=/job python3 "
                     + harnessRoot + "/python/main.py /job/input.json";
-            case "c" -> "cd /job && gcc -O2 -o /tmp/sol " + dFormSolutionFileName(language)
-                    + " && /tmp/sol /job/input.json";
-            case "cpp" -> "cd /job && g++ -O2 -std=c++17 -o /tmp/sol " + dFormSolutionFileName(language)
-                    + " && /tmp/sol /job/input.json";
             default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
         };
     }
@@ -499,20 +501,14 @@ public class SandboxServiceImpl implements SandboxService {
             String inputJson = helper.buildDInputsJson(testCase, dFormPerCaseTimeoutMs());
             jobDir = materializeDFormJob(language, code, inputJson, runId);
             List<String> command = buildDDockerCommand(language, jobDir);
-            int hardTimeout = dFormHardTimeoutSeconds();
-            long startTime = System.nanoTime();
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            boolean finished = process.waitFor(hardTimeout, java.util.concurrent.TimeUnit.SECONDS);
-            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
-            if (!finished) {
-                process.destroyForcibly();
+            DFormRunResult run = runDProcess(command, dFormHardTimeoutSeconds(), runId);
+            long elapsedMs = run.elapsedMs();
+            String stdout = run.stdout();
+            int exitCode = run.exitCode();
+            if (run.timedOut()) {
                 return helper.buildCaseResult(testCase, runId, userId, "Time Limit Exceeded",
-                        elapsedMs, null, "D-form dispatch timed out after " + hardTimeout + "s", 0.0);
+                        elapsedMs, null, "D-form dispatch timed out after " + dFormHardTimeoutSeconds() + "s", 0.0);
             }
-            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            int exitCode = process.exitValue();
             if (exitCode != 0) {
                 if (isSandboxForkFailure(stdout)) {
                     log.warn("D-form sandbox fork failure for runId={}: {}", runId,
@@ -530,19 +526,6 @@ public class SandboxServiceImpl implements SandboxService {
                     ? helper.buildCaseResult(testCase, runId, userId, "Runtime Error",
                             elapsedMs, null, "D-form envelope empty", 0.0)
                     : results.get(0);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch interrupted");
-        } catch (IOException e) {
-            log.error("D-form I/O failed for runId={}", runId, e);
-            String detail = e.getMessage();
-            if (detail != null && detail.contains("Unable to find image")) {
-                throw new BusinessException(ErrorCode.SANDBOX_IMAGE_NOT_FOUND,
-                        "Sandbox image '" + sandboxConfig.image() + "' not found. Build it first: "
-                                + "docker build -t " + sandboxConfig.image()
-                                + " -f docker/sandbox/Dockerfile docker/sandbox/");
-            }
-            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch failed: " + detail);
         } finally {
             if (jobDir != null) {
                 try {
@@ -563,23 +546,17 @@ public class SandboxServiceImpl implements SandboxService {
             String inputJson = helper.buildDBatchInputsJson(testCases, dFormPerCaseTimeoutMs());
             jobDir = materializeDFormJob(language, code, inputJson, runId);
             List<String> command = buildDDockerCommand(language, jobDir);
-            int hardTimeout = dFormHardTimeoutSeconds();
-            long startTime = System.nanoTime();
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            boolean finished = process.waitFor(hardTimeout, java.util.concurrent.TimeUnit.SECONDS);
-            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
-            if (!finished) {
-                process.destroyForcibly();
+            DFormRunResult run = runDProcess(command, dFormHardTimeoutSeconds(), runId);
+            long elapsedMs = run.elapsedMs();
+            String stdout = run.stdout();
+            int exitCode = run.exitCode();
+            if (run.timedOut()) {
                 return testCases.stream()
                         .map(tc -> helper.buildCaseResult(tc, runId, userId, "Time Limit Exceeded",
                                 elapsedMs / testCases.size(), null,
-                                "D-form batch dispatch timed out after " + hardTimeout + "s", 0.0))
+                                "D-form batch dispatch timed out after " + dFormHardTimeoutSeconds() + "s", 0.0))
                         .collect(Collectors.toList());
             }
-            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            int exitCode = process.exitValue();
             if (exitCode != 0) {
                 if (isSandboxForkFailure(stdout)) {
                     return testCases.stream()
@@ -594,11 +571,6 @@ public class SandboxServiceImpl implements SandboxService {
                         .collect(Collectors.toList());
             }
             return helper.parseDEnvelope(stdout, testCases, runId, userId);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form batch dispatch interrupted");
-        } catch (IOException e) {
-            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form batch dispatch failed: " + e.getMessage());
         } finally {
             if (jobDir != null) {
                 try {
@@ -609,4 +581,99 @@ public class SandboxServiceImpl implements SandboxService {
             }
         }
     }
+
+    /**
+     * Run a docker command with a concurrent stdout drainer.
+     *
+     * <p>CR fix (Phase 3.5 #3): {@link ProcessBuilder#start()} hands the
+     * process a pipe that is only 64 KiB on Linux by default. If the
+     * harness envelope (per-case verdict + 64 KiB user_stdout each) is
+     * larger than that, the container blocks on {@code write()} and the
+     * backend's {@code waitFor} blocks too — false TLE for otherwise
+     * valid runs. Spawning a daemon thread that drains the pipe as the
+     * process runs eliminates the deadlock.
+     */
+    private DFormRunResult runDProcess(List<String> command, int hardTimeoutSeconds, String runId) {
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(true);
+        try {
+            Process process = pb.start();
+            java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            java.util.concurrent.atomic.AtomicBoolean overBudget = new java.util.concurrent.atomic.AtomicBoolean(false);
+            Thread reader = new Thread(() -> {
+                try (java.io.InputStream in = process.getInputStream()) {
+                    byte[] chunk = new byte[8192];
+                    int n;
+                    while ((n = in.read(chunk)) != -1) {
+                        synchronized (buf) {
+                            if (buf.size() + n > DFORM_OUTPUT_BUDGET_BYTES) {
+                                overBudget.set(true);
+                                // drop further reads; close InputStream to unblock harness
+                                return;
+                            }
+                            buf.write(chunk, 0, n);
+                        }
+                    }
+                } catch (IOException ignored) {
+                    /* process closed */
+                }
+            }, "dform-stdout-" + runId);
+            reader.setDaemon(true);
+            reader.start();
+
+            long startTime = System.nanoTime();
+            boolean finished = process.waitFor(hardTimeoutSeconds, java.util.concurrent.TimeUnit.SECONDS);
+            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
+
+            if (!finished) {
+                process.destroyForcibly();
+                // Don't bother joining the reader; we're returning TLE.
+                return new DFormRunResult(true, elapsedMs, "", -1);
+            }
+            // waitFor returned, but the harness may still be flushing the last bytes.
+            // Give the reader a brief grace window to finish draining.
+            reader.join(java.util.concurrent.TimeUnit.SECONDS.toMillis(Math.min(2, hardTimeoutSeconds)));
+            String stdout;
+            synchronized (buf) {
+                stdout = buf.toString(StandardCharsets.UTF_8);
+            }
+            int exitCode;
+            try {
+                exitCode = process.exitValue();
+            } catch (IllegalThreadStateException stillRunning) {
+                // process didn't actually exit despite waitFor returning true — extremely rare
+                exitCode = -1;
+            }
+            if (overBudget.get()) {
+                stdout = stdout + "\n[truncated: harness output exceeded "
+                        + DFORM_OUTPUT_BUDGET_BYTES + " bytes]";
+            }
+            return new DFormRunResult(false, elapsedMs, stdout, exitCode);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch interrupted");
+        } catch (IOException e) {
+            log.error("D-form I/O failed for runId={}", runId, e);
+            String detail = e.getMessage();
+            if (detail != null && detail.contains("Unable to find image")) {
+                throw new BusinessException(ErrorCode.SANDBOX_IMAGE_NOT_FOUND,
+                        "Sandbox image '" + sandboxConfig.image() + "' not found. Build it first: "
+                                + "docker build -t " + sandboxConfig.image()
+                                + " -f docker/sandbox/Dockerfile docker/sandbox/");
+            }
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "D-form dispatch failed: " + detail);
+        }
+    }
+
+    /**
+     * Cap on bytes the backend will buffer from a single sandbox invocation.
+     * 8 MiB envelope + 64 KiB per-case user_stdout safety headroom for a
+     * batch with 100 cases. If the harness exceeds this, the reader drops
+     * the rest and {@code runDProcess} appends a truncation marker so
+     * envelope parsing doesn't blow up downstream.
+     */
+    private static final int DFORM_OUTPUT_BUDGET_BYTES = 8 * 1024 * 1024 + 128 * 1024;
+
+    /** Minimal record bundling the result of a {@link #runDProcess} call. */
+    private record DFormRunResult(boolean timedOut, long elapsedMs, String stdout, int exitCode) {}
 }

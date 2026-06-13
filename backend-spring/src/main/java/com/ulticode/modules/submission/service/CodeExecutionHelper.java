@@ -86,8 +86,14 @@ public interface CodeExecutionHelper {
 
     /**
      * Languages the D-form harness currently supports. Smaller than
-     * {@link #SUPPORTED_LANGUAGES} because JavaScript isn't part of the
-     * Phase 3 migration (D-form has no JS harness yet).
+     * {@link #SUPPORTED_LANGUAGES} because:
+     * <ul>
+     *   <li>JavaScript isn't part of the Phase 3 migration (no JS harness yet)
+     *   <li>C and C++ D-form dispatch needs a complete harness implementation
+     *       (current {@code docker/sandbox/harness/{c,cpp}/} are Phase 1 smoke
+     *       skeletons that don't read {@code input.json}). Re-add after
+     *       Phase 3.X ships envelope-producing C/C++ harnesses.
+     * </ul>
      */
-    java.util.Set<String> DFORM_SUPPORTED_LANGUAGES = java.util.Set.of("java", "python", "c", "cpp");
+    java.util.Set<String> DFORM_SUPPORTED_LANGUAGES = java.util.Set.of("java", "python");
 }

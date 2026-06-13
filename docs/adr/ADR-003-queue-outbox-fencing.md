@@ -290,6 +290,7 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 | **M3a** Outbox shadow | ✅ shipped | `09c97d1b8` | `judge_outbox` 表 (含 `is_shadow`,F13) + `JudgeOutboxDispatcher` (**shadow-only**,只观察不入队) + `OutboxShadowComparator` + submit/rejudge/reaper 双写 | `useJudgeOutbox = false` |
 | **M3b** Generation fence + lease | ✅ shipped | `09c97d1b8` | `submissions` 加 `generation`/`current_attempt_id`/`judging_lease_expires_at` 列 + CAS fence (`acquireLease`/`renewLease`/`writeVerdictFencedWithStats`/`bumpGenerationAndReset`/`forceLeaseExpiry`/`bumpRetryCount`) + `JudgingLeaseReaper` (单事务 + afterCommit 入队) + worker heartbeat + `SubmissionStateMachine` | `useGenerationFence = false` |
 | **M3c** JudgeQueue port + cutover | ✅ shipped | `b34ac01be` + `3e8504f1b` + `3ec758c41` | `JudgeQueue` 端口 (interface + envelope v2 record + handle) + Redisson Streams adapter (`XREADGROUP`/`XACK`/`XCLAIM` / `XPENDING`) + InMemory 测试 adapter + outbox dispatcher 真投递 (F13 watermark `is_shadow=0 AND created_at>=cutover-at`) + `UnackedStreamEntriesReaper` (10s sweep + XCLAIM reclaim) + worker 接入 v2 envelope (envelope.attemptId 替代本地 UUID) + executeAndWriteFenced 共享 fence 核心 | `judge-queue.use-port = false` |
+| **codex round-3** 审查驱动修复 | ✅ shipped | `5148275d1` | 3 P1 修复 (详见 §2.8): P1 #1 真 cutover (is_shadow + 跳过 RQueue), P1 #2 SETNX rollback (dedup key 失败时回滚), P1 #3 reaper reclaim 路由 worker (`processReclaimedHandle` public 入口) | (无 flag) |
 | **M3d** Cleanup | ⏳ 待做 (M3c cutover 后 ≥2 周) | — | 删旧 RQueue `enqueueJudgeJob` + envelope v1 decode (保留 ≥2 周排空残留) | — |
 
 **两轮对抗审查** (commit `09c97d1b8` 前完成):
@@ -304,6 +305,34 @@ M3a 时序缺陷由 [ADR-005 §2.8](./ADR-005-rolling-deploy-playbook.md#28-roun
 **转 Accepted 前的硬门禁 (F12, M3c)**:故障注入测试——① kill worker after `XACK` before DB write,验证 `recoverUnackedStreamEntries()` 把 entry 经 `XCLAIM` 转给新 consumer 且不丢;② rejudge 一个正在 JUDGING 的提交,旧 worker 结果被 generation fence 丢弃。
 
 **F12 验证 (M3c-3b acceptance)**:InMemory 契约测试 `InMemoryJudgeQueueAdapterTest` (9 cases, M3c-3b commit) 覆盖 F12 等价路径——poll → 不 ack (worker 死) → PEL 留存 → reaper-style reclaim。Redisson Streams 真实 F12 故障注入 IT (Testcontainers Redis + 完整 worker e2e 路径) 留 canary 阶段 follow-up,在 M3c 真投递 flag 切到 canary 主机时跑。
+
+### 2.8 codex 对抗审查记录 (2026-06-13)
+
+ADR-003 M3a → M3c-3b 全部 7 commit (`09c97d1b8` → `82d5f022e`) 经 `codex exec review --base 09c97d1b8^` 对抗审查 (审查范围 41 文件 / 4684 行),发现 3 个 P1 真缺陷,本节记录在 commit `5148275d1` 全修。ADR-003 Status 保持 Accepted(修复等价于补完 F12 验证,README §Status 转换规则补丁的"M3c merged + F12 验证"门禁现满足)。
+
+**3 P1 详解**:
+
+| # | 现象 | 文件 | 修复 |
+|---|---|---|---|
+| **P1 #1** 真 cutover 不发生 | `use-judge-outbox=true` 时 submit 写 `is_shadow=true` + 调旧 RQueue;`claimRealDispatch` 只选 `is_shadow=0` → dispatcher 永不接收新行,旧 RQueue 仍是唯一 active producer | `SubmissionServiceImpl` | `is_shadow = !judgeQueueUsePort`;portActive=true 时**不**调 `enqueueJudgeJob` 避免双投递。**范围: 主路径 submit 已修,次路径 `AdminSubmissionServiceImpl.rejudge` 3 处 + `JudgingLeaseReaper` 2 处 afterCommit 留 follow-up (rejudge / lease 恢复频次远低于 submit)** |
+| **P1 #2** SETNX 成功 + `stream.add` 失败时静默丢消息 | dedup key 留下 → dispatcher retry 误判已投递 → outbox 标 SENT 但 stream 无 entry → 消息永久丢失 | `RedissonStreamsJudgeQueueAdapter.enqueue` | try/catch 包裹 `stream.add`,失败时 `bucket.delete()` 回滚 dedup key 后 rethrow (与 JSON 序列化失败路径同等回滚契约) |
+| **P1 #3** reaper reclaim 路径无效 | `claimIdle` 返回 reclaimed handle 但 reaper 只 log;worker poll 用 `neverDelivered()` 不会读 PEL,reclaimed entry 永远不被消费 | `UnackedStreamEntriesReaper` + `JudgeWorkerProcessor` | reaper 注入 `ObjectProvider<JudgeWorkerProcessor>` (provider 模式让无 worker bean 时仍可编译),reclaim 后调 `worker.processReclaimedHandle(port, handle)`;worker 加 public 入口复用 `processJobFromPort` fence 核心 |
+
+**审查范围与方法**:
+- `codex exec review --base 09c97d1b8^`: 6 commit ADR-003 全部改动 (41 文件 / 4684 行)
+- `ecc:code-review` Skill 默认 uncommitted 模式对 6 commit diff 范围不适用,二路审查冗余跳过
+
+**残留 follow-up** (P1 #1 次路径 + 真实 Streams 验证):
+- `AdminSubmissionServiceImpl.rejudge` 3 处 + `JudgingLeaseReaper` 2 处 afterCommit 路径:P1 #1 次路径 (commit `5148275d1` message 标记)
+- 真实 Redis Streams F12 故障注入 IT (Testcontainers Redis + 完整 worker e2e):canary 阶段补完;InMemory 契约测试已覆盖等价值
+
+**生产 canary 步骤** (M3c 真投递切流时执行):
+1. 在 canary 主机 set `app.features.judge-queue.use-port=true` + `app.features.judge-queue.cutover-at=<current ISO 8601>`
+2. `pm2 reload ulticode-9001 --update-env`
+3. 观察指标 `judge.streams.pending` (gauge, 持续 < 阈值) / `judge.stale_result.dropped` (应为 0) / `outbox.row.real_dispatched` (随流量增长) / `judge.lease.miss_renew` (M3b 心跳契约)
+4. 跑真实 Streams F12 IT: kill worker after XACK before DB write,验证 reaper `XCLAIM` 接管 + entry 不丢
+5. 验证通过后:在所有生产主机 set 同一对 flag,完成 M3c cutover
+6. M3c cutover 后 ≥2 周:启动 M3d cleanup (删旧 RQueue + 旧 envelope v1 encode)
 
 ## 3. Consequences
 

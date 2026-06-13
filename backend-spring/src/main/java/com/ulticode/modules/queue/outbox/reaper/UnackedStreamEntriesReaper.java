@@ -1,9 +1,12 @@
 package com.ulticode.modules.queue.outbox.reaper;
 
+import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;
+import com.ulticode.modules.queue.processor.JudgeWorkerProcessor;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -39,6 +42,16 @@ public class UnackedStreamEntriesReaper {
     private static final long VISIBILITY_TIMEOUT_MS = 60_000L;
 
     private final RedissonStreamsJudgeQueueAdapter streamsAdapter;
+    /**
+     * Provider (not direct injection) so the reaper compiles even when
+     * {@link JudgeWorkerProcessor} is not registered (e.g. before
+     * M3c-3a worker port-poll wiring is live in tests). Resolves to
+     * null in that case — the reaper then keeps reclaiming ownership
+     * via {@code XCLAIM} but cannot process the reclaimed entry;
+     * M3c-3b follow-up wires the worker's PEL-first poll so the next
+     * sweep picks it up.
+     */
+    private final ObjectProvider<JudgeWorkerProcessor> workerProvider;
     /** Nullable so unit tests without a registry still compile. */
     private final MeterRegistry meterRegistry;
 
@@ -54,12 +67,32 @@ public class UnackedStreamEntriesReaper {
         // Reclaim one stale entry per sweep; the fixedDelay paces the loop
         // so we don't race a slow worker.
         try {
-            streamsAdapter.claimIdle(VISIBILITY_TIMEOUT_MS)
-                    .ifPresent(handle -> log.info(
-                            "Unacked Streams reaper reclaimed submission={} gen={} (idle >= {}ms)",
-                            handle.envelope().submissionId(),
-                            handle.envelope().generation(),
-                            VISIBILITY_TIMEOUT_MS));
+            java.util.Optional<JudgeJobHandle> reclaimed =
+                    streamsAdapter.claimIdle(VISIBILITY_TIMEOUT_MS);
+            if (reclaimed.isEmpty()) {
+                return;
+            }
+            JudgeJobHandle handle = reclaimed.get();
+            log.info("Unacked Streams reaper reclaimed submission={} gen={} (idle >= {}ms)",
+                    handle.envelope().submissionId(),
+                    handle.envelope().generation(),
+                    VISIBILITY_TIMEOUT_MS);
+            // codex P1 #3 fix: route the reclaimed handle to the worker
+            // for fenced processing + ack. Without this, the reclaimed
+            // entry sits in the PEL and is never consumed (worker's
+            // neverDelivered() poll ignores it). We delegate to the
+            // worker so a single fencing pass handles the whole job
+            // (acquireLease -> heartbeat -> execute -> writeVerdictFenced
+            // -> XACK). The worker's async retry on its own poll is the
+            // fallback when the worker bean is not yet wired.
+            JudgeWorkerProcessor worker = workerProvider.getIfAvailable();
+            if (worker != null) {
+                worker.processReclaimedHandle(streamsAdapter, handle);
+            } else {
+                log.warn("Reaper reclaimed submission={} but worker not wired; "
+                        + "next worker poll will pick it up via PEL",
+                        handle.envelope().submissionId());
+            }
         } catch (Exception e) {
             // A single reclaim failure must not stop the reaper. The
             // pendingCount is the source of truth; the next sweep will

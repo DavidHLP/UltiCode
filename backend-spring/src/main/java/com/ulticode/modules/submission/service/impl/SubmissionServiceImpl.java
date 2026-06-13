@@ -158,20 +158,24 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         log.info("Created submission {} for user {} and problem {}", submission.getId(), userId, createDTO.getProblemId());
 
-        // ADR-003 M3a: write a shadow outbox row in the same transaction so the
-        // dispatch intent is durable. The real delivery still goes through the
-        // legacy RQueue (enqueueJudgeJob below); the outbox dispatcher stays in
-        // shadow mode (claim + log + metric, no enqueue) until M3c cutover.
-        // Flag-gated: flag-off is byte-for-byte identical to the legacy path.
+        // ADR-003 M3a + M3c-2 fix: when the port cutover is active, write
+        // is_shadow=false so the real-dispatch path picks the row;
+        // otherwise write is_shadow=true for the M3a shadow window. The
+        // legacy RQueue enqueue below is skipped when the port is active
+        // so the outbox dispatcher is the sole active producer (codex
+        // P1 #1 — flag-off behavior is byte-for-byte identical to the
+        // legacy path).
+        boolean portActive = featureFlags.isJudgeQueueUsePort();
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
             try {
                 long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+                boolean isShadow = !portActive;
                 judgeOutboxMapper.insert(JudgeOutboxRecord.of(
-                        submission, String.valueOf(createDTO.getProblemId()), generation, true));
+                        submission, String.valueOf(createDTO.getProblemId()), generation, isShadow));
             } catch (Exception e) {
-                // Shadow write failure must not break submission; the real
-                // enqueue below is still the source of truth at this stage.
-                log.warn("Shadow outbox write failed for submission {} (continuing with legacy enqueue): {}",
+                // Outbox write failure must not break submission; the real
+                // enqueue (legacy RQueue or outbox dispatcher) still works.
+                log.warn("Outbox write failed for submission {} (continuing): {}",
                         submission.getId(), e.getMessage());
             }
         }
@@ -184,20 +188,27 @@ public class SubmissionServiceImpl implements SubmissionService {
             // Don't fail the main submission -- contest recording is supplementary
         }
 
-        try {
-            queueService.enqueueJudgeJob(
+        if (portActive) {
+            // codex P1 #1 fix: when the port cutover is active, the outbox
+            // dispatcher is the sole active producer. Skip the legacy
+            // RQueue enqueue to avoid double-dispatch.
+            log.debug("Submit {} skipped legacy RQueue (port cutover active)", submission.getId());
+        } else {
+            try {
+                queueService.enqueueJudgeJob(
                     submission.getId(),
                     String.valueOf(createDTO.getProblemId()),
                     userId,
                     language,
                     createDTO.getCode());
-            log.info("Enqueued judge job for submission {}", submission.getId());
-        // broad catch: enqueue failure falls back to system error status
-        } catch (Exception e) {
+                log.info("Enqueued judge job for submission {}", submission.getId());
+            // broad catch: enqueue failure falls back to system error status
+            } catch (Exception e) {
             log.error("Failed to enqueue judge job for submission {}", submission.getId(), e);
             submission.setStatus("System Error");
             submission.setNotes("Judge queue unavailable — submission was not processed");
             submissionMapper.updateById(submission);
+        }
         }
 
         return toVO(submission);

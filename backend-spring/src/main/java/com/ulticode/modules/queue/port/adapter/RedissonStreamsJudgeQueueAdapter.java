@@ -112,8 +112,18 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
             bucket.delete();
             throw new IllegalStateException("Failed to serialize JudgeJobEnvelope", e);
         }
-        redissonClient.getStream(streamKey).add(
-                org.redisson.api.stream.StreamAddArgs.entry("payload", payload));
+        try {
+            redissonClient.getStream(streamKey).add(
+                    org.redisson.api.stream.StreamAddArgs.entry("payload", payload));
+        } catch (Exception e) {
+            // codex P1 #2 fix: SETNX succeeded above; if stream.add fails
+            // (Redis down, stream full, etc.) the dedup key is in place
+            // and a future retry will see the row as "already delivered"
+            // and short-circuit — silently losing the message. Roll the
+            // dedup key back so the next dispatcher sweep re-enqueues.
+            bucket.delete();
+            throw e;
+        }
     }
 
     @Override

@@ -10,7 +10,7 @@
 | **[ADR-001](./ADR-001-verdict-status-codec.md)** | **Accepted** (2026-06-13) | Verdict / SubmissionStatus codec 演化 | 在不动 DB 持久化值 + 前端 i18n key 的前提下, 把字符串 verdict 升级为强类型 enum + 三层 Codec |
 | **[ADR-002](./ADR-002-sandbox-hexagonal.md)** | **Accepted** (2026-06-13) | Sandbox Hexagonal Port + LanguageProfile Strategy | `SandboxExecutor` port + Docker/InMemory 双 adapter; 5 个 LanguageProfile 集合注入 fail-fast |
 | **[ADR-003](./ADR-003-queue-outbox-fencing.md)** | **Accepted** (2026-06-13) | Queue + Outbox + Generation Fence + JUDGING Lease | 任务投递走 Outbox 表 + 唯一约束去重; submission 加 generation/lease 列防旧 worker 覆盖与 JUDGING 卡死。**M3a+M3b+M3c shipped (commits `09c97d1b8` / `b34ac01be` / `3e8504f1b` / `3ec758c41`); M3d 留 cutover 后 ≥2 周** |
-| **[ADR-004](./ADR-004-notification-intents.md)** | Proposed | NotificationIntent + Per-Channel Projection | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; channel-level preference 列入未来 ADR |
+| **[ADR-004](./ADR-004-notification-intents.md)** | **Accepted** (2026-06-13) | NotificationIntent + Per-Channel Projection + 失败隔离 | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; **M4a+M4b+M4c+M4d shipped** (commits `e38e340` / `bf02f48ec` / `9ecf10ec9` / `62a4dcabe`); channel-level preference 列入未来 ADR |
 | **[ADR-005](./ADR-005-rolling-deploy-playbook.md)** | Proposed | 滚动部署 Playbook | 11 个独立可部署 milestone + feature flag + envelope versioning + canary gate + rollback drill |
 
 ## 编号规则

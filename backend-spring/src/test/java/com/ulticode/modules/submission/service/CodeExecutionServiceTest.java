@@ -4,6 +4,12 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.sandbox.BatchRunResult;
+import com.ulticode.modules.submission.sandbox.RunCaseResult;
+import com.ulticode.modules.submission.sandbox.SandboxExecutor;
+import com.ulticode.modules.submission.sandbox.SandboxJob;
+import com.ulticode.modules.submission.sandbox.TestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,15 +23,27 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * M2a (ADR-002) version — the {@link SandboxService} collaborator is
+ * replaced by the Hexagonal {@link SandboxExecutor} port. All five
+ * pre-M2a cases are preserved with mock setups that target the new
+ * port signature ({@code run(SandboxJob, TestCase)} /
+ * {@code runBatch(SandboxJob, List<TestCase>)}).
+ */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CodeExecutionService")
+@DisplayName("CodeExecutionService (M2a, ADR-002)")
 class CodeExecutionServiceTest {
 
     @Mock
-    private SandboxService sandboxService;
+    private SandboxExecutor sandboxExecutor;
 
     @Mock
     private CodeExecutionHelper helper;
@@ -37,7 +55,7 @@ class CodeExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        codeExecutionService = new CodeExecutionService(sandboxService, helper, verdictResolver);
+        codeExecutionService = new CodeExecutionService(sandboxExecutor, helper, verdictResolver);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {
@@ -53,6 +71,14 @@ class CodeExecutionServiceTest {
         request.setCode(code);
         request.setTestCases(testCases);
         return request;
+    }
+
+    private RunCaseResult accepted() {
+        return RunCaseResult.accepted(10L, 1L * 1024 * 1024);
+    }
+
+    private RunCaseResult wrongAnswer() {
+        return RunCaseResult.rejected(SubmissionStatus.WRONG_ANSWER, "mismatch", 8L, 1L * 1024 * 1024);
     }
 
     @Nested
@@ -71,7 +97,7 @@ class CodeExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("empty test cases delegates to helper.emptyResult")
+        @DisplayName("empty test cases delegates to helper.emptyResult and never touches the sandbox")
         void execute_emptyTestCases_returnsEmptyResult() {
             RunSubmissionDTO request = createRequest("python", "print('hello')", List.of());
             RunResultDTO emptyResult = RunResultDTO.builder()
@@ -82,6 +108,8 @@ class CodeExecutionServiceTest {
 
             assertThat(result.getVerdict()).isEqualTo("Accepted");
             assertThat(result.getTotalCases()).isEqualTo(0);
+            verify(sandboxExecutor, never()).run(any(), any());
+            verify(sandboxExecutor, never()).runBatch(any(), anyList());
         }
 
         @Test
@@ -101,41 +129,41 @@ class CodeExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("single test case delegates to sandboxService.executeInSandbox")
+        @DisplayName("single test case delegates to sandboxExecutor.run and verdict is Accepted")
         void execute_singleTestCase_delegatesToSandbox() {
             RunSubmissionDTO.RunTestCase tc = createTestCase("tc-1", "42");
             RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc));
-            RunResultDTO.RunCaseResult caseResult = RunResultDTO.RunCaseResult.builder()
-                    .status("Accepted").runtime("10ms").memory("1.0MB").build();
-            when(sandboxService.executeInSandbox(eq("python"), eq("def solution(): pass"), eq(tc), anyString(), eq("user-1")))
-                    .thenReturn(caseResult);
-            when(helper.parseRuntimeMs("10ms")).thenReturn(10L);
+            when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(accepted());
+            when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
             assertThat(result.getVerdict()).isEqualTo("Accepted");
             assertThat(result.getPassedCases()).isEqualTo(1);
             assertThat(result.getTotalCases()).isEqualTo(1);
+            verify(sandboxExecutor).run(any(SandboxJob.class), any(TestCase.class));
+            verify(sandboxExecutor, never()).runBatch(any(), anyList());
         }
 
         @Test
-        @DisplayName("multiple test cases delegates to sandboxService.executeBatch")
+        @DisplayName("multiple test cases delegates to sandboxExecutor.runBatch and verdict follows VerdictResolver")
         void execute_multipleTestCases_delegatesToSandbox() {
             RunSubmissionDTO.RunTestCase tc1 = createTestCase("tc-1", "42");
             RunSubmissionDTO.RunTestCase tc2 = createTestCase("tc-2", "10");
             RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc1, tc2));
-            RunResultDTO.RunCaseResult r1 = RunResultDTO.RunCaseResult.builder().status("Accepted").runtime("10ms").memory("1.0MB").build();
-            RunResultDTO.RunCaseResult r2 = RunResultDTO.RunCaseResult.builder().status("Wrong Answer").runtime("8ms").memory("1.0MB").build();
-            when(sandboxService.executeBatch(eq("python"), eq("def solution(): pass"), eq(List.of(tc1, tc2)), anyString(), eq("user-1")))
-                    .thenReturn(List.of(r1, r2));
-            when(helper.parseRuntimeMs("10ms")).thenReturn(10L);
-            when(helper.parseRuntimeMs("8ms")).thenReturn(8L);
+            when(sandboxExecutor.runBatch(any(SandboxJob.class), anyList()))
+                    .thenReturn(new BatchRunResult(List.of(accepted(), wrongAnswer())));
+            when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
+            // Per VerdictResolver, severity(WRONG_ANSWER=2) > severity(ACCEPTED=0),
+            // so the per-case reduce must return WRONG_ANSWER.
             assertThat(result.getVerdict()).isEqualTo("Wrong Answer");
             assertThat(result.getPassedCases()).isEqualTo(1);
             assertThat(result.getTotalCases()).isEqualTo(2);
+            verify(sandboxExecutor).runBatch(any(SandboxJob.class), anyList());
+            verify(sandboxExecutor, never()).run(any(), any());
         }
     }
 }

@@ -325,6 +325,24 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<!--
+			  Mockito 5 + ByteBuddy need -Djdk.attach.allowAttachSelf
+			  to self-attach under Oracle JDK 17.0.2 (which is what
+			  `mvn test` picks up in the main worktree). Without
+			  this, every @Mock / @Spy test errors with
+			  "Could not initialize inline Byte Buddy mock maker".
+			  @{argLine} preserves the jacoco -javaagent:... argLine
+			  that the jacoco-maven-plugin injects at the prepare-agent
+				  phase; we just append the attach flag.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>@{argLine} -Djdk.attach.allowAttachSelf=true</argLine>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

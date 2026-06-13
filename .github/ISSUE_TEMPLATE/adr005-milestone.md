@@ -16,6 +16,10 @@ labels: ["milestone", "adr-005"]
 - [ ] Rollback drill 完成 (见 ADR-005 §2.6)
 - [ ] 标记 shipped (ADR-005 §2.1 表更新)
 
+> **Label 状态** (`status:shipped` / `status:pending` / `status:cutover-blocked`)
+> 由 `scripts/adr-005/create-milestone-issues.sh` 脚本创建时自动注入, 模板不预填.
+> 手动用本模板创建 issue 时, 请在右侧 Labels 栏选 `status:*` 标签.
+
 ## 改动范围
 {COPY_FROM_ADR}
 

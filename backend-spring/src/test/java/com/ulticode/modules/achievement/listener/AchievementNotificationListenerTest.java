@@ -32,12 +32,24 @@ class AchievementNotificationListenerTest {
     @Mock
     private RealtimeService realtimeService;
 
+    @Mock
+    private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+
+    @Mock
+    private com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+
     private AchievementNotificationListener listener;
 
     @BeforeEach
     void setUp() {
+        // ADR-004 M4c: feature flag defaults to false → legacy path is
+        // active (Q20 + manual WS push). Tests assert the legacy wiring.
+        // lenient() to satisfy Mockito 5's strict stubbing rules for tests
+        // that do not exercise the flag.
+        lenient().when(featureFlags.isUseNotificationIntent()).thenReturn(false);
         listener = new AchievementNotificationListener(
-                notificationService, notificationDispatchService, realtimeService);
+                notificationService, notificationDispatchService, realtimeService,
+                notificationDispatcher, featureFlags);
     }
 
     @Test

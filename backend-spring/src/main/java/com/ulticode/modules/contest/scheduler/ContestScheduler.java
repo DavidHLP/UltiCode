@@ -34,6 +34,12 @@ public class ContestScheduler {
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
     private final ContestParticipantMapper participantMapper;
+    /**
+     * ADR-004 M4c: typed intent dispatcher. Active when
+     * {@code app.features.use-notification-intent=true}.
+     */
+    private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+    private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
 
     @Scheduled(fixedRate = 10_000)
     public void run() {
@@ -130,16 +136,25 @@ public class ContestScheduler {
         // Fire-and-notify per D-13.
         // Q20: respect SYSTEM category preference (contest reminders are
         // system-originated but not security-critical; users can opt out).
+        // ADR-004 M4c: when the flag is on, dispatch the typed
+        // ContestStartingIntent so the 24h and 1h reminders get separate
+        // intent ids (the 24h and 1h path are deduped independently).
         try {
-            notificationDispatchService.dispatch(
-                    participant.getUserId(),
-                    "CONTEST_REMINDER",
-                    "SYSTEM",
-                    title,
-                    "",  // body empty per D-06
-                    "/contest/" + contest.getId(),  // link per D-07
-                    metadata,
-                    false);
+            if (featureFlags.isUseNotificationIntent()) {
+                notificationDispatcher.dispatch(
+                        com.ulticode.modules.notification.intent.ContestStartingIntent.of(
+                                contest, participant, reminderType));
+            } else {
+                notificationDispatchService.dispatch(
+                        participant.getUserId(),
+                        "CONTEST_REMINDER",
+                        "SYSTEM",
+                        title,
+                        "",  // body empty per D-06
+                        "/contest/" + contest.getId(),  // link per D-07
+                        metadata,
+                        false);
+            }
             log.debug("Sent {} reminder for contest {} to user {}", reminderType, contest.getId(), participant.getUserId());
         } catch (Exception e) {
             log.warn("Failed to send {} reminder for contest {} to user {}: {}",

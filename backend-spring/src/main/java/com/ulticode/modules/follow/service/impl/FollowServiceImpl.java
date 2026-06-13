@@ -37,6 +37,12 @@ public class FollowServiceImpl implements FollowService {
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
+    /**
+     * ADR-004 M4c: typed intent dispatcher. Active when
+     * {@code app.features.use-notification-intent=true}.
+     */
+    private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+    private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
 
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
@@ -55,18 +61,27 @@ public class FollowServiceImpl implements FollowService {
 
             // D-10: Only notify on first follow (idempotent insert).
             // Q20: respect COMMUNICATION preference — opt-out users won't see this.
+            // ADR-004 M4c: when the flag is on, dispatch a typed
+            // FollowReceivedIntent (InApp + WebSocket; Email skipped per
+            // channel matrix). Otherwise fall through to the legacy path.
             User currentUser = userMapper.selectById(currentUserId);
             try {
-                notificationDispatchService.dispatch(
-                    targetUserId,
-                    "FOLLOW",
-                    "COMMUNICATION",
-                    currentUser.getUsername() + " followed you",
-                    "",
-                    "/profile/" + currentUser.getUsername(),
-                    null,
-                    false
-                );
+                if (featureFlags.isUseNotificationIntent()) {
+                    notificationDispatcher.dispatch(
+                            com.ulticode.modules.notification.intent.FollowReceivedIntent.of(
+                                    currentUser, targetUserId));
+                } else {
+                    notificationDispatchService.dispatch(
+                        targetUserId,
+                        "FOLLOW",
+                        "COMMUNICATION",
+                        currentUser.getUsername() + " followed you",
+                        "",
+                        "/profile/" + currentUser.getUsername(),
+                        null,
+                        false
+                    );
+                }
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {
                 log.warn("Failed to create follow notification for user {}: {}", targetUserId, e.getMessage());

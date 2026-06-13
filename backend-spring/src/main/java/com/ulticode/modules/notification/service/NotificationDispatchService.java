@@ -16,7 +16,22 @@ import java.util.Optional;
  * <p>The {@code force} flag bypasses the preference check for system- and
  * admin-originated messages (security alerts, admin broadcasts) that must
  * always reach the user.
+ *
+ * <p><b>Deprecated since ADR-004 M4a:</b> replaced by
+ * {@link com.ulticode.modules.notification.dispatcher.NotificationDispatcher}
+ * + {@link com.ulticode.modules.notification.intent.NotificationIntent}. The
+ * new dispatcher fans out to per-channel
+ * {@link com.ulticode.modules.notification.channel.NotificationChannel}
+ * beans with ledger-backed idempotency and per-channel failure isolation.
+ * This service is kept for the M4c flag-off fallback path and will be
+ * removed at M4d once every caller has been migrated and
+ * {@code app.features.use-notification-intent} is permanently on.
+ *
+ * @deprecated use {@link com.ulticode.modules.notification.dispatcher.NotificationDispatcher}
+ *     via a typed {@link com.ulticode.modules.notification.intent.NotificationIntent}
+ *     instead.
  */
+@Deprecated
 public interface NotificationDispatchService {
 
     /**

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class FollowServiceImplTest {
@@ -40,18 +41,31 @@ class FollowServiceImplTest {
     @Mock
     private NotificationDispatchService notificationDispatchService;
 
+    @Mock
+    private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
+
+    @Mock
+    private com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+
     private FollowServiceImpl followService;
 
     private User testUser;
 
     @BeforeEach
     void setUp() {
+        // ADR-004 M4c: legacy flag-off path is the default; tests assert
+        // the legacy dispatch wiring. lenient() because tests that don't
+        // exercise the dispatch path (e.g. isFollowing_*) would otherwise
+        // trip Mockito 5's UnnecessaryStubbingException.
+        lenient().when(featureFlags.isUseNotificationIntent()).thenReturn(false);
         followService = new FollowServiceImpl(
             followMapper,
             userMapper,
             achievementTriggerService,
             notificationService,
-            notificationDispatchService
+            notificationDispatchService,
+            notificationDispatcher,
+            featureFlags
         );
 
         testUser = new User();

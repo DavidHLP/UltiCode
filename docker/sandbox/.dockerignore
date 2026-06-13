@@ -1,3 +1,4 @@
+# Generic artifacts — NEVER pull these into the build context.
 target/
 __pycache__/
 *.pyc
@@ -8,4 +9,18 @@ node_modules/
 build/
 dist/
 out/
-harness-staging/
+
+# Re-include the pre-compiled harness staging dir. The generic `*.class`
+# and `*.pyc` rules above would otherwise drop the Java .class files and
+# Python .pyc files that the Dockerfile explicitly COPYs from harness-staging/.
+# Dockerfile context requires these so the runtime image has a populated
+# /opt/harness/ tree.
+#
+# Order matters: .dockerignore applies rules bottom-up, so the negation
+# below wins over the patterns above.
+!harness-staging/
+!harness-staging/**
+!harness-staging/java/**
+!harness-staging/python/**
+!harness-staging/c/**
+!harness-staging/cpp/**

@@ -120,4 +120,19 @@ for lang in "${LANGS[@]}"; do
     "build_${lang}"
 done
 
+# ── post-build hint: ensure the base image is present and version-pinned ───
+# The Dockerfile FROM-clause references ulticode-sandbox:base-17. If that
+# tag is missing locally, `docker build` will (correctly) fail with a
+# "manifest not found" error rather than silently inheriting whatever
+# `ulticode-sandbox:latest` happens to be. Tag the existing local image
+# once on first-time setup, or build it from scratch with the original
+# apt-based recipe.
+if ! docker image inspect ulticode-sandbox:base-17 >/dev/null 2>&1; then
+    echo "[build.sh] WARNING: ulticode-sandbox:base-17 not found."
+    echo "[build.sh]   First-time setup:"
+    echo "[build.sh]     docker tag <existing-sandbox-image> ulticode-sandbox:base-17"
+    echo "[build.sh]   or rebuild the base from apt:"
+    echo "[build.sh]     docker build -t ulticode-sandbox:base-17 -f Dockerfile.base ."
+fi
+
 echo "[build.sh] done. Next: docker build -t ulticode-sandbox-dform ."

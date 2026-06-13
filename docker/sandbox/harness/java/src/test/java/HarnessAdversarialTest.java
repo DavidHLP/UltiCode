@@ -243,4 +243,78 @@ class HarnessAdversarialTest {
         private int hidden() { return 0; }
         public static int staticMethod() { return 0; }
     }
+
+    // ── TreeNode cycle guard (CR #2) ──────────────────────────────────────────
+
+    @Test
+    @DisplayName("fromTreeNode rejects self-referential TreeNode with IAE")
+    void fromTreeNode_selfCycle() {
+        TreeNode root = new TreeNode(1);
+        root.left = root; // self-loop
+        assertThatThrownBy(() -> Harness.fromTreeNode(root))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cyclic");
+    }
+
+    @Test
+    @DisplayName("fromTreeNode rejects mutually-referential TreeNode cycle")
+    void fromTreeNode_mutualCycle() {
+        TreeNode a = new TreeNode(1);
+        TreeNode b = new TreeNode(2);
+        a.left = b;
+        b.right = a;
+        assertThatThrownBy(() -> Harness.fromTreeNode(a))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cyclic");
+    }
+
+    @Test
+    @DisplayName("fromTreeNode respects shared MAX_JSONABLE_NODES cap")
+    void fromTreeNode_nodeCap() {
+        // Build a perfectly balanced tree of depth 21 (≈ 2M nodes), well over
+        // the 1M cap. Constructor + manual wiring is cheap enough for a unit test.
+        TreeNode root = new TreeNode(0);
+        java.util.Deque<TreeNode> q = new java.util.ArrayDeque<>();
+        q.offer(root);
+        int built = 1;
+        while (built <= Harness.MAX_JSONABLE_NODES + 5 && !q.isEmpty()) {
+            TreeNode n = q.poll();
+            n.left = new TreeNode(built++);
+            n.right = new TreeNode(built++);
+            q.offer(n.left);
+            q.offer(n.right);
+        }
+        assertThatThrownBy(() -> Harness.fromTreeNode(root))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("node limit");
+    }
+
+    // ── Output-size cap enforced incrementally (CR #3) ──────────────────────
+
+    @Test
+    @DisplayName("toJson rejects a single oversized string scalar")
+    void toJson_oversizedString() {
+        // 1 MiB over the cap should trip the post-append check inside writeString.
+        StringBuilder big = new StringBuilder(Harness.MAX_JSON_OUTPUT_BYTES + 1024);
+        for (int i = 0; i < Harness.MAX_JSON_OUTPUT_BYTES + 1024; i++) {
+            big.append('x');
+        }
+        assertThatThrownBy(() -> Harness.toJson(big.toString()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exceeds limit");
+    }
+
+    @Test
+    @DisplayName("toJson rejects a map with one giant key when post-append kicks in")
+    void toJson_oversizedKey() {
+        StringBuilder big = new StringBuilder(Harness.MAX_JSON_OUTPUT_BYTES + 1024);
+        for (int i = 0; i < Harness.MAX_JSON_OUTPUT_BYTES + 1024; i++) {
+            big.append('k');
+        }
+        java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put(big.toString(), 1);
+        assertThatThrownBy(() -> Harness.toJson(m))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exceeds limit");
+    }
 }

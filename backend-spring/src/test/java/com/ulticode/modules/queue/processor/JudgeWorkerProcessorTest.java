@@ -14,6 +14,7 @@ import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -57,6 +59,16 @@ class JudgeWorkerProcessorTest {
 
     @Mock
     private QueueConfig queueConfig;
+
+    /**
+     * VerdictResolver is a pure function; use a real spy so the existing
+     * determineVerdict tests exercise the real reduction logic without
+     * needing per-test stubbing. {@link InjectMocks} picks up spies the
+     * same way it picks up mocks for constructor injection (see project
+     * rule mockito5-lombok-constructor-injection).
+     */
+    @Spy
+    private VerdictResolver verdictResolver = new VerdictResolver();
 
     @InjectMocks
     private JudgeWorkerProcessor processor;

@@ -117,4 +117,27 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
      */
     @Select("SELECT COUNT(*) FROM notification_delivery_ledger WHERE delivery_state = #{state}")
     long countByState(@Param("state") DeliveryState state);
+
+    /**
+     * Reap stuck {@code CLAIMED} rows — i.e. dispatcher reserved a slot
+     * but the JVM was killed (pm2 reload, OOM, pod eviction) before the
+     * channel could transition the row to {@code DELIVERED} / {@code FAILED}.
+     * Without this reaper (ADR-004 M4d-1 finding #4), the next
+     * {@link #tryClaim} call for the same {@code (intent_id, channel_id)}
+     * pair sees an existing row and returns 0 → the user permanently
+     * misses that channel's delivery.
+     *
+     * <p>Default grace is 10 minutes: long enough for slow SMTP responses
+     * (the Email channel is the slowest), short enough that a stuck row
+     * is usually fixed within one reaper cycle.
+     *
+     * <p>Returns the number of rows reaped, surfaced via the
+     * {@code notification.ledger.reaper.reaped} counter.
+     */
+    @Update("UPDATE notification_delivery_ledger "
+            + "SET delivery_state = 'FAILED', "
+            + "    failure_reason = CONCAT('CLAIMED > 10min; reaped at ', NOW()) "
+            + "WHERE delivery_state = 'CLAIMED' "
+            + "  AND delivered_at < (NOW() - INTERVAL 10 MINUTE)")
+    int reapStaleClaimed();
 }

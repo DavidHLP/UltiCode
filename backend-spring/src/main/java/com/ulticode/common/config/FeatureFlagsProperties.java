@@ -1,7 +1,11 @@
 package com.ulticode.common.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDateTime;
 
 /**
  * Feature flags configuration properties.
@@ -48,25 +52,93 @@ public class FeatureFlagsProperties {
   private boolean useGenerationFence = false;
 
   /**
-   * Route judge dispatches through the {@code JudgeQueue} port (ADR-003 M3c)
-   * instead of the legacy {@code RQueue.add}. When {@code true}, the outbox
-   * dispatcher hands each PENDING row to the port's {@code enqueue} method
-   * and workers poll/ack through the port. Default {@code false}: the legacy
-   * {@code RQueue} path remains the sole active producer. M3c-1 ships the
-   * port interface; M3c-2 ships the Redisson Streams adapter; M3c-3 wires
-   * the worker.
+   * Nested properties for the M3c judge-queue port (ADR-003 M3c / ADR-005 §2.4).
+   *
+   * <p>P0-2 fix: these were previously flat fields ({@code judgeQueueUsePort} /
+   * {@code judgeQueueEnvelopeVersion}) on this class, but {@code application.yml}
+   * declares them under the nested key {@code app.features.judge-queue.*}.
+   * Spring Boot {@code @ConfigurationProperties} flat binding does NOT map
+   * {@code judge-queue.use-port} to {@code judgeQueueUsePort} — the
+   * kebab→camel conversion only applies to leaf property names, not path
+   * segments. The result was that YAML overrides never took effect: the
+   * M3c cutover flag was silently stuck at the compile-time default
+   * {@code false}, making the port path unreachable in production.
+   *
+   * <p>The fix groups the three judge-queue properties under a single
+   * {@link NestedConfigurationProperty} so Spring's Binder recognises the
+   * nested path. It also exposes the previously-dropped {@code cutover-at}
+   * (F13 watermark) which the old Binder silently ignored.
+   *
+   * <p>Grouping (rather than a separate top-level
+   * {@code @ConfigurationProperties(prefix="app.features.judge-queue")} class
+   * like {@link JudgeSourceProperties}) keeps the whole {@code app.features}
+   * subtree on one prefix, which makes the planned {@code FlagCombinationValidator}
+   * (P1-1) a single-bean cross-check instead of a cross-class one.
    */
-  private boolean judgeQueueUsePort = false;
+  @NestedConfigurationProperty
+  private JudgeQueue judgeQueue = new JudgeQueue();
+
+  public JudgeQueue getJudgeQueue() {
+    return judgeQueue;
+  }
+
+  public void setJudgeQueue(JudgeQueue judgeQueue) {
+    this.judgeQueue = judgeQueue;
+  }
 
   /**
-   * Envelope version the port writes (ADR-003 M3c / ADR-005 §2.4). When
-   * {@code 1} (default), envelopes carry only the legacy job fields; when
-   * {@code 2}, envelopes also carry {@code generation} and {@code attemptId}
-   * so workers can run the fence-CAS write path. The port accepts both
-   * versions on decode (dual-read), and writes whichever version this flag
-   * names. Bumping this flag is the M3c-3 cutover for fence-aware dispatches.
+   * M3c judge-queue port properties (ADR-003 M3c / ADR-005 §2.4 / F13).
    */
-  private int judgeQueueEnvelopeVersion = 1;
+  public static class JudgeQueue {
+    /**
+     * Route judge dispatches through the {@code JudgeQueue} port instead of
+     * the legacy {@code RQueue.add}. Default {@code false}: the legacy
+     * {@code RQueue} path remains the sole active producer.
+     */
+    private boolean usePort = false;
+
+    /**
+     * Envelope version the port writes. {@code 1} (default) = legacy fields
+     * only; {@code 2} = adds {@code generation}/{@code attemptId} for the
+     * fence-CAS write path. Bumping to {@code 2} is the M3c-3 cutover for
+     * fence-aware dispatches.
+     */
+    private int envelopeVersion = 1;
+
+    /**
+     * F13 cutover watermark (ISO-8601 date-time). When set, only outbox rows
+     * with {@code created_at >= cutoverAt} AND {@code is_shadow=0} are
+     * real-dispatched through the port; older rows stay on the legacy RQueue
+     * path. {@code null} (default) means no watermark — every non-shadow row
+     * is dispatched through whichever path the {@code usePort} flag selects.
+     */
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    private LocalDateTime cutoverAt;
+
+    public boolean isUsePort() {
+      return usePort;
+    }
+
+    public void setUsePort(boolean usePort) {
+      this.usePort = usePort;
+    }
+
+    public int getEnvelopeVersion() {
+      return envelopeVersion;
+    }
+
+    public void setEnvelopeVersion(int envelopeVersion) {
+      this.envelopeVersion = envelopeVersion;
+    }
+
+    public LocalDateTime getCutoverAt() {
+      return cutoverAt;
+    }
+
+    public void setCutoverAt(LocalDateTime cutoverAt) {
+      this.cutoverAt = cutoverAt;
+    }
+  }
 
   /**
    * Route notification dispatches through the {@code NotificationDispatcher}
@@ -138,22 +210,6 @@ public class FeatureFlagsProperties {
 
   public void setUseGenerationFence(boolean useGenerationFence) {
     this.useGenerationFence = useGenerationFence;
-  }
-
-  public boolean isJudgeQueueUsePort() {
-    return judgeQueueUsePort;
-  }
-
-  public void setJudgeQueueUsePort(boolean judgeQueueUsePort) {
-    this.judgeQueueUsePort = judgeQueueUsePort;
-  }
-
-  public int getJudgeQueueEnvelopeVersion() {
-    return judgeQueueEnvelopeVersion;
-  }
-
-  public void setJudgeQueueEnvelopeVersion(int judgeQueueEnvelopeVersion) {
-    this.judgeQueueEnvelopeVersion = judgeQueueEnvelopeVersion;
   }
 
   public boolean isUseNotificationIntent() {

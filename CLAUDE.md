@@ -540,6 +540,7 @@ pm2 resurrect                    # Restore saved list
 - `9001` 与 `8563` 共享 PID 是**预期**的 (Arthas agent 跑在目标 JVM 内)
 - `ulticode-init-db` 跑完进入 `stopped` 是**预期**的 (one-shot Flyway 任务);校验成功标志:`pm2 logs ulticode-init-db --nostream | grep "BUILD SUCCESS"`
 - 容器健康检查:`docker inspect --format='{{.State.Health.Status}}' ulticode-{mysql,nacos}`
+- **pm2 env 缓存 → 认证失败**:`pm2 restart --update-env` 不重读 `ecosystem.config.cjs` 的 `envFromFile`(用 daemon 缓存)。改 `.env` 后若 `9001` 报 `RedisWrongPasswordException`/DB 认证错且 ↺ 飙升,用 `pm2 delete ulticode-9001 && pm2 start ecosystem.config.cjs --only ulticode-9001` 强制重读。查进程实际 env 用 `tr '\0' '\n' < /proc/$(pm2 pid ulticode-9001)/environ | grep <VAR>`(`pm2 env <id>` 显示 stale,不可信)
 
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands

@@ -176,17 +176,18 @@ public class SubmissionServiceImpl implements SubmissionService {
         // legacy path).
         boolean portActive = featureFlags.getJudgeQueue().isUsePort();
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
-            try {
-                long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
-                boolean isShadow = !portActive;
-                judgeOutboxMapper.insert(JudgeOutboxRecord.of(
-                        submission, String.valueOf(createDTO.getProblemId()), generation, isShadow));
-            } catch (Exception e) {
-                // Outbox write failure must not break submission; the real
-                // enqueue (legacy RQueue or outbox dispatcher) still works.
-                log.warn("Outbox write failed for submission {} (continuing): {}",
-                        submission.getId(), e.getMessage());
-            }
+            // P1-1 (A+): outbox insert shares the @Transactional boundary with
+            // submissionMapper.insert above. Let exceptions propagate so the
+            // transaction rolls back — submission + outbox row live or die
+            // together (ADR-003 "submission + outbox 同事务"). Previously this
+            // was try-caught and logged, which left a Pending orphan when the
+            // port cutover was active: port mode skips RQueue, so the outbox
+            // was the sole producer and a swallowed insert failure stranded
+            // the submission in Pending forever.
+            long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+            boolean isShadow = !portActive;
+            judgeOutboxMapper.insert(JudgeOutboxRecord.of(
+                    submission, String.valueOf(createDTO.getProblemId()), generation, isShadow));
         }
 
         // --- Contest submission recording (D-04, D-05, D-06) ---

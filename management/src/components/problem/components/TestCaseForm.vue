@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Dialog,
   DialogContent,
@@ -12,12 +13,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { IconLoader2 } from '@tabler/icons-vue'
-import type { CreateTestCaseDto, TestCase } from '@/api/admin/test-cases'
+import {
+  type CreateTestCaseDto,
+  type TestCase,
+  type CaseScope,
+  mapFlagsToCaseScope,
+  mapCaseScopeToFlags,
+} from '@/api/admin/test-cases'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   editingTestCase: TestCase | null
   formData: CreateTestCaseDto
@@ -30,6 +37,22 @@ const emit = defineEmits<{
   save: []
   cancel: []
 }>()
+
+/**
+ * Two-way binding between the radio (canonical CaseScope) and the underlying
+ * (is_sample, is_hidden) flag pair on `formData`. Always emits both flags
+ * explicitly on set, so the wire contract to the backend satisfies the XOR
+ * filter and never carries a half-defined state.
+ */
+const caseScope = computed<CaseScope>({
+  get: () => mapFlagsToCaseScope(props.formData.is_sample, props.formData.is_hidden),
+  set: (scope: CaseScope) => {
+    emit('update:formData', {
+      ...props.formData,
+      ...mapCaseScopeToFlags(scope),
+    })
+  },
+})
 </script>
 
 <template>
@@ -42,23 +65,47 @@ const emit = defineEmits<{
       </DialogHeader>
 
       <div class="space-y-4 py-4">
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-2">
-            <Switch
-              :model-value="formData.is_sample"
-              @update:model-value="emit('update:formData', { ...formData, is_sample: $event })"
-              id="is_sample"
-            />
-            <Label for="is_sample" class="text-sm">{{ t('testCases.isSample') }}</Label>
-          </div>
-          <div class="flex items-center gap-2">
-            <Switch
-              :model-value="formData.is_hidden"
-              @update:model-value="emit('update:formData', { ...formData, is_hidden: $event })"
-              id="is_hidden"
-            />
-            <Label for="is_hidden" class="text-sm">{{ t('testCases.isHidden') }}</Label>
-          </div>
+        <!--
+          Canonical scope radio: replaces the previous (is_sample, is_hidden)
+          Switch pair. Frontend invariants:
+            - exactly one of {SAMPLE, HIDDEN} is selected at all times
+            - SAMPLE ⇔ is_sample=true ∧ is_hidden=false
+            - HIDDEN ⇔ is_sample=false ∧ is_hidden=true
+          This guarantees the wire payload satisfies the backend XOR filter
+          (see backend CreateTestCaseDTO + TestCaseMapper.findActiveCasesForJudging).
+        -->
+        <div>
+          <Label class="text-sm font-medium mb-2 block">
+            {{ t('testCases.scope.sample') }} / {{ t('testCases.scope.hidden') }}
+          </Label>
+          <RadioGroup
+            :model-value="caseScope"
+            @update:model-value="(v) => (caseScope = v as CaseScope)"
+            class="flex flex-col gap-2"
+          >
+            <div class="flex items-start gap-2">
+              <RadioGroupItem id="scope-sample" value="SAMPLE" />
+              <div class="grid gap-0.5">
+                <Label for="scope-sample" class="text-sm font-medium">
+                  {{ t('testCases.scope.sample') }}
+                </Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('testCases.scope.sampleHelp') }}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-start gap-2">
+              <RadioGroupItem id="scope-hidden" value="HIDDEN" />
+              <div class="grid gap-0.5">
+                <Label for="scope-hidden" class="text-sm font-medium">
+                  {{ t('testCases.scope.hidden') }}
+                </Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('testCases.scope.hiddenHelp') }}
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
         </div>
 
         <div>

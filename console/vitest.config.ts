@@ -36,7 +36,7 @@ export default defineConfig({
   ],
   test: {
     environment: "jsdom",
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    exclude: [...configDefaults.exclude, "e2e/**", "**/shared/**"],
     root: fileURLToPath(new URL("./src", import.meta.url)),
     globals: true,
   },

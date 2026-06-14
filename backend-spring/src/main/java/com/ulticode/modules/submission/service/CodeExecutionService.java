@@ -167,6 +167,19 @@ public class CodeExecutionService {
         // (e.g. "12ms") and a numeric v2 field. Build the string form
         // here so the response shape stays backwards compatible with
         // any caller that hasn't migrated to the v2 numeric fields.
+        // Bug fix: forward the user-supplied inputs/output/expectedOutput
+        // back to the wire so the UI's TestResultsView can render the
+        // "lists = …" / "expected = …" pair; previously these three
+        // fields were silently dropped, so /run responses showed
+        // "此用例未返回可展示的输入输出详情" for every case.
+        List<RunResultDTO.RunCaseResult.InputParam> dtoInputs = null;
+        if (port.inputs() != null) {
+            dtoInputs = port.inputs().stream()
+                    .map(i -> RunResultDTO.RunCaseResult.InputParam.builder()
+                            .id(i.id()).label(i.label()).name(i.name()).value(i.value())
+                            .build())
+                    .toList();
+        }
         return RunResultDTO.RunCaseResult.builder()
                 .id(original == null ? null : original.getId())
                 .runId(runId)
@@ -179,6 +192,9 @@ public class CodeExecutionService {
                 .runtimeMs(port.elapsedMs())
                 .memoryMb((double) memoryMb)
                 .detail(port.detail())
+                .output(port.output())
+                .expectedOutput(port.expectedOutput())
+                .inputs(dtoInputs)
                 .build();
     }
 

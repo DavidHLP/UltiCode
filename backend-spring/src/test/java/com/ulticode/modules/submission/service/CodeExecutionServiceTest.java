@@ -182,5 +182,50 @@ class CodeExecutionServiceTest {
             verify(sandboxExecutor).runBatch(any(SandboxJob.class), anyList());
             verify(sandboxExecutor, never()).run(any(), any());
         }
+
+        @Test
+        @DisplayName("toDtoCaseResult forwards inputs / output / expectedOutput to the wire DTO (R-T1 regression)")
+        void execute_forwardsInputsOutputAndExpectedToWire() {
+            // Mirrors the merge-k-sorted-lists /run scenario from the UI:
+            // sandbox returns a port-level result that has both the
+            // harness stdout and the user-supplied inputs populated.
+            // Pre-fix, toDtoCaseResult only forwarded .detail and the
+            // console's TestResultsView rendered every case as
+            // "此用例未返回可展示的输入输出详情".
+            List<TestCase.Input> sandboxInputs = List.of(
+                    new TestCase.Input("in-1", "lists", "lists", "[[1,4,5],[1,3,4],[2,6]]", null));
+            RunCaseResult portResult = RunCaseResult.acceptedWithOutput(
+                    2L, 6L * 1024 * 1024,
+                    "[1,1,2,3,4,4,5,6]",
+                    "[1,1,2,3,4,4,5,6]",
+                    sandboxInputs);
+
+            RunSubmissionDTO.RunInput in = new RunSubmissionDTO.RunInput();
+            in.setId("in-1");
+            in.setLabel("lists");
+            in.setName("lists");
+            in.setValue("[[1,4,5],[1,3,4],[2,6]]");
+            RunSubmissionDTO.RunTestCase tc = new RunSubmissionDTO.RunTestCase();
+            tc.setId("pe-007-1");
+            tc.setLabel("Case 1");
+            tc.setOutput("[1,1,2,3,4,4,5,6]");
+            tc.setInputs(List.of(in));
+            RunSubmissionDTO request = createRequest("java", "class Solution {}", List.of(tc));
+            when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(portResult);
+            when(helper.parseRuntimeMs(anyString())).thenReturn(2L);
+
+            RunResultDTO result = codeExecutionService.execute(request, 7L, "user-1");
+
+            assertThat(result.getCases()).hasSize(1);
+            RunResultDTO.RunCaseResult dto = result.getCases().get(0);
+            assertThat(dto.getOutput()).isEqualTo("[1,1,2,3,4,4,5,6]");
+            assertThat(dto.getExpectedOutput()).isEqualTo("[1,1,2,3,4,4,5,6]");
+            assertThat(dto.getInputs()).hasSize(1);
+            RunResultDTO.RunCaseResult.InputParam dtoInput = dto.getInputs().get(0);
+            assertThat(dtoInput.getId()).isEqualTo("in-1");
+            assertThat(dtoInput.getLabel()).isEqualTo("lists");
+            assertThat(dtoInput.getName()).isEqualTo("lists");
+            assertThat(dtoInput.getValue()).isEqualTo("[[1,4,5],[1,3,4],[2,6]]");
+        }
     }
 }

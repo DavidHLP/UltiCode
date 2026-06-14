@@ -2,9 +2,9 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | **Accepted** (2026-06-13) |
-| **关闭 Milestone** | M2a (`ea6031466`..`348525e63` round-1 + `6b234771c`..`361233470` round-2) |
-| **日期 (Date)** | 2026-06-13 |
+| **状态 (Status)** | **Accepted** (2026-06-13) + §7.7 Post-Hardening 实战修复 (2026-06-14) |
+| **关闭 Milestone** | M2a (`ea6031466`..`348525e63` round-1 + `6b234771c`..`361233470` round-2) + §7.7 facade mapping 修复 |
+| **日期 (Date)** | 2026-06-13 (ship), 2026-06-14 (post-hardening fix) |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | (原 §2.1 中**未**被 Codex 否决的部分) |
 | **依赖 ADR** | [ADR-001](./ADR-001-verdict-status-codec.md) (RunResult 含 SubmissionStatus 字段) |
@@ -297,6 +297,116 @@ $ curl -X POST /problems/7/submissions/run  # mergeKLists 用户代码
 1. **跨语言 memory 精度**: 当前 Java harness 用 JVM heap 估算, Python/C/C++ harness 同问题。Phase 2+ 升级到 cgroup `memory.max_usage_in_bytes` 读取(Linux only,需 SYS_ADMIN cap 或特权 proc 路径)。
 2. **null→[] 策略的反向同步**: 如果有用户期望 LeetCode 原汁 (null), 当前策略会让 OJ 跟 LeetCode 行为**一致**但跟某些 OI 平台不一致 (它们期望 `null`)。需要跟业务侧确认"默认 LeetCode 还是 OI"。
 3. **Adversarial envelope parse**: 现在 `parseDEnvelope` 用 `indexOf('{')` 切前缀, 如果 envelope 本身 JSON 里有嵌套 `{`, 可能误切。Phase 2+ 用 streaming parser (Jackson `JsonParser` 流式) 或要求 harness 把 envelope 写到独立 fd。
+
+### 7.7 实战教训 #6 — Facade `toDtoCaseResult` 漏 inputs/output/expectedOutput (2026-06-14)
+
+> §6 的 5 个 bug 都是"verdict 退化成 `Runtime Error`"。这一类新 bug 反向:
+> **verdict 正确**(`Accepted`), 但 wire DTO 漏透传 user-supplied 详情, 前端 UI 显示
+> "此用例未返回可展示的输入输出详情" 而 verdict/runtime/memory 都对。
+> 现象不报警, 排查靠 console network panel 对比 request.body 与 response.data。
+
+#### 症状 (用户报告: mergeKLists /run, `2026-06-14`)
+
+请求 body(用户提交):
+```json
+{
+  "testCases": [
+    {
+      "id": "pe-007-1", "label": "Case 1",
+      "output": "[1,1,2,3,4,4,5,6]",
+      "inputs": [{"id":"...","label":"lists","name":"lists","value":"[[1,4,5],[1,3,4],[2,6]]"}]
+    },
+    {"id": "pe-007-2", "label": "Case 2", "output": "[]", "inputs": []}
+  ]
+}
+```
+
+响应 body(`/problems/7/submissions/run` 返回):
+```json
+"cases": [
+  {
+    "id": "pe-007-1", "runId": "...", "submissionTestId": "pe-007-1", "testCaseId": "pe-007-1",
+    "caseLabel": "Case 1", "status": "Accepted", "runtime": "2ms", "memory": "6.0MB",
+    "runtimeMs": 2, "memoryMb": 6.0
+  },
+  { /* Case 2 same shape */ }
+]
+```
+
+`passedCases=2, totalCases=2, verdict=Accepted` — verdict/runtime/memory 全部对。**但 `inputs / output / expectedOutput / detail` 全部缺失**。前端 `console/src/views/problems/test/TestResultsView.vue:64` 的 `hasResultDetails` 三个全 false → 显示"此用例未返回可展示的输入输出详情"(i18n key `problem.layout.noResultDetails`)。
+
+#### 根因 — port↔wire 边界两个 builder 没同步
+
+`/problems/{id}/submissions/run` 走 `CodeExecutionService.execute → toDtoCaseResult`, **不是** helper 里的 `parseDEnvelope → buildCaseResult`。两个 builder 都该透传 4 个字段(`detail / output / expectedOutput / inputs`), 但只有 helper 的 `buildCaseResult` 写全了, facade 的 `toDtoCaseResult` 漏了后 3 个:
+
+```java
+// CodeExecutionService.toDtoCaseResult (PRE-FIX) — 缺 3 个 builder 调用
+return RunResultDTO.RunCaseResult.builder()
+        .id(...) .runId(...) .submissionTestId(...) .testCaseId(...) .caseLabel(...)
+        .status(...) .runtime(...) .memory(...) .runtimeMs(...) .memoryMb(...)
+        .detail(port.detail())      // ← 只透传 detail
+        // .output(port.output())                ← 漏
+        // .expectedOutput(port.expectedOutput()) ← 漏
+        // .inputs(port.inputs() → mapped)        ← 漏
+        .build();
+```
+
+```java
+// CodeExecutionHelperImpl.buildCaseResult (helper 路径) — 已透传 4 个
+return RunResultDTO.RunCaseResult.builder()
+        ...
+        .detail(detail).output(output)
+        .expectedOutput(testCase.getOutput())  // 注:用 request DTO, 不是 port
+        .inputs(inputs)
+        .build();
+```
+
+为什么 helper 路径对? 因为 helper 路径服务于 `parseDEnvelope`, D-form harness envelope 本身就只回填 `output` / `expectedOutput`, 不带 `inputs`;`inputs` 是从**请求 DTO** 的 `testCase.getInputs()` 直接 copy 过去的 — 路径一以贯之。Facade 路径是 Hexagonal 引入后的产物(`toDtoCaseResult` 是 port → wire 边界), 没复用 helper 的 builder, 写出来时漏了 3 行。
+
+#### 信号 — 怎么快速识别是这一类(verdict 对, 详情缺)
+
+```bash
+# 1. 对比 request.body 与 response.data.cases[i] 的 keys:
+#    request.body.testCases[i] 有 inputs/output/expectedOutput (如果请求 DTO 暴露)
+#    response.data.cases[i] 只有 id/status/runtime/memory + 顶层 verdict/passedCases/totalCases
+#    → facade 漏 mapping
+
+# 2. 看 console 端 TestResultsView 的 hasResultDetails:
+#    inputs.length=0 && output="" && expectedOutput="" → 三个 false → 走 noResultDetails 分支
+
+# 3. (反向信号) 如果 detail="D-form envelope missing per-case result for index N",
+#    那才是 §6 解析层 bug, 不是这一类
+```
+
+#### 防御 (post-fix)
+
+1. **单测覆盖** `CodeExecutionServiceTest.execute_forwardsInputsOutputAndExpectedToWire` — 构造 port `acceptedWithOutput(...)` 模拟 D-form 成功包, 断言 wire DTO 的 4 个字段(id/inputs/output/expectedOutput/detail)全透传。位于 `backend-spring/src/test/java/com/ulticode/modules/submission/service/CodeExecutionServiceTest.java`。
+2. **共用 builder / 强制 contract** — `CodeExecutionHelperImpl.buildCaseResult` 与 `CodeExecutionService.toDtoCaseResult` 当前是两套独立 builder 调用, 任何一边的字段增减都得手动同步另一条。**Phase 2+ 重构**: 抽 `RunResultDTO.RunCaseResult.builder().fromPort(port, requestDto)` 静态方法, 两个 caller 都走它, 单测覆盖 "所有 RunCaseResult 字段均被透传"。
+3. **Schema 校验 (wire-side)** — 给 `RunResultDTO.RunCaseResult` 加 `@JsonInclude(NON_NULL)` 之外, Phase 2+ 在 controller 出口挂一个 assertion: `if (verdict == "Accepted" && inputs == null && expectedOutput == null && output == null) log.warn("Accepted case missing displayable details", ...)` — 防止下一个 builder 漏字段悄无声息 ship。
+
+#### 关联 PR / 变更 (本节 ship)
+
+- `backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java#toDtoCaseResult` — builder 补 `.output(port.output()).expectedOutput(port.expectedOutput()).inputs(mappedInputs)`, 注释解释 "Bug fix: ... 否则 UI 显示 '此用例未返回可展示的输入输出详情'"
+- `backend-spring/src/test/java/com/ulticode/modules/submission/service/CodeExecutionServiceTest.java` — 新增 `execute_forwardsInputsOutputAndExpectedToWire` 回归用例, 用 `RunCaseResult.acceptedWithOutput(...)` 构造带 `inputs/output/expectedOutput` 的 port, 断言 wire DTO 同步
+- `RunCaseResult.InputParam` (wire DTO) vs `TestCase.Input` (port) — 字段差异: DTO 没有 `type` 字段(D-form 沙箱私有 hint), 映射时丢弃; 4 字段(id/label/name/value)对拷
+
+#### Verification (post-fix)
+
+```
+./mvnw test -Dtest=CodeExecutionServiceTest
+  → Tests run: 6, Failures: 0, Errors: 0, Skipped: 0  (含新增回归)
+
+./mvnw test -Dtest=CodeExecutionServiceTest,CodeExecutionHelperImplTest,\
+                  ProblemSubmissionControllerTest,CrossPathVerdictTest,\
+                  SubmissionStatusCodecTest,SubmissionStateMachineTest
+  → Tests run: 54, Failures: 0, Errors: 0  (submission 路径全过)
+
+curl -X POST /problems/7/submissions/run -d '{"language":"java","code":"...","testCases":[…]}'
+  → cases[i].inputs == [{"id":"...","label":"lists","name":"lists","value":"[[1,4,5],[1,3,4],[2,6]]"}]
+  → cases[i].expectedOutput == "[1,1,2,3,4,4,5,6]"
+  → cases[i].output == "[1,1,2,3,4,4,5,6]" (或 null; Accepted 时 D-form 已 echo)
+  → 前端 TestResultsView 渲染 "lists = [[1,4,5],[1,3,4],[2,6]]" + "expected = [1,1,2,3,4,4,5,6]"
+```
 
 ---
 

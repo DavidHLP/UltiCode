@@ -100,16 +100,18 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
 ### 2.3 Adapter 矩阵 (本次只做 2 个)
 
-| Adapter | 用途 | 本次落地 |
+> 命名说明: Port 是 `SandboxExecutor`(§2.1)。docker 侧实现沿用既有命名 `SandboxExecutorImpl`(与 §2.2 伪代码一致), 不是独立的 `DockerSandboxAdapter`。`DockerSandboxConfig` 是 Spring config(注册 bean), 不是 Adapter, 不计入下表。下表的"加新沙箱"行说明为何 docker 实现复用 Executor 命名而非新起 Adapter。
+
+| Adapter / Executor | 用途 | 本次落地 |
 |---|---|---|
-| `DockerSandboxAdapter` | 生产 — 现 `SandboxServiceImpl` 重构迁入, 保留全部安全策略 | ✅ |
+| `SandboxExecutorImpl` | 生产 (docker 默认实现) — 现 `SandboxServiceImpl` 重构迁入, 保留全部安全策略; 由 `@ConditionalOnProperty(name="sandbox.executor", havingValue="docker")` 激活; `ProcessBuilder` 拉容器在此类内 | ✅ |
 | `InMemorySandboxAdapter` | 测试 — 接收 `SandboxJob` 返回预设 `RunCaseResult` (可按 `job.code` 包含关键字路由到不同 verdict) | ✅ |
 | `RemoteJudgeSandboxAdapter` | 调外部判机 (HTTP/gRPC) | ❌ 不实现, 不预留接口 (YAGNI) |
 | `FirecrackerSandboxAdapter` / `gVisorSandboxAdapter` | 更轻隔离 | ❌ 不实现 |
 
 加新语言: 只新增 `RustLanguageProfile implements LanguageProfile` , 不改 `SandboxExecutor` / `JudgeWorker` (开闭原则 #11) 。
 
-加新沙箱: 只新增 `class XxxSandboxAdapter implements SandboxExecutor` , 通过 `@ConditionalOnProperty(name="sandbox.executor",havingValue="xxx")` 切换 (依赖倒置 #10) 。
+加新沙箱: 新增 `class XxxSandboxAdapter implements SandboxExecutor` , 通过 `@ConditionalOnProperty(name="sandbox.executor", havingValue="xxx")` 切换 (依赖倒置 #10) 。docker 默认实现复用 `SandboxExecutorImpl` 命名, 没有为对称性新起 `DockerSandboxAdapter`(实现已工作, 改名只增成本不增价值)。
 
 ### 2.4 Verdict 解析下沉到 LanguageProfile
 
@@ -126,7 +128,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 - **单测无需 Docker daemon** (InMemoryAdapter), CI 提速 + 离线开发可写单测
 - 加新语言只动 1 个文件 (新 LanguageProfile bean), 编译期保证 (重复 languageId 启动崩)
 - Verdict 字符串契约由 ADR-001 单点管理, sandbox 不再持有
-- 现有 `docs/CODEMAPS/sandbox.md` 的安全矩阵零损失 (`DockerSandboxAdapter` 全量继承)
+- 现有 `docs/CODEMAPS/sandbox.md` 的安全矩阵零损失 (`SandboxExecutorImpl` docker 实现全量继承)
 
 ### 3.2 Negative
 
@@ -148,7 +150,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 - [ ] 5 个语言 profile (JS/Python/Java/C/C++) 各自单测 (compile failure / runtime error / accepted)
 - [ ] Testcontainers IT 跑核心矩阵 (3 用例 × 5 语言 = 15 case), 与 InMemoryAdapter 行为对照
 - [ ] grep 确认 `switch (language)` 在 `submission/` 子树为零
-- [ ] grep 确认 `ProcessBuilder` 在 `submission/` 子树只出现在 `DockerSandboxAdapter` 内
+- [ ] grep 确认 `ProcessBuilder` 在 `submission/` 子树只出现在 `SandboxExecutorImpl` 内
 - [ ] `docs/CODEMAPS/sandbox.md` 同步更新, 新增 "Port / Adapter / LanguageProfile" 章节
 
 ## 5. References
@@ -163,7 +165,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 |---|-----|-------------|------|------|
 | 1 | `SANDBOX_IMAGE=ulticode-sandbox:latest` 指向 base-17 镜像(只有 JDK,**没**装 harness) | `.env` | `javac: cannot find symbol ListNode` × 9 → docker exit 1 → empty stdout → `sanitizeSandboxOutput(null)` 返回 `"Runtime error"` → `RUNTIME_ERROR` | `.env`: `ulticode-sandbox-dform:phase2-pinned` |
 | 2 | `SANDBOX_ENABLED=false` 整体禁用 docker 沙箱 | `.env` | 配置对但不调 docker, 所有提交 verdict = `Runtime Error` | `.env`: `SANDBOX_ENABLED=true` |
-| 3 | `SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json` **相对路径**, Spring Boot cwd 是 `backend-spring/`,docker daemon 拒绝 `--volume` 含 `/` 的 host path → 立即 exit 非零 | `.env` | 同 #1 症状, 但有 `WARNING: includes invalid characters for a local volume name` | `.env`: 改为**绝对路径** `/home/davidhlp/project/UltiCode/docker/sandbox/seccomp-profile.json` |
+| 3 | `SANDBOX_SECCOMP_PROFILE=docker/sandbox/seccomp-profile.json` **相对路径**, Spring Boot cwd 是 `backend-spring/`,docker daemon 拒绝 `--volume` 含 `/` 的 host path → 立即 exit 非零 | `.env` | 同 #1 症状, 但有 `WARNING: includes invalid characters for a local volume name` | `.env`: 改为**绝对路径** `/home/davidhlp/project/UltiCode/docker/sandbox/seccomp-profile.json`。**治本 (2026-06-14 post-review)**: 该绝对路径已固化到 `application.yml` 默认值, 新机器 / CI / 不读 `.env` 的环境也直接走绝对路径, 不再依赖 `.env` 兜底即可避免此 bug |
 | 4 | `JavaLanguageProfile.dockerCommand` dispatch shell 用相对路径 `Solution.java`, 但镜像 `WORKDIR=/home/sandbox`,`/job` 是 mount 卷 — javac 找不到源文件 | `backend-spring/.../JavaLanguageProfile.java:63` | `error: file not found: Solution.java\nUsage: javac <options> <source files>` | 改成 `/job/Solution.java` 绝对路径 |
 | 5 | Java 17 `SecurityManager` 弃用 WARNING 行污染 stdout,**在** JSON envelope **之前**输出, Jackson 严格解析失败 | `backend-spring/.../CodeExecutionHelperImpl.java#parseDEnvelope` | `D-form envelope unparseable: WARNING: ... {valid JSON here}` → 整体判 `Runtime Error` | `parseDEnvelope` 找第一个 `{`, 取 `substring(jsonStart)` 再 parse |
 

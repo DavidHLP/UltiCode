@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | Proposed |
+| **状态 (Status)** | Proposed (stays Proposed pending rollback drill completion — §2.6 表 M3a/M3c/M4a 三处全 `_TBD_`,从未执行首次 drill;不因依赖 ADR-001/002 已 Accepted 或 M1a-M3c 已 shipped 提前升级 Accepted) |
 | **日期 (Date)** | 2026-06-13 |
 | **作者 (Author)** | DavidHLP |
 | **解决的 Finding** | [ADR-000 / F5](./ADR-000-hexagonal-grilling-session.md#2-codex-adversarial-review-摘要) |
@@ -32,14 +32,14 @@
 
 ## 2. Decision
 
-### 2.1 Milestone 拆分 (M1→M5 共 5 个独立可部署单元)
+### 2.1 Milestone 拆分 (M1a→M4b 共 10 个独立可部署单元)
 
 | Milestone | ADR | 改动范围 | 可独立部署 | 可独立回滚 | shipped at |
 |---|---|---|---|---|---|
-| **M1a** | ADR-001 (§2.1-§2.4) | enum 改 + Codec + VerdictResolver, **仅扩不写新值** | ✅ | ✅ (revert commit) | — |
-| **M1b** | ADR-001 (§2.5) | i18n coverage test 接入 CI | ✅ | ✅ | — |
-| **M2a** | ADR-002 | Sandbox port + DockerAdapter + InMemoryAdapter + 5 LanguageProfile, 通过 `sandbox.executor` flag 灰度 | ✅ (默认 flag=legacy) | ✅ (flag 切回 legacy) | — |
-| **M2b** | ADR-002 (cutover) | flag 默认值切 `hexagonal`, 删旧 SandboxServiceImpl 内联实现 | ✅ | ⚠️ (需 revert) | — |
+| **M1a** | ADR-001 (§2.1-§2.4) | enum 改 + Codec + VerdictResolver, **仅扩不写新值** | ✅ | ✅ (revert commit) | **shipped** (见 [ADR-001 Accepted](./ADR-001-verdict-status-codec.md)) |
+| **M1b** | ADR-001 (§2.5) | i18n coverage test 接入 CI | ✅ | ✅ | **shipped** (见 [ADR-001 Accepted](./ADR-001-verdict-status-codec.md)) |
+| **M2a** | ADR-002 | Sandbox port + DockerAdapter + InMemoryAdapter + 5 LanguageProfile, 通过 `sandbox.executor` flag 灰度 | ✅ (默认 flag=legacy) | ✅ (flag 切回 legacy) | **shipped** (见 [ADR-002 Accepted](./ADR-002-sandbox-hexagonal.md)) |
+| **M2b** | ADR-002 (cutover) | flag 默认值切 `hexagonal`, 删旧 SandboxServiceImpl 内联实现 | ✅ | ⚠️ (需 revert) | **shipped** (见 [ADR-002 Accepted](./ADR-002-sandbox-hexagonal.md)) |
 | **M3a** | ADR-003 (§2.1) | Outbox 表 (含 `is_shadow`) + dispatcher **shadow-only** (只观察不入队, §2.8 F8 修订) | ✅ | ✅ (停 dispatcher / `useJudgeOutbox=off`) | **2026-06-13 `09c97d1b8`** |
 | **M3b** | ADR-003 (§2.2-§2.3) | generation/lease 列 + CAS fence + reaper + worker heartbeat, dual-CAS 兼容旧 worker | ✅ (DB 加列 + DEFAULT) | ✅ (列保留, 代码 revert / `useGenerationFence=off`) | **2026-06-13 `09c97d1b8`** |
 | **M3c** | ADR-003 (§2.4 cutover) | JudgeQueue port + Redisson adapter, envelope v2 (含 generation) | ✅ (envelope dual-read) | ✅ (flag) | **2026-06-13 `b34ac01be` + `3e8504f1b` + `3ec758c41`** |
@@ -140,7 +140,7 @@ Worker 启动 M3c 后, **同时识别 v1 + v2** ; M3d cutover 后 envelope v1 �
 
 部署前在 dev 拓扑 (与 staging 等价, 详见 RUNBOOK §7) **主动**执行以下回滚演练并记录耗时.
 `TBD` 表示待首次 drill 后填写, 不阻塞 ADR 自身验收. 详细 drill 协议见
-`docs/adr/ADR-005-rollback-drill-protocol.md`.
+`docs/adr/ADR-005a-rollback-drill-protocol.md` (ADR-005 的执行子协议, 编号 `005a`).
 
 | Milestone | Rollback 动作 | 期望耗时 | 实际耗时 | 完成时间 (UTC) | 执行人 | 备注 |
 |-----------|--------------|----------|----------|---------------|--------|------|
@@ -252,7 +252,7 @@ public class OutboxShadowComparator {
 
 ### 3.2 Negative
 
-- Milestone 从 3 个膨胀到 11 个 (M1a/M1b/M2a/M2b/M3a/M3b/M3c/M3d/M4a/M4b) , 项目管理成本上升
+- Milestone 从 3 个膨胀到 10 个 (M1a/M1b/M2a/M2b/M3a/M3b/M3c/M3d/M4a/M4b) , 项目管理成本上升
 - 双轨期 (M2a→M2b / M3a→M3d) 代码体积更大, code review 负担重
 - Feature flag 矩阵 5 个独立 flag, 测试矩阵 = 2^5 = 32 组合, 全测不现实 → 选 4-5 个关键组合
 - Cutover milestone 仍需 revert + 重新部署, 不是完美热回滚
@@ -264,7 +264,7 @@ public class OutboxShadowComparator {
 | Feature flag 长时间未清理 → 代码遍布 `if (flag)` 分支变僵尸 | 每个 flag 在引入 ADR 中标注 "removal milestone" , cutover 完成立即开 cleanup PR |
 | Nacos 配置漂移 → 生产 flag 与代码默认值不一致 | 启动时打印所有 `app.features.*` 当前值, 写 prod runbook |
 | 双轨期一致性 bug (新旧 path 行为微差) | M2a/M3a/M4a 各加"双跑校验" 模式 (shadow mode): 新 path 跑但不写结果, 比对与旧 path 是否一致, 不一致告警 |
-| 11 milestone 拖战线过长 → 人换团队失忆 | 每完成一个 milestone 更新本 ADR 状态表, ADR-005 § 2.1 表格添加 "shipped at" 列 |
+| 10 milestone 拖战线过长 → 人换团队失忆 | 每完成一个 milestone 更新本 ADR 状态表, ADR-005 § 2.1 表格添加 "shipped at" 列 |
 | Contest 窗口限制让进度卡死 | 与运营对齐 12 周 release cadence, 每周固定窗口 |
 
 ## 4. Validation (针对本 ADR 自身)

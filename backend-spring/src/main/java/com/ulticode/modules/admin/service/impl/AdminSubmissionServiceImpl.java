@@ -53,6 +53,11 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     /**
      * ADR-003 M3a outbox mapper for the rejudge double-write. Nullable so the
      * flag-off path (no outbox wiring in legacy tests) is unaffected.
+     *
+     * <p>P0 #11: under port cutover, the row becomes a <b>real</b> outbox row
+     * for the dispatcher (port mode writes {@code is_shadow=0}, not
+     * {@code is_shadow=1} as in the original M3a shadow double-write).
+     * See {@link #writeRejudgeOutbox}.
      */
     private final JudgeOutboxMapper judgeOutboxMapper;
     private final FeatureFlagsProperties featureFlags;

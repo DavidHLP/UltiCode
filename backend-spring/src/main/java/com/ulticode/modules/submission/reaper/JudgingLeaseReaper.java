@@ -110,6 +110,12 @@ public class JudgingLeaseReaper {
                 try {
                     judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
                             s, String.valueOf(s.getProblemId()), newGen, !portActive));
+                    // Canary observability (P0 #11): log every successful
+                    // reaper outbox insert with is_shadow / portActive pair
+                    // so post-canary grep (24h) can verify no
+                    // `is_shadow=true ∧ portActive=true` slips through.
+                    log.info("reaper.outbox.insert submissionId={} problemId={} generation={} is_shadow={} portActive={}",
+                            s.getId(), s.getProblemId(), newGen, !portActive, portActive);
                 } catch (Exception e) {
                     // The unique key (submission_id, generation) may reject a
                     // duplicate if a concurrent recovery already wrote this gen;

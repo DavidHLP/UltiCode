@@ -11,6 +11,9 @@
  * review P0-1 backend projection, do not relax the type.
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import type { SubmissionRecord, SubmissionTestRecord } from '@/types/submission'
 
 describe('console — SubmissionRecord 0-leak invariant (task #10 ADR-001)', () => {
@@ -65,10 +68,12 @@ describe('console — SubmissionRecord 0-leak invariant (task #10 ADR-001)', () 
 
 describe('console — SubmissionTestResults.vue template does not reference hidden fields', () => {
   it('source file is free of "isHidden" / "caseScope" / "is_hidden" / "case_scope" identifiers', () => {
-    const fs = require('fs')
-    const altPath =
-      '/home/davidhlp/project/UltiCode/console/src/views/problems/submissions/components/SubmissionTestResults.vue'
-    const content = fs.readFileSync(altPath, 'utf8')
+    // Resolve relative to this spec file (import.meta.url) so the static scan
+    // works in CI and on any clone path — and reads the worktree copy, not a
+    // hard-coded main-repo absolute path. (reviewer blocker fix, task #10)
+    const here = dirname(fileURLToPath(import.meta.url))
+    const sourcePath = join(here, '..', 'SubmissionTestResults.vue')
+    const content = readFileSync(sourcePath, 'utf8')
     expect(content).not.toMatch(/isHidden/)
     expect(content).not.toMatch(/is_hidden/)
     expect(content).not.toMatch(/caseScope/)

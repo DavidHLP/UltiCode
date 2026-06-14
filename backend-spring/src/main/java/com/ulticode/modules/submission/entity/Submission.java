@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.ulticode.modules.submission.enums.CaseScope;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -138,7 +139,24 @@ public class Submission {
     private Object runtimeDistBinsMs;
 
     /**
-     * Nested class for test case details
+     * Nested class for test case details.
+     *
+     * <p>Existing fields ({@code status}, {@code time}, {@code memory}, {@code detail},
+     * {@code output}, {@code expectedOutput}, {@code inputs}) keep their wire and
+     * JSON persistence contract for backward compatibility with rows written before
+     * P0-1.
+     *
+     * <p>Two nullable fields are added by P0-1 and are absent on legacy rows:
+     * <ul>
+     *   <li>{@code caseId} — the {@code test_cases.id} (varchar(40)) this case was
+     *       sourced from. {@code null} on legacy rows whose cases came from the
+     *       pre-existing {@code problem_examples} read path.</li>
+     *   <li>{@code caseScope} — {@code SAMPLE} or {@code HIDDEN} per
+     *       {@link com.ulticode.modules.submission.enums.CaseScope}. {@code null} on
+     *       legacy rows; the projection layer treats {@code null} as legacy sample.
+     *       Never persist {@code LEGACY_SAMPLE} — that value exists only at the
+     *       user-facing projection layer.</li>
+     * </ul>
      */
     @Data
     public static class TestCaseDetail {
@@ -149,6 +167,10 @@ public class Submission {
         private String output;
         private String expectedOutput;
         private List<InputParam> inputs;
+        /** Nullable (P0-1). {@code test_cases.id} the case was sourced from. */
+        private String caseId;
+        /** Nullable (P0-1). See {@link com.ulticode.modules.submission.enums.CaseScope}. */
+        private CaseScope caseScope;
 
         @Data
         public static class InputParam {

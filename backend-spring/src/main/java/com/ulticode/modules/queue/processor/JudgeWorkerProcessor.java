@@ -3,6 +3,11 @@ package com.ulticode.modules.queue.processor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.config.FeatureFlagsProperties;
+import com.ulticode.common.config.JudgeSourceProperties;
+import com.ulticode.modules.problem.entity.TestCase;
+import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import com.ulticode.modules.problem.entity.ProblemExample;
 import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
@@ -17,6 +22,7 @@ import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.LeaseConstants;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -80,6 +86,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final RealtimeService realtimeService;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ProblemExampleMapper problemExampleMapper;
+    private final TestCaseMapper testCaseMapper;
+    private final JudgeSourceProperties judgeSourceProperties;
     private final QueueConfig queueConfig;
     private final ObjectMapper objectMapper;
     private final VerdictResolver verdictResolver;
@@ -288,61 +296,162 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             // Mark as judging
             submissionService.updateSubmissionResult(submissionId, "Judging", 0, null, null);
 
-            // Load examples as judge cases. The current schema stores public runnable cases
-            // in problem_examples; there is no test_cases table in the canonical migrations.
-            List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(Long.parseLong(problemId));
-            if (examples == null || examples.isEmpty()) {
-                log.warn("No problem examples found for problem {}", problemId);
-                submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
-                return;
+            // P0-1: branch on judge source flag (test_cases vs problem_examples).
+            // Both paths fail closed (System Error) when no eligible cases exist;
+            // the only difference is which mapper supplies the cases and whether
+            // we write caseId/caseScope into TestCaseDetail.
+            if (judgeSourceProperties.isUseTestCases()) {
+                processJobWithTestCases(job, submissionId, problemId, userId);
+            } else {
+                processJobWithProblemExamples(job, submissionId, problemId, userId);
             }
-
-            // Build RunSubmissionDTO
-            RunSubmissionDTO runDto = buildRunSubmissionDTO(job, examples);
-
-            // Execute
-            RunResultDTO result = codeExecutionService.execute(runDto, Long.parseLong(problemId), userId);
-
-            // Determine verdict
-            String verdict = determineVerdict(result.getCases());
-
-            // Compute max runtime and memory across all cases
-            long maxRuntimeMs = 0;
-            double maxMemoryMb = 0.0;
-            for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
-                maxRuntimeMs = Math.max(maxRuntimeMs, parseRuntimeMs(caseResult.getRuntime()));
-                maxMemoryMb = Math.max(maxMemoryMb, parseMemoryMb(caseResult.getMemory()));
-            }
-
-            // Build test case details
-            List<Submission.TestCaseDetail> testCaseDetails = result.getCases().stream()
-                    .map(cr -> {
-                        Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
-                        detail.setStatus(cr.getStatus());
-                        detail.setTime((int) parseRuntimeMs(cr.getRuntime()));
-                        detail.setMemory(parseMemoryMb(cr.getMemory()));
-                        detail.setOutput(cr.getOutput());
-                        detail.setExpectedOutput(cr.getExpectedOutput());
-                        detail.setDetail(cr.getDetail());
-                        return detail;
-                    })
-                    .toList();
-
-            // Write result
-            submissionService.updateSubmissionResult(submissionId, verdict, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
-
-            // Push WebSocket
-            long memoryBytes = (long) (maxMemoryMb * 1024 * 1024);
-            String contestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, verdict, (int) maxRuntimeMs, memoryBytes, contestId);
-
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
             submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
             String failedContestId = findContestIdBySubmissionId(submissionId);
             pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
         }
+    }
+
+    /**
+     * P0-1 primary path: source cases from the canonical {@code test_cases} table.
+     * <p>
+     * Filters out draft ({@code isSample=false, isHidden=false}) and illegal
+     * ({@code isSample=true, isHidden=true}) rows; soft-deleted rows are
+     * excluded by {@code @TableLogic}. An empty result fails closed with
+     * System Error — never falls back to {@code problem_examples}.
+     * <p>
+     * Writes {@code caseId} and {@code caseScope} into each {@code TestCaseDetail}
+     * using {@code cr.getTestCaseId()} (passed through from the D-form harness)
+     * to look up the canonical case in a pre-built map. Unknown IDs log a
+     * system error and are recorded as scope=null (treated as legacy sample at
+     * the user-facing projection layer, never as HIDDEN).
+     */
+    private void processJobWithTestCases(JudgeJob job, String submissionId, String problemId, String userId) {
+        List<TestCase> cases = testCaseMapper.findActiveCasesForJudging(Long.parseLong(problemId));
+        if (cases == null || cases.isEmpty()) {
+            log.warn("No eligible test_cases for problem {} (fail closed: System Error, no problem_examples fallback)",
+                    problemId);
+            submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
+            pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
+            return;
+        }
+
+        Map<String, TestCase> byId = cases.stream().collect(
+                Collectors.toMap(TestCase::getId, Function.identity(), (a, b) -> a));
+
+        RunSubmissionDTO runDto = buildRunSubmissionDTOFromTestCases(job.getLanguage(), job.getCode(), cases);
+        RunResultDTO result = codeExecutionService.execute(runDto, Long.parseLong(problemId), userId);
+
+        String verdict = determineVerdict(result.getCases());
+
+        long maxRuntimeMs = 0;
+        double maxMemoryMb = 0.0;
+        for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
+            maxRuntimeMs = Math.max(maxRuntimeMs, parseRuntimeMs(caseResult.getRuntime()));
+            maxMemoryMb = Math.max(maxMemoryMb, parseMemoryMb(caseResult.getMemory()));
+        }
+
+        List<Submission.TestCaseDetail> testCaseDetails = buildTestCaseDetailsWithScope(
+                result.getCases(), byId, submissionId, problemId);
+
+        submissionService.updateSubmissionResult(submissionId, verdict, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
+
+        long memoryBytes = (long) (maxMemoryMb * 1024 * 1024);
+        String contestId = findContestIdBySubmissionId(submissionId);
+        pushResult(userId, submissionId, problemId, verdict, (int) maxRuntimeMs, memoryBytes, contestId);
+    }
+
+    /**
+     * Legacy problem_examples path. Preserved verbatim for short-term rollback
+     * during P0-1 cutover; slated for deletion in Phase 3 cleanup (task #7).
+     * <p>
+     * No {@code caseId} or {@code caseScope} is written — those fields stay
+     * {@code null} on the resulting {@code TestCaseDetail}, and the user-facing
+     * projection layer treats null as legacy sample.
+     */
+    private void processJobWithProblemExamples(JudgeJob job, String submissionId, String problemId, String userId) {
+        List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(Long.parseLong(problemId));
+        if (examples == null || examples.isEmpty()) {
+            log.warn("No problem examples found for problem {}", problemId);
+            submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
+            pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
+            return;
+        }
+
+        RunSubmissionDTO runDto = buildRunSubmissionDTO(job, examples);
+        RunResultDTO result = codeExecutionService.execute(runDto, Long.parseLong(problemId), userId);
+
+        String verdict = determineVerdict(result.getCases());
+
+        long maxRuntimeMs = 0;
+        double maxMemoryMb = 0.0;
+        for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
+            maxRuntimeMs = Math.max(maxRuntimeMs, parseRuntimeMs(caseResult.getRuntime()));
+            maxMemoryMb = Math.max(maxMemoryMb, parseMemoryMb(caseResult.getMemory()));
+        }
+
+        List<Submission.TestCaseDetail> testCaseDetails = result.getCases().stream()
+                .map(cr -> {
+                    Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
+                    detail.setStatus(cr.getStatus());
+                    detail.setTime((int) parseRuntimeMs(cr.getRuntime()));
+                    detail.setMemory(parseMemoryMb(cr.getMemory()));
+                    detail.setOutput(cr.getOutput());
+                    detail.setExpectedOutput(cr.getExpectedOutput());
+                    detail.setDetail(cr.getDetail());
+                    return detail;
+                })
+                .toList();
+
+        submissionService.updateSubmissionResult(submissionId, verdict, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
+
+        long memoryBytes = (long) (maxMemoryMb * 1024 * 1024);
+        String contestId = findContestIdBySubmissionId(submissionId);
+        pushResult(userId, submissionId, problemId, verdict, (int) maxRuntimeMs, memoryBytes, contestId);
+    }
+
+    /**
+     * Build {@code TestCaseDetail} list with {@code caseId} and {@code caseScope}
+     * populated from the canonical test_cases lookup. An unknown {@code testCaseId}
+     * from the sandbox result logs a system error (no hidden input/output is
+     * logged) and leaves {@code caseId}/{@code caseScope} null — treated as
+     * legacy sample by the user-facing projection layer, never as HIDDEN.
+     */
+    private List<Submission.TestCaseDetail> buildTestCaseDetailsWithScope(
+            List<RunResultDTO.RunCaseResult> caseResults,
+            Map<String, TestCase> byId,
+            String submissionId,
+            String problemId) {
+        List<Submission.TestCaseDetail> details = new ArrayList<>(caseResults.size());
+        for (RunResultDTO.RunCaseResult cr : caseResults) {
+            Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
+            detail.setStatus(cr.getStatus());
+            detail.setTime((int) parseRuntimeMs(cr.getRuntime()));
+            detail.setMemory(parseMemoryMb(cr.getMemory()));
+            detail.setOutput(cr.getOutput());
+            detail.setExpectedOutput(cr.getExpectedOutput());
+            detail.setDetail(cr.getDetail());
+
+            String tcId = cr.getTestCaseId();
+            if (tcId != null && !tcId.isBlank()) {
+                TestCase tc = byId.get(tcId);
+                if (tc != null) {
+                    detail.setCaseId(tc.getId());
+                    if (Boolean.TRUE.equals(tc.getIsHidden())) {
+                        detail.setCaseScope(CaseScope.HIDDEN);
+                    } else if (Boolean.TRUE.equals(tc.getIsSample())) {
+                        detail.setCaseScope(CaseScope.SAMPLE);
+                    }
+                    // isSample=false, isHidden=false (draft) -> caseScope stays null
+                } else {
+                    log.error("sandbox returned testCaseId={} not in test_cases for submission={} problem={} (recording system error, no hidden I/O logged)",
+                            tcId, submissionId, problemId);
+                }
+            }
+            details.add(detail);
+        }
+        return details;
     }
 
     /**
@@ -714,6 +823,71 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                 }
             }
             // Fallback: wrap inputText as single input
+            if (runInputs.isEmpty() && tc.getInputText() != null) {
+                RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+                ri.setId("0");
+                ri.setLabel("input");
+                ri.setName("input");
+                ri.setValue(tc.getInputText());
+                runInputs.add(ri);
+            }
+            rtc.setInputs(runInputs);
+            return rtc;
+        }).toList());
+        return runDto;
+    }
+
+    /**
+     * P0-1 {@code test_cases} overload of {@link #buildRunSubmissionDTO(String, String, List)}.
+     * <p>
+     * Maps {@code TestCase} → {@code RunTestCase} using the same JSON-input parsing
+     * as {@code ProblemExample} (the {@code inputs} column is a JSON array of
+     * {@code {name, label, value, type}} objects, identical schema across both
+     * tables). Uses {@code testOrder} for the user-visible label and
+     * {@code testCase.id} (the canonical {@code varchar(40)} id) for the
+     * {@code RunTestCase.id} the D-form harness will echo back as
+     * {@code RunCaseResult.testCaseId}.
+     * <p>
+     * Named {@code buildRunSubmissionDTOFromTestCases} (not a plain overload) to
+     * avoid Java generic erasure clash with the {@code List<ProblemExample>}
+     * overload above.
+     */
+    private RunSubmissionDTO buildRunSubmissionDTOFromTestCases(String language, String code, List<TestCase> cases) {
+        RunSubmissionDTO runDto = new RunSubmissionDTO();
+        runDto.setLanguage(language);
+        runDto.setCode(code);
+        runDto.setTestCases(cases.stream().map(tc -> {
+            RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
+            rtc.setId(tc.getId());
+            rtc.setLabel("Case " + tc.getTestOrder());
+            rtc.setOutput(tc.getOutputText());
+
+            List<RunSubmissionDTO.RunInput> runInputs = new ArrayList<>();
+            if (tc.getInputs() != null && !tc.getInputs().isBlank()) {
+                try {
+                    List<Map<String, Object>> inputs = objectMapper.readValue(
+                            tc.getInputs(), new TypeReference<List<Map<String, Object>>>() {});
+                    for (int i = 0; i < inputs.size(); i++) {
+                        Map<String, Object> item = inputs.get(i);
+                        RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+                        ri.setId(String.valueOf(i));
+                        Object nameObj = item.get("name");
+                        Object labelObj = item.get("label");
+                        String name = (nameObj != null ? nameObj : (labelObj != null ? labelObj : "input")).toString();
+                        ri.setLabel(name);
+                        ri.setName(name);
+                        Object valueObj = item.get("value");
+                        ri.setValue(valueObj != null ? valueObj.toString() : "");
+                        Object typeObj = item.get("type");
+                        if (typeObj != null && !typeObj.toString().isBlank()) {
+                            ri.setType(typeObj.toString());
+                        }
+                        runInputs.add(ri);
+                    }
+                } catch (JsonProcessingException e) {
+                    log.warn("Failed to parse inputs JSON for test_case {}, falling back to inputText", tc.getId());
+                }
+            }
             if (runInputs.isEmpty() && tc.getInputText() != null) {
                 RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
                 ri.setId("0");

@@ -601,6 +601,13 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             boolean portActive = featureFlags.getJudgeQueue().isUsePort();
             judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
                     submission, String.valueOf(submission.getProblemId()), generation, !portActive));
+            // Canary observability (P0 #11): log every successful admin
+            // rejudge outbox insert with is_shadow / portActive pair. Logged
+            // AFTER the insert call so failures (unique key conflicts) stay
+            // on the existing log.warn path; do NOT move inside any
+            // try/catch above.
+            log.info("admin_rejudge.outbox.insert submissionId={} problemId={} generation={} is_shadow={} portActive={}",
+                    submission.getId(), submission.getProblemId(), generation, !portActive, portActive);
         }
     }
 

@@ -95,17 +95,26 @@ public class JudgingLeaseReaper {
                 continue;
             }
 
-            // Shadow outbox double-write at the new generation (stays in the DB
+            // Outbox double-write at the new generation (stays in the DB
             // transaction so the bump + outbox commit atomically).
+            //
+            // P0 #11 fix: previously hard-coded `is_shadow=true`. Under
+            // `use-port=true`, the dispatcher ignores shadow rows, so a
+            // recovered submission's outbox row was never picked up and the
+            // submission was stranded Pending forever. Now `is_shadow =
+            // !portActive` so the port cutover writes a real row the
+            // dispatcher can enqueue. Shadow mode (use-port=false) preserves
+            // the original double-write semantics.
             if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
+                boolean portActive = featureFlags.getJudgeQueue().isUsePort();
                 try {
                     judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
-                            s, String.valueOf(s.getProblemId()), newGen, true));
+                            s, String.valueOf(s.getProblemId()), newGen, !portActive));
                 } catch (Exception e) {
                     // The unique key (submission_id, generation) may reject a
                     // duplicate if a concurrent recovery already wrote this gen;
                     // that is benign — the intent is already recorded.
-                    log.debug("Shadow outbox insert skipped for submission {} gen {}: {}",
+                    log.debug("Outbox insert skipped for submission {} gen {}: {}",
                             s.getId(), newGen, e.getMessage());
                 }
             }

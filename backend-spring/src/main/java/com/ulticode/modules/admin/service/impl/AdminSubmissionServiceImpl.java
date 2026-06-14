@@ -53,6 +53,11 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     /**
      * ADR-003 M3a outbox mapper for the rejudge double-write. Nullable so the
      * flag-off path (no outbox wiring in legacy tests) is unaffected.
+     *
+     * <p>P0 #11: under port cutover, the row becomes a <b>real</b> outbox row
+     * for the dispatcher (port mode writes {@code is_shadow=0}, not
+     * {@code is_shadow=1} as in the original M3a shadow double-write).
+     * See {@link #writeRejudgeOutbox}.
      */
     private final JudgeOutboxMapper judgeOutboxMapper;
     private final FeatureFlagsProperties featureFlags;
@@ -588,8 +593,14 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
      */
     private void writeRejudgeOutbox(Submission submission, long generation) {
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
+            // P0 #11 fix: `is_shadow = !portActive`. Under port cutover
+            // the dispatcher ignores shadow rows, so a hard-coded `true`
+            // would strand the rejudged submission Pending forever. Port
+            // mode now writes a real row the dispatcher enqueues; shadow
+            // mode keeps the original double-write observation behaviour.
+            boolean portActive = featureFlags.getJudgeQueue().isUsePort();
             judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
-                    submission, String.valueOf(submission.getProblemId()), generation, true));
+                    submission, String.valueOf(submission.getProblemId()), generation, !portActive));
         }
     }
 

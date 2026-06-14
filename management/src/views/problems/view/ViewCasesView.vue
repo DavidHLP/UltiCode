@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { IconFlask } from '@tabler/icons-vue'
 import { useProblemsStore } from '@/stores/admin/problems'
 import CasesDisplay from '../components/CasesDisplay.vue'
+import HiddenCasesView from '@/components/problem/HiddenCasesView.vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -71,6 +72,14 @@ onMounted(async () => {
     <div class="flex-1">
       <div v-if="problem" class="space-y-4">
         <CasesDisplay :problem="problem" />
+        <!--
+          Admin-only hidden cases viewer (read-only). Per ADR-001 + P0-1
+          backend projection, this is the ONLY frontend surface that may
+          render hidden case data — the admin authn path is enforced by
+          @PreAuthorize on AdminTestCaseController. console/ never imports
+          this component.
+        -->
+        <HiddenCasesView :problem-id="problemId" />
       </div>
 
       <!-- Loading State - Terminal Style -->

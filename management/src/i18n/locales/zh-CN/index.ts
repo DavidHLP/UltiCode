@@ -22,6 +22,7 @@ import tags from './modules/tags'
 import system from './modules/system'
 import scoringRules from './modules/scoring-rules'
 import auditReport from './modules/audit-report'
+import testCases from './modules/testCases'
 
 export default {
   common,
@@ -48,4 +49,5 @@ export default {
   system,
   scoringRules,
   auditReport,
+  testCases,
 } as const

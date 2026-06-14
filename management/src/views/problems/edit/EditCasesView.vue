@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -8,9 +8,13 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { useProblemTab } from '../composables/useProblemTab'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import CasesForm from '../components/CasesForm.vue'
 import type { CasesFormData } from '../components/CasesForm.vue'
 import type { ProblemExample } from '@/api/admin/problems'
+import HiddenTestCasesEditor from '@/components/problem/HiddenTestCasesEditor.vue'
+
+type CasesTab = 'samples' | 'hidden'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -19,6 +23,8 @@ const problemsStore = useProblemsStore()
 const { problemId, data, loading, isReady } = useProblemTab('cases', (id) =>
   problemsStore.fetchCases(id),
 )
+
+const activeTab = ref<CasesTab>('samples')
 
 const title = computed(() => {
   const header = problemsStore.getRawTabState('header').data as { title?: string } | null
@@ -95,7 +101,7 @@ function handleCancel() {
 
           <div class="flex items-center gap-3 min-w-0">
             <div class="flex items-center gap-2">
-              
+
               <span class="terminal-cursor" />
             </div>
             <h1 v-if="title" class="text-sm font-medium text-[var(--foreground)] truncate">
@@ -143,12 +149,26 @@ function handleCancel() {
         <p class="text-xs text-[var(--silver-500)] font-data">// fetching problem data...</p>
       </div>
 
-      <CasesForm
-        v-else-if="formattedProblem"
-        :problem="formattedProblem"
-        @submit="handleSubmit"
-        @cancel="handleCancel"
-      />
+      <Tabs v-else-if="formattedProblem" v-model="activeTab" default-value="samples" class="w-full">
+        <TabsList class="mb-4">
+          <TabsTrigger value="samples">
+            {{ t('testCases.tabs.samples') }}
+          </TabsTrigger>
+          <TabsTrigger value="hidden">
+            {{ t('testCases.tabs.hidden') }}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="samples">
+          <CasesForm
+            :problem="formattedProblem"
+            @submit="handleSubmit"
+            @cancel="handleCancel"
+          />
+        </TabsContent>
+        <TabsContent value="hidden">
+          <HiddenTestCasesEditor :problem-id="problemId" />
+        </TabsContent>
+      </Tabs>
     </div>
   </div>
 </template>

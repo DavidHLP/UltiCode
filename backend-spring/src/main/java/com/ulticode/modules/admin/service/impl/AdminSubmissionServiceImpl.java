@@ -588,8 +588,14 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
      */
     private void writeRejudgeOutbox(Submission submission, long generation) {
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
+            // P0 #11 fix: `is_shadow = !portActive`. Under port cutover
+            // the dispatcher ignores shadow rows, so a hard-coded `true`
+            // would strand the rejudged submission Pending forever. Port
+            // mode now writes a real row the dispatcher enqueues; shadow
+            // mode keeps the original double-write observation behaviour.
+            boolean portActive = featureFlags.getJudgeQueue().isUsePort();
             judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
-                    submission, String.valueOf(submission.getProblemId()), generation, true));
+                    submission, String.valueOf(submission.getProblemId()), generation, !portActive));
         }
     }
 

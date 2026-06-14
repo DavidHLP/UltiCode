@@ -17,38 +17,43 @@ import { dirname, join } from 'path'
 import type { SubmissionRecord, SubmissionTestRecord } from '@/types/submission'
 
 describe('console — SubmissionRecord 0-leak invariant (task #10 ADR-001)', () => {
-  it('SubmissionRecord has no isHidden field', () => {
-    const sample: SubmissionRecord = {
-      id: 'sub-1',
-      problem_id: 1,
-      status: 'Accepted',
-      language: 'cpp',
-      runtime: 100,
-      memory: 50,
-      created_at: '2026-06-14T00:00:00Z',
-    }
-    expect((sample as unknown as { isHidden?: boolean }).isHidden).toBeUndefined()
-    expect((sample as unknown as { is_hidden?: boolean }).is_hidden).toBeUndefined()
-    expect((sample as unknown as { caseScope?: string }).caseScope).toBeUndefined()
+  // Type-level witnesses: if SubmissionRecord / SubmissionTestRecord ever gain a
+  // hidden-case field, these assignments fail to COMPILE — the real protection.
+  // (Backend strips HIDDEN rows via CaseScope.isUserVisible; the console type is
+  // a structural witness of that contract.)
+  //
+  // The earlier `expect(obj.isHidden).toBeUndefined()` form was theatre — it
+  // asserted a hand-built literal, so adding the field to the type still passed.
+  // Replaced with compile-time `keyof` conditionals. (reviewer P1-2 follow-up.)
+  // Backend `HiddenCaseLeakIT` (asserts real Jackson JSON) remains source-of-truth.
+
+  it('SubmissionRecord type forbids hidden-case fields (compile-time witness)', () => {
+    type K = keyof SubmissionRecord
+    const noIsHidden: 'isHidden' extends K ? never : true = true
+    const noIsHiddenSnake: 'is_hidden' extends K ? never : true = true
+    const noCaseScope: 'caseScope' extends K ? never : true = true
+    // runtime sanity (also keeps the bindings used so they aren't dropped)
+    expect([noIsHidden, noIsHiddenSnake, noCaseScope]).toEqual([true, true, true])
   })
 
-  it('SubmissionTestRecord (per-test row) has no isHidden / caseScope / input / output fields', () => {
-    const sample: SubmissionTestRecord = {
-      id: 'tc-1',
-      status: 'Accepted',
-      runtime: 10,
-      memory: 5,
-    }
-    expect((sample as unknown as { isHidden?: boolean }).isHidden).toBeUndefined()
-    expect((sample as unknown as { is_hidden?: boolean }).is_hidden).toBeUndefined()
-    expect((sample as unknown as { caseScope?: string }).caseScope).toBeUndefined()
-    expect((sample as unknown as { case_scope?: string }).case_scope).toBeUndefined()
-    expect((sample as unknown as { input?: string }).input).toBeUndefined()
-    expect((sample as unknown as { output?: string }).output).toBeUndefined()
-    expect((sample as unknown as { expectedOutput?: string }).expectedOutput).toBeUndefined()
+  it('SubmissionTestRecord (per-test row) type forbids hidden-case fields (compile-time witness)', () => {
+    type K = keyof SubmissionTestRecord
+    const noIsHidden: 'isHidden' extends K ? never : true = true
+    const noIsHiddenSnake: 'is_hidden' extends K ? never : true = true
+    const noCaseScope: 'caseScope' extends K ? never : true = true
+    const noCaseScopeSnake: 'case_scope' extends K ? never : true = true
+    const noInput: 'input' extends K ? never : true = true
+    const noOutput: 'output' extends K ? never : true = true
+    const noExpectedOutput: 'expectedOutput' extends K ? never : true = true
+    expect([noIsHidden, noIsHiddenSnake, noCaseScope, noCaseScopeSnake, noInput, noOutput, noExpectedOutput]).toEqual([
+      true, true, true, true, true, true, true,
+    ])
   })
 
-  it('only SubmissionRecord (top-level) carries first-failed detail fields, not per-test', () => {
+  it('SubmissionRecord carries first-failed detail fields at top level only (not per-test)', () => {
+    // This literal is also a type check: assigning it to SubmissionRecord verifies
+    // input/output/expected_output ARE permitted at top level (excess-property
+    // check); `tests` is intentionally absent (per-test rows never nest here).
     const sub: SubmissionRecord = {
       id: 'sub-1',
       problem_id: 1,
@@ -68,9 +73,9 @@ describe('console — SubmissionRecord 0-leak invariant (task #10 ADR-001)', () 
 
 describe('console — SubmissionTestResults.vue template does not reference hidden fields', () => {
   it('source file is free of "isHidden" / "caseScope" / "is_hidden" / "case_scope" identifiers', () => {
-    // Resolve relative to this spec file (import.meta.url) so the static scan
-    // works in CI and on any clone path — and reads the worktree copy, not a
-    // hard-coded main-repo absolute path. (reviewer blocker fix, task #10)
+    // Resolve relative to this spec file (import.meta.url) so the static scan is
+    // path-agnostic — works on any clone path and in CI, not tied to a specific
+    // worktree or machine. (task #10)
     const here = dirname(fileURLToPath(import.meta.url))
     const sourcePath = join(here, '..', 'SubmissionTestResults.vue')
     const content = readFileSync(sourcePath, 'utf8')

@@ -335,7 +335,7 @@ M4d 后跑了 7-angle adversarial review (line-by-line / removed-behavior / cros
 - [x] Dispatcher 单测: 注入 3 mock channel, 其一抛异常, 验证其余两个仍被调用 — `NotificationDispatcherTest#channelFailureDoesNotBlockOthers`
 - [x] `intentId` 幂等性测试: 同一 intent 发 3 次, In-App channel 写一行 (DB 唯一约束) , Email 也只发 1 次 (channel 内部去重 cache) — `NotificationDispatcherTest#idempotencyThreeDispatches`
 - [x] 现有 `Notification` 表 schema 不变 (Flyway 校验) — M4a migration 仅新增 `notification_delivery_ledger`,无 ALTER
-- [x] grep 确认业务模块不再直接 import `EmailService` / `RealtimeService` (只允许 channel 实现 import) — `git grep` audit clean post-M4c
+- [ ] grep 确认业务模块不再直接 import `EmailService` / `RealtimeService` — **deferred to M4b cutover**:当前 flag-gated 双轨仍保留 legacy 分支,channel 实现之外的 4 个业务模块(`SubmissionServiceImpl` / `AchievementNotificationListener` / `AchievementTriggerServiceImpl` / `ContestScheduler`)在 flag-off (legacy) 分支仍 import `EmailService` / `RealtimeService`;只有 flag-on (typed intent) 分支走 `NotificationDispatcher` + `*Intent`。legacy 分支保留至 §2.8 backlog #10 的 M4b cleanup (抽 `NotificationFacade` 后删双轨),届时本条转 `[x]`
 - [x] 性能: dispatcher 单次 dispatch 延迟 < 50ms (3 channel 串行, 大头是 Email SMTP) — `NotificationDispatcherTest#dispatcherLatencyUnder50ms`
 
 ## 5. References

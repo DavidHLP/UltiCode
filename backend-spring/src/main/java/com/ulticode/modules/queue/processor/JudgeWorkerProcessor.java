@@ -65,7 +65,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   <li>Poll job from Redis queue
  *   <li>Set submission status to "Judging"
  *   <li>Load test cases, build RunSubmissionDTO, execute via Docker sandbox
- *   <li>Determine verdict with priority ordering (RE > MLE > TLE > WA > PE > Accepted)
+ *   <li>Determine verdict via {@link VerdictResolver#reduceWire} aggregating each case's wire value
+ *       into a single {@code SubmissionStatus} (ADR-001; severity priority encoded in
+ *       {@code SubmissionStatus#getSeverity()}, replacing the old stringly-typed priority comparison)
  *   <li>Write result to Submission entity
  *   <li>Push WebSocket notification to user
  * </ol>

@@ -1,6 +1,7 @@
-# ADR-005 Rollback Drill 协议
+# ADR-005a Rollback Drill 协议
 
-> 本协议是 ADR-005 §2.6 与 §4 #2 的执行规范. 目标: 每个 milestone 部署到 dev
+> 本协议是 ADR-005 (rolling-deploy-playbook) §2.6 与 §4 #2 的执行规范, 编号
+> `ADR-005a` 标注其为 ADR-005 的子协议 (不是同级 ADR). 目标: 每个 milestone 部署到 dev
 > 拓扑后, 跑 1 次回滚演练并把"实际耗时 / 完成时间 / 执行人 / 备注"填入 §2.6 表.
 > 本协议**不**要求新建 staging 环境, dev 拓扑 (PM2 + Docker compose) 即可演练.
 

@@ -452,7 +452,7 @@ pm2 reload ulticode-9001 --update-env
 ### 10.4 演练 (rollback drill)
 
 每次部署到 dev 拓扑后, 至少跑 1 次对应 milestone 的 rollback drill, 记录实际耗时.
-详见 ADR-005 §2.6 + `docs/adr/ADR-005-rollback-drill-protocol.md` (新).
+详见 ADR-005 §2.6 + `docs/adr/ADR-005a-rollback-drill-protocol.md` (ADR-005 的子协议, 新).
 
 ### 10.5 启动日志确认 (临时, 等 ADR-008)
 
@@ -501,6 +501,6 @@ pm2 logs ulticode-9001 --nostream --lines 200 | grep -E "app\.features|FeatureFl
   端到端 ≥ 15min, 不在本 ADR "5min 热回滚" 演练范围
 - 详见 ADR-005 §2.6 表脚注 ¹
 
-**M2a 演练替代项**: 因 M2a 不可热回滚, 演练协议 (ADR-005-rollback-drill-protocol.md)
+**M2a 演练替代项**: 因 M2a 不可热回滚, 演练协议 (ADR-005a-rollback-drill-protocol.md)
 矩阵中 M2a 行 strike through, 替换为 "演练 git revert + 重建 sandbox image" 的
 "重建演练" 协议, 时间窗口 30min.

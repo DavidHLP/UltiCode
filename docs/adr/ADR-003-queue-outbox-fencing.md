@@ -369,7 +369,10 @@ ADR-003 M3a → M3c-3b 全部 7 commit (`09c97d1b8` → `82d5f022e`) 经 `codex 
 - [ ] Admin rejudge 并发场景: 同时 rejudge × 2 + 旧 worker 苏醒, 最终只有最新 generation 结果写入
 - [ ] 模拟 Redis 网络分区: outbox-dispatcher 抛错 → next_retry_at 退避 → 网络恢复后自动续投
 - [ ] Flyway 迁移 `V20260613xxxx__Add_Outbox_And_Fence.sql` 在 CI 通过 (含 historical data backfill)
-- [ ] grep 确认旧 `TransactionSynchronizationManager.registerSynchronization` 用于入队的代码为零
+- [ ] **deferred to M3d** — grep 确认入队代码已全部收敛到 outbox / JudgeQueue port。**三类入队代码点需区分,不可笼统断言"registerSynchronization 入队为零"**:
+    - **旧 afterCommit reaper(已废弃)**:原 5min PENDING-only reaper 在 `@Transactional` 内用 `registerSynchronization` 入队的模式(ADR-000 §5 永久拒绝清单),已删除 —— cleanup 目标,M3d 完成时此路径应为零。
+    - **新 lease-reaper afterCommit(§2.6 F7 设计内,registerSynchronization 本身不算违规)**:`JudgingLeaseReaper:143`(`submission/reaper/JudgingLeaseReaper.java`)的 `registerSynchronization` 是 Round-2 H1 fix 后的单事务 lease 恢复 + afterCommit 入队,属于本 ADR §2.6 F7 显式新设计,**机制本身不在 cleanup 范围**(不是被永久拒绝的旧 reaper)。但其 afterCommit 入队目标(走旧 `enqueueJudgeJob` 还是新 JudgeQueue port)是 §2.8 P1 #1 次路径 follow-up:M3d 需把入队目标切到 port,与 §2.8 backlog 表述一致。
+    - **真正残留(P1 #1 次路径,M3d 留 follow-up)**:`AdminSubmissionServiceImpl.rejudge` 的 3 处 `queueService.enqueueJudgeJob`(line 339/502/526,line 491 注释附近),flag-on 时仍走旧 RQueue;rejudge / lease 恢复频次远低于 submit 主路径,§2.8 backlog 已诚实承认,M3d cutover 前必须清,否则双投递。
 
 ## 5. References
 

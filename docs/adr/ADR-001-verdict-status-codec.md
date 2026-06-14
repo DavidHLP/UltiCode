@@ -65,43 +65,46 @@ private static final Map<String, Integer> VERDICT_PRIORITY = Map.of(
 
 ```java
 public enum SubmissionStatus {
-    PENDING            ("Pending",                0,  Kind.IN_FLIGHT),
-    JUDGING            ("Judging",                0,  Kind.IN_FLIGHT),
-    ACCEPTED           ("Accepted",               0,  Kind.TERMINAL_GOOD),
-    PRESENTATION_ERROR ("Presentation Error",     1,  Kind.TERMINAL_BAD),
-    WRONG_ANSWER       ("Wrong Answer",           2,  Kind.TERMINAL_BAD),
-    TIME_LIMIT_EXCEEDED("Time Limit Exceeded",    3,  Kind.TERMINAL_BAD),
-    MEMORY_LIMIT_EXCEEDED("Memory Limit Exceeded",4,  Kind.TERMINAL_BAD),
-    OUTPUT_LIMIT_EXCEEDED("Output Limit Exceeded",4,  Kind.TERMINAL_BAD),
-    RUNTIME_ERROR      ("Runtime Error",          5,  Kind.TERMINAL_BAD),
-    COMPILE_ERROR      ("Compile Error",          6,  Kind.TERMINAL_BAD),  // 不参与 case-level reduce
-    SANDBOX_ERROR      ("Sandbox Error",          7,  Kind.TERMINAL_INFRA),
-    SYSTEM_ERROR       ("System Error",           8,  Kind.TERMINAL_INFRA);
+    PENDING            ("Pending",                "pending",   false, 0, Kind.IN_FLIGHT),
+    JUDGING            ("Judging",                "pending",   false, 0, Kind.IN_FLIGHT),
+    ACCEPTED           ("Accepted",               "accepted",  true,  0, Kind.TERMINAL_GOOD),
+    PRESENTATION_ERROR ("Presentation Error",     "error",     true,  1, Kind.TERMINAL_BAD),
+    WRONG_ANSWER       ("Wrong Answer",           "error",     true,  2, Kind.TERMINAL_BAD),
+    TIME_LIMIT_EXCEEDED("Time Limit Exceeded",    "error",     true,  3, Kind.TERMINAL_BAD),
+    MEMORY_LIMIT_EXCEEDED("Memory Limit Exceeded","error",     true,  4, Kind.TERMINAL_BAD),
+    OUTPUT_LIMIT_EXCEEDED("Output Limit Exceeded","error",     true,  4, Kind.TERMINAL_BAD),
+    RUNTIME_ERROR      ("Runtime Error",          "error",     true,  5, Kind.TERMINAL_BAD),
+    COMPILE_ERROR      ("Compile Error",          "error",     true,  6, Kind.TERMINAL_BAD),  // 不参与 case-level reduce
+    SANDBOX_ERROR      ("Sandbox Error",          "system",    true,  7, Kind.TERMINAL_INFRA),
+    SYSTEM_ERROR       ("System Error",           "system",    true,  8, Kind.TERMINAL_INFRA);
 
     public enum Kind { IN_FLIGHT, TERMINAL_GOOD, TERMINAL_BAD, TERMINAL_INFRA }
 
-    private final String wireValue;   // ← 持久化/JSON 字符串, 永远是真相
-    private final int severity;       // ← 越大越严重, ACCEPTED=0
+    private final String displayName;  // ← 持久化/JSON 字符串, 永远是真相 (wire value)
+    private final String category;     // ← 粗粒度过滤分类 (pending/accepted/error/system), 供 admin UI
+    private final boolean terminal;    // ← 是否终态 (不再自动重判)
+    private final int severity;        // ← 越大越严重, ACCEPTED=0
     private final Kind kind;
 
-    SubmissionStatus(String wireValue, int severity, Kind kind) { ... }
+    SubmissionStatus(String displayName, String category, boolean terminal,
+                     int severity, Kind kind) { ... }
 
-    @JsonValue                                                    // Jackson 序列化用 wireValue
-    public String wireValue() { return wireValue; }
+    @JsonValue                                                    // Jackson 序列化用 displayName 作为 wire value
+    public String wireValue() { return displayName; }
 
-    @JsonCreator                                                  // Jackson 反序列化按 wireValue 反查
-    public static SubmissionStatus fromWire(String s) {
-        return Codec.fromWire(s);
-    }
+    @JsonCreator                                                  // Jackson 反序列化按 displayName 反查
+    public static SubmissionStatus fromWire(String wire) { ... }
 
     public int severity() { return severity; }
     public Kind kind() { return kind; }
 }
 ```
 
+> **注 (字段名对齐)**: 实际 enum (`SubmissionStatus.java`) 无独立 `wireValue` 字段 —— 持久化/JSON 字符串直接存于 `displayName` 字段, `wireValue()` 是返回该字段的 `@JsonValue` 方法 (line 122-125), `fromWire(String)` 是 `@JsonCreator` 静态工厂 (line 136-147)。此外实际 enum 还携带 ADR 决策伪代码未展开的 `category` / `terminal` 两字段 (admin UI 过滤与终态判定)。对外契约 (wire value 序列化 / fromWire 反序列化 / severity 归约) 一致, 本节伪代码为可读性略作精简, 真值以 `SubmissionStatus.java` 为准。
+
 **关键不变量** (这些是契约, 改动需要新 ADR):
 
-- `wireValue` 字符串**永不改写**;新增状态必须在 ADR 中显式声明并配套迁移
+- `displayName` (即 wire value) 字符串**永不改写**;新增状态必须在 ADR 中显式声明并配套迁移
 - `name()` (即 `ACCEPTED`)、`ordinal()` 都**不是契约** , 禁止跨进程依赖
 - `severity()` 仅在 JVM 内使用 (verdict 归约) , 不持久化, 不发 API
 
@@ -179,8 +182,8 @@ public class VerdictResolver {
 
 ### 3.2 Negative
 
-- enum 文件膨胀 (8 → 12 状态, 每个带 3 字段)
-- `wireValue ≠ name()` 对新人有学习曲线, **README + javadoc 必须明确**
+- enum 文件膨胀 (8 → 12 状态, 每个带 5 字段 `displayName`/`category`/`terminal`/`severity`/`kind`)
+- `wireValue() ≠ name()` 对新人有学习曲线 (例 `"Accepted"` vs `"ACCEPTED"`), **README + javadoc 必须明确**
 - I18n coverage test 需要前端 build script 配合输出 JSON, 增加 CI 步骤
 
 ### 3.3 Risks

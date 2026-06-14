@@ -11,13 +11,16 @@
 | **[ADR-002](./ADR-002-sandbox-hexagonal.md)** | **Accepted** (2026-06-13) + Operational Pitfalls + Follow-up Hardening (2026-06-14) + §7.7 Post-Hardening 实战修复 (2026-06-14) | Sandbox Hexagonal Port + LanguageProfile Strategy | `SandboxExecutor` port + Docker/InMemory 双 adapter; 5 个 LanguageProfile 集合注入 fail-fast; **§6 实战教训** — 4 个 bug 叠加导致 verdict 全部退化成 "Runtime Error" 的根因链 + 修复信号; **§7 Follow-up Hardening** — Docker `latest` tag 自动重打 / harness `peak_memory_bytes` 上报 / OJ 策略 null list-like → `[]`; **§7.7 实战教训 #6** — Facade `toDtoCaseResult` 漏透传 `inputs/output/expectedOutput`(verdict 对但 UI 详情缺) + 单测 + 重构防御 (Phase 2+ 抽共用 builder) |
 | **[ADR-003](./ADR-003-queue-outbox-fencing.md)** | **Accepted** (2026-06-13) | Queue + Outbox + Generation Fence + JUDGING Lease | 任务投递走 Outbox 表 + 唯一约束去重; submission 加 generation/lease 列防旧 worker 覆盖与 JUDGING 卡死。**M3a+M3b+M3c shipped (commits `09c97d1b8` / `b34ac01be` / `3e8504f1b` / `3ec758c41`); M3d 留 cutover 后 ≥2 周** |
 | **[ADR-004](./ADR-004-notification-intents.md)** | **Accepted** (2026-06-13) + M4d-1 follow-up (2026-06-14) | NotificationIntent + Per-Channel Projection + 失败隔离 | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; **M4a+M4b+M4c+M4d shipped** (`e38e340` / `bf02f48ec` / `9ecf10ec9` / `62a4dcabe`); **M4d-1 7-finding review shipped** (`d32882198` / `b7dc1378c` / `ce629194b` / `33c9a41ba` — NPE / WS wire-contract / silent-skip / intentId 防撞 / CONTEST 死分支 / LedgerReaper); F11 同步 resolved (Reaper 实现); channel-level preference 列入 ADR-007 候选 |
-| **[ADR-005](./ADR-005-rolling-deploy-playbook.md)** | Proposed | 滚动部署 Playbook | 11 个独立可部署 milestone + feature flag + envelope versioning + canary gate + rollback drill |
+| **[ADR-005](./ADR-005-rolling-deploy-playbook.md)** | Proposed (stays Proposed pending rollback drill — 见 ADR §状态行) | 滚动部署 Playbook | 10 个独立可部署 milestone + feature flag + envelope versioning + canary gate + rollback drill |
+| **[ADR-005a](./ADR-005a-rollback-drill-protocol.md)** | Proposed (ADR-005 子协议) | Rollback Drill 协议 | ADR-005 §2.6 与 §4 #2 的执行子协议 (不是同级 ADR); 编号 `005a` 标注归属, 不占用新主编号 |
 
 ## 编号规则
 
 - **ADR-000** 保留给 "meta / supersede 溯源" 类记录
 - **ADR-001+** 按提议时间顺序编号, **不补缺**, 不复用 (即使被 supersede 也保留编号)
 - 文件名固定 `ADR-NNN-{kebab-case-title}.md` , NNN 三位补零
+- **子协议例外**: 某 ADR 的执行子协议 (rollback drill / runbook appendices 等, 非同级 ADR) 用
+  `ADR-NNNx` 后缀 (如 `ADR-005a`), 不占用新主编号, 文件名 `ADR-NNNx-{kebab-case-title}.md`
 - 一旦 commit 进 main, **不可改名** (引用关系会失效)
 
 ## 状态流转

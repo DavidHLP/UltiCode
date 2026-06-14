@@ -3,7 +3,7 @@ import type { CasesData } from '@/api/admin/problems'
 import CasesDisplay from '../components/CasesDisplay.vue'
 import HiddenCasesView from '@/components/problem/HiddenCasesView.vue'
 
-const props = defineProps<{
+defineProps<{
   problem: CasesData | null
   problemId: string
 }>()

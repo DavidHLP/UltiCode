@@ -31,11 +31,25 @@ const problems = ref<Problem[]>([]);
 const searchQuery = ref("");
 const loading = ref(true);
 
+// The backend /problems endpoint validates `pageSize` with @Max(100) in
+// ProblemQueryDTO. The service layer additionally caps any larger value to
+// 100, but the DTO validation rejects the request with HTTP 400 before that
+// cap is applied, which caused the drawer to render the "未找到题目。" empty
+// state. Requesting 100 keeps each call within the validated bound; the
+// onMounted handler paginates through every page so a corpus larger than
+// 100 stays fully searchable/selectable instead of being silently truncated.
+const PROBLEM_DRAWER_PAGE_SIZE = 100;
+
 onMounted(async () => {
   try {
     loading.value = true;
-    const result = await fetchProblems({}, 1, 500);
-    problems.value = result.items;
+    const first = await fetchProblems({}, 1, PROBLEM_DRAWER_PAGE_SIZE);
+    const all = [...first.items];
+    for (let page = 2; page <= (first.totalPages ?? 1); page++) {
+      const result = await fetchProblems({}, page, PROBLEM_DRAWER_PAGE_SIZE);
+      all.push(...result.items);
+    }
+    problems.value = all;
   } catch (error) {
     console.error("Failed to load problems", error);
   } finally {
@@ -142,14 +156,22 @@ const navigateToProblem = (slug: string) => {
         </template>
         <template v-else>
           <div class="space-y-0.5">
+            <!--
+              Active row mirrors the "selected" pattern from
+              ProblemSaveButton (`bg-primary/10 border-l-2 border-primary`)
+              and the category filter so the highlight adapts to both
+              solarized themes. The inactive row keeps a transparent
+              `border-l-2` reserved so toggling active/inactive does not
+              shift the row content.
+            -->
             <div
               v-for="problem in filteredProblems"
               :key="problem.id"
-              class="group flex items-center justify-between px-4 py-3 rounded-none cursor-pointer transition-colors"
+              class="group flex items-center justify-between border-l-2 px-4 py-3 cursor-pointer transition-colors"
               :class="
                 currentProblemId === problem.id
-                  ? 'bg-zinc-900 text-white hover:bg-zinc-800'
-                  : 'hover:bg-muted/50 text-foreground'
+                  ? 'bg-primary/10 border-primary text-primary'
+                  : 'border-transparent hover:bg-muted/50 text-foreground'
               "
               @click="
                 navigateToProblem(

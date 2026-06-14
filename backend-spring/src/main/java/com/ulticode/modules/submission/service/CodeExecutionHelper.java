@@ -40,14 +40,18 @@ public interface CodeExecutionHelper {
      * {@link #SUPPORTED_LANGUAGES} because:
      * <ul>
      *   <li>JavaScript isn't part of the migration (no JS harness yet)
-     *   <li>C and C++ D-form dispatch needs a complete harness
-     *       implementation (the {@code docker/sandbox/harness/{c,cpp}/}
-     *       trees are Phase 1 smoke skeletons that don't read
-     *       {@code input.json}). Re-add after envelope-producing
-     *       C/C++ harnesses ship.
+     *   <li>C still needs a complete harness implementation (the
+     *       {@code docker/sandbox/harness/c/} tree is a Phase 1 smoke
+     *       skeleton that doesn't read {@code input.json}). Re-add after
+     *       an envelope-producing C harness ships.
+     *   <li>C++ is supported: the harness in
+     *       {@code docker/sandbox/harness/cpp/} parses the Solution
+     *       signature, generates a typed runner, and emits the D-form
+     *       envelope. Requires {@code sandbox.profile.cpp.enabled=true}
+     *       and a sandbox image built with the harness.
      * </ul>
      */
-    Set<String> DFORM_SUPPORTED_LANGUAGES = Set.of("java", "python");
+    Set<String> DFORM_SUPPORTED_LANGUAGES = Set.of("java", "python", "cpp");
 
     String extractFunctionName(String code, String keyword);
 

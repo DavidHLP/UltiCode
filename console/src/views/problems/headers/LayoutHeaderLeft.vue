@@ -110,16 +110,21 @@ async function handleRandom() {
         <!-- External link button HoverCard - Open problem set in new tab -->
         <HoverCard :open-delay="200">
           <HoverCardTrigger as-child>
-            <div class="hidden group-hover/nav-back:block ml-0">
-              <RouterLink
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded-none no-underline -translate-x-3 hover:bg-[var(--silver-200)]/30 hover:text-[var(--solarized-base02)] dark:hover:text-[var(--solarized-base3)] transition-colors duration-200 text-muted-foreground"
-                :to="{ name: 'problemset' }"
-              >
-                <ExternalLink class="h-3 w-3 text-current" />
-              </RouterLink>
-            </div>
+            <!--
+              RouterLink must be the direct child of HoverCardTrigger so the
+              hover trigger forwards its handlers to the underlying <a>
+              element. Previously a wrapper <div> sat between them, which
+              swallowed the click before it reached the link, so the
+              "在新标签页中打开题库" button did nothing.
+            -->
+            <RouterLink
+              target="_blank"
+              rel="noopener noreferrer"
+              class="hidden group-hover/nav-back:flex -translate-x-3 h-6 w-6 flex-none cursor-pointer items-center justify-center rounded-none text-muted-foreground no-underline transition-colors duration-200 hover:bg-[var(--silver-200)]/30 hover:text-[var(--solarized-base02)] focus:outline-none focus:ring-0 focus:ring-offset-0 dark:hover:text-[var(--solarized-base3)]"
+              :to="{ name: 'problemset' }"
+            >
+              <ExternalLink class="h-3 w-3 text-current" />
+            </RouterLink>
           </HoverCardTrigger>
           <HoverCardContent class="h-auto w-auto p-2 rounded-none">
             <p class="text-xs leading-none">

@@ -131,3 +131,53 @@ export const testCasesApi = {
     return response
   },
 }
+
+/**
+ * Canonical per-case scope enum mirroring backend {@code CaseScope}
+ * (com.ulticode.modules.submission.enums.CaseScope).
+ *
+ * Two durable values map onto the {@code test_cases.is_sample} / {@code is_hidden}
+ * columns. The frontend never persists a third value (DRAFT is intentionally
+ * absent — see task #10 plan, P9 拍板 2026-06-14 16:38):
+ *   - SAMPLE: is_sample=true, is_hidden=false  (public example shown in statement)
+ *   - HIDDEN: is_sample=false, is_hidden=true  (private judge case, admin-only)
+ *
+ * Legacy rows written before P0-1 may carry {@code is_sample=null} /
+ * {@code is_hidden=null}; {@link mapFlagsToCaseScope} treats that as SAMPLE
+ * for backward compatibility. {@link mapCaseScopeToFlags} always emits both
+ * flags explicitly, so XOR always holds on the wire to the backend.
+ */
+export type CaseScope = 'SAMPLE' | 'HIDDEN'
+
+/**
+ * Convert a ({@code is_sample}, {@code is_hidden}) flag pair into the canonical
+ * {@link CaseScope}. Returns SAMPLE for legacy/undefined pairs so existing
+ * test case rows stay queryable in the UI.
+ */
+export function mapFlagsToCaseScope(
+  isSample: boolean | null | undefined,
+  isHidden: boolean | null | undefined,
+): CaseScope {
+  if (isHidden === true) {
+    return 'HIDDEN'
+  }
+  // isHidden === false | null | undefined, treat anything non-hidden as SAMPLE
+  return 'SAMPLE'
+}
+
+/**
+ * Convert a {@link CaseScope} into the ({@code is_sample}, {@code is_hidden})
+ * flag pair to send to the backend. Always emits both booleans so the wire
+ * contract satisfies the backend XOR filter.
+ */
+export function mapCaseScopeToFlags(
+  scope: CaseScope,
+): { is_sample: boolean; is_hidden: boolean } {
+  switch (scope) {
+    case 'HIDDEN':
+      return { is_sample: false, is_hidden: true }
+    case 'SAMPLE':
+    default:
+      return { is_sample: true, is_hidden: false }
+  }
+}

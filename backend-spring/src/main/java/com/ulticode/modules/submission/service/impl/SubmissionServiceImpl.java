@@ -21,6 +21,7 @@ import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.dto.UserBestStats;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.queue.service.QueueService;
@@ -960,11 +961,23 @@ public class SubmissionServiceImpl implements SubmissionService {
         vo.setMemoryPercentile(submission.getMemoryPercentile());
         vo.setMemoryDistBinsMb(normalizeBins(submission.getMemoryDistBinsMb()));
 
-        // Convert test details to test results
+        // P0-1 security projection: filter testDetails by user visibility
+        // (SAMPLE / null=legacy sample) for vo.tests; skip HIDDEN entirely.
         if (submission.getTestDetails() != null && !submission.getTestDetails().isEmpty()) {
-            List<SubmissionVO.TestResult> tests = new ArrayList<>();
-            for (int i = 0; i < submission.getTestDetails().size(); i++) {
-                Submission.TestCaseDetail detail = submission.getTestDetails().get(i);
+            List<Submission.TestCaseDetail> userVisibleDetails = new ArrayList<>();
+            List<Submission.TestCaseDetail> hiddenDetails = new ArrayList<>();
+            for (Submission.TestCaseDetail detail : submission.getTestDetails()) {
+                if (CaseScope.isUserVisible(detail.getCaseScope())) {
+                    userVisibleDetails.add(detail);
+                } else {
+                    hiddenDetails.add(detail);
+                }
+            }
+
+            // Build vo.tests only from user-visible (sample or null=legacy) details.
+            List<SubmissionVO.TestResult> tests = new ArrayList<>(userVisibleDetails.size());
+            for (int i = 0; i < userVisibleDetails.size(); i++) {
+                Submission.TestCaseDetail detail = userVisibleDetails.get(i);
                 SubmissionVO.TestResult test = new SubmissionVO.TestResult();
                 test.setId("test-" + submission.getId() + "-" + (i + 1));
                 test.setStatus(detail.getStatus() != null ? detail.getStatus() : submission.getStatus());
@@ -974,18 +987,42 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
             vo.setTests(tests);
 
-            // Extract error information from first failing test
+            // First-failing detail extraction (P0-1):
+            //   Prefer the first USER-VISIBLE (SAMPLE / null=legacy) failing detail
+            //   so the user sees their own sample I/O + error.
+            //   If only HIDDEN cases failed, set vo.errorDetail only (without input /
+            //   output / expectedOutput) so the user knows something failed without
+            //   leaking hidden case contents.
+            Submission.TestCaseDetail sampleFirstFailure = null;
+            Submission.TestCaseDetail hiddenFirstFailure = null;
             for (Submission.TestCaseDetail detail : submission.getTestDetails()) {
-                if (detail.getStatus() != null && !"Accepted".equals(detail.getStatus())) {
-                    if ("Compile Error".equals(detail.getStatus())) {
-                        vo.setCompilerError(detail.getDetail());
-                    }
-                    vo.setErrorDetail(detail.getDetail());
+                if (detail.getStatus() == null || "Accepted".equals(detail.getStatus())) {
+                    continue;
+                }
+                if (CaseScope.isUserVisible(detail.getCaseScope()) && sampleFirstFailure == null) {
+                    sampleFirstFailure = detail;
+                } else if (!CaseScope.isUserVisible(detail.getCaseScope()) && hiddenFirstFailure == null) {
+                    hiddenFirstFailure = detail;
+                }
+            }
 
-                    // Format input
-                    if (detail.getInputs() != null && !detail.getInputs().isEmpty()) {
+            Submission.TestCaseDetail failureToExpose = sampleFirstFailure != null
+                    ? sampleFirstFailure
+                    : hiddenFirstFailure;
+
+            if (failureToExpose != null) {
+                if ("Compile Error".equals(failureToExpose.getStatus())) {
+                    vo.setCompilerError(failureToExpose.getDetail());
+                }
+                vo.setErrorDetail(failureToExpose.getDetail());
+
+                // Only expose I/O for sample/legacy failing cases; HIDDEN failures
+                // intentionally leave vo.input/output/expectedOutput null so the
+                // user cannot probe hidden case contents.
+                if (sampleFirstFailure != null) {
+                    if (failureToExpose.getInputs() != null && !failureToExpose.getInputs().isEmpty()) {
                         StringBuilder inputBuilder = new StringBuilder();
-                        for (Submission.TestCaseDetail.InputParam input : detail.getInputs()) {
+                        for (Submission.TestCaseDetail.InputParam input : failureToExpose.getInputs()) {
                             if (inputBuilder.length() > 0) {
                                 inputBuilder.append(", ");
                             }
@@ -993,10 +1030,8 @@ public class SubmissionServiceImpl implements SubmissionService {
                         }
                         vo.setInput(inputBuilder.toString());
                     }
-
-                    vo.setOutput(detail.getOutput());
-                    vo.setExpectedOutput(detail.getExpectedOutput());
-                    break;
+                    vo.setOutput(failureToExpose.getOutput());
+                    vo.setExpectedOutput(failureToExpose.getExpectedOutput());
                 }
             }
         }

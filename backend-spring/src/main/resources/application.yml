@@ -244,6 +244,9 @@ app:
     # idempotency). Default false: the legacy NotificationDispatchService
     # path remains active until M4c migrates every caller.
     use-notification-intent: ${USE_NOTIFICATION_INTENT:false}
+    # P0-1: Judge source configuration
+    judge-source:
+      use-test-cases: ${JUDGE_SOURCE_USE_TEST_CASES:true}
 
 # Audit configuration
 audit:

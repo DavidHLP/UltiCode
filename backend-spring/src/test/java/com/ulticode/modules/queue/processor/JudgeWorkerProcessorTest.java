@@ -102,6 +102,30 @@ class JudgeWorkerProcessorTest {
     @Spy
     private VerdictResolver verdictResolver = new VerdictResolver();
 
+    /**
+     * P0-1: judge source properties. These pre-P0-1 tests exercise the
+     * legacy {@code problem_examples} path (no flag concept existed), so we
+     * force {@code useTestCases=false} here to preserve byte-for-byte
+     * legacy behaviour. New P0-1 tests in {@code JudgeWorkerTestCasesSourceIT}
+     * / {@code JudgeWorkerFailClosedIT} cover the flag-on paths.
+     */
+    @Spy
+    private com.ulticode.common.config.JudgeSourceProperties judgeSourceProperties =
+            buildLegacyJudgeSource();
+
+    /**
+     * P0-1: TestCaseMapper mock — never invoked on the flag-off legacy path.
+     */
+    @Mock
+    private com.ulticode.modules.problem.mapper.TestCaseMapper testCaseMapper;
+
+    private static com.ulticode.common.config.JudgeSourceProperties buildLegacyJudgeSource() {
+        com.ulticode.common.config.JudgeSourceProperties p =
+                new com.ulticode.common.config.JudgeSourceProperties();
+        p.setUseTestCases(false);
+        return p;
+    }
+
     @InjectMocks
     private JudgeWorkerProcessor processor;
 

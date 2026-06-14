@@ -171,7 +171,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             initialDelayString = "${judge.port.initial-delay-ms:5000}"
     )
     public void pollAndProcessFromPort() {
-        if (!featureFlags.isJudgeQueueUsePort()) {
+        if (!featureFlags.getJudgeQueue().isUsePort()) {
             return;
         }
         JudgeQueue port = judgeQueueProvider.getIfAvailable();

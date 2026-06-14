@@ -174,7 +174,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         // so the outbox dispatcher is the sole active producer (codex
         // P1 #1 — flag-off behavior is byte-for-byte identical to the
         // legacy path).
-        boolean portActive = featureFlags.isJudgeQueueUsePort();
+        boolean portActive = featureFlags.getJudgeQueue().isUsePort();
         if (featureFlags.isUseJudgeOutbox() && judgeOutboxMapper != null) {
             try {
                 long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;

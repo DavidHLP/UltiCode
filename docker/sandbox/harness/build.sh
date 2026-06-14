@@ -117,7 +117,24 @@ build_cpp() {
     mkdir -p "${STAGING}/cpp"
     (
         cd "${SCRIPT_DIR}/cpp"
-        g++ -std=c++17 -O2 -Wall -Wextra -o "${STAGING}/cpp/cpp-sandbox" main.cpp
+        # cpp-sandbox is the orchestrator: it reads /job/input.json +
+        # /job/solution.cpp, statically extracts the Solution signature,
+        # generates a typed runner, g++-compiles it, and emits the D-form
+        # envelope. Link it against the harness library sources it shares
+        # with the runtime runner.
+        # Fully static: the orchestrator is compiled on the host (newer glibc
+        # + libstdc++ than the Debian-bookworm base image). Static linking
+        # makes cpp-sandbox self-contained so it runs against any container
+        # glibc. (The generated runner is compiled INSIDE the container by
+        # the image's own g++, so it has no such mismatch.)
+        g++ -std=c++17 -O2 -Wall -Wextra -static \
+            -o "${STAGING}/cpp/cpp-sandbox" \
+            main.cpp json.cpp serializer.cpp solution_parser.cpp
+        # Ship the harness sources too: the orchestrator g++-compiles the
+        # generated runner against them at runtime (see main.cpp
+        # generateRunner — it links /tmp/runner.cpp + json.cpp + serializer.cpp).
+        cp oj_types.hpp json.hpp json.cpp serializer.hpp serializer.cpp \
+           solution_parser.hpp solution_parser.cpp "${STAGING}/cpp/"
     )
     ls -la "${STAGING}/cpp/"
 }

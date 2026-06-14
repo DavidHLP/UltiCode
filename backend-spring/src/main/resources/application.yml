@@ -132,6 +132,15 @@ meilisearch:
   host: ${MEILISEARCH_HOST:}
   api-key: ${MEILISEARCH_API_KEY:}
 
+# C++ sandbox language profile (opt-in via @ConditionalOnProperty on
+# CppLanguageProfile). Enabled now that the C++ harness ships in
+# docker/sandbox/harness/cpp/. Set SANDBOX_PROFILE_CPP_ENABLED=false to
+# disable (e.g. if the sandbox image is not yet (re)built with the harness).
+sandbox:
+  profile:
+    cpp:
+      enabled: ${SANDBOX_PROFILE_CPP_ENABLED:true}
+
 # Code Execution Sandbox Configuration
 code-execution:
   sandbox:

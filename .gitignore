@@ -81,6 +81,7 @@ Thumbs.db
 .temp
 .tmp
 .worktrees/
+worktrees/
 pids
 *.pid
 *.seed

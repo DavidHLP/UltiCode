@@ -139,10 +139,18 @@ const htmlContent = computed(() =>
   color: var(--solarized-base1);
 }
 
-.description-markdown :deep(.markdown-content h1) { font-size: 1.35rem; }
-.description-markdown :deep(.markdown-content h2) { font-size: 1.15rem; }
-.description-markdown :deep(.markdown-content h3) { font-size: 0.95rem; }
-.description-markdown :deep(.markdown-content h4) { font-size: 0.85rem; }
+.description-markdown :deep(.markdown-content h1) {
+  font-size: 1.35rem;
+}
+.description-markdown :deep(.markdown-content h2) {
+  font-size: 1.15rem;
+}
+.description-markdown :deep(.markdown-content h3) {
+  font-size: 0.95rem;
+}
+.description-markdown :deep(.markdown-content h4) {
+  font-size: 0.85rem;
+}
 
 .description-markdown :deep(.markdown-content p) {
   margin-bottom: 1em;

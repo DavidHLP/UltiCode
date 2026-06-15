@@ -26,7 +26,9 @@ const { t } = useI18n();
 
     <div class="space-y-2">
       <div class="flex items-center gap-3">
-        <h1 class="text-3xl font-black tracking-tight text-[var(--solarized-base02)] dark:text-[var(--solarized-base1)]">
+        <h1
+          class="text-3xl font-black tracking-tight text-[var(--solarized-base02)] dark:text-[var(--solarized-base1)]"
+        >
           {{ contest.title }}
         </h1>
         <Badge

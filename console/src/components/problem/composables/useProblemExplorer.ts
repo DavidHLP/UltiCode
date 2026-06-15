@@ -260,6 +260,18 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     }
   }
 
+  function setSearchQuery(value: string) {
+    searchQuery.value = value;
+  }
+
+  function setSelectedCategory(value: string) {
+    selectedCategory.value = value;
+  }
+
+  function setSelectedTags(value: string[]) {
+    selectedTags.value = value;
+  }
+
   function clearFilters() {
     searchQuery.value = "";
     selectedTags.value = [];
@@ -327,6 +339,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     toggleStatus,
     toggleDifficulty,
     togglePremium,
+    setSearchQuery,
+    setSelectedCategory,
+    setSelectedTags,
     clearFilters,
     pickOne,
     loadMore,

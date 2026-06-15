@@ -35,6 +35,9 @@ const {
   toggleStatus,
   toggleDifficulty,
   togglePremium,
+  setSearchQuery,
+  setSelectedCategory,
+  setSelectedTags,
   clearFilters,
   pickOne,
   loadMore,
@@ -63,9 +66,9 @@ const handleRowClick = (problem: EnrichedProblem) => {
       :popular-tags="popularTags"
       :other-tags="otherTags"
       :selected-tags="selectedTags"
-      @update:selected-category="selectedCategory = $event"
-      @update:search-query="searchQuery = $event"
-      @update:selected-tags="selectedTags = $event"
+      @update:selected-category="setSelectedCategory"
+      @update:search-query="setSearchQuery"
+      @update:selected-tags="setSelectedTags"
       @clear="clearFilters"
       @toggle-status="toggleStatus"
       @toggle-difficulty="toggleDifficulty"

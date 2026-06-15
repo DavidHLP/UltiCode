@@ -138,11 +138,17 @@ const getItemAtIndex = (index: number): T => {
       <Table>
         <TableHeader class="sticky top-0 bg-background z-10">
           <slot name="header">
-            <TableRow v-if="hasColumnDefinitions" class="border-b border-border">
+            <TableRow
+              v-if="hasColumnDefinitions"
+              class="border-b border-border"
+            >
               <TableHead
                 v-for="col in columns"
                 :key="col.key"
-                :class="['font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60', col.headerClass]"
+                :class="[
+                  'font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
+                  col.headerClass,
+                ]"
               >
                 {{ col.header }}
               </TableHead>
@@ -172,7 +178,12 @@ const getItemAtIndex = (index: number): T => {
                 <TableCell
                   v-for="col in columns"
                   :key="col.key"
-                  :class="cn('py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle', col.class)"
+                  :class="
+                    cn(
+                      'py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle',
+                      col.class,
+                    )
+                  "
                 >
                   <template v-if="$slots[`cell-${col.key}`]">
                     <slot
@@ -230,7 +241,10 @@ const getItemAtIndex = (index: number): T => {
             <TableHead
               v-for="col in columns"
               :key="col.key"
-              :class="['font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60', col.headerClass]"
+              :class="[
+                'font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
+                col.headerClass,
+              ]"
             >
               {{ col.header }}
             </TableHead>
@@ -250,7 +264,12 @@ const getItemAtIndex = (index: number): T => {
               <TableCell
                 v-for="col in columns"
                 :key="col.key"
-                :class="cn('py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle', col.class)"
+                :class="
+                  cn(
+                    'py-3.5 px-4 text-xs text-[var(--solarized-base00)] dark:text-[var(--silver-400)] font-medium align-middle',
+                    col.class,
+                  )
+                "
               >
                 <template v-if="$slots[`cell-${col.key}`]">
                   <slot :name="`cell-${col.key}`" :item="item" />

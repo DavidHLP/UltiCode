@@ -18,7 +18,10 @@ const forwardedProps = useForwardProps(delegatedProps);
   <CalendarHeadCell
     data-slot="calendar-head-cell"
     :class="
-      cn('text-stone-600 dark:text-stone-600 w-8 font-normal text-[10px] uppercase tracking-wider pb-2', props.class)
+      cn(
+        'text-stone-600 dark:text-stone-600 w-8 font-normal text-[10px] uppercase tracking-wider pb-2',
+        props.class,
+      )
     "
     v-bind="forwardedProps"
   >

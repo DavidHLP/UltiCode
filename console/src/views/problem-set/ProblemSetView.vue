@@ -31,7 +31,9 @@ onMounted(() => {
     <!-- Main Content Area -->
     <div class="grid grid-cols-1 items-start gap-6 md:grid-cols-12 md:gap-8">
       <!-- Left Column: Problem List (9 cols) -->
-      <main class="order-2 md:order-1 min-w-0 space-y-6 md:col-span-8 lg:col-span-9">
+      <main
+        class="order-2 md:order-1 min-w-0 space-y-6 md:col-span-8 lg:col-span-9"
+      >
         <ProblemExplorer :initial-category="category" />
       </main>
 

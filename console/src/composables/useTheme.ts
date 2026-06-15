@@ -23,4 +23,4 @@ export {
   /** @deprecated Use `useColorTheme` instead. Will be removed once the migration is complete. */
   useTheme,
   type ThemeMode,
-} from '@/shared/theme/src'
+} from "@/shared/theme/src";

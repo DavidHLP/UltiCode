@@ -115,7 +115,9 @@ onUnmounted(() => {
           <div class="space-y-5">
             <div class="flex justify-between items-start gap-4">
               <div class="space-y-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none"
+                >
                   {{
                     t(
                       `contest.types.${contest.contestType || "weekly"}`,
@@ -123,7 +125,9 @@ onUnmounted(() => {
                     )
                   }}
                 </span>
-                <h3 class="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
+                <h3
+                  class="text-xl font-bold leading-tight group-hover:text-primary transition-colors"
+                >
                   {{ contest.title }}
                 </h3>
               </div>
@@ -132,10 +136,14 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono">
+            <div
+              class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono"
+            >
               <div class="flex items-center gap-2">
                 <Calendar class="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                <span class="truncate">{{ formatDateTime(contest.startTime) }}</span>
+                <span class="truncate">{{
+                  formatDateTime(contest.startTime)
+                }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
@@ -146,11 +154,20 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div class="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-                <span class="h-2 w-2 bg-[var(--terminal-cyan)] animate-pulse inline-block"></span>
+            <div
+              class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2"
+            >
+              <div
+                class="text-xs font-mono text-muted-foreground flex items-center gap-1.5"
+              >
+                <span
+                  class="h-2 w-2 bg-[var(--terminal-cyan)] animate-pulse inline-block"
+                ></span>
                 <span>{{ t("contest.list.startsIn") }}</span>
-                <span class="font-bold text-foreground text-sm bg-muted/65 px-1.5 py-0.5 border border-border">{{ getCountdown(contest.id) }}</span>
+                <span
+                  class="font-bold text-foreground text-sm bg-muted/65 px-1.5 py-0.5 border border-border"
+                  >{{ getCountdown(contest.id) }}</span
+                >
               </div>
               <Button
                 variant="outline"

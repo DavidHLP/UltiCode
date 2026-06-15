@@ -76,7 +76,9 @@ describe("useNotificationI18n", () => {
 
   describe("type normalization", () => {
     it("passes through uppercase known types", () => {
-      const result = display(makeNotification({ type: "COMMENT" as NotificationType }));
+      const result = display(
+        makeNotification({ type: "COMMENT" as NotificationType }),
+      );
       // comment template title is "{username} 评论了你的帖子" — without
       // metadata.username we fall back to raw title.
       expect(result.title).toBe("raw title");
@@ -261,9 +263,7 @@ describe("useNotificationI18n", () => {
     });
 
     it("falls back to raw title when no metadata", () => {
-      const result = display(
-        makeNotification({ type: "CONTEST" }),
-      );
+      const result = display(makeNotification({ type: "CONTEST" }));
       expect(result.title).toBe("raw title");
     });
   });
@@ -274,25 +274,22 @@ describe("useNotificationI18n", () => {
       ["REPLY", "reply", "{username} 回复了你"],
       ["MENTION", "mention", "{username} 提到了你"],
       ["UPVOTE", "upvote", "{username} 赞了你的帖子"],
-    ])(
-      "%s uses metadata.username when present",
-      (type) => {
-        const result = display(
-          makeNotification({
-            type: type as NotificationType,
-            metadata: { username: "carol" },
-          }),
-        );
-        // The expected translated string for each type.
-        const expected: Record<string, string> = {
-          COMMENT: "carol 评论了你的帖子",
-          REPLY: "carol 回复了你",
-          MENTION: "carol 提到了你",
-          UPVOTE: "carol 赞了你的帖子",
-        };
-        expect(result.title).toBe(expected[type]);
-      },
-    );
+    ])("%s uses metadata.username when present", (type) => {
+      const result = display(
+        makeNotification({
+          type: type as NotificationType,
+          metadata: { username: "carol" },
+        }),
+      );
+      // The expected translated string for each type.
+      const expected: Record<string, string> = {
+        COMMENT: "carol 评论了你的帖子",
+        REPLY: "carol 回复了你",
+        MENTION: "carol 提到了你",
+        UPVOTE: "carol 赞了你的帖子",
+      };
+      expect(result.title).toBe(expected[type]);
+    });
 
     it("falls back to raw title when no username metadata", () => {
       const result = display(
@@ -318,7 +315,10 @@ describe("useNotificationI18n", () => {
       const result = display(
         makeNotification({
           type: "SUBMISSION",
-          metadata: { status: "Accepted", problemTitle: 12345 as unknown as string },
+          metadata: {
+            status: "Accepted",
+            problemTitle: 12345 as unknown as string,
+          },
         }),
       );
       expect(result.body).toBe("题目: 12345");

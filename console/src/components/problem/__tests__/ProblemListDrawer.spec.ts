@@ -172,15 +172,25 @@ describe("ProblemListDrawer data fetching", () => {
       (row) => !row.classes().includes("bg-primary/10"),
     );
 
-    expect(activeRow, "active row should use the primary accent background").toBeDefined();
-    expect(inactiveRow, "inactive row should not use the primary accent background").toBeDefined();
+    expect(
+      activeRow,
+      "active row should use the primary accent background",
+    ).toBeDefined();
+    expect(
+      inactiveRow,
+      "inactive row should not use the primary accent background",
+    ).toBeDefined();
 
     // The active row must use the project's solarized tokens, not raw zinc
     // colors that ignore the dark/light theme.
     expect(activeRow!.classes()).toContain("border-primary");
     expect(activeRow!.classes()).toContain("text-primary");
-    expect(activeRow!.classes().some((c) => c.startsWith("bg-zinc"))).toBe(false);
-    expect(activeRow!.classes().some((c) => c.startsWith("text-white"))).toBe(false);
+    expect(activeRow!.classes().some((c) => c.startsWith("bg-zinc"))).toBe(
+      false,
+    );
+    expect(activeRow!.classes().some((c) => c.startsWith("text-white"))).toBe(
+      false,
+    );
 
     // The inactive row keeps the left-border slot reserved with a
     // transparent border so toggling the active state does not shift the

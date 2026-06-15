@@ -16,8 +16,10 @@ export function useContestStatus(
 
   const statusCardClass = computed(() => {
     const status = contest.value?.status;
-    if (status === "RUNNING") return "border-l-4 border-l-[var(--terminal-red)]";
-    if (status === "UPCOMING") return "border-l-4 border-l-[var(--terminal-green)]";
+    if (status === "RUNNING")
+      return "border-l-4 border-l-[var(--terminal-red)]";
+    if (status === "UPCOMING")
+      return "border-l-4 border-l-[var(--terminal-green)]";
     return "border-l-4 border-l-muted-foreground";
   });
 

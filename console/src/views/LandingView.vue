@@ -349,7 +349,9 @@ const handleLoginRedirect = () => {
       <!-- Feature Matrix Section -->
       <section class="space-y-8">
         <div class="text-center space-y-2">
-          <h2 class="text-2xl font-bold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]">
+          <h2
+            class="text-2xl font-bold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]"
+          >
             {{ t("landing.modulesTitle") }}
           </h2>
           <p class="text-xs text-muted-foreground font-data">
@@ -359,51 +361,109 @@ const handleLoginRedirect = () => {
 
         <div class="grid gap-6 md:grid-cols-3">
           <!-- Card 1 - Core Featured Module (精密评测机) -->
-          <div class="precision-card precision-card--featured lg:col-span-3 border border-[var(--border)] bg-card p-6 shadow-[3px_3px_0px_0px_var(--border)] grid gap-6 md:grid-cols-12 relative overflow-hidden">
-            <div class="absolute right-0 top-0 bg-[var(--accent-electric)] text-white font-data text-[9px] uppercase tracking-widest px-3 py-1 font-bold">
+          <div
+            class="precision-card precision-card--featured lg:col-span-3 border border-[var(--border)] bg-card p-6 shadow-[3px_3px_0px_0px_var(--border)] grid gap-6 md:grid-cols-12 relative overflow-hidden"
+          >
+            <div
+              class="absolute right-0 top-0 bg-[var(--accent-electric)] text-white font-data text-[9px] uppercase tracking-widest px-3 py-1 font-bold"
+            >
               PRIMARY ENGINE
             </div>
 
             <div class="md:col-span-7 space-y-4">
               <div class="flex items-center gap-3">
-                <div class="size-11 bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] flex items-center justify-center border border-[var(--accent-electric)]">
-                  <Cpu class="size-6 text-[var(--accent-electric)] animate-pulse" />
+                <div
+                  class="size-11 bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] flex items-center justify-center border border-[var(--accent-electric)]"
+                >
+                  <Cpu
+                    class="size-6 text-[var(--accent-electric)] animate-pulse"
+                  />
                 </div>
                 <div>
-                  <span class="text-[9px] font-data text-[var(--accent-electric)] uppercase tracking-wider font-bold">HIGH PERFORMANCE</span>
-                  <h3 class="font-data font-bold text-base uppercase mt-0.5">{{ t("landing.judgeTitle") }}</h3>
+                  <span
+                    class="text-[9px] font-data text-[var(--accent-electric)] uppercase tracking-wider font-bold"
+                    >HIGH PERFORMANCE</span
+                  >
+                  <h3 class="font-data font-bold text-base uppercase mt-0.5">
+                    {{ t("landing.judgeTitle") }}
+                  </h3>
                 </div>
               </div>
               <p class="text-xs text-muted-foreground leading-relaxed">
                 {{ t("landing.judgeDesc") }}
               </p>
-              <div class="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--border)]">
+              <div
+                class="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--border)]"
+              >
                 <div class="space-y-0.5">
-                  <span class="text-[9px] text-muted-foreground uppercase font-data">EXECUTION SPEED</span>
-                  <p class="text-xs font-bold font-mono text-[var(--accent-electric)]">&lt; 12ms avg</p>
+                  <span
+                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    >EXECUTION SPEED</span
+                  >
+                  <p
+                    class="text-xs font-bold font-mono text-[var(--accent-electric)]"
+                  >
+                    &lt; 12ms avg
+                  </p>
                 </div>
                 <div class="space-y-0.5">
-                  <span class="text-[9px] text-muted-foreground uppercase font-data">CONTAINERIZATION</span>
-                  <p class="text-xs font-bold font-mono text-[var(--terminal-green)]">DOCKER SECURE</p>
+                  <span
+                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    >CONTAINERIZATION</span
+                  >
+                  <p
+                    class="text-xs font-bold font-mono text-[var(--terminal-green)]"
+                  >
+                    DOCKER SECURE
+                  </p>
                 </div>
                 <div class="space-y-0.5">
-                  <span class="text-[9px] text-muted-foreground uppercase font-data">SUPPORTED LANGS</span>
-                  <p class="text-xs font-bold font-mono text-[var(--terminal-amber)]">C++ / PY / JS</p>
+                  <span
+                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    >SUPPORTED LANGS</span
+                  >
+                  <p
+                    class="text-xs font-bold font-mono text-[var(--terminal-amber)]"
+                  >
+                    C++ / PY / JS
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div class="md:col-span-5 border border-[var(--border)] bg-[var(--surface-sunken)] p-3 flex flex-col justify-between font-mono text-[10px] text-muted-foreground h-full min-h-[140px]">
-              <div class="flex items-center justify-between border-b border-[var(--border)] pb-1.5 mb-1.5">
-                <span class="text-[9px] text-[var(--accent-electric)] font-bold">// SANDBOX RUNNER ACTIVE</span>
-                <span class="size-2 bg-[var(--terminal-green)] rounded-full animate-ping"></span>
+            <div
+              class="md:col-span-5 border border-[var(--border)] bg-[var(--surface-sunken)] p-3 flex flex-col justify-between font-mono text-[10px] text-muted-foreground h-full min-h-[140px]"
+            >
+              <div
+                class="flex items-center justify-between border-b border-[var(--border)] pb-1.5 mb-1.5"
+              >
+                <span class="text-[9px] text-[var(--accent-electric)] font-bold"
+                  >// SANDBOX RUNNER ACTIVE</span
+                >
+                <span
+                  class="size-2 bg-[var(--terminal-green)] rounded-full animate-ping"
+                ></span>
               </div>
               <div class="space-y-1 select-none">
-                <p><span class="text-[var(--terminal-cyan)]">[OK]</span> Init jail-root sandbox environment...</p>
-                <p><span class="text-[var(--terminal-cyan)]">[OK]</span> Mount read-only headers (glibc-2.39)</p>
-                <p><span class="text-[var(--terminal-amber)]">[RUN]</span> Evaluate user solution (PID: 18402)</p>
-                <p><span class="text-[var(--terminal-green)]">[PASS]</span> Test case 01-15 validated in 4.2ms</p>
-                <p class="text-foreground font-bold">&gt; Process terminated with status code 0</p>
+                <p>
+                  <span class="text-[var(--terminal-cyan)]">[OK]</span> Init
+                  jail-root sandbox environment...
+                </p>
+                <p>
+                  <span class="text-[var(--terminal-cyan)]">[OK]</span> Mount
+                  read-only headers (glibc-2.39)
+                </p>
+                <p>
+                  <span class="text-[var(--terminal-amber)]">[RUN]</span>
+                  Evaluate user solution (PID: 18402)
+                </p>
+                <p>
+                  <span class="text-[var(--terminal-green)]">[PASS]</span> Test
+                  case 01-15 validated in 4.2ms
+                </p>
+                <p class="text-foreground font-bold">
+                  &gt; Process terminated with status code 0
+                </p>
               </div>
             </div>
           </div>
@@ -547,7 +607,9 @@ const handleLoginRedirect = () => {
                   >
                     1,348,902
                   </p>
-                  <p class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal">
+                  <p
+                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                  >
                     {{ t("landing.totalSubmissionsDesc") }}
                   </p>
                 </div>
@@ -562,7 +624,9 @@ const handleLoginRedirect = () => {
                   >
                     42,918
                   </p>
-                  <p class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal">
+                  <p
+                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                  >
                     {{ t("landing.activeSolversDesc") }}
                   </p>
                 </div>
@@ -577,7 +641,9 @@ const handleLoginRedirect = () => {
                   >
                     14.2 ms
                   </p>
-                  <p class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal">
+                  <p
+                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                  >
                     {{ t("landing.compilationAvgDesc") }}
                   </p>
                 </div>
@@ -592,7 +658,9 @@ const handleLoginRedirect = () => {
                   >
                     142 {{ t("landing.eventsUnit") }}
                   </p>
-                  <p class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal">
+                  <p
+                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                  >
                     {{ t("landing.contestsCompletedDesc") }}
                   </p>
                 </div>
@@ -626,10 +694,16 @@ const handleLoginRedirect = () => {
       <section
         class="terminal-card border border-silver bg-[var(--surface-sunken)] max-w-3xl mx-auto overflow-hidden shadow-[4px_4px_0px_0px_var(--border)]"
       >
-        <div class="flex items-center justify-between border-b border-silver px-4 py-2 bg-[var(--surface-sunken)] font-data text-xs text-muted-foreground">
+        <div
+          class="flex items-center justify-between border-b border-silver px-4 py-2 bg-[var(--surface-sunken)] font-data text-xs text-muted-foreground"
+        >
           <span>session_initialize.sh</span>
-          <span class="text-[var(--terminal-green)] flex items-center gap-1.5 font-bold">
-            <span class="size-1.5 bg-[var(--terminal-green)] rounded-full animate-pulse"></span>
+          <span
+            class="text-[var(--terminal-green)] flex items-center gap-1.5 font-bold"
+          >
+            <span
+              class="size-1.5 bg-[var(--terminal-green)] rounded-full animate-pulse"
+            ></span>
             EXECUTE_READY
           </span>
         </div>
@@ -640,7 +714,9 @@ const handleLoginRedirect = () => {
             >
               {{ t("landing.readyToLaunch") }}
             </div>
-            <h2 class="text-2xl font-extrabold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]">
+            <h2
+              class="text-2xl font-extrabold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]"
+            >
               {{ t("landing.ctaTitle") }}
             </h2>
             <p class="text-xs text-muted-foreground max-w-md mx-auto font-data">

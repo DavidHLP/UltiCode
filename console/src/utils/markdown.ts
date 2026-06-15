@@ -169,9 +169,11 @@ const groupFencesPlugin = (md: MarkdownIt) => {
 md.use(groupFencesPlugin);
 
 // Custom header open renderer to inject dynamic heading IDs for scroll-spy / TOC
-const defaultHeadingOpen = md.renderer.rules.heading_open || function (tokens, idx, options, _env, self) {
-  return self.renderToken(tokens, idx, options);
-};
+const defaultHeadingOpen =
+  md.renderer.rules.heading_open ||
+  function (tokens, idx, options, _env, self) {
+    return self.renderToken(tokens, idx, options);
+  };
 
 md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   const token = tokens[idx];
@@ -180,15 +182,18 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   if (inlineToken && inlineToken.type === "inline") {
     text = inlineToken.content;
   }
-  const id = text.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
-  
+  const id = text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
+
   const idAttrIdx = token.attrIndex("id");
   if (idAttrIdx >= 0 && token.attrs) {
     token.attrs[idAttrIdx][1] = id;
   } else {
     token.attrPush(["id", id]);
   }
-  
+
   return defaultHeadingOpen(tokens, idx, options, env, self);
 };
 
@@ -201,12 +206,15 @@ md.renderer.rules.fence = (tokens, idx, options) => {
 
   let highlightedCode = "";
   if (options.highlight) {
-    highlightedCode = options.highlight(content, langName, "") || md.utils.escapeHtml(content);
+    highlightedCode =
+      options.highlight(content, langName, "") || md.utils.escapeHtml(content);
   } else {
     highlightedCode = md.utils.escapeHtml(content);
   }
 
-  const langDisplay = langName ? (langName.charAt(0).toUpperCase() + langName.slice(1).toLowerCase()) : "Text";
+  const langDisplay = langName
+    ? langName.charAt(0).toUpperCase() + langName.slice(1).toLowerCase()
+    : "Text";
 
   return `
     <div class="lc-code-block-standalone border border-border bg-[var(--surface-sunken)] rounded-none my-4 overflow-hidden">

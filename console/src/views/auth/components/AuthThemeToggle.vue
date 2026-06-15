@@ -6,27 +6,27 @@
  * `@ulticode/theme` singleton so other theme pickers (header dropdown,
  * settings card) stay in sync.
  */
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { Sun, Moon, Monitor } from 'lucide-vue-next'
-import { cycleTheme, useColorTheme } from '@/composables/useTheme'
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { Sun, Moon, Monitor } from "lucide-vue-next";
+import { cycleTheme, useColorTheme } from "@/composables/useTheme";
 
 defineOptions({
-  name: 'AuthThemeToggle',
-})
+  name: "AuthThemeToggle",
+});
 
-const { t } = useI18n()
-const { theme: themeRef } = useColorTheme()
+const { t } = useI18n();
+const { theme: themeRef } = useColorTheme();
 // vue-tsc 3.x does not auto-unwrap `Ref<T>` in template comparisons or
 // function arguments; project convention is to expose reactive values as
 // `ComputedRef` (see `useLocale`). Match that here.
-const theme = computed(() => themeRef.value)
+const theme = computed(() => themeRef.value);
 
-const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
+const labelFor = (mode: "light" | "dark" | "system"): string => {
   // Falls back to the mode key if the translation is missing so the
   // a11y label is never empty.
-  return t(`common.appearance.${mode}`, mode)
-}
+  return t(`common.appearance.${mode}`, mode);
+};
 </script>
 
 <template>

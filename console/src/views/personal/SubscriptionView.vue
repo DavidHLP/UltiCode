@@ -267,7 +267,8 @@ async function loadPlans() {
     // The plans endpoint is not yet implemented in the backend (P0-1).
     // Treat 404 as "not yet implemented" and hide silently; any other
     // error (auth, network, 5xx) is a real failure the user should see.
-    const status = (error as { response?: { status?: number } })?.response?.status;
+    const status = (error as { response?: { status?: number } })?.response
+      ?.status;
     if (status !== 404) {
       console.error("Failed to load plans:", error);
       toast.error(t("personal.subscription.error"), {

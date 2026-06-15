@@ -53,13 +53,15 @@ export default {
   logHeader: "system_status.log",
 
   totalSubmissions: "TOTAL_SUBMISSIONS",
-  totalSubmissionsDesc: "Low-latency judge nodes have safely executed millions of runs",
+  totalSubmissionsDesc:
+    "Low-latency judge nodes have safely executed millions of runs",
   activeSolvers24h: "ACTIVE_SOLVERS_24H",
   activeSolversDesc: "Thousands of developers coding and benchmarking daily",
   compilationAvgMs: "COMPILATION_AVG_MS",
   compilationAvgDesc: "Parallel compilation on RAM-disks minimizes wait times",
   contestsCompleted: "CONTESTS_COMPLETED",
-  contestsCompletedDesc: "High-quality algorithmic tournaments held continuously",
+  contestsCompletedDesc:
+    "High-quality algorithmic tournaments held continuously",
   eventsUnit: "events",
 
   logInfoInit: "[INFO] Initializing node group-04...",

@@ -97,9 +97,7 @@ export function useNotificationI18n(): {
         const problemTitle = readMetaString(meta, "problemTitle");
         return {
           title: t(`${base}.title`, { status: statusText }),
-          body: problemTitle
-            ? t(`${base}.body`, { problemTitle })
-            : "",
+          body: problemTitle ? t(`${base}.body`, { problemTitle }) : "",
         };
       }
       case "achievement": {
@@ -124,9 +122,7 @@ export function useNotificationI18n(): {
           readMetaString(meta, "contestTitle") ||
           extractContestTitle(notification.title);
         const use24h = isContestReminder24h(notification.title);
-        const titleKey = use24h
-          ? `${base}.title24h`
-          : `${base}.title1h`;
+        const titleKey = use24h ? `${base}.title24h` : `${base}.title1h`;
         return {
           title: contestTitle
             ? t(titleKey, { contestTitle })

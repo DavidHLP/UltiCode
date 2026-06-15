@@ -210,8 +210,8 @@ export async function fetchUserSolutions(
 export async function fetchSolutionComments(
   solutionId: string,
 ): Promise<SolutionComment[]> {
-  if (!solutionId || solutionId.trim() === '') {
-    throw new TypeError('fetchSolutionComments: solutionId is required');
+  if (!solutionId || solutionId.trim() === "") {
+    throw new TypeError("fetchSolutionComments: solutionId is required");
   }
   return apiGet<SolutionComment[]>(`/api/solutions/${solutionId}/comments`);
 }

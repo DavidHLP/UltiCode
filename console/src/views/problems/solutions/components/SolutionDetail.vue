@@ -153,7 +153,7 @@ const setupScrollSpy = () => {
       root: null,
       rootMargin: "-80px 0px -50% 0px",
       threshold: 0.1,
-    }
+    },
   );
 
   headings.value.forEach((h) => {
@@ -169,7 +169,7 @@ watch(
   () => {
     setTimeout(setupScrollSpy, 250);
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // --- Responsive Layout Container Query / Resize Observer ---
@@ -182,7 +182,7 @@ let resizeObserver: ResizeObserver | null = null;
 
 onMounted(() => {
   setTimeout(setupScrollSpy, 500);
-  
+
   if (wrapperRef.value) {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -214,8 +214,6 @@ const handleMobileTOCClick = (id: string) => {
   scrollToHeading(id);
   showMobileTOC.value = false;
 };
-
-
 
 const loadComments = async () => {
   if (!props.item.id || props.item.id === "follow-up") {
@@ -382,9 +380,13 @@ watch(
 </script>
 
 <template>
-  <div ref="wrapperRef" class="solution-detail-page-wrapper w-full p-0 py-2 relative min-h-[300px]">
-    <div class="w-full flex flex-col lg:flex-row gap-6 items-start justify-center max-w-6xl mx-auto px-1 lg:px-4 relative">
-      
+  <div
+    ref="wrapperRef"
+    class="solution-detail-page-wrapper w-full p-0 py-2 relative min-h-[300px]"
+  >
+    <div
+      class="w-full flex flex-col lg:flex-row gap-6 items-start justify-center max-w-6xl mx-auto px-1 lg:px-4 relative"
+    >
       <!-- Left Main Column: Elegant Reading Card -->
       <article
         class="group w-full bg-[var(--card)] border border-border shadow-sm p-6 md:p-8 relative rounded-none flex flex-col gap-5"
@@ -403,8 +405,12 @@ watch(
           </Avatar>
 
           <div class="flex-1 min-w-0 flex flex-col gap-1">
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-none">
-              <span class="font-bold text-[var(--solarized-base03)] dark:text-foreground">
+            <div
+              class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-none"
+            >
+              <span
+                class="font-bold text-[var(--solarized-base03)] dark:text-foreground"
+              >
                 {{ props.item.author.name }}
               </span>
               <span class="truncate text-muted-foreground max-w-[120px]">
@@ -461,13 +467,15 @@ watch(
                 <List class="mr-1 h-3.5 w-3.5" />
                 目录
               </Button>
-              
+
               <!-- Floating TOC Dropdown Popup -->
               <div
                 v-if="showMobileTOC"
                 class="absolute right-0 top-8 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
               >
-                <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1">
+                <div
+                  class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                >
                   文章大纲
                 </div>
                 <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
@@ -479,7 +487,7 @@ watch(
                     :class="[
                       activeHeadingId === h.id
                         ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
-                        : 'border-transparent text-muted-foreground font-medium'
+                        : 'border-transparent text-muted-foreground font-medium',
                     ]"
                     :style="{ paddingLeft: h.level === 3 ? '1rem' : '0.25rem' }"
                     @click="handleMobileTOCClick(h.id)"
@@ -526,7 +534,9 @@ watch(
         <!-- Solution Content -->
         <section class="space-y-4 text-sm leading-relaxed">
           <!-- Solution Title -->
-          <h1 class="text-xl font-bold tracking-tight text-[var(--solarized-base03)] dark:text-foreground mb-4 leading-tight">
+          <h1
+            class="text-xl font-bold tracking-tight text-[var(--solarized-base03)] dark:text-foreground mb-4 leading-tight"
+          >
             {{ props.item.title }}
           </h1>
 
@@ -576,7 +586,9 @@ watch(
         <div id="comments-section" class="mt-8 border-t border-border/60 pt-6">
           <div class="flex items-center gap-2 mb-4">
             <div class="h-4 w-1 bg-[var(--solarized-blue)]"></div>
-            <h3 class="text-sm font-bold text-[var(--solarized-base03)] dark:text-foreground uppercase tracking-wide select-none">
+            <h3
+              class="text-sm font-bold text-[var(--solarized-base03)] dark:text-foreground uppercase tracking-wide select-none"
+            >
               {{ t("forum.comments.title") }}
             </h3>
           </div>
@@ -593,13 +605,20 @@ watch(
       </article>
 
       <!-- Right Column: Sticky Navigation Sidebar (Hidden on narrow container widths) -->
-      <aside v-if="isWideLayout" class="flex flex-col gap-4 w-52 shrink-0 sticky top-4 select-none">
-        
+      <aside
+        v-if="isWideLayout"
+        class="flex flex-col gap-4 w-52 shrink-0 sticky top-4 select-none"
+      >
         <!-- Author Profile Sidebar Widget -->
-        <div class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3">
+        <div
+          class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3"
+        >
           <div class="flex items-center gap-2">
             <Avatar class="h-9 w-9 border border-border/40 shrink-0">
-              <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
+              <AvatarImage
+                :src="authorAvatarUrl"
+                :alt="props.item.author.name"
+              />
               <AvatarFallback
                 class="text-xs font-semibold text-white"
                 :style="{ backgroundColor: props.item.author.avatarColor }"
@@ -608,22 +627,32 @@ watch(
               </AvatarFallback>
             </Avatar>
             <div class="flex flex-col min-w-0">
-              <span class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight">
+              <span
+                class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight"
+              >
                 {{ props.item.author.name }}
               </span>
-              <span class="text-[10px] text-muted-foreground truncate leading-none mt-0.5">
+              <span
+                class="text-[10px] text-muted-foreground truncate leading-none mt-0.5"
+              >
                 {{ props.item.author.role }}
               </span>
             </div>
           </div>
-          
-          <div class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono">
+
+          <div
+            class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+          >
             <div>发布：{{ formattedDate }}</div>
             <div class="flex items-center gap-1.5 flex-wrap mt-1">
-              <span class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] capitalize">
+              <span
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] capitalize"
+              >
                 {{ languageLabel }}
               </span>
-              <span class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] truncate max-w-[80px]">
+              <span
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] truncate max-w-[80px]"
+              >
                 {{ topicLabel }}
               </span>
             </div>
@@ -631,8 +660,13 @@ watch(
         </div>
 
         <!-- Table of Contents (TOC) Widget -->
-        <div v-if="headings.length > 1" class="bg-[var(--card)] border border-border shadow-sm p-4">
-          <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono">
+        <div
+          v-if="headings.length > 1"
+          class="bg-[var(--card)] border border-border shadow-sm p-4"
+        >
+          <div
+            class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+          >
             文章大纲
           </div>
           <nav class="flex flex-col gap-1">
@@ -644,7 +678,7 @@ watch(
               :class="[
                 activeHeadingId === h.id
                   ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
-                  : 'border-transparent text-muted-foreground font-medium'
+                  : 'border-transparent text-muted-foreground font-medium',
               ]"
               :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
               @click="scrollToHeading(h.id)"
@@ -654,7 +688,6 @@ watch(
           </nav>
         </div>
       </aside>
-
     </div>
   </div>
 

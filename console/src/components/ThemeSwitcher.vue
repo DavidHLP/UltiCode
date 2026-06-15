@@ -21,8 +21,14 @@ const { t } = useI18n();
 <template>
   <DropdownMenuSub>
     <DropdownMenuSubTrigger class="cursor-pointer">
-      <Sun v-if="theme === 'light'" class="mr-2 h-4 w-4 text-[var(--solarized-yellow)]" />
-      <Moon v-else-if="theme === 'dark'" class="mr-2 h-4 w-4 text-[var(--solarized-blue)]" />
+      <Sun
+        v-if="theme === 'light'"
+        class="mr-2 h-4 w-4 text-[var(--solarized-yellow)]"
+      />
+      <Moon
+        v-else-if="theme === 'dark'"
+        class="mr-2 h-4 w-4 text-[var(--solarized-blue)]"
+      />
       <Laptop v-else class="mr-2 h-4 w-4" />
       <span>{{ t("common.appearance.theme") }}</span>
     </DropdownMenuSubTrigger>
@@ -30,7 +36,9 @@ const { t } = useI18n();
       <DropdownMenuItem
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
         :class="[
-          theme === 'light' ? 'bg-accent/50 text-accent-foreground font-bold' : ''
+          theme === 'light'
+            ? 'bg-accent/50 text-accent-foreground font-bold'
+            : '',
         ]"
         @click="setTheme('light')"
       >
@@ -40,13 +48,18 @@ const { t } = useI18n();
             t("common.appearance.light")
           }}</span>
         </div>
-        <Check v-if="theme === 'light'" class="size-3.5 text-[var(--accent-primary)]" />
+        <Check
+          v-if="theme === 'light'"
+          class="size-3.5 text-[var(--accent-primary)]"
+        />
       </DropdownMenuItem>
 
       <DropdownMenuItem
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
         :class="[
-          theme === 'dark' ? 'bg-accent/50 text-accent-foreground font-bold' : ''
+          theme === 'dark'
+            ? 'bg-accent/50 text-accent-foreground font-bold'
+            : '',
         ]"
         @click="setTheme('dark')"
       >
@@ -56,13 +69,18 @@ const { t } = useI18n();
             t("common.appearance.dark")
           }}</span>
         </div>
-        <Check v-if="theme === 'dark'" class="size-3.5 text-[var(--accent-primary)]" />
+        <Check
+          v-if="theme === 'dark'"
+          class="size-3.5 text-[var(--accent-primary)]"
+        />
       </DropdownMenuItem>
 
       <DropdownMenuItem
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
         :class="[
-          theme === 'system' ? 'bg-accent/50 text-accent-foreground font-bold' : ''
+          theme === 'system'
+            ? 'bg-accent/50 text-accent-foreground font-bold'
+            : '',
         ]"
         @click="setTheme('system')"
       >
@@ -72,7 +90,10 @@ const { t } = useI18n();
             t("common.appearance.system")
           }}</span>
         </div>
-        <Check v-if="theme === 'system'" class="size-3.5 text-[var(--accent-primary)]" />
+        <Check
+          v-if="theme === 'system'"
+          class="size-3.5 text-[var(--accent-primary)]"
+        />
       </DropdownMenuItem>
     </DropdownMenuSubContent>
   </DropdownMenuSub>

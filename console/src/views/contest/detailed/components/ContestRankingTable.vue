@@ -43,26 +43,36 @@ const { t } = useI18n();
     </CardHeader>
     <CardContent class="p-0">
       <Table>
-        <TableHeader class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40">
+        <TableHeader
+          class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40"
+        >
           <TableRow class="hover:bg-transparent">
-            <TableHead class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.rank")
-            }}</TableHead>
-            <TableHead class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.user")
-            }}</TableHead>
-            <TableHead class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.score")
-            }}</TableHead>
-            <TableHead class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.time")
-            }}</TableHead>
-            <TableHead class="w-48 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.problems")
-            }}</TableHead>
-            <TableHead class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.rankingHeaders.problemsSolved")
-            }}</TableHead>
+            <TableHead
+              class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.rankingHeaders.rank") }}</TableHead
+            >
+            <TableHead
+              class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.rankingHeaders.user") }}</TableHead
+            >
+            <TableHead
+              class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.rankingHeaders.score") }}</TableHead
+            >
+            <TableHead
+              class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.rankingHeaders.time") }}</TableHead
+            >
+            <TableHead
+              class="w-48 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.rankingHeaders.problems") }}</TableHead
+            >
+            <TableHead
+              class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{
+                t("contest.detail.rankingHeaders.problemsSolved")
+              }}</TableHead
+            >
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -79,9 +89,9 @@ const { t } = useI18n();
                     entry.rank === 1,
                   'bg-[var(--silver-300)] text-white scale-105':
                     entry.rank === 2,
-                  'bg-[var(--terminal-amber)] text-white':
-                    entry.rank === 3,
-                  'bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border border-border/40': (entry.rank ?? 0) > 3,
+                  'bg-[var(--terminal-amber)] text-white': entry.rank === 3,
+                  'bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border border-border/40':
+                    (entry.rank ?? 0) > 3,
                 }"
               >
                 {{ entry.rank ?? 0 }}
@@ -105,7 +115,10 @@ const { t } = useI18n();
                   </span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-bold text-sm text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">{{ entry.username }}</span>
+                  <span
+                    class="font-bold text-sm text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+                    >{{ entry.username }}</span
+                  >
                   <span
                     class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest"
                   >
@@ -115,12 +128,15 @@ const { t } = useI18n();
               </div>
             </TableCell>
             <TableCell class="text-center py-3">
-              <span class="text-base font-black tracking-tight font-mono text-foreground">{{
-                entry.score ?? 0
-              }}</span>
+              <span
+                class="text-base font-black tracking-tight font-mono text-foreground"
+                >{{ entry.score ?? 0 }}</span
+              >
             </TableCell>
             <TableCell class="text-center py-3">
-              <span class="font-mono text-xs font-semibold text-muted-foreground">
+              <span
+                class="font-mono text-xs font-semibold text-muted-foreground"
+              >
                 {{ formatPenaltyTime(entry.penalty ?? 0) }}
               </span>
             </TableCell>

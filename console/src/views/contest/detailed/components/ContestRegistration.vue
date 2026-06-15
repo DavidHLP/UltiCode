@@ -46,9 +46,13 @@ const statusColor = computed(() => {
     <CardContent class="p-6 md:p-8 relative z-10">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Left Column: Status, Countdown & Progress -->
-        <div class="md:col-span-2 space-y-5 flex flex-col justify-between pr-0 md:pr-8 md:border-r border-border/40">
+        <div
+          class="md:col-span-2 space-y-5 flex flex-col justify-between pr-0 md:pr-8 md:border-r border-border/40"
+        >
           <div class="space-y-3">
-            <p class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            <p
+              class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground"
+            >
               {{ t("contest.detail.contestStatus") }}
             </p>
             <div class="flex items-center gap-3">
@@ -76,13 +80,18 @@ const statusColor = computed(() => {
                       : t("contest.status.finished")
                 }}
               </span>
-              <span v-if="statusHint" class="text-xs font-bold text-muted-foreground">
+              <span
+                v-if="statusHint"
+                class="text-xs font-bold text-muted-foreground"
+              >
                 // {{ statusHint }}
               </span>
             </div>
-            
+
             <div class="space-y-1 pt-1.5">
-              <h2 class="text-xl font-black text-[var(--solarized-base02)] dark:text-[var(--solarized-base1)] tracking-tight">
+              <h2
+                class="text-xl font-black text-[var(--solarized-base02)] dark:text-[var(--solarized-base1)] tracking-tight"
+              >
                 {{ statusLabel }}
               </h2>
               <!-- Monospace Timer Block -->
@@ -110,7 +119,8 @@ const statusColor = computed(() => {
                 class="h-full transition-all duration-1000 ease-out"
                 :class="{
                   'bg-[var(--terminal-green)]': contest.status === 'UPCOMING',
-                  'bg-[var(--terminal-red)] shadow-[0_0_8px_var(--terminal-red)]': contest.status === 'RUNNING',
+                  'bg-[var(--terminal-red)] shadow-[0_0_8px_var(--terminal-red)]':
+                    contest.status === 'RUNNING',
                   'bg-muted-foreground/40': contest.status === 'FINISHED',
                 }"
                 :style="{ width: `${statusProgress}%` }"
@@ -123,30 +133,50 @@ const statusColor = computed(() => {
         <div class="flex flex-col justify-between space-y-6">
           <!-- Structured Details Table -->
           <div class="space-y-3.5">
-            <p class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground border-b border-border/30 pb-1">
+            <p
+              class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground border-b border-border/30 pb-1"
+            >
               {{ t("contest.detail.details") || "CONTEST DETAILS" }}
             </p>
             <div class="space-y-2.5">
-              <div class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5">
-                <span class="text-muted-foreground font-medium flex items-center gap-1.5">
+              <div
+                class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5"
+              >
+                <span
+                  class="text-muted-foreground font-medium flex items-center gap-1.5"
+                >
                   <Calendar class="h-3.5 w-3.5" />
                   {{ t("contest.detail.startTime") }}
                 </span>
-                <span class="font-bold font-mono text-foreground">{{ formatDateTime(contest.startTime) }}</span>
+                <span class="font-bold font-mono text-foreground">{{
+                  formatDateTime(contest.startTime)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5">
-                <span class="text-muted-foreground font-medium flex items-center gap-1.5">
+              <div
+                class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5"
+              >
+                <span
+                  class="text-muted-foreground font-medium flex items-center gap-1.5"
+                >
                   <Clock class="h-3.5 w-3.5" />
                   {{ t("contest.detail.endsAt") }}
                 </span>
-                <span class="font-bold font-mono text-foreground">{{ formatDateTime(contestEndTime) }}</span>
+                <span class="font-bold font-mono text-foreground">{{
+                  formatDateTime(contestEndTime)
+                }}</span>
               </div>
-              <div class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5">
-                <span class="text-muted-foreground font-medium flex items-center gap-1.5">
+              <div
+                class="flex items-center justify-between text-xs border-b border-border/20 pb-1.5"
+              >
+                <span
+                  class="text-muted-foreground font-medium flex items-center gap-1.5"
+                >
                   <Users class="h-3.5 w-3.5" />
                   {{ t("contest.detail.participants") }}
                 </span>
-                <span class="font-bold font-mono text-foreground">{{ contest.participantCount || 0 }}</span>
+                <span class="font-bold font-mono text-foreground">{{
+                  contest.participantCount || 0
+                }}</span>
               </div>
             </div>
           </div>
@@ -163,7 +193,11 @@ const statusColor = computed(() => {
                 @click="emit('register')"
               >
                 <Users class="h-4 w-4" />
-                {{ registering ? t("contest.detail.registering") : t("contest.detail.register") }}
+                {{
+                  registering
+                    ? t("contest.detail.registering")
+                    : t("contest.detail.register")
+                }}
               </Button>
               <Button
                 v-else
@@ -174,7 +208,11 @@ const statusColor = computed(() => {
                 @click="emit('unregister')"
               >
                 <Users class="h-4 w-4" />
-                {{ registering ? t("contest.detail.unregistering") : t("contest.detail.unregister") }}
+                {{
+                  registering
+                    ? t("contest.detail.unregistering")
+                    : t("contest.detail.unregister")
+                }}
               </Button>
             </template>
 
@@ -211,7 +249,11 @@ const statusColor = computed(() => {
                 @click="emit('startVirtual')"
               >
                 <PlayCircle class="h-4 w-4" />
-                {{ startingVirtual ? t("contest.detail.starting") : t("contest.virtual.start") }}
+                {{
+                  startingVirtual
+                    ? t("contest.detail.starting")
+                    : t("contest.virtual.start")
+                }}
               </Button>
               <Button
                 v-else

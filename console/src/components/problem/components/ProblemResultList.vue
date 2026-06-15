@@ -74,7 +74,8 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
 
       <template #cell-title="{ item: problem }">
         <div class="flex items-center gap-2">
-          <span class="truncate font-bold text-[var(--solarized-base03)] dark:text-[var(--silver-900)] hover:text-[var(--accent-electric)] transition-colors duration-200"
+          <span
+            class="truncate font-bold text-[var(--solarized-base03)] dark:text-[var(--silver-900)] hover:text-[var(--accent-electric)] transition-colors duration-200"
             >{{ (problem as EnrichedProblem).id }}.
             {{ (problem as EnrichedProblem).title }}</span
           >
@@ -123,7 +124,9 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           variant="ghost"
           size="icon"
           class="h-8 w-8 text-muted-foreground hover:text-destructive rounded-none border border-transparent hover:border-destructive/30"
-          @click="(e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)"
+          @click="
+            (e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)
+          "
         >
           <Trash2 class="h-4 w-4" />
         </Button>

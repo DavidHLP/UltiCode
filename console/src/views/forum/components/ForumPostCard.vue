@@ -233,7 +233,9 @@ function handleCardClick(event: MouseEvent) {
     <div class="flex gap-4 p-5 sm:p-6">
       <div class="min-w-0 flex-1 space-y-3">
         <!-- Header -->
-        <header class="flex items-center gap-2 text-xs font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)]">
+        <header
+          class="flex items-center gap-2 text-xs font-mono text-[var(--solarized-base01)] dark:text-[var(--silver-400)]"
+        >
           <Avatar
             class="h-9 w-9 rounded-none border border-silver avatar-trigger cursor-pointer"
             v-if="post.community?.icon"

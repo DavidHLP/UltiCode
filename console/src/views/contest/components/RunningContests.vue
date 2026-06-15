@@ -132,42 +132,63 @@ onUnmounted(() => {
           <div class="space-y-5">
             <div class="flex items-start justify-between gap-4">
               <div class="space-y-2">
-                <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 text-xs font-mono font-bold tracking-wider uppercase border border-border bg-muted text-muted-foreground rounded-none"
+                >
                   {{ getContestTypeLabel(contest.contestType || "weekly") }}
                 </span>
-                <h3 class="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
+                <h3
+                  class="text-xl font-bold leading-tight group-hover:text-primary transition-colors"
+                >
                   {{ contest.title }}
                 </h3>
               </div>
               <div
                 class="rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--terminal-red)] flex items-center gap-1.5 shrink-0"
               >
-                <span class="h-1.5 w-1.5 bg-[var(--terminal-red)] animate-pulse inline-block"></span>
+                <span
+                  class="h-1.5 w-1.5 bg-[var(--terminal-red)] animate-pulse inline-block"
+                ></span>
                 {{ t("contest.list.liveNow") }}
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono">
+            <div
+              class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-muted-foreground border-t border-b border-dashed py-3 font-mono"
+            >
               <div class="flex items-center gap-2">
                 <Calendar class="h-4 w-4 shrink-0 text-muted-foreground/80" />
                 <span>{{ formatDateTime(contest.startTime) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                <span>{{ t("contest.list.remaining") }} <span class="font-bold text-foreground">{{ getCountdown(contest.id) }}</span></span>
+                <span
+                  >{{ t("contest.list.remaining") }}
+                  <span class="font-bold text-foreground">{{
+                    getCountdown(contest.id)
+                  }}</span></span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <Users class="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                <span>{{ contest.participantCount || 0 }} {{ t("contest.detail.participants") }}</span>
+                <span
+                  >{{ contest.participantCount || 0 }}
+                  {{ t("contest.detail.participants") }}</span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                <span>{{ contest.duration || 0 }} {{ t("contest.time.min_short") }}</span>
+                <span
+                  >{{ contest.duration || 0 }}
+                  {{ t("contest.time.min_short") }}</span
+                >
               </div>
             </div>
 
             <div class="space-y-2">
-              <div class="h-2 rounded-none bg-muted border border-border overflow-hidden">
+              <div
+                class="h-2 rounded-none bg-muted border border-border overflow-hidden"
+              >
                 <div
                   class="h-full bg-[var(--terminal-red)] transition-all duration-500"
                   :style="{ width: `${getProgress(contest.id)}%` }"
@@ -177,7 +198,9 @@ onUnmounted(() => {
                 class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
               >
                 <span>{{ t("contest.list.liveProgress") }}</span>
-                <span class="font-bold text-foreground">{{ Math.round(getProgress(contest.id)) }}%</span>
+                <span class="font-bold text-foreground"
+                  >{{ Math.round(getProgress(contest.id)) }}%</span
+                >
               </div>
             </div>
 

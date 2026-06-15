@@ -18,7 +18,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1 bg-[var(--surface-sunken)] p-1 rounded-none border border-border/40 w-fit mb-2">
+  <div
+    class="flex flex-wrap items-center gap-1 bg-[var(--surface-sunken)] p-1 rounded-none border border-border/40 w-fit mb-2"
+  >
     <button
       v-for="cat in categories"
       :key="cat.value"

@@ -58,21 +58,24 @@ const THEME_MAP: Record<string, BannerTheme> = {
   amber: {
     card: "border-l-[var(--terminal-amber)] hover:border-[var(--terminal-amber)]/60",
     icon: "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/8 border-[var(--terminal-amber)]/20 shadow-none",
-    badge: "bg-[var(--terminal-amber)]/8 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 shadow-none",
+    badge:
+      "bg-[var(--terminal-amber)]/8 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 shadow-none",
     glow: "hidden",
     sparkle: "text-[var(--terminal-amber)]",
   },
   sky: {
     card: "border-l-[var(--accent-electric)] hover:border-[var(--accent-electric)]/60",
     icon: "text-[var(--accent-electric)] bg-[var(--accent-electric)]/8 border-[var(--accent-electric)]/20 shadow-none",
-    badge: "bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 shadow-none",
+    badge:
+      "bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 shadow-none",
     glow: "hidden",
     sparkle: "text-[var(--accent-electric)]",
   },
   emerald: {
     card: "border-l-[var(--terminal-green)] hover:border-[var(--terminal-green)]/60",
     icon: "text-[var(--terminal-green)] bg-[var(--terminal-green)]/8 border-[var(--terminal-green)]/20 shadow-none",
-    badge: "bg-[var(--terminal-green)]/8 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 shadow-none",
+    badge:
+      "bg-[var(--terminal-green)]/8 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 shadow-none",
     glow: "hidden",
     sparkle: "text-[var(--terminal-green)]",
   },

@@ -3,10 +3,7 @@ import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Loader2 } from "lucide-vue-next";
-import {
-  fetchSubmission,
-  fetchSubmissionStatuses,
-} from "@/api/submission";
+import { fetchSubmission, fetchSubmissionStatuses } from "@/api/submission";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 import type {
   SubmissionRecord,
@@ -111,7 +108,9 @@ function handleBack() {
       v-else-if="notFound"
       class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 p-8 text-muted-foreground"
     >
-      <p class="text-lg font-medium">{{ t("personal.submissions.notFound") }}</p>
+      <p class="text-lg font-medium">
+        {{ t("personal.submissions.notFound") }}
+      </p>
       <button
         type="button"
         class="text-sm text-primary underline-offset-4 hover:underline"
@@ -124,7 +123,9 @@ function handleBack() {
       v-else-if="forbidden"
       class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 p-8 text-muted-foreground"
     >
-      <p class="text-lg font-medium">{{ t("problem.submissions.error.forbidden") }}</p>
+      <p class="text-lg font-medium">
+        {{ t("problem.submissions.error.forbidden") }}
+      </p>
       <button
         type="button"
         class="text-sm text-primary underline-offset-4 hover:underline"

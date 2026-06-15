@@ -51,7 +51,9 @@ defineOptions({
           class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === 1 }"
         />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(likes) }}</span>
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+          formatCount(likes)
+        }}</span>
       </Button>
 
       <!-- Internal Separator -->
@@ -75,7 +77,9 @@ defineOptions({
           class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === -1 }"
         />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(dislikes) }}</span>
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+          formatCount(dislikes)
+        }}</span>
       </Button>
     </template>
 
@@ -85,9 +89,11 @@ defineOptions({
         class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsUp class="h-3.5 w-3.5" />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(likes) }}</span>
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+          formatCount(likes)
+        }}</span>
       </div>
-      
+
       <div
         class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] flex-none"
       ></div>
@@ -96,7 +102,9 @@ defineOptions({
         class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsDown class="h-3.5 w-3.5" />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{ formatCount(dislikes) }}</span>
+        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+          formatCount(dislikes)
+        }}</span>
       </div>
     </template>
   </div>

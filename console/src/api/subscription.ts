@@ -95,7 +95,9 @@ export const subscriptionApi = {
    * with an empty body, which returned 404. See P1-1 in the test report.
    * Callers should pass `subscription.subscription.id` from `getMySubscription()`.
    */
-  async cancelSubscription(id: string): Promise<{ message: string; cancelAt: string }> {
+  async cancelSubscription(
+    id: string,
+  ): Promise<{ message: string; cancelAt: string }> {
     return apiPost<{ message: string; cancelAt: string }>(
       `/subscriptions/${id}/cancel`,
       {},

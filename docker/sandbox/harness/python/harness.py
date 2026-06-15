@@ -15,10 +15,19 @@ from __future__ import annotations
 
 import inspect
 import json
+import sys
 from collections import deque
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, get_args, get_origin
 
 from oj_types import ListNode, TreeNode
+
+# Module name the user's solution file is imported under. main.py and
+# _case_runner.py both load it via load_solution_module() so the LeetCode
+# preamble (typing names + ListNode/TreeNode) is injected into the user
+# module's namespace before its code executes — bare annotations like
+# ``List[Optional[ListNode]]`` then resolve at runtime instead of raising
+# ``NameError`` on Python <3.14 (the sandbox base image is bookworm = 3.11).
+USER_SOLUTION_MODULE = "solution"
 
 LIST_NODE_TRAVERSAL_CAP = 100_000
 MAX_JSONABLE_DEPTH = 512
@@ -187,6 +196,27 @@ def _jsonable_with_ctx(value: Any, ctx: _JsonableCtx) -> Any:
     return value
 
 
+def normalize_return_value(result: Any, method: Callable[..., Any]) -> Any:
+    """Map a method's return to its LeetCode JSON shape.
+
+    On LeetCode a ``None`` return from a ListNode/TreeNode-typed method is an
+    *empty* structure — it serializes to ``[]``, not ``null``. Without this
+    remap a correct solution that returns ``None`` for an empty input (e.g.
+    ``mergeKLists([])``) compares ``'null'`` against an ``'[]'`` expected
+    output and is wrongly judged Wrong Answer. Non-OJ return types are
+    unaffected, so ``Optional[int] -> None`` still serializes to ``null``.
+    """
+    if result is not None:
+        return result
+    try:
+        return_ann = inspect.signature(method).return_annotation
+    except (TypeError, ValueError):
+        return result
+    if _leaf_oj_type(return_ann):
+        return []
+    return result
+
+
 def parse_input_value(input_spec: Any) -> Any:
     """Extract and parse a single input value from the backend's input spec."""
     if isinstance(input_spec, dict):
@@ -252,15 +282,136 @@ def resolve_method(solution_obj: Any, method_hint: Optional[str]) -> Tuple[Calla
     return attr, candidates[0], _param_hints(attr)
 
 
+def _leaf_oj_type(ann: Any) -> Optional[str]:
+    """Return 'ListNode' / 'TreeNode' if the annotation (recursively) carries
+    that OJ data-structure type, else None.
+
+    Walks ``typing.get_args`` rather than parsing ``str(annotation)`` — the
+    string format of typing generics changed between 3.9 / 3.11 / 3.14, so a
+    substring match would be fragile. Handles bare types (``ListNode``),
+    Optionals (``Optional[ListNode]`` = ``Union[ListNode, None]``) and nested
+    generics (``List[Optional[ListNode]]``).
+    """
+    if isinstance(ann, type):
+        if ann is ListNode:
+            return "ListNode"
+        if ann is TreeNode:
+            return "TreeNode"
+        return None
+    for sub in get_args(ann):
+        if sub is type(None):  # skip NoneType produced by Optional[X]
+            continue
+        found = _leaf_oj_type(sub)
+        if found:
+            return found
+    return None
+
+
+def _classify_annotation(ann: Any) -> str:
+    """Map a parameter annotation to an ``adapt_arg`` hint.
+
+    Returns one of ``''`` | ``'ListNode'`` | ``'TreeNode'`` | ``'ListNode[]'``
+    | ``'TreeNode[]'``. A top-level ``list`` origin means the supplied value is
+    a list whose elements should each be converted (e.g.
+    ``List[Optional[ListNode]]`` for mergeKLists). Non-OJ annotations yield
+    ``''`` (pass-through).
+    """
+    leaf = _leaf_oj_type(ann)
+    if not leaf:
+        return ""
+    if get_origin(ann) is list:
+        return f"{leaf}[]"
+    return leaf
+
+
 def _param_hints(method: Callable[..., Any]) -> List[str]:
     sig = inspect.signature(method)
-    hints: List[str] = []
-    for p in sig.parameters.values():
-        ann = p.annotation
-        if isinstance(ann, type):
-            hints.append(ann.__name__)
-        elif ann is inspect.Parameter.empty:
-            hints.append("")
-        else:
-            hints.append(str(ann))
-    return hints
+    return [_classify_annotation(p.annotation) for p in sig.parameters.values()]
+
+
+def build_solution_preamble() -> Dict[str, Any]:
+    """Symbols seeded into the user solution namespace so user code needs no
+    imports — the "just write the algorithm" UX this platform wants.
+
+    Three groups are injected:
+      1. ``from typing import *`` — so bare annotations like
+         ``List[Optional[ListNode]]`` resolve at runtime on Python <3.14 (the
+         sandbox base image is Debian bookworm = 3.11, where annotations are
+         evaluated eagerly at ``def`` time during ``import solution``).
+      2. Common pure-compute standard-library modules (heapq, math, bisect,
+         itertools, functools, operator, string, fractions, decimal,
+         statistics, re, collections) as module objects, plus the
+         high-frequency ``collections`` symbols (deque, Counter, defaultdict,
+         OrderedDict, namedtuple). Users can thus write ``heapq.heappush`` or
+         ``deque()`` with no ``import`` statement.
+      3. Platform data structures ``ListNode`` / ``TreeNode``.
+
+    Deliberately NOT injected: ``os``, ``sys``, ``subprocess``, ``socket``,
+    ``shutil``, ``ctypes``, ``multiprocessing`` — modules that can break
+    sandbox isolation (spawn processes, touch the filesystem, exit the
+    interpreter, open sockets). The exit guard in main.py blocks
+    ``os._exit``/``sys.exit``; withholding these modules is defense in depth.
+    """
+    import bisect
+    import collections
+    import decimal
+    import fractions
+    import functools
+    import heapq
+    import itertools
+    import math
+    import operator
+    import re
+    import statistics
+    import string
+    import typing
+
+    names: Dict[str, Any] = {}
+
+    # 1. typing names (LeetCode `from typing import *`).
+    typing_names = getattr(typing, "__all__", None) or [
+        n for n in dir(typing) if not n.startswith("_")
+    ]
+    for name in typing_names:
+        names[name] = getattr(typing, name)
+
+    # 2. Pure-compute stdlib modules, exposed as module objects so user code
+    # can call ``heapq.heappush`` / ``math.inf`` / ``collections.deque`` with
+    # no import. Only safe, side-effect-free modules — never os/sys/etc.
+    for mod in (
+        heapq, math, bisect, itertools, functools, operator,
+        string, fractions, decimal, statistics, re, collections,
+    ):
+        names[mod.__name__] = mod
+
+    # High-frequency collections symbols also exposed bare (deque(),
+    # Counter(), defaultdict(), OrderedDict(), namedtuple) so users don't need
+    # `from collections import ...`.
+    for sym in ("deque", "Counter", "defaultdict", "OrderedDict", "namedtuple"):
+        names[sym] = getattr(collections, sym)
+
+    # 3. Platform data structures.
+    names["ListNode"] = ListNode
+    names["TreeNode"] = TreeNode
+    return names
+
+
+def load_solution_module(solution_path: str) -> Any:
+    """Import the user's solution.py with the LeetCode preamble injected.
+
+    The preamble (typing names + ListNode/TreeNode) is seeded into the
+    module's ``__dict__`` *before* ``exec_module`` runs the user code, so bare
+    annotations resolve at runtime instead of raising ``NameError``. The
+    module is also registered in ``sys.modules['solution']`` so user code (or
+    any downstream reference to ``import solution``) keeps working.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(USER_SOLUTION_MODULE, solution_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load solution module from {solution_path}")
+    module = importlib.util.module_from_spec(spec)
+    module.__dict__.update(build_solution_preamble())
+    sys.modules[USER_SOLUTION_MODULE] = module
+    spec.loader.exec_module(module)
+    return module

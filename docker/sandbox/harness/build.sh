@@ -92,10 +92,12 @@ build_python() {
         # compileall with -b writes .pyc next to source; clean stale __pycache__ first.
         rm -rf __pycache__
         python3 -m compileall -b -q .
-        cp harness.py main.py oj_types.py "${STAGING}/python/"
-        # .pyc for the three harness modules only — drop test_*.pyc to keep the
-        # image free of testing artifacts.
-        for m in harness main oj_types; do
+        cp harness.py main.py oj_types.py _case_runner.py "${STAGING}/python/"
+        # .pyc for the four harness modules only — drop test_*.pyc to keep the
+        # image free of testing artifacts. _case_runner.py is the per-case
+        # subprocess worker spawned by main.py; it MUST ship or every case
+        # resolves to a Runtime Error (case runner exits non-zero).
+        for m in harness main oj_types _case_runner; do
             [ -f "${m}.pyc" ] && cp "${m}.pyc" "${STAGING}/python/"
         done
     )

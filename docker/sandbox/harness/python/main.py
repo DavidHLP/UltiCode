@@ -160,6 +160,10 @@ def _run_case(solution_cls: Any, method_hint: str | None,
                 "result": None, "error": _error_obj(user_exc),
                 "user_stdout": user_stdout, "user_stderr": ""}
 
+    # LeetCode convention: None return on a ListNode/TreeNode-typed method is
+    # an empty structure ('[]', not 'null'). Apply before jsonable.
+    method_result = H.normalize_return_value(method_result, method)
+
     # CR fix #7/#8: jsonable() now raises on cycles, depth, node-count,
     # non-finite floats. Convert to per-case RE rather than envelope panic.
     try:
@@ -323,9 +327,16 @@ def main() -> int:
     _install_exit_guard()
     try:
         input_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_INPUT_PATH
-        sys.path.insert(0, os.environ.get("SOLUTION_DIR", "/tmp"))
+        solution_dir = os.environ.get("SOLUTION_DIR", "/tmp")
+        sys.path.insert(0, solution_dir)
         try:
-            import solution  # type: ignore  # noqa: WPS433
+            # Load via H.load_solution_module so the LeetCode preamble
+            # (typing names + ListNode/TreeNode) is injected into the user
+            # module before its code runs — otherwise bare annotations raise
+            # NameError at import time on the sandbox's Python 3.11 base.
+            solution = H.load_solution_module(
+                os.path.join(solution_dir, USER_SOLUTION_MODULE + ".py")
+            )
         except BaseException:  # noqa: BLE001
             # Import-time errors are harness panics — emit stderr + exit 2.
             raise

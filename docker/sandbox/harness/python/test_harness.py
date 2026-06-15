@@ -175,3 +175,85 @@ def test_multiple_cases():
     })
     statuses = [r["status"] for r in env["results"]]
     assert statuses == ["Accepted", "Wrong Answer"]
+
+
+def test_compound_annotation_with_preamble():
+    """LeetCode-style solution: bare ``List[Optional[ListNode]]`` annotation
+    with NO typing/oj_types imports. The harness must inject the preamble
+    (typing names + ListNode/TreeNode) so the annotation resolves at runtime,
+    and classify the compound annotation to convert ``[[...]]`` into a list of
+    ListNodes. Regression for the mergeKLists ``NameError: name 'List' is not
+    defined`` seen on the Python 3.11 sandbox base image.
+    """
+    src = (
+        "class Solution:\n"
+        "    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n"
+        "        vals = []\n"
+        "        for node in lists:\n"
+        "            while node:\n"
+        "                vals.append(node.val)\n"
+        "                node = node.next\n"
+        "        vals.sort()\n"
+        "        dummy = ListNode(0)\n"
+        "        cur = dummy\n"
+        "        for v in vals:\n"
+        "            cur.next = ListNode(v)\n"
+        "            cur = cur.next\n"
+        "        return dummy.next\n"
+    )
+    env = _run_flow(src, {
+        "per_case_timeout_ms": 1000,
+        "cases": [
+            {"case_id": "c1",
+             "inputs": [{"name": "lists", "value": "[[1,4,5],[1,3,4],[2,6]]"}],
+             "expected_output": "[1,1,2,3,4,4,5,6]"},
+            # Empty input: the solution returns None, which must serialize to
+            # '[]' (LeetCode convention), not 'null' -> Wrong Answer.
+            {"case_id": "c2",
+             "inputs": [{"name": "lists", "value": "[]"}],
+             "expected_output": "[]"},
+        ],
+    })
+    assert [r["status"] for r in env["results"]] == ["Accepted", "Accepted"], env["results"]
+    assert env["results"][0]["result"] == [1, 1, 2, 3, 4, 4, 5, 6]
+    assert env["results"][1]["result"] == []
+
+
+def test_preamble_injects_stdlib():
+    """The preamble pre-imports common stdlib modules (heapq, math, ...) so
+    users write ``heapq.heappush`` with NO import. Regression for the
+    mergeKLists submission that failed with NameError: name 'heapq' is not
+    defined — the exact user code, untouched, must now pass both cases.
+    """
+    src = (
+        "class Solution:\n"
+        "    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n"
+        "        heap = []\n"
+        "        idx = 0\n"
+        "        for node in lists:\n"
+        "            if node:\n"
+        "                heapq.heappush(heap, (node.val, idx, node))\n"
+        "                idx += 1\n"
+        "        dummy = ListNode(0)\n"
+        "        cur = dummy\n"
+        "        while heap:\n"
+        "            _, _, node = heapq.heappop(heap)\n"
+        "            cur.next = node\n"
+        "            cur = cur.next\n"
+        "            if node.next:\n"
+        "                heapq.heappush(heap, (node.next.val, idx, node.next))\n"
+        "                idx += 1\n"
+        "        return dummy.next\n"
+    )
+    env = _run_flow(src, {
+        "per_case_timeout_ms": 1000,
+        "cases": [
+            {"case_id": "c1",
+             "inputs": [{"name": "lists", "value": "[[1,4,5],[1,3,4],[2,6]]"}],
+             "expected_output": "[1,1,2,3,4,4,5,6]"},
+            {"case_id": "c2",
+             "inputs": [{"name": "lists", "value": "[]"}],
+             "expected_output": "[]"},
+        ],
+    })
+    assert [r["status"] for r in env["results"]] == ["Accepted", "Accepted"], env["results"]

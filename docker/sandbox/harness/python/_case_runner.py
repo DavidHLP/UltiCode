@@ -170,6 +170,11 @@ def run_one_case(solution_cls: Any, method_hint: Optional[str],
         sys.stdout.flush()
         return 0
 
+    # LeetCode convention: a None return on a ListNode/TreeNode-typed method
+    # is an empty structure (serializes to '[]', not 'null'). Apply before
+    # jsonable so a correct empty-input solution isn't marked Wrong Answer.
+    method_result = H.normalize_return_value(method_result, method)
+
     # CR fix #7/#8: jsonable() now raises on cycles / depth / node-count /
     # non-finite floats. Convert to per-case RE.
     try:
@@ -230,7 +235,9 @@ def main() -> int:
     # Match main.py: /job in production, $SOLUTION_DIR in tests.
     solution_dir = os.environ.get("SOLUTION_DIR", "/job")
     sys.path.insert(0, solution_dir)
-    import solution as solution_module  # type: ignore # noqa: WPS433
+    # Load via H.load_solution_module so the LeetCode preamble is injected;
+    # see main.py for rationale (bare annotations + Python 3.11 base image).
+    solution_module = H.load_solution_module(os.path.join(solution_dir, "solution.py"))
     solution_cls = getattr(solution_module, "Solution")
     return run_one_case(solution_cls, method_hint, {}, per_case_timeout_ms)
 

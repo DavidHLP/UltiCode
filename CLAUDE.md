@@ -323,6 +323,23 @@ docker exec -e MYSQL_PWD="$DB_PASSWORD" ulticode-mysql \
   mysql --default-character-set=utf8mb4 -u "$DB_USER" "$DB_NAME" -e "SHOW TABLES;"
 ```
 
+### Sandbox Harness（代码执行沙箱 / D-form）
+
+D-form 沙箱在 `docker/sandbox/`，源 → staging → 镜像三层：
+
+- 源 `docker/sandbox/harness/{python,c,cpp,java}/` → `docker/sandbox/harness/build.sh` 预编译到 `docker/sandbox/harness-staging/` → Dockerfile COPY staging 到镜像 `/opt/harness/{lang}/`（**镜像打的是 staging，不是源**）
+- 改 harness 源后必须重建：`./docker/sandbox/harness/build.sh python`（刷新 staging + 重建 `ulticode-sandbox-dform:phase2` + tag `:latest`）；`--no-docker` 只刷 staging。线上 `SANDBOX_IMAGE=ulticode-sandbox:latest`，重建后**新提交即时生效**（历史提交记录不变）
+- `build.sh` 用**固定文件清单** copy：新增 harness 模块（如 `_case_runner.py`）必须同时加进 `build_<lang>()` 的 cp 清单 + .pyc 循环，否则镜像缺文件 → 每个用例 RE
+- **Python 版本陷阱**：镜像 base（Debian bookworm）= Python 3.11，类型注解**即时求值**；主机可能是 3.14（PEP 649 惰性求值），本地 `pytest` 可能"假通过"。改注解/preamble 逻辑后必须用 `docker run` 在镜像（3.11）里端到端验证：
+
+  ```bash
+  docker run --rm -e SOLUTION_DIR=/job -v "$TMP":/job ulticode-sandbox:latest \
+    python3 /opt/harness/python/main.py /job/input.json
+  ```
+
+- **Python preamble 契约**：用户代码**零 import**。`harness.py` 的 `build_solution_preamble()` 预注入 `typing.__all__` + 纯计算标准库（heapq/math/bisect/itertools/functools/operator/string/fractions/decimal/statistics/re/collections）+ collections 高频符号（deque/Counter/defaultdict/OrderedDict/namedtuple）+ `ListNode`/`TreeNode`。**绝不注入** `os`/`sys`/`subprocess`/`socket`/`shutil`/`ctypes`/`multiprocessing`（exit guard 只拦 `_exit`/`sys.exit`，放行这些模块会破坏沙箱隔离）
+- 链表/树问题返回 `None`（空输入）会被 `normalize_return_value()` 规范化为 `[]`（LeetCode 约定），比较时不要当 `'null'` 处理
+
 ## Tech Stack
 
 | Layer | Technology |

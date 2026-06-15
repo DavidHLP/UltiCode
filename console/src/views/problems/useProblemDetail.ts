@@ -31,7 +31,10 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
       });
     } catch (error) {
       // D-14 friendly toast: ApiError 30001/40000 → "题目不存在"; others → console.error fallback
-      if (error instanceof ApiError && (error.code === 30001 || error.code === 40000)) {
+      if (
+        error instanceof ApiError &&
+        (error.code === 30001 || error.code === 40000)
+      ) {
         toast.error(t("errors.problem.PROBLEM_30001"));
       } else {
         console.error("Failed to load problem detail", error);

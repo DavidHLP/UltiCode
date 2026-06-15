@@ -178,7 +178,9 @@ export function mapRunResult(raw: unknown): ProblemRunResult {
     submissionId: String(r.id ?? ""),
     problemId: Number(r.problemId ?? 0),
     userId: String(r.userId ?? ""),
-    verdict: String(r.verdict ?? "Runtime Error") as ProblemRunResult["verdict"],
+    verdict: String(
+      r.verdict ?? "Runtime Error",
+    ) as ProblemRunResult["verdict"],
     runtime: String(r.runtime ?? ""),
     memory: String(r.memory ?? ""),
     runtimeMs: typeof r.runtimeMs === "number" ? r.runtimeMs : undefined,

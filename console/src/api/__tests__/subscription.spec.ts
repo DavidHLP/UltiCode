@@ -70,7 +70,10 @@ describe("subscriptionApi.cancelSubscription", () => {
     const result = await subscriptionApi.cancelSubscription("sub-abc-123");
 
     expect(apiPost).toHaveBeenCalledTimes(1);
-    expect(apiPost).toHaveBeenCalledWith("/subscriptions/sub-abc-123/cancel", {});
+    expect(apiPost).toHaveBeenCalledWith(
+      "/subscriptions/sub-abc-123/cancel",
+      {},
+    );
     expect(result).toEqual(mockCancelResult);
   });
 

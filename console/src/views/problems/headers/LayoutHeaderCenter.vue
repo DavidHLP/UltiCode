@@ -154,7 +154,9 @@ onBeforeUnmount(() => {
                 {{ t("problem.layout.runCode") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">F5</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
+                  >F5</Kbd
+                >
               </KbdGroup>
             </div>
           </HoverCardContent>
@@ -190,9 +192,13 @@ onBeforeUnmount(() => {
                 {{ t("problem.layout.submitSolution") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">Ctrl</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
+                  >Ctrl</Kbd
+                >
                 <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">Enter</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
+                  >Enter</Kbd
+                >
               </KbdGroup>
             </div>
           </HoverCardContent>

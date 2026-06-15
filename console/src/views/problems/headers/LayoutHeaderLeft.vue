@@ -78,7 +78,9 @@ async function handleRandom() {
     </ul>
 
     <!-- Navigation menu composite component -->
-    <div class="flex items-center overflow-hidden rounded-none focus:outline-none">
+    <div
+      class="flex items-center overflow-hidden rounded-none focus:outline-none"
+    >
       <div class="relative group/nav-back flex items-center">
         <!-- Main button HoverCard - Expand panel -->
         <HoverCard :open-delay="200">
@@ -99,9 +101,13 @@ async function handleRandom() {
                 {{ t("problem.layout.expandPanel") }}
               </p>
               <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
+                  Ctrl
+                </Kbd>
                 <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">]</Kbd>
+                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"
+                  >]</Kbd
+                >
               </KbdGroup>
             </div>
           </HoverCardContent>
@@ -143,10 +149,7 @@ async function handleRandom() {
     <!-- Previous problem button with HoverCard -->
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
-        <Button
-          class="header-btn w-8 p-0"
-          :disabled="!adj.prev"
-        >
+        <Button class="header-btn w-8 p-0" :disabled="!adj.prev">
           <RouterLink
             v-if="adj.prev"
             :to="{
@@ -166,7 +169,9 @@ async function handleRandom() {
             {{ t("problem.layout.previousProblem") }}
           </p>
           <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
+              Ctrl
+            </Kbd>
             <span class="text-xs">+</span>
             <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">←</Kbd>
           </KbdGroup>
@@ -182,10 +187,7 @@ async function handleRandom() {
     <!-- Next problem button with HoverCard -->
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
-        <Button
-          class="header-btn w-8 p-0"
-          :disabled="!adj.next"
-        >
+        <Button class="header-btn w-8 p-0" :disabled="!adj.next">
           <RouterLink
             v-if="adj.next"
             :to="{
@@ -205,7 +207,9 @@ async function handleRandom() {
             {{ t("problem.layout.nextProblem") }}
           </p>
           <KbdGroup class="text-xs">
-            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none"> Ctrl </Kbd>
+            <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">
+              Ctrl
+            </Kbd>
             <span class="text-xs">+</span>
             <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs rounded-none">→</Kbd>
           </KbdGroup>
@@ -221,10 +225,7 @@ async function handleRandom() {
     <!-- Random problem button with HoverCard -->
     <HoverCard :open-delay="200">
       <HoverCardTrigger as-child>
-        <Button
-          class="header-btn w-8 p-0"
-          @click="handleRandom"
-        >
+        <Button class="header-btn w-8 p-0" @click="handleRandom">
           <Shuffle class="h-4 w-4" />
         </Button>
       </HoverCardTrigger>

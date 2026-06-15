@@ -24,7 +24,8 @@ export default {
   modulesSubtitle: "// 专为开发者工作流优化的工程化组件。",
 
   judgeTitle: "精密评测机 (SANDBOX JUDGE)",
-  judgeDesc: "零缓冲沙箱隔离编译器，深度优化 Docker 运行时。支持在 10ms 编译开销下进行快速容器化执行与亚毫秒级资源统计。",
+  judgeDesc:
+    "零缓冲沙箱隔离编译器，深度优化 Docker 运行时。支持在 10ms 编译开销下进行快速容器化执行与亚毫秒级资源统计。",
   judgeFooter: "评测延迟 < 12ms",
 
   contestsTitle: "每周竞赛",

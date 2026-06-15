@@ -185,17 +185,33 @@ describe("fetchProblemDetailById", () => {
     vi.mocked(apiGet)
       .mockResolvedValueOnce({
         ...mockBackendResponse,
-        interactions: { likes: 1, dislikes: 0, favorites: 0, viewer: { reaction: "like" } },
+        interactions: {
+          likes: 1,
+          dislikes: 0,
+          favorites: 0,
+          viewer: { reaction: "like" },
+        },
       })
       .mockResolvedValueOnce({
         ...mockBackendResponse,
-        interactions: { likes: 1, dislikes: 0, favorites: 0, viewer: { reaction: "dislike" } },
+        interactions: {
+          likes: 1,
+          dislikes: 0,
+          favorites: 0,
+          viewer: { reaction: "dislike" },
+        },
       });
     const a = await fetchProblemDetailById(1, "user-A");
     const b = await fetchProblemDetailById(1, "user-B");
     expect(a.interactions?.viewer?.reaction).toBe("like");
     expect(b.interactions?.viewer?.reaction).toBe("dislike");
-    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(1, "/problems/1?userId=user-A");
-    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(2, "/problems/1?userId=user-B");
+    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(
+      1,
+      "/problems/1?userId=user-A",
+    );
+    expect(vi.mocked(apiGet)).toHaveBeenNthCalledWith(
+      2,
+      "/problems/1?userId=user-B",
+    );
   });
 });

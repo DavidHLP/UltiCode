@@ -7,9 +7,7 @@ export function createAcceptedAreaGradient(): graphic.LinearGradient {
   ]);
 }
 
-export function withSafeChartAnimation(
-  option: EChartsOption,
-): EChartsOption {
+export function withSafeChartAnimation(option: EChartsOption): EChartsOption {
   return {
     ...option,
     animation: false,

@@ -2,7 +2,10 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useContestStore } from "@/stores/contest";
-import { getContestProblems, fetchContestProblemSubmissions } from "@/api/contest";
+import {
+  getContestProblems,
+  fetchContestProblemSubmissions,
+} from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
 import type { ContestProblemSummary } from "@/types/contest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +55,9 @@ const {
 const contestIdRef = computed(() => contestId);
 const { rankings, getCountryFlag } = useContestRankings(contestIdRef, contest);
 
-const problemStatuses = ref<Record<number, "solved" | "attempted" | "todo">>({});
+const problemStatuses = ref<Record<number, "solved" | "attempted" | "todo">>(
+  {},
+);
 
 async function loadProblemStatuses() {
   const authStore = useAuthStore();
@@ -60,8 +65,11 @@ async function loadProblemStatuses() {
 
   const promises = contestProblems.value.map(async (prob) => {
     try {
-      const submissions = await fetchContestProblemSubmissions(contestId, prob.problemId);
-      const isSolved = submissions.some(sub => sub.status === "Accepted");
+      const submissions = await fetchContestProblemSubmissions(
+        contestId,
+        prob.problemId,
+      );
+      const isSolved = submissions.some((sub) => sub.status === "Accepted");
       const isAttempted = submissions.length > 0;
       problemStatuses.value[prob.problemId] = isSolved
         ? "solved"
@@ -69,7 +77,10 @@ async function loadProblemStatuses() {
           ? "attempted"
           : "todo";
     } catch (e) {
-      console.error(`Failed to load submissions for problem ${prob.problemId}:`, e);
+      console.error(
+        `Failed to load submissions for problem ${prob.problemId}:`,
+        e,
+      );
       problemStatuses.value[prob.problemId] = "todo";
     }
   });
@@ -166,9 +177,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 
     <div v-else-if="contest" class="space-y-8">
       <!-- Contest Header -->
-      <ContestHeader
-        :contest="contest"
-      />
+      <ContestHeader :contest="contest" />
 
       <ContestRegistration
         :contest="contest"
@@ -295,7 +304,9 @@ function getErrorMessage(error: unknown, fallback: string) {
         v-if="contest.rules"
         class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm overflow-hidden rounded-none"
       >
-        <CardHeader class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50">
+        <CardHeader
+          class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
+        >
           <CardTitle
             class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
           >
@@ -314,7 +325,9 @@ function getErrorMessage(error: unknown, fallback: string) {
       <!-- Main Content Area -->
       <Tabs default-value="problems" class="w-full">
         <div class="flex items-center justify-between mb-6">
-          <TabsList class="bg-transparent border-b border-border/60 w-full justify-start p-0 h-10 gap-2 rounded-none">
+          <TabsList
+            class="bg-transparent border-b border-border/60 w-full justify-start p-0 h-10 gap-2 rounded-none"
+          >
             <TabsTrigger
               value="problems"
               class="rounded-none px-6 h-full font-bold bg-transparent text-muted-foreground border-b-2 border-b-transparent data-[state=active]:border-b-[var(--accent-electric)] data-[state=active]:text-foreground data-[state=active]:bg-transparent transition-all shadow-none hover:text-foreground cursor-pointer"

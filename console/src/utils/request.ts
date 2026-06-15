@@ -9,7 +9,10 @@ import axios, {
 import { LOCALE_HEADER_KEY } from "@/i18n";
 import { getActiveLocale } from "@/i18n/utils/locale";
 import { csrfManager } from "@/utils/csrf";
-import { createCsrfAxiosInterceptor, createRefreshAccessToken } from "@/shared/auth-core/src";
+import {
+  createCsrfAxiosInterceptor,
+  createRefreshAccessToken,
+} from "@/shared/auth-core/src";
 
 /**
  * Standard API Response wrapper (matches backend Result<T>)
@@ -131,7 +134,11 @@ const service: AxiosInstance = axios.create({
 });
 
 const refreshAccessToken = createRefreshAccessToken(csrfManager);
-const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL, refreshAccessToken);
+const csrfInterceptors = createCsrfAxiosInterceptor(
+  csrfManager,
+  API_BASE_URL,
+  refreshAccessToken,
+);
 service.interceptors.request.use(csrfInterceptors.requestInterceptor);
 service.interceptors.response.use(csrfInterceptors.responseInterceptor);
 service.interceptors.response.use(undefined, csrfInterceptors.errorInterceptor);

@@ -5,13 +5,7 @@ import { useSearch } from "@/composables/useSearch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Search,
-  Code,
-  User,
-  MessageSquare,
-  FileText,
-} from "lucide-vue-next";
+import { Search, Code, User, MessageSquare, FileText } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
 
 const { t } = useI18n();

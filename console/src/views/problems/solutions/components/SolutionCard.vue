@@ -73,7 +73,9 @@ const voteCounts = computed(() =>
           <span class="font-bold text-foreground">
             {{ props.item.author.name }}
           </span>
-          <span class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none">
+          <span
+            class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none"
+          >
             {{ props.item.author.role }}
           </span>
           <span class="text-[10px] text-muted-foreground ml-auto">
@@ -86,13 +88,17 @@ const voteCounts = computed(() =>
             {{ props.item.flair }}
           </span>
         </div>
-        
+
         <!-- Language and Topic badging -->
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
-          <span class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider">
+          <span
+            class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider"
+          >
             {{ languageLabel }}
           </span>
-          <span class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider">
+          <span
+            class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider"
+          >
             {{ topicLabel }}
           </span>
           <span
@@ -114,7 +120,9 @@ const voteCounts = computed(() =>
         >
           {{ props.item.highlight }}
         </p>
-        <h3 class="text-sm font-bold text-foreground group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1">
+        <h3
+          class="text-sm font-bold text-foreground group-hover:text-[var(--accent-electric)] transition-colors line-clamp-1"
+        >
           {{ props.item.title }}
         </h3>
       </div>
@@ -124,7 +132,9 @@ const voteCounts = computed(() =>
     </section>
 
     <!-- Footer containing tags & stats -->
-    <footer class="mt-2.5 flex items-center justify-between border-t border-border/20 pt-2.5 gap-2">
+    <footer
+      class="mt-2.5 flex items-center justify-between border-t border-border/20 pt-2.5 gap-2"
+    >
       <!-- Left: Algorithm Tags -->
       <div
         v-if="props.item.tags && props.item.tags.length"
@@ -147,17 +157,27 @@ const voteCounts = computed(() =>
       <div v-else />
 
       <!-- Right: Community Interaction Stats -->
-      <div class="flex items-center gap-3.5 text-[11px] font-data text-muted-foreground">
-        <div class="flex items-center gap-1 hover:text-[var(--solarized-green)] transition-colors">
+      <div
+        class="flex items-center gap-3.5 text-[11px] font-data text-muted-foreground"
+      >
+        <div
+          class="flex items-center gap-1 hover:text-[var(--solarized-green)] transition-colors"
+        >
           <ThumbsUp class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ voteCounts.likes }}</span>
         </div>
-        <div class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors">
+        <div
+          class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors"
+        >
           <Eye class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
           <span class="font-bold">{{ props.item.stats?.views ?? 0 }}</span>
         </div>
-        <div class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors">
-          <MessageSquare class="h-3.5 w-3.5 text-muted-foreground/80 text-current" />
+        <div
+          class="flex items-center gap-1 hover:text-[var(--accent-electric)] transition-colors"
+        >
+          <MessageSquare
+            class="h-3.5 w-3.5 text-muted-foreground/80 text-current"
+          />
           <span class="font-bold">{{ props.item.stats?.comments ?? 0 }}</span>
         </div>
       </div>

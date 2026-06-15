@@ -195,7 +195,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         :class="[
           testCase.id === activeId
             ? 'bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-border text-[var(--accent-electric)] shadow-none font-bold'
-            : 'bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-[var(--silver-100)]/30'
+            : 'bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-[var(--silver-100)]/30',
         ]"
         role="tab"
         :aria-selected="testCase.id === activeId"
@@ -232,11 +232,16 @@ const handleAddKeydown = (event: KeyboardEvent) => {
     </div>
 
     <!-- Inputs Container -->
-    <div v-if="activeCase" class="space-y-4 text-xs md:text-sm flex-1 overflow-y-auto">
+    <div
+      v-if="activeCase"
+      class="space-y-4 text-xs md:text-sm flex-1 overflow-y-auto"
+    >
       <div class="space-y-3.5 pr-1.5">
         <template v-if="inputFields.length">
           <div v-for="field in inputFields" :key="field.id" class="space-y-1.5">
-            <div class="font-data text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
+            <div
+              class="font-data text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+            >
               {{ field.label }} =
             </div>
             <Input

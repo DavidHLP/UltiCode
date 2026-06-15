@@ -31,7 +31,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const getProblemStatus = (problemId: number) => {
-  return props.problemStatuses?.[problemId] || 'todo';
+  return props.problemStatuses?.[problemId] || "todo";
 };
 </script>
 
@@ -40,7 +40,9 @@ const getProblemStatus = (problemId: number) => {
     id="contest-problems"
     class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-[var(--shadow-float)] overflow-hidden rounded-none"
   >
-    <CardHeader class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50">
+    <CardHeader
+      class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
+    >
       <CardTitle
         class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
         >{{ t("contest.detail.challenges") }}</CardTitle
@@ -74,23 +76,32 @@ const getProblemStatus = (problemId: number) => {
           {{ t("contest.detail.register") }}
         </Button>
       </div>
-      
+
       <Table v-else>
-        <TableHeader class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40">
+        <TableHeader
+          class="bg-[var(--silver-100)]/45 dark:bg-[var(--solarized-base03)]/45 border-b border-border/40"
+        >
           <TableRow class="hover:bg-transparent">
-            <TableHead class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">#</TableHead>
-            <TableHead class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.problemHeaders.title")
-            }}</TableHead>
-            <TableHead class="w-32 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.problemHeaders.difficulty")
-            }}</TableHead>
-            <TableHead class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.problemHeaders.score")
-            }}</TableHead>
-            <TableHead class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10">{{
-              t("contest.detail.problemHeaders.acceptance")
-            }}</TableHead>
+            <TableHead
+              class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >#</TableHead
+            >
+            <TableHead
+              class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.problemHeaders.title") }}</TableHead
+            >
+            <TableHead
+              class="w-32 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.problemHeaders.difficulty") }}</TableHead
+            >
+            <TableHead
+              class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.problemHeaders.score") }}</TableHead
+            >
+            <TableHead
+              class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.problemHeaders.acceptance") }}</TableHead
+            >
             <TableHead class="w-20 pr-6 h-10"></TableHead>
           </TableRow>
         </TableHeader>
@@ -100,7 +111,8 @@ const getProblemStatus = (problemId: number) => {
             :key="problem.id"
             class="group cursor-pointer hover:bg-[var(--silver-100)]/30 dark:hover:bg-[var(--solarized-base03)]/30 border-b border-border/30 last:border-b-0 transition-colors"
             @click="
-              problem.slug && $router.push({
+              problem.slug &&
+              $router.push({
                 name: 'problem-detail',
                 params: { slug: problem.slug },
                 query: { contestId },
@@ -130,7 +142,7 @@ const getProblemStatus = (problemId: number) => {
                 {{ problem.problemIndex || "#" }}
               </div>
             </TableCell>
-            
+
             <TableCell class="py-3">
               <div class="space-y-0.5">
                 <router-link
@@ -145,7 +157,9 @@ const getProblemStatus = (problemId: number) => {
                 >
                   {{ problem.title }}
                 </router-link>
-                <span v-else class="text-[15px] font-bold text-foreground">{{ problem.title }}</span>
+                <span v-else class="text-[15px] font-bold text-foreground">{{
+                  problem.title
+                }}</span>
                 <div
                   class="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
                 >
@@ -161,7 +175,7 @@ const getProblemStatus = (problemId: number) => {
                 </div>
               </div>
             </TableCell>
-            
+
             <TableCell class="py-3">
               <Badge
                 variant="outline"
@@ -177,7 +191,7 @@ const getProblemStatus = (problemId: number) => {
                 }}
               </Badge>
             </TableCell>
-            
+
             <TableCell class="text-center py-3">
               <span
                 class="inline-flex items-center gap-1 font-black text-sm text-[var(--terminal-amber)] font-mono"
@@ -186,13 +200,15 @@ const getProblemStatus = (problemId: number) => {
                 {{ problem.score || 0 }}
               </span>
             </TableCell>
-            
+
             <TableCell class="text-center py-3">
-              <span class="text-xs font-bold text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-mono">
+              <span
+                class="text-xs font-bold text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-mono"
+              >
                 {{ problem.acceptanceRate || "0%" }}
               </span>
             </TableCell>
-            
+
             <TableCell class="pr-6 py-3 text-right">
               <Button
                 v-if="problem.slug"

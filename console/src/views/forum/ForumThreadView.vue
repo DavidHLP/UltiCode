@@ -222,21 +222,30 @@ function handleThreadSave(isSaved: boolean) {
 // --- Author Info & Avatar ---
 const authorUsername = computed(() => thread.value?.author?.username);
 const authorAvatar = computed(() => thread.value?.author?.avatar);
-const { normalizedAvatar: authorAvatarUrl } = useAvatar(authorUsername, authorAvatar);
+const { normalizedAvatar: authorAvatarUrl } = useAvatar(
+  authorUsername,
+  authorAvatar,
+);
 
 const authorInitial = computed(() => {
   if (!thread.value?.author?.username) return "?";
   return thread.value.author.username.charAt(0).toUpperCase();
 });
 
-const createdAgo = computed(() => thread.value ? formatRelativeTime(thread.value.createdAt) : "");
+const createdAgo = computed(() =>
+  thread.value ? formatRelativeTime(thread.value.createdAt) : "",
+);
 
 // --- Table of Contents & Scroll Spy ---
 const getPostContent = () => {
   if (!thread.value) return "";
   if (thread.value.body) return thread.value.body;
   if (thread.value.media) {
-    const m = thread.value.media as { type?: string; markdown?: string; body?: string };
+    const m = thread.value.media as {
+      type?: string;
+      markdown?: string;
+      body?: string;
+    };
     if (m && m.type === "text") {
       return m.markdown || m.body || "";
     } else if (Array.isArray(m)) {
@@ -303,7 +312,7 @@ const setupScrollSpy = () => {
       root: null,
       rootMargin: "-80px 0px -50% 0px",
       threshold: 0.1,
-    }
+    },
   );
 
   headings.value.forEach((h) => {
@@ -319,7 +328,7 @@ watch(
   () => {
     setTimeout(setupScrollSpy, 250);
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // --- Responsive Layout Container Query / Resize Observer ---
@@ -332,7 +341,7 @@ let resizeObserver: ResizeObserver | null = null;
 
 onMounted(() => {
   setTimeout(setupScrollSpy, 500);
-  
+
   if (wrapperRef.value) {
     resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -364,7 +373,6 @@ const handleMobileTOCClick = (id: string) => {
   scrollToHeading(id);
   showMobileTOC.value = false;
 };
-
 </script>
 
 <template>
@@ -418,13 +426,15 @@ const handleMobileTOCClick = (id: string) => {
                   <List class="mr-1 h-3.5 w-3.5" />
                   目录
                 </Button>
-                
+
                 <!-- Floating TOC Dropdown Popup -->
                 <div
                   v-if="showMobileTOC"
                   class="absolute right-0 top-9 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
                 >
-                  <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1">
+                  <div
+                    class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                  >
                     文章大纲
                   </div>
                   <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
@@ -436,9 +446,11 @@ const handleMobileTOCClick = (id: string) => {
                       :class="[
                         activeHeadingId === h.id
                           ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
-                          : 'border-transparent text-muted-foreground font-medium'
+                          : 'border-transparent text-muted-foreground font-medium',
                       ]"
-                      :style="{ paddingLeft: h.level === 3 ? '1rem' : '0.25rem' }"
+                      :style="{
+                        paddingLeft: h.level === 3 ? '1rem' : '0.25rem',
+                      }"
                       @click="handleMobileTOCClick(h.id)"
                     >
                       {{ h.text }}
@@ -493,7 +505,10 @@ const handleMobileTOCClick = (id: string) => {
               @vote="handleThreadVote"
               @save="handleThreadSave"
             />
-            <div id="comments-section" class="px-4 sm:px-6 py-4 border-t border-border/50">
+            <div
+              id="comments-section"
+              class="px-4 sm:px-6 py-4 border-t border-border/50"
+            >
               <h2
                 class="text-sm font-bold tracking-tight flex items-center gap-2"
               >
@@ -525,32 +540,55 @@ const handleMobileTOCClick = (id: string) => {
     </main>
 
     <!-- Right Sidebar Column: Sticky details & TOC -->
-    <aside v-if="isWideLayout && thread" class="flex flex-col gap-4 w-60 shrink-0 sticky top-4 select-none">
-      
+    <aside
+      v-if="isWideLayout && thread"
+      class="flex flex-col gap-4 w-60 shrink-0 sticky top-4 select-none"
+    >
       <!-- Author Profile Card -->
-      <div class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3">
+      <div
+        class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3"
+      >
         <div class="flex items-center gap-2">
           <Avatar class="h-9 w-9 border border-border/40 shrink-0">
-            <AvatarImage :src="authorAvatarUrl" :alt="thread.author?.username" />
-            <AvatarFallback class="text-xs font-semibold bg-primary/10 text-primary">
+            <AvatarImage
+              :src="authorAvatarUrl"
+              :alt="thread.author?.username"
+            />
+            <AvatarFallback
+              class="text-xs font-semibold bg-primary/10 text-primary"
+            >
               {{ authorInitial }}
             </AvatarFallback>
           </Avatar>
           <div class="flex flex-col min-w-0">
-            <span class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight">
-              u/{{ thread.author?.username || 'unknown' }}
+            <span
+              class="font-bold text-xs text-[var(--solarized-base03)] dark:text-foreground truncate leading-tight"
+            >
+              u/{{ thread.author?.username || "unknown" }}
             </span>
-            <span class="text-[10px] text-muted-foreground truncate leading-none mt-0.5" v-if="thread.author?.karma !== undefined">
+            <span
+              class="text-[10px] text-muted-foreground truncate leading-none mt-0.5"
+              v-if="thread.author?.karma !== undefined"
+            >
               Reputation: {{ thread.author.karma }}
             </span>
           </div>
         </div>
-        
-        <div class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono">
+
+        <div
+          class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+        >
           <div>发布于：{{ createdAgo }}</div>
-          <div v-if="thread.community" class="truncate">社区：r/{{ thread.community.name }}</div>
-          <div v-if="thread.flair" class="flex items-center gap-1.5 flex-wrap mt-1">
-            <span class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)]">
+          <div v-if="thread.community" class="truncate">
+            社区：r/{{ thread.community.name }}
+          </div>
+          <div
+            v-if="thread.flair"
+            class="flex items-center gap-1.5 flex-wrap mt-1"
+          >
+            <span
+              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)]"
+            >
               {{ thread.flair.text }}
             </span>
           </div>
@@ -558,8 +596,13 @@ const handleMobileTOCClick = (id: string) => {
       </div>
 
       <!-- Table of Contents Widget -->
-      <div v-if="headings.length > 1" class="bg-[var(--card)] border border-border shadow-sm p-4">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono">
+      <div
+        v-if="headings.length > 1"
+        class="bg-[var(--card)] border border-border shadow-sm p-4"
+      >
+        <div
+          class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+        >
           文章大纲
         </div>
         <nav class="flex flex-col gap-1">
@@ -571,7 +614,7 @@ const handleMobileTOCClick = (id: string) => {
             :class="[
               activeHeadingId === h.id
                 ? 'border-[var(--solarized-blue)] text-[var(--solarized-blue)] font-bold bg-[var(--solarized-blue)]/5'
-                : 'border-transparent text-muted-foreground font-medium'
+                : 'border-transparent text-muted-foreground font-medium',
             ]"
             :style="{ paddingLeft: h.level === 3 ? '1.25rem' : '0.5rem' }"
             @click="scrollToHeading(h.id)"

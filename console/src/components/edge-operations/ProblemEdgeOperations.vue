@@ -129,7 +129,10 @@ const handleSaveChange = () => {
 </script>
 
 <template>
-  <div v-if="problem" class="flex items-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-0 rounded-none overflow-hidden select-none shadow-sm">
+  <div
+    v-if="problem"
+    class="flex items-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-0 rounded-none overflow-hidden select-none shadow-sm"
+  >
     <VoteControl
       :likes="reactionCounts.likes"
       :dislikes="reactionCounts.dislikes"

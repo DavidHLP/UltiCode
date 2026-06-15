@@ -216,10 +216,15 @@ const recentActivity = computed(() => {
       <!-- Solving Progress & Skill Radar Side-by-Side -->
       <div class="grid gap-4 md:grid-cols-2">
         <!-- Detailed Problem Stats -->
-        <Card class="border-none shadow-none bg-muted/30 rounded-none py-3.5 gap-2.5">
+        <Card
+          class="border-none shadow-none bg-muted/30 rounded-none py-3.5 gap-2.5"
+        >
           <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
             <div class="flex items-center justify-between">
-              <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+              <CardTitle
+                as="h3"
+                class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+              >
                 <Target class="h-4 w-4 text-primary/80" />
                 {{ t("personal.profile.solvingProgress") }}
               </CardTitle>
@@ -249,11 +254,16 @@ const recentActivity = computed(() => {
                     <span class="font-bold capitalize text-foreground/90">{{
                       t(`personal.stats.${difficulty}`)
                     }}</span>
-                    <span class="font-mono text-muted-foreground/80 text-[10px]">
+                    <span
+                      class="font-mono text-muted-foreground/80 text-[10px]"
+                    >
                       {{ stat.count }} / {{ stat.total }}
                     </span>
                   </div>
-                  <span class="font-mono font-black text-[11px]" :class="stat.color">
+                  <span
+                    class="font-mono font-black text-[11px]"
+                    :class="stat.color"
+                  >
                     {{ ((stat.count / (stat.total || 1)) * 100).toFixed(1) }}%
                   </span>
                 </div>
@@ -276,11 +286,17 @@ const recentActivity = computed(() => {
         <!-- Skill Radar Chart -->
         <Card class="rounded-none py-3.5 gap-2.5">
           <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
-            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+            <CardTitle
+              as="h3"
+              class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+            >
               <Target class="h-4 w-4 text-primary/80" />
               {{ t("personal.skills.title") }}
             </CardTitle>
-            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{ t("personal.skills.subtitle") }}</CardDescription>
+            <CardDescription
+              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              >{{ t("personal.skills.subtitle") }}</CardDescription
+            >
           </CardHeader>
           <CardContent class="px-4 pb-2">
             <SkillRadarChart :skills="skillsData" :loading="skillsLoading" />
@@ -291,13 +307,17 @@ const recentActivity = computed(() => {
       <!-- Activity Heatmap -->
       <Card class="rounded-none py-3.5 gap-2.5">
         <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
-          <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+          <CardTitle
+            as="h3"
+            class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+          >
             <Activity class="h-4 w-4 text-primary/80" />
             {{ t("personal.profile.heatmapTitle") }}
           </CardTitle>
-          <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
-            t("personal.profile.heatmapSubtitle")
-          }}</CardDescription>
+          <CardDescription
+            class="text-[11px] text-muted-foreground/85 mt-0.5"
+            >{{ t("personal.profile.heatmapSubtitle") }}</CardDescription
+          >
         </CardHeader>
         <CardContent class="px-4 pb-2">
           <ActivityHeatmap :data="statsData?.heatmap" />
@@ -309,13 +329,17 @@ const recentActivity = computed(() => {
         <!-- Submission History Chart -->
         <Card class="rounded-none py-3.5 gap-2.5">
           <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
-            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+            <CardTitle
+              as="h3"
+              class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+            >
               <GitCommit class="h-4 w-4 text-primary/80" />
               {{ t("personal.history.title") }}
             </CardTitle>
-            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
-              t("personal.history.subtitle")
-            }}</CardDescription>
+            <CardDescription
+              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              >{{ t("personal.history.subtitle") }}</CardDescription
+            >
           </CardHeader>
           <CardContent class="px-4 pb-2">
             <SubmissionHistoryChart />
@@ -325,13 +349,17 @@ const recentActivity = computed(() => {
         <!-- Learning Progress Chart -->
         <Card class="rounded-none py-3.5 gap-2.5">
           <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30">
-            <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+            <CardTitle
+              as="h3"
+              class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+            >
               <Target class="h-4 w-4 text-primary/80" />
               {{ t("personal.learning.title") }}
             </CardTitle>
-            <CardDescription class="text-[11px] text-muted-foreground/85 mt-0.5">{{
-              t("personal.learning.subtitle")
-            }}</CardDescription>
+            <CardDescription
+              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              >{{ t("personal.learning.subtitle") }}</CardDescription
+            >
           </CardHeader>
           <CardContent class="px-4 pb-2">
             <LearningProgressChart />
@@ -343,8 +371,13 @@ const recentActivity = computed(() => {
     <!-- Right Column: Recent Activity -->
     <div class="space-y-4 lg:col-span-1">
       <Card class="h-full border-muted/50 rounded-none py-3.5 gap-2.5">
-        <CardHeader class="pb-2 px-4 mb-2.5 border-b border-border/30 bg-muted/10">
-          <CardTitle as="h3" class="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+        <CardHeader
+          class="pb-2 px-4 mb-2.5 border-b border-border/30 bg-muted/10"
+        >
+          <CardTitle
+            as="h3"
+            class="text-sm font-semibold flex items-center gap-1.5 text-foreground"
+          >
             <GitCommit class="h-4 w-4 text-primary/80" />
             {{ t("personal.profile.recentActivity") }}
           </CardTitle>
@@ -384,9 +417,10 @@ const recentActivity = computed(() => {
                   </span>
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
-                  <span class="text-[10px] font-medium text-muted-foreground/75">{{
-                    item.time
-                  }}</span>
+                  <span
+                    class="text-[10px] font-medium text-muted-foreground/75"
+                    >{{ item.time }}</span
+                  >
                   <Badge
                     variant="outline"
                     class="text-[9px] h-3.5 px-1 rounded-none font-bold uppercase tracking-tighter"

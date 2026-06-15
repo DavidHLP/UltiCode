@@ -4,10 +4,7 @@ import { describe, expect, it } from "vitest";
 
 function readSource() {
   return readFileSync(
-    resolve(
-      process.cwd(),
-      "src/views/problems/headers/LayoutHeaderLeft.vue",
-    ),
+    resolve(process.cwd(), "src/views/problems/headers/LayoutHeaderLeft.vue"),
     "utf8",
   );
 }
@@ -35,14 +32,11 @@ describe("LayoutHeaderLeft problemset external link", () => {
     // Strip HTML comments before scanning for an actual <div> element so
     // prose mentions of "<div>" inside explanatory comments do not trip
     // the assertion.
-    const triggerWithoutComments = trigger![1].replace(
-      /<!--[\s\S]*?-->/g,
-      "",
-    );
+    const triggerWithoutComments = trigger![1].replace(/<!--[\s\S]*?-->/g, "");
     expect(triggerWithoutComments).not.toMatch(/<div[\s>]/);
 
     // The link targets the problemset route and opens in a new tab.
-    expect(block![0]).toContain(':to="{ name: \'problemset\' }"');
+    expect(block![0]).toContain(":to=\"{ name: 'problemset' }\"");
     expect(block![0]).toContain('target="_blank"');
     expect(block![0]).toContain('rel="noopener noreferrer"');
   });

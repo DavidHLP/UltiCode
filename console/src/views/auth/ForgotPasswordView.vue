@@ -112,21 +112,59 @@ async function handleSubmit(e: Event) {
         <!-- Terminal Status Spec Block -->
         <div class="auth-pattern-terminal select-none">
           <div class="auth-pattern-terminal__header">
-            <span class="auth-pattern-terminal__dot bg-[var(--terminal-red)]"></span>
-            <span class="auth-pattern-terminal__dot bg-[var(--terminal-amber)]"></span>
-            <span class="auth-pattern-terminal__dot bg-[var(--terminal-green)]"></span>
+            <span
+              class="auth-pattern-terminal__dot bg-[var(--terminal-red)]"
+            ></span>
+            <span
+              class="auth-pattern-terminal__dot bg-[var(--terminal-amber)]"
+            ></span>
+            <span
+              class="auth-pattern-terminal__dot bg-[var(--terminal-green)]"
+            ></span>
             <span class="auth-pattern-terminal__title">system_status.sh</span>
           </div>
           <div class="auth-pattern-terminal__content font-mono text-xs">
-            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)]">$ systemctl status ulticode.service</div>
-            <div class="text-[var(--terminal-green)] font-bold">● ulticode.service - UltiCode Platform</div>
-            <div class="pl-4">Active: <span class="text-[var(--terminal-green)] font-bold">active (running)</span> since Jun 2026</div>
+            <div
+              class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)]"
+            >
+              $ systemctl status ulticode.service
+            </div>
+            <div class="text-[var(--terminal-green)] font-bold">
+              ● ulticode.service - UltiCode Platform
+            </div>
+            <div class="pl-4">
+              Active:
+              <span class="text-[var(--terminal-green)] font-bold"
+                >active (running)</span
+              >
+              since Jun 2026
+            </div>
             <div class="pl-4">PID: 9002 (vite-console)</div>
-            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5">$ npx vitest run --coverage</div>
-            <div class="text-[var(--terminal-green)]">✓ 154 tests passed (100% coverage)</div>
-            <div class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5">$ check_db_connection</div>
-            <div>Database: <span class="text-[var(--terminal-green)] font-bold">mysql@localhost (CONNECTED)</span></div>
-            <div>Server Port: <span class="text-[var(--accent-electric)] font-bold">9002 (Vite Console)</span></div>
+            <div
+              class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5"
+            >
+              $ npx vitest run --coverage
+            </div>
+            <div class="text-[var(--terminal-green)]">
+              ✓ 154 tests passed (100% coverage)
+            </div>
+            <div
+              class="text-[var(--solarized-base01)] dark:text-[var(--silver-500)] mt-2.5"
+            >
+              $ check_db_connection
+            </div>
+            <div>
+              Database:
+              <span class="text-[var(--terminal-green)] font-bold"
+                >mysql@localhost (CONNECTED)</span
+              >
+            </div>
+            <div>
+              Server Port:
+              <span class="text-[var(--accent-electric)] font-bold"
+                >9002 (Vite Console)</span
+              >
+            </div>
           </div>
         </div>
       </div>

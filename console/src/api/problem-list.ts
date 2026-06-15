@@ -273,7 +273,9 @@ export async function deleteProblemList(listId: string): Promise<void> {
   await apiDelete(`/problem-lists/${listId}`);
 }
 
-export async function forkProblemList(listId: string): Promise<ProblemListItem> {
+export async function forkProblemList(
+  listId: string,
+): Promise<ProblemListItem> {
   const res = await apiPost<unknown>(`/problem-lists/${listId}/fork`);
   return mapProblemListItem(res);
 }

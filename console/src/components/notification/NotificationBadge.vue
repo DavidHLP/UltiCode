@@ -94,7 +94,9 @@ function goToNotifications() {
           variant="destructive"
           class="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px] font-bold"
           :aria-label="
-            t('notification.unreadCountLabel', { count: notificationStore.unreadCount })
+            t('notification.unreadCountLabel', {
+              count: notificationStore.unreadCount,
+            })
           "
         >
           {{ unreadLabel }}
@@ -103,7 +105,9 @@ function goToNotifications() {
     </PopoverTrigger>
     <PopoverContent align="end" class="w-80 p-0">
       <div class="flex items-center justify-between border-b px-4 py-2.5">
-        <h4 class="text-sm font-semibold tracking-tight">{{ t("notification.title") }}</h4>
+        <h4 class="text-sm font-semibold tracking-tight">
+          {{ t("notification.title") }}
+        </h4>
         <ConnectionStatus />
       </div>
       <div class="max-h-80 overflow-y-auto p-2">
@@ -133,13 +137,15 @@ function goToNotifications() {
                 v-if="!notification.isRead"
                 class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
               />
-              <div
-                :class="cn('flex-1 min-w-0', notification.isRead && 'ml-4')"
-              >
-                <p class="text-[13px] font-semibold leading-snug text-foreground">
+              <div :class="cn('flex-1 min-w-0', notification.isRead && 'ml-4')">
+                <p
+                  class="text-[13px] font-semibold leading-snug text-foreground"
+                >
                   {{ localizedNotification(notification).title }}
                 </p>
-                <p class="mt-1 text-[12px] leading-relaxed text-muted-foreground line-clamp-2">
+                <p
+                  class="mt-1 text-[12px] leading-relaxed text-muted-foreground line-clamp-2"
+                >
                   {{ localizedNotification(notification).body }}
                 </p>
               </div>

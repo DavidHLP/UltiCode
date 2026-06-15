@@ -110,8 +110,8 @@ const formatDocument = async () => {
 };
 
 const configureLanguageFeatures = (monaco: typeof import("monaco-editor")) => {
-  const typescript =
-    monaco.languages.typescript as unknown as MonacoTypeScriptApi;
+  const typescript = monaco.languages
+    .typescript as unknown as MonacoTypeScriptApi;
   // TypeScript Configuration
   // Intention Actions (Code Actions) & Inspections (Diagnostics)
   const tsDefaults = typescript.typescriptDefaults;

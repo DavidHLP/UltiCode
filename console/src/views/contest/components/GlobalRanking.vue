@@ -19,8 +19,12 @@ const { t } = useI18n();
       class="rounded-none border border-border shadow-[3px_3px_0px_0px_var(--border)] bg-card text-foreground"
     >
       <div class="p-6 text-center space-y-6">
-        <div class="flex items-center justify-between mb-4 border-b border-dashed pb-3">
-          <h2 class="text-lg font-bold text-foreground font-mono tracking-tight flex items-center gap-2">
+        <div
+          class="flex items-center justify-between mb-4 border-b border-dashed pb-3"
+        >
+          <h2
+            class="text-lg font-bold text-foreground font-mono tracking-tight flex items-center gap-2"
+          >
             <span class="h-2.5 w-2.5 bg-[var(--terminal-amber)]"></span>
             {{ t("contest.ranking.national") }}
           </h2>
@@ -61,7 +65,10 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[1].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground">{{ rankings[1].contestsAttended || 0 }} {{ t("contest.ranking.title", "Contests") }}</span>
+              <span class="text-[9px] font-mono text-muted-foreground"
+                >{{ rankings[1].contestsAttended || 0 }}
+                {{ t("contest.ranking.title", "Contests") }}</span
+              >
             </div>
             <div
               class="h-20 w-full bg-muted/60 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-border border-b-0 relative overflow-hidden mt-1"
@@ -106,7 +113,10 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[0].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground">{{ rankings[0].contestsAttended || 0 }} {{ t("contest.ranking.title", "Contests") }}</span>
+              <span class="text-[9px] font-mono text-muted-foreground"
+                >{{ rankings[0].contestsAttended || 0 }}
+                {{ t("contest.ranking.title", "Contests") }}</span
+              >
             </div>
             <div
               class="h-28 w-full bg-[var(--terminal-amber)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--terminal-amber)]/30 border-b-0 relative overflow-hidden mt-1"
@@ -151,7 +161,10 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[2].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground">{{ rankings[2].contestsAttended || 0 }} {{ t("contest.ranking.title", "Contests") }}</span>
+              <span class="text-[9px] font-mono text-muted-foreground"
+                >{{ rankings[2].contestsAttended || 0 }}
+                {{ t("contest.ranking.title", "Contests") }}</span
+              >
             </div>
             <div
               class="h-12 w-full bg-[var(--solarized-orange)]/5 rounded-none shadow-[2px_2px_0px_0px_var(--border)] border border-[var(--solarized-orange)]/30 border-b-0 relative overflow-hidden mt-1"
@@ -164,11 +177,17 @@ const { t } = useI18n();
         </div>
 
         <!-- Table Column Headers -->
-        <div class="flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-none mt-4">
+        <div
+          class="flex items-center gap-3 px-2 py-2 text-xs font-mono font-bold uppercase tracking-wider border-b border-border bg-muted/30 text-muted-foreground/80 rounded-none mt-4"
+        >
           <span class="w-6 text-center">#</span>
           <span class="flex-1 text-left">{{ t("contest.ranking.user") }}</span>
-          <span class="w-20 text-center">{{ t("contest.ranking.title", "Contests") }}</span>
-          <span class="w-20 text-right">{{ t("contest.ranking.score", "Rating") }}</span>
+          <span class="w-20 text-center">{{
+            t("contest.ranking.title", "Contests")
+          }}</span>
+          <span class="w-20 text-right">{{
+            t("contest.ranking.score", "Rating")
+          }}</span>
         </div>
 
         <!-- Rest of List -->
@@ -196,7 +215,9 @@ const { t } = useI18n();
                 {{ user.name || user.username }}
               </span>
             </div>
-            <span class="w-20 text-center text-xs font-mono text-muted-foreground">
+            <span
+              class="w-20 text-center text-xs font-mono text-muted-foreground"
+            >
               {{ user.contestsAttended || 0 }}
             </span>
             <div class="w-20 text-right shrink-0">
@@ -208,9 +229,8 @@ const { t } = useI18n();
         <Button
           variant="outline"
           class="w-full text-xs font-bold font-mono rounded-none border border-border bg-transparent shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 mt-4"
-        >{{
-          t("common.actions.loadMore")
-        }}</Button>
+          >{{ t("common.actions.loadMore") }}</Button
+        >
       </div>
     </Card>
   </div>

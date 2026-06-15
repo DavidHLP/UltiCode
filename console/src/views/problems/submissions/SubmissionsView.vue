@@ -156,7 +156,10 @@ const handleBack = () => {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div v-if="selectedSubmissionId && !selectedSubmission" class="flex h-full items-center justify-center p-8">
+    <div
+      v-if="selectedSubmissionId && !selectedSubmission"
+      class="flex h-full items-center justify-center p-8"
+    >
       <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
     <SubmissionsDetail

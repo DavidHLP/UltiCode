@@ -208,12 +208,21 @@ onMounted(async () => {
         <!-- 排序按钮 -->
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm" class="gap-1.5 text-xs rounded-none bg-card border-border text-foreground hover:bg-muted font-bold cursor-pointer h-8">
+            <Button
+              variant="outline"
+              size="sm"
+              class="gap-1.5 text-xs rounded-none bg-card border-border text-foreground hover:bg-muted font-bold cursor-pointer h-8"
+            >
               <ArrowDownAZ class="h-3.5 w-3.5" />
-              <span class="text-[11px] uppercase tracking-wider">{{ t("common.actions.sort") }}</span>
+              <span class="text-[11px] uppercase tracking-wider">{{
+                t("common.actions.sort")
+              }}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" class="rounded-none bg-popover text-popover-foreground border-border">
+          <DropdownMenuContent
+            align="end"
+            class="rounded-none bg-popover text-popover-foreground border-border"
+          >
             <DropdownMenuItem
               v-for="option in sortOptions"
               :key="option.value"
@@ -221,7 +230,10 @@ onMounted(async () => {
               class="text-xs cursor-pointer rounded-none focus:bg-muted"
             >
               {{ option.label }}
-              <Check v-if="sortBy === option.value" class="ml-auto h-3.5 w-3.5 text-[var(--accent-electric)]" />
+              <Check
+                v-if="sortBy === option.value"
+                class="ml-auto h-3.5 w-3.5 text-[var(--accent-electric)]"
+              />
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -276,11 +288,11 @@ onMounted(async () => {
               <div
                 class="rounded-none p-0.5 bg-[var(--solarized-green)] flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Check
-                  class="h-3 w-3 text-white"
-                />
+                <Check class="h-3 w-3 text-white" />
               </div>
-              <span class="text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate">
+              <span
+                class="text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate"
+              >
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
             </template>
@@ -288,11 +300,11 @@ onMounted(async () => {
               <div
                 class="rounded-none p-0.5 bg-[var(--accent-electric)] flex-shrink-0 flex items-center justify-center h-4 w-4"
               >
-                <Check
-                  class="h-3 w-3 text-white"
-                />
+                <Check class="h-3 w-3 text-white" />
               </div>
-              <span class="text-[11px] font-semibold text-foreground leading-tight truncate">
+              <span
+                class="text-[11px] font-semibold text-foreground leading-tight truncate"
+              >
                 {{
                   t("problem.solutions.runtimeBeats", {
                     percent: bestSubmission.runtimePercentile?.toFixed(1) ?? 0,
@@ -301,17 +313,21 @@ onMounted(async () => {
               </span>
             </template>
             <template v-else>
-              <span class="text-[11px] font-semibold text-muted-foreground leading-tight truncate">
+              <span
+                class="text-[11px] font-semibold text-muted-foreground leading-tight truncate"
+              >
                 {{ t("problem.solutions.solveToWrite") }}
               </span>
             </template>
           </div>
-          
+
           <button
             class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white dark:text-[var(--solarized-base03)] shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
-            <PenLine class="h-3.5 w-3.5 text-white dark:text-[var(--solarized-base03)]" />
+            <PenLine
+              class="h-3.5 w-3.5 text-white dark:text-[var(--solarized-base03)]"
+            />
             <span>
               {{
                 userSolution

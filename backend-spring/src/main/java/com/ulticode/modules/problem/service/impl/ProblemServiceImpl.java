@@ -208,9 +208,17 @@ public class ProblemServiceImpl implements ProblemService {
                     "WHERE pt.label = {0} OR pt.slug = {0} OR pt.id = {0})", query.getTag());
         }
 
-        // Filter by category via tag_id subquery (categories map to tag IDs)
+        // Filter by category: top-level categories (algorithms/database/shell/concurrency)
+        // are stored as problem_tags rows whose slug follows the 'problem-category-<value>'
+        // namespace (seed: V20260615140000__Seed_Problem_Category_Tags.sql). The frontend
+        // sends the bare value (e.g. "algorithms"); resolve it via the namespaced slug, joined
+        // through problem_tag_relations. slug is backed by unique index problem_tags_slug_key.
         if (query.getCategory() != null && !query.getCategory().isBlank() && !"all".equalsIgnoreCase(query.getCategory())) {
-            queryWrapper.apply("id IN (SELECT problem_id FROM problem_tag_relations WHERE tag_id = {0})", query.getCategory().toLowerCase());
+            queryWrapper.apply(
+                    "id IN (SELECT ptr.problem_id FROM problem_tag_relations ptr " +
+                    "JOIN problem_tags pt ON ptr.tag_id = pt.id " +
+                    "WHERE pt.slug = CONCAT('problem-category-', {0}))",
+                    query.getCategory().toLowerCase());
         }
 
         // Filter by premium status

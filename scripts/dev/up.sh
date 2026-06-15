@@ -12,7 +12,7 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-for command in docker mvn pnpm pm2 curl; do
+for command in docker mvn pnpm pm2 curl timeout; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
     exit 1
@@ -81,6 +81,14 @@ echo "Applying database migrations..."
 
 if [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   echo "Creating or restoring the documented development administrator..."
+  # NOTE: web-application-type=none 关闭 web 容器,只运行 DevUserBootstrapRunner 创建 dev admin。
+  # 应用内存在非 daemon 线程(Redisson netty / 调度器),runner 完成后 JVM 不自退,会永久阻塞脚本。
+  # 两道保险缺一不可:
+  #   1) spring-boot.run.fork=false —— 让应用在 mvn 自身 JVM 内运行(in-process),不 fork 独立 java
+  #      子进程。默认 fork=true 会拉起独立 JVM,timeout 杀掉 mvn 后该 JVM 沦为孤儿继续存活(已实测)。
+  #   2) timeout --kill-after 限定 —— mvn JVM 仍卡住时,SIGTERM 后 15s SIGKILL 兜底。
+  # admin 在 DevUserBootstrapRunner 内已落库;退出码 124(SIGTERM)/137(SIGKILL) 表示超时收尾——
+  # 属预期,放行;其他非零退出码才是真失败。
   (
     cd "$ROOT_DIR/backend-spring"
     APP_DEV_USERS_ENABLED=true \
@@ -89,11 +97,22 @@ if [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_PASSWORD="$DEV_SEED_ADMIN_PASSWORD" \
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
     SPRING_PROFILES_ACTIVE=dev \
-      ./mvnw spring-boot:run \
+      timeout --kill-after=15 90 ./mvnw spring-boot:run \
         -Dmaven.test.skip=true \
+        -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none' \
         -B
-  )
+  ) || bootstrap_rc=$?
+  case "${bootstrap_rc:-0}" in
+    0) ;;
+    124|137)
+      echo "Bootstrap JVM did not self-exit; timed out and terminated (admin already created), continuing." >&2
+      ;;
+    *)
+      echo "Development administrator bootstrap failed (exit $bootstrap_rc)." >&2
+      exit "$bootstrap_rc"
+      ;;
+  esac
 fi
 
 if [[ "$SKIP_INSTALL" != true ]]; then

@@ -122,9 +122,9 @@ M2a 把 `SandboxServiceImpl`（476 行，混合语言分发 + Docker CLI + 失�
 ```
 com.ulticode.modules.submission.sandbox/
 ├── SandboxExecutor              # port interface (run / runBatch)
-├── SandboxJob                   # record: runId, userId, submissionId, generation, lang, code, limits
+├── SandboxJob                   # record: runId, userId, submissionId, generation, lang, code, timeoutSeconds(per-case 上限), memoryMb (P2-1: CodeExecutionService 按 problemId 读 problem.time_limit/memory_limit 覆盖,NULL fallback 全局默认)
 ├── TestCase                     # port 内部 record (含 Input 子 record)
-├── RunCaseResult                # record: status(SubmissionStatus enum) + elapsedMs + memoryBytes + detail + score
+├── RunCaseResult                # record: status(SubmissionStatus) + elapsedMs + memoryBytes + elapsedUs + cpuMs + detail + score + output/expectedOutput/inputs (ADR-002 §8: elapsedUs/cpuMs 为精确测量)
 ├── BatchRunResult               # record: List<RunCaseResult> (1:1 input contract)
 ├── SandboxLimits                # record: per-language effective limits
 ├── UnsupportedLanguageException # 业务异常
@@ -152,6 +152,25 @@ com.ulticode.modules.submission.sandbox/
 | `ProcessBuilder` line 320 + line 281 docker run 拼装 | `SandboxExecutorImpl.runDProcess` + `buildDockerCommand` + `commonSecurityArgs` | ProcessBuilder 只在 `SandboxExecutorImpl` 内 |
 | `executeInSandbox` / `executeBatch` 接口方法 | `SandboxExecutor.run` / `runBatch` | 入参改为 `SandboxJob` + `TestCase` (port 自有) |
 | 内部 `RunResultDTO.RunCaseResult` 返回 | `RunCaseResult` record（port） | 含 `SubmissionStatus` enum（ADR-001），wire 字符串转换在 DTO 边界 |
+
+### 资源测量与判定契约（ADR-002 §8，2026-06-16 全量修复 P0/P1/P2）
+
+envelope per-case `results[]` 字段（向后兼容，旧 harness 不发则默认 0）：
+
+| 字段 | 类型 | 语义 |
+|------|------|------|
+| `elapsed_ms` | long | wall-clock 毫秒（legacy，ms 截断） |
+| `elapsed_us` | long | 精确 wall-clock 微秒（ADR-002 §8，优先用于展示，修复快题 "0ms"） |
+| `cpu_ms` | long | user+sys CPU 毫秒（跨语言公平展示） |
+| `peak_memory_bytes` | long | 该 case 真实峰值（Java `MemoryPoolMXBean` reset/getPeakUsage · Python `ru_maxrss` · C++ child `getrusage` 经 pipe header 回传） |
+| `memory_limit_bytes`（input.json） | long | 后端下发每用例内存上限，>0 时 harness 自判 MLE |
+
+判定逻辑：
+- **TLE**：harness 软超时（`per_case_timeout_ms` = 题目每用例限制）→ `"Time Limit Exceeded"`；docker 整批硬超时 = `perCase × caseCount + compileBudget(35s for C/C++) + grace`，cap 180s（P0-1：旧公式 `timeoutSeconds+1` 不含 case 数导致多用例整批误杀）
+- **MLE** 三层（P0-2）：(A) harness 自判 peak>limit → `"Memory Limit Exceeded"`；(B) `SandboxExecutorImpl.toPortResult` 兜底比对（向后兼容旧 harness）；(C) docker exit 137 + 空 stdout → `SANDBOX_ERROR`（不再伪装成 RE）
+- **题目级限制**（P2-1）：`problems.time_limit` / `memory_limit`（Flyway `V20260616120000`），`CodeExecutionService.resolveTimeoutSeconds/Mb` 按 problemId 读取，NULL fallback 全局默认
+
+详见 [ADR-002 §8](../adr/ADR-002-sandbox-hexagonal.md)。
 
 ### 新 executor 的 docker run 拼装（顺序固定）
 

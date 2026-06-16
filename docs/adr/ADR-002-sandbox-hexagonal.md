@@ -412,7 +412,70 @@ curl -X POST /problems/7/submissions/run -d '{"language":"java","code":"...","te
 
 ---
 
-## 8. References
+## 8. 资源测量与判定契约 (2026-06-16) — 全量修复 P0/P1/P2
+
+> 本节是对沙箱「时间/内存怎么测、怎么判」的全量修复记录。源于一次专项技术评估发现
+> 两个会导致**系统性误判**的 P0(per-case 超时公式不含 case 数;MLE 在生产从不判定),
+> 以及多个测量不准(P1)与功能缺失(P2)。本节既是变更记录,也是新的测量契约。
+
+### 8.1 修复的 P0(系统性误判)
+
+| # | 问题 | 修复 |
+|---|------|------|
+| **P0-1** | `hardTimeoutSeconds = timeoutSeconds + 1`(整批)与 `perCaseTimeoutMs ≈ timeoutSeconds×1000`(每用例)公式冲突,多用例累计必然触发 docker SIGKILL → 整批全 TLE | 重定义语义:`job.timeoutSeconds()` = **每用例**限制;`hardTimeoutSeconds(job, caseCount) = perCase×caseCount + compileBudget + grace`(cap 180s);编译型语言(C/C++)+35s 编译预算。`SandboxExecutorImpl` runBatch 传 `cases.size()`,run/runOne 传 1 |
+| **P0-2** | 生产路径从不判定 MLE,内存超限被 docker OOM kill → 整批 SIGKILL → 空 stdout → 误报 `Runtime Error`(`MEMORY_LIMIT_EXCEEDED` 是 enum 里的幽灵状态) | **三层判定**:(A) `buildDInputsJson` 把 `memory_limit_bytes` 写进 input.json,harness 自判 peak > limit → `"Memory Limit Exceeded"`;(B) `toPortResult` 兜底比对(harness 未自判时改判 MLE,向后兼容旧 harness);(C) docker exit 137 + 空 stdout → `SANDBOX_ERROR`(诚实标注 "likely cgroup OOM",不再伪装成 RE) |
+
+### 8.2 修复的 P1(测量不准)
+
+| # | 问题 | 修复 |
+|---|------|------|
+| **P1-1** | 时间用 wall-clock,含 JIT/编译/GC/harness 开销,跨语言不公平 | envelope 新增 `cpu_ms`(user+sys CPU time)。Java `ThreadMXBean.getCurrentThreadCpuTime()`(worker 线程内采样,排除 harness 反射开销);Python `resource.getrusage(RUSAGE_SELF)` 的 `ru_utime+ru_stime`;C++ child `getrusage(RUSAGE_SELF)`。**TLE 判定仍用 wall-clock**(防真实挂钟超时),CPU time 用于公平展示 |
+| **P1-2** | 时间整数毫秒截断,0–999µs 显示 `0ms`(快题误导) | envelope 新增 `elapsed_us`(微秒整数);`runtime` 字符串优先 `String.format("%.2fms", us/1000.0)`;`parseRuntimeMs` 改用 `Double.parseDouble` 兼容小数 |
+| **P1-3** | 跨语言内存语义不一致:Java 单点采样、Python ru_maxrss、C++ 硬编码 0 | Java 改 `MemoryPoolMXBean.resetPeakUsage()` + `getPeakUsage().getUsed()` 求和(真正的 high-water mark,非 `totalMemory()-freeMemory()` 单点采样);Python 保留 `ru_maxrss`(per-case 子进程,本就是该 case 峰值);C++ child `getrusage(RUSAGE_SELF).ru_maxrss` 经 pipe header 回传父进程(替换硬编码 0)。三种语言现在都报**真实峰值** |
+| **P1-4** | C/C++ 编译时间吃掉 docker 整批硬超时 → 系统性 TLE | 随 P0-1:`hardTimeoutSeconds` 给编译型语言 +35s `COMPILE_BUDGET_SECONDS`,编译阶段不再被外层 SIGKILL |
+
+### 8.3 修复的 P2(功能/设计)
+
+| # | 问题 | 修复 |
+|---|------|------|
+| **P2-1** | Problem 表无 `time_limit`/`memory_limit`,所有提交用全局默认,OJ 无法按题配额 | Flyway `V20260616120000__Add_Problem_Resource_Limits.sql` 给 `problems` 表加两列(NULLABLE,无 backfill);`Problem` entity 加字段;`CodeExecutionService.resolveTimeoutSeconds/Mb` 按 `problemId` 读取,非空覆盖全局默认,NULL fallback |
+| **P2-2** | Java harness 依赖弃用的 `SecurityManager`(JDK 21+ 默认禁用) | **本次不动**(项目锁 JDK 17,仍可用);标注为 Phase 2+ follow-up——届时按 Python 的 per-case 子进程隔离模式统一 |
+
+### 8.4 新的 envelope 契约(向后兼容)
+
+per-case `results[]` 每项新增两个**可选**字段,旧 harness 不发时后端默认 0 并回退:
+
+| 字段 | 类型 | 语义 |
+|------|------|------|
+| `elapsed_us` | long | 精确 wall-clock 微秒(优先用于展示);不发则回退 `elapsed_ms` |
+| `cpu_ms` | long | user+sys CPU 毫秒(公平性展示);不发则 0 |
+| `peak_memory_bytes` | long | 该 case 真实峰值(已存在于 §7.2,语义本节升级为 true peak) |
+| `memory_limit_bytes`(input.json) | long | 后端下发给 harness 的每用例内存上限;>0 时 harness 自判 MLE |
+
+### 8.5 跨语言测量语义对照
+
+| 语言 | peak 来源 | CPU 来源 | 备注 |
+|------|-----------|----------|------|
+| Java | `MemoryPoolMXBean` heap peak(reset 后 high-water) | `ThreadMXBean` worker 线程 | 同 JVM 串行跑 case,每 case `resetPeakUsage` 隔离 |
+| Python | `resource.getrusage(RUSAGE_SELF).ru_maxrss` | 同上 `ru_utime+ru_stime` | per-case 子进程,ru_maxrss 本就是该 case 峰值 |
+| C++ | child `getrusage(RUSAGE_SELF).ru_maxrss`(经 pipe header 回传) | 同上 | 每 case fork child + SIGKILL 隔离;父进程拆 `peakKb\ncpuMs\n<json>` header |
+| C | (Phase-1 stub,无测量代码) | — | 本次不动;补全 harness 是独立 follow-up |
+
+### 8.6 验证
+
+- 后端 `./mvnw compile` + `test-compile` 全绿;`CodeExecutionServiceTest` / `CodeExecutionHelperImplTest` / `InMemorySandboxAdapterTest` 全绿
+- Java/Python harness `py_compile` / `mvn` 语法验证通过;C++ `g++ -fsyntax-only` 通过
+- 全量后端 1164 测试:本次修复引入 **0 regression**;既有 9 Failures + 2 Errors 经诊断全部位于 contest/admin 模块且不引用 `CodeExecutionService`/`Problem`(pre-existing,与本节无关)
+
+### 8.7 关联变更
+
+- 后端:`SandboxExecutorImpl`(超时公式 + MLE Layer A/B/C + 透传)、`CodeExecutionHelper(Impl)`(buildD 加 memoryLimitBytes + buildCaseResult 加 elapsedUs/cpuMs + parseRuntimeMs 支持小数)、`CodeExecutionService`(P2-1 读取 + 聚合精度 + 透传)、`PerCaseResultDTO`/`RunResultDTO`/`RunCaseResult`(新字段)、`Problem` entity + `V20260616120000` 迁移
+- Harness:`Main.java`(Java peak/cpu/μs/MLE)、`_case_runner.py` + `main.py`(Python peak/cpu/μs/MLE)、`cpp/main.cpp`(C++ child getrusage + μs + MLE)
+- 测试:`CodeExecutionServiceTest`(ProblemMapper mock + parseRuntimeMs lenient)、`CodeExecutionHelperImplTest`(buildD 加 memoryLimitBytes 参数)
+
+---
+
+## 9. References
 
 - [ADR-000](./ADR-000-hexagonal-grilling-session.md) — 拆分溯源
 - [ADR-001](./ADR-001-verdict-status-codec.md) — RunCaseResult 用 SubmissionStatus enum

@@ -241,6 +241,7 @@ const char* kRunnerBody = R"RUNNEREOF(
 #include <poll.h>
 #include <cstdio>
 #include <string>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
@@ -251,6 +252,9 @@ using namespace std::chrono;
 struct CaseResult {
     std::string caseId, label;
     long long elapsedMs = 0;
+    long long elapsedUs = 0;
+    long long cpuMs = 0;
+    long long peakBytes = 0;
     std::string status, resultJson, errorMsg, errorType;
     bool interrupted = false;
 };
@@ -302,8 +306,10 @@ static std::string caseResultToJson(const CaseResult& r) {
     std::string s = "{\"case_id\":" + toJson(Json::makeString(r.caseId)) +
         ",\"label\":" + toJson(Json::makeString(r.label)) +
         ",\"elapsed_ms\":" + std::to_string(r.elapsedMs) +
-        ",\"peak_memory_bytes\":0," +
-        "\"status\":" + toJson(Json::makeString(r.status)) + ",";
+        ",\"peak_memory_bytes\":" + std::to_string(r.peakBytes) +
+        ",\"elapsed_us\":" + std::to_string(r.elapsedUs) +
+        ",\"cpu_ms\":" + std::to_string(r.cpuMs) +
+        ",\"status\":" + toJson(Json::makeString(r.status)) + ",";
     if (r.resultJson.empty()) {
         s += "\"result\":null,";
     } else {
@@ -322,7 +328,7 @@ static std::string caseResultToJson(const CaseResult& r) {
     return s;
 }
 
-static CaseResult runCase(const Json& tc, long timeoutMs) {
+static CaseResult runCase(const Json& tc, long timeoutMs, long long memoryLimitBytes) {
     CaseResult r;
     r.caseId = tc.has("case_id") ? tc["case_id"].asString() : std::string();
     r.label = tc.has("label") ? tc["label"].asString() : r.caseId;
@@ -363,8 +369,16 @@ static CaseResult runCase(const Json& tc, long timeoutMs) {
         try {
             Solution sol;
             std::string out = run_user_method(sol, tc);
-            ssize_t w = write(pipefd[1], out.data(), out.size());
-            (void)w;
+            // ADR-002 §8: report this child's peak RSS + CPU time back to the
+            // parent via a two-line header preceding the result JSON.
+            struct rusage ru;
+            long long peakKb = (getrusage(RUSAGE_SELF, &ru) == 0) ? ru.ru_maxrss : 0;
+            long long cpuMs = (long long)((ru.ru_utime.tv_sec * 1000.0 + ru.ru_utime.tv_usec / 1000.0)
+                                          + (ru.ru_stime.tv_sec * 1000.0 + ru.ru_stime.tv_usec / 1000.0));
+            std::string header = std::to_string(peakKb) + "\n" + std::to_string(cpuMs) + "\n";
+            ssize_t w1 = write(pipefd[1], header.data(), header.size());
+            ssize_t w2 = write(pipefd[1], out.data(), out.size());
+            (void)w1; (void)w2;
             close(pipefd[1]);
             _Exit(0);
         } catch (const std::exception& e) {
@@ -386,7 +400,8 @@ static CaseResult runCase(const Json& tc, long timeoutMs) {
     int status = 0;
     std::string childOut = drainCaseChild(pipefd[0], pid, timeoutMs, timedOut, status);
     close(pipefd[0]);
-    r.elapsedMs = duration_cast<milliseconds>(steady_clock::now() - start).count();
+    r.elapsedUs = duration_cast<microseconds>(steady_clock::now() - start).count();
+    r.elapsedMs = r.elapsedUs / 1000;
 
     if (timedOut) {
         r.status = "Time Limit Exceeded";
@@ -404,12 +419,26 @@ static CaseResult runCase(const Json& tc, long timeoutMs) {
         r.errorMsg = childOut.substr(4);
         return r;
     }
-    r.resultJson = childOut;
+    // ADR-002 §8: child wrote "peakKb\ncpuMs\n<resultJson>".
+    size_t nl1 = childOut.find('\n');
+    size_t nl2 = (nl1 != std::string::npos) ? childOut.find('\n', nl1 + 1) : std::string::npos;
+    std::string resultJson = childOut;
+    if (nl1 != std::string::npos && nl2 != std::string::npos) {
+        try { r.peakBytes = std::stoll(childOut.substr(0, nl1)) * 1024; } catch (...) {}
+        try { r.cpuMs = std::stoll(childOut.substr(nl1 + 1, nl2 - nl1 - 1)); } catch (...) {}
+        resultJson = childOut.substr(nl2 + 1);
+    }
+    r.resultJson = resultJson;
+    // ADR-002 §8 (P0-2): over the per-run memory ceiling → MLE.
+    if (memoryLimitBytes > 0 && r.peakBytes > memoryLimitBytes) {
+        r.status = "Memory Limit Exceeded";
+        return r;
+    }
     std::string expected = tc.has("expected_output") ? tc["expected_output"].asString() : std::string();
     bool passed = false;
     if (!expected.empty()) {
         try {
-            passed = (normalizeJson(expected) == normalizeJson(childOut));
+            passed = (normalizeJson(expected) == normalizeJson(resultJson));
         } catch (...) {
             passed = false;
         }
@@ -432,11 +461,14 @@ int runner_main(int argc, char** argv) {
     long timeoutMs = input.has("per_case_timeout_ms")
                          ? static_cast<long>(input["per_case_timeout_ms"].asNumber())
                          : 1000;
+    long long memoryLimitBytes = input.has("memory_limit_bytes")
+                         ? static_cast<long long>(input["memory_limit_bytes"].asNumber())
+                         : 0;
     const Json* cases = input.find("cases");
     std::vector<CaseResult> results;
     auto totalStart = steady_clock::now();
     if (cases && cases->isArray()) {
-        for (const auto& tc : cases->asArray()) results.push_back(runCase(tc, timeoutMs));
+        for (const auto& tc : cases->asArray()) results.push_back(runCase(tc, timeoutMs, memoryLimitBytes));
     }
     auto totalMs = duration_cast<milliseconds>(steady_clock::now() - totalStart).count();
 

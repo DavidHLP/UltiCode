@@ -1,6 +1,10 @@
 import java.io.ByteArrayOutputStream;
 import java.security.Permission;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -75,6 +79,10 @@ public final class Main {
 
             long perCaseTimeoutMs = ((Number) input.getOrDefault(
                     "per_case_timeout_ms", DEFAULT_PER_CASE_TIMEOUT_MS)).longValue();
+            // ADR-002 §8 (P0-2): per-run memory ceiling forwarded by the
+            // backend so the harness can self-report Memory Limit Exceeded.
+            // Absent / 0 disables the harness-level MLE check.
+            long memoryLimitBytes = ((Number) input.getOrDefault("memory_limit_bytes", 0L)).longValue();
             List<?> cases = asList(input.get("cases"));
             String methodHint = stringOrNull(input.get("method_name"));
 
@@ -84,7 +92,8 @@ public final class Main {
             List<Object> results = new ArrayList<>(cases.size());
             long totalStartNs = System.nanoTime();
             for (Object caseObj : cases) {
-                results.add(runCase(solutionClass, method, asMap(caseObj), perCaseTimeoutMs));
+                results.add(runCase(solutionClass, method, asMap(caseObj),
+                        perCaseTimeoutMs, memoryLimitBytes));
             }
             long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000;
 
@@ -220,7 +229,8 @@ public final class Main {
     }
 
     private static Map<String, Object> runCase(Class<?> solutionClass, Method method,
-                                               Map<String, Object> testCase, long timeoutMs) {
+                                               Map<String, Object> testCase,
+                                               long timeoutMs, long memoryLimitBytes) {
         String caseId = String.valueOf(testCase.getOrDefault("case_id", ""));
         String label = String.valueOf(testCase.getOrDefault("label", caseId));
         List<?> inputSpecs = asList(testCase.get("inputs"));
@@ -239,7 +249,7 @@ public final class Main {
                 adapted[i] = Harness.adaptArg(raw, paramTypes[i]);
             }
         } catch (Throwable t) {
-            return finishCase(result, "Runtime Error", 0L, peakMemoryBytes(), null, t, "");
+            return finishCase(result, "Runtime Error", 0L, 0L, 0L, 0L, null, t, "");
         }
 
         // --- invoke under timeout, capturing user stdout -------------------
@@ -249,9 +259,14 @@ public final class Main {
         System.setOut(userStream);
 
         long startNs = System.nanoTime();
+        // ADR-002 §8: reset heap peak before user code so the sampled peak
+        // reflects only this case (the harness JVM runs all cases in one
+        // process; without a reset the peak would be cumulative).
+        resetHeapPeakUsage();
         Object methodResult = null;
         boolean timedOut = false;
         Throwable userException = null;
+        final long[] cpuHolder = {0L};
 
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "harness-worker");
@@ -259,14 +274,20 @@ public final class Main {
             return t;
         });
         Future<Object> future = executor.submit(() -> {
-            Object instance = solutionClass.getDeclaredConstructor().newInstance();
+            // ADR-002 §8: sample CPU time of the worker thread only so the
+            // harness's own reflection overhead is excluded.
+            ThreadMXBean tb = ManagementFactory.getThreadMXBean();
+            long cpu0 = tb.getCurrentThreadCpuTime();
             try {
+                Object instance = solutionClass.getDeclaredConstructor().newInstance();
                 return method.invoke(instance, adapted);
             } catch (InvocationTargetException ite) {
                 Throwable cause = ite.getCause();
                 if (cause instanceof RuntimeException re) throw re;
                 if (cause instanceof Error err) throw err;
                 throw new RuntimeException(cause);
+            } finally {
+                cpuHolder[0] = tb.getCurrentThreadCpuTime() - cpu0;
             }
         });
         try {
@@ -283,15 +304,19 @@ public final class Main {
             executor.shutdownNow();
             System.setOut(realOut);
         }
-        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
-        // Sample peak heap AFTER user code ran (GC may not have triggered
-        // since; this is best-effort, not a strict cgroup-level measurement).
-        long peakBytes = peakMemoryBytes();
+        long elapsedUs = (System.nanoTime() - startNs) / 1_000L;
+        long elapsedMs = elapsedUs / 1_000L;
+        long cpuMs = Math.max(0L, cpuHolder[0]) / 1_000_000L;
+        // ADR-002 §8: true heap peak (was totalMemory()-freeMemory(), a
+        // single-point sample that missed spikes GC'd away before sampling).
+        long peakBytes = peakHeapUsageBytes();
         String userStdout = truncateUserOutput(userOut.toString(StandardCharsets.UTF_8));
 
         if (timedOut) {
             result.put("elapsed_ms", elapsedMs);
             result.put("peak_memory_bytes", peakBytes);
+            result.put("elapsed_us", elapsedUs);
+            result.put("cpu_ms", cpuMs);
             result.put("status", "Time Limit Exceeded");
             result.put("result", null);
             result.put("interrupted", true);
@@ -300,7 +325,16 @@ public final class Main {
             return result;
         }
         if (userException != null) {
-            return finishCase(result, "Runtime Error", elapsedMs, peakBytes, null, userException, userStdout);
+            return finishCase(result, "Runtime Error", elapsedMs, peakBytes,
+                    elapsedUs, cpuMs, null, userException, userStdout);
+        }
+
+        // ADR-002 §8 (P0-2): user code ran cleanly but used more heap than the
+        // per-run ceiling → Memory Limit Exceeded (harness self-report; the
+        // backend also has a Layer-B backstop for older harnesses).
+        if (memoryLimitBytes > 0 && peakBytes > memoryLimitBytes) {
+            return finishCase(result, "Memory Limit Exceeded", elapsedMs, peakBytes,
+                    elapsedUs, cpuMs, null, null, userStdout);
         }
 
         Object jsonable;
@@ -312,7 +346,8 @@ public final class Main {
             // CR fix #2/#7/#8: jsonable() raises on cycles, depth, node-count,
             // and non-finite floats. Convert to per-case Runtime Error so the
             // envelope stays well-formed (and the next case still runs).
-            return finishCase(result, "Runtime Error", elapsedMs, peakBytes, null, t, userStdout);
+            return finishCase(result, "Runtime Error", elapsedMs, peakBytes,
+                    elapsedUs, cpuMs, null, t, userStdout);
         }
         String expectedJson = (expectedOutput == null)
                 ? null
@@ -321,6 +356,8 @@ public final class Main {
 
         result.put("elapsed_ms", elapsedMs);
         result.put("peak_memory_bytes", peakBytes);
+        result.put("elapsed_us", elapsedUs);
+        result.put("cpu_ms", cpuMs);
         result.put("status", passed ? "Accepted" : "Wrong Answer");
         result.put("result", jsonable);
         result.put("user_stdout", userStdout);
@@ -330,9 +367,12 @@ public final class Main {
 
     private static Map<String, Object> finishCase(Map<String, Object> result, String status,
                                                   long elapsedMs, long peakMemoryBytes,
+                                                  long elapsedUs, long cpuMs,
                                                   Object value, Throwable error, String userStdout) {
         result.put("elapsed_ms", elapsedMs);
         result.put("peak_memory_bytes", peakMemoryBytes);
+        result.put("elapsed_us", elapsedUs);
+        result.put("cpu_ms", cpuMs);
         result.put("status", status);
         result.put("result", value);
         if (error != null) {
@@ -344,18 +384,37 @@ public final class Main {
     }
 
     /**
-     * Best-effort peak memory in bytes for the harness JVM. Uses
-     * {@code totalMemory() - freeMemory()} so it works across all GCs
-     * (G1 reports 0 from getHeapMemoryUsage().getUsed() in some heap
-     * shapes, which would make the OJ UI show 0.0MB for every submission).
-     * The harness and user code run in the same JVM (via reflection), so
-     * this is a reasonable proxy for "user code memory" — not a
-     * cgroup-level measurement, but far better than reporting 0.
+     * Reset the JVM's per-pool heap peak-usage counters. Called before each
+     * case's user code so {@link #peakHeapUsageBytes()} reflects only that
+     * case (ADR-002 §8).
      */
-    private static long peakMemoryBytes() {
+    private static void resetHeapPeakUsage() {
         try {
-            Runtime rt = Runtime.getRuntime();
-            return Math.max(0L, rt.totalMemory() - rt.freeMemory());
+            for (MemoryPoolMXBean p : ManagementFactory.getMemoryPoolMXBeans()) {
+                if (p.getType() == MemoryType.HEAP) {
+                    p.resetPeakUsage();
+                }
+            }
+        } catch (Throwable ignored) {
+            // best-effort; if reset fails the peak is just cumulative
+        }
+    }
+
+    /**
+     * Sum of per-pool heap peak usage after user code ran. This is a true
+     * high-water mark (since the last {@link #resetHeapPeakUsage}), unlike
+     * the old {@code totalMemory()-freeMemory()} sample which only caught
+     * whatever was live at sampling time. ADR-002 §8.
+     */
+    private static long peakHeapUsageBytes() {
+        try {
+            long sum = 0L;
+            for (MemoryPoolMXBean p : ManagementFactory.getMemoryPoolMXBeans()) {
+                if (p.getType() == MemoryType.HEAP) {
+                    sum += p.getPeakUsage().getUsed();
+                }
+            }
+            return Math.max(0L, sum);
         } catch (Throwable t) {
             return 0L;
         }

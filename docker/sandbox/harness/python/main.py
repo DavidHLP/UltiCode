@@ -197,6 +197,9 @@ def run(solution_module: Any, input_path: str) -> int:
     with open(input_path, encoding="utf-8") as f:
         envelope_in = json.load(f)
     per_case_timeout = int(envelope_in.get("per_case_timeout_ms", DEFAULT_PER_CASE_TIMEOUT_MS))
+    # ADR-002 §8 (P0-2): per-run memory ceiling forwarded to each per-case
+    # subprocess so it can self-report Memory Limit Exceeded.
+    memory_limit_bytes = int(envelope_in.get("memory_limit_bytes", 0) or 0)
     cases = envelope_in.get("cases", []) or []
     method_hint = envelope_in.get("method_name") or None
 
@@ -226,7 +229,8 @@ def run(solution_module: Any, input_path: str) -> int:
 
     for tc in cases:
         verdict = _run_case_in_subprocess(
-            case_runner, solution_cls, method_hint, tc, per_case_timeout, hard_case_timeout_s)
+            case_runner, solution_cls, method_hint, tc, per_case_timeout, hard_case_timeout_s,
+            memory_limit_bytes)
         results.append(verdict)
     total_elapsed_ms = int((time.monotonic() - total_start) * 1000)
 
@@ -248,7 +252,8 @@ def run(solution_module: Any, input_path: str) -> int:
 def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
                              method_hint: str | None,
                              tc: Dict[str, Any], per_case_timeout_ms: int,
-                             hard_timeout_s: float) -> Dict[str, Any]:
+                             hard_timeout_s: float,
+                             memory_limit_bytes: int = 0) -> Dict[str, Any]:
     """Spawn _case_runner.py for one case, enforce per-case timeout,
     return the verdict dict. On any failure (timeout, non-zero exit,
     unparseable JSON), synthesize a sensible per-case verdict rather
@@ -260,7 +265,8 @@ def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
     # subprocess re-imports solution from /job. To do that, the parent
     # writes nothing extra — the subprocess argv tells it which method
     # to call, and the per-case JSON on stdin carries the input data.
-    argv = [sys.executable, case_runner, method_hint or "", str(per_case_timeout_ms)]
+    argv = [sys.executable, case_runner, method_hint or "", str(per_case_timeout_ms),
+            str(memory_limit_bytes)]
     case_payload = json.dumps(tc, ensure_ascii=False,
                               separators=(",", ":"), allow_nan=False)
     try:
@@ -277,6 +283,8 @@ def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
             "case_id": str(tc.get("id", tc.get("case_id", ""))),
             "label": str(tc.get("label", "")),
             "elapsed_ms": int(hard_timeout_s * 1000),
+            "elapsed_us": int(hard_timeout_s * 1_000_000),
+            "cpu_ms": 0,
             "status": "Time Limit Exceeded",
             "interrupted": True,
             "result": None,
@@ -292,7 +300,7 @@ def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
         return {
             "case_id": str(tc.get("id", tc.get("case_id", ""))),
             "label": str(tc.get("label", "")),
-            "elapsed_ms": 0,
+            "elapsed_ms": 0, "elapsed_us": 0, "cpu_ms": 0,
             "status": "Runtime Error",
             "result": None,
             "error": {
@@ -309,7 +317,7 @@ def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
         return {
             "case_id": str(tc.get("id", tc.get("case_id", ""))),
             "label": str(tc.get("label", "")),
-            "elapsed_ms": 0,
+            "elapsed_ms": 0, "elapsed_us": 0, "cpu_ms": 0,
             "status": "Runtime Error",
             "result": None,
             "error": {

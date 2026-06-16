@@ -189,26 +189,38 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     return cols;
   });
 
+  // Tag labels come from the backend (`problem_tags.label`) and are already
+  // localized — typically Chinese for this codebase. Derive popular tags from
+  // the actual tags present in the current dataset, ranked by frequency, so the
+  // two rows of the filter (popular / more) stay in sync with what clicking
+  // will actually match on the server.
+  const MAX_POPULAR_TAGS = 6;
+
   const allTags = computed(() => {
     const tags = new Set<string>();
     enrichedProblems.value.forEach((p) =>
       p.tags.forEach((tag) => tags.add(tag)),
     );
-    return Array.from(tags).sort();
+    return Array.from(tags);
   });
 
-  const popularTags = ref([
-    "Array",
-    "Hash Table",
-    "String",
-    "Math",
-    "Dynamic Programming",
-    "Sorting",
-  ]);
+  const popularTags = computed(() => {
+    const counts = new Map<string, number>();
+    enrichedProblems.value.forEach((p) =>
+      p.tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1)),
+    );
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, MAX_POPULAR_TAGS)
+      .map(([tag]) => tag);
+  });
 
-  const otherTags = computed(() =>
-    allTags.value.filter((tag) => !popularTags.value.includes(tag)),
-  );
+  const otherTags = computed(() => {
+    const popular = new Set(popularTags.value);
+    return allTags.value
+      .filter((tag) => !popular.has(tag))
+      .sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+  });
 
   const activeFilterCount = computed(() => {
     return (

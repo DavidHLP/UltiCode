@@ -34,7 +34,15 @@ export function useProblemTab<T>(
     isReady.value = false
 
     try {
-      await fetchFn(problemId.value)
+      // Header is shown by every edit view, so prefetch it in parallel with the
+      // tab-specific data. `store.fetchTab` is cached & cancellable, so this is
+      // safe to call from multiple views on the same problem. Skip the duplicate
+      // fetch when the caller is already loading the header tab.
+      const fetches: Array<Promise<unknown>> = [fetchFn(problemId.value)]
+      if (tabKey !== 'header') {
+        fetches.push(store.fetchHeader(problemId.value))
+      }
+      await Promise.all(fetches)
     } catch (err) {
       if (isActive.value) {
         console.error(`[useProblemTab:${tabKey}] Failed to load data:`, err)

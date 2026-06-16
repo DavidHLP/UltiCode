@@ -406,6 +406,8 @@ export default {
     beats: "击败了",
     detailsNotAvailable: "详情暂不可用。",
     code: "代码",
+    resubmit: "重新提交",
+    stuckWarning: "提交已超过 2 分钟仍未出结果，可能正在排队，请稍候。",
     error: {
       loadFailed: "加载提交失败",
       notFound: "未找到该提交",

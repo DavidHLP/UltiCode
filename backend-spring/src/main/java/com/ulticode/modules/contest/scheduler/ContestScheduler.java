@@ -182,6 +182,19 @@ public class ContestScheduler {
         contest.setActualStartTime(LocalDateTime.now());
         contestMapper.updateById(contest);
 
+        // P0-2: batch-transition REGISTERED participants to STARTED so they can
+        // submit. Runs after contest.status is committed; transitions are
+        // idempotent (only REGISTERED rows are touched).
+        try {
+            int started = contestScoringService.batchStartParticipants(contest.getId());
+            if (started > 0) {
+                log.info("P0-2: started {} participants for contest {}", started, contest.getId());
+            }
+        } catch (Exception e) {
+            log.warn("P0-2 batchStartParticipants failed for contest {}: {}",
+                    contest.getId(), e.getMessage());
+        }
+
         // Emit WebSocket status
         realtimeService.emitContestStatus(
                 contest.getId(),
@@ -196,6 +209,11 @@ public class ContestScheduler {
 
         log.info("Contest {} transitioned to RUNNING", contest.getId());
     }
+
+    /**
+     * The injected ContestScoringService. P0-2 wiring.
+     */
+    private final com.ulticode.modules.contest.service.ContestScoringService contestScoringService;
 
     void transitionToFinished(Contest contest) {
         // Re-check: skip if already FINISHED (idempotent)

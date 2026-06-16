@@ -48,9 +48,12 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
-        if (participantMapper.existsByContestIdAndUserId(contestId, userId)) {
-            throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
-        }
+
+        // P1-3 (TOCTOU fix): drop the read-then-insert existsBy check. The DB unique
+        // key (contest_id, user_id, virtual_session_id) is the source of truth:
+        // two concurrent inserts race; one will lose on the DB constraint, which
+        // we catch below. The tryIncrementRegisteredCount happens BEFORE the
+        // insert so a failing insert rolls back the increment (same transaction).
         int updated = contestMapper.tryIncrementRegisteredCount(contestId);
         if (updated == 0) throw new BusinessException(ErrorCode.CONTEST_FULL);
 
@@ -60,7 +63,13 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         participant.setStatus(ContestParticipantStatus.REGISTERED.name());
         participant.setRegisteredAt(now);
         participant.setIsVirtual(false);
-        participantMapper.insert(participant);
+        try {
+            participantMapper.insert(participant);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // Race lost: another transaction inserted the same (contest, user)
+            // row. The transaction will roll back the registeredCount increment.
+            throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
+        }
         log.info("User {} registered for contest {}", userId, contestId);
     }
 
@@ -75,6 +84,13 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+        }
+        // P2-7 fix: also reject unregister after registration_end. Without this
+        // check a user could unregister after the registration window closed,
+        // letting them dodge a no-show penalty in some scoring rules.
+        LocalDateTime now = LocalDateTime.now();
+        if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
+            throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
         participantMapper.deleteById(participant.getId());
         contestMapper.decrementRegisteredCount(contestId);

@@ -76,7 +76,7 @@ class ContestServiceImplMutatorTest {
                 contestMapper, contestProblemMapper, participantMapper,
                 globalRankingMapper, schedulerService, rankingService,
                 achievementTriggerService, contestAnnouncementMapper,
-                contestSubmissionMapper, problemMapper, submissionService);
+                contestSubmissionMapper, problemMapper, submissionService, null);
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

@@ -662,13 +662,15 @@ public class ContestController {
         if (idOrSlug == null) {
             return null;
         }
-        Optional<Contest> contestOpt = contestService.findById(idOrSlug);
-        if (contestOpt.isPresent()) {
-            return contestOpt.get().getId();
-        }
-        return contestService.findBySlug(idOrSlug)
+        // P3-4 fix: instead of silently falling back to the raw input (which
+        // would mask typos and pass a slug string to downstream services that
+        // expect a UUID), throw a 404 when neither id nor slug matches.
+        return contestService.findById(idOrSlug)
                 .map(Contest::getId)
-                .orElse(idOrSlug);
+                .or(() -> contestService.findBySlug(idOrSlug).map(Contest::getId))
+                .orElseThrow(() -> new com.ulticode.common.exception.BusinessException(
+                        com.ulticode.common.exception.ErrorCode.CONTEST_NOT_FOUND,
+                        "Contest not found by id or slug: " + idOrSlug));
     }
 
     /**

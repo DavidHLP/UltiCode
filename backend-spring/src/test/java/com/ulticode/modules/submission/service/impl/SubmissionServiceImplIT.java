@@ -260,7 +260,7 @@ class SubmissionServiceImplIT {
                 contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
                 achievementTriggerService, notificationService, notificationDispatchService,
                 notificationDispatcher,
-                null, flags, null);
+                null, flags, null, null);
     }
 
     @AfterEach

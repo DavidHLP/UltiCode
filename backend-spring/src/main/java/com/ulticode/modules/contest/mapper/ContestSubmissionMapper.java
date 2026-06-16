@@ -3,11 +3,14 @@ package com.ulticode.modules.contest.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestSubmission;
 import com.ulticode.modules.submission.entity.Submission;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * MyBatis-Plus mapper for ContestSubmission entity.
@@ -41,4 +44,26 @@ public interface ContestSubmissionMapper extends BaseMapper<ContestSubmission> {
             @Param("contestProblemId") String contestProblemId,
             @Param("userId") String userId
     );
+
+    /**
+     * Reverse-lookup the contest_submission row for a given {@code submissions.id}.
+     * Used by the P0-1 scoring listener to apply the verdict after judge commit.
+     *
+     * @return Optional.empty() if the submission is not part of any contest
+     */
+    @Select("SELECT * FROM contest_submissions WHERE submission_id = #{submissionId} LIMIT 1")
+    Optional<ContestSubmission> findBySubmissionId(@Param("submissionId") String submissionId);
+
+    /**
+     * Update the {@code is_accepted} flag of a contest_submission row. Idempotent.
+     */
+    @Update("UPDATE contest_submissions SET is_accepted = #{isAccepted} WHERE submission_id = #{submissionId}")
+    int markAcceptedBySubmissionId(@Param("submissionId") String submissionId,
+                                   @Param("isAccepted") boolean isAccepted);
+
+    /**
+     * Cascade-delete all contest_submission rows for a contest (used by deleteContestCascade).
+     */
+    @Delete("DELETE FROM contest_submissions WHERE contest_id = #{contestId}")
+    int deleteByContestId(@Param("contestId") String contestId);
 }

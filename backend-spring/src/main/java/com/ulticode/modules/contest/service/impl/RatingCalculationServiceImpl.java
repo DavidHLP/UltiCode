@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -26,18 +28,38 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     private final ContestParticipantMapper participantMapper;
     private final GlobalRankingMapper globalRankingMapper;
 
+    /** Default Elo rating assigned to participants without a global_ranking record. */
+    private static final int DEFAULT_RATING = 1500;
+
     @Override
     @Transactional
     public void calculateAndUpdate(String contestId) {
-        // 1. Fetch all STARTED participants for this contest
+        // 1. Fetch all real (non-virtual) participants for this contest.
+        //    P1-4 fix: filter is_virtual = 0 — virtual sessions should not
+        //    pollute the Elo calculation. We filter in Java rather than SQL
+        //    because the SQL index on (status) is more selective; the in-memory
+        //    pass over a contest-sized set is trivial.
         List<ContestParticipant> participants = participantMapper.findByContestIdAndStatus(
                 contestId, "STARTED");
         if (participants.isEmpty()) {
             log.info("No participants to rate for contest {}", contestId);
             return;
         }
+        // Drop virtual participants; they may share userId with the real row.
+        participants = participants.stream()
+                .filter(p -> !Boolean.TRUE.equals(p.getIsVirtual()))
+                .toList();
+        if (participants.isEmpty()) {
+            log.info("No real participants to rate for contest {}", contestId);
+            return;
+        }
 
-        // 2. Sort by score (DESC) then penalty (ASC) to determine rank
+        // 2. Sort by score (DESC) then penalty (ASC) to determine rank.
+        //    Wrap in a new ArrayList because the upstream filter used Stream.toList()
+        //    which returns an immutable List (Java 16+); List.sort() on an immutable
+        //    list throws UnsupportedOperationException. Defensive copy is cheap
+        //    relative to the sort itself (N log N).
+        participants = new java.util.ArrayList<>(participants);
         participants.sort((a, b) -> {
             int scoreCmp = Double.compare(
                     b.getTotalScore() != null ? b.getTotalScore() : 0,
@@ -55,21 +77,33 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             participantMapper.updateById(p);
         }
 
-        // 4. Calculate and update ratings (CF Elo variant)
-        // Only rate participants who have a global_ranking record (D-11)
+        // 4. P1-5 fix: pre-load all opponent ratings in one query (was
+        //    O(n^2) single-row SELECTs). Build a userId -> rating map for
+        //    the inner Elo loop.
+        List<String> userIds = participants.stream()
+                .map(ContestParticipant::getUserId)
+                .toList();
+        Map<String, Integer> ratingByUserId = new HashMap<>(userIds.size() * 2);
+        for (GlobalRanking gr : globalRankingMapper.findByUserIds(userIds)) {
+            ratingByUserId.put(gr.getUserId(),
+                    gr.getRating() != null ? gr.getRating() : DEFAULT_RATING);
+        }
+
+        // 5. Calculate and update ratings (CF Elo variant)
+        //    Only rate participants who have a global_ranking record (D-11).
         for (ContestParticipant participant : participants) {
             String userId = participant.getUserId();
-            Optional<GlobalRanking> grOpt = globalRankingMapper.findByUserId(userId);
-            if (grOpt.isEmpty()) {
+            Integer myRatingBoxed = ratingByUserId.get(userId);
+            if (myRatingBoxed == null) {
                 // D-11: Skip users without global_ranking record
                 log.debug("Skipping rating for user {} -- no global_ranking record", userId);
                 continue;
             }
-            GlobalRanking gr = grOpt.get();
-            int oldRating = gr.getRating() != null ? gr.getRating() : 1500;
+            int oldRating = myRatingBoxed;
 
-            // Compute rating change using CF algorithm against all other participants
-            int newRating = calculateNewRating(oldRating, participants, participant);
+            // Compute rating change using CF algorithm against all other participants.
+            // HashMap lookups replace per-iteration DB calls.
+            int newRating = calculateNewRating(oldRating, ratingByUserId, participants, participant);
 
             // Determine title from new rating
             RatingTitle newTitle = fromRating(newRating);
@@ -78,20 +112,32 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             globalRankingMapper.updateRating(userId, newRating, newTitle.name(), contestId);
 
             // Update max rating title if new max achieved
-            if (newRating > gr.getMaxRating()) {
+            Optional<GlobalRanking> grForMax = globalRankingMapper.findByUserId(userId);
+            if (grForMax.isPresent() && newRating > (grForMax.get().getMaxRating() == null ? 0 : grForMax.get().getMaxRating())) {
                 globalRankingMapper.updateMaxRatingTitle(newTitle.name(), userId);
             }
 
             log.debug("User {} rating: {} -> {} (title: {})", userId, oldRating, newRating, newTitle);
         }
 
-        // 5. Recalculate global ranks (global_rank column)
+        // 6. Recalculate global ranks (global_rank column)
         globalRankingMapper.recalculateGlobalRanks();
 
         log.info("Rating calculation complete for contest {}: {} participants rated", contestId, participants.size());
     }
 
-    private int calculateNewRating(int myRating, List<ContestParticipant> allParticipants,
+    /**
+     * Compute new Elo rating for {@code me} using a pre-loaded rating map.
+     * Replaces the O(n^2) per-opponent {@code findByUserId} calls with
+     * constant-time HashMap lookups. Database roundtrips drop from
+     * N*(N-1) to 1 (the pre-load query).
+     *
+     * <p>Tie handling: per CF convention, opponents at the same final_rank as
+     * {@code me} score 0.5 (drawn). P1-5 / quality fix.
+     */
+    private int calculateNewRating(int myRating,
+                                    Map<String, Integer> ratingByUserId,
+                                    List<ContestParticipant> allParticipants,
                                     ContestParticipant me) {
         double totalExpected = 0.0;
         double totalActual = 0.0;
@@ -99,17 +145,24 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
         for (ContestParticipant opponent : allParticipants) {
             if (opponent.getUserId().equals(me.getUserId())) continue;
 
-            Optional<GlobalRanking> oppGr = globalRankingMapper.findByUserId(opponent.getUserId());
-            if (oppGr.isEmpty()) continue;
+            Integer oppRatingBoxed = ratingByUserId.get(opponent.getUserId());
+            if (oppRatingBoxed == null) continue;
+            int oppRating = oppRatingBoxed;
 
-            int oppRating = oppGr.get().getRating() != null ? oppGr.get().getRating() : 1500;
             double expected = 1.0 / (1.0 + Math.pow(10, (oppRating - myRating) / 400.0));
             totalExpected += expected;
 
-            // Actual score: 1 if me.rank < opponent.rank (placed higher), 0 otherwise
+            // Actual score: 1 if me.placed higher, 0.5 if tied, 0 if lower
             int myRank = me.getFinalRank() != null ? me.getFinalRank() : Integer.MAX_VALUE;
             int oppRank = opponent.getFinalRank() != null ? opponent.getFinalRank() : Integer.MAX_VALUE;
-            double actual = myRank < oppRank ? 1.0 : 0.0;
+            double actual;
+            if (myRank < oppRank) {
+                actual = 1.0;
+            } else if (myRank == oppRank) {
+                actual = 0.5;
+            } else {
+                actual = 0.0;
+            }
             totalActual += actual;
         }
 

@@ -103,15 +103,16 @@ public enum ErrorCode {
     // Contest module (7xxxx)
     CONTEST_NOT_FOUND(70001, "Contest not found", HttpStatus.NOT_FOUND),
     CONTEST_ONLY_REGISTER_UPCOMING(70002, "Can only register for upcoming contests", HttpStatus.BAD_REQUEST),
-    CONTEST_ONLY_UPDATE_UPCOMING(70006, "Contest can only be updated when in UPCOMING status", HttpStatus.BAD_REQUEST),
     CONTEST_ALREADY_REGISTERED(70003, "Already registered for this contest", HttpStatus.CONFLICT),
     CONTEST_NOT_REGISTERED(70004, "Not registered for this contest", HttpStatus.BAD_REQUEST),
     CONTEST_REGISTRATION_CLOSED(70005, "Contest registration is closed", HttpStatus.BAD_REQUEST),
-    CONTEST_FULL(70006, "Contest is full", HttpStatus.BAD_REQUEST),
+    CONTEST_ONLY_UPDATE_UPCOMING(70006, "Contest can only be updated when in UPCOMING status", HttpStatus.BAD_REQUEST),
+    CONTEST_FULL(70013, "Contest is full", HttpStatus.BAD_REQUEST),
     CONTEST_NO_PERMISSION(70007, "No permission for this contest", HttpStatus.FORBIDDEN),
     CONTEST_NOT_STARTED(70008, "Contest has not started", HttpStatus.BAD_REQUEST),
     CONTEST_ENDED(70009, "Contest has ended", HttpStatus.BAD_REQUEST),
     SCORING_RULE_NOT_FOUND(70010, "Scoring rule not found", HttpStatus.NOT_FOUND),
+    CONTEST_PROBLEMS_LOCKED(70014, "Contest problems can only be modified before it starts", HttpStatus.BAD_REQUEST),
 
     // Bookmark module (8xxxx)
     BOOKMARK_FOLDER_NOT_FOUND(80001, "Bookmark folder not found", HttpStatus.NOT_FOUND),

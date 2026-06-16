@@ -79,7 +79,7 @@ class HiddenCaseLeakIT {
                 queueService, realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
                 notificationService, notificationDispatchService, notificationDispatcher,
-                judgeOutboxMapper, featureFlags, meterRegistry);
+                judgeOutboxMapper, featureFlags, meterRegistry, null);
 
         Submission s = new Submission();
         s.setId("sub-1");
@@ -127,7 +127,7 @@ class HiddenCaseLeakIT {
                 queueService, realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
                 notificationService, notificationDispatchService, notificationDispatcher,
-                judgeOutboxMapper, featureFlags, meterRegistry);
+                judgeOutboxMapper, featureFlags, meterRegistry, null);
 
         Submission s = new Submission();
         s.setId("sub-2");

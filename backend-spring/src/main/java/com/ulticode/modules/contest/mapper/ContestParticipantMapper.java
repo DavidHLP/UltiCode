@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
@@ -118,6 +119,51 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             @Param("contestId") String contestId,
             @Param("userId") String userId
     );
+
+    /**
+     * Find participant by contest + user + virtual session, disambiguating real
+     * participants from virtual sessions (P1-4 fix). Returns the unique row for
+     * the (contest, user, virtualSessionId) tuple, or empty.
+     */
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND user_id = #{userId} AND virtual_session_id = #{virtualSessionId} LIMIT 1")
+    Optional<ContestParticipant> findByContestIdAndUserIdAndVirtualSessionId(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId,
+            @Param("virtualSessionId") String virtualSessionId
+    );
+
+    /**
+     * Batch transition participants from one status to another, stamping
+     * {@code started_at} / {@code finished_at} as appropriate. Used by P0-2
+     * (REGISTERED → STARTED on contest RUNNING) and by P2-2 (auto-finish
+     * virtual participants).
+     */
+    @Update("UPDATE contest_participants SET status = #{toStatus}, "
+            + "started_at = COALESCE(started_at, #{now}), "
+            + "finished_at = CASE WHEN #{toStatus} = 'FINISHED' THEN #{now} ELSE finished_at END, "
+            + "updated_at = NOW() "
+            + "WHERE contest_id = #{contestId} AND status = #{fromStatus}")
+    int batchUpdateStatus(@Param("contestId") String contestId,
+                          @Param("fromStatus") String fromStatus,
+                          @Param("toStatus") String toStatus,
+                          @Param("now") java.time.LocalDateTime now);
+
+    /**
+     * Find virtual participants whose time has expired
+     * ({@code started_at + duration_minutes < now}). P2-2 fix.
+     */
+    @Select("SELECT cp.* FROM contest_participants cp "
+            + "JOIN contests c ON cp.contest_id = c.id "
+            + "WHERE cp.is_virtual = 1 AND cp.status = 'STARTED' "
+            + "AND c.duration_minutes IS NOT NULL "
+            + "AND TIMESTAMPADD(MINUTE, c.duration_minutes, cp.started_at) < #{now}")
+    List<ContestParticipant> findVirtualParticipantsToFinish(@Param("now") java.time.LocalDateTime now);
+
+    /**
+     * Cascade-delete all participants for a contest (used by deleteContestCascade).
+     */
+    @Delete("DELETE FROM contest_participants WHERE contest_id = #{contestId}")
+    int deleteByContestId(@Param("contestId") String contestId);
 
     /**
      * Find top N participants by score in a contest.

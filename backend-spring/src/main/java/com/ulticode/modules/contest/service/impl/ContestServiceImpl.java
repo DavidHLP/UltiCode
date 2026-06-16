@@ -27,6 +27,7 @@ import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.contest.service.ContestScoringService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -68,6 +69,8 @@ public class ContestServiceImpl implements ContestService {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ProblemMapper problemMapper;
     private final SubmissionService submissionService;
+    // P2-5 fix: cascade-delete helper invoked from deleteContest.
+    private final ContestScoringService contestScoringService;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -88,14 +91,20 @@ public class ContestServiceImpl implements ContestService {
         contest.setMaxParticipants(dto.getMaxParticipants());
         contest.setIsVisible(dto.getIsPublished() != null ? dto.getIsPublished() : false);
         contest.setCreatedBy(userId);
-        contest.setStatus(ContestStatus.DRAFT.name());
+        // P0-3 (simplified): honor the caller's isPublished flag instead of always
+        // DRAFT. Admin path (AdminContestServiceImpl.createContest:127) already
+        // does this; this makes the user-facing path consistent. DRAFT remains
+        // the default for backward compatibility when isPublished is null/false.
+        contest.setStatus(Boolean.TRUE.equals(dto.getIsPublished())
+                ? ContestStatus.UPCOMING.name()
+                : ContestStatus.DRAFT.name());
         contest.setRegisteredCount(0);
         contest.setParticipantCount(0);
         contest.setSubmissionCount(0);
         contest.setIsDeleted(false);
         contest.setSlug(generateSlug(dto.getTitle()));
         contestMapper.insert(contest);
-        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "slug", contest.getSlug(), "status", contest.getStatus()));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("slug", contest.getSlug()), Map.entry("status", contest.getStatus())));
         AuditContext.setUserId(userId);
         log.info("Contest created: {} by user {}", contest.getId(), userId);
         return toVO(contest, userId);
@@ -132,7 +141,7 @@ public class ContestServiceImpl implements ContestService {
         if (dto.getIsPublished() != null) contest.setIsVisible(dto.getIsPublished());
         contestMapper.updateById(contest);
         AuditContext.setOldValues(oldValues);
-        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("status", contest.getStatus())));
         log.info("Contest updated: {}", id);
         return toVO(contest, null);
     }
@@ -155,7 +164,16 @@ public class ContestServiceImpl implements ContestService {
                 .set(Contest::getIsDeleted, true)
                 .set(Contest::getDeletedAt, now)
                 .set(Contest::getDeletedBy, deletedBy));
-        AuditContext.setOldValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        // P2-5 fix: cascade physical delete of relational rows (participants,
+        // submissions, problem results, first-solve records, contest_problems).
+        // The soft-delete of the parent is already done above; this is a clean-up
+        // step that prevents stale rows from polluting stats / rankings.
+        try {
+            contestScoringService.deleteContestCascade(id);
+        } catch (Exception e) {
+            log.warn("P2-5 cascade cleanup failed for contest {}: {}", id, e.getMessage());
+        }
+        AuditContext.setOldValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("status", contest.getStatus())));
         AuditContext.setNewValues(null);
         log.info("Contest deleted: {} by {}", id, deletedBy);
     }
@@ -222,6 +240,11 @@ public class ContestServiceImpl implements ContestService {
         Contest contest = getContestOrThrow(contestId);
         if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest is not running");
+        }
+        // P1-2 fix: enforce contest end time. Admin must call endContest at end_time,
+        // but if they forget, submissions past end_time would otherwise slip through.
+        if (contest.getEndTime() != null && java.time.LocalDateTime.now().isAfter(contest.getEndTime())) {
+            throw new BusinessException(ErrorCode.CONTEST_ENDED, "Contest end time has passed");
         }
 
         getContestProblemOrThrow(contestId, problemId);
@@ -586,8 +609,8 @@ public class ContestServiceImpl implements ContestService {
         contest.setStatus(ContestStatus.RUNNING.name());
         contest.setActualStartTime(LocalDateTime.now());
         contestMapper.updateById(contest);
-        AuditContext.setOldValues(Map.of("status", status));
-        AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
+        AuditContext.setOldValues(Map.ofEntries(Map.entry("status", status)));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
         log.info("Contest started: {} by user {}", id, userId);
         return toVO(contest, userId);
     }
@@ -607,8 +630,8 @@ public class ContestServiceImpl implements ContestService {
         contest.setStatus(ContestStatus.FINISHED.name());
         contest.setActualEndTime(LocalDateTime.now());
         contestMapper.updateById(contest);
-        AuditContext.setOldValues(Map.of("status", ContestStatus.RUNNING.name()));
-        AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
+        AuditContext.setOldValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.FINISHED.name())));
         log.info("Contest ended: {} by user {}", id, userId);
         return toVO(contest, userId);
     }
@@ -635,7 +658,7 @@ public class ContestServiceImpl implements ContestService {
         cp.setSolvedCount(0);
         cp.setSubmissionCount(0);
         contestProblemMapper.insert(cp);
-        AuditContext.setNewValues(Map.of("addedProblemId", dto.getProblemId(), "problemIndex", cp.getProblemIndex()));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("addedProblemId", dto.getProblemId()), Map.entry("problemIndex", cp.getProblemIndex())));
         log.info("Problem {} added to contest {}", dto.getProblemId(), contestId);
         ContestProblemVO vo = new ContestProblemVO();
         vo.setId(cp.getId());
@@ -660,7 +683,7 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem not found in this contest");
         }
         contestProblemMapper.deleteById(cp.getId());
-        AuditContext.setNewValues(Map.of("removedProblemId", problemId));
+        AuditContext.setNewValues(Map.ofEntries(Map.entry("removedProblemId", problemId)));
         log.info("Problem {} removed from contest {}", problemId, contestId);
     }
 

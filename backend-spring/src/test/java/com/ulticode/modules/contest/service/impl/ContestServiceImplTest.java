@@ -98,7 +98,7 @@ class ContestServiceImplTest {
                 contestSubmissionMapper,
                 problemMapper,
                 submissionService
-        );
+        , null);
     }
 
     @AfterEach
@@ -159,7 +159,8 @@ class ContestServiceImplTest {
             assertThat(result.getDuration()).isEqualTo(120);
             assertThat(result.getMaxParticipants()).isEqualTo(1000);
             assertThat(result.getIsPublished()).isTrue();
-            assertThat(result.getStatus()).isEqualTo("DRAFT");
+            // P0-3 fix: isPublished=true -> status=UPCOMING (was DRAFT before).
+            assertThat(result.getStatus()).isEqualTo("UPCOMING");
             assertThat(result.getCurrentParticipants()).isEqualTo(0);
 
             verify(contestMapper).insert(any(Contest.class));

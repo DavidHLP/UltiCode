@@ -74,7 +74,7 @@ class SubmissionVOProjectionTest {
                 queueService, realtimeService, contestProblemMapper, contestSubmissionMapper,
                 contestMapper, contestParticipantMapper, achievementTriggerService,
                 notificationService, notificationDispatchService, notificationDispatcher,
-                judgeOutboxMapper, featureFlags, meterRegistry);
+                judgeOutboxMapper, featureFlags, meterRegistry, null);
     }
 
     private Submission buildSubmission(Submission.TestCaseDetail... details) {

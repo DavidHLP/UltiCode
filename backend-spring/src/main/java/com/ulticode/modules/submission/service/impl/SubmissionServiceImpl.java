@@ -44,9 +44,11 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
+import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -103,6 +105,15 @@ public class SubmissionServiceImpl implements SubmissionService {
      * a null registry means the counter is a silent no-op.
      */
     private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    /**
+     * Publishes {@link SubmissionJudgedEvent} after the verdict-write transaction
+     * commits. Consumed by
+     * {@code com.ulticode.modules.contest.listener.ContestScoringListener} (a
+     * {@code @TransactionalEventListener(AFTER_COMMIT)}) to apply contest scoring
+     * (P0-1). The publish is fire-and-forget; an exception here is logged but
+     * never propagated to the judge worker.
+     */
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     /**
      * Supported languages for submission.
@@ -383,6 +394,40 @@ public class SubmissionServiceImpl implements SubmissionService {
             }
         } catch (Exception e) {
             log.warn("Failed to create submission notification for submission {}: {}",
+                    submission.getId(), e.getMessage());
+        }
+
+        // P0-1: fire a SubmissionJudgedEvent so the contest scoring listener can
+        // apply the verdict to contest_submissions + contest_participants aggregates.
+        // Decoupled from the contest module so a scoring failure cannot break the
+        // judge pipeline (the listener catches and logs its own exceptions).
+        publishContestScoringEvent(submission, status);
+    }
+
+    /**
+     * Publish a {@link SubmissionJudgedEvent} on the application event publisher.
+     * Fire-and-forget: a publish failure is logged and swallowed, never
+     * propagated to the caller (the verdict has already been written; we don't
+     * want a publisher hiccup to surface as a 500 to the judge worker).
+     */
+    private void publishContestScoringEvent(Submission submission, String status) {
+        if (applicationEventPublisher == null) {
+            return;
+        }
+        try {
+            SubmissionJudgedEvent event = new SubmissionJudgedEvent(
+                    this,
+                    submission.getId(),
+                    submission.getUserId(),
+                    submission.getProblemId(),
+                    status,
+                    "Accepted".equals(status),
+                    submission.getRuntime(),
+                    java.time.LocalDateTime.now()
+            );
+            applicationEventPublisher.publishEvent(event);
+        } catch (Exception e) {
+            log.warn("Failed to publish SubmissionJudgedEvent for submission {}: {}",
                     submission.getId(), e.getMessage());
         }
     }

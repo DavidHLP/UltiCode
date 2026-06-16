@@ -144,7 +144,10 @@ const columns: ColumnDef<AuditLog>[] = [
     header: () => t('audit.columns.action'),
     cell: ({ row }) => {
       const action = row.getValue('action') as string
-      return getActionBadge(action)
+      const i18nKey = actionToI18nKey(action)
+      const translated = t(i18nKey)
+      const label = translated === i18nKey ? action : translated
+      return getActionBadge(action, label)
     },
   },
   {
@@ -154,17 +157,18 @@ const columns: ColumnDef<AuditLog>[] = [
       const entityType = row.original.entityType
       const entityId = row.original.entityId
       const icon = getEntityTypeIcon(entityType)
+      const notAvailable = t('audit.drawer.notAvailable')
       if (!entityType) {
         return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
         h(icon, { class: 'h-4 w-4 text-[var(--silver-500)]' }),
         h('div', { class: 'flex flex-col' }, [
-          h('span', { class: 'text-sm font-medium' }, entityType),
+          h('span', { class: 'text-sm font-medium' }, t(entityTypeToI18nKey(entityType), entityType)),
           h(
             'span',
             { class: 'text-[var(--silver-500)] text-xs font-data' },
-            entityId?.slice(0, 8) || 'N/A',
+            entityId?.slice(0, 8) || notAvailable,
           ),
         ]),
       ])
@@ -176,7 +180,11 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, 'System')
+        return h(
+          'span',
+          { class: 'text-[var(--silver-500)] text-sm' },
+          t('audit.systemAction'),
+        )
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),

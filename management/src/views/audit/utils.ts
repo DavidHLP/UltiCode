@@ -120,11 +120,17 @@ export function formatJson(value: unknown): string {
 /**
  * Returns a semantic badge VNode for an audit action.
  * Replaces the old getActionBadgeVariant (shadcn) and getActionBadgeClass (CSS string).
+ *
+ * `label` is rendered verbatim — callers that need a translated badge
+ * should pre-translate (e.g. via `t(actionToI18nKey(action))`) before
+ * passing it in. We do not call `useI18n()` here because this helper
+ * is invoked from `h()` render functions where the i18n instance is
+ * not in scope.
  */
-export function getActionBadge(action: string): VNode {
+export function getActionBadge(action: string, label?: string): VNode {
   return badge({
     color: getAuditActionColor(action),
-    label: action,
+    label: label ?? action,
     icon: getActionIcon(action),
   })
 }

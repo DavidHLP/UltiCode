@@ -35,11 +35,9 @@ const startingVirtual = ref(false);
 const contestProblems = ref<ContestProblemSummary[]>([]);
 
 const isRegistered = computed(() => contestStore.isRegistered(contestId));
-const virtualSessionActive = computed(
-  () =>
-    contestStore.virtualSession &&
-    contestStore.virtualSession.status === "IN_PROGRESS",
-);
+// 委托 store 的归一化判定（后端返回 status "started"，store 已处理枚举错配），
+// 避免在此重复硬编码 "IN_PROGRESS"。
+const virtualSessionActive = computed(() => contestStore.isInVirtualContest);
 
 const {
   statusCountdown,
@@ -140,6 +138,8 @@ async function handleStartVirtual() {
   try {
     await contestStore.startVirtualContest(contestId);
     await contestStore.loadParticipationStatus(contestId);
+    toast.success(t("contest.virtual.started"));
+    scrollToSection("contest-problems");
   } catch (error: unknown) {
     toast.error(getErrorMessage(error, t("contest.detail.startVirtualFailed")));
   } finally {

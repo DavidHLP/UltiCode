@@ -81,6 +81,11 @@ public class ParticipationStatusDTO {
     private Long score;
 
     /**
+     * User's penalty time in the contest (seconds), mirroring ContestParticipant.totalPenalty.
+     */
+    private Integer penalty;
+
+    /**
      * Number of problems solved by user in the contest
      */
     private Integer problemsSolved;

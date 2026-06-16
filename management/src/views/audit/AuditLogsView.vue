@@ -4,7 +4,6 @@ import { formatDateTimeByLocale } from '@/i18n/utils'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconDotsVertical,
   IconInfoCircle,
   IconRefresh,
   IconX,
@@ -17,12 +16,6 @@ import { useI18n } from 'vue-i18n'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -122,6 +115,13 @@ watch(
 )
 
 function showDetails(log: AuditLog) {
+  // 主动移除触发按钮的焦点。抽屉是模态 reka Dialog,打开时会立即给背景(含侧边栏
+  // sidebar-wrapper)标记 aria-hidden;若此时焦点仍停留在位于背景内的触发按钮上,会触发
+  // "Blocked aria-hidden ... descendant retained focus" 警告(reka-ui #1280 的基础竞态,
+  // 任何背景内 trigger → 模态 Dialog 都会复现,与是否 dropdown 无关)。先 blur 让焦点回到
+  // body,无论 reka 的 aria-hide 与 openAutoFocus 谁先执行,aria-hide 时焦点都不在被隐藏
+  // 的子树内;随后抽屉的 focus trap 会把焦点移入抽屉。
+  ;(document.activeElement as HTMLElement | null)?.blur()
   selectedLog.value = log
   detailsDrawerOpen.value = true
 }
@@ -228,46 +228,18 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const log = row.original
       return h(
-        DropdownMenu,
-        {},
+        Button,
+        {
+          variant: 'ghost',
+          size: 'icon',
+          class: 'h-8 w-8 p-0',
+          title: t('audit.actions.viewDetails'),
+          onClick: () => showDetails(log),
+        },
         {
           default: () => [
-            h(
-              DropdownMenuTrigger,
-              { asChild: true },
-              {
-                default: () =>
-                  h(
-                    Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    {
-                      default: () => [
-                        h('span', { class: 'sr-only' }, t('audit.actions.openMenu')),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
-                      ],
-                    },
-                  ),
-              },
-            ),
-            h(
-              DropdownMenuContent,
-              { align: 'end' },
-              {
-                default: () => [
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => showDetails(log) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconInfoCircle, { class: 'h-4 w-4' }),
-                          t('audit.actions.viewDetails'),
-                        ]),
-                    },
-                  ),
-                ],
-              },
-            ),
+            h('span', { class: 'sr-only' }, t('audit.actions.viewDetails')),
+            h(IconInfoCircle, { class: 'h-4 w-4' }),
           ],
         },
       )

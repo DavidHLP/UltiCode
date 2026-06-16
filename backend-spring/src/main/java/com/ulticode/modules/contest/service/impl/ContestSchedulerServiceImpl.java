@@ -110,6 +110,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         status.setCompletedAt(p.getFinishedAt());
         status.setRanking(p.getFinalRank());
         status.setScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
+        status.setPenalty(p.getTotalPenalty());
         status.setHasStarted(p.getStartedAt() != null);
         status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(p.getStatus()));
         status.setIsActive(ContestParticipantStatus.STARTED.name().equals(p.getStatus()));
@@ -187,6 +188,8 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         status.setStartTime(participant.getStartedAt());
         status.setEndTime(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
         status.setEndsAt(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
+        status.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
+        status.setPenalty(participant.getTotalPenalty());
         status.setHasStarted(true);
         status.setIsActive(ContestParticipantStatus.STARTED.name().equals(participant.getStatus()));
         status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(participant.getStatus()));

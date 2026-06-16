@@ -66,9 +66,19 @@ export const useContestStore = defineStore("contest", () => {
     );
   });
 
-  const isInVirtualContest = computed(
-    () => virtualSession.value?.status === "IN_PROGRESS",
-  );
+  // 后端 /virtual/start 与 /virtual/session 返回的 status 为小写 "started"，
+  // 与前端 VirtualContestStatus 的 "IN_PROGRESS" 不一致（跨栈 DTO 枚举错配，
+  // 见后端 ParticipationStatusDTO）。后端同时返回 isActive 布尔，优先用它判定，
+  // status 字面量仅作兜底，集中处理避免各组件重复踩坑。
+  const isInVirtualContest = computed(() => {
+    const session = virtualSession.value;
+    if (!session) return false;
+    if (typeof session.isActive === "boolean") return session.isActive;
+    // status 类型声明为 VirtualContestStatus，但后端实际返回小写 "started"，
+    // 按 string 比较以兼容跨栈枚举错配。
+    const status = session.status as string;
+    return status === "IN_PROGRESS" || status === "started";
+  });
 
   const currentVirtualTimeRemaining = computed(() => {
     if (!virtualSession.value?.endsAt) return 0;

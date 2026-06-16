@@ -195,6 +195,7 @@ export default {
     title: "虚拟比赛",
     description: "在任意时间以真实比赛的形式参加历史比赛",
     start: "开始虚拟比赛",
+    started: "虚拟比赛已开始",
     inProgress: "虚拟比赛进行中",
     active: "虚拟比赛进行中",
     contestId: "比赛ID：",

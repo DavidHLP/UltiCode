@@ -202,6 +202,7 @@ export default {
     description:
       "Participate in past contests at any time as if it were a real contest",
     start: "Start Virtual Contest",
+    started: "Virtual contest started",
     inProgress: "Virtual Contest In Progress",
     active: "Virtual Contest Active",
     contestId: "Contest ID:",

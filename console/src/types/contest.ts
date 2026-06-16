@@ -207,13 +207,27 @@ export interface ParticipationStatus {
 export interface VirtualContestSession {
   id: string;
   contestId: string;
-  userId: string;
+  title?: string;
   status: VirtualContestStatus;
+  registeredAt?: string;
   startedAt: string;
   endsAt: string;
-  finishedAt: string;
-  totalScore: number;
-  totalPenalty: number;
+  /**
+   * 后端 ParticipationStatusDTO.score（用户当前总分）。
+   */
+  score?: number;
+  /**
+   * 后端 ParticipationStatusDTO.penalty（用户累计罚时，秒）。
+   */
+  penalty?: number;
+  /**
+   * 后端 ParticipationStatusDTO 同时返回的语义布尔（/virtual/start、/virtual/session）。
+   * 前端优先用 isActive 判定会话活跃，避免 status 字面量跨栈错配
+   * （后端 "started" vs 前端 VirtualContestStatus "IN_PROGRESS"）。
+   */
+  isActive?: boolean;
+  hasStarted?: boolean;
+  isCompleted?: boolean;
 }
 
 // ============================================================================

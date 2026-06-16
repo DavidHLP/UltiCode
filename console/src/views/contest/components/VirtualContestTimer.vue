@@ -159,11 +159,11 @@ onUnmounted(() => {
         >
           <span
             >{{ t("contest.ranking.score") }}:
-            {{ session.totalScore || 0 }}</span
+            {{ session.score ?? 0 }}</span
           >
           <span
             >{{ t("contest.ranking.penalty") }}:
-            {{ formatPenaltyTime(session.totalPenalty ?? 0) }}</span
+            {{ formatPenaltyTime(session.penalty ?? 0) }}</span
           >
         </div>
       </div>

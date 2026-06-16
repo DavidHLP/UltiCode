@@ -23,6 +23,7 @@ const contestStore = useContestStore();
 const { t } = useI18n();
 const timeRemaining = ref(0);
 let intervalId: number | null = null;
+let finishRequested = false;
 
 const isActive = computed(() => contestStore.isInVirtualContest);
 const session = computed(() => contestStore.virtualSession);
@@ -56,19 +57,34 @@ function updateTimer() {
 
   timeRemaining.value = remaining;
 
-  if (remaining === 0 && intervalId !== null) {
+  if (remaining === 0) {
+    stopTimer();
+    void finishCurrentVirtualContest();
+  }
+}
+
+function stopTimer() {
+  if (intervalId !== null) {
     clearInterval(intervalId);
+    intervalId = null;
+  }
+}
+
+async function finishCurrentVirtualContest() {
+  if (finishRequested) return;
+  if (!session.value?.contestId) return;
+
+  finishRequested = true;
+  try {
+    await contestStore.finishVirtualContest(session.value.contestId);
+  } catch {
+    finishRequested = false;
+    toast.error(t("contest.virtual.finishFailed"));
   }
 }
 
 async function handleFinish() {
-  if (!session.value?.contestId) return;
-
-  try {
-    await contestStore.finishVirtualContest(session.value.contestId);
-  } catch {
-    toast.error(t("contest.virtual.finishFailed"));
-  }
+  await finishCurrentVirtualContest();
 }
 
 onMounted(() => {
@@ -77,9 +93,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (intervalId !== null) {
-    clearInterval(intervalId);
-  }
+  stopTimer();
 });
 </script>
 

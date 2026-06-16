@@ -9,14 +9,31 @@ import java.util.Map;
  * onto the per-case {@code results[]} array of the envelope.
  *
  * <p>Verdict status strings: {@code Accepted}, {@code Wrong Answer},
- * {@code Runtime Error}, {@code Time Limit Exceeded}, {@code Compile Error}.
- * Anything else is treated as Runtime Error by the backend.
+ * {@code Runtime Error}, {@code Time Limit Exceeded}, {@code Compile Error},
+ * {@code Memory Limit Exceeded}. Anything else is treated as Runtime Error
+ * by the backend.
+ *
+ * <p>Measurement fields (resource measurement contract, ADR-002 §8):
+ * <ul>
+ *   <li>{@code elapsedMs} / {@code elapsedUs} — wall-clock duration in
+ *       milliseconds (legacy, ms-truncated) and microseconds (precise).
+ *       Prefer {@code elapsedUs} for display; {@code elapsedMs} stays for
+ *       backwards compatibility.</li>
+ *   <li>{@code peakMemoryBytes} — peak resident-set / heap of the case, in
+ *       bytes. Semantics differ slightly by language (see ADR-002 §8) but
+ *       all report a genuine peak (not a single-point sample).</li>
+ *   <li>{@code cpuMs} — CPU time (user + sys) the user code actually
+ *       consumed, in milliseconds. Used for fair cross-language comparison;
+ *       TLE is still judged on wall-clock.</li>
+ * </ul>
  */
 public record PerCaseResultDTO(
         String caseId,
         String label,
         long elapsedMs,
         long peakMemoryBytes,
+        long elapsedUs,
+        long cpuMs,
         String status,
         Object result,
         Boolean interrupted,
@@ -39,6 +56,11 @@ public record PerCaseResultDTO(
         // peak_memory_bytes is emitted by Main.java since the M3 memory-
         // reporting patch; tolerate older harnesses by defaulting to 0.
         long peakMemoryBytes = longOrZero(m.get("peak_memory_bytes"));
+        // Precise wall-clock (microseconds) and CPU time (ms). Newer
+        // harnesses emit these; older ones default to 0, in which case
+        // callers fall back to elapsedMs.
+        long elapsedUs = longOrZero(m.get("elapsed_us"));
+        long cpuMs = longOrZero(m.get("cpu_ms"));
         String status = strOrNull(m.get("status"));
         Object result = m.get("result");
         Boolean interrupted = m.get("interrupted") instanceof Boolean b ? b : null;
@@ -54,7 +76,8 @@ public record PerCaseResultDTO(
                             : List.of());
         }
         return new PerCaseResultDTO(
-                caseId, label, elapsedMs, peakMemoryBytes, status, result, interrupted,
+                caseId, label, elapsedMs, peakMemoryBytes, elapsedUs, cpuMs,
+                status, result, interrupted,
                 err,
                 strOrNull(m.get("user_stdout")),
                 strOrNull(m.get("user_stderr")));

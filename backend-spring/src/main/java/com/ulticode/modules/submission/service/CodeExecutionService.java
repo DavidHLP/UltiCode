@@ -10,14 +10,21 @@ import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
+import com.ulticode.modules.submission.util.OJSignatureParser;
+import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.entity.ProblemLanguage;
+import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +52,8 @@ public class CodeExecutionService {
     private final SandboxExecutor sandboxExecutor;
     private final CodeExecutionHelper helper;
     private final VerdictResolver verdictResolver;
+    private final ProblemLanguageMapper problemLanguageMapper;
+    private final ProblemMapper problemMapper;
     /**
      * M2a-round-2 fix (codex review F2): defaults were hard-coded to
      * 2s / 256 MiB which silently regressed both /run and /submit
@@ -55,6 +64,13 @@ public class CodeExecutionService {
      * per-run value.
      */
     private final DockerSandboxConfig sandboxConfig;
+
+    /**
+     * 进程级缓存:(problemId, language) -> 推断出的 OJ 参数类型列表,避免每次
+     * /run 都查 DB + 解析 starter_code。题目 starter_code 由管理后台维护、变更
+     * 频率极低,简单缓存即可;starter_code 被编辑后重启或接更新事件失效。
+     */
+    private final Map<String, List<String>> signatureCache = new ConcurrentHashMap<>();
 
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage() == null
@@ -76,6 +92,12 @@ public class CodeExecutionService {
             return helper.emptyResult(problemId, userId);
         }
 
+        // 链表/树题:从题目 starter_code 推断参数 OJ 类型(ListNode/TreeNode),
+        // 回填到每个 input 的 type。用户代码无类型注解时,这是 harness 把
+        // [2,4,3] 反序列化成 ListNode 的唯一信号。详见 OJSignatureParser。
+        List<String> paramTypes = resolveParamTypes(problemId, language);
+        enrichInputTypes(testCases, paramTypes);
+
         // Map the wire DTO to the port-owned sandbox test-case shape
         // at the seam; the sandbox never sees the DTO type.
         List<TestCase> sandboxCases = testCases.stream()
@@ -86,6 +108,11 @@ public class CodeExecutionService {
         // Per-run job descriptor. The submissionId is synthetic for
         // /run (preview) requests because no DB row exists yet — see
         // SandboxJob.submissionId() javadoc.
+        // ADR-002 §8 (P2-1): per-problem time/memory limits take
+        // precedence over the global default; NULL on the problem row
+        // falls back to the global default.
+        int timeoutSeconds = resolveTimeoutSeconds(problemId);
+        int memoryMb = resolveMemoryMb(problemId);
         SandboxJob job = new SandboxJob(
                 runId,
                 userId == null ? "" : userId,
@@ -93,8 +120,8 @@ public class CodeExecutionService {
                 /* submissionGeneration */ 0L,
                 language,
                 request.getCode() == null ? "" : request.getCode(),
-                /* timeoutSeconds */ deriveDefaultTimeoutSeconds(),
-                /* memoryMb */ deriveDefaultMemoryMb()
+                /* timeoutSeconds */ timeoutSeconds,
+                /* memoryMb */ memoryMb
         );
 
         List<RunResultDTO.RunCaseResult> dtoResults = new ArrayList<>(sandboxCases.size());
@@ -117,7 +144,14 @@ public class CodeExecutionService {
                         .collect(Collectors.toList())
         ).wireValue();
         long totalRuntimeMs = dtoResults.stream()
-                .mapToLong(r -> helper.parseRuntimeMs(r.getRuntime()))
+                .mapToLong(r -> r.getRuntimeMs() != null ? r.getRuntimeMs()
+                        : helper.parseRuntimeMs(r.getRuntime()))
+                .sum();
+        long totalRuntimeUs = dtoResults.stream()
+                .mapToLong(r -> r.getRuntimeUs() != null ? r.getRuntimeUs() : 0L)
+                .sum();
+        long totalCpuMs = dtoResults.stream()
+                .mapToLong(r -> r.getCpuMs() != null ? r.getCpuMs() : 0L)
                 .sum();
         double maxMemoryMb = dtoResults.stream()
                 .map(RunResultDTO.RunCaseResult::getMemoryMb)
@@ -131,14 +165,89 @@ public class CodeExecutionService {
                 .problemId(problemId)
                 .userId(userId)
                 .verdict(verdict)
-                .runtime(totalRuntimeMs + "ms")
+                .runtime(totalRuntimeUs > 0
+                        ? String.format("%.2fms", totalRuntimeUs / 1000.0)
+                        : totalRuntimeMs + "ms")
                 .runtimeMs(totalRuntimeMs)
+                .runtimeUs(totalRuntimeUs > 0 ? totalRuntimeUs : null)
+                .cpuMs(totalCpuMs > 0 ? totalCpuMs : null)
                 .memory(String.format("%.1fMB", maxMemoryMb))
                 .memoryMb(maxMemoryMb)
                 .cases(dtoResults)
                 .passedCases(passedCases)
                 .totalCases(testCases.size())
                 .build();
+    }
+
+    // ── 参数类型推断(链表/树题)──────────────────────────────────────────────
+
+    /**
+     * 按 (problemId, language) 解析题目 starter_code,得到 Solution 方法参数的
+     * OJ 类型列表。结果进程级缓存,starter_code 变更频率极低。
+     */
+    private List<String> resolveParamTypes(Long problemId, String language) {
+        if (problemId == null) {
+            return List.of();
+        }
+        String cacheKey = problemId + ":" + language;
+        List<String> cached = signatureCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+        List<String> paramTypes = doResolveParamTypes(problemId, language);
+        signatureCache.putIfAbsent(cacheKey, paramTypes);
+        return paramTypes;
+    }
+
+    private List<String> doResolveParamTypes(Long problemId, String language) {
+        try {
+            List<ProblemLanguage> langs = problemLanguageMapper.findByProblemId(problemId);
+            if (langs == null) {
+                return List.of();
+            }
+            String starter = langs.stream()
+                    .filter(l -> l.getValue() != null && l.getValue().equalsIgnoreCase(language))
+                    .map(ProblemLanguage::getStarterCode)
+                    .findFirst()
+                    .orElse(null);
+            if (starter == null || starter.isBlank()) {
+                return List.of();
+            }
+            return OJSignatureParser.parse(starter, language);
+        } catch (RuntimeException e) {
+            // 任何数据访问/解析异常都安全退化:不给 type 提示,等价修复前行为。
+            log.debug("Failed to resolve OJ param types for problem {} lang {}: {}",
+                    problemId, language, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * 把推断出的参数类型回填到每个 test case 的 inputs:仅当 input 自身未带 type
+     * 时按位置填入(paramTypes[i]),保留「input 显式 type > starter_code 推断」优先级。
+     * 所有 test case 共享同一份 paramTypes(方法级参数类型),位置与 harness 的
+     * 位置绑定语义一致。
+     */
+    private void enrichInputTypes(List<RunSubmissionDTO.RunTestCase> testCases, List<String> paramTypes) {
+        if (paramTypes == null || paramTypes.isEmpty()) {
+            return;
+        }
+        for (RunSubmissionDTO.RunTestCase tc : testCases) {
+            List<RunSubmissionDTO.RunInput> inputs = tc.getInputs();
+            if (inputs == null) {
+                continue;
+            }
+            for (int i = 0; i < inputs.size(); i++) {
+                RunSubmissionDTO.RunInput in = inputs.get(i);
+                String hint = i < paramTypes.size() ? paramTypes.get(i) : null;
+                if (hint == null) {
+                    continue;
+                }
+                if (in.getType() == null || in.getType().isBlank()) {
+                    in.setType(hint);
+                }
+            }
+        }
     }
 
     // ── DTO ↔ port translation at the seam ──────────────────────────────────
@@ -180,6 +289,12 @@ public class CodeExecutionService {
                             .build())
                     .toList();
         }
+        // Prefer precise microseconds for the formatted string so fast
+        // cases stop showing "0ms" (ADR-002 §8). Fall back to the legacy
+        // ms value when the harness didn't emit elapsed_us.
+        String runtimeStr = port.elapsedUs() > 0
+                ? String.format("%.2fms", port.elapsedUs() / 1000.0)
+                : port.elapsedMs() + "ms";
         return RunResultDTO.RunCaseResult.builder()
                 .id(original == null ? null : original.getId())
                 .runId(runId)
@@ -187,15 +302,50 @@ public class CodeExecutionService {
                 .testCaseId(original == null ? null : original.getId())
                 .caseLabel(original == null ? null : original.getLabel())
                 .status(wireStatus)
-                .runtime(port.elapsedMs() + "ms")
+                .runtime(runtimeStr)
                 .memory(String.format("%.1fMB", (double) memoryMb))
                 .runtimeMs(port.elapsedMs())
                 .memoryMb((double) memoryMb)
+                .runtimeUs(port.elapsedUs() > 0 ? port.elapsedUs() : null)
+                .cpuMs(port.cpuMs() > 0 ? port.cpuMs() : null)
                 .detail(port.detail())
                 .output(port.output())
                 .expectedOutput(port.expectedOutput())
                 .inputs(dtoInputs)
                 .build();
+    }
+
+    // ── Per-problem resource limits (ADR-002 §8 / P2-1) ─────────────────────
+    // A problem may carry its own time_limit (seconds) / memory_limit (MiB).
+    // When present they override the global default; when NULL the global
+    // default still applies, preserving backwards compatibility.
+
+    private int resolveTimeoutSeconds(Long problemId) {
+        Integer limit = readProblemLimit(problemId, true);
+        return limit != null ? Math.max(1, limit) : deriveDefaultTimeoutSeconds();
+    }
+
+    private int resolveMemoryMb(Long problemId) {
+        Integer limit = readProblemLimit(problemId, false);
+        return (limit != null && limit > 0) ? limit : deriveDefaultMemoryMb();
+    }
+
+    private Integer readProblemLimit(Long problemId, boolean time) {
+        if (problemId == null) {
+            return null;
+        }
+        try {
+            Problem problem = problemMapper.selectById(problemId);
+            if (problem == null) {
+                return null;
+            }
+            return time ? problem.getTimeLimit() : problem.getMemoryLimit();
+        } catch (RuntimeException e) {
+            // Safe degrade: any data-access hiccup falls back to the global
+            // default rather than failing the run.
+            log.debug("Failed to read problem {} resource limits: {}", problemId, e.getMessage());
+            return null;
+        }
     }
 
     // ── Per-run defaults ─────────────────────────────────────────────────────

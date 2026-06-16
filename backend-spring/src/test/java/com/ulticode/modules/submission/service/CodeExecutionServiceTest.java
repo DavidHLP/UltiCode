@@ -2,6 +2,8 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
@@ -53,6 +55,12 @@ class CodeExecutionServiceTest {
     @Mock
     private DockerSandboxConfig sandboxConfig;
 
+    @Mock
+    private ProblemLanguageMapper problemLanguageMapper;
+
+    @Mock
+    private ProblemMapper problemMapper;
+
     @Spy
     private VerdictResolver verdictResolver = new VerdictResolver();
 
@@ -71,8 +79,14 @@ class CodeExecutionServiceTest {
         // would otherwise flag the unused stubs.
         lenient().when(sandboxConfig.timeout()).thenReturn(10);
         lenient().when(sandboxConfig.memory()).thenReturn("256m");
+        // ADR-002 §8 (P2-1): ProblemMapper is a plain mock — selectById
+        // returns null by default, so resolveTimeoutSeconds/Mb fall back to
+        // the global default (matches pre-P2-1 behaviour). No explicit stub
+        // needed (an explicit one trips UnnecessaryStubbing for the cases
+        // that pass problemId=null).
         codeExecutionService = new CodeExecutionService(
-                sandboxExecutor, helper, verdictResolver, sandboxConfig);
+                sandboxExecutor, helper, verdictResolver, problemLanguageMapper, problemMapper,
+                sandboxConfig);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {
@@ -151,7 +165,10 @@ class CodeExecutionServiceTest {
             RunSubmissionDTO.RunTestCase tc = createTestCase("tc-1", "42");
             RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc));
             when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(accepted());
-            when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
+            // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
+            // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
+            // longer on the hot path — lenient so the stub stays tolerant.
+            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -170,7 +187,10 @@ class CodeExecutionServiceTest {
             RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc1, tc2));
             when(sandboxExecutor.runBatch(any(SandboxJob.class), anyList()))
                     .thenReturn(new BatchRunResult(List.of(accepted(), wrongAnswer())));
-            when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
+            // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
+            // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
+            // longer on the hot path — lenient so the stub stays tolerant.
+            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -212,7 +232,9 @@ class CodeExecutionServiceTest {
             tc.setInputs(List.of(in));
             RunSubmissionDTO request = createRequest("java", "class Solution {}", List.of(tc));
             when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(portResult);
-            when(helper.parseRuntimeMs(anyString())).thenReturn(2L);
+            // ADR-002 §8: aggregation now uses dto.runtimeMs (set from
+            // port.elapsedMs=2), so parseRuntimeMs is off the hot path.
+            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(2L);
 
             RunResultDTO result = codeExecutionService.execute(request, 7L, "user-1");
 

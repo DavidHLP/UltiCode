@@ -21,7 +21,15 @@ import java.util.List;
  *   <li>{@code elapsedMs} — wall-clock duration of the case in
  *       milliseconds, as reported by the harness. Always non-negative;
  *       {@code 0} when the harness could not measure (e.g. compile
- *       failure that never ran).</li>
+ *       failure that never ran). Legacy ms-truncated value.</li>
+ *   <li>{@code elapsedUs} — precise wall-clock duration in microseconds
+ *       (ADR-002 §8). Preferred over {@code elapsedMs} for display since
+ *       the ms value truncates 0–999µs to {@code 0ms}. {@code 0} for
+ *       older harnesses that do not emit {@code elapsed_us}.</li>
+ *   <li>{@code cpuMs} — CPU time (user + sys) the user code consumed, in
+ *       milliseconds (ADR-002 §8). Used for fair cross-language
+ *       comparison; TLE is still judged on wall-clock. {@code 0} for
+ *       older harnesses.</li>
  *   <li>{@code memoryBytes} — peak resident-set size in bytes, as
  *       reported by the harness (or by docker {@code --memory} cap
  *       when the harness did not report). Always non-negative.</li>
@@ -59,12 +67,35 @@ public record RunCaseResult(
         SubmissionStatus status,
         long elapsedMs,
         long memoryBytes,
+        long elapsedUs,
+        long cpuMs,
         String detail,
         double score,
         String output,
         String expectedOutput,
         List<TestCase.Input> inputs
 ) {
+
+    /**
+     * Canonical constructor — full 10-arg form used by the executor when
+     * it has the complete measurement set from the envelope. Prefer the
+     * static factories below for hand-built results (tests, adapters).
+     */
+    public RunCaseResult(SubmissionStatus status, long elapsedMs, long memoryBytes,
+                         long elapsedUs, long cpuMs, String detail, double score,
+                         String output, String expectedOutput,
+                         List<TestCase.Input> inputs) {
+        this.status = status;
+        this.elapsedMs = elapsedMs;
+        this.memoryBytes = memoryBytes;
+        this.elapsedUs = elapsedUs;
+        this.cpuMs = cpuMs;
+        this.detail = detail;
+        this.score = score;
+        this.output = output;
+        this.expectedOutput = expectedOutput;
+        this.inputs = inputs;
+    }
 
     /**
      * Convenience: build an {@link SubmissionStatus#ACCEPTED} result
@@ -74,7 +105,7 @@ public record RunCaseResult(
      */
     public static RunCaseResult accepted(long elapsedMs, long memoryBytes) {
         return new RunCaseResult(SubmissionStatus.ACCEPTED, elapsedMs, memoryBytes,
-                null, 1.0, null, null, null);
+                0L, 0L, null, 1.0, null, null, null);
     }
 
     /**
@@ -86,7 +117,7 @@ public record RunCaseResult(
                                                    String output, String expectedOutput,
                                                    List<TestCase.Input> inputs) {
         return new RunCaseResult(SubmissionStatus.ACCEPTED, elapsedMs, memoryBytes,
-                null, 1.0, output, expectedOutput, inputs);
+                0L, 0L, null, 1.0, output, expectedOutput, inputs);
     }
 
     /**
@@ -101,7 +132,7 @@ public record RunCaseResult(
                     "rejected() is for non-accepted statuses; use accepted() for ACCEPTED");
         }
         return new RunCaseResult(status, elapsedMs, memoryBytes,
-                detail, 0.0, null, null, null);
+                0L, 0L, detail, 0.0, null, null, null);
     }
 
     /**
@@ -118,6 +149,6 @@ public record RunCaseResult(
                     "rejectedWithOutput() is for non-accepted statuses; use acceptedWithOutput() for ACCEPTED");
         }
         return new RunCaseResult(status, elapsedMs, memoryBytes,
-                detail, 0.0, output, expectedOutput, inputs);
+                0L, 0L, detail, 0.0, output, expectedOutput, inputs);
     }
 }

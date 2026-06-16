@@ -21,7 +21,7 @@ class CodeExecutionHelperImplTest {
     @DisplayName("buildDInputsJson wraps a single test case in the harness input.json schema")
     void buildDInputsJson_singleCase() throws Exception {
         RunSubmissionDTO.RunTestCase tc = singleCase();
-        String json = helper.buildDInputsJson(tc, 1_000L);
+        String json = helper.buildDInputsJson(tc, 1_000L, 0L);
 
         // snake_case keys, per_case_timeout_ms at top, cases[].inputs[]
         assertThat(json).contains("\"per_case_timeout_ms\":1000");
@@ -40,7 +40,7 @@ class CodeExecutionHelperImplTest {
         RunSubmissionDTO.RunTestCase tc = singleCase();
         tc.getInputs().get(0).setType("ListNode");
         tc.getInputs().get(1).setType("ListNode[]");
-        String json = helper.buildDInputsJson(tc, 1_000L);
+        String json = helper.buildDInputsJson(tc, 1_000L, 0L);
         assertThat(json).contains("\"type\":\"ListNode\"");
         assertThat(json).contains("\"type\":\"ListNode[]\"");
     }
@@ -50,7 +50,7 @@ class CodeExecutionHelperImplTest {
     void buildDInputsJson_unsupportedTypeDropped() throws Exception {
         RunSubmissionDTO.RunTestCase tc = singleCase();
         tc.getInputs().get(0).setType("NotARealType");
-        String json = helper.buildDInputsJson(tc, 1_000L);
+        String json = helper.buildDInputsJson(tc, 1_000L, 0L);
         assertThat(json).doesNotContain("NotARealType");
         // but the field is omitted cleanly — no junk like "type":null
         assertThat(json).doesNotContain("\"type\":null");
@@ -62,7 +62,7 @@ class CodeExecutionHelperImplTest {
         RunSubmissionDTO.RunTestCase tc1 = singleCase();
         RunSubmissionDTO.RunTestCase tc2 = singleCase();
         tc2.setId("pe-002-2");
-        String json = helper.buildDBatchInputsJson(List.of(tc1, tc2), 2_000L);
+        String json = helper.buildDBatchInputsJson(List.of(tc1, tc2), 2_000L, 0L);
         assertThat(json).contains("\"per_case_timeout_ms\":2000");
         // Both case_ids present, in input order
         int idx1 = json.indexOf("\"case_id\":\"pe-002-1\"");

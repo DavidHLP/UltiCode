@@ -87,11 +87,23 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     // DFORM_OUTPUT_BUDGET_BYTES (Phase 3.5 #3 fix).
     private static final int DFORM_OUTPUT_BUDGET_BYTES = 8 * 1024 * 1024 + 128 * 1024;
 
-    // Per-case soft timeout forwarded to the harness worker thread.
-    // Matches the pre-M2a dFormPerCaseTimeoutMs derivation: hard
-    // timeout minus 1s, floored at 500ms.
-    private static final int DFORM_SOFT_TIMEOUT_BUFFER_MS = 1000;
+    // Per-case soft timeout floor forwarded to the harness (its
+    // per_case_timeout_ms). ADR-002 §8: the soft timeout now equals the
+    // problem's per-case limit directly (no longer derived from a single
+    // hard timeout), floored at 500ms so a misconfigured 0 doesn't TLE
+    // every case instantly.
     private static final int DFORM_SOFT_TIMEOUT_FLOOR_MS = 500;
+
+    // ── Docker hard-timeout math (ADR-002 §8) ───────────────────────────────
+    // The whole-batch hard timeout scales with case count so N cases each
+    // allowed `timeoutSeconds` don't get SIGKILLed after the first one.
+    private static final int MAX_BATCH_HARD_TIMEOUT_SECONDS = 180;
+    // C/C++ g++ compile budget folded into the docker hard timeout so the
+    // runner's compile phase never gets killed by the outer cap (ADR-002 §8
+    // / P1-4). Interpreted languages get 0.
+    private static final int COMPILE_BUDGET_SECONDS = 35;
+    // Grace for docker startup + envelope flush after the last case.
+    private static final int DOCKER_GRACE_SECONDS = 2;
 
     // ── Common security args (ADR-002 §3.3) ──────────────────────────────────
     // These are appended to every language's docker command so a
@@ -148,7 +160,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 return new BatchRunResult(cases.stream()
                         .map(c -> rejected(SubmissionStatus.TIME_LIMIT_EXCEEDED,
                                 "D-form batch dispatch timed out after "
-                                        + hardTimeoutSeconds(job) + "s",
+                                        + hardTimeoutSeconds(job, cases.size()) + "s",
                                 perCase, 0L))
                         .toList());
             }
@@ -172,6 +184,22 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                             .map(c -> RunCaseResult.rejected(
                                     SubmissionStatus.SANDBOX_ERROR,
                                     detail, perCase, 0L))
+                            .toList());
+                }
+                // ADR-002 §8 Layer C: docker SIGKILL (exit 137) with no
+                // harness envelope is almost always a cgroup OOM kill — a
+                // genuine per-case TLE already produced a "Time Limit Exceeded"
+                // envelope via the harness soft timeout, so a bare 137 means
+                // the harness itself was killed mid-run. Surface as
+                // SANDBOX_ERROR with an honest hint instead of masking as
+                // Runtime Error.
+                if (outcome.exitCode() == 137) {
+                    long perCase = (System.nanoTime() - start) / 1_000_000
+                            / Math.max(cases.size(), 1);
+                    return new BatchRunResult(cases.stream()
+                            .map(c -> rejected(SubmissionStatus.SANDBOX_ERROR,
+                                    "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)",
+                                    perCase, 0L))
                             .toList());
                 }
                 if (isSandboxForkFailure(outcome.stdout())) {
@@ -201,9 +229,10 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             // metadata (the DTO already has the harness's actual
             // output; the port only needs the inputs and expected
             // output from the request).
+            long memoryLimitBytes = effectiveMemoryLimitBytes(job);
             List<RunCaseResult> parsed = new ArrayList<>(parsedDto.size());
             for (int i = 0; i < parsedDto.size(); i++) {
-                parsed.add(toPortResult(parsedDto.get(i), cases.get(i)));
+                parsed.add(toPortResult(parsedDto.get(i), cases.get(i), memoryLimitBytes));
             }
             return new BatchRunResult(parsed);
 
@@ -222,7 +251,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
             if (outcome.timedOut()) {
                 return rejected(SubmissionStatus.TIME_LIMIT_EXCEEDED,
-                        "D-form dispatch timed out after " + hardTimeoutSeconds(job) + "s",
+                        "D-form dispatch timed out after " + hardTimeoutSeconds(job, 1) + "s",
                         elapsedMs, 0L);
             }
             if (outcome.exitCode() != 0) {
@@ -238,6 +267,14 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                             "sandbox launch failure: " + outcome.cause().getClass().getSimpleName()
                                     + ": " + (outcome.cause().getMessage() == null
                                             ? "(no message)" : outcome.cause().getMessage()),
+                            elapsedMs, 0L);
+                }
+                // ADR-002 §8 Layer C: docker SIGKILL (exit 137) → cgroup OOM
+                // kill (see runBatch). Surface as SANDBOX_ERROR, not Runtime
+                // Error.
+                if (outcome.exitCode() == 137) {
+                    return rejected(SubmissionStatus.SANDBOX_ERROR,
+                            "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)",
                             elapsedMs, 0L);
                 }
                 if (isSandboxForkFailure(outcome.stdout())) {
@@ -257,11 +294,12 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                         helper.sanitizeSandboxOutput(outcome.stdout()),
                         elapsedMs, 0L);
             }
+            long memoryLimitBytes = effectiveMemoryLimitBytes(job);
             List<RunCaseResult> parsed = helper.parseDEnvelope(
                     outcome.stdout(), List.of(toRunTestCase(tc)),
                     job.runId(), job.userId())
                     .stream()
-                    .map(dto -> toPortResult(dto, tc))
+                    .map(dto -> toPortResult(dto, tc, memoryLimitBytes))
                     .toList();
             if (parsed.isEmpty()) {
                 return rejected(SubmissionStatus.RUNTIME_ERROR,
@@ -287,8 +325,8 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     .map(this::toRunTestCase)
                     .toList();
             String inputJson = runCases.size() == 1
-                    ? helper.buildDInputsJson(runCases.get(0), perCaseMs)
-                    : helper.buildDBatchInputsJson(runCases, perCaseMs);
+                    ? helper.buildDInputsJson(runCases.get(0), perCaseMs, effectiveMemoryLimitBytes(job))
+                    : helper.buildDBatchInputsJson(runCases, perCaseMs, effectiveMemoryLimitBytes(job));
 
             jobDir = Files.createTempDirectory("ulticode-sandbox-" + job.runId() + "-");
             Path workspace = profile.materializeWorkspace(jobDir, job.code());
@@ -299,7 +337,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     READ_ONLY_POSIX);
 
             List<String> command = buildDockerCommand(job, profile, workspace, limits);
-            return runDProcess(command, hardTimeoutSeconds(job), job.runId());
+            return runDProcess(command, hardTimeoutSeconds(job, cases.size()), job.runId());
         } catch (IOException e) {
             log.warn("D-form workspace setup failed for runId={}: {}",
                     job.runId(), e.getMessage());
@@ -550,7 +588,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      * callers, matching the pre-M2a behavior.
      */
     private RunCaseResult toPortResult(RunResultDTO.RunCaseResult dto,
-                                       TestCase originalCase) {
+                                       TestCase originalCase, long memoryLimitBytes) {
         SubmissionStatus status = SubmissionStatusCodec.fromWire(dto.getStatus());
         long elapsedMs = dto.getRuntimeMs() != null
                 ? dto.getRuntimeMs()
@@ -558,6 +596,17 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         long memoryBytes = dto.getMemoryMb() != null
                 ? (long) (dto.getMemoryMb() * 1024L * 1024L)
                 : 0L;
+        long elapsedUs = dto.getRuntimeUs() != null ? dto.getRuntimeUs() : 0L;
+        long cpuMs = dto.getCpuMs() != null ? dto.getCpuMs() : 0L;
+        // ADR-002 §8 Layer B: backend backstop MLE. If the harness reported a
+        // peak over the limit but didn't self-classify (older harness, or a
+        // language whose harness skipped the check), reclassify so the user
+        // sees Memory Limit Exceeded instead of a misleading Accepted/WA.
+        if (memoryLimitBytes > 0 && memoryBytes > memoryLimitBytes
+                && (status == SubmissionStatus.ACCEPTED
+                        || status == SubmissionStatus.WRONG_ANSWER)) {
+            status = SubmissionStatus.MEMORY_LIMIT_EXCEEDED;
+        }
         double score = status == SubmissionStatus.ACCEPTED ? 1.0 : 0.0;
         // M2a-round-2 fix (codex review F3): preserve the harness's
         // reported actual output, expected output, and the input
@@ -572,6 +621,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 ? null
                 : originalCase.inputs();
         return new RunCaseResult(status, elapsedMs, memoryBytes,
+                elapsedUs, cpuMs,
                 dto.getDetail(), score, output, expectedOutput, inputs);
     }
 
@@ -607,18 +657,47 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
     // ── Timeout math ─────────────────────────────────────────────────────────
 
-    private int hardTimeoutSeconds(SandboxJob job) {
-        // job.timeoutSeconds is the per-run soft cap. The docker
-        // --stop-timeout (which is what bounds the process itself
-        // from the kernel side) gets a +1s grace to let the harness
-        // write its partial envelope before SIGKILL.
-        return job.timeoutSeconds() + 1;
+    // ── Timeout math (ADR-002 §8) ────────────────────────────────────────────
+
+    private static boolean isCompiledLanguage(SandboxJob job) {
+        String lang = job.languageId();
+        return "c".equals(lang) || "cpp".equals(lang);
     }
 
+    /**
+     * Docker hard timeout for the whole batch. ADR-002 §8 (P0-1): scales
+     * with case count so N cases each allowed {@code timeoutSeconds} don't
+     * get SIGKILLed after the first one (the old {@code timeoutSeconds + 1}
+     * formula made multi-case previews TLE the whole batch). Compiled
+     * languages get a compile budget on top (P1-4). Capped to bound a
+     * pathological caseCount.
+     */
+    private int hardTimeoutSeconds(SandboxJob job, int caseCount) {
+        int n = Math.max(1, caseCount);
+        int compile = isCompiledLanguage(job) ? COMPILE_BUDGET_SECONDS : 0;
+        long total = (long) job.timeoutSeconds() * n + compile + DOCKER_GRACE_SECONDS;
+        return (int) Math.min(total, MAX_BATCH_HARD_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * Per-case soft timeout forwarded to the harness (its
+     * {@code per_case_timeout_ms}). Equals the problem's per-case limit;
+     * the harness self-reports Time Limit Exceeded when a single case
+     * exceeds it. ADR-002 §8.
+     */
     private long perCaseTimeoutMs(SandboxJob job) {
-        int hardMs = hardTimeoutSeconds(job) * 1000;
-        long candidate = hardMs - DFORM_SOFT_TIMEOUT_BUFFER_MS;
-        return Math.max(candidate, DFORM_SOFT_TIMEOUT_FLOOR_MS);
+        return Math.max(DFORM_SOFT_TIMEOUT_FLOOR_MS, job.timeoutSeconds() * 1000L);
+    }
+
+    /**
+     * Effective per-run memory ceiling in bytes (from the active
+     * LanguageProfile's limits). Forwarded to the harness as
+     * {@code memory_limit_bytes} so it can self-report MLE, and used by
+     * {@link #toPortResult} as the Layer-B backstop threshold. ADR-002 §8.
+     */
+    private long effectiveMemoryLimitBytes(SandboxJob job) {
+        SandboxLimits limits = profileOrThrow(job).effectiveLimits(job);
+        return (long) limits.memoryMb() * 1024L * 1024L;
     }
 
     // ── Seccomp resolution (matches the pre-M2a helpers) ─────────────────────

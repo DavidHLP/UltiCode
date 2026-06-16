@@ -67,22 +67,31 @@ public interface CodeExecutionHelper {
                                                String runId, String userId,
                                                String status, long runtimeMs,
                                                String output, String detail,
-                                               double memoryMb);
+                                               double memoryMb,
+                                               long elapsedUs, long cpuMs);
 
     /**
      * Build the single-case {@code input.json} payload that the D-form
      * harness reads from {@code /job/input.json}.
      *
-     * @param perCaseTimeoutMs soft timeout forwarded to the harness
-     *                         (Thread.interrupt inside the harness worker)
+     * @param perCaseTimeoutMs soft per-case timeout forwarded to the harness
+     *                         (Thread.interrupt inside the harness worker).
+     *                         Equals the problem's per-case time limit.
+     * @param memoryLimitBytes hard per-case memory ceiling forwarded to the
+     *                         harness so it can self-report Memory Limit
+     *                         Exceeded (ADR-002 §8). 0 / negative disables
+     *                         the harness-level MLE check (backend still
+     *                         enforces via docker {@code --memory}).
      */
-    String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase, long perCaseTimeoutMs);
+    String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase,
+                            long perCaseTimeoutMs, long memoryLimitBytes);
 
     /**
      * Build the multi-case {@code input.json} payload. Each test case is
      * a {@code cases[]} entry with the same shape as the single-case form.
      */
-    String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases, long perCaseTimeoutMs);
+    String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases,
+                                 long perCaseTimeoutMs, long memoryLimitBytes);
 
     /**
      * Parse the JSON envelope the harness wrote to stdout. Returns one

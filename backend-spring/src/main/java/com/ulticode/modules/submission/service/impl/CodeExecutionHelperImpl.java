@@ -71,7 +71,9 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             }
         }
         try {
-            return Long.parseLong(trimmed);
+            // Tolerate fractional ms (e.g. "12.34ms") from the precise
+            // elapsed_us formatting introduced in ADR-002 §8.
+            return (long) Double.parseDouble(trimmed);
         } catch (NumberFormatException e) {
             return 0L;
         }
@@ -121,7 +123,8 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                                                       String runId, String userId,
                                                       String status, long runtimeMs,
                                                       String output, String detail,
-                                                      double memoryMb) {
+                                                      double memoryMb,
+                                                      long elapsedUs, long cpuMs) {
         List<RunResultDTO.RunCaseResult.InputParam> inputs = null;
         if (testCase.getInputs() != null) {
             inputs = testCase.getInputs().stream()
@@ -130,15 +133,23 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                             .build())
                     .toList();
         }
+        // Prefer precise microseconds for the formatted string so fast
+        // cases stop showing "0ms" (ADR-002 §8). Fall back to the legacy
+        // ms value when the harness didn't emit elapsed_us.
+        String runtimeStr = elapsedUs > 0
+                ? String.format("%.2fms", elapsedUs / 1000.0)
+                : runtimeMs + "ms";
         return RunResultDTO.RunCaseResult.builder()
                 .id(UUID.randomUUID().toString()).runId(runId)
                 .submissionTestId(testCase.getId()).testCaseId(testCase.getId())
                 .caseLabel(testCase.getLabel() != null ? testCase.getLabel() : testCase.getId())
                 .status(status)
-                .runtime(runtimeMs + "ms")
+                .runtime(runtimeStr)
                 .runtimeMs(runtimeMs)
                 .memory(String.format("%.1fMB", memoryMb))
                 .memoryMb(memoryMb)
+                .runtimeUs(elapsedUs > 0 ? elapsedUs : null)
+                .cpuMs(cpuMs > 0 ? cpuMs : null)
                 .output(output).expectedOutput(testCase.getOutput()).detail(detail).inputs(inputs)
                 .build();
     }
@@ -158,15 +169,24 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     );
 
     @Override
-    public String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase, long perCaseTimeoutMs) {
+    public String buildDInputsJson(RunSubmissionDTO.RunTestCase testCase,
+                                   long perCaseTimeoutMs, long memoryLimitBytes) {
         java.util.List<RunSubmissionDTO.RunTestCase> one = java.util.List.of(testCase);
-        return buildDBatchInputsJson(one, perCaseTimeoutMs);
+        return buildDBatchInputsJson(one, perCaseTimeoutMs, memoryLimitBytes);
     }
 
     @Override
-    public String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases, long perCaseTimeoutMs) {
+    public String buildDBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases,
+                                        long perCaseTimeoutMs, long memoryLimitBytes) {
         java.util.LinkedHashMap<String, Object> root = new java.util.LinkedHashMap<>();
         root.put("per_case_timeout_ms", perCaseTimeoutMs);
+        // ADR-002 §8: forward the per-case memory ceiling so the harness
+        // can self-report Memory Limit Exceeded before the docker
+        // --memory cap hard-kills the whole container. <=0 disables the
+        // harness-level check (docker cap still enforces).
+        if (memoryLimitBytes > 0) {
+            root.put("memory_limit_bytes", memoryLimitBytes);
+        }
         java.util.List<java.util.Map<String, Object>> cases = new java.util.ArrayList<>();
         for (RunSubmissionDTO.RunTestCase tc : testCases) {
             java.util.LinkedHashMap<String, Object> c = new java.util.LinkedHashMap<>();
@@ -219,7 +239,8 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
         if (stdout == null || stdout.isBlank()) {
             return testCases.stream()
                     .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                            0L, null, "D-form harness emitted no envelope (process killed mid-run?)", 0.0))
+                            0L, null, "D-form harness emitted no envelope (process killed mid-run?)",
+                            0.0, 0L, 0L))
                     .collect(Collectors.toList());
         }
         // The Java harness Main emits JVM WARNING lines (e.g.
@@ -235,7 +256,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             String detail = "D-form envelope unparseable: " + sanitizeSandboxOutput(stdout);
             return testCases.stream()
                     .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                            0L, null, detail, 0.0))
+                            0L, null, detail, 0.0, 0L, 0L))
                     .collect(Collectors.toList());
         }
         com.ulticode.modules.submission.dto.EnvelopeDTO envelope =
@@ -247,7 +268,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                     + sanitizeSandboxOutput(stdout);
             return testCases.stream()
                     .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                            0L, null, detail, 0.0))
+                            0L, null, detail, 0.0, 0L, 0L))
                     .collect(Collectors.toList());
         }
         java.util.List<com.ulticode.modules.submission.dto.PerCaseResultDTO> parsed = envelope.results();
@@ -257,7 +278,8 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             com.ulticode.modules.submission.dto.PerCaseResultDTO pr = i < parsed.size() ? parsed.get(i) : null;
             if (pr == null) {
                 out.add(buildCaseResult(tc, runId, userId, "Runtime Error",
-                        0L, null, "D-form envelope missing per-case result for index " + i, 0.0));
+                        0L, null, "D-form envelope missing per-case result for index " + i,
+                        0.0, 0L, 0L));
                 continue;
             }
             String status = pr.status() == null ? "Runtime Error" : pr.status();
@@ -282,7 +304,9 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                     pr.elapsedMs(),
                     pr.result() == null ? null : String.valueOf(pr.result()),
                     detail,
-                    (double) memoryMb));
+                    (double) memoryMb,
+                    pr.elapsedUs(),
+                    pr.cpuMs()));
         }
         return out;
     }

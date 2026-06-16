@@ -93,10 +93,6 @@ if command -v git >/dev/null 2>&1 && [ -d "$CWD" ]; then
     [ -n "$BRANCH" ] && BRANCH=":${BRANCH}"
   fi
   if [ -n "$BRANCH" ]; then
-    DIRTY=""
-    if ! git -C "$CWD" --no-optional-locks diff --no-color --quiet HEAD -- 2>/dev/null; then
-      DIRTY="${C_YELLOW}*${C_RESET}"
-    fi
     AHEAD_BEHIND=""
     if AB="$(git -C "$CWD" --no-optional-locks rev-list --left-right --count @{u}...HEAD 2>/dev/null)"; then
       AHEAD="$(echo "$AB"  | awk '{print $2}')"
@@ -104,8 +100,45 @@ if command -v git >/dev/null 2>&1 && [ -d "$CWD" ]; then
       [ "${AHEAD:-0}"   -gt 0 ] && AHEAD_BEHIND+="${C_GREEN}↑${AHEAD}${C_RESET}"
       [ "${BEHIND:-0}"  -gt 0 ] && AHEAD_BEHIND+="${C_RED}↓${BEHIND}${C_RESET}"
     fi
-    SEG_GIT=" ${C_BLUE}⎇${C_RESET} ${C_BLUE}${BRANCH}${C_RESET}${DIRTY}${AHEAD_BEHIND:+ ${AHEAD_BEHIND}}"
+    SEG_GIT=" ${C_BLUE}⎇${C_RESET} ${C_BLUE}${BRANCH}${C_RESET}${AHEAD_BEHIND:+ ${AHEAD_BEHIND}}"
   fi
+fi
+
+# ---------- 6b. Segment: git diffstat (added/modified/deleted/untracked) ----
+# Shape of uncommitted changes at a glance: +N added · ~N modified · -N deleted
+# · ?N untracked. Counts combine staged + unstaged (porcelain XY, either
+# position). Drops silently when git is missing or the tree is clean.
+SEG_DIFF=""
+if command -v git >/dev/null 2>&1 && [ -d "$CWD" ] \
+   && PORCELAIN="$(git -C "$CWD" --no-optional-locks status --porcelain 2>/dev/null)" \
+   && [ -n "$PORCELAIN" ]; then
+  # One awk pass → "added modified deleted untracked".
+  counts=$(printf '%s\n' "$PORCELAIN" | awk '
+    /^\?\?/ { u++; next }
+    { x = substr($0,1,1); y = substr($0,2,1)
+      if (x ~ /[ARC]/ || y ~ /[ARC]/) a++
+      if (x == "M" || y == "M")       m++
+      if (x == "D" || y == "D")       d++ }
+    END { printf "%d %d %d %d", a+0, m+0, d+0, u+0 }')
+  set -- $counts
+  ds=""
+  [ "$1" -gt 0 ] 2>/dev/null && ds="${ds}${C_GREEN}+$1${C_RESET} "
+  [ "$2" -gt 0 ] 2>/dev/null && ds="${ds}${C_BLUE}~$2${C_RESET} "
+  [ "$3" -gt 0 ] 2>/dev/null && ds="${ds}${C_RED}-$3${C_RESET} "
+  [ "$4" -gt 0 ] 2>/dev/null && ds="${ds}${C_YELLOW}?$4${C_RESET}"
+  ds="${ds% }"
+  # Line-level insertions/deletions vs HEAD (tracked files only; untracked
+  # ?? files have no diff baseline so git excludes them — the ?N file count
+  # above still surfaces them). --shortstat → "N files changed, X insertions(+),
+  # Y deletions(-)".
+  SHORTSTAT="$(git -C "$CWD" --no-optional-locks diff --shortstat HEAD 2>/dev/null || true)"
+  INS=$(printf '%s' "$SHORTSTAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+')
+  DEL=$(printf '%s' "$SHORTSTAT" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+')
+  ld=""
+  [ "${INS:-0}" -gt 0 ] 2>/dev/null && ld="${ld}${C_GREEN}↑${INS}${C_RESET}"
+  [ "${DEL:-0}" -gt 0 ] 2>/dev/null && ld="${ld}${ld:+${C_DIM}/${C_RESET}}${C_RED}↓${DEL}${C_RESET}"
+  [ -n "$ld" ] && ds="${ds} ${C_DIM}|${C_RESET} ${ld}"
+  [ -n "$ds" ] && SEG_DIFF=" ${C_DIM}Δ${C_RESET} ${ds}"
 fi
 
 # ---------- 7. Segment: PM2 (green/red/amber dots) ---------------------------
@@ -178,6 +211,6 @@ fi
 
 # ---------- 10. Compose (dim " · " separator) -------------------------------
 SEP="${C_DIM} ·${C_RESET}"
-LINE="${SEG_MODEL}${SEP}${SEG_CWD}${SEG_GIT}${SEG_PM2:+${SEP}}${SEG_PM2}${SEG_ARTHAS:+${SEP}}${SEG_ARTHAS}${SEG_CTX:+${SEP}}${SEG_CTX}"
+LINE="${SEG_MODEL}${SEP}${SEG_CWD}${SEG_GIT}${SEG_DIFF}${SEG_PM2:+${SEP}}${SEG_PM2}${SEG_ARTHAS:+${SEP}}${SEG_ARTHAS}${SEG_CTX:+${SEP}}${SEG_CTX}"
 
 printf '%b\n' "$LINE"

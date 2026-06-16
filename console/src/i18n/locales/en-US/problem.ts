@@ -415,6 +415,9 @@ export default {
     beats: "Beats",
     detailsNotAvailable: "Details are not available yet.",
     code: "Code",
+    resubmit: "Resubmit",
+    stuckWarning:
+      "This submission has been pending for over 2 minutes and may still be queued. Please wait.",
     error: {
       loadFailed: "Failed to load submission",
       notFound: "Submission not found",

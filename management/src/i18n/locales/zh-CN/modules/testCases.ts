@@ -1,4 +1,20 @@
 export default {
+  // Hidden tab list / list-page header (HiddenTestCasesEditor)
+  title: '测试用例',
+  sample: '样例',
+  hidden: '隐藏',
+  noTestCases: '暂无测试用例',
+  add: '添加',
+  addFirst: '添加第一个测试用例',
+  import: '导入',
+  export: '导出',
+  importTestCases: '导入测试用例',
+  importData: '粘贴或上传 JSON / CSV 格式的测试用例',
+  importPlaceholder: '每行一个用例,字段用逗号或制表符分隔:输入,输出,分值,是否为样例,是否隐藏',
+  importHelp: '支持 JSON 数组,或 CSV / TSV 文本,首行可为表头',
+  replaceExisting: '替换已存在的测试用例',
+  importing: '正在导入',
+
   // Tabs (EditCasesView / ViewCasesView)
   tabs: {
     samples: '公开样例',
@@ -24,7 +40,7 @@ export default {
   section: {
     title: '测试用例',
     subtitle: '管理样例与隐藏判题用例',
-    addFirst: '添加第一个用例',
+    addFirst: '添加第一个测试用例',
   },
 
   // Form validation

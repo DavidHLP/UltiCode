@@ -19,10 +19,10 @@ const { problemId, data, loading, isReady } = useProblemTab('code', (id) =>
   problemsStore.fetchCode(id),
 )
 
-const title = computed(() => {
-  const header = problemsStore.getRawTabState('header').data as { title?: string } | null
-  return header?.title ?? ''
-})
+// Header is prefetched by `useProblemTab` so `headerData` will be populated
+// by the time the page is ready. Read it directly from the store instead of
+// peeking at `getRawTabState('header')`.
+const title = computed(() => problemsStore.headerData?.title ?? '')
 
 async function handleSubmit(formData: CodeFormData) {
   try {

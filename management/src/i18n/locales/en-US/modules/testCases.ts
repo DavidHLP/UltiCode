@@ -1,4 +1,20 @@
 export default {
+  // Hidden tab list / list-page header (HiddenTestCasesEditor)
+  title: 'Test Cases',
+  sample: 'Sample',
+  hidden: 'Hidden',
+  noTestCases: 'No test cases yet',
+  add: 'Add',
+  addFirst: 'Add first test case',
+  import: 'Import',
+  export: 'Export',
+  importTestCases: 'Import Test Cases',
+  importData: 'Paste or upload test cases in JSON / CSV format',
+  importPlaceholder: 'One case per line; comma- or tab-separated fields: input,output,score,isSample,isHidden',
+  importHelp: 'Accepts JSON arrays or CSV/TSV text; the first line may be a header',
+  replaceExisting: 'Replace existing test cases',
+  importing: 'Importing',
+
   // Tabs (EditCasesView / ViewCasesView)
   tabs: {
     samples: 'Public Samples',

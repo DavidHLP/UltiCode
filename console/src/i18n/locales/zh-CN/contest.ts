@@ -248,4 +248,34 @@ export default {
     alreadyRegistered: "您已报名此比赛",
     notRegistered: "您尚未报名此比赛",
   },
+
+  // R8.6 / F-40 / F-41 / F-43 / F-44 / F-47: empty/loading/error states
+  empty: {
+    contests: "暂无比赛",
+    rankings: "暂无排名 — 争当首位!",
+    history: "暂无参赛记录",
+    virtualHistory: "暂无虚拟赛重放记录",
+  },
+  loading: {
+    rankings: "正在加载排行榜...",
+    history: "正在加载参赛记录...",
+  },
+  error: {
+    rankingsLoadFailed: "排行榜加载失败，请刷新重试",
+    historyLoadFailed: "参赛记录加载失败",
+    notRegisteredForVirtualReplay: "您必须先完成原比赛才能开启虚拟重放",
+    contestCancelledNoVirtual: "该比赛已取消，无法开启虚拟重放",
+    alreadyInVirtualContestOtherTab: "您已在另一个标签页开启虚拟赛",
+  },
+  connection: {
+    reconnecting: "网络不稳定，正在重连...",
+    reconnectFailed: "重连失败，请检查网络",
+    rejected: "您未报名此比赛",
+  },
+  replay: {
+    historyTitle: "我的虚拟重放",
+    emptyState: "您尚未重放任何比赛",
+    replayButton: "虚拟重放",
+    durationHours: "{hours}小时 时长",
+  },
 } as const;

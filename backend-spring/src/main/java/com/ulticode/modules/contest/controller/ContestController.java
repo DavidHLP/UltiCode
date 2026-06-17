@@ -546,7 +546,7 @@ public class ContestController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
-    @RateLimit(key = "contest:virtual-start", limit = 20, period = 60)
+    @RateLimit(key = "contest:virtual-start:{id}", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/start")
     public Result<ParticipationStatusDTO> startVirtualContest(
             @Parameter(description = "Contest ID")
@@ -598,7 +598,7 @@ public class ContestController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @ApiResponse(responseCode = "404", description = "Virtual session not found")
     @SecurityRequirement(name = "Bearer")
-    @RateLimit(key = "contest:virtual-finish", limit = 20, period = 60)
+    @RateLimit(key = "contest:virtual-finish:{id}", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/finish")
     public Result<Void> finishVirtualContest(
             @Parameter(description = "Contest ID")

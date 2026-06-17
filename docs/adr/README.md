@@ -17,6 +17,8 @@
 | **[ADR-007](./ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)** | **Accepted** (2026-06-17) | 虚拟竞赛生命周期调度与评级隔离 | auto-finish 接线（解除零调用者死代码）+ 真实赛结束全员 FINISHED + 评级查询从 `status='STARTED'` 切换到 `is_virtual=0`（消除隐式不变量）+ 虚拟开赛幂等（实际改用 DB `FOR UPDATE` 而非 Redis 锁；见 ADR-007 §6 实施偏差）+ 前端 session 持久化。四改动**原子上线**。R3 已落地。见 [EXECUTION_PLAN Round 3](../contest/EXECUTION_PLAN.md) |
 | **[ADR-008](./ADR-008-websocket-auth-and-realtime-push.md)** | **Accepted** (2026-06-17) | WebSocket auth + realtime push | F-04 useContestSocket 接入 (RankingsView 实时榜) + F-13 visibilitychange (HIGH-1 修复后真正改 endsAt) + F-17 SUBSCRIBE-frame 鉴权 (`ContestSubscribeAuthInterceptor`，注册才放行) + F-18 unmount cleanup. R6.4 已落地. 见 [completed/EXECUTION_PLAN_R6.md Round 6.4](../contest/completed/EXECUTION_PLAN_R6.md) |
 | **[ADR-009](./ADR-009-israted-gate-and-virtual-rating-isolation.md)** | **Accepted** (2026-06-17) | isRated gate + virtual-rating isolation | F-03 isRated 守卫（`RatingCalculationServiceImpl` 入口; 零额外查询, 复用 contestMapper）+ F-10 finishVirtual 不重算（决策记录在 ADR-007 §7）+ F-13 决议补全. R6.1 已落地. 见 [completed/EXECUTION_PLAN_R6.md Round 6.1](../contest/completed/EXECUTION_PLAN_R6.md) |
+| **[ADR-010](./ADR-010-cancel-state-and-virtual-replay-boundary.md)** | **Accepted** (2026-06-17) | contest 状态机边界（F-35/F-38/F-50-52）| FINISHED 状态机边界 + CANCELLED 不允许开虚拟 + 虚拟赛数据作用域已 R3.3/R6.3 覆盖. R7.5 决策类. 见 [completed/EXECUTION_PLAN_R7.md §6](../contest/completed/EXECUTION_PLAN_R7.md) |
+| **[ADR-011](./ADR-011-crit6-shadow-mode-evaluation.md)** | **Accepted** (2026-06-17) | CRIT-6 (F-ARCH-07) shadow 模式评估结论 | 不引独立 `contest.scoring.shadow` flag — 隐式灰度由 ADR-006 §2.4 覆盖. R8.5 决策类. 见 [completed/EXECUTION_PLAN_R8.md §6](../contest/completed/EXECUTION_PLAN_R8.md) |
 
 ## 编号规则
 

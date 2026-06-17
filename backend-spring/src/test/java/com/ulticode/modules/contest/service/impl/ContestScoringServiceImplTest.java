@@ -38,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -58,6 +59,9 @@ import static org.mockito.Mockito.when;
 class ContestScoringServiceImplTest {
 
     private static final String CONTEST_ID = "contest-1";
+    /** L2: explicit constant for the custom-penalty test (mirrors the schema
+     *  default 300 in V20260602 baseline). */
+    private static final int CUSTOM_PENALTY = 300;
     private static final String PROBLEM_ID = "cp-1";
     private static final String PARTICIPANT_ID = "p-1";
     private static final String USER_ID = "u-1";
@@ -81,6 +85,14 @@ class ContestScoringServiceImplTest {
                 contestMapper, contestParticipantMapper, contestProblemMapper,
                 contestSubmissionMapper, contestProblemResultMapper,
                 firstSolveRecordMapper, cacheManager);
+        // R4: the service now loads the parent contest for scoringMode/penalty
+        // config. Provide a default ICPC contest so the existing tests (which
+        // assume ICPC semantics: 20-min penalty per WA) continue to hold.
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setScoringMode("ICPC");
+        c.setPenaltyPerWrong(20);
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
     }
 
     /** P0-1: apply judge result for a non-contest submission is a no-op. */
@@ -194,9 +206,10 @@ class ContestScoringServiceImplTest {
                 eq(CONTEST_ID), eq("REGISTERED"), eq("STARTED"), any(LocalDateTime.class));
     }
 
-    /** P2-2: autoFinishVirtualParticipants queries, then transitions each. */
+    /** M2: autoFinishVirtualParticipants queries, then issues a single
+     *  bulk UPDATE keyed by the id set (was: per-row N+1). */
     @Test
-    @DisplayName("P2-2: auto-finish virtual participants queries and transitions each row")
+    @DisplayName("M2: auto-finish virtual participants uses a single bulk UPDATE by ids")
     void autoFinishVirtualParticipants_processesQueryResults() {
         ContestParticipant v1 = newParticipant(0, 0, 0);
         v1.setId("v-1");
@@ -208,14 +221,20 @@ class ContestScoringServiceImplTest {
         v2.setIsVirtual(true);
         when(contestParticipantMapper.findVirtualParticipantsToFinish(any(LocalDateTime.class)))
                 .thenReturn(List.of(v1, v2));
-        when(contestParticipantMapper.batchUpdateStatus(eq(CONTEST_ID), eq("STARTED"), eq("FINISHED"), any(LocalDateTime.class)))
-                .thenReturn(1);
+        when(contestParticipantMapper.bulkFinishByIds(any(), any(LocalDateTime.class)))
+                .thenReturn(2);
 
         int total = service.autoFinishVirtualParticipants();
 
+        // bulkFinishByIds is called once with the full id set; the
+        // count returned by the mapper is the total transitioned.
         assertThat(total).isEqualTo(2);
-        verify(contestParticipantMapper, times(2))
-                .batchUpdateStatus(eq(CONTEST_ID), eq("STARTED"), eq("FINISHED"), any(LocalDateTime.class));
+        verify(contestParticipantMapper, times(1))
+                .bulkFinishByIds(argThat(ids -> ids.contains("v-1") && ids.contains("v-2")),
+                        any(LocalDateTime.class));
+        // M2: no per-row batchUpdateStatus calls anymore.
+        verify(contestParticipantMapper, never())
+                .batchUpdateStatus(anyString(), anyString(), anyString(), any(LocalDateTime.class));
     }
 
     /** P2-5: deleteContestCascade is idempotent on missing/soft-deleted contests. */
@@ -249,6 +268,76 @@ class ContestScoringServiceImplTest {
         verify(firstSolveRecordMapper).deleteByContestId(CONTEST_ID);
         verify(contestParticipantMapper).deleteByContestId(CONTEST_ID);
         verify(contestProblemMapper).deleteByContestId(CONTEST_ID);
+    }
+
+    // ---- R4: ADR-006 §4 validation: scoring mode + penalty config ----
+
+    /** R4: SCORE mode — wrong submissions do NOT add penalty (AC-即满分). */
+    @Test
+    @DisplayName("R4 / ADR-006 §2.2: SCORE mode does not accumulate penalty on WA")
+    void applyJudgeResult_scoreMode_waHasNoPenalty() {
+        runWrongSubmissionWithContest(mockContest("SCORE", 20));
+        ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
+        verify(contestParticipantMapper).updateById(captor.capture());
+        // SCORE mode: totalPenalty stays 0 (was 0, stays 0 — no penalty added).
+        assertThat(captor.getValue().getTotalPenalty()).isEqualTo(0);
+        // attempts still increment.
+        assertThat(captor.getValue().getAttemptCount()).isEqualTo(1);
+    }
+
+    /** R4: IOI mode — wrong submissions do NOT add penalty (取最高分，错误不计). */
+    @Test
+    @DisplayName("R4 / ADR-006 §2.2: IOI mode does not accumulate penalty on WA")
+    void applyJudgeResult_ioiMode_waHasNoPenalty() {
+        runWrongSubmissionWithContest(mockContest("IOI", 20));
+        ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
+        verify(contestParticipantMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getTotalPenalty()).isEqualTo(0);
+    }
+
+    /** R4 / ADR-006 §2.1: penaltyPerWrong=null falls back to 20, no NPE. */
+    @Test
+    @DisplayName("R4 / ADR-006 §2.1: penaltyPerWrong=null falls back to 20 in ICPC mode")
+    void applyJudgeResult_icpcPenaltyNull_fallsBackTo20() {
+        runWrongSubmissionWithContest(mockContest("ICPC", null));
+        ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
+        verify(contestParticipantMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getTotalPenalty()).isEqualTo(20);
+    }
+
+    /** R4 / ADR-006 §2.1: custom penaltyPerWrong is honored. */
+    @Test
+    @DisplayName("R4: custom penaltyPerWrong=CUSTOM_PENALTY is applied in ICPC mode")
+    void applyJudgeResult_icpcCustomPenalty_applied() {
+        runWrongSubmissionWithContest(mockContest("ICPC", CUSTOM_PENALTY));
+        ArgumentCaptor<ContestParticipant> captor = ArgumentCaptor.forClass(ContestParticipant.class);
+        verify(contestParticipantMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getTotalPenalty()).isEqualTo(300);
+    }
+
+    // ---- M5: scoring-mode test helpers ----
+
+    /** M5: build a Contest for the scoring test cases. */
+    private Contest mockContest(String scoringMode, Integer penaltyPerWrong) {
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setScoringMode(scoringMode);
+        c.setPenaltyPerWrong(penaltyPerWrong);
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        return c;
+    }
+
+    /** M5: wire the standard WA submission mappers and invoke the service. */
+    private void runWrongSubmissionWithContest(Contest contest) {
+        ContestParticipant participant = newParticipant(0, 0, 0);
+        ContestProblem cp = newContestProblem(100);
+        ContestSubmission cs = newContestSubmission(0);
+        when(contestSubmissionMapper.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(cs));
+        when(contestParticipantMapper.selectById(PARTICIPANT_ID)).thenReturn(participant);
+        when(contestProblemMapper.selectById(PROBLEM_ID)).thenReturn(cp);
+        when(contestSubmissionMapper.findByContestIdAndParticipantId(CONTEST_ID, PARTICIPANT_ID))
+                .thenReturn(List.of(cs));
+        service.applyJudgeResult(newEvent(false, 200));
     }
 
     // ---- helpers --------------------------------------------------------

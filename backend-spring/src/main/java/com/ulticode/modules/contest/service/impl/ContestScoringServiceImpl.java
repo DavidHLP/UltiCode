@@ -98,6 +98,21 @@ public class ContestScoringServiceImpl implements ContestScoringService {
             return;
         }
 
+        // 4b. R4: load the parent contest for scoring mode + penalty config.
+        //     ADR-006 §2.2: SCORE/ICPC/IOI branch on penalty; SCORE and IOI
+        //     skip the wrong-submission penalty, ICPC applies it.
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null) {
+            log.warn("Contest scoring: contest {} missing for submission {}",
+                    contestId, event.getSubmissionId());
+            return;
+        }
+        String scoringMode = contest.getScoringMode() == null ? "SCORE" : contest.getScoringMode();
+        // ADR-006 §2.1: null兜底 20（与原硬编码一致，零行为回归）
+        int penaltyPerWrong = contest.getPenaltyPerWrong() != null
+                ? contest.getPenaltyPerWrong()
+                : 20;
+
         // 5. Always count this submission as an attempt.
         int newAttempts = (participant.getAttemptCount() == null ? 0 : participant.getAttemptCount()) + 1;
         participant.setAttemptCount(newAttempts);
@@ -169,13 +184,16 @@ public class ContestScoringServiceImpl implements ContestScoringService {
                 participant.setTotalScore(newScore);
             }
         } else {
-            // 6c. Penalty: +20 min per wrong before AC (ICPC convention). Project
-            //     default is configurable via contest.penaltyPerWrong (already
-            //     tracked on the contest; we use a sensible 20 min default for
-            //     the participant aggregate column).
-            int penalty = 20;
-            int existingPenalty = participant.getTotalPenalty() == null ? 0 : participant.getTotalPenalty();
-            participant.setTotalPenalty(existingPenalty + penalty);
+            // 6c. R4 (ADR-006 §2.2): wrong-submission penalty applies ONLY in
+            //     ICPC mode. SCORE and IOI modes ignore penalty — SCORE because
+            //     it's "AC即满分" and IOI because it takes the max per problem.
+            //     Backward compat: the default scoringMode is SCORE in the
+            //     schema, so existing contests that haven't been explicitly
+            //     set behave like the old "no penalty on wrong" path.
+            if ("ICPC".equalsIgnoreCase(scoringMode)) {
+                int existingPenalty = participant.getTotalPenalty() == null ? 0 : participant.getTotalPenalty();
+                participant.setTotalPenalty(existingPenalty + penaltyPerWrong);
+            }
         }
 
         // 7. lastSolveTime only advances on AC.
@@ -218,11 +236,17 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     public int autoFinishVirtualParticipants() {
         LocalDateTime now = LocalDateTime.now();
         List<ContestParticipant> toFinish = contestParticipantMapper.findVirtualParticipantsToFinish(now);
-        int total = 0;
-        for (ContestParticipant p : toFinish) {
-            total += contestParticipantMapper.batchUpdateStatus(
-                    p.getContestId(), "STARTED", "FINISHED", now);
+        if (toFinish.isEmpty()) {
+            return 0;
         }
+        // M2: replace per-row UPDATE with a single bulk UPDATE keyed by id
+        // (the result list is bounded by the 10s scheduler tick, typically
+        // small, but previously this was N+1 UPDATEs).
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        for (ContestParticipant p : toFinish) {
+            ids.add(p.getId());
+        }
+        int total = contestParticipantMapper.bulkFinishByIds(ids, now);
         if (total > 0) {
             log.info("P2-2: auto-finished {} virtual participants past their duration", total);
         }

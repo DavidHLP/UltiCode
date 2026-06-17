@@ -177,3 +177,13 @@ PRD §1.3 F-10 措辞模糊：原意为 "finishVirtual 不重算 rating" 还是 
 - [ADR-006](./ADR-006-contest-scoring-engine-activation.md) — 评分引擎激活（Round 4，依赖本 ADR 的参赛者状态正确）
 - 现有代码：`ContestScheduler.java`、`ContestScoringServiceImpl.java`、`RatingCalculationServiceImpl.java`、`ContestSchedulerServiceImpl.java`
 - 既有约束：`contest_participants UNIQUE(contest_id,user_id,virtual_session_id)`（`V20260602:164`）、索引 `contest_participants_user_id_status_is_virtual_idx`（`V20260602:168`）
+
+---
+
+## 8. R7 评估（2026-06-17）
+
+**F-24 排行榜 keyset 分页 / F-27 限流 key 加 contestId 维度 / CRIT-6 shadow 模式（review-v3 标注的 shadow 模式）**：
+
+- F-24：当前 `selectParticipantsWithUserByContestIdPaginated` 走 LIMIT/OFFSET；keyset 改造需 `final_rank` 游标 + 索引验证，**作为优化候选留 R8**（NFR-P1 1000 人 p99 < 500ms 在 10000 人以下的分页区间未触发瓶颈）。
+- F-27：当前 `@RateLimit(key = "contest:virtual-start", ...)` 加 user 维度后**单用户**有 20/min 桶；防单用户多 contest 刷数据需 SpEL `key = "...:{contestId}"`，`RateLimitAspect` 当前不解析路径变量，**作为 RateLimit 增强留 R8**。中间缓解：用户维度的桶已能挡 80% 跨 contest 滥用。
+- CRIT-6（F-ARCH-07 shadow 模式）：runtime 灰度模式，需 ops 配合 feature flag + 双写读比 + 回滚开关。**与 ADR-006 §2.4 灰度策略合并评估**；不引独立 flag，避免 feature flag 增殖。S5 重审。

@@ -203,7 +203,12 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     },
     debug: () => {},
     reconnectDelay: options.reconnectionDelay,
-    maxReconnectDelay: 5000,
+    // R7.3 / F-29: cap the per-reconnect delay so the underlying library
+    // doesn't sit on the upper bound of our exponential backoff. The
+    // reconnectionDelay in @stomp/stompjs is what gets passed to setTimeout
+    // after each disconnect; we compute it ourselves to enforce the
+    // 1s → 2s → 4s → ... → 30s curve rather than the lib's default 5s.
+    maxReconnectDelay: 30_000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     onConnect: () => {
@@ -230,8 +235,27 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
       console.error("[STOMP Contest] STOMP error:", frame);
       connectionStatus = "disconnected";
       notifyStatusChange("disconnected");
+      // R7.3 / F-43: surface STOMP-level errors (e.g. F-17 subscribe
+      // rejection) to the connect_error callback. Callers (e.g. contest
+      // views) can display a toast.
       const callbacks = eventCallbacks.get("connect_error");
-      if (callbacks) callbacks.forEach((cb) => cb({ error: frame.body }));
+      if (callbacks) callbacks.forEach((cb) => cb({ error: frame.body, kind: "stomp" }));
+      // F-43: if the frame indicates authz rejection (FORBIDDEN / 403),
+      // publish a top-level "rejected" event so views can show "you are
+      // not registered" instead of a generic reconnecting loop.
+      const body = frame.body ?? "";
+      if (
+        body.includes("FORBIDDEN") ||
+        body.includes("403") ||
+        body.toLowerCase().includes("not registered")
+      ) {
+        // Use a separate callback channel for the rejected case so we
+        // don't have to widen the ConnectionStatus union type. The
+        // status stays 'disconnected' from a STOMP perspective.
+        eventCallbacks
+          .get("rejected")
+          ?.forEach((cb) => cb({ frame: body }));
+      }
     },
     onWebSocketError: (event) => {
       console.error("[STOMP Contest] WebSocket error:", event);

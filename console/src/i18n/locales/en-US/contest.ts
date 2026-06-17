@@ -257,8 +257,38 @@ export default {
     notRegistered: "You are not registered for this contest",
   },
 
-  // R8.6 / F-40 / F-41 / F-43 / F-44 / F-47: empty/loading/error keys were
-  // moved to R9_PLACEHOLDER.ts in the i18n root because R8 added them
-  // without any view wiring (R8 review MED-2). R9 will reference them
-  // from view templates as part of the LOW i18n closure.
+  // R9.3 / F-40 / F-41 / F-43 / F-44 / F-47: empty/loading/error states
+  // referenced from ContestBrowseView, ContestRankingsView, MyContests,
+  // and the WS reconnecting banner.
+  empty: {
+    contests: "No contests available",
+    rankings: "No rankings yet — be the first!",
+    history: "No contest history yet",
+    virtualHistory: "No virtual replays yet",
+  },
+  loading: {
+    rankings: "Loading rankings...",
+    history: "Loading contest history...",
+  },
+  error: {
+    rankingsLoadFailed: "Failed to load rankings. Please refresh.",
+    historyLoadFailed: "Failed to load contest history.",
+    notRegisteredForVirtualReplay:
+      "You must finish the original contest before replaying virtually",
+    contestCancelledNoVirtual:
+      "This contest was cancelled and cannot be replayed virtually",
+    alreadyInVirtualContestOtherTab:
+      "You already have an active virtual session in another tab",
+  },
+  connection: {
+    reconnecting: "Network unstable, reconnecting...",
+    reconnectFailed: "Reconnection failed. Please check your network.",
+    rejected: "You are not registered for this contest",
+  },
+  replay: {
+    historyTitle: "My virtual replays",
+    emptyState: "You haven't replayed any contests yet",
+    replayButton: "Replay virtually",
+    durationHours: "{hours}h duration",
+  },
 } as const;

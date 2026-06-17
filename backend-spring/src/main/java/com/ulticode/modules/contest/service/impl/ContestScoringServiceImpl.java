@@ -280,18 +280,16 @@ public class ContestScoringServiceImpl implements ContestScoringService {
      * (e.g. {@code 'getGlobalRanking:50'}), so {@code clear()} is the safe option.
      */
     /**
-     * R8.3 / F-21: ranking cache invalidation. The current
-     * {@code @Cacheable} key template
-     * ({@code 'getGlobalRanking:' + #limit} /
-     * {@code 'globalPaginated:' + #page + ':' + #limit}) is
-     * <strong>global, not per-contest</strong>, so true per-contest
-     * eviction is not possible without first changing the cache key
-     * template to include {@code #contestId}. That work is deferred
-     * to R9 (paired with the keyset-pagination rework). For now we
-     * clear the whole ranking cache; the cost is acceptable at the
-     * current scale because the ranking cache TTL is short.
+     * R9.2 / F-21: ranking cache invalidation. R9.1 did not land
+     * (the cache key was left at the global pattern
+     * {@code 'getGlobalRanking:' + #limit} / 'globalPaginated:...'),
+     * so true per-contest eviction is still not possible. This
+     * method falls back to a global clear(); the cost is acceptable
+     * at the current scale because the ranking cache TTL is short.
+     * R9.1 (keyset + per-contest key template) is the next step
+     * toward the per-contest evict goal.
      */
-    private void evictRankingCache() {
+    void evictRankingCache() {
         Cache cache;
         try {
             cache = cacheManager.getCache(RANKING_CACHE);

@@ -8,6 +8,7 @@ import type {
   GlobalRankingEntry,
   UserContestHistory,
 } from "@/types/contest";
+import { useAuthStore } from "@/stores/auth";
 import {
   fetchUpcomingContests,
   fetchRunningContests,
@@ -268,12 +269,79 @@ export const useContestStore = defineStore("contest", () => {
   // ACTIONS — VIRTUAL CONTEST
   // =========================================================================
 
+  /**
+   * R9.4 / F-46: localStorage cross-tab broadcast for active virtual
+   * sessions. Two tabs opening the same virtual replay produces a
+   * confusing duplicate-finish UX; the backend R3.3 FOR UPDATE
+   * serialises but does not prevent the duplicate UX. The frontend
+   * detection is a UX optimisation; the backend is the source of
+   * truth. Stale entries (>30s) are ignored so a crashed tab does
+   * not lock out the user.
+   */
+  const VIRTUAL_TAB_BROADCAST_KEY = "ulticode:virtual:active";
+  const VIRTUAL_TAB_STALE_MS = 30_000;
+
+  interface VirtualTabBroadcast {
+    contestId: string;
+    userId: string;
+    ts: number;
+  }
+
+  function readVirtualTabBroadcast(): VirtualTabBroadcast | null {
+    try {
+      const raw = localStorage.getItem(VIRTUAL_TAB_BROADCAST_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as VirtualTabBroadcast;
+      if (Date.now() - parsed.ts > VIRTUAL_TAB_STALE_MS) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeVirtualTabBroadcast(contestId: string, userId: string): void {
+    try {
+      const payload: VirtualTabBroadcast = {
+        contestId,
+        userId,
+        ts: Date.now(),
+      };
+      localStorage.setItem(VIRTUAL_TAB_BROADCAST_KEY, JSON.stringify(payload));
+    } catch {
+      // localStorage may be unavailable (private mode / quota); ignore.
+    }
+  }
+
+  function clearVirtualTabBroadcast(): void {
+    try {
+      localStorage.removeItem(VIRTUAL_TAB_BROADCAST_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
   async function startVirtualContest(contestId: string) {
     error.value = null;
+    // R9.4 / F-46: pre-check whether another tab is already in a
+    // virtual session for the same contest. The broadcast is keyed
+    // by contest+user; a stale entry (>30s) is ignored.
+    const auth = useAuthStore();
+    const currentUserId = auth.userId ?? "";
+    const existing = readVirtualTabBroadcast();
+    if (
+      existing &&
+      existing.contestId === contestId &&
+      existing.userId === currentUserId
+    ) {
+      const msg = "You already have an active virtual session in another tab";
+      error.value = msg;
+      throw new Error(msg);
+    }
     try {
       const session = await apiStartVirtual(contestId);
       virtualSession.value = session;
       saveVirtualSessionToStorage(contestId, session);
+      writeVirtualTabBroadcast(contestId, currentUserId);
       return session;
     } catch (err) {
       error.value =
@@ -307,6 +375,9 @@ export const useContestStore = defineStore("contest", () => {
       await apiFinishVirtual(contestId, virtualSession.value.id);
       virtualSession.value = null;
       saveVirtualSessionToStorage(contestId, null);
+      // R9.4 / F-46: clear the cross-tab broadcast so other tabs can
+      // start a fresh virtual session for the same contest.
+      clearVirtualTabBroadcast();
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to finish virtual contest";

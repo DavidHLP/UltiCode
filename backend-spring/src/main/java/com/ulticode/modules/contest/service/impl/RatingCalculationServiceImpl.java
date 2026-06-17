@@ -35,20 +35,13 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     @Transactional
     public void calculateAndUpdate(String contestId) {
         // 1. Fetch all real (non-virtual) participants for this contest.
-        //    P1-4 fix: filter is_virtual = 0 — virtual sessions should not
-        //    pollute the Elo calculation. We filter in Java rather than SQL
-        //    because the SQL index on (status) is more selective; the in-memory
-        //    pass over a contest-sized set is trivial.
-        List<ContestParticipant> participants = participantMapper.findByContestIdAndStatus(
-                contestId, "STARTED");
-        if (participants.isEmpty()) {
-            log.info("No participants to rate for contest {}", contestId);
-            return;
-        }
-        // Drop virtual participants; they may share userId with the real row.
-        participants = participants.stream()
-                .filter(p -> !Boolean.TRUE.equals(p.getIsVirtual()))
-                .toList();
+        //    R3.2 fix: filter by is_virtual = 0 directly, not by status=STARTED.
+        //    Once R3.1 closes real participants to FINISHED on contest end, the
+        //    old status-based filter would return an empty set and rating would
+        //    silently no-op. is_virtual is the true semantic discriminator:
+        //    virtual sessions are a per-user replay, not part of the rating
+        //    pool, regardless of status.
+        List<ContestParticipant> participants = participantMapper.findRealParticipantsByContestId(contestId);
         if (participants.isEmpty()) {
             log.info("No real participants to rate for contest {}", contestId);
             return;

@@ -37,6 +37,36 @@ export const useContestStore = defineStore("contest", () => {
   const currentContest = ref<ContestDetail | null>(null);
 
   const userParticipation = ref<Map<string, ParticipationStatus>>(new Map());
+
+  // R3.4: virtualSession is per-contest; persist into sessionStorage so a
+  // page refresh doesn't drop the session. The key encodes the contestId so
+  // the same user can have separate active virtual sessions across contests.
+  // We rehydrate below in the action definitions; this is the single source
+  // of truth for the in-memory state. The prefix is documented here so a
+  // future cross-store consumer (e.g. a logout flow that needs to clear
+  // virtual sessions) can derive the same key shape.
+  const VIRTUAL_SESSION_PREFIX = "ulticode:virtual-session:";
+  function loadVirtualSessionFromStorage(contestId: string): VirtualContestSession | null {
+    try {
+      const raw = sessionStorage.getItem(VIRTUAL_SESSION_PREFIX + contestId);
+      if (!raw) return null;
+      return JSON.parse(raw) as VirtualContestSession;
+    } catch {
+      return null;
+    }
+  }
+  function saveVirtualSessionToStorage(contestId: string, session: VirtualContestSession | null) {
+    try {
+      const key = VIRTUAL_SESSION_PREFIX + contestId;
+      if (session == null) {
+        sessionStorage.removeItem(key);
+      } else {
+        sessionStorage.setItem(key, JSON.stringify(session));
+      }
+    } catch {
+      // sessionStorage may be unavailable (private mode, quota); ignore.
+    }
+  }
   const virtualSession = ref<VirtualContestSession | null>(null);
 
   const registeredContests = ref<ContestListItem[]>([]);
@@ -242,6 +272,7 @@ export const useContestStore = defineStore("contest", () => {
     try {
       const session = await apiStartVirtual(contestId);
       virtualSession.value = session;
+      saveVirtualSessionToStorage(contestId, session);
       return session;
     } catch (err) {
       error.value =
@@ -251,8 +282,18 @@ export const useContestStore = defineStore("contest", () => {
   }
 
   async function loadVirtualSession(contestId: string) {
+    // R3.4: prefer the persisted session so a page refresh keeps the user
+    // on the right timer. Only fall back to the server if storage is empty
+    // (e.g. user opened the page in a new tab that didn't see the start).
+    const persisted = loadVirtualSessionFromStorage(contestId);
+    if (persisted) {
+      virtualSession.value = persisted;
+      return;
+    }
     try {
-      virtualSession.value = await fetchVirtualSession(contestId);
+      const server = await fetchVirtualSession(contestId);
+      virtualSession.value = server;
+      saveVirtualSessionToStorage(contestId, server);
     } catch {
       virtualSession.value = null;
     }
@@ -264,6 +305,7 @@ export const useContestStore = defineStore("contest", () => {
     try {
       await apiFinishVirtual(contestId, virtualSession.value.id);
       virtualSession.value = null;
+      saveVirtualSessionToStorage(contestId, null);
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to finish virtual contest";
@@ -365,6 +407,12 @@ export const useContestStore = defineStore("contest", () => {
     pastContestsTotal.value = 0;
     currentContest.value = null;
     userParticipation.value = new Map();
+    // R3.4: only drop the in-memory ref. The sessionStorage entries are
+    // scoped per contestId and the user might still be in a virtual session
+    // in another contest. We don't enumerate all sessionStorage keys here
+    // because each tab is typically tied to a single contest flow; if the
+    // store is reset, the next loadVirtualSession call will re-fetch from
+    // the server (or rehydrate from storage if it persists across resets).
     virtualSession.value = null;
     registeredContests.value = [];
     participatedContests.value = [];

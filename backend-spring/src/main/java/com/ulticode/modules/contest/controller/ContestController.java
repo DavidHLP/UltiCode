@@ -529,12 +529,18 @@ public class ContestController {
 
     /**
      * Start a virtual contest.
-     * Requires authentication.
+     * <p>M3: behavior is idempotent — if the user already has an ACTIVE virtual
+     * session (is_virtual=1, status=STARTED) for this contest, the existing
+     * session is returned. Prior FINISHED virtual sessions are NOT reused; a
+     * new replay session is created. Concurrent calls are serialized via
+     * row-level lock (SELECT ... FOR UPDATE) so only one session can be
+     * created per (contest, user) pair.
+     * <p>Requires authentication.
      *
      * @param id the contest ID
      * @return the virtual session information
      */
-    @Operation(summary = "Start virtual contest", description = "Start a virtual participation for a past contest")
+    @Operation(summary = "Start virtual contest", description = "Start a virtual participation for a past contest. Idempotent on ACTIVE sessions; concurrent calls are serialized.")
     @ApiResponse(responseCode = "200", description = "Virtual contest started", content = @Content(schema = @Schema(implementation = ParticipationStatusDTO.class)))
     @ApiResponse(responseCode = "400", description = "Cannot start virtual contest for non-past contest")
     @ApiResponse(responseCode = "401", description = "Not authenticated")

@@ -340,19 +340,21 @@ public class SubmissionServiceImpl implements SubmissionService {
                     .orElse(false);
             if (isVirtual) {
                 log.info("R6.3 / F-08: skipping achievement triggers for virtual submission {}", submissionId);
-            } else try {
-                Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
-                achievementTriggerService.onProblemSolved(submission.getUserId(), problemsSolved != null ? problemsSolved.intValue() : 0);
-                achievementTriggerService.onFirstProblemSolved(submission.getUserId());
+            } else {
+                try {
+                    Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
+                    achievementTriggerService.onProblemSolved(submission.getUserId(), problemsSolved != null ? problemsSolved.intValue() : 0);
+                    achievementTriggerService.onFirstProblemSolved(submission.getUserId());
 
-                // Language milestone
-                String language = submission.getLanguage();
-                if (language != null && !language.isBlank()) {
-                    Long languageCount = submissionMapper.countByUserIdAndLanguage(submission.getUserId(), language);
-                    achievementTriggerService.onLanguageMilestone(submission.getUserId(), language, languageCount != null ? languageCount.intValue() : 0);
+                    // Language milestone
+                    String language = submission.getLanguage();
+                    if (language != null && !language.isBlank()) {
+                        Long languageCount = submissionMapper.countByUserIdAndLanguage(submission.getUserId(), language);
+                        achievementTriggerService.onLanguageMilestone(submission.getUserId(), language, languageCount != null ? languageCount.intValue() : 0);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to trigger achievements for submission {}: {}", submissionId, e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Failed to trigger achievements for submission {}: {}", submissionId, e.getMessage());
             }
         }
 

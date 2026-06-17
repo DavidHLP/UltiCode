@@ -622,5 +622,97 @@ class ContestServiceImplTest {
 
             verify(submissionService, never()).submit(any(), any());
         }
+
+        /** R6.2 / F-07: virtual sessions are rejected once the participant
+         *  has been playing longer than contest.durationMinutes, even if
+         *  the contest itself is still RUNNING. Locks the server-side
+         *  hard cutoff so the auto-finish scheduler lag (10s tick) can't
+         *  leak late submissions through. */
+        @Test
+        @DisplayName("R6.2 / F-07: virtual session past duration is rejected")
+        void submitContestProblem_virtualSessionPastDuration_rejected() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setIsDeleted(false);
+            contest.setDurationMinutes(60);
+            contest.setEndTime(java.time.LocalDateTime.now().plusHours(2));
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            ContestParticipant participant = new ContestParticipant();
+            participant.setId("participant-1");
+            participant.setContestId("contest-1");
+            participant.setUserId(REGULAR_USER_ID);
+            participant.setStatus(ContestParticipantStatus.STARTED.name());
+            participant.setIsVirtual(true);
+            // Started 90 min ago for a 60-min virtual contest: past hard deadline.
+            participant.setStartedAt(java.time.LocalDateTime.now().minusMinutes(90));
+
+            CreateSubmissionDTO dto = new CreateSubmissionDTO();
+            dto.setLanguage("java");
+            dto.setCode("class Main {}");
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+                    .thenReturn(java.util.Optional.of(participant));
+
+            assertThatThrownBy(() -> contestService.submitContestProblem(
+                    "contest-1", 42L, REGULAR_USER_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ENDED);
+
+            verify(submissionService, never()).submit(any(), any());
+        }
+
+        /** R6.2 / F-07: virtual session within duration is accepted.
+         *  Locks the inverse — we don't want false positives. */
+        @Test
+        @DisplayName("R6.2 / F-07: virtual session within duration is accepted")
+        void submitContestProblem_virtualSessionWithinDuration_accepted() {
+            Contest contest = new Contest();
+            contest.setId("contest-1");
+            contest.setStatus(ContestStatus.RUNNING.name());
+            contest.setIsDeleted(false);
+            contest.setDurationMinutes(60);
+            contest.setEndTime(java.time.LocalDateTime.now().plusHours(2));
+
+            ContestProblem contestProblem = new ContestProblem();
+            contestProblem.setId("contest-problem-1");
+            contestProblem.setContestId("contest-1");
+            contestProblem.setProblemId(42L);
+
+            ContestParticipant participant = new ContestParticipant();
+            participant.setId("participant-1");
+            participant.setContestId("contest-1");
+            participant.setUserId(REGULAR_USER_ID);
+            participant.setStatus(ContestParticipantStatus.STARTED.name());
+            participant.setIsVirtual(true);
+            // Started 10 min ago: well within the 60-min virtual budget.
+            participant.setStartedAt(java.time.LocalDateTime.now().minusMinutes(10));
+
+            CreateSubmissionDTO dto = new CreateSubmissionDTO();
+            dto.setLanguage("java");
+            dto.setCode("class Main {}");
+
+            SubmissionVO submissionVO = new SubmissionVO();
+            submissionVO.setId("submission-1");
+
+            when(contestMapper.selectById("contest-1")).thenReturn(contest);
+            when(contestProblemMapper.findByContestIdAndProblemId("contest-1", 42L))
+                    .thenReturn(contestProblem);
+            when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
+                    .thenReturn(java.util.Optional.of(participant));
+            when(submissionService.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+
+            SubmissionVO result = contestService.submitContestProblem(
+                    "contest-1", 42L, REGULAR_USER_ID, dto);
+            assertThat(result.getId()).isEqualTo("submission-1");
+        }
     }
 }

@@ -112,16 +112,13 @@ function onVisibilityChange() {
         });
       }
     } else if (hiddenMs > 0) {
-      // Shift endsAt forward by the hidden duration. We cannot mutate the
-      // computed `session` directly (it's read-only), but the contest store
-      // exposes a setter on virtualSession; the next loadVirtual path will
-      // re-fetch from sessionStorage which we update through the same path.
-      // For a simple UX pause, we don't need to mutate anything here —
-      // the displayed timer is recomputed from the current Date.now() each
-      // tick, and the server still enforces the hard deadline (F-07).
-      // No-op: the next tick sees the same endsAt, but since time is still
-      // paused the value would otherwise have drifted; we rely on the
-      // server to reject any late submissions.
+      // Shift endsAt forward by the hidden duration so the user-visible
+      // timer doesn't burn through virtual time. HIGH-1 fix: use the
+      // store's setVirtualSession action (the local `session` is a
+      // computed and not writable).
+      const current = session.value;
+      const newEnd = new Date(Date.now() + remainingMs).toISOString();
+      contestStore.setVirtualSession({ ...current, endsAt: newEnd });
     }
   }
 }

@@ -332,7 +332,15 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         // Trigger achievement checks for accepted submissions
         if ("Accepted".equals(status)) {
-            try {
+            // R6.3 / F-08: skip achievement triggers for virtual-contest
+            // submissions. Virtual replays are not part of the user's
+            // earned-achievements history.
+            boolean isVirtual = contestParticipantMapper
+                    .findIsVirtualBySubmissionId(submissionId)
+                    .orElse(false);
+            if (isVirtual) {
+                log.info("R6.3 / F-08: skipping achievement triggers for virtual submission {}", submissionId);
+            } else try {
                 Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
                 achievementTriggerService.onProblemSolved(submission.getUserId(), problemsSolved != null ? problemsSolved.intValue() : 0);
                 achievementTriggerService.onFirstProblemSolved(submission.getUserId());

@@ -55,37 +55,31 @@
 
 ## 2. Round 10.1 — per-contest evict 真实现（F-21 完结）
 
-### 改动
+### ⚠️ 2026-06-18 评估发现：1.1 已完成，1.2 接受为低优先（plan 误判）
 
-#### 2.1 `@Cacheable` key 模板扩展
+**R10.1 原计划假设**：
+- 1.1 `@Cacheable` key 模板需扩展含 contestId
+- 1.2 `evictRankingCacheForContest(contestId)` 是占位 API 需真实接入
 
-`backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java`：
-- 当前：`@Cacheable(value = "getGlobalRanking", key = "'getGlobalRanking:' + #limit")`
-- 改为：`@Cacheable(value = "getGlobalRanking", key = "#contestId + ':' + #limit + ':' + (#cursor ?: 'first')")`
-- 同步调整所有调用方 / 测试 mock 的 key 构造
+**代码侧实际**（`ContestServiceImpl.java:398`）：
+```java
+@Cacheable(value = "contestRanking", key = "'getRanking:' + #contestId + ':' + #limit + ':' + (#cursor ?: '0')")
+public List<ContestRankingVO> getContestRanking(String contestId, Integer limit, String cursor) {
+```
 
-#### 2.2 `evictRankingCacheForContest(contestId)` 真实接入
+- 1.1 ✅ **已在 R9.1 落地**（R9 commit message 也确认：`The @Cacheable key template in ContestServiceImpl was NOT changed...` 这句话描述的是 `getGlobalRanking` 的 key 保留向后兼容，但 R9 同时**新建**了 `getContestRanking(contestId, limit, cursor)` 并已含 contestId 维度）
+- 1.2 ⏸ 仍为 `evictRankingCache()` 全局 `clear()`，但 `ContestScoringServiceImpl.java:305-310` 注释明确：
+  > *"Current global clear() is acceptable at the < 10k-row pagination range; NFR-P1 is not triggered."*
 
-`backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestScoringServiceImpl.java`：
-- 当前：`evictRankingCacheForContest(contestId)` 是占位 API，全局 `clear()`
-- 改为：精确删除 key 为 `contestId:*` 的缓存条目（用 `RedisTemplate.keys(contestId + ":*")` + `delete`）
-- 接入点：`applyJudgeResult` 末尾（评分变更触发 evict）
+**R10.1 状态**：
+- **1.1 已完成**（R9.1 落地时已含 contestId）
+- **1.2 DEFERRED**（现有代码注释已声明当前规模可接受，且 Redis SCAN/KEYS 引入复杂度不划算；如未来 > 10k 行触发 NFR-P1，应作为 R11 独立产品决策 + 独立 PR）
 
-### 验收
+**R10.1 plan 误判来源**：plan 基于 R9 计划文档而未对代码做实际验证，R9.1 实际已部分实现 R10.1.1。
 
-- 单 contest evict 隔离测试：evict contest-A 不影响 contest-B 缓存
-- keyset offset=9000 < 100ms 在 R9.1 已验；R10.1 验 key 模板扩展不破坏现有 NFR-P1
-- IT 测试：`evictRankingCacheForContest("c-A")` 后 `getContestRanking("c-B", ...)` 仍命中缓存
+---
 
-### 回滚
-
-- 回退 `@Cacheable` key 模板到 `getGlobalRanking:` 兼容形式
-- `evictRankingCacheForContest` 退回 `clear()` 占位
-- 不影响其他 R 轮次
-
-### 关联 ADR
-
-无新 ADR（沿用 ADR-008 缓存策略）
+## 2b. Round 10.1 — per-contest evict 真实现（原计划，作废）
 
 ---
 

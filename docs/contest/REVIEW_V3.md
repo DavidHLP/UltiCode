@@ -93,7 +93,7 @@
 | CRIT-3 (DB-3 varchar(40)) | 🟡 未修(兼容) | UUID 36 字符暂兼容,定时炸弹 |
 | CRIT-4 (DB-4 slug dedupe) | ❌ 未修 → P0-5 | slug 无 UNIQUE / redirect |
 | CRIT-5 (F-ARCH-01 调用点) | 🟡 部分 → P0-4 | 9 处仍走旧方法,新方法零调用 |
-| CRIT-6 (F-ARCH-07 migration) | 🟡 部分 | hardening migration 解耦,应用层无 shadow |
+| CRIT-6 (F-ARCH-07 migration) | ✅ 不适用 (ADR-011) | hardening migration 解耦 | 隐式灰度由 ADR-006 §2.4 覆盖；R8.5 决策不引独立 flag |
 | CRIT-7 (OPS-01 feature flag) | ❌ 未修 → P1 | 旗杆零消费 |
 | CRIT-8 (FE-02 BroadcastChannel) | ✅ 不适用 | 根本未用 BroadcastChannel,走 STOMP topic 天然隔离 |
 | CRIT-9 (F-SEC-01 IDOR) | ✅ 已修 | UUID + 认证态 userId |

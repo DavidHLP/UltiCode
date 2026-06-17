@@ -1,8 +1,11 @@
 package com.ulticode.modules.contest.service.impl;
 
+import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.RatingTitle;
+import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,12 +46,18 @@ class RatingCalculationServiceImplTest {
 
     @Mock private ContestParticipantMapper participantMapper;
     @Mock private GlobalRankingMapper globalRankingMapper;
+    @Mock private ContestMapper contestMapper;
 
     private RatingCalculationServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new RatingCalculationServiceImpl(participantMapper, globalRankingMapper);
+        // R6.1 / F-03: default to isRated=true; specific tests override.
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setIsRated(true);
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        service = new RatingCalculationServiceImpl(participantMapper, globalRankingMapper, contestMapper);
     }
 
     /** P1-5: participant list is pre-fetched once via findByUserIds, not N findByUserId. */
@@ -140,6 +149,23 @@ class RatingCalculationServiceImplTest {
 
         service.calculateAndUpdate(CONTEST_ID);
 
+        verify(globalRankingMapper, never()).findByUserIds(any());
+        verify(globalRankingMapper, never()).updateRating(anyString(), anyInt(), anyString(), anyString());
+        verify(globalRankingMapper, never()).recalculateGlobalRanks();
+    }
+
+    /** R6.1 / F-03: contest.isRated=false short-circuits before any DB write. */
+    @Test
+    @DisplayName("R6.1 / F-03: isRated=false skips rating update entirely")
+    void calculateAndUpdate_isRatedFalse_skipsUpdate() {
+        Contest c = new Contest();
+        c.setId(CONTEST_ID);
+        c.setIsRated(false);
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+
+        service.calculateAndUpdate(CONTEST_ID);
+
+        verify(participantMapper, never()).findRealParticipantsByContestId(anyString());
         verify(globalRankingMapper, never()).findByUserIds(any());
         verify(globalRankingMapper, never()).updateRating(anyString(), anyInt(), anyString(), anyString());
         verify(globalRankingMapper, never()).recalculateGlobalRanks();

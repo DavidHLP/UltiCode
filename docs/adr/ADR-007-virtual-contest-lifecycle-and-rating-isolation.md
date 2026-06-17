@@ -141,6 +141,35 @@ D1+D2+D3 必须**同一部署窗口**。D4（并发）+ D5（前端持久化）�
 
 ---
 
+## 7. F-10 决策记录（finishVirtual 不触发 rating 重算）
+
+### 7.1 冲突说明
+
+PRD §1.3 F-10 措辞模糊：原意为 "finishVirtual 不重算 rating" 还是 "finishVirtual 应当重算"？
+
+- PRD §1.3 文本：`F-10 finishVirtual 不重算` —— 倾向"应当不重算"（即现状正确）
+- R3.2 实现：rating 查询 `findRealParticipantsByContestId(contestId)` 已用 `is_virtual = 0` 过滤，**任何 finishVirtual 路径天然不进入 rating 池**
+
+### 7.2 决策
+
+**finishVirtual 不触发 rating recalculation**。理由：
+
+1. **语义边界**：虚拟 session 是 per-user replay，**不是**真实竞赛表现的一部分。Elo rating 应只反映真实竞赛成绩（与 [CONTEXT.md](../contest/CONTEXT.md) "Rating" 术语一致）。
+2. **R3.2 已强制**：`is_virtual=0` 过滤在 SQL 层完成；任何触发 `RatingCalculationService.calculateAndUpdate(contestId)` 的路径，其结果集**不会**包含虚拟参赛者。
+3. **R6.1 守卫加强**：`isRated=false` 提前 return（与本决策正交，但同一保险）。
+
+### 7.3 实施锚点
+
+- `RatingCalculationServiceImpl.calculateAndUpdate` (R6.1)：isRated gate 入口
+- `RatingCalculationServiceImpl.calculateAndUpdate` (R3.2)：`findRealParticipantsByContestId(contestId)` SQL 过滤
+- `ContestScoringServiceImpl.autoFinishVirtualParticipants` (R3.1)：**只**调 `batchUpdateStatus` (R6 改进为 `bulkFinishByIds`)，**不**调 `ratingService.calculateAndUpdate`
+
+### 7.4 关联 ADR
+
+- **ADR-009**（R6.6 新增）：`docs/adr/ADR-009-israted-gate-and-virtual-rating-isolation.md` —— F-03 isRated gate + F-10 决策的完整记录
+
+---
+
 ## 5. References
 
 - [REVIEW_V3.md §3 P0-2 / P0-4](../contest/REVIEW_V3.md)

@@ -1,8 +1,10 @@
 package com.ulticode.modules.contest.service.impl;
 
+import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.RatingTitle;
+import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.RatingCalculationService;
@@ -27,6 +29,9 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
 
     private final ContestParticipantMapper participantMapper;
     private final GlobalRankingMapper globalRankingMapper;
+    /** R6.1 / F-03: needed for the isRated gate (also reused for the F-10
+     *  decision record; see ADR-007 §7). */
+    private final ContestMapper contestMapper;
 
     /** Default Elo rating assigned to participants without a global_ranking record. */
     private static final int DEFAULT_RATING = 1500;
@@ -34,6 +39,21 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     @Override
     @Transactional
     public void calculateAndUpdate(String contestId) {
+        // R6.1 / F-03: isRated gate. Non-rated contests (practice / unranked)
+        // never update Elo. The contest lookup below is the same one used by
+        // the participant fetch, so this is a zero-extra-query guard. Note:
+        // F-10 (finishVirtual does NOT trigger recalc) is also a consequence
+        // of this gate — see ADR-007 §7 for the full decision record.
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null) {
+            log.info("R6.1: contest {} not found, skip rating", contestId);
+            return;
+        }
+        if (!Boolean.TRUE.equals(contest.getIsRated())) {
+            log.info("R6.1: contest {} isRated=false, skip rating update", contestId);
+            return;
+        }
+
         // 1. Fetch all real (non-virtual) participants for this contest.
         //    R3.2 fix: filter by is_virtual = 0 directly, not by status=STARTED.
         //    Once R3.1 closes real participants to FINISHED on contest end, the

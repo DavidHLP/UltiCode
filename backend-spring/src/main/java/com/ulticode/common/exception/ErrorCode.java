@@ -113,6 +113,7 @@ public enum ErrorCode {
     CONTEST_ENDED(70009, "Contest has ended", HttpStatus.BAD_REQUEST),
     SCORING_RULE_NOT_FOUND(70010, "Scoring rule not found", HttpStatus.NOT_FOUND),
     CONTEST_PROBLEMS_LOCKED(70014, "Contest problems can only be modified before it starts", HttpStatus.BAD_REQUEST),
+    CONTEST_SLUG_EXISTS(70015, "Contest slug already exists", HttpStatus.CONFLICT),
 
     // Bookmark module (8xxxx)
     BOOKMARK_FOLDER_NOT_FOUND(80001, "Bookmark folder not found", HttpStatus.NOT_FOUND),

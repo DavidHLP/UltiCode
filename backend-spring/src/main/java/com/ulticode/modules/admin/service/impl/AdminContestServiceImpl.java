@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -133,7 +134,16 @@ public class AdminContestServiceImpl implements AdminContestService {
         String slug = generateSlug(dto.getTitle());
         contest.setSlug(slug);
 
-        contestMapper.insert(contest);
+        try {
+            contestMapper.insert(contest);
+        } catch (DataIntegrityViolationException e) {
+            // P0-5 / H2: uk_contest_slug rejected. Catch the parent class so we
+            // surface 409 regardless of whether the driver throws
+            // DuplicateKeyException (mysql-connector-j) or the parent
+            // DataIntegrityViolationException (some MariaDB / older drivers).
+            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
+                    "Contest slug '" + slug + "' already exists");
+        }
 
         // Bulk-insert contest problems if provided
         List<Long> problemIds = dto.getProblemIds();

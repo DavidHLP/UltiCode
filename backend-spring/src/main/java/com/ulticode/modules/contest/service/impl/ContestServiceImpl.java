@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,7 +104,15 @@ public class ContestServiceImpl implements ContestService {
         contest.setSubmissionCount(0);
         contest.setIsDeleted(false);
         contest.setSlug(generateSlug(dto.getTitle()));
-        contestMapper.insert(contest);
+        try {
+            contestMapper.insert(contest);
+        } catch (DataIntegrityViolationException e) {
+            // P0-5 / H2: uk_contest_slug rejected. Catch the parent class so we
+            // surface 409 regardless of which Spring exception subtype the
+            // underlying driver throws.
+            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
+                    "Contest slug already exists: " + contest.getSlug());
+        }
         AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("slug", contest.getSlug()), Map.entry("status", contest.getStatus())));
         AuditContext.setUserId(userId);
         log.info("Contest created: {} by user {}", contest.getId(), userId);
@@ -139,7 +148,14 @@ public class ContestServiceImpl implements ContestService {
         }
         if (dto.getMaxParticipants() != null) contest.setMaxParticipants(dto.getMaxParticipants());
         if (dto.getIsPublished() != null) contest.setIsVisible(dto.getIsPublished());
-        contestMapper.updateById(contest);
+        try {
+            contestMapper.updateById(contest);
+        } catch (DataIntegrityViolationException e) {
+            // P0-5 / H2: title→slug change collided with existing row's slug.
+            // Parent-class catch for cross-driver compatibility.
+            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
+                    "Contest slug already exists: " + contest.getSlug());
+        }
         AuditContext.setOldValues(oldValues);
         AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("status", contest.getStatus())));
         log.info("Contest updated: {}", id);

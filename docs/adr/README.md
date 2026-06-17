@@ -15,6 +15,8 @@
 | **[ADR-005a](./ADR-005a-rollback-drill-protocol.md)** | Proposed (ADR-005 子协议) | Rollback Drill 协议 | ADR-005 §2.6 与 §4 #2 的执行子协议 (不是同级 ADR); 编号 `005a` 标注归属, 不占用新主编号 |
 | **[ADR-006](./ADR-006-contest-scoring-engine-activation.md)** | **Accepted** (2026-06-17) | Contest 评分引擎激活 | penalty 配置化（`penaltyPerWrong` 不再被硬编码 20 忽略）+ SCORE/ICPC/IOI 三模式语义定档 + 历史不复算。解除 REVIEW_V3 F-02 阻断。R4 已落地（12/12 ContestScoringServiceImplTest 含 4 个 ADR-006 §4 评分模式测试）。见 [EXECUTION_PLAN Round 4](../contest/EXECUTION_PLAN.md) |
 | **[ADR-007](./ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)** | **Accepted** (2026-06-17) | 虚拟竞赛生命周期调度与评级隔离 | auto-finish 接线（解除零调用者死代码）+ 真实赛结束全员 FINISHED + 评级查询从 `status='STARTED'` 切换到 `is_virtual=0`（消除隐式不变量）+ 虚拟开赛幂等（实际改用 DB `FOR UPDATE` 而非 Redis 锁；见 ADR-007 §6 实施偏差）+ 前端 session 持久化。四改动**原子上线**。R3 已落地。见 [EXECUTION_PLAN Round 3](../contest/EXECUTION_PLAN.md) |
+| **[ADR-008](./ADR-008-websocket-auth-and-realtime-push.md)** | **Accepted** (2026-06-17) | WebSocket auth + realtime push | F-04 useContestSocket 接入 (RankingsView 实时榜) + F-13 visibilitychange (HIGH-1 修复后真正改 endsAt) + F-17 SUBSCRIBE-frame 鉴权 (`ContestSubscribeAuthInterceptor`，注册才放行) + F-18 unmount cleanup. R6.4 已落地. 见 [completed/EXECUTION_PLAN_R6.md Round 6.4](../contest/completed/EXECUTION_PLAN_R6.md) |
+| **[ADR-009](./ADR-009-israted-gate-and-virtual-rating-isolation.md)** | **Accepted** (2026-06-17) | isRated gate + virtual-rating isolation | F-03 isRated 守卫（`RatingCalculationServiceImpl` 入口; 零额外查询, 复用 contestMapper）+ F-10 finishVirtual 不重算（决策记录在 ADR-007 §7）+ F-13 决议补全. R6.1 已落地. 见 [completed/EXECUTION_PLAN_R6.md Round 6.1](../contest/completed/EXECUTION_PLAN_R6.md) |
 
 ## 编号规则
 

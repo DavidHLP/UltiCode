@@ -160,22 +160,31 @@
 
 ## 5. Round 10.4 — 旧 `getGlobalRankingsPaginated` 签名删除
 
-### 改动
+### ⚠️ 2026-06-17 评估发现：ABORTED（plan 误判）
 
-`backend-spring/src/main/java/com/ulticode/modules/contest/service/ContestService.java`：
-- 删除 R9 保留的旧 `getGlobalRankingsPaginated(page, limit)` 方法
-- 同步删除对应 mapper / controller 端点（如仍存在）
-- 全局 grep 确认无调用方残留
+**R10.4 原计划假设**：`getGlobalRankingsPaginated(page, limit)` 是被新 `getContestRanking(contestId, limit, cursor)` 取代的旧版本，R9 保留 1 个版本后清理。
 
-### 验收
+**代码侧实际**：
+- `getGlobalRankingsPaginated` 用 `globalRankingMapper`（L18 import / L25 / L65 field）→ **全局跨场次榜单**（无 contestId）
+- `getContestRanking(contestId, ...)` 用不同 mapper（`selectParticipantsKeyset`）→ **单场榜单**
+- 两者是**两个独立功能**，不是同 API 旧/新版本
+- `console/src/api/contest.ts:166-176` `fetchGlobalRankings` 仍调 `/contest/rankings/global`
+- `console/src/api/contest.schema.ts:111-129` 有独立 `GlobalRankingEntry` schema
+- `GlobalRanking` entity 独立存在
 
-- 编译通过
-- 单元测试通过
-- IT 测试：所有榜单调用走新 `getContestRanking(contestId, limit, cursor)`
+**结论**：**不删除**。删除会破坏 console 全局榜单功能。
 
-### 回滚
+**R10.4 状态**：ABORTED（plan 误判）。原"清理"动机应由 R10.1 性能改动覆盖（cache key 模板扩展、evict 精确化），与 API 签名删除无关。
 
-- `git revert <commit>` 整批回退
+### 若未来真要重构全局榜单
+
+- 应作为 R10.x 或 R11 独立产品决策（"全局榜单是否要 keyset 分页 + cursor"）
+- 需要 console / management 前端 + 后端 mapper + 缓存策略完整方案
+- 不能作为 R10 "清理旧代码" 一并处理
+
+---
+
+## 5b. Round 10.4 — 旧 `getGlobalRankingsPaginated` 签名删除（原计划，作废）
 
 ### 关联 ADR
 

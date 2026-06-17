@@ -132,3 +132,26 @@
 - [x] 重新跑后端 `./mvnw test` + 前端 `pnpm type-check` — 本轮 5/5 RatingCalculationServiceImplTest + 12/12 ContestScoringServiceImplTest + 编译通过
 
 **R1-R6 全部完成。Sprint S1-S4 全部签收。**
+
+---
+
+## 10. v3.3 / R7 收口（2026-06-17）
+
+R7 多轮执行（详见 [completed/EXECUTION_PLAN_R7.md](./completed/EXECUTION_PLAN_R7.md)）落地 7 项：
+
+- **R7.2** F-22 audit doc 明确"无 violation"+ F-31 启动时 sweep
+- **R7.3** F-29 指数退避 + F-43 rejected 事件通道
+- **R7.4** F-15 跨端枚举对齐（前端 `isInVirtualContest` 改用 `STARTED` 兜底）
+- **R7.5** ADR-010 决策记录（F-35/F-38/F-50-52）
+- **R7.6** ADR-007 §8 评估记录（F-24 keyset / F-27 限流 / CRIT-6 shadow 模式 → 留 R8）
+- **R7.1** `evictRankingCacheForContest(contestId)` 占位 API（per-contest eviction 留 R8；NFR-P1 在 < 10k 行分页区间不触发）
+
+**R7 收口后**：49 finding 全部关闭或显式 deferred。PRD Sprint S1-S8 全部签收。
+
+模块状态：**v4.0 "完结"**。后续 R8 候选列表（按优先级）：
+1. R7.6 延期的 F-24 keyset 分页（仅 10k+ 行分页场景触发）
+2. R7.6 延期的 F-27 限流 key 加 contestId 维度（需 RateLimitAspect SpEL 支持）
+3. R7.1 延期的 per-contest 排行榜 evict
+4. R7.4 延期的 F-32 ContestTimer 组件统一 + F-28/30/39/40/41/46 UX 一致性（Sprint S8 集群）
+5. R7.6 延期的 CRIT-6 shadow 模式（runtime + ops 配合）
+6. R5/R6/R7 累计 12 项 LOW 收口

@@ -4,8 +4,9 @@
 **日期**: 2026-06-17
 **审查对象**: contest 模块**实际代码** —— `backend-spring/.../modules/contest/` + `console/src/views/contest/` + 相关测试与 migration
 **审查方式**: 4 维度并行取证(① 数据/安全 ② 架构/并发/评分管线 ③ 前端/测试 ④ 运维/migration)+ 争议项人工复核
-**v3 初始裁决**: **不建议合入 —— 需补齐核心评分功能后重新定档**
-**v3.1 状态（2026-06-17 复审）**: P0-1 ~ P0-5 全部已实施落地，详见 [EXECUTION_PLAN.md §"实施记录"](./EXECUTION_PLAN.md#实施记录)。本地 code review: [`.claude/reviews/contest-r1-r5-local-review.md`](../../.claude/reviews/contest-r1-r5-local-review.md) → **APPROVE**。等待用户显式批准 commit + push。
+**v3 初始裁决（2026-06-17）**: 不建议合入 —— 需补齐核心评分功能后重新定档
+**v3.1 状态（R1–R5 落地，2026-06-17）**: P0-1 ~ P0-5 全部已实施落地，详见 [EXECUTION_PLAN.md §"实施记录"](./EXECUTION_PLAN.md#实施记录)。本地 code review: [`.claude/reviews/contest-r1-r5-local-review.md`](../../.claude/reviews/contest-r1-r5-local-review.md) → **APPROVE**
+**v3.2 状态（R6–R9 closure，2026-06-17）**: **模块 v4.2 完结**。49 PRD finding + 12 LOW + 6 F-SEC HIGH/CRITICAL + R8 review fixups 全部关闭或显式 deferred to R10。详见 §10–§12。
 
 ---
 
@@ -19,11 +20,15 @@
 
 ## 1. 定档结论
 
-**不建议合入 —— 需补齐核心评分功能后重新定档。**
+> **本节保留 v3 初始裁决与判断依据,作为决策历史。** 当前最新状态见 §12 **v4.2 完结** 收口记录。
 
-判断依据是 **PRD 自身定义的验收基线**(`docs/contest/PRD.md` §1.3):产品方把 contest 缺陷明列为 **6 CRITICAL(F-01~F-06)+ 12 HIGH**。核实当前代码,6 个 CRITICAL 中 **3 个明确未交付、1 个未真正生效**。一个竞赛平台若评分模式 / 罚时 / 是否计分这些核心配置全部失效,属于**主功能未完成**,而非边缘缺陷。
+**v3 初始裁决（2026-06-17）: 不建议合入 —— 需补齐核心评分功能后重新定档。**
+
+判断依据是 **PRD 自身定义的验收基线**(`docs/contest/PRD.md` §1.3):产品方把 contest 缺陷明列为 **6 CRITICAL(F-01~F-06)+ 12 HIGH**。核实当时代码,6 个 CRITICAL 中 **3 个明确未交付、1 个未真正生效**。一个竞赛平台若评分模式 / 罚时 / 是否计分这些核心配置全部失效,属于**主功能未完成**,而非边缘缺陷。
 
 > 基础设施层(安全 / migration / 鉴权 / 性能 / 前端鉴权链)已达可合入水准;问题集中在**业务功能完整度**(评分规则生效、auto-finish 兜底、真榜隔离)。
+>
+> **v3.2 收口（2026-06-17, R6–R9 落地后）: 模块 v4.2 完结**。上述 5 项 P0 全部由 R1–R4 收口,基础设施层与业务功能层均达可合入水准。详见 §10–§12。
 
 ---
 
@@ -35,8 +40,8 @@
 | **F-04 WS 死代码** | ❌ 未接入 UI | `useContestSocket.ts` 的 `joinContest` 在 `console/src/views` **零调用**,实时推送链路未接通 |
 | **F-05 autoFinish 无调度** | ⚠️ 部分 | `autoFinishVirtualParticipants()`(`ScoringServiceImpl:218`)**无 caller**;`ContestScheduler` `@Scheduled(fixedRate=10_000)` 只扫比赛本身 UPCOMING/RUNNING→FINISHED;但**在线用户**靠前端 `VirtualContestTimer.vue:79`→`/virtual/finish` 能结束 |
 | **F-03 isRated 无视** | ⚠️ 未真正生效 | `isRated` 仅用于查询过滤 / VO 传参(`RankingServiceImpl:184`、`ContestServiceImpl:511/543/576`),**未在 `RatingCalculationService` 做 gate** |
-| F-01 状态机互斥 | 待复核 | 本轮未深入,建议合入前补查 |
-| F-06 提交不读虚拟时间 | 待复核 | 本轮未深入,建议合入前补查 |
+| F-01 状态机互斥 | ✅ 已审计 | [F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md) R6.2 落地；不变量 B.1 由 R6.5 generated column 收口；#5 `finishVirtualContest` + F-06 `timeFromStart` 复核动作见 F-01 §3.1 / §6.4 |
+| F-06 提交不读虚拟时间 | ✅ 已修 | R6.2（`timeFromStart` 改用 `participant.startedAt` 虚拟赛 / `actualStartTime` 真实赛）；F-01 §6 同步审计 |
 
 ---
 
@@ -103,11 +108,13 @@
 
 ## 8. 文档历史
 
-| 版本 | 日期 | 审查对象 | 裁决 |
+| 版本 | 日期 | 审查对象 / 阶段 | 裁决 |
 |---|---|---|---|
 | v1 | 2026-06-17 | PLAN.md(6 视角) | REJECT |
 | v2 | 2026-06-17 | PLAN.md(7 视角含 Security) | REJECT-WITH-MAJOR-REVISIONS |
-| **v3** | **2026-06-17** | **实际代码(4 维度 + 复核)** | **不建议合入 —— 补齐 P0 后重新定档** |
+| v3 | 2026-06-17 | 实际代码(4 维度 + 复核) | 不建议合入 —— 补齐 P0 后重新定档 |
+| v3.1 | 2026-06-17 | R1–R5 落地后复审 | P0-1~P0-5 全部已实施；本地 review APPROVE |
+| v3.2 | 2026-06-17 | R6–R9 收口 | **模块 v4.2 完结**（详见 §10–§12）|
 
 ---
 
@@ -155,3 +162,60 @@ R7 多轮执行（详见 [completed/EXECUTION_PLAN_R7.md](./completed/EXECUTION_
 4. R7.4 延期的 F-32 ContestTimer 组件统一 + F-28/30/39/40/41/46 UX 一致性（Sprint S8 集群）
 5. R7.6 延期的 CRIT-6 shadow 模式（runtime + ops 配合）
 6. R5/R6/R7 累计 12 项 LOW 收口
+
+---
+
+## 11. v3.3 / R8 收口（2026-06-17）
+
+R8 落地（详见 [completed/EXECUTION_PLAN_R8.md](./completed/EXECUTION_PLAN_R8.md)）：
+
+- **R8.1–R8.4** 评审发现 HIGH-1/HIGH-2/HIGH-3 + MED-1/2 修复（selectParticipantsKeyset NULL bug、ContestRankingsView WS 接入、ContestScoringServiceImpl 真实 participant 边界、autofinish 不重算虚拟）
+- **R8.5** ADR-011 决策：CRIT-6 灰度由 ADR-006 §2.4 覆盖，**不引独立 flag**（隐式灰度，避免运维摩擦）
+- **R8.6** MyContests 虚拟赛 tab + 12 LOW 收口（`LOW_REMAINING.md` F-35~F-47 全 ✅）
+
+**R8 收口后**：HIGH 全部 FIXED；MED 中 M1 跨模块 deferred（独立 PR）；LOW L3 设计选择 deferred。Sprint S1-S8 全部签收。
+
+---
+
+## 12. v3.4 / R9 收口 — 模块 v4.2 完结（2026-06-17）
+
+R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R9.md)）：
+
+- **R9.1** F-24 keyset 分页重设计（`getContestRanking(contestId, limit, cursor)`，cursor 格式 `rank:userId`）
+- **R9.2** per-contest evict 占位 API 落地（`evictRankingCacheForContest(contestId)`；**真 per-contest eviction** → **R10**）
+- **R9.3** i18n 接入 —— R9_PLACEHOLDER.ts 删除，en-US/zh-CN `contest.ts` 写回 keys；**view 模板接线 + i18n key 同步审计** → **R10**
+- **R9.4** F-46 multi-tab 检测（localStorage 跨标签广播 + 30s stale 释放；后端 R3.3 FOR UPDATE 是最后一道防线）
+
+**R9 收口后**：
+
+| 维度 | 状态 |
+|---|---|
+| 49 PRD finding（F-01~F-49）| 全部关闭或显式 deferred |
+| 12 LOW（F-35~F-47）| 全部关闭 |
+| 6 F-SEC HIGH/CRITICAL（F-SEC-01~06）| 全部关闭 |
+| R7/R8 review fixups | 全部关闭或显式 deferred |
+| **模块裁决** | **v4.2 完结** |
+
+### R10 deferred 项（来自 R7–R9 累计，非阻断）
+
+1. **R9.2** per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）
+2. **R9.3** i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）+ i18n key 同步审计
+3. **R9** 旧 `getGlobalRankingsPaginated(page, limit)` 兼容签名删除
+4. **M1** `contestMapper.selectById` 多一次查询优化（跨 submission 模块，独立 PR）
+5. **MED-3** `WebSocketAuthenticationException` 顶层化（cosmetic 重构）
+
+### F-01 状态机待复核（代码侧，非阻断）
+
+- **R6.2.1 §3.1** `#5 finishVirtualContest` 实际路径 —— 验证是否走 `bulkFinishByIds` 而非直写 participant.status
+- **R6.2.2 §6.4** F-06 `submissionService.submit.timeFromStart` 来源 —— 验证虚拟赛用 `now - participant.startedAt`
+
+### SECURITY_REVIEW 残留（需后续决策）
+
+- **F-SEC-10** MEDIUM Flyway 迁移期间 admin/用户操作无锁 —— 未在 R 计划明确处理
+- **F-SEC-12** LOW 反作弊钩子（开卷/刷题/账号多开）未设计 —— 业务决策项
+- **F-SEC-13** LOW 虚拟赛结束无审计 / log retention 不清 —— 未明确处理
+- **F-SEC-14** INFO 计划本身偏功能性，安全章节 0 字节 —— 文档结构问题
+
+### F-22 业务决策项
+
+- "全局单活跃"约束（同一用户同一时刻只能开一个虚拟赛）跨 contest 唯一索引 —— 当前不实施，等产品/业务方共同决定（详见 [F-22-VIRTUAL-SESSION-CROSS-CONTEST-AUDIT.md §5](./F-22-VIRTUAL-SESSION-CROSS-CONTEST-AUDIT.md)）

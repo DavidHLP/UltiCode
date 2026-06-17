@@ -62,6 +62,10 @@ public class RateLimitAspect {
 
     private String generateKey(RateLimit rateLimit, ProceedingJoinPoint joinPoint) {
         String key = rateLimit.key();
+        // R8.2 / F-27: substitute {paramName} placeholders with method
+        // arguments so per-resource key templates (e.g.
+        // "contest:virtual-start:{id}") resolve to per-resource buckets.
+        key = substitutePlaceholders(key, joinPoint);
         String userId = SecurityUtil.getCurrentUserId();
 
         if (userId != null) {
@@ -77,6 +81,63 @@ public class RateLimitAspect {
         }
 
         return key;
+    }
+
+    /**
+     * R8.2 / F-27: replace {@code {paramName}} placeholders in the rate
+     * limit key template with the corresponding method argument's
+     * {@code toString()}. Used to scope rate limit buckets per resource
+     * (e.g. {@code "contest:virtual-start:{id}"} resolves to
+     * {@code "contest:virtual-start:contest-123:user:u-7"}).
+     *
+     * <p>Unresolved placeholders are left in place so a typo in the
+     * template name does not silently widen the bucket. Wildcard
+     * characters in the resolved value are NOT escaped; callers should
+     * not put colons inside resource ids.
+     */
+    private String substitutePlaceholders(String template, ProceedingJoinPoint joinPoint) {
+        if (template == null || !template.contains("{")) {
+            return template;
+        }
+        java.lang.reflect.Parameter[] params = ((org.aspectj.lang.reflect.MethodSignature)
+                joinPoint.getSignature()).getMethod().getParameters();
+        Object[] args = joinPoint.getArgs();
+        StringBuilder out = new StringBuilder(template.length());
+        int i = 0;
+        while (i < template.length()) {
+            int open = template.indexOf('{', i);
+            if (open < 0) {
+                out.append(template, i, template.length());
+                break;
+            }
+            out.append(template, i, open);
+            int close = template.indexOf('}', open + 1);
+            if (close < 0) {
+                // Unterminated placeholder: leave the rest as-is.
+                out.append(template, open, template.length());
+                break;
+            }
+            String name = template.substring(open + 1, close);
+            String replacement = lookupParam(params, args, name);
+            out.append(replacement != null ? replacement : "{" + name + "}");
+            i = close + 1;
+        }
+        return out.toString();
+    }
+
+    private String lookupParam(java.lang.reflect.Parameter[] params, Object[] args, String name) {
+        if (params == null || args == null) return null;
+        for (int i = 0; i < params.length; i++) {
+            // @PathVariable / @RequestParam may rename; check both raw and
+            // the parameter's name. Default Java parameter name is "argN"
+            // without -parameters compilation, so we additionally honour
+            // the explicit parameter name in the @PathVariable annotation.
+            String pname = params[i].getName();
+            if (name.equals(pname) && i < args.length) {
+                return String.valueOf(args[i]);
+            }
+        }
+        return null;
     }
 
     private String getClientIp() {

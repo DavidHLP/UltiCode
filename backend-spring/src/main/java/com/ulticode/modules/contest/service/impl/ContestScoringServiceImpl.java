@@ -280,6 +280,28 @@ public class ContestScoringServiceImpl implements ContestScoringService {
      * (e.g. {@code 'getGlobalRanking:50'}), so {@code clear()} is the safe option.
      */
     private void evictRankingCache() {
+        evictRankingCacheForContest(null);
+    }
+
+    /**
+     * R8.3 / F-21: per-contest ranking cache invalidation. When
+     * {@code contestId} is null, clears the entire {@code contestRanking}
+     * cache (legacy behaviour). When non-null, attempts a targeted
+     * eviction of keys matching the per-contest pattern. The Spring
+     * {@link Cache#evict(Object)} API does not support pattern matching,
+     * so the targeted path is best-effort: in practice the cache uses
+     * the key prefix {@code "getRanking:" + contestId + ":"} and we
+     * clear the whole cache as the safest fallback. (A future R9 task
+     * could swap the cache to a Caffeine {@code LoadingCache} with a
+     * custom {@code keyFilter} for true per-contest eviction.)
+     *
+     * <p>Result: the targeted path now logs that it is a no-op alias for
+     * the global clear, and downstream callers get a deterministic
+     * "either the per-contest entries are gone, or we just cleared
+     * everything — same outcome for correctness, slightly more
+     * aggressive than ideal for throughput."
+     */
+    private void evictRankingCacheForContest(String contestId) {
         Cache cache;
         try {
             cache = cacheManager.getCache(RANKING_CACHE);
@@ -287,7 +309,19 @@ public class ContestScoringServiceImpl implements ContestScoringService {
             log.debug("Ranking cache not available: {}", e.getMessage());
             return;
         }
-        if (cache != null) {
+        if (cache == null) {
+            return;
+        }
+        if (contestId == null) {
+            cache.clear();
+        } else {
+            // R8.3 best-effort: log + clear. A future Caffeine-based
+            // implementation can target by key prefix; today Spring's
+            // Cache abstraction has no native pattern API.
+            log.debug(
+                "R8.3 / F-21: per-contest eviction for {} not supported by "
+                + "the current Cache abstraction; falling back to clear()",
+                contestId);
             cache.clear();
         }
     }

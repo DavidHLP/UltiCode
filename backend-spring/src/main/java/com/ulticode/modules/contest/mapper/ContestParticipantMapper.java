@@ -203,6 +203,32 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     Optional<Boolean> findIsVirtualBySubmissionId(@Param("submissionId") String submissionId);
 
     /**
+     * R8.1 / F-24: keyset pagination. Returns the next page of
+     * ranked participants for a contest, starting after
+     * {@code (afterRank, afterUserId)} (exclusive). {@code afterRank}
+     * is null for the first page. Tie-breaks on {@code final_rank} are
+     * resolved by {@code user_id} (UUID lex order) so the cursor is
+     * stable across calls.
+     */
+    @Select("SELECT cp.id, cp.contest_id, cp.user_id, cp.status, cp.final_rank, "
+            + "cp.total_score, cp.total_penalty, cp.total_time, cp.attempt_count, "
+            + "cp.registered_at, cp.updated_at, cp.virtual_session_id, "
+            + "u.username, u.name, u.avatar "
+            + "FROM contest_participants cp "
+            + "LEFT JOIN users u ON cp.user_id = u.id "
+            + "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 "
+            + "AND cp.final_rank IS NOT NULL "
+            + "AND (cp.final_rank > #{afterRank} "
+            + "     OR (cp.final_rank = #{afterRank} AND cp.user_id > #{afterUserId})) "
+            + "ORDER BY cp.final_rank ASC, cp.user_id ASC "
+            + "LIMIT #{limit}")
+    List<ContestParticipantWithUser> selectParticipantsKeyset(
+            @Param("contestId") String contestId,
+            @Param("afterRank") Integer afterRank,
+            @Param("afterUserId") String afterUserId,
+            @Param("limit") int limit);
+
+    /**
      * Find virtual participants whose time has expired
      * ({@code started_at + duration_minutes < now}). P2-2 fix.
      */

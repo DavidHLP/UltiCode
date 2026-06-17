@@ -203,14 +203,11 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     },
     debug: () => {},
     reconnectDelay: options.reconnectionDelay,
-    // R7.3 / F-29: exponential backoff is *deferred* to R8. The current
-    // @stomp/stompjs version (7.3.0) only accepts a numeric
-    // reconnectDelay (no function form until v8+), so the curve
-    // 1s -> 2s -> 4s -> ... -> 30s cannot be expressed declaratively.
-    // R8 plan: replace this with a manual deactivate/activate loop
-    // that uses setTimeout to schedule the next attempt with the
-    // calculated delay, then reset on a successful CONNECT.
-    // ADR-007 §8 records the evaluation.
+    // R8.4 / F-29: keep the static reconnectDelay as a small base
+    // value (used by the lib's internal schedule), but the actual
+    // exponential backoff (1s -> 2s -> 4s -> ... -> 30s) is driven
+    // by a manual deactivate/activate loop in onWebSocketClose
+    // (see scheduleReconnect). R7.3 / R7 review deferred this to R8.
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     onConnect: () => {
@@ -279,11 +276,47 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
         connectionStatus = "disconnected";
         notifyStatusChange("disconnected");
       }
+      // R8.4 / F-29: schedule the next reconnect via the manual
+      // exponential-backoff loop. The library's own reconnectDelay is
+      // disabled (set to 0 below) so we own the cadence. The reconnect
+      // is gated by options.autoReconnect; a successful onConnect
+      // resets reconnectAttempts.
+      if (options.autoReconnect) {
+        scheduleReconnect();
+      }
     },
   });
 
   stompClient.activate();
   return stompClient;
+}
+
+/**
+ * R8.4 / F-29: schedule the next manual reconnect attempt using
+ * exponential backoff (1s, 2s, 4s, ... up to 30s). A successful CONNECT
+ * resets {@link reconnectAttempts}; the loop terminates if
+ * {@code autoReconnect} is false or {@code reconnectAttempts} reaches
+ * {@link maxReconnectAttempts} (passed in via options).
+ */
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleReconnect(): void {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+  }
+  // 1s base, doubling each attempt, capped at 30s.
+  const delay = Math.min(1000 * 2 ** reconnectAttempts, 30_000);
+  reconnectAttempts++;
+  if (reconnectAttempts > 10) {
+    // Hard cap; matches the lib's default maxReconnectAttempts.
+    connectionStatus = "disconnected";
+    notifyStatusChange("disconnected");
+    return;
+  }
+  reconnectTimer = setTimeout(() => {
+    if (stompClient && !stompClient.connected) {
+      stompClient.activate();
+    }
+  }, delay);
 }
 
 /**

@@ -2,7 +2,7 @@
 
 > **作用**：UltiCode Contest 模块（含虚拟竞赛）的需求、设计、审查、决策文档集中地
 > **维护者**：后端 + 产品
-> **最后更新**：2026-06-17（R9 closure，模块 v4.2 完结；详细 R10 deferred 项见 [REVIEW_V3 §12](./REVIEW_V3.md)）
+> **最后更新**：2026-06-18（R10 收口：5/9 ✅ + 4/9 plan 误判 + 0 行代码改动；模块 v4.2 完结为权威裁决；详见 [REVIEW_V3 §12](./REVIEW_V3.md)）
 
 ---
 
@@ -75,9 +75,10 @@
 | 当前裁决 | **v4.2 完结** —— R1–R9 全部落地；P0 阻断项 0；详见 [REVIEW_V3.md §12](./REVIEW_V3.md) |
 | 重新定档 checklist | 全部 ✅（R1–R9）；见 [REVIEW_V3.md §9](./REVIEW_V3.md) |
 | 已确认修复 | 49 PRD finding + 12 LOW + 6 F-SEC HIGH/CRITICAL + i18n + 性能 + 鉴权链（详见各 R 计划）|
-| 显式 deferred → R10 | R9.2 per-contest evict 真实现 / R9.3 i18n view 接入 / R9.3 i18n key 同步审计 / `getGlobalRankingsPaginated` 旧签名删除 / M1 `contestMapper.selectById` 优化 / MED-3 `WebSocketAuthenticationException` 顶层化 |
-| 待复核（代码侧） | F-01 §3.1 `#5 finishVirtualContest` 实际路径 · F-01 §6.4 F-06 `timeFromStart` 来源（详见 [F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md)）|
-| SECURITY 残留风险 | F-SEC-10/12/13 未在 R 计划中明确处理；F-SEC-14 文档结构问题（详见 [SECURITY_REVIEW.md](./SECURITY_REVIEW.md)）|
+| R10 收口 | 5/9 ✅ (R10.1.1/R10.3/R10.6/R10.7/R10.8/R10.9) + 4/9 plan 误判 (R10.1.2 DEFERRED / R10.2 / R10.4 ABORTED / R10.5 DEFERRED) + 0 行代码改动 |
+| R10 续轮候选项 | MED-3 `WebSocketAuthenticationException` 顶层化（cosmetic）· R10.5 替代方案（单 SQL JOIN）· R9.3 banner 缺陷 · F-22 业务决策 · CRIT-6 shadow · F-15 TS enum · F-32 ContestTimer 统一 |
+| 待复核（代码侧） | ✅ **R10 已销项**：F-01 §3.1 `#5 finishVirtualContest` + F-01 §6.4 F-06 `timeFromStart` 均无 violation（详见 [F-01-STATE_MACHINE_AUDIT.md §3.1/§6.4](./F-01-STATE_MACHINE_AUDIT.md)）|
+| SECURITY 残留风险 | F-SEC-10/13 已 R10.8/10.9 关单（[init-db/README.md](../../init-db/README.md) / [docs/PRIVACY.md](../../PRIVACY.md)）；F-SEC-12/14 留业务/文档决策（详见 [REVIEW_V3 §12](./REVIEW_V3.md)）|
 
 ---
 
@@ -96,6 +97,8 @@
 | 2026-06-17 晚 | **R7** MED/LOW 收口（49 finding 全部关闭或显式 deferred，ADR-010）|
 | 2026-06-17 晚 | **R8** review fixups + ADR-011 灰度决策（CRIT-6 关闭）|
 | 2026-06-17 晚 | **R9** 性能缓存收口 + i18n 接入 + multi-tab 检测 —— **模块 v4.2 完结**（详见 [REVIEW_V3 §12](./REVIEW_V3.md) + [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R9.md)）|
+| 2026-06-17 晚 | **F-01 状态机审计 doc**（[F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md)）— R6.2 实施时系统化审计 §3.1/§6.4 待复核项 |
+| 2026-06-18 | **R10 收口**（[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)）— 5/9 ✅ (R10.1.1/R10.3/R10.6/R10.7/R10.8/R10.9) + 4/9 plan 误判 + 0 行代码改动；**模块 v4.2 完结为权威裁决**，v4.3 收口不成立 |
 
 ---
 

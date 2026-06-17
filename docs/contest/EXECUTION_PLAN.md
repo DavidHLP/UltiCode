@@ -4,7 +4,9 @@
 > **裁决依据**：实际代码状态（非 PLAN.md 的历史设想）。`PLAN.md` 的 HMAC/appSecret 等设想已被代码现实（UUID 方案）取代，本计划**不沿用 PLAN.md 的 Phase 0-9 框架**，从 V3 发现重新推导。
 > **创建**：2026-06-17
 > **预计 P0 工期**：6.5–8.5 人日 ≈ 1.5–2 周（与 REVIEW_V3 §1 吻合）
-> **实施状态**：**R1–R5 全部落地**（2026-06-17）。源码在 main 工作区未提交；详见 [.claude/reviews/contest-r1-r5-local-review.md](../../.claude/reviews/contest-r1-r5-local-review.md)。本计划末尾的 §"实施记录"段落记录实际改动与本计划的偏差。
+> **实施状态**：**R1–R5 全部落地**（2026-06-17）。源码已落 main（14 commits）；详见 [.claude/reviews/contest-r1-r5-local-review.md](../../.claude/reviews/contest-r1-r5-local-review.md) 与 [.claude/reviews/contest-r6-local-review.md](../../.claude/reviews/contest-r6-local-review.md)。本计划末尾的 §"实施记录"段落记录实际改动与本计划的偏差。
+>
+> **后续 R6**：补完剩余 11 项 + CRIT-2/3 历史债；详见 [EXECUTION_PLAN_R6.md (archived)](./completed/EXECUTION_PLAN_R6.md) 与 §"实施记录" 末尾。
 
 ---
 
@@ -276,6 +278,30 @@ ALTER TABLE contests ADD UNIQUE KEY uk_contest_slug (slug);
 | L2 | 魔法数字 300 | `private static final int CUSTOM_PENALTY = 300` | Code review：测试可读性 |
 | L3 | `VIRTUAL_SESSION_PREFIX` 闭包局部未导出 | 保留闭包，注释中说明 key 形状供未来跨 store 消费 | 设计选择：单 store 使用 closure-local 即可；export 留给未来需要时再做 |
 | M1 | （未列在原计划，code review 派生） | **deferred** | `contestMapper.selectById` 多一次查询的优化需要改 submission 模块；独立 PR 处理 |
+
+### R6 收口（2026-06-17 全部落地，详见 [completed/EXECUTION_PLAN_R6.md](./completed/EXECUTION_PLAN_R6.md)）
+
+R6 在 R1–R5 基础上补完 11 项 P0/P1 + 2 项历史债。6 个 R 轮次、6.5–11.5 人日、14 commits。
+
+| Round | Finding | 落地 |
+|-------|---------|------|
+| R6.1 | F-03 + F-10 | `RatingCalculationServiceImpl` isRated gate + ADR-007 §7 决策 |
+| R6.2 | F-01 + F-06 + F-07 | 状态机审计 doc + timeFromStart 区分虚拟/真实时钟 + 虚拟赛服务端时间窗 |
+| R6.3 | F-08 | 成就 is_virtual gate（`findIsVirtualBySubmissionId`） |
+| R6.4 | F-04 + F-13 + F-17 + F-18 | `ContestSubscribeAuthInterceptor` + RankingsView WS 接入 + visibilitychange 真改 endsAt（HIGH-1 修复后） + unmount cleanup |
+| R6.5 | F-15 + CRIT-2 + CRIT-3 | TS enum 注释 + V20260617140000（generated column 部分唯一 + VARCHAR 40→64） + HIGH-2 pre-check + ROLLBACK |
+| R6.6 | 文档 | ADR-008 / ADR-009 + REVIEW_V3 §9 关闭 |
+
+**R6 review 修复（详见 [contest-r6-local-review.md](../../.claude/reviews/contest-r6-local-review.md)）**：
+- HIGH-1 F-13 visibilitychange 真正实现（`setVirtualSession` action）
+- HIGH-2 V20260617140000 加 pre-check + ROLLBACK 注释
+- HIGH-3 F-07 单测补齐（4/4 SubmitContestProblemTests 通过）
+- MED-1 `else try` 结构 + MED-2 `liveRankings` 接入 + MED-5/6 由 HIGH-1/2 收口
+- MED-3 `WebSocketAuthenticationException` 顶层化（**deferred**，重构 cosmetic）
+
+**R6 部署**（staging 验证后）：
+- 14 commits 在 main，V20260617130000 + V20260617140000 两张新迁移已应用
+- 部署顺序：R1（slug UNIQUE 迁移先 staging）→ R2 → R3（原子）→ R4 → R5+R1 同窗 → R6.1 → R6.2 → R6.3 → R6.4 → R6.5（独立 + staging 验证）
 
 ### Code review 完整结论
 

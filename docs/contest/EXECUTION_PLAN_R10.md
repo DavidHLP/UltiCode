@@ -12,15 +12,17 @@
 
 ### 来自 REVIEW_V3 §12 R10 deferred 5 项
 
-| ID | 项 | 类别 |
-|---|---|---|
-| R10.1 | per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）| 性能 |
-| R10.2 | i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）| i18n |
-| R10.3 | i18n key 同步审计 | i18n |
-| R10.4 | 旧 `getGlobalRankingsPaginated(page, limit)` 签名删除（保留 1 个版本后清理）| 清理 |
-| R10.5 | M1 `contestMapper.selectById` 多一次查询优化（跨 submission 模块，**独立 PR**）| 性能 |
+| ID | 项 | 类别 | 2026-06-18 验证状态 |
+|---|---|---|---|
+| R10.1 | per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）| 性能 | ⚠️ 1.1 ✅（R9.1 已落地）/ 1.2 DEFERRED（`< 10k` 行可接受）|
+| R10.2 | i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）| i18n | ⚠️ **plan 误判** — R9 阶段已用业务命名空间完成，9 个 key 是死键 |
+| R10.3 | i18n key 同步审计 | i18n | ✅ 0 漂移（[I18N_AUDIT_R10.md](./I18N_AUDIT_R10.md)）|
+| R10.4 | 旧 `getGlobalRankingsPaginated(page, limit)` 签名删除（保留 1 个版本后清理）| 清理 | ⚠️ ABORTED — `getGlobalRankingsPaginated` 与 `getContestRanking` 是两个独立功能（全局 vs 单场）|
+| R10.5 | M1 `contestMapper.selectById` 多一次查询优化（跨 submission 模块，**独立 PR**）| 性能 | ⚠️ **plan 误判** — denormalize 引入 cascade 写放大 + R6.2/F-06 双轨时钟对账风险；推荐改用单 SQL JOIN 独立 PR |
 
 > 注：R10.5 与 R10.1 同属性能类但跨模块，独立 PR 处理；本计划只跟踪，独立部署。
+>
+> **R10 plan 误判汇总**：9 项中 4 项误判（R10.1.1 / R10.4 / R10.2 / R10.5）—— 计划基于 R9 文档推断而未做代码侧验证。R10 实际完成度：5 项 ✅ + 4 项 plan 误判。模块 v4.3 收口**不成立**，v4.2 保持为权威裁决。
 
 ### 来自 F-01-STATE_MACHINE_AUDIT 待复核销项 2 项（代码侧已通过验证）
 
@@ -85,38 +87,38 @@ public List<ContestRankingVO> getContestRanking(String contestId, Integer limit,
 
 ## 3. Round 10.2 — i18n view 模板接线（F-40/F-41/R9.3 完结）
 
-### 改动
+### ⚠️ 2026-06-18 评估发现：plan 误判 / R9 阶段已实质完成
 
-#### 3.1 引用 en-US/zh-CN `contest.ts` 中已写回但未引用的 keys
+**R10.2 原计划假设**：4 个 view (`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner) 存在 9 处未引用的 i18n keys (`empty.contests` / `empty.rankings` / `empty.virtualHistory` / `loading.rankings` / `loading.history` / `error.rankingsLoadFailed` / `error.alreadyInVirtualContestOtherTab` / `connection.reconnecting` / `connection.reconnectFailed` / `connection.rejected` / `replay.*`)，需要将 view 模板从硬编码/R9 placeholder 切换到这些 key。
 
-- `empty.contests` → `console/src/views/contest/ContestBrowseView.vue`
-- `empty.rankings` → `console/src/views/contest/ContestRankingsView.vue`
-- `empty.virtualHistory` → `console/src/views/contest/MyContests.vue` "我的虚拟赛" tab
-- `loading.rankings` / `loading.history` → 对应列表骨架屏
-- `error.rankingsLoadFailed` → ranking 错误 toast
-- `error.alreadyInVirtualContestOtherTab` → R9.4 multi-tab 检测 toast
-- `connection.reconnecting` / `connection.reconnectFailed` → WS banner
-- `connection.rejected` → R7.3 rejected 事件 toast
-- `replay.*` → 虚拟赛历史 tab
+**代码侧实际**（2026-06-18 验证）：
 
-#### 3.2 硬编码字符串替换审计
+- **0 处硬编码中文**（`grep [一-鿿]` 在 4 个 view 文件无结果）
+- **0 处 locale 缺失 key**（9 个 key 全部在 en-US L263-293 / zh-CN L255-283 中存在）
+- **9 个 key 全部是死键**（locale 有但 view 零引用）—— view 已用功能等价的**业务命名空间**完成 i18n：
+  - `ContestBrowseView.vue`: `contest.list.noContests` / `contest.list.loading` / `contest.list.title`
+  - `ContestRankingsView.vue`: `contest.rankings.title` / `contest.list.loading` / `contest.error.rankingsLoadFailed`
+  - `MyContests.vue` (实际路径 `views/contest/components/MyContests.vue`): `contest.myContests.title` / `noRegistered` / `noParticipated` / `noVirtual` / `contest.myContests.loading`
+  - 路由壳 `ContestMyView.vue`: 无 i18n 引用
+- **WS banner 偏差**：
+  - R10.2 假设存在独立 `ContestWSBanner.vue` —— **实际无独立组件**
+  - `connectionStatus` 在 `useContestSocket.ts` composable 中暴露
+  - `ContestRankingsView.vue:28` 声明 `showReconnecting` ref，但**模板里从未渲染**（declared-but-unused，属于 R9.3 banner 缺陷，与 i18n 接线正交）
+- **R10.2 列出的 `error.alreadyInVirtualContestOtherTab` / `connection.rejected`** 在 view 层**无触发路径**（multi-tab 检测与 WS rejected 处理不在视图层）
 
-`grep -rn '暂无\|加载中\|失败\|重连' console/src/views/contest/` 验证无遗漏
+**R10.2 状态**：
 
-### 验收
+- **R10.2 plan 误判**：R9 阶段已按业务命名空间（`contest.list.*` / `contest.myContests.*` / `contest.ranking.*`）完成 i18n 接线；R10.2 假设的 `empty.*` / `loading.*` / `replay.*` 命名空间从未被 view 采用
+- **9 个死键处置建议**（非 R10.2 强制）：
+  - 选项 A：保留（无引用是观察性的，对未来扩展无害）
+  - 选项 B：从 locale 文件删除（精简），需 R10.x 单独 PR
+- **R9.3 banner 缺陷**（`showReconnecting` 未渲染）属于 R9 收口漏网，独立小修复可作为 R10.x 候选；不属于 R10.2 i18n 接线范围
 
-- `pnpm validate:i18n-keys` 全绿（管理端现有规则）
-- 9 个 view 模板全部无硬编码中文字符（grep 验证）
-- 切换 en-US / zh-CN 浏览器语言，UI 文案 100% 一致
-
-### 回滚
-
-- view 改回 `R9_PLACEHOLDER.ts` 形式（注意此文件已删除；回退需 git revert）
-- 推荐：用 `git revert <commit>` 整批回退
+**R10.2 plan 误判来源**：plan 基于 R9 计划文档"R9.3 写回 keys 留待 R10.2 接线"而未对代码做实际验证。R9.3 实际是 R9 收口产物（i18n 已实质完成），不只是"写回 keys"。
 
 ### 关联 ADR
 
-无新 ADR
+无
 
 ---
 
@@ -188,28 +190,50 @@ public List<ContestRankingVO> getContestRanking(String contestId, Integer limit,
 
 ## 6. Round 10.5 — M1 `contestMapper.selectById` 优化（**独立 PR**）
 
-### 改动
+### ⚠️ 2026-06-18 评估发现：原计划 DEFERRED，推荐改用单 SQL JOIN 方案
 
-> 跨 submission 模块，需独立 PR + 独立 review + 独立部署窗口
+**R10.5 原计划假设**：`recordContestSubmissionIfNeeded` 调 `contestMapper.selectById` 多一次查询构成性能瓶颈；通过给 `ContestProblem` 加 `contestStartTime` / `contestActualStartTime` 字段（denormalize）消除该次 select。
 
-`backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java`：
-- 当前 `recordContestSubmissionIfNeeded` 调 `contestMapper.selectById(cp.getContestId())` 多一次查询
-- 改为：通过 `contestProblem` 携带 `contestStartTime` / `contestActualStartTime` 字段避免额外 select
-- 涉及 `ContestProblem` entity 加字段 + mapper + service 调用方
+**代码侧实际**（2026-06-18 验证）：
 
-### 验收
+- `recordContestSubmissionIfNeeded` (`SubmissionServiceImpl.java:1357-1403`) 中 `contestMapper.selectById` 在 `for (ContestProblem cp : contestProblems)` 循环内调用，但末尾有 `break` —— **实际最坏 1 次主键查询**
+- `contestMapper.selectById` 继承 `BaseMapper<Contest>`，单条 `SELECT * FROM contests WHERE id = ? AND is_deleted = 0`，**InnoDB 主键查询实测 < 1ms**
+- 实际使用 `contest` 对象字段：`getStatus()` / `getActualStartTime()` / `getStartTime()` / `getId()` —— **`status` / `startTime` / `actualStartTime` 都不在 `ContestProblem` 上**（entity 现有字段仅 `id` / `contestId` / `problemId` / `problemIndex` / `score` / `penaltyPerWrong` / `solvedCount` / `submissionCount` / `label` / `baseScore` / `timeBonus` / `createdAt` / `updatedAt`）
+- R6.2/F-06 已有双轨时钟逻辑（`actualStartTime != null ? actualStartTime : startTime` + 虚拟/真实分支）—— denormalize 方案必须复刻同样语义，写路径复杂度上升
 
-- IT 测试：`recordContestSubmissionIfNeeded` 内 SQL 查询次数减少 1
-- 性能：单提交耗时减少 < 5ms（实际只省一次主键查询）
-- 回归：所有现有 SubmissionServiceImplTest + IT 通过
+**R10.5 原计划否决理由**：
 
-### 回滚
+| 维度 | 评估 |
+|---|---|
+| 改动量 | **large**（denormalize 跨 schema + 业务语义）|
+| 数据库迁移 | **需要**（`contest_problems` 加列；新加列需 NULL 兼容与回填）|
+| 回填复杂度 | **高** —— `contestId` 多对一，同一 contest 状态/actualStartTime 变更需 cascade update 所有 cp 行 |
+| 写时一致性 | 新的写放大点；scheduler 触发 RUNNING/actualStartTime 设置需级联 |
+| 数据一致性风险 | denormalize 必然带来对账负担；与 R6.2/F-06 双轨逻辑交互需要细致 case |
+| 真实收益 | 单 submission 最坏 1 次 PK 查询 < 1ms，相对 submission 路径总查询开销是噪声级 |
+| 风险/收益比 | **不划算** —— 引入迁移/对账/写放大风险，换 < 1ms 节省 |
 
-- 独立 commit，可单独 revert
+**推荐替代方案（候选 R10.x / R11 独立 PR）**：
+
+- **首选**：在 `ContestProblemMapper` 增加 `findActiveContestProblemByProblemId(problemId)`，单条 SQL `JOIN contests` 取 `status` / `startTime` / `actualStartTime`：
+  ```sql
+  SELECT cp.*, c.status, c.start_time, c.actual_start_time
+  FROM contest_problems cp
+  JOIN contests c ON c.id = cp.contest_id AND c.is_deleted = 0
+  WHERE cp.problem_id = ? AND c.status = 'RUNNING'
+  LIMIT 1
+  ```
+  既消除循环里的多次 selectById，又避免 denormalize
+- **次选**：保持现状。`recordContestSubmissionIfNeeded` 仅在 submission 创建路径调用（不是 hot loop），单次 submission 总查询开销相对无意义
+- **不推荐**：按 R10.5 原计划 denormalize `ContestProblem`
+
+**R10.5 状态**：DEFERRED（原 plan 误判）。如产品后续要求正式压测此路径，可作为 R10.x 或 R11 独立 PR 实施首选替代方案。
+
+**R10.5 plan 误判来源**：plan 基于 R9 文档"R5.1 中 M1 优化"假设而未对代码做实际验证；R5.1 描述的"contestMapper.selectById 多一次查询"在 `recordContestSubmissionIfNeeded` 实际语义下不构成瓶颈（PK 查询 < 1ms + break 早退）。
 
 ### 关联 ADR
 
-无（建议后续 R11 评估是否升级 ADR-006）
+无（替代方案如实施，可作为 ADR-013 候选）
 
 ---
 
@@ -377,24 +401,27 @@ This is **accepted as low risk** until product defines anti-cheat requirements.
 
 每个 R 独立 commit + 独立 PM2 重启 + 独立验证。
 
+> **2026-06-18 收口注**：R10.1.2 / R10.2 / R10.4 / R10.5 实际不需代码改动（plan 误判 / DEFERRED / ABORTED），R10 完成无实际代码部署。R10.6 / R10.7 / R10.8 / R10.9 / R10.3 / R10.1.1 全部为 doc-only 或 R9 已落地的销项。
+
 ---
 
 ## 11. 验收总表
 
-| Round | Finding | 验收命令/方法 | 估时 |
-|-------|---------|--------------|------|
-| R10.1 | F-21 | 单 contest evict 隔离 IT + 现有 NFR-P1 不退化 | 0.5 |
-| R10.2 | LOW i18n | grep 硬编码 = 0 + pnpm validate:i18n-keys 全绿 | 1 |
-| R10.3 | LOW i18n | `I18N_AUDIT_R10.md` 漂移 key = 0 | 0.5 |
-| R10.4 | LOW cleanup | 编译 + 单测 + IT 全绿 | 0.25 |
-| R10.5 | M1 | 独立 PR + SubmissionServiceImplIT 通过 | 0.5–1 |
-| R10.6 | F-01 §3.1 | grep `updateById.*FINISHED` 在 finishVirtualContest 路径 = 0 | 0.1 |
-| R10.7 | F-01 §6.4 | grep `timeFromStart` 写入路径仅 1 处且分支正确 | 0.1 |
-| R10.8 | F-SEC-10 | `init-db/README.md` 含 Migration Operational Checklist 节 | 0.25 |
-| R10.9 | F-SEC-13 | `docs/PRIVACY.md` 存在 + 含 log retention 表 | 0.25 |
-| **合计** | **9 项** | | **3.5–4 人日** |
+| Round | Finding | 验收命令/方法 | 估时 | 2026-06-18 实际状态 |
+|-------|---------|--------------|------|-------------------|
+| R10.1.1 | F-21 key 含 contestId | 读 `ContestServiceImpl.java:398` 确认 `@Cacheable` key 含 `#contestId` | 0 | ✅ R9.1 落地时已含 |
+| R10.1.2 | F-21 per-contest evict | 单 contest evict 隔离 IT | 0.5 | ⚠️ DEFERRED（`< 10k` 行可接受）|
+| R10.2 | LOW i18n 接线 | grep 硬编码 = 0 + pnpm validate:i18n-keys 全绿 | 1 | ⚠️ **plan 误判**（R9 已完成）|
+| R10.3 | LOW i18n 审计 | `I18N_AUDIT_R10.md` 漂移 key = 0 | 0.5 | ✅ 0 漂移 |
+| R10.4 | LOW cleanup | 编译 + 单测 + IT 全绿 | 0.25 | ⚠️ ABORTED |
+| R10.5 | M1 selectById | 独立 PR + SubmissionServiceImplIT 通过 | 0.5–1 | ⚠️ **plan 误判 / DEFERRED**（推荐单 SQL JOIN 独立 PR）|
+| R10.6 | F-01 §3.1 | grep `updateById.*FINISHED` 在 finishVirtualContest 路径 = 0 | 0.1 | ✅ |
+| R10.7 | F-01 §6.4 | grep `timeFromStart` 写入路径仅 1 处且分支正确 | 0.1 | ✅ |
+| R10.8 | F-SEC-10 | `init-db/README.md` 含 Migration Operational Checklist 节 | 0.25 | ✅ |
+| R10.9 | F-SEC-13 | `docs/PRIVACY.md` 存在 + 含 log retention 表 | 0.25 | ✅ |
+| **合计** | **9 项** | | **3.5–4 人日（计划）→ 0 人日（实际代码）** | **5/9 ✅ + 4/9 误判** |
 
-**R10.1–R10.9 全绿 → 模块 v4.3 完结。** 所有 R7–R9 deferred + F-01 复核 + F-SEC-10/13 残留全部关闭。
+**R10 实际收口（2026-06-18）**：5/9 ✅ + 4/9 plan 误判 + 0 行代码改动。模块 v4.3 收口**不成立**（R10.2 / R10.5 工作无必要），v4.2 保持为权威裁决。
 
 ---
 
@@ -411,6 +438,8 @@ This is **accepted as low risk** until product defines anti-cheat requirements.
 
 ## 13. 后续 R11 候选（非本计划范围）
 
+- **R10.5 替代方案（首选）**：在 `ContestProblemMapper` 增加 `findActiveContestProblemByProblemId(problemId)`，单 SQL JOIN `contests` 取 `status` / `startTime` / `actualStartTime`。消除 `recordContestSubmissionIfNeeded` 循环里的多次 selectById，零 denormalize 风险。需独立 PR + 跨 submission 模块 review
+- **R9.3 banner 缺陷修复**：`ContestRankingsView.vue:28` `showReconnecting` ref 模板未渲染（declared-but-unused），属 R9 收口漏网；与 i18n 接线正交。独立小修复
 - **F-22 业务决策** — "全局单活跃"约束跨 contest 唯一索引，等产品/业务方决定
 - **CRIT-6 shadow 模式** — runtime + ops 配合，R7.6 延期
 - **F-15 TS enum 完整化** — 跨端 enum 统一（CLAUDE.md 已记"前端 TS enum vs 后端 String 错配"）

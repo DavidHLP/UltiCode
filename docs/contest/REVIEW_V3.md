@@ -196,18 +196,23 @@ R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R
 | R7/R8 review fixups | 全部关闭或显式 deferred |
 | **模块裁决** | **v4.2 完结** |
 
-### R10 deferred 项（来自 R7–R9 累计，非阻断）
+### R10 实际收口（2026-06-18 验证后）
 
-完整计划：[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)（9 项，估 3.5–4 人日，模块 v4.3 收口）
+完整计划：[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)
 
-1. **R10.1** per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）
-2. **R10.2** i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）+ **R10.3** i18n key 同步审计
-3. **R10.4** 旧 `getGlobalRankingsPaginated(page, limit)` 兼容签名删除
-4. **R10.5** M1 `contestMapper.selectById` 多一次查询优化（跨 submission 模块，**独立 PR**）
-5. **R10.6/10.7** F-01 状态机复核销项（doc-only，零代码风险）
-6. **R10.8** F-SEC-10 迁移期 checklist（`init-db/README.md` 加节）
-7. **R10.9** F-SEC-13 log retention（新建 `docs/PRIVACY.md`）
-8. MED-3 `WebSocketAuthenticationException` 顶层化（cosmetic 重构）→ 留 R10 续轮或 R11 视工作量
+> **R10 计划 9 项中 4 项 plan 误判**（基于 R9 文档推断而未做代码侧验证）。R10 实际完成度：5/9 ✅ + 4/9 plan 误判 + **0 行代码改动**。模块 v4.3 收口**不成立**；v4.2 保持为权威裁决。
+
+| ID | 2026-06-18 状态 | 备注 |
+|---|---|---|
+| **R10.1.1** | ✅ R9.1 已落地 | `ContestServiceImpl.java:398` `@Cacheable` key 已含 `#contestId` |
+| **R10.1.2** | ⚠️ DEFERRED | per-contest evict 接受为低优先（`< 10k` 行可接受）|
+| **R10.2** | ⚠️ plan 误判 | R9 阶段已用业务命名空间完成 i18n；9 个 key 是死键 |
+| **R10.3** | ✅ 0 漂移 | [I18N_AUDIT_R10.md](./I18N_AUDIT_R10.md) |
+| **R10.4** | ⚠️ ABORTED | `getGlobalRankingsPaginated` 与 `getContestRanking` 是两个独立功能（全局 vs 单场），非同 API 旧/新版本 |
+| **R10.5** | ⚠️ plan 误判 / DEFERRED | denormalize 引入 cascade 写放大 + R6.2/F-06 双轨时钟对账风险；推荐改用单 SQL JOIN 方案（独立 PR）|
+| **R10.6/10.7** | ✅ F-01 销项 | doc-only 落地，详见下方 |
+| **R10.8/10.9** | ✅ F-SEC-10/13 收口 | doc-only 落地（`init-db/README.md` / `docs/PRIVACY.md`）|
+| **MED-3** | ⏸ 留 R10.x 续轮 | `WebSocketAuthenticationException` 顶层化，cosmetic 重构 |
 
 ### F-01 状态机（已 R10 销项）
 

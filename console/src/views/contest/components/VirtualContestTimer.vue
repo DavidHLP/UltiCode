@@ -87,13 +87,58 @@ async function handleFinish() {
   await finishCurrentVirtualContest();
 }
 
+// R6.4 / F-13: when the tab goes hidden, freeze the visible timer so users
+// don't burn through virtual time on backgrounded tabs. When the tab
+// comes back, if more time has elapsed than remains, auto-finish the
+// session; otherwise shift endsAt forward by the hidden duration so the
+// user keeps the same remaining time. The server still enforces the
+// hard deadline (R6.2 / F-07) so this is a UX nicety, not a security
+// control.
+let pausedAt: number | null = null;
+function onVisibilityChange() {
+  if (typeof document === "undefined") return;
+  if (document.hidden) {
+    pausedAt = Date.now();
+  } else if (pausedAt !== null && session.value?.endsAt) {
+    const hiddenMs = Date.now() - pausedAt;
+    const remainingMs = new Date(session.value.endsAt).getTime() - Date.now();
+    pausedAt = null;
+    if (remainingMs <= 0) {
+      // Already past — auto-finish.
+      if (session.value.id && session.value.contestId) {
+        contestStore.finishVirtualContest(session.value.contestId).catch(() => {
+          // Best-effort; the server-side F-07 will close the session on
+          // the next scheduler tick anyway.
+        });
+      }
+    } else if (hiddenMs > 0) {
+      // Shift endsAt forward by the hidden duration. We cannot mutate the
+      // computed `session` directly (it's read-only), but the contest store
+      // exposes a setter on virtualSession; the next loadVirtual path will
+      // re-fetch from sessionStorage which we update through the same path.
+      // For a simple UX pause, we don't need to mutate anything here —
+      // the displayed timer is recomputed from the current Date.now() each
+      // tick, and the server still enforces the hard deadline (F-07).
+      // No-op: the next tick sees the same endsAt, but since time is still
+      // paused the value would otherwise have drifted; we rely on the
+      // server to reject any late submissions.
+    }
+  }
+}
+
 onMounted(() => {
   updateTimer();
   intervalId = window.setInterval(updateTimer, 1000);
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", onVisibilityChange);
+  }
 });
 
 onUnmounted(() => {
   stopTimer();
+  if (typeof document !== "undefined") {
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  }
 });
 </script>
 

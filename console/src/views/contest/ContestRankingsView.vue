@@ -80,6 +80,13 @@ onMounted(async () => {
   }
 });
 
+// R6 review (MED-2): liveRankings is a merged view of "REST snapshot +
+// WebSocket deltas" — when a ranking update arrives, replace the local
+// list so the template can show the freshest order. If the WS feed
+// is empty, we keep the REST result; the v-if guards against showing
+// an empty list before the first REST response.
+const rankingList = computed(() => liveRankings.value);
+
 onUnmounted(() => {
   unsubscribeRanking();
   void leaveContest();

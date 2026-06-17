@@ -402,6 +402,19 @@ export const useContestStore = defineStore("contest", () => {
     error.value = null;
   }
 
+  /**
+   * R6.4 / HIGH-1: mutable update for the active virtual session. Used
+   * by VirtualContestTimer's visibilitychange handler to shift endsAt
+   * forward by the hidden duration so the user-visible timer doesn't
+   * burn through virtual time on backgrounded tabs.
+   */
+  function setVirtualSession(session: VirtualContestSession | null): void {
+    virtualSession.value = session;
+    if (session) {
+      saveVirtualSessionToStorage(session.contestId, session);
+    }
+  }
+
   function $reset() {
     upcomingContests.value = [];
     runningContests.value = [];
@@ -470,6 +483,7 @@ export const useContestStore = defineStore("contest", () => {
     stopCountdownTimer,
     getCountdown,
     clearError,
+    setVirtualSession,
     $reset,
   };
 });

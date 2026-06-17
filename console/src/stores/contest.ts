@@ -96,20 +96,19 @@ export const useContestStore = defineStore("contest", () => {
     );
   });
 
-  // 后端 /virtual/start 与 /virtual/session 返回的 status 为小写 "started"，
-  // 与前端 VirtualContestStatus 的 "IN_PROGRESS" 不一致（跨栈 DTO 枚举错配，
-  // F-15 / R6.5 已记录）。后端同时返回 isActive 布尔，优先用它判定；status
-  // 字面量仅作兜底，集中处理避免各组件重复踩坑。彻底解决需后端 enum 化
-  // （CLAUDE.md 优先项），不在本轮范围。
+  // R7.4 / F-15: 后端 /virtual/start 与 /virtual/session 返回 status 字面量
+  // 已对齐到 ContestParticipantStatus 枚举（STARTED / FINISHED）。后端
+  // 同时返回 isActive 布尔，优先用它判定；status 字面量仅作兜底，集中
+  // 处理避免各组件重复踩坑。前端 VirtualContestStatus 的 "IN_PROGRESS"
+  // 历史命名保留为 alias，保证现有组件不破。
   const isInVirtualContest = computed(() => {
     const session = virtualSession.value;
     if (!session) return false;
     if (typeof session.isActive === "boolean") return session.isActive;
-    // F-15 / R6.5: 跨栈枚举错配。后端目前返回小写 "started"，
-    // 前端 VirtualContestStatus 是 "IN_PROGRESS"。这里按 string
-    // 比较兜底；后续 ADR-008 阶段推动后端 enum 化后，类型会自动对齐。
+    // F-15: 跨栈枚举对齐到 ContestParticipantStatus 枚举值。
+    // VirtualContestStatus.IN_PROGRESS 保留为 alias。
     const status = session.status as string;
-    return status === "IN_PROGRESS" || status === "started";
+    return status === "STARTED" || status === "IN_PROGRESS";
   });
 
   const currentVirtualTimeRemaining = computed(() => {

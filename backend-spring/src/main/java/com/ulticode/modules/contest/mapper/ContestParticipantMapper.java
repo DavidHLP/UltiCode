@@ -29,7 +29,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param contestId the contest ID
      * @return list of participants ordered by rank, score, and penalty
      */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} ORDER BY final_rank ASC, total_score DESC, total_penalty ASC")
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND is_virtual = 0 ORDER BY final_rank ASC, total_score DESC, total_penalty ASC")
     List<ContestParticipant> findByContestId(@Param("contestId") String contestId);
 
     /**
@@ -39,7 +39,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param userId    the user ID
      * @return the participant if found
      */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND user_id = #{userId} LIMIT 1")
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND user_id = #{userId} ORDER BY registered_at DESC LIMIT 1")
     Optional<ContestParticipant> findByContestIdAndUserId(
             @Param("contestId") String contestId,
             @Param("userId") String userId
@@ -121,18 +121,6 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     );
 
     /**
-     * Find participant by contest + user + virtual session, disambiguating real
-     * participants from virtual sessions (P1-4 fix). Returns the unique row for
-     * the (contest, user, virtualSessionId) tuple, or empty.
-     */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND user_id = #{userId} AND virtual_session_id = #{virtualSessionId} LIMIT 1")
-    Optional<ContestParticipant> findByContestIdAndUserIdAndVirtualSessionId(
-            @Param("contestId") String contestId,
-            @Param("userId") String userId,
-            @Param("virtualSessionId") String virtualSessionId
-    );
-
-    /**
      * Batch transition participants from one status to another, stamping
      * {@code started_at} / {@code finished_at} as appropriate. Used by P0-2
      * (REGISTERED → STARTED on contest RUNNING) and by P2-2 (auto-finish
@@ -147,6 +135,60 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
                           @Param("fromStatus") String fromStatus,
                           @Param("toStatus") String toStatus,
                           @Param("now") java.time.LocalDateTime now);
+
+    /**
+     * R3.1: finish all REAL (is_virtual = 0) participants of a contest that are
+     * still STARTED. Used by the scheduler when a real contest transitions to
+     * FINISHED so we can compute ratings over a closed set.
+     *
+     * @param contestId the contest id
+     * @param now       the timestamp to stamp on finished_at
+     * @return number of rows transitioned
+     */
+    @Update("UPDATE contest_participants SET status = 'FINISHED', "
+            + "finished_at = #{now}, updated_at = NOW() "
+            + "WHERE contest_id = #{contestId} AND status = 'STARTED' AND is_virtual = 0")
+    int finishStartedRealParticipants(@Param("contestId") String contestId,
+                                      @Param("now") java.time.LocalDateTime now);
+
+    /**
+     * M2: bulk-finish a set of virtual participants (looked up by
+     * {@link #findVirtualParticipantsToFinish}) in a single UPDATE. Replaces
+     * the per-row N+1 previously in {@code autoFinishVirtualParticipants}.
+     *
+     * @param ids participant ids to finish
+     * @param now timestamp to stamp on finished_at
+     * @return number of rows transitioned
+     */
+    @Update("<script>UPDATE contest_participants "
+            + "SET status = 'FINISHED', finished_at = #{now}, updated_at = NOW() "
+            + "WHERE id IN "
+            + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>"
+            + "#{id}</foreach></script>")
+    int bulkFinishByIds(@Param("ids") java.util.Collection<String> ids,
+                        @Param("now") java.time.LocalDateTime now);
+
+    /**
+     * R3.2: fetch all real (non-virtual) participants of a contest for the
+     * rating calculation. Replaces the status=STARTED heuristic that breaks
+     * once R3.1 starts marking real participants FINISHED on contest end.
+     */
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND is_virtual = 0")
+    List<ContestParticipant> findRealParticipantsByContestId(@Param("contestId") String contestId);
+
+    /**
+     * R3.3: locate an active virtual session for a user in a contest, with
+     * {@code FOR UPDATE} row lock so concurrent {@code startVirtualContest}
+     * calls serialize. Returns the active session (is_virtual=1, status=STARTED)
+     * or empty.
+     */
+    @Select("SELECT * FROM contest_participants "
+            + "WHERE contest_id = #{contestId} AND user_id = #{userId} "
+            + "AND is_virtual = 1 AND status = 'STARTED' "
+            + "ORDER BY registered_at DESC LIMIT 1 FOR UPDATE")
+    Optional<ContestParticipant> findActiveVirtualSessionForUpdate(
+            @Param("contestId") String contestId,
+            @Param("userId") String userId);
 
     /**
      * Find virtual participants whose time has expired
@@ -172,7 +214,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param limit     maximum number of participants to return
      * @return list of top participants
      */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND status = 'FINISHED' ORDER BY total_score DESC, total_penalty ASC LIMIT #{limit}")
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND status = 'FINISHED' AND is_virtual = 0 ORDER BY total_score DESC, total_penalty ASC LIMIT #{limit}")
     List<ContestParticipant> findTopParticipants(
             @Param("contestId") String contestId,
             @Param("limit") int limit
@@ -267,7 +309,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "u.username, u.name, u.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
-            "WHERE cp.contest_id = #{contestId} " +
+            "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC")
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
 
@@ -302,7 +344,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "u.username, u.name, u.avatar " +
             "FROM contest_participants cp " +
             "LEFT JOIN users u ON cp.user_id = u.id " +
-            "WHERE cp.contest_id = #{contestId} AND cp.final_rank IS NOT NULL " +
+            "WHERE cp.contest_id = #{contestId} AND cp.is_virtual = 0 AND cp.final_rank IS NOT NULL " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC " +
             "LIMIT #{limit} OFFSET #{offset}")
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestIdPaginated(

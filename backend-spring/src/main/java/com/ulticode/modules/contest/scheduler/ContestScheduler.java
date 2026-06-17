@@ -11,6 +11,8 @@ import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -73,6 +75,25 @@ public class ContestScheduler {
             }
         } catch (Exception e) {
             log.warn("R3.1 autoFinishVirtualParticipants failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * R7.2 / F-31: sweep expired virtual sessions on app start so crash-recovery
+     * leaves the participant table clean. Idempotent: ticks through 10s
+     * scheduler will keep this state close to fresh anyway.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void sweepOnStartup() {
+        try {
+            int swept = contestScoringService.autoFinishVirtualParticipants();
+            if (swept > 0) {
+                log.info("R7.2 / F-31: startup sweep closed {} expired virtual sessions", swept);
+            }
+        } catch (Exception e) {
+            // Never block startup; scheduler tick will retry.
+            log.warn("R7.2 / F-31: startup sweep failed, will retry on next 10s tick: {}",
+                    e.getMessage());
         }
     }
 

@@ -27,7 +27,8 @@
 |------|------|--------|
 | **[REVIEW.md](./REVIEW.md)** | v1 审查报告（6 视角，79 finding，REJECT-WITH-MAJOR-REVISIONS）| 证据链，对照历史判断 |
 | **[SECURITY_REVIEW.md](./SECURITY_REVIEW.md)** | Security 专项审查（14 finding，含 2 个全新 CRITICAL）| 鉴权、IDOR、secret 治理 |
-| **[REVIEW_V2.md](./REVIEW_V2.md)** ⭐ | **v2 合并报告**（7 视角，93 finding，含 Security 整合）| 当前权威决策依据 |
+| **[REVIEW_V3.md](./REVIEW_V3.md)** ⭐ | **v3 最终定档**（审查实际代码，4 维度 + 复核）| **当前权威决策依据** |
+| **[REVIEW_V2.md](./REVIEW_V2.md)** | v2 合并报告（审查 PLAN.md，7 视角，93 finding）| 历史：审查对象为 PLAN.md 非代码；finding 去向见 V3 §7 |
 | **[FINDINGS_RAW.md](./FINDINGS_RAW.md)** | 原始 finding 表（来自 6 视角审查的 JSON 化清单）| 追溯 finding 来源 |
 
 ---
@@ -35,9 +36,9 @@
 ## 🚀 推荐阅读顺序
 
 **如果你要决策（产品/技术 lead）**：
-1. [PRD.md](./PRD.md) §11（P1-P5 决策项）
-2. [REVIEW_V2.md](./REVIEW_V2.md) §1 + §9（执行摘要 + 裁决）
-3. [REVIEW_V2.md](./REVIEW_V2.md) §7（Top 10 重写建议）
+1. [REVIEW_V3.md](./REVIEW_V3.md) §1 + §2（定档结论 + PRD 验收基线对照）
+2. [REVIEW_V3.md](./REVIEW_V3.md) §3 + §7（必修 P0 + v2 finding 去向对照）
+3. [PRD.md](./PRD.md) §11（P1-P5 决策项）
 
 **如果你要实施（后端/前端工程师）**：
 1. [PLAN.md](./PLAN.md) 通读（了解整体方案）
@@ -61,12 +62,12 @@
 
 | 维度 | 状态 |
 |------|------|
-| 修复计划 | **存在**，待重大修改（REJECT-WITH-MAJOR-REVISIONS） |
-| 审查次数 | 2 (v1 = 6 视角, v2 = 7 视角含 Security 重试) |
-| Finding 总数 | **93** |
-| 待修 CRITICAL | **10** (8 来自主报告 + 2 来自 Security) |
-| 预计实施工时 | **14-16 人周** (v2 比 v1 多 1 周 Security Reconcile) |
-| 重新提交要求 | 见 [REVIEW_V2.md §10](./REVIEW_V2.md) checklist |
+| 审查对象 | **实际代码**（v1/v2 审查 PLAN.md，v3 转为审查代码）|
+| 当前裁决 | **不建议合入** —— 需补齐核心评分功能后重新定档（见 [REVIEW_V3.md](./REVIEW_V3.md)）|
+| 待修 P0（阻断合入）| **5 项**：评分生效 / auto-finish 接线 / 真榜隔离 / startVirtual 并发 / slug UNIQUE |
+| 已确认修复 | IDOR、migration 安全、Admin 鉴权、rating O(n)、N+1、首杀原子、前端鉴权链、i18n |
+| 预计 P0 工期 | **1.5~2 周** |
+| 重新定档 checklist | 见 [REVIEW_V3.md §9](./REVIEW_V3.md) |
 
 ---
 
@@ -79,6 +80,7 @@
 | 2026-06-17 中午 | v1 多 Agent 审查（6 视角，REJECT，REVIEW.md） |
 | 2026-06-17 下午 | Security 视角重试（捕获 2 个全新 CRITICAL，SECURITY_REVIEW.md） |
 | 2026-06-17 下午 | v2 合并报告（REVIEW_V2.md）+ 文档统一迁移至 `docs/contest/` |
+| 2026-06-17 晚 | **v3 最终定档**（REVIEW_V3.md）—— 审查对象从 PLAN.md 转为实际代码，裁决"不建议合入，补齐 P0 后重新定档" |
 
 ---
 

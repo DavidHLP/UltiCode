@@ -1,3 +1,5 @@
+> ⚠️ **历史报告（证据链保留）**：本文档为 v1 审查（对象 PLAN.md）。当前权威定档见 **[REVIEW_V3.md](./REVIEW_V3.md)**（审查实际代码，裁决不建议合入，补齐 P0 后重新定档）。finding 去向见 [V3 §7](./REVIEW_V3.md)。
+
 # Contest & Virtual Contest 修复计划 — 高级工程经理审查报告
 
 **计划文件**：`docs/CONTEST_AND_VIRTUAL_CONTEST_FIX_PLAN.md` (1601 行)

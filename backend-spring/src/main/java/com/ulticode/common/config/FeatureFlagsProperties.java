@@ -16,17 +16,8 @@ import java.time.LocalDateTime;
 @ConfigurationProperties(prefix = "app.features")
 public class FeatureFlagsProperties {
 
-  /** Enable new contest scoring system (point-based instead of Elo). */
-  private boolean useNewContestSystem = false;
-
-  /** Enable real-time ranking updates via WebSocket. */
-  private boolean realtimeRankingEnabled = true;
-
   /** Enable first-solve notifications. */
   private boolean firstSolveNotificationsEnabled = true;
-
-  /** Enable anti-cheat detection. */
-  private boolean anticheatEnabled = false;
 
   /** Enable contest analytics generation. */
   private boolean contestAnalyticsEnabled = true;
@@ -156,36 +147,12 @@ public class FeatureFlagsProperties {
   private boolean useNotificationIntent = false;
 
   // Getters and setters
-  public boolean isUseNewContestSystem() {
-    return useNewContestSystem;
-  }
-
-  public void setUseNewContestSystem(boolean useNewContestSystem) {
-    this.useNewContestSystem = useNewContestSystem;
-  }
-
-  public boolean isRealtimeRankingEnabled() {
-    return realtimeRankingEnabled;
-  }
-
-  public void setRealtimeRankingEnabled(boolean realtimeRankingEnabled) {
-    this.realtimeRankingEnabled = realtimeRankingEnabled;
-  }
-
   public boolean isFirstSolveNotificationsEnabled() {
     return firstSolveNotificationsEnabled;
   }
 
   public void setFirstSolveNotificationsEnabled(boolean firstSolveNotificationsEnabled) {
     this.firstSolveNotificationsEnabled = firstSolveNotificationsEnabled;
-  }
-
-  public boolean isAnticheatEnabled() {
-    return anticheatEnabled;
-  }
-
-  public void setAnticheatEnabled(boolean anticheatEnabled) {
-    this.anticheatEnabled = anticheatEnabled;
   }
 
   public boolean isContestAnalyticsEnabled() {

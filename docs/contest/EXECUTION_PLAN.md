@@ -4,6 +4,7 @@
 > **裁决依据**：实际代码状态（非 PLAN.md 的历史设想）。`PLAN.md` 的 HMAC/appSecret 等设想已被代码现实（UUID 方案）取代，本计划**不沿用 PLAN.md 的 Phase 0-9 框架**，从 V3 发现重新推导。
 > **创建**：2026-06-17
 > **预计 P0 工期**：6.5–8.5 人日 ≈ 1.5–2 周（与 REVIEW_V3 §1 吻合）
+> **实施状态**：**R1–R5 全部落地**（2026-06-17）。源码在 main 工作区未提交；详见 [.claude/reviews/contest-r1-r5-local-review.md](../../.claude/reviews/contest-r1-r5-local-review.md)。本计划末尾的 §"实施记录"段落记录实际改动与本计划的偏差。
 
 ---
 
@@ -249,15 +250,47 @@ ALTER TABLE contests ADD UNIQUE KEY uk_contest_slug (slug);
 
 对应 [REVIEW_V3.md §9](./REVIEW_V3.md)：
 
-| 轮次 | P0 项 | 验收命令/方法 |
-|------|-------|--------------|
-| R1 | P0-5 slug UNIQUE | `migrate.sh migrate` + 创建重复 slug 报错 |
-| R2 | P0-3 真榜隔离 | 排行榜查询 `is_virtual=0`；个人页仍可见 |
-| R3 | P0-2 auto-finish + 评级；P0-4 并发 | 虚拟赛自动 FINISHED；rating 非空且仅真实；并发幂等 |
-| R4 | P0-1 评分生效 | 三模式单测全绿；penalty 配置生效 |
-| R5 | P1 债务 | feature flags 清理；核心组件测试补齐 |
+| 轮次 | P0 项 | 验收命令/方法 | 状态 |
+|------|-------|--------------|------|
+| R1 | P0-5 slug UNIQUE | `migrate.sh migrate` + 创建重复 slug 报错 | ✅ done（`V20260617130000__Contest_Slug_Unique.sql`，业务侧 `DataIntegrityViolationException` 兜底） |
+| R2 | P0-3 真榜隔离 | 排行榜查询 `is_virtual=0`；个人页仍可见 | ✅ done（`ContestParticipantMapper` 5 处收紧 + `findByContestIdAndUserId` 加 `ORDER BY registered_at DESC`） |
+| R3 | P0-2 auto-finish + 评级；P0-4 并发 | 虚拟赛自动 FINISHED；rating 非空且仅真实；并发幂等 | ✅ done（`ContestScheduler` Step 3 接线 + `findRealParticipantsByContestId` 替代 status 过滤 + `findActiveVirtualSessionForUpdate FOR UPDATE` + 前端 `sessionStorage` 持久化） |
+| R4 | P0-1 评分生效 | 三模式单测全绿；penalty 配置生效 | ✅ done（`penaltyPerWrong` 配置化 + SCORE/ICPC/IOI 三分支按 ADR-006 §2.2；4 个新单测） |
+| R5 | P1 债务 | feature flags 清理；零调用者清理 | ✅ done（3 个零调用 feature flag 移除 + `findByContestIdAndUserIdAndVirtualSessionId` 移除） |
 
-**R1–R4 全绿 → 可重新定档合入。**
+**R1–R4 全绿 → 可重新定档合入。** ✅ 全部 5 轮完成，等待用户显式批准 commit + push。
+
+---
+
+## 实施记录
+
+执行时的偏差与补充（与原计划的差异）：
+
+| 项 | 原计划 | 实际改动 | 原因 |
+|----|--------|----------|------|
+| H2 | `catch (DuplicateKeyException)` | 改为 `catch (DataIntegrityViolationException)` | Code review：父类 catch 覆盖 mysql-connector-j 与 MariaDB / 旧 driver 的差异（`ReviewFinding H2`） |
+| M2 | `autoFinishVirtualParticipants` N+1 UPDATE | 改为单条 `bulkFinishByIds(ids, now)` IN-list UPDATE | Code review：避免 scheduler 10s tick 下的 N+1（`ReviewFinding M2`） |
+| M3 | startVirtualContest 行为变更无文档 | OpenAPI `@Operation.description` 补充 idempotent 语义 | Code review：行为变更需要 API 层可发现（`ReviewFinding M3`） |
+| M5 | 测试 per-test mock override 模式脆弱 | 提取 `mockContest()` + `runWrongSubmissionWithContest()` helper | Code review：避免后续测试漏改 mock 导致静默错判（`ReviewFinding M5`） |
+| L1 | "Elininates" 拼写 | 修正为 "Eliminates" | Code review：typo |
+| L2 | 魔法数字 300 | `private static final int CUSTOM_PENALTY = 300` | Code review：测试可读性 |
+| L3 | `VIRTUAL_SESSION_PREFIX` 闭包局部未导出 | 保留闭包，注释中说明 key 形状供未来跨 store 消费 | 设计选择：单 store 使用 closure-local 即可；export 留给未来需要时再做 |
+| M1 | （未列在原计划，code review 派生） | **deferred** | `contestMapper.selectById` 多一次查询的优化需要改 submission 模块；独立 PR 处理 |
+
+### Code review 完整结论
+
+详见 [.claude/reviews/contest-r1-r5-local-review.md](../../.claude/reviews/contest-r1-r5-local-review.md)：
+
+- **Decision**: APPROVE（所有 HIGH 已 FIXED；MEDIUM M1 跨模块 deferred；LOW L3 设计选择 deferred）
+- **测试**: 33/33 contest 模块单测全绿（含 4 个新 R4 / ADR-006 §4 评分模式测试）
+- **预存失败**（非本变更）: `ContestPublicControllerTest$ContestProblemSubmissionsTests` (2 errors) — `WebMvcTest` 缺 `ContestProblemMapper` bean；与本变更无关
+
+### 部署清单（生产前必做）
+
+1. **H1**（[deployment-checklist]）: `./scripts/dev/migrate.sh migrate` 在 staging 跑一次（用生产数据快照），确认无大量重复 slug。
+2. `git diff --check` + Conventional commit `<type>(contest): <desc>`（建议 4 个 commit：R1+R5 / R2 / R3 / R4，对应 4 个独立部署窗口）
+3. `git push` / merge 需用户显式批准（CLAUDE.md 护栏）
+4. R3 部署务必同窗口原子上线（`autoFinishVirtualParticipants` ↔ `findRealParticipantsByContestId` 不可拆分）
 
 ---
 

@@ -4,7 +4,8 @@
 **日期**: 2026-06-17
 **审查对象**: contest 模块**实际代码** —— `backend-spring/.../modules/contest/` + `console/src/views/contest/` + 相关测试与 migration
 **审查方式**: 4 维度并行取证(① 数据/安全 ② 架构/并发/评分管线 ③ 前端/测试 ④ 运维/migration)+ 争议项人工复核
-**最终裁决**: **不建议合入 —— 需补齐核心评分功能后重新定档**
+**v3 初始裁决**: **不建议合入 —— 需补齐核心评分功能后重新定档**
+**v3.1 状态（2026-06-17 复审）**: P0-1 ~ P0-5 全部已实施落地，详见 [EXECUTION_PLAN.md §"实施记录"](./EXECUTION_PLAN.md#实施记录)。本地 code review: [`.claude/reviews/contest-r1-r5-local-review.md`](../../.claude/reviews/contest-r1-r5-local-review.md) → **APPROVE**。等待用户显式批准 commit + push。
 
 ---
 
@@ -112,10 +113,10 @@
 
 ## 9. 重新定档 checklist
 
-- [ ] P0-1 评分配置生效(scoringMode / penaltyPerWrong / isRated / tieBreaker)
-- [ ] P0-2 auto-finish 兜底接线 + 真实 participant 批量 FINISHED + rating 查询改 contest.status
-- [ ] P0-3 真榜 SQL 加 is_virtual=0
-- [ ] P0-4 startVirtual 并发原语 + 9 处查询统一
-- [ ] P0-5 slug UNIQUE + 冲突校验
-- [ ] F-01 / F-06 人工复核结论
-- [ ] 重新跑后端 `./mvnw test` + `./mvnw -Dtest='*IT' test`
+- [x] P0-1 评分配置生效(scoringMode / penaltyPerWrong / isRated / tieBreaker) — **R4** (ADR-006 Accepted)：`penaltyPerWrong` 配置化（null 兜底 20）+ SCORE/ICPC/IOI 三分支（按 ADR-006 §2.2）
+- [x] P0-2 auto-finish 兜底接线 + 真实 participant 批量 FINISHED + rating 查询改 contest.status — **R3** (ADR-007 Accepted)：`ContestScheduler` Step 3 接线 + `finishStartedRealParticipants` + `findRealParticipantsByContestId` 替代 status 过滤
+- [x] P0-3 真榜 SQL 加 is_virtual=0 — **R2**：`ContestParticipantMapper` 5 处收紧
+- [x] P0-4 startVirtual 并发原语 + 9 处查询统一 — **R3**：`findActiveVirtualSessionForUpdate` + `FOR UPDATE` 行锁（详见 ADR-007 §6 实施偏差：未用 Redis 锁）
+- [x] P0-5 slug UNIQUE + 冲突校验 — **R1**：`V20260617130000__Contest_Slug_Unique.sql` + `CONTEST_SLUG_EXISTS` 错误码 + `DataIntegrityViolationException` 兜底
+- [ ] F-01 / F-06 人工复核结论（待用户签发）
+- [ ] 重新跑后端 `./mvnw test` + `./mvnw -Dtest='*IT' test`（本轮 33/33 contest 单测已绿，集成测试建议部署到 staging 后跑）

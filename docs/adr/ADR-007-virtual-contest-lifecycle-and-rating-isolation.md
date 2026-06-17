@@ -2,7 +2,7 @@
 
 | 字段 | 值 |
 |------|-----|
-| **状态 (Status)** | **Proposed** (待评审 + 实施验证) |
+| **状态 (Status)** | **Accepted** (R3 已实施，2026-06-17；详见 `docs/contest/EXECUTION_PLAN.md` §"实施记录"。**注意**：§2.3 实施时改为 DB 行级 `SELECT ... FOR UPDATE`，未引入 Redis 分布式锁；详见 §6 "实施偏差") |
 | **日期 (Date)** | 2026-06-17 |
 | **作者 (Author)** | DavidHLP |
 | **来源** | [REVIEW_V3.md](../contest/REVIEW_V3.md) §3 P0-2 / P0-4 |
@@ -112,15 +112,32 @@ D1+D2+D3 必须**同一部署窗口**。D4（并发）+ D5（前端持久化）�
 
 实施时（Round 3）必须勾选：
 
-- [ ] 虚拟赛到 `virtual_end_time` → 10s 内自动 `FINISHED`（不依赖用户在线）
-- [ ] 真实赛结束 → 所有真实参赛者 `FINISHED`
-- [ ] 评级计算返回**非空**真实参赛者集（D3 修复后）
-- [ ] rating **只算** `is_virtual=0` 参赛者（虚拟赛不影响 rating）
-- [ ] 同一用户并发点"开始虚拟赛" → 返回同一活跃会话（幂等），无重复记录
-- [ ] 虚拟赛页面刷新 → 会话不丢，完成路径正常
-- [ ] `autoFinishVirtualParticipants` 不再是零调用者死代码
-- [ ] **原子性**：D1/D2/D3 同 commit，部署后 rating 非空（回归中间态崩场景）
-- [ ] 孤儿会话补偿脚本（§3.3）跑过，无遗留 STARTED 虚拟会话
+- [x] 虚拟赛到 `virtual_end_time` → 10s 内自动 `FINISHED`（不依赖用户在线） — `ContestScheduler.run()` Step 3
+- [x] 真实赛结束 → 所有真实参赛者 `FINISHED` — `transitionToFinished` 接 `participantMapper.finishStartedRealParticipants`
+- [x] 评级计算返回**非空**真实参赛者集（D3 修复后） — `findRealParticipantsByContestId` 替代 status 过滤
+- [x] rating **只算** `is_virtual=0` 参赛者（虚拟赛不影响 rating） — 同上
+- [x] 同一用户并发点"开始虚拟赛" → 返回同一活跃会话（幂等），无重复记录 — `findActiveVirtualSessionForUpdate` + FOR UPDATE
+- [x] 虚拟赛页面刷新 → 会话不丢，完成路径正常 — `console/src/stores/contest.ts` `sessionStorage` 持久化
+- [x] `autoFinishVirtualParticipants` 不再是零调用者死代码 — scheduler Step 3 调用
+- [x] **原子性**：D1/D2/D3 同 commit，部署后 rating 非空（回归中间态崩场景） — 全部落同一 commit
+- [ ] 孤儿会话补偿脚本（§3.3）跑过，无遗留 STARTED 虚拟会话 — **R3 部署后第一次跑**
+
+---
+
+## 6. 实施偏差（与原 §2.3 的差异）
+
+**D4 实际改用 DB 行级 `SELECT ... FOR UPDATE`，未引入 Redis 分布式锁。**
+
+| 原计划 | 实际 | 原因 |
+|--------|------|------|
+| Redis 锁 `contest:virtual:start:{contestId}:{userId}` + DB UNIQUE 兜底 | `SELECT ... FOR UPDATE` 行锁 + DB UNIQUE 兜底 | 单实例 MySQL 部署，InnoDB 行锁足够；少一个 Redis 依赖（无需新增 RedissonClient 装配）；锁粒度更细（仅锁定该 (contest,user) 候选行，不阻塞其他 user） |
+
+**生产多实例部署时需要重审**：
+- 跨实例一致性目前由 InnoDB 行锁保证（所有实例连同一 MySQL，行锁是 DB-level 的）
+- 若未来引入多 MySQL 集群或读写分离导致行锁失效，需回退到 Redis 分布式锁
+- 当前 Flyway 迁移、Redis 装配、RedissonClient 注入代码路径**未**为虚拟开赛做准备
+
+**Code review 引用**: `.claude/reviews/contest-r1-r5-local-review.md` 整体结论 APPROVE。
 
 ---
 

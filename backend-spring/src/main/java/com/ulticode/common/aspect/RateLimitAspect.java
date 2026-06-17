@@ -127,13 +127,21 @@ public class RateLimitAspect {
 
     private String lookupParam(java.lang.reflect.Parameter[] params, Object[] args, String name) {
         if (params == null || args == null) return null;
+        // R8.2 review fix: Java's default compile flag does NOT
+        // preserve parameter names — params[i].getName() returns
+        // "arg0", "arg1" etc. Instead, we look up the @PathVariable /
+        // @RequestParam annotation's `name` attribute (and fall back
+        // to the @PathVariable's `value` for older Spring idioms).
         for (int i = 0; i < params.length; i++) {
-            // @PathVariable / @RequestParam may rename; check both raw and
-            // the parameter's name. Default Java parameter name is "argN"
-            // without -parameters compilation, so we additionally honour
-            // the explicit parameter name in the @PathVariable annotation.
-            String pname = params[i].getName();
-            if (name.equals(pname) && i < args.length) {
+            if (i >= args.length) break;
+            org.springframework.web.bind.annotation.PathVariable pv =
+                params[i].getAnnotation(org.springframework.web.bind.annotation.PathVariable.class);
+            if (pv != null && name.equals(pv.name().isEmpty() ? pv.value() : pv.name())) {
+                return String.valueOf(args[i]);
+            }
+            org.springframework.web.bind.annotation.RequestParam rp =
+                params[i].getAnnotation(org.springframework.web.bind.annotation.RequestParam.class);
+            if (rp != null && name.equals(rp.name().isEmpty() ? rp.value() : rp.name())) {
                 return String.valueOf(args[i]);
             }
         }

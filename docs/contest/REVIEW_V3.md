@@ -220,12 +220,14 @@ R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R
 - ✅ **R10.7** F-06 `timeFromStart` 复核：`SubmissionServiceImpl.recordContestSubmissionIfNeeded:1387-1395` 三元分支正确（虚拟用 `p.getStartedAt()`，真实用 `contest.getActualStartTime()`），无 violation
 - 详见 [F-01-STATE_MACHINE_AUDIT.md §3.1/§6.4](./F-01-STATE_MACHINE_AUDIT.md) R10 复核结果 + [EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)
 
-### SECURITY_REVIEW 残留（需后续决策）
+### SECURITY_REVIEW 残留
 
-- **F-SEC-10** MEDIUM Flyway 迁移期间 admin/用户操作无锁 —— 未在 R 计划明确处理
-- **F-SEC-12** LOW 反作弊钩子（开卷/刷题/账号多开）未设计 —— 业务决策项
-- **F-SEC-13** LOW 虚拟赛结束无审计 / log retention 不清 —— 未明确处理
-- **F-SEC-14** INFO 计划本身偏功能性，安全章节 0 字节 —— 文档结构问题
+- ✅ **F-SEC-10** MEDIUM Flyway 迁移期间 admin/用户操作无锁 —— **R10.8 已关单**（[init-db/README.md Migration Operational Checklist](../../init-db/README.md#migration-operational-checklist)）
+- 🟡 **F-SEC-12** LOW 反作弊钩子（开卷/刷题/账号多开）未设计 —— **业务决策项**，等产品定义反作弊需求后单独立项
+- ✅ **F-SEC-13** LOW 虚拟赛结束无审计 / log retention 不清 —— **R10.9 已关单**（[docs/PRIVACY.md Log Retention 表](../../PRIVACY.md#log-retention)）
+- 🟡 **F-SEC-14** INFO 计划本身偏功能性，安全章节 0 字节 —— **文档结构问题**，建议 EXECUTION_PLAN.md 后续版本加 §"Security Requirements" 章节（OWASP API Top 10 逐条对应），不在 R10 范围
+
+> **R10 收口后 SECURITY 残留 4 项中 2 项已关单**（F-SEC-10/13），2 项保留为业务/文档决策（F-SEC-12/14）。F-SEC-14 留作后续 PLAN 改版时一并处理。
 
 ### F-22 业务决策项
 

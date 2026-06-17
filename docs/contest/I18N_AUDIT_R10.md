@@ -82,14 +82,14 @@ console 项目**没有** `validate:i18n-keys` 脚本，所有 i18n 检查依赖�
 
 ### 2. R9_PLACEHOLDER.ts 删除后回归验证
 
-R9.3 删除了 `console/src/i18n/R9_PLACEHOLDER.ts`（[commit 2c92acd6a](https://github.com/...)），将 keys 写回 `contest.ts`。当前 status：
+R9.3 删除了 `console/src/i18n/R9_PLACEHOLDER.ts`（[commit 2c92acd6a](https://github.com/...)），将 keys 写回 `contest.ts`。当前 status（2026-06-18 验证）：
 
 ```
-D console/src/i18n/R9_PLACEHOLDER.ts  (session start 已 D, 未提交)
+D console/src/i18n/R9_PLACEHOLDER.ts  (R9.3 已删,文件不存在)
 A console/src/i18n/locales/{en-US,zh-CN}/contest.ts  (R9 已写回)
 ```
 
-**未提交状态**：该 D 已存在至少一个 session，建议下一轮 commit 收口（与 R10 工作流合并提交即可，文件本身已不存在）。
+**收口状态**：R9.3 删除动作已与 R9 工作流一并提交，无遗留 untracked 文件。
 
 ## R10.3 收口结论
 
@@ -100,12 +100,15 @@ A console/src/i18n/locales/{en-US,zh-CN}/contest.ts  (R9 已写回)
 | management 358 components key 完整 | ✅ |
 | console 漂移 key | **0** |
 
-**R10.3 收口**：无 R10.2 finding 增量。
+**R10.3 收口**：无 R10.2 finding 增量（参见 R10.2 计划误判说明）。
 
 ## R10 后续 i18n 任务
 
-- R10.2 仍需手动接线 4 个 view（ContestBrowseView / ContestRankingsView / MyContests / WS banner），引用 R9 写回但未引用的 keys
-- 见 [EXECUTION_PLAN_R10.md §3](./EXECUTION_PLAN_R10.md) 完整列表
+- **R10.2 plan 误判**（2026-06-18 验证）：R10.2 假设需手动接线 4 个 view（ContestBrowseView / ContestRankingsView / MyContests / WS banner），但 R9 阶段已用业务命名空间（`contest.list.*` / `contest.myContests.*` / `contest.ranking.*`）完成 i18n 接线；9 个未引用的 key 是死键（locale 有但 view 零引用）。详见 [EXECUTION_PLAN_R10.md §3](./EXECUTION_PLAN_R10.md) 误判说明
+- 死键处置（非 R10 强制）：
+  - 选项 A：保留（无引用是观察性的，对未来扩展无害）
+  - 选项 B：从 locale 文件删除（精简），需 R10.x 单独 PR
+- R9.3 banner 缺陷（`ContestRankingsView.vue:28` `showReconnecting` ref 模板未渲染）属 R9 收口漏网，与 i18n 接线正交，独立小修复可作为 R10.x 候选
 
 ## 审计脚本
 

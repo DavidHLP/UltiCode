@@ -13,6 +13,8 @@
 | **[ADR-004](./ADR-004-notification-intents.md)** | **Accepted** (2026-06-13) + M4d-1 follow-up (2026-06-14) | NotificationIntent + Per-Channel Projection + 失败隔离 | sealed `NotificationIntent` 替代泛型 envelope; 每 channel 独立 try-catch 失败隔离; **M4a+M4b+M4c+M4d shipped** (`e38e340` / `bf02f48ec` / `9ecf10ec9` / `62a4dcabe`); **M4d-1 7-finding review shipped** (`d32882198` / `b7dc1378c` / `ce629194b` / `33c9a41ba` — NPE / WS wire-contract / silent-skip / intentId 防撞 / CONTEST 死分支 / LedgerReaper); F11 同步 resolved (Reaper 实现); channel-level preference 列入 ADR-007 候选 |
 | **[ADR-005](./ADR-005-rolling-deploy-playbook.md)** | Proposed (stays Proposed pending rollback drill — 见 ADR §状态行) | 滚动部署 Playbook | 10 个独立可部署 milestone + feature flag + envelope versioning + canary gate + rollback drill |
 | **[ADR-005a](./ADR-005a-rollback-drill-protocol.md)** | Proposed (ADR-005 子协议) | Rollback Drill 协议 | ADR-005 §2.6 与 §4 #2 的执行子协议 (不是同级 ADR); 编号 `005a` 标注归属, 不占用新主编号 |
+| **[ADR-006](./ADR-006-contest-scoring-engine-activation.md)** | **Proposed** (2026-06-17) | Contest 评分引擎激活 | penalty 配置化（`penaltyPerWrong` 不再被硬编码 20 忽略）+ SCORE/ICPC/IOI 三模式语义定档 + 历史不复算。解除 REVIEW_V3 F-02 阻断。见 [EXECUTION_PLAN Round 4](../contest/EXECUTION_PLAN.md) |
+| **[ADR-007](./ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)** | **Proposed** (2026-06-17) | 虚拟竞赛生命周期调度与评级隔离 | auto-finish 接线（解除零调用者死代码）+ 真实赛结束全员 FINISHED + 评级查询从 `status='STARTED'` 切换到 `is_virtual=0`（消除隐式不变量）+ 虚拟开赛幂等 + 前端 session 持久化。四改动**原子上线**。见 [EXECUTION_PLAN Round 3](../contest/EXECUTION_PLAN.md) |
 
 ## 编号规则
 

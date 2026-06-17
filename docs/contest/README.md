@@ -8,6 +8,12 @@
 
 ## 📁 文档地图
 
+### 📖 术语表
+
+| 文件 | 用途 | 何时读 |
+|------|------|--------|
+| **[CONTEXT.md](./CONTEXT.md)** | Contest 模块术语表（Real/Virtual Participant、Scoring Mode、Rating 等）| 阅读任何 contest 文档前先对齐术语 |
+
 ### 📐 设计 / 需求 (上游)
 
 | 文件 | 用途 | 何时读 |
@@ -19,7 +25,8 @@
 
 | 文件 | 用途 | 何时读 |
 |------|------|--------|
-| **[PLAN.md](./PLAN.md)** | 完整修复计划（10 Phase / 22 commit / 5 周）| 实施、改计划、review 计划 |
+| **[PLAN.md](./PLAN.md)** | 完整修复计划（10 Phase / 22 commit / 5 周）| 历史：基于早期设想的完整计划（HMAC/appSecret 等已被代码现实取代）|
+| **[EXECUTION_PLAN.md](./EXECUTION_PLAN.md)** ⭐ | **基于 REVIEW_V3 的 5 轮可执行计划**（R1 slug / R2 真榜隔离 / R3 生命周期+评级 / R4 评分引擎 / R5 债务）| **实施首选入口**：每轮可独立部署、独立验证、独立回滚 |
 
 ### 🔍 审查 / 决策 (下游)
 
@@ -41,10 +48,11 @@
 3. [PRD.md](./PRD.md) §11（P1-P5 决策项）
 
 **如果你要实施（后端/前端工程师）**：
-1. [PLAN.md](./PLAN.md) 通读（了解整体方案）
-2. [REVIEW_V2.md](./REVIEW_V2.md) §2-3（必须修复的 CRITICAL + HIGH）
-3. [SECURITY_REVIEW.md](./SECURITY_REVIEW.md)（CRIT-9/10 + HIGH-SEC-* 必读）
-4. [REVIEW_V2.md](./REVIEW_V2.md) §10（重新提交清单，逐项打勾）
+1. [CONTEXT.md](./CONTEXT.md)（对齐术语：Real/Virtual Participant、Scoring Mode、Rating）
+2. [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) ⭐ 通读（5 轮可执行计划，当前权威实施入口）
+3. [REVIEW_V3.md](./REVIEW_V3.md) §3 + §9（必修 P0 + 重新定档 checklist）
+4. [ADR-006](../adr/ADR-006-contest-scoring-engine-activation.md) + [ADR-007](../adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)（Round 3/4 的设计决策）
+5. [PLAN.md](./PLAN.md)（仅参考历史设想，**不沿用其 Phase 0-9 框架**——见 EXECUTION_PLAN §0）
 
 **如果你要 security 审查（安全工程师）**：
 1. [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) 完整
@@ -65,6 +73,7 @@
 | 审查对象 | **实际代码**（v1/v2 审查 PLAN.md，v3 转为审查代码）|
 | 当前裁决 | **不建议合入** —— 需补齐核心评分功能后重新定档（见 [REVIEW_V3.md](./REVIEW_V3.md)）|
 | 待修 P0（阻断合入）| **5 项**：评分生效 / auto-finish 接线 / 真榜隔离 / startVirtual 并发 / slug UNIQUE |
+| P0 → 执行轮次 | R1 slug UNIQUE · R2 真榜隔离 · R3 生命周期+评级+并发（原子）· R4 评分引擎 · 详见 [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) |
 | 已确认修复 | IDOR、migration 安全、Admin 鉴权、rating O(n)、N+1、首杀原子、前端鉴权链、i18n |
 | 预计 P0 工期 | **1.5~2 周** |
 | 重新定档 checklist | 见 [REVIEW_V3.md §9](./REVIEW_V3.md) |

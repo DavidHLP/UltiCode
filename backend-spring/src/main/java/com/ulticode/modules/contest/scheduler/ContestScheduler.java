@@ -62,6 +62,18 @@ public class ContestScheduler {
                 transitionToFinished(contest);
             }
         }
+
+        // Step 3 (R3.1): auto-finish expired virtual participants whose
+        // virtual_end_time has passed, even if the user is offline. Runs
+        // every 10s to keep latency low without overloading the DB.
+        try {
+            int finished = contestScoringService.autoFinishVirtualParticipants();
+            if (finished > 0) {
+                log.info("R3.1: auto-finished {} expired virtual participants", finished);
+            }
+        } catch (Exception e) {
+            log.warn("R3.1 autoFinishVirtualParticipants failed: {}", e.getMessage());
+        }
     }
 
     @Scheduled(fixedRate = 60_000)  // Check every minute
@@ -223,6 +235,21 @@ public class ContestScheduler {
         contest.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.FINISHED.name());
         contest.setActualEndTime(LocalDateTime.now());
         contestMapper.updateById(contest);
+
+        // R3.1: close all real (is_virtual=0) participants so the rating
+        // calculation below sees a stable, FINISHED set. Virtual participants
+        // are managed by the per-user virtual session, not the contest clock.
+        try {
+            int finished = participantMapper.finishStartedRealParticipants(
+                    contest.getId(), LocalDateTime.now());
+            if (finished > 0) {
+                log.info("R3.1: closed {} real participants for contest {}",
+                        finished, contest.getId());
+            }
+        } catch (Exception e) {
+            log.warn("R3.1 finishStartedRealParticipants failed for contest {}: {}",
+                    contest.getId(), e.getMessage());
+        }
 
         // Emit WebSocket status
         realtimeService.emitContestStatus(

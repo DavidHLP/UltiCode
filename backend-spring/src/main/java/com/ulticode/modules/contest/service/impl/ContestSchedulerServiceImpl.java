@@ -165,11 +165,24 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         if (!ContestStatus.FINISHED.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ENDED);
         }
-        Optional<ContestParticipant> existing = participantMapper.findByContestIdAndUserId(contestId, userId);
-        if (existing.isPresent() && Boolean.TRUE.equals(existing.get().getIsVirtual())) {
+
+        // R3.3: idempotent start. Use FOR UPDATE to serialize concurrent calls
+        // from the same user (e.g. double-clicks, two tabs). The lock holds
+        // until COMMIT, so the second caller will see the first caller's row
+        // and short-circuit. Without the lock, both would pass the existence
+        // check, both would INSERT (different virtual_session_id UUIDs), and
+        // the user would end up with two active sessions.
+        Optional<ContestParticipant> active = participantMapper
+                .findActiveVirtualSessionForUpdate(contestId, userId);
+        if (active.isPresent()) {
+            log.info("R3.3: user {} already has active virtual session for contest {}, returning it",
+                    userId, contestId);
             return getVirtualSession(contestId, userId);
         }
 
+        // No active session. Optionally also check for a non-active (FINISHED)
+        // virtual row so we can still report the prior session if the user
+        // is replaying a previously finished virtual run; not blocking.
         LocalDateTime now = LocalDateTime.now();
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);

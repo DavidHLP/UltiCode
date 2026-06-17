@@ -198,16 +198,22 @@ R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R
 
 ### R10 deferred 项（来自 R7–R9 累计，非阻断）
 
-1. **R9.2** per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）
-2. **R9.3** i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）+ i18n key 同步审计
-3. **R9** 旧 `getGlobalRankingsPaginated(page, limit)` 兼容签名删除
-4. **M1** `contestMapper.selectById` 多一次查询优化（跨 submission 模块，独立 PR）
-5. **MED-3** `WebSocketAuthenticationException` 顶层化（cosmetic 重构）
+完整计划：[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)（9 项，估 3.5–4 人日，模块 v4.3 收口）
 
-### F-01 状态机待复核（代码侧，非阻断）
+1. **R10.1** per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）
+2. **R10.2** i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）+ **R10.3** i18n key 同步审计
+3. **R10.4** 旧 `getGlobalRankingsPaginated(page, limit)` 兼容签名删除
+4. **R10.5** M1 `contestMapper.selectById` 多一次查询优化（跨 submission 模块，**独立 PR**）
+5. **R10.6/10.7** F-01 状态机复核销项（doc-only，零代码风险）
+6. **R10.8** F-SEC-10 迁移期 checklist（`init-db/README.md` 加节）
+7. **R10.9** F-SEC-13 log retention（新建 `docs/PRIVACY.md`）
+8. MED-3 `WebSocketAuthenticationException` 顶层化（cosmetic 重构）→ 留 R10 续轮或 R11 视工作量
 
-- **R6.2.1 §3.1** `#5 finishVirtualContest` 实际路径 —— 验证是否走 `bulkFinishByIds` 而非直写 participant.status
-- **R6.2.2 §6.4** F-06 `submissionService.submit.timeFromStart` 来源 —— 验证虚拟赛用 `now - participant.startedAt`
+### F-01 状态机（已 R10 销项）
+
+- ✅ **R10.6** `finishVirtualContest` 复核：`ContestSchedulerServiceImpl.finishVirtualContest:251-255` 走 `bulkFinishByIds`，无 violation
+- ✅ **R10.7** F-06 `timeFromStart` 复核：`SubmissionServiceImpl.recordContestSubmissionIfNeeded:1387-1395` 三元分支正确（虚拟用 `p.getStartedAt()`，真实用 `contest.getActualStartTime()`），无 violation
+- 详见 [F-01-STATE_MACHINE_AUDIT.md §3.1/§6.4](./F-01-STATE_MACHINE_AUDIT.md) R10 复核结果 + [EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)
 
 ### SECURITY_REVIEW 残留（需后续决策）
 

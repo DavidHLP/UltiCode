@@ -395,6 +395,33 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
+    @Cacheable(value = "contestRanking", key = "'getRanking:' + #contestId + ':' + #limit + ':' + (#cursor ?: '0')")
+    public List<ContestRankingVO> getContestRanking(String contestId, Integer limit, String cursor) {
+        int max = (limit != null && limit > 0) ? Math.min(limit, 100) : 10;
+        if (contestId == null || contestId.isBlank()) {
+            return globalRankingMapper.findTopRankings(max).stream()
+                    .map(this::toRankingVO).collect(Collectors.toList());
+        }
+        // R9.1: keyset cursor — null/blank means first page.
+        Integer afterRank = null;
+        String afterUserId = null;
+        if (cursor != null && !cursor.isBlank()) {
+            String[] parts = cursor.split(":", 2);
+            try {
+                afterRank = Integer.parseInt(parts[0]);
+            } catch (NumberFormatException e) {
+                afterRank = null;
+            }
+            if (parts.length > 1) afterUserId = parts[1];
+        }
+        return participantMapper
+                .selectParticipantsKeyset(contestId, afterRank, afterUserId, max)
+                .stream()
+                .map(this::toContestRankingVO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Cacheable(value = "contestRanking", key = "'globalPaginated:' + #page + ':' + #limit")
     public PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit) {
         int currentPage = (page != null && page > 0) ? page : 1;
@@ -750,6 +777,25 @@ public class ContestServiceImpl implements ContestService {
         vo.setMaxRatingTitle(ranking.getMaxRatingTitle());
         vo.setContestsAttended(ranking.getContestsAttended());
         vo.setBadge(ranking.getBadge());
+        return vo;
+    }
+
+    /**
+     * R9.1 / F-24: per-contest ranking VO converter for the keyset
+     * path. {@link ContestParticipantWithUser} is the mapper result
+     * record; we project it into the same {@link ContestRankingVO}
+     * shape as the global path so callers can use the same response
+     * type regardless of whether the cache key is per-contest.
+     */
+    private ContestRankingVO toContestRankingVO(
+            ContestParticipantMapper.ContestParticipantWithUser p) {
+        if (p == null) return null;
+        ContestRankingVO vo = new ContestRankingVO();
+        vo.setRank(p.finalRank());
+        vo.setUserId(p.userId());
+        vo.setUsername(p.username());
+        vo.setName(p.name());
+        vo.setAvatar(p.avatar());
         return vo;
     }
 }

@@ -279,4 +279,12 @@ public interface ContestService {
      * @return paginated list of rankings
      */
     PageResult<ContestRankingVO> getAdminContestRanking(String contestId, Integer page, Integer limit);
+
+    /**
+     * R9.1 / F-24: per-contest ranking with keyset cursor pagination.
+     * Cache key template includes {@code contestId} so per-contest
+     * eviction (R9.2) becomes possible. The {@code cursor} format
+     * is "{@code rank:userId}"; null/blank means first page.
+     */
+    List<ContestRankingVO> getContestRanking(String contestId, Integer limit, String cursor);
 }

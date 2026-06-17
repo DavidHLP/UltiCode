@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
+import { useRoute } from "vue-router";
 import { Trophy, Globe, MapPin } from "lucide-vue-next";
 import { useContestStore } from "@/stores/contest";
 import { useAuthStore } from "@/stores/auth";
@@ -8,10 +9,27 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
+import { useContestSocket } from "@/composables/contest/useContestSocket";
 
 const contestStore = useContestStore();
 const authStore = useAuthStore();
 const { t } = useI18n();
+
+// R6.4 / F-04 + F-18: live ranking via WebSocket. useContestSocket exposes
+// its own disconnect(); we leaveContest() on unmount to drop the
+// subscription so the server-side reference count decrements.
+const { isConnected, joinContest, leaveContest, onRankingUpdate } =
+  useContestSocket({ autoConnect: true });
+const liveRankings = ref<unknown[] | null>(null);
+const unsubscribeRanking = onRankingUpdate((data) => {
+  if (Array.isArray(data)) liveRankings.value = data;
+  else if (data && typeof data === "object" && Array.isArray((data as any).items)) {
+    liveRankings.value = (data as any).items;
+  }
+});
+
+const route = useRoute();
+const contestId = computed(() => String(route.params.id ?? ""));
 
 const { globalRankings, loadingRankings } = storeToRefs(contestStore);
 
@@ -46,7 +64,26 @@ async function loadRankings() {
   }
 }
 
-onMounted(loadRankings);
+// R6.4 / F-04: join the contest room on mount so the server pushes
+// ranking updates. R6.4 / F-18: leave on unmount so the server-side
+// subscription count decrements and the WS connection isn't held longer
+// than the user is on the page.
+onMounted(async () => {
+  await loadRankings();
+  if (contestId.value) {
+    try {
+      await joinContest(contestId.value);
+    } catch (e) {
+      // joinContest may reject if the user is not registered; the
+      // server-side ContestSubscribeAuthInterceptor (F-17) handles this.
+    }
+  }
+});
+
+onUnmounted(() => {
+  unsubscribeRanking();
+  void leaveContest();
+});
 </script>
 
 <template>

@@ -27,6 +27,7 @@
 |------|------|--------|
 | **[PLAN.md](./PLAN.md)** | 完整修复计划（10 Phase / 22 commit / 5 周）| 历史：基于早期设想的完整计划（HMAC/appSecret 等已被代码现实取代）|
 | **[EXECUTION_PLAN.md](./EXECUTION_PLAN.md)** ⭐ | **基于 REVIEW_V3 的 5 轮可执行计划**（R1 slug / R2 真榜隔离 / R3 生命周期+评级 / R4 评分引擎 / R5 债务）| **实施首选入口**：每轮可独立部署、独立验证、独立回滚 |
+| **[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)** | R10 收口计划（R7–R9 deferred 5 项 + F-01 复核 2 项 + F-SEC 10/13 2 项 = 9 项）| 模块 v4.3 收口入口 |
 
 ### 🔍 审查 / 决策 (下游)
 

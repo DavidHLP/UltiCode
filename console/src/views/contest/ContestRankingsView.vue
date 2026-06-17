@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Trophy, Globe, MapPin } from "lucide-vue-next";
 import { useContestStore } from "@/stores/contest";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
+import { toast } from "vue-sonner";
 
 const contestStore = useContestStore();
 const authStore = useAuthStore();
@@ -20,6 +21,14 @@ const { t } = useI18n();
 // subscription so the server-side reference count decrements.
 const { isConnected, joinContest, leaveContest, onRankingUpdate } =
   useContestSocket({ autoConnect: true });
+// R9.3 / F-44: show a reconnecting banner using the locale
+// string added in R9.3 (previously a dead translation per R8
+// review MED-2). R8 review HIGH-1 left the locales bare; this is
+// the first view reference.
+const showReconnecting = ref(false);
+watch(isConnected, (connected) => {
+  showReconnecting.value = !connected;
+});
 const liveRankings = ref<unknown[] | null>(null);
 const unsubscribeRanking = onRankingUpdate((data) => {
   if (Array.isArray(data)) liveRankings.value = data;
@@ -58,7 +67,10 @@ async function loadRankings() {
       await contestStore.loadGlobalRankings({ page: 1, limit: 10 });
     }
   } catch (error) {
+    // R9.3 / F-41: surface the i18n error key (was a dead
+    // translation per R8 review MED-2). Viewers see a toast.
     console.error("Failed to load rankings:", error);
+    toast.error(t("contest.error.rankingsLoadFailed"));
   } finally {
     initialLoading.value = false;
   }

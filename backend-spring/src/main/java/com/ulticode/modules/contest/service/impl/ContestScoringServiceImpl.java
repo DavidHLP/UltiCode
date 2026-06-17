@@ -292,26 +292,10 @@ public class ContestScoringServiceImpl implements ContestScoringService {
         }
     }
 
-    /**
-     * R7.1 / F-21: per-contest ranking cache invalidation. Currently
-     * {@link #evictRankingCache} clears the entire {@code contestRanking}
-     * cache because the existing {@code @Cacheable} key template is
-     * "getGlobalRanking:{limit}" / "globalPaginated:{page}:{limit}" — i.e.
-     * global, not per-contest. Per-contest eviction is gated on changing
-     * the cache key to include {@code #contestId} (would need to thread
-     * the contest ID through the ranking read path) and a follow-up
-     * to {@code evictRankingCache(String contestId)} that uses
-     * {@code cache.evictIfPresent(...)} with the per-contest pattern.
-     *
-     * <p>Defer to R8: current global eviction is acceptable because the
-     * ranking cache TTL is short and the per-contest ablation is a
-     * marginal NFR-P1 improvement.
-     */
-    void evictRankingCacheForContest(String contestId) {
-        // R8: implement per-contest eviction. For now, fall back to global
-        // clear — same as evictRankingCache.
-        evictRankingCache();
-        log.debug("R7.1 / F-21: per-contest eviction for {} not yet implemented, "
-                + "falling back to full contestRanking clear", contestId);
-    }
+    // R7.1 / F-21: per-contest ranking cache invalidation was deferred
+    // to R8 — see ADR-007 §8. The @Cacheable key template is
+    // "getGlobalRanking:{limit}" / "globalPaginated:{page}:{limit}" —
+    // global, not per-contest. Per-contest eviction needs a key template
+    // change first. Current global clear() is acceptable at the
+    // < 10k-row pagination range; NFR-P1 is not triggered.
 }

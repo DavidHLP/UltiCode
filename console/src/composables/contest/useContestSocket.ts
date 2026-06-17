@@ -203,12 +203,14 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     },
     debug: () => {},
     reconnectDelay: options.reconnectionDelay,
-    // R7.3 / F-29: cap the per-reconnect delay so the underlying library
-    // doesn't sit on the upper bound of our exponential backoff. The
-    // reconnectionDelay in @stomp/stompjs is what gets passed to setTimeout
-    // after each disconnect; we compute it ourselves to enforce the
-    // 1s → 2s → 4s → ... → 30s curve rather than the lib's default 5s.
-    maxReconnectDelay: 30_000,
+    // R7.3 / F-29: exponential backoff is *deferred* to R8. The current
+    // @stomp/stompjs version (7.3.0) only accepts a numeric
+    // reconnectDelay (no function form until v8+), so the curve
+    // 1s -> 2s -> 4s -> ... -> 30s cannot be expressed declaratively.
+    // R8 plan: replace this with a manual deactivate/activate loop
+    // that uses setTimeout to schedule the next attempt with the
+    // calculated delay, then reset on a successful CONNECT.
+    // ADR-007 §8 records the evaluation.
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     onConnect: () => {

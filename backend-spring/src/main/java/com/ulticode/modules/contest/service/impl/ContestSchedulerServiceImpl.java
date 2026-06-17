@@ -248,9 +248,11 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "No active virtual session");
         }
 
-        participant.setStatus(ContestParticipantStatus.FINISHED.name());
-        participant.setFinishedAt(LocalDateTime.now());
-        participantMapper.updateById(participant);
+        // R6.2 / F-01: route through the bulk-finish mapper so the audit's
+        // "auto-finish central dispatch" invariant holds — same path the
+        // scheduler uses, no direct updateById bypass.
+        participantMapper.bulkFinishByIds(
+                java.util.List.of(participant.getId()), LocalDateTime.now());
 
         log.info("User {} finished virtual contest {} session {}", userId, contestId, effectiveSessionId);
     }

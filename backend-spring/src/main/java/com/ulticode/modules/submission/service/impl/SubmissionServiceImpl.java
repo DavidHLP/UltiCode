@@ -1369,8 +1369,20 @@ public class SubmissionServiceImpl implements SubmissionService {
             cs.setContestId(cp.getContestId());
             cs.setContestProblemId(cp.getId());
             cs.setParticipantId(participant.get().getId());
-            cs.setTimeFromStart((int) Duration.between(
-                    contest.getStartTime(), LocalDateTime.now()).getSeconds());
+            // R6.2 / F-06: pick the right clock per participant type. Real
+            // contests use actualStartTime (fallback to startTime if admin
+            // never triggered the scheduler transition); virtual sessions
+            // use the participant's own startedAt — contest.startTime is
+            // irrelevant for replays and would yield nonsense offsets.
+            ContestParticipant p = participant.get();
+            LocalDateTime contestClock = contest.getActualStartTime() != null
+                    ? contest.getActualStartTime()
+                    : contest.getStartTime();
+            LocalDateTime virtualClock = p.getStartedAt();
+            LocalDateTime clock = Boolean.TRUE.equals(p.getIsVirtual()) ? virtualClock : contestClock;
+            if (clock != null) {
+                cs.setTimeFromStart((int) Duration.between(clock, LocalDateTime.now()).getSeconds());
+            }
             cs.setIsAccepted(false); // Will be updated when judge completes
             cs.setSubmittedAt(LocalDateTime.now());
             contestSubmissionMapper.insert(cs);

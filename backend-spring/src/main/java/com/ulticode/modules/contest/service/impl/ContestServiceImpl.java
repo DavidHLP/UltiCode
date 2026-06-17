@@ -271,6 +271,22 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED, "Contest participation has not started");
         }
 
+        // R6.2 / F-07: virtual sessions get a hard deadline based on
+        // started_at + duration_minutes. Without this gate, a user could
+        // submit well after their virtual replay should have ended; the
+        // scheduler's auto-finish only kicks in on the next 10s tick, leaving
+        // a window where late submissions sneak through.
+        if (Boolean.TRUE.equals(participant.getIsVirtual())
+                && participant.getStartedAt() != null
+                && contest.getDurationMinutes() != null) {
+            java.time.LocalDateTime virtualEnd =
+                    participant.getStartedAt().plusMinutes(contest.getDurationMinutes());
+            if (java.time.LocalDateTime.now().isAfter(virtualEnd)) {
+                throw new BusinessException(ErrorCode.CONTEST_ENDED,
+                        "Virtual contest duration has passed");
+            }
+        }
+
         createDTO.setProblemId(problemId);
         return submissionService.submit(userId, createDTO);
     }

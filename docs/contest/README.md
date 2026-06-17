@@ -2,7 +2,7 @@
 
 > **作用**：UltiCode Contest 模块（含虚拟竞赛）的需求、设计、审查、决策文档集中地
 > **维护者**：后端 + 产品
-> **最后更新**：2026-06-17
+> **最后更新**：2026-06-17（R9 closure，模块 v4.2 完结；详细 R10 deferred 项见 [REVIEW_V3 §12](./REVIEW_V3.md)）
 
 ---
 
@@ -43,15 +43,15 @@
 ## 🚀 推荐阅读顺序
 
 **如果你要决策（产品/技术 lead）**：
-1. [REVIEW_V3.md](./REVIEW_V3.md) §1 + §2（定档结论 + PRD 验收基线对照）
-2. [REVIEW_V3.md](./REVIEW_V3.md) §3 + §7（必修 P0 + v2 finding 去向对照）
+1. [REVIEW_V3.md](./REVIEW_V3.md) §1 + §12（v4.2 定档结论 + R10 deferred 项）
+2. [REVIEW_V3.md](./REVIEW_V3.md) §7 + §9（v2 finding 去向 + 重新定档 checklist 全部 ✅）
 3. [PRD.md](./PRD.md) §11（P1-P5 决策项）
 
 **如果你要实施（后端/前端工程师）**：
 1. [CONTEXT.md](./CONTEXT.md)（对齐术语：Real/Virtual Participant、Scoring Mode、Rating）
-2. [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) ⭐ 通读（5 轮可执行计划，当前权威实施入口）
-3. [REVIEW_V3.md](./REVIEW_V3.md) §3 + §9（必修 P0 + 重新定档 checklist）
-4. [ADR-006](../adr/ADR-006-contest-scoring-engine-activation.md) + [ADR-007](../adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)（Round 3/4 的设计决策）
+2. [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) ⭐ 通读（R1–R5 5 轮可执行计划）+ [completed/EXECUTION_PLAN_R6..R9.md](./completed/)（R6–R9 多轮执行归档）
+3. [REVIEW_V3.md](./REVIEW_V3.md) §10–§12（R7/R8/R9 收口记录）
+4. [ADR-006](../adr/ADR-006-contest-scoring-engine-activation.md) + [ADR-007](../adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)（R3/R4 的设计决策）+ ADR-008/009/010/011（后续轮次决策）
 5. [PLAN.md](./PLAN.md)（仅参考历史设想，**不沿用其 Phase 0-9 框架**——见 EXECUTION_PLAN §0）
 
 **如果你要 security 审查（安全工程师）**：
@@ -71,12 +71,12 @@
 | 维度 | 状态 |
 |------|------|
 | 审查对象 | **实际代码**（v1/v2 审查 PLAN.md，v3 转为审查代码）|
-| 当前裁决 | **不建议合入** —— 需补齐核心评分功能后重新定档（见 [REVIEW_V3.md](./REVIEW_V3.md)）|
-| 待修 P0（阻断合入）| **5 项**：评分生效 / auto-finish 接线 / 真榜隔离 / startVirtual 并发 / slug UNIQUE |
-| P0 → 执行轮次 | R1 slug UNIQUE · R2 真榜隔离 · R3 生命周期+评级+并发（原子）· R4 评分引擎 · 详见 [EXECUTION_PLAN.md](./EXECUTION_PLAN.md) |
-| 已确认修复 | IDOR、migration 安全、Admin 鉴权、rating O(n)、N+1、首杀原子、前端鉴权链、i18n |
-| 预计 P0 工期 | **1.5~2 周** |
-| 重新定档 checklist | 见 [REVIEW_V3.md §9](./REVIEW_V3.md) |
+| 当前裁决 | **v4.2 完结** —— R1–R9 全部落地；P0 阻断项 0；详见 [REVIEW_V3.md §12](./REVIEW_V3.md) |
+| 重新定档 checklist | 全部 ✅（R1–R9）；见 [REVIEW_V3.md §9](./REVIEW_V3.md) |
+| 已确认修复 | 49 PRD finding + 12 LOW + 6 F-SEC HIGH/CRITICAL + i18n + 性能 + 鉴权链（详见各 R 计划）|
+| 显式 deferred → R10 | R9.2 per-contest evict 真实现 / R9.3 i18n view 接入 / R9.3 i18n key 同步审计 / `getGlobalRankingsPaginated` 旧签名删除 / M1 `contestMapper.selectById` 优化 / MED-3 `WebSocketAuthenticationException` 顶层化 |
+| 待复核（代码侧） | F-01 §3.1 `#5 finishVirtualContest` 实际路径 · F-01 §6.4 F-06 `timeFromStart` 来源（详见 [F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md)）|
+| SECURITY 残留风险 | F-SEC-10/12/13 未在 R 计划中明确处理；F-SEC-14 文档结构问题（详见 [SECURITY_REVIEW.md](./SECURITY_REVIEW.md)）|
 
 ---
 
@@ -90,6 +90,11 @@
 | 2026-06-17 下午 | Security 视角重试（捕获 2 个全新 CRITICAL，SECURITY_REVIEW.md） |
 | 2026-06-17 下午 | v2 合并报告（REVIEW_V2.md）+ 文档统一迁移至 `docs/contest/` |
 | 2026-06-17 晚 | **v3 最终定档**（REVIEW_V3.md）—— 审查对象从 PLAN.md 转为实际代码，裁决"不建议合入，补齐 P0 后重新定档" |
+| 2026-06-17 晚 | **R1–R5** 全部落地（5 项 P0 收口，EXECUTION_PLAN.md），本地 review APPROVE |
+| 2026-06-17 晚 | **v3.1 复审** + **R6** 11 项 P0/P1 + 2 项历史债收口（F-01 状态机审计 doc） |
+| 2026-06-17 晚 | **R7** MED/LOW 收口（49 finding 全部关闭或显式 deferred，ADR-010）|
+| 2026-06-17 晚 | **R8** review fixups + ADR-011 灰度决策（CRIT-6 关闭）|
+| 2026-06-17 晚 | **R9** 性能缓存收口 + i18n 接入 + multi-tab 检测 —— **模块 v4.2 完结**（详见 [REVIEW_V3 §12](./REVIEW_V3.md) + [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R9.md)）|
 
 ---
 

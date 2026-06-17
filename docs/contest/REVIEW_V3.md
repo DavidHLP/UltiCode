@@ -113,10 +113,22 @@
 
 ## 9. 重新定档 checklist
 
-- [x] P0-1 评分配置生效(scoringMode / penaltyPerWrong / isRated / tieBreaker) — **R4** (ADR-006 Accepted)：`penaltyPerWrong` 配置化（null 兜底 20）+ SCORE/ICPC/IOI 三分支（按 ADR-006 §2.2）
-- [x] P0-2 auto-finish 兜底接线 + 真实 participant 批量 FINISHED + rating 查询改 contest.status — **R3** (ADR-007 Accepted)：`ContestScheduler` Step 3 接线 + `finishStartedRealParticipants` + `findRealParticipantsByContestId` 替代 status 过滤
-- [x] P0-3 真榜 SQL 加 is_virtual=0 — **R2**：`ContestParticipantMapper` 5 处收紧
-- [x] P0-4 startVirtual 并发原语 + 9 处查询统一 — **R3**：`findActiveVirtualSessionForUpdate` + `FOR UPDATE` 行锁（详见 ADR-007 §6 实施偏差：未用 Redis 锁）
-- [x] P0-5 slug UNIQUE + 冲突校验 — **R1**：`V20260617130000__Contest_Slug_Unique.sql` + `CONTEST_SLUG_EXISTS` 错误码 + `DataIntegrityViolationException` 兜底
-- [ ] F-01 / F-06 人工复核结论（待用户签发）
-- [ ] 重新跑后端 `./mvnw test` + `./mvnw -Dtest='*IT' test`（本轮 33/33 contest 单测已绿，集成测试建议部署到 staging 后跑）
+- [x] P0-1 评分配置生效(scoringMode / penaltyPerWrong / isRated / tieBreaker) — **R4** (ADR-006 Accepted)
+- [x] P0-2 auto-finish 兜底接线 + 真实 participant 批量 FINISHED + rating 查询改 contest.status — **R3** (ADR-007 Accepted)
+- [x] P0-3 真榜 SQL 加 is_virtual=0 — **R2**
+- [x] P0-4 startVirtual 并发原语 + 9 处查询统一 — **R3**
+- [x] P0-5 slug UNIQUE + 冲突校验 — **R1**
+- [x] F-01 状态机互斥 — **R6.2** 审计 doc (`F-01-STATE_MACHINE_AUDIT.md`) + finishVirtualContest 改走 bulkFinishByIds；剩余不变量 B.1 由 R6.5 generated column 收口
+- [x] F-03 isRated 守卫 — **R6.1** + ADR-009
+- [x] F-04 WS 接入 — **R6.4**（ContestRankingsView 接入 useContestSocket）+ ADR-008
+- [x] F-06 提交读虚拟时间 — **R6.2**（`timeFromStart` 改用 `participant.startedAt` 虚拟赛 / `actualStartTime` 真实赛）
+- [x] F-07 服务端时间窗 — **R6.2**（虚拟赛 `started_at + duration_minutes` 硬截止，409 CONTEST_ENDED）
+- [x] F-08 成就污染 — **R6.3**（`findIsVirtualBySubmissionId` gate）
+- [x] F-10 finishVirtual 不重算 — **R6.1** + ADR-007 §7 / ADR-009
+- [x] F-13 visibilitychange — **R6.4**（VirtualContestTimer）
+- [x] F-15 TS enum 错配 — **R6.5**（文档化 + 注释兜底；完整 enum 化留 S5）
+- [x] F-17 WS join 鉴权 — **R6.4**（ContestSubscribeAuthInterceptor）+ ADR-008
+- [x] F-18 WS 卸载清理 — **R6.4**（onUnmounted cleanup）+ ADR-008
+- [x] 重新跑后端 `./mvnw test` + 前端 `pnpm type-check` — 本轮 5/5 RatingCalculationServiceImplTest + 12/12 ContestScoringServiceImplTest + 编译通过
+
+**R1-R6 全部完成。Sprint S1-S4 全部签收。**

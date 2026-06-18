@@ -18,7 +18,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -182,5 +185,28 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         assertThatThrownBy(() -> service.finishVirtualContest(CONTEST_ID, null, USER_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_REGISTERED);
+    }
+
+    @Test
+    @DisplayName("finishVirtualContest is idempotent — re-running on FINISHED does not re-stamp")
+    void finishVirtualContest_idempotentOnAlreadyFinished() {
+        String storedUuid = UUID.randomUUID().toString();
+        LocalDateTime originalFinish = LocalDateTime.of(2026, 6, 18, 9, 42, 5);
+        ContestParticipant p = buildVirtualParticipant(storedUuid);
+        p.setId("participant-finished-id");
+        p.setStatus(ContestParticipantStatus.FINISHED.name());
+        p.setFinishedAt(originalFinish);
+        p.setUpdatedAt(originalFinish);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(p));
+
+        // Re-finish an already-FINISHED session — should be a no-op
+        service.finishVirtualContest(CONTEST_ID, storedUuid, USER_ID);
+
+        // The original finish time must be preserved (not re-stamped to now())
+        assertThat(p.getFinishedAt()).isEqualTo(originalFinish);
+        assertThat(p.getUpdatedAt()).isEqualTo(originalFinish);
+        // The SQL UPDATE must NOT be re-issued
+        verify(participantMapper, never()).bulkFinishByIds(any(), any());
     }
 }

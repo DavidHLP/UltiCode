@@ -248,6 +248,17 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "No active virtual session");
         }
 
+        // Idempotency: re-running finish on a session that is already FINISHED
+        // must not re-stamp finished_at/updated_at. Without this guard, repeated
+        // POSTs (network retry, double-click, polling tab) would overwrite the
+        // original finish time and lose the audit trail of when the user
+        // actually finished.
+        if (ContestParticipantStatus.FINISHED.name().equals(participant.getStatus())) {
+            log.info("User {} virtual contest {} session {} already finished, skip re-stamp",
+                    userId, contestId, effectiveSessionId);
+            return;
+        }
+
         // R6.2 / F-01: route through the bulk-finish mapper so the audit's
         // "auto-finish central dispatch" invariant holds — same path the
         // scheduler uses, no direct updateById bypass.

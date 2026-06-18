@@ -170,7 +170,7 @@ onMounted(() => {
             <p
               class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("review.firstACLabel") }}
+              {{ t("contest.review.firstACLabel") }}
             </p>
             <p class="text-xs font-bold">
               {{
@@ -189,7 +189,7 @@ onMounted(() => {
             <p
               class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("review.verdictBreakdown", {
+              {{ t("contest.review.verdictBreakdown", {
                 n: breakdown.total,
                 wa: breakdown.wrongAnswer,
                 tle: breakdown.timeLimit,
@@ -211,7 +211,7 @@ onMounted(() => {
             <p
               class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("review.finalScoreLabel") }}
+              {{ t("contest.review.finalScoreLabel") }}
             </p>
             <p class="text-xs font-bold">
               {{ finalScore != null ? finalScore : "—" }}
@@ -263,7 +263,7 @@ onMounted(() => {
           @click="handleRetake"
         >
           <RefreshCw class="mr-1 h-3 w-3" />
-          {{ t("review.retake") }}
+          {{ t("contest.review.retake") }}
         </Button>
         <Button
           variant="outline"
@@ -273,7 +273,7 @@ onMounted(() => {
           @click="handleNotebook"
         >
           <BookPlus class="mr-1 h-3 w-3" />
-          {{ t("review.addToNotebook") }}
+          {{ t("contest.review.addToNotebook") }}
         </Button>
       </div>
     </div>

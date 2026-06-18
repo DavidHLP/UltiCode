@@ -1,4 +1,4 @@
-<!-- Updated: 2026-06-12 | Migrations: 25 | Baseline tables: 67 + test_cases + problem_notes + solution_topics + edge_operations enum | Token estimate: ~740 -->
+<!-- Updated: 2026-06-18 | Migrations: 34 | Baseline tables: 67 + test_cases + problem_notes + solution_topics + edge_operations enum + judge_outbox + notification_delivery_ledger + virtual_contest_sessions + contest_rankings/analytics/scoring_rules + problem resource limits | Token estimate: ~740 -->
 
 # Data Architecture
 
@@ -12,19 +12,24 @@ and seed schema. Subsequent migrations add columns / data / constraints.
 ```
 Identity       : users, roles, user_roles, user_follows, user_achievements,
                  achievements, badges
-Problem        : problems, problem_tags, problem_test_cases, problem_examples,
+Problem        : problems (+ time/memory/cpus resource limits 2026-06-16),
+                 problem_tags, problem_test_cases, problem_examples,
                  problem_versions, problem_lists, problem_lists_version,
                  problem_details_content, test_cases,
                  problem_notes                                                [new 2026-06-11]
 Submission     : submissions, submission_retry_count, submission_memory_nullable,
                  solutions, solution_comments, solution_votes,
-                 solution_topics                                              [new 2026-06-11]
-Contest        : contests, contest_problems, contest_participants,
-                 contest_submissions, contest_actual_times, scoring_rules
+                 solution_topics,                                             [new 2026-06-11]
+                 judge_outbox                                                 [new 2026-06-13 — verdict delivery, ADR-003]
+Contest        : contests (+ slug/real unique 2026-06-17), contest_problems,
+                 contest_participants, contest_submissions, contest_actual_times,
+                 scoring_rules, contest_scoring_rules, contest_rankings,
+                 contest_analytics, virtual_contest_sessions                  [scoring+virtual new 2026-06-13→17, ADR-006/007]
 Forum          : forum_posts, post_comments, post_likes
 Moderation     : moderation_queue, reports, moderation_actions, appeals
 Notification   : notifications (is_deleted added 2026-06-11),
-                 notification_preferences (system → system_enabled 2026-06-11)
+                 notification_preferences (system → system_enabled 2026-06-11),
+                 notification_delivery_ledger                                 [new 2026-06-13]
 Subscription   : subscriptions, subscription_plans
 Edge ops       : edge_operations (enum extended: LIKE/DISLIKE/FAVORITE 2026-06-10)
 Auth           : refresh_tokens, password_reset_tokens, oauth_states,
@@ -35,7 +40,7 @@ Recommendation : recommendation_seed_problems, recommendation_seed_submissions,
                  daily_recommendations_feedback                                [orphaned]
 ```
 
-### Migrations (`init-db/migrations/`) — 25 files
+### Migrations (`init-db/migrations/`) — 34 files
 ```
 V20260602_120000  Create_All_Tables                          [baseline, 67 tables]
 V20260602_120100  Insert_Admin_User_And_Permissions          [seed admin + roles]
@@ -60,8 +65,17 @@ V20260610_140000  Add_User_Permission_Expires_At                [new]
 V20260610_150000  Extend_Edge_Operations_For_Problem_Reactions [new — enum +LIKE/+DISLIKE/+FAVORITE]
 V20260611_120000  Rename_Notification_Pref_System_Column       [new — MySQL 9.x reserved keyword]
 V20260611_130000  Add_Notifications_Is_Deleted                 [new — logical delete]
-V20260611_140000  Create_Problem_Notes_Table                   [new — user×problem 1:1]
 V20260611_140000  Create_Solution_Topics_Table                 [new — 8 seeded topics]
+V20260611_141000  Create_Problem_Notes_Table                   [new — user×problem 1:1]
+V20260613_100000  Create_Judge_Outbox                          [new — verdict delivery outbox, ADR-003]
+V20260613_110000  Add_Submission_Generation_And_Lease          [new — generation counter + queue lease]
+V20260613_120000  Create_Notification_Delivery_Ledger          [new — delivery tracking]
+V20260615_140000  Seed_Problem_Category_Tags                   [seed]
+V20260616_000000  Seed_Missing_Test_Cases                      [seed]
+V20260616_120000  Add_Problem_Resource_Limits                  [new — time/memory/cpus columns]
+V20260617_120000  Contest_Scoring_Hardening                    [new — ADR-006 scoring engine]
+V20260617_130000  Contest_Slug_Unique                          [new — unique constraint]
+V20260617_140000  Contest_Real_Unique_And_Session_Length       [new — virtual_contest_sessions, ADR-007]
 ```
 
 > **Security migration note**: `V20260606130000` revokes/rotates refresh tokens
@@ -82,7 +96,7 @@ init-db/
 ├── README.md
 ├── flyway.conf
 ├── pom.xml           (Maven, Flyway 10.10.0)
-├── migrations/       (25 SQL files)
+├── migrations/       (34 SQL files)
 ├── sql/              (one-time dumps)
 └── validate-migration.sh
 ```
@@ -114,7 +128,9 @@ problems ─┬─< problem_test_cases (1:N)
           └─< problem_notes (1:1 per user)                                [new 2026-06-11]
 
 contests ─┬─< contest_problems (1:N)
-          └─< contest_participants (M:N)
+          ├─< contest_participants (M:N)
+          ├─< contest_rankings (1:N, scored)                              [new 2026-06-17]
+          └─< virtual_contest_sessions (1:N, virtual replay)              [new 2026-06-17]
 
 solutions ─┬─< solution_comments (1:N)
            ├─< solution_votes (1:N via edge_operations)

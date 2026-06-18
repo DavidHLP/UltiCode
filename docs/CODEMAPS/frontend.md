@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-12 | Console: ~351 Vue / ~217 TS | Management: ~470 Vue / ~265 TS | Token estimate: ~960 -->
+<!-- Generated: 2026-06-18 | Console: ~351 Vue / ~217 TS | Management: ~470 Vue / ~265 TS | Token estimate: ~960 -->
 
 # Frontend Architecture
 

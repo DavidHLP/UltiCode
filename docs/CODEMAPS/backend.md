@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-12 | Java files: 735 | Controllers: 43 | Modules: 26 | Token estimate: ~980 -->
+<!-- Generated: 2026-06-18 | Java files: 735 | Controllers: 43 | Modules: 26 | Token estimate: ~980 -->
 
 # Backend Architecture
 

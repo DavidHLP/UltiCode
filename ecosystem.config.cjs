@@ -130,7 +130,7 @@ module.exports = {
       //   - 自愈 loop: 端口 8563 死了就重 attach (修复 pm2 restart 9001 后断连)
       //   - 也可由 Claude Code SessionStart hook 拉起 (见 .claude/settings.json)
       //   - 两路互斥: 任何一路发现 8563 已监听都会跳过, 不会重复 attach
-      //   - 端口: 8563 (HTTP MCP 端点 /mcp, 协议 STREAMABLE)
+      //   - 端口: 8563 (HTTP MCP 端点 /mcp, 协议 STATELESS — 项目级 pin, 见 infrastructure/arthas/arthas.properties)
       // 启动顺序: ulticode-9001 之后 (wrapper 等 Spring Boot 就绪再 attach)
       name: "ulticode-arthas",
       script: "./scripts/start-arthas.sh",

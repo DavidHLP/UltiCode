@@ -1,153 +1,62 @@
-Codemap Update Report - 2026-06-12
-==================================
+# Codemap Diff Report
 
-Files Scanned    : 2038 (was 1923 — ↑115)
-                   Java 735, Vue 821, TS 482 (excl. shared), test files 46
-                   __tests__ dirs 21
-Backend Java     : 735  (was 708, +27)
-Vue (both FEs)    : 821  (was 820, +1)
-TS (both FEs)     : 482  (was 445, +37)
-Migrations        : 25   (was 20, +5)
-Controllers       : 43   (was 41, +2 — ProblemNote + SolutionTopic)
-Modules           : 26   (unchanged)
-Shared Packages   : 4    (unchanged)
-Codemaps Updated  : 5 (all)
+Generated: 2026-06-18
+Previous codemap baseline: 2026-06-12
+Scan scope: docs/CODEMAPS/ (6 files)
+Diff threshold: <=30% → update in place (no overwrite approval needed). Overall weighted drift ~12%; data.md highest at ~25-30%.
 
-Change Magnitude
-----------------
-Cumulative delta vs 2026-06-10 baseline:
-  Migrations:    20 → 25  (+25.0%)
-  Controllers:   41 → 43  (+4.9%)
-  Java sources:  708 → 735 (+3.8%)
-  TS sources:    445 → 482 (+8.3%)
-Weighted overall: ~10-15% — under 30% threshold → in-place update.
+## Codemaps modified (5/6)
 
-Change Summary
--------------
-[MINOR] docs/CODEMAPS/architecture.md
-  - Freshness header: 2026-06-10 → 2026-06-12, new file counts
-  - Backend purpose: appended ", notes, topics, etc." (new domain features)
-  - Data flow: +2 bullets (reactions / notes & topics)
-  - Migration listing: refreshed to 25 files; latest 5 listed
-  - New "Recent Architectural Themes" section (5 bullets)
+| File | Change | Est. drift |
+| ---- | ------ | ---------- |
+| architecture.md | header + Arthas 4.2.2 + sandbox-types + PM2 5 apps + 4 new Data-Flow bullets + Migration Strategy + 4 new themes | ~12% |
+| data.md | header + migrations 25→34 + 9 new migration rows + Table Groups (6 new tables) + Key Relationships (contest) | ~25-30% |
+| dependencies.md | header + Arthas 4.2.2 + sandbox-types row + PM2 5 apps | ~8% |
+| backend.md | header date only (controllers 43 / modules 26 unchanged & verified) | <1% |
+| frontend.md | header date only (view/store tree stable) | <1% |
+| sandbox.md | unchanged (recently maintained, ADR-002 refs up to 2026-06-16) | 0% |
 
-[MINOR] docs/CODEMAPS/backend.md
-  - Controllers: 41 → 43, with new ProblemNote + SolutionTopic rows
-  - User-facing routes: +3 (problem note GET/POST, solution topics)
-  - Edge operations: noted LIKE/DISLIKE/FAVORITE expansion
-  - problem/ module: noted "notes NEW 2026-06-11"
-  - solution/ module: noted "topics NEW 2026-06-11"
-  - notification: noted "logical delete added 2026-06-11"
+## Files added/removed/modified since last scan (codebase side)
 
-[MINOR] docs/CODEMAPS/frontend.md
-  - New "Recent Console Changes" section with full file list (10 modified,
-    2 new __tests__ dirs)
-  - features/sider/ note: AppLayout/SidebarInset refactored 2026-06-12
-  - Vue/TS counts refreshed (Console ~351/~217, Mgmt ~470/~265)
+### New shared package
+- shared/sandbox-types/ (@ulticode/sandbox-types, Phase 4) — typed sandbox DTOs; now documented in architecture.md + dependencies.md
 
-[MINOR] docs/CODEMAPS/data.md
-  - Migrations: 20 → 25, appended 5 newest
-  - Table groups: +problem_notes, +solution_topics
-  - Notification group: noted is_deleted + system→system_enabled
-  - Edge ops: noted enum expansion
-  - Relationships: +users<problem_notes, +problems<problem_notes,
-    +solutions<solution_topics
-  - Header: baseline tables extended to include the 3 new ones
+### Migrations: 25 → 34 (+9)
+- V20260611141000__Create_Problem_Notes_Table (timestamp corrected; was mis-duped as _140000)
+- V20260613100000__Create_Judge_Outbox                 [ADR-003 outbox]
+- V20260613110000__Add_Submission_Generation_And_Lease [queue gen counter + lease]
+- V20260613120000__Create_Notification_Delivery_Ledger [per-channel delivery]
+- V20260615140000__Seed_Problem_Category_Tags          [seed]
+- V20260616000000__Seed_Missing_Test_Cases             [seed]
+- V20260616120000__Add_Problem_Resource_Limits         [time/memory/cpus cols]
+- V20260617120000__Contest_Scoring_Hardening           [ADR-006]
+- V20260617130000__Contest_Slug_Unique                 [unique constraint]
+- V20260617140000__Contest_Real_Unique_And_Session_Length [virtual_contest_sessions, ADR-007]
 
-[MINOR] docs/CODEMAPS/dependencies.md
-  - No dependency version changes detected
-  - Header refreshed to 2026-06-12
-  - All other content unchanged
+### New tables (post-baseline)
+judge_outbox, notification_delivery_ledger, virtual_contest_sessions,
+contest_rankings, contest_analytics, contest_scoring_rules (+ problem resource-limit columns)
 
-Architecture Changes (2026-06-10 → 2026-06-12)
-----------------------------------------------
-1. PROBLEM NOTES FEATURE
-   - New `problem_notes` table (V20260611_140000): 1:1 user×problem, MEDIUMTEXT
-     content, FK cascade on user/problem delete
-   - New `ProblemNoteController` exposes GET/POST /problems/{problemId}/note
-   - Closes a long-standing gap: console/src/api/interaction.ts was
-     calling these endpoints with 0 server backing
+## New dependencies detected
+- @ulticode/sandbox-types (shared DTO package, Phase 4)
 
-2. SOLUTION TOPICS TAXONOMY (BUG-01 fix)
-   - New `solution_topics` table (V20260611140000): 8 algorithm topics
-     seeded (greedy/dp/binary-search/...)
-   - New `SolutionTopicController` exposes GET /api/solutions/topics
-   - 3-col composite index (is_active, is_deleted, sort_order) per MySQL
-     coding conventions
+## Architecture changes
+- Queue/outbox pattern (ADR-003): judge_outbox + submission generation/lease for exactly-once verdict delivery
+- Contest scoring engine (ADR-006): scoring-rule activation, slug/real unique constraints
+- Virtual contests (ADR-007): virtual_contest_sessions, rating isolation
+- Problem resource limits: per-problem time/memory/cpus
+- Notification delivery ledger: per-channel delivery tracking
+- Runtime: Arthas 4.1.9 → 4.2.2 (STATELESS MCP); PM2 app count 4 → 5 (added one-shot ulticode-init-db)
 
-3. EDGE OPERATIONS REACTION ENUM
-   - V20260610150000 expands `edge_operations.operation_type` to include
-     LIKE / DISLIKE / FAVORITE (was: VOTE_UP/DOWN/ANALYZE/VIEW)
-   - Backward compatible: only ADDS values, unique key already supports
-   - Enables viewer-reaction display per user
+## Verified accurate (no drift)
+- Backend: 26 modules, 43 controllers (matches ecosystem + source scan)
+- Frontend: console/management view + store + composable trees stable
+- ENV.md / CONTRIBUTING.md script tables (synced in prior /ecc:update-docs pass)
+- Infrastructure images/ports (MySQL 9.1:23306, Redis 7:26379, Nacos 2.3.2:28848, Sandbox)
 
-4. NOTIFICATION PREFERENCE COLUMN RENAME
-   - V20260611120000 renames `system` → `system_enabled` on
-     notification_preferences to avoid MySQL 9.x reserved keyword
-   - Fixes BadSqlGrammarException in NotificationPreferenceMapper
+## Staleness warnings (90+ days)
+None. Oldest docs/*.md commit is 2026-06-10 (8 days). All CODEMAPS now stamped 2026-06-18.
 
-5. NOTIFICATIONS LOGICAL DELETE
-   - V20260611130000 adds `notifications.is_deleted` + composite index
-     (user_id, is_deleted, created_at)
-   - Pairs with future @TableLogic annotation on Notification entity
-
-New Artifacts
--------------
-Backend (Java):
-  + modules/problem/controller/ProblemNoteController.java
-  + modules/problem/entity/ProblemNote.java (presumed)
-  + modules/solution/controller/SolutionTopicController.java
-  + modules/solution/entity/SolutionTopic.java (presumed)
-
-Migrations:
-  + V20260610150000__Extend_Edge_Operations_For_Problem_Reactions.sql
-  + V20260611120000__Rename_Notification_Pref_System_Column.sql
-  + V20260611130000__Add_Notifications_Is_Deleted.sql
-  + V20260611_140000__Create_Problem_Notes_Table.sql
-  + V20260611140000__Create_Solution_Topics_Table.sql
-
-Console (Vue/TS, modified):
-  ~ components/common/data-table/DataTableToolbar.vue
-  ~ components/problem/ProblemSetSidebar.vue
-  ~ components/ui/sidebar/SidebarInset.vue
-  ~ features/sider/AppLayout.vue
-  ~ views/personal/components/{LearningProgressChart,SkillRadarChart,
-    SubmissionHistoryChart,UserProfileCard,UserStatsPanel}.vue
-  ~ i18n/locales/{en-US,zh-CN}/personal.ts
-
-Console (new test suites):
-  + components/common/data-table/__tests__/
-  + components/ui/sidebar/__tests__/
-
-Staleness Warnings
-------------------
-- shared/design-system/ contains only style.css; still flagged as legacy
-  residual across all 5 codemaps. Cleanup candidate (carry-over).
-- console/src/api/recommendation.ts, console/src/views/recommendations/,
-  management/src/views/recommendations/ — still orphaned after backend
-  module removal (carry-over).
-- management store count (470 Vue / 265 TS) is approximate — exact counts
-  not re-measured this session; refresh on next codemap pass for precision.
-- Vue/TS counts for both frontends are estimated (no exact glob scan this
-  session). The previous numbers (Console 344/211, Mgmt 476/234) were
-  from a precise glob scan; use next /ecc:update-codemaps run to refresh.
-
-Open Follow-up
---------------
-1. Remove console/management `recommendation*` API + view files (dead code)
-2. Decide on shared/design-system/ retirement (style.css only)
-3. New test suites under data-table/__tests__ and sidebar/__tests__ — run
-   `cd console && pnpm test` to confirm coverage and add cases for
-   SidebarInset + DataTableToolbar variants touched in this period
-4. Personal dashboard refactor (5 chart components + i18n keys) — verify
-   `pnpm validate:i18n-keys` passes once the refactor lands
-5. Refresh exact Vue/TS file counts on next codemap run for precision
-
-Diff Methodology
-----------------
-- Baseline: 2026-06-10 codemaps + previous diff report
-- Scanning: `find` (Java, Vue, TS, __tests__ dirs) + module/controller
-  enumeration + migration listing
-- Threshold rule: cumulative >30% delta requires user approval before
-  overwrite; this pass at ~10-15% was in-place
-- Files re-read in full via Read tool before Write (per Write-tool contract)
+## Follow-up (not auto-fixed)
+- ecosystem.config.cjs code comment still says "协议 STREAMABLE"; project pins STATELESS (see infrastructure/arthas/arthas.properties). Stale CODE comment, out of codemap scope.
+- Frontend recommendation* orphan/dead-code dirs still flagged (pre-existing).

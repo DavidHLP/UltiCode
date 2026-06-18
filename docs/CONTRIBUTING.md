@@ -71,7 +71,7 @@ cd management && pnpm dev
 
 ## Available Commands
 
-<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-12) -->
+<!-- AUTO-GENERATED: Scripts from package.json (regenerated 2026-06-18) -->
 
 ### Console Frontend (console/)
 
@@ -107,9 +107,9 @@ Same scripts as console (except `validate:mocks*`), plus:
 > excludes only `**/shared/theme/**`. Both rely on the shared `auth-core`
 > package's own `pnpm test` for that module's coverage.
 
-### Shared Packages (shared/auth-core/, shared/theme/)
+### Shared Packages (shared/auth-core/, shared/theme/, shared/sandbox-types/)
 
-Both `@ulticode/auth-core` and `@ulticode/theme` expose the same script set:
+`@ulticode/auth-core` and `@ulticode/theme` expose the same script set:
 
 | Command | Description |
 |---------|-------------|
@@ -117,7 +117,15 @@ Both `@ulticode/auth-core` and `@ulticode/theme` expose the same script set:
 | `pnpm test` | Vitest unit tests (single run) |
 | `pnpm test:watch` | Vitest in watch mode |
 
-`shared/badge-config` ships source-only — no scripts.
+`@ulticode/sandbox-types` (shared sandbox DTO package) exposes `type-check` and
+`test` (no watch mode):
+
+| Command | Description |
+|---------|-------------|
+| `pnpm type-check` | `tsc --noEmit` |
+| `pnpm test` | Vitest unit tests (single run) |
+
+`shared/badge-config` and `shared/design-system` ship source-only — no scripts.
 
 ### Backend (backend-spring/)
 

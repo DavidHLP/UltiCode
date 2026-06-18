@@ -89,6 +89,12 @@ export default {
     unregistrationFailed: "取消报名失败",
     startVirtualFailed: "开始虚拟比赛失败",
     backToList: "返回比赛列表",
+    backToContest: "返回比赛",
+    problemNotInContest: {
+      title: "本题不属于本场比赛",
+      description: "请返回比赛页面查看本题集。",
+      action: "返回比赛",
+    },
     registering: "报名中...",
     unregistering: "取消报名中...",
     starting: "开始中...",

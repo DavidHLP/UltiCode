@@ -93,6 +93,12 @@ export default {
     unregistrationFailed: "Failed to unregister from contest",
     startVirtualFailed: "Failed to start virtual contest",
     backToList: "Back to Contest List",
+    backToContest: "Back to Contest",
+    problemNotInContest: {
+      title: "This problem is not part of this contest",
+      description: "Return to the contest to browse its problems.",
+      action: "Return to Contest",
+    },
     registering: "Registering...",
     unregistering: "Unregistering...",
     starting: "Starting...",

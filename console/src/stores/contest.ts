@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import type {
   ContestListItem,
   ContestDetail,
+  ContestProblemSummary,
   ParticipationStatus,
   VirtualContestSession,
   GlobalRankingEntry,
@@ -23,6 +24,7 @@ import {
   fetchUserContests as apiFetchUserContests,
   fetchUserContestHistory,
   fetchGlobalRankings,
+  getContestProblems,
 } from "@/api/contest";
 
 export const useContestStore = defineStore("contest", () => {
@@ -36,6 +38,15 @@ export const useContestStore = defineStore("contest", () => {
   const pastContestsTotal = ref(0);
 
   const currentContest = ref<ContestDetail | null>(null);
+
+  // Contest problems keyed by contestId. Hoisted from the local ref that
+  // used to live in ContestDetailView so the problem page can read it
+  // without re-fetching or hand-wiring a parallel store. The problem page
+  // uses this to compute prev/next within a contest and to guard "this
+  // problem is part of the contest" without a new endpoint.
+  const contestProblems = ref<Map<string, ContestProblemSummary[]>>(
+    new Map(),
+  );
 
   const userParticipation = ref<Map<string, ParticipationStatus>>(new Map());
 
@@ -170,6 +181,24 @@ export const useContestStore = defineStore("contest", () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  /**
+   * Load (or return cached) problem list for a contest, keyed by `contestId`.
+   * The result is stored in `contestProblems` so the problem page can
+   * compute contest-scoped prev/next and the "is this problem in this
+   * contest" guard without a new API endpoint.
+   *
+   * The key used is the same DB-id form that the rest of the store uses
+   * (`userParticipation` keyed by `contestId`). Callers should pass the
+   * DB id, not the URL slug — see `R10.6.1` notes in ContestDetailView.
+   */
+  async function loadProblems(contestId: string): Promise<ContestProblemSummary[]> {
+    const cached = contestProblems.value.get(contestId);
+    if (cached) return cached;
+    const list = await getContestProblems(contestId);
+    contestProblems.value.set(contestId, list);
+    return list;
   }
 
   async function loadGlobalRankings(options?: {
@@ -496,6 +525,7 @@ export const useContestStore = defineStore("contest", () => {
     pastContests.value = [];
     pastContestsTotal.value = 0;
     currentContest.value = null;
+    contestProblems.value = new Map();
     userParticipation.value = new Map();
     // R3.4: only drop the in-memory ref. The sessionStorage entries are
     // scoped per contestId and the user might still be in a virtual session
@@ -523,6 +553,7 @@ export const useContestStore = defineStore("contest", () => {
     pastContests,
     pastContestsTotal,
     currentContest,
+    contestProblems,
     userParticipation,
     virtualSession,
     registeredContests,
@@ -545,6 +576,7 @@ export const useContestStore = defineStore("contest", () => {
     loadContests,
     loadPastContests,
     loadContestDetail,
+    loadProblems,
     loadGlobalRankings,
     registerForContest,
     unregisterFromContest,

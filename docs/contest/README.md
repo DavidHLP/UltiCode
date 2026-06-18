@@ -20,6 +20,7 @@
 |------|------|--------|
 | **[PRD.md](./PRD.md)** | Contest 模块产品需求文档（PM 视角合理性分析 + 52 finding → 需求映射）| 评估产品方向、新功能立项 |
 | **[DESIGN_ANALYSIS.md](./DESIGN_ANALYSIS.md)** | 早期设计分析（前置文档，PM + 架构师视角）| 了解决策历史背景 |
+| **[PROBLEM_DETAIL_PAGE_PRODUCT_FIX.md](./PROBLEM_DETAIL_PAGE_PRODUCT_FIX.md)** | 竞赛题目详情页产品问题与修复文档（PM/业务视角）| 评估竞赛题目列表、做题页、赛后复盘体验 |
 
 ### 📋 实施计划 (中游)
 
@@ -99,6 +100,7 @@
 | 2026-06-17 晚 | **R9** 性能缓存收口 + i18n 接入 + multi-tab 检测 —— **模块 v4.2 完结**（详见 [REVIEW_V3 §12](./REVIEW_V3.md) + [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R9.md)）|
 | 2026-06-17 晚 | **F-01 状态机审计 doc**（[F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md)）— R6.2 实施时系统化审计 §3.1/§6.4 待复核项 |
 | 2026-06-18 | **R10 收口**（[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)）— 5/9 ✅ (R10.1.1/R10.3/R10.6/R10.7/R10.8/R10.9) + 4/9 plan 误判 + 0 行代码改动；**模块 v4.2 完结为权威裁决**，v4.3 收口不成立 |
+| 2026-06-18 | 新增 **竞赛题目详情页产品修复文档**（[PROBLEM_DETAIL_PAGE_PRODUCT_FIX.md](./PROBLEM_DETAIL_PAGE_PRODUCT_FIX.md)）— 基于浏览器标注与 `console` 前端代码，从 PM/业务视角拆解竞赛题目页上下文断裂、导航误导、题目列表转化弱、赛后闭环不足等问题 |
 
 ---
 

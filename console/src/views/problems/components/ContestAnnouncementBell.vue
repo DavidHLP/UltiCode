@@ -131,13 +131,23 @@ function formatTime(iso: string | Date | undefined | null): string {
   });
 }
 
+// Build the socket once during setup (synchronously) so its internal
+// `onMounted` / `onUnmounted` lifecycle hooks register against the
+// current component instance. Calling `useContestSocket()` later
+// (e.g. from inside an `async` onMounted) means those lifecycle hooks
+// run after `currentInstance` is null, which Vue rejects with
+// "Lifecycle injection APIs can only be used during execution of
+// setup()". The composable's STOMP client itself is a module-level
+// singleton, so initialising it here is idempotent.
+const socket = useContestSocket();
+
 onMounted(async () => {
   await loadAnnouncements();
-  // Subscribe to live pushes. The composable is a singleton —
-  // we share the connection with the rest of the contest-aware
-  // UI (ranking, etc.) and just listen for our event type.
+  // Subscribe to live pushes. We share the underlying connection with
+  // the rest of the contest-aware UI (ranking, etc.) and just listen
+  // for our event type.
   try {
-    unsubscribe = useContestSocket().onAnnouncement(handleSocketAnnouncement);
+    unsubscribe = socket.onAnnouncement(handleSocketAnnouncement);
   } catch {
     // Socket not available (offline / anonymous / not joined);
     // initial fetch still works.

@@ -54,15 +54,20 @@ const slug = computed(() => {
   const s = route.params.slug;
   return Array.isArray(s) ? s[0] ?? null : s ?? null;
 });
-const problemId = computed(() => {
-  const p = ctx?.problem.value?.id;
-  return typeof p === "number" ? p : null;
-});
+// Use `contestProblemNav.current.problemId` (already computed by
+// the composable) instead of reaching into a non-existent
+// `ctx.problem` field — the new contest context only exposes the
+// list and the nav, not a single problem.
+const problemId = computed(
+  () => ctx?.contestProblemNav.value.current?.problemId ?? null,
+);
 const contestIdForFetch = computed(() => ctx?.contestId.value ?? null);
 
 const firstAccepted = computed(() => {
+  // SubmissionStatusKey does not include "ACCEPTED" — only "Accepted".
+  // (Vue-i18n style guides use the lowercase canonical form here.)
   const accepted = submissions.value
-    .filter((s) => s.status === "Accepted" || s.status === "ACCEPTED")
+    .filter((s) => s.status === "Accepted")
     .sort(
       (a, b) =>
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
@@ -165,7 +170,7 @@ onMounted(() => {
             <p
               class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("review.firstAC", { time: "" }).replace(/[{}\s].*/, "") }}
+              {{ t("review.firstACLabel") }}
             </p>
             <p class="text-xs font-bold">
               {{
@@ -206,7 +211,7 @@ onMounted(() => {
             <p
               class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
             >
-              {{ t("review.finalScore", { score: "" }).replace(/[{}\s].*/, "") }}
+              {{ t("review.finalScoreLabel") }}
             </p>
             <p class="text-xs font-bold">
               {{ finalScore != null ? finalScore : "—" }}
@@ -239,7 +244,10 @@ onMounted(() => {
             {{ s.memory ?? 0 }}KB
           </span>
           <span class="col-span-2 text-right font-black text-[var(--terminal-amber)]">
-            {{ s.score != null ? `+${s.score}` : "—" }}
+            <!-- Score lives on the nested `contest_info` for contest
+                 submissions; non-contest submissions don't have a
+                 score at all. -->
+            {{ s.contest_info?.score != null ? `+${s.contest_info.score}` : "—" }}
           </span>
         </li>
       </ul>

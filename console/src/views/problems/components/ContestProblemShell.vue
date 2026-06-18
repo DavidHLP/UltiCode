@@ -22,7 +22,7 @@
  * §P0-1). Phase 2/3 (announcement popover, contest-aware submit
  * toast) plug in via the shell store.
  */
-import { computed, inject, onMounted, watch } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "lucide-vue-next";
@@ -115,22 +115,19 @@ const pills = computed<ProblemPill[]>(() => {
   // Reuse the same `contestProblemNav` ordering logic — sort by
   // problemIndex. For non-string indexes (numeric) we fall back to
   // declaration order.
+  // We don't have per-problem status in the context today;
+  // the `current` problem is the only one we know about. The
+  // visual emphasis on the active pill (via `isActivePill`)
+  // is enough for v1.
   return [...ctx.problems.value]
     .sort((a, b) => a.problemIndex.localeCompare(b.problemIndex))
-    .map((p) => {
-      const status = ctx.problemBelongsToContest.value;
-      // We don't have per-problem status in the context today;
-      // the `current` problem is the only one we know about. The
-      // visual emphasis on the active pill is enough for v1.
-      void status;
-      return {
-        problemId: p.problemId,
-        problemIndex: p.problemIndex,
-        slug: p.slug,
-        isSolved: false,
-        isAttempted: false,
-      };
-    });
+    .map((p) => ({
+      problemId: p.problemId,
+      problemIndex: p.problemIndex,
+      slug: p.slug,
+      isSolved: false,
+      isAttempted: false,
+    }));
 });
 
 function isActivePill(p: ProblemPill): boolean {
@@ -168,50 +165,89 @@ function goToPill(p: ProblemPill): void {
 //   - Wrong Answer: penalty hint
 //   - Compile Error: "not scored"
 //   - other / Judging: generic "scoring…" message
+//
+// Rapid submissions (the user retries within 1s of a previous
+// submit) would otherwise trigger overlapping 1.5s waits, two
+// refresh calls, and two toasts. We cancel the pending timer
+// when a newer submit arrives and use an in-flight token so a
+// stale refresh from a previous submit can't write over a newer
+// verdict.
+let pendingToast: ReturnType<typeof setTimeout> | null = null;
+let inFlightToken = 0;
+
 watch(
   () => shellStore.lastSubmitResult,
-  async (res) => {
+  (res) => {
     if (!res || !ctx) return;
+    // Cancel any in-flight wait — the newest submit wins.
+    if (pendingToast) {
+      clearTimeout(pendingToast);
+      pendingToast = null;
+    }
+    // Bump the token so a stale refresh from a previous submit
+    // can no-op if it resolves after this one starts.
+    const myToken = ++inFlightToken;
+
     const prevScore = ctx.participation.value?.score ?? 0;
     const prevSolved = ctx.participation.value?.problemsSolved ?? 0;
-    await new Promise((r) => setTimeout(r, 1500));
-    try {
-      await ctx.refreshParticipation();
-    } catch {
-      // Toast still shows the verdict; score just won't refresh.
-    }
-    const now = ctx.participation.value;
-    const nowScore = now?.score ?? prevScore;
-    const nowSolved = now?.problemsSolved ?? prevSolved;
-    const total = now?.totalProblems ?? totalProblems.value;
-    const delta = Math.max(0, nowScore - prevScore);
-    const verdict = (res.status ?? "").toString();
-    if (verdict === "Accepted" || verdict === "ACCEPTED") {
-      toast.success(
-        t("contest.detail.submit.accepted", {
-          delta,
-          total: nowScore,
-          solved: nowSolved,
-          totalProblems: total,
-        }) as string,
-      );
-    } else if (/wrong[ _-]?answer/i.test(verdict)) {
-      const penalty = ctx.contest.value?.penaltyPerWrong ?? 0;
-      toast.error(
-        t("contest.detail.submit.wrongAnswer", { penalty }) as string,
-      );
-    } else if (/compile[ _-]?error/i.test(verdict)) {
-      toast.error(t("contest.detail.submit.compileError") as string);
-    } else {
-      toast.info(t("contest.detail.submit.judging", { status: verdict }) as string);
-    }
-    // Clear the trigger so a re-mount of the shell (or a future
-    // identical verdict) re-fires the toast.
-    shellStore.clearLastSubmit();
-    void prevSolved;
+
+    pendingToast = setTimeout(async () => {
+      pendingToast = null;
+      try {
+        await ctx.refreshParticipation();
+      } catch {
+        // Toast still shows the verdict; score just won't refresh.
+      }
+      // Drop this run if a newer submit has superseded us.
+      if (myToken !== inFlightToken) return;
+      const now = ctx.participation.value;
+      const nowScore = now?.score ?? prevScore;
+      const nowSolved = now?.problemsSolved ?? prevSolved;
+      const total = now?.totalProblems ?? totalProblems.value;
+      const delta = Math.max(0, nowScore - prevScore);
+      // `res.status` is `SubmissionStatusKey`; only "Accepted" is
+      // the canonical form. The wrong-answer / compile-error
+      // branches below are case-insensitive regexes that handle
+      // any legacy mixed-case variants.
+      const verdict = (res.status ?? "").toString();
+      if (verdict === "Accepted") {
+        toast.success(
+          t("contest.detail.submit.accepted", {
+            delta,
+            total: nowScore,
+            solved: nowSolved,
+            totalProblems: total,
+          }) as string,
+        );
+      } else if (/wrong[ _-]?answer/i.test(verdict)) {
+        const penalty = ctx.contest.value?.penaltyPerWrong ?? 0;
+        toast.error(
+          t("contest.detail.submit.wrongAnswer", { penalty }) as string,
+        );
+      } else if (/compile[ _-]?error/i.test(verdict)) {
+        toast.error(t("contest.detail.submit.compileError") as string);
+      } else {
+        toast.info(
+          t("contest.detail.submit.judging", { status: verdict }) as string,
+        );
+      }
+      // Clear the trigger so a re-mount of the shell (or a future
+      // identical verdict) re-fires the toast.
+      shellStore.clearLastSubmit();
+      void prevSolved;
+    }, 1500);
   },
   { immediate: false },
 );
+
+// On unmount, cancel any pending toast so it doesn't fire after
+// the user navigates away.
+onBeforeUnmount(() => {
+  if (pendingToast) {
+    clearTimeout(pendingToast);
+    pendingToast = null;
+  }
+});
 
 // Initial participation refresh on mount so the score/rank reflect
 // the latest data even when the user lands on a problem page

@@ -147,7 +147,7 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
         <button
           v-if="testCase.id === activeId && canRemoveCases && !readonly"
           type="button"
-          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-none text-[10px] text-muted-foreground hover:text-foreground"
+          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-none text-2xs text-muted-foreground hover:text-foreground"
           @click.stop="removeCase(testCase.id)"
         >
           <X :size="12" />

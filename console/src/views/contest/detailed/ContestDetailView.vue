@@ -257,7 +257,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                 <Calendar class="h-5 w-5" />
               </div>
               <p
-                class="text-[10px] font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.startTime") }}
               </p>
@@ -279,7 +279,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                 <Clock class="h-5 w-5" />
               </div>
               <p
-                class="text-[10px] font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.duration") }}
               </p>
@@ -302,7 +302,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                 <Users class="h-5 w-5" />
               </div>
               <p
-                class="text-[10px] font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.detail.participants") }}
               </p>
@@ -324,7 +324,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                 <Trophy class="h-5 w-5" />
               </div>
               <p
-                class="text-[10px] font-bold font-mono uppercase tracking-widest text-muted-foreground"
+                class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("contest.types.title") }}
               </p>

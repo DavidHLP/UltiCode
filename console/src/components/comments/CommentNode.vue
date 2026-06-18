@@ -60,7 +60,7 @@
         <Badge
           v-if="comment.isOp"
           variant="secondary"
-          class="text-[9px] font-black px-1 h-3.5 rounded-sm bg-primary/10 text-primary border-none uppercase"
+          class="text-2xs font-black px-1 h-3.5 rounded-sm bg-primary/10 text-primary border-none uppercase"
         >
           {{ t("forum.author.op") }}
         </Badge>
@@ -73,7 +73,7 @@
         </span>
         <span
           v-if="comment.editedAt"
-          class="text-muted-foreground/60 text-[10px]"
+          class="text-muted-foreground/60 text-2xs"
           >({{ t("forum.comments.edited") }})</span
         >
         <span
@@ -85,7 +85,7 @@
         </span>
         <span
           v-if="comment.replyCount && comment.replyCount > 0"
-          class="text-muted-foreground/60 text-[10px] ml-auto"
+          class="text-muted-foreground/60 text-2xs ml-auto"
         >
           {{ comment.replyCount }} {{ t("forum.comments.replies") }}
         </span>

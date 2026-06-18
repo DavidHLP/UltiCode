@@ -40,7 +40,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale()
       >
         <div class="flex items-center gap-3">
           <span class="text-base leading-none">{{ localeConfig.flag }}</span>
-          <span class="text-[11px] uppercase tracking-widest font-data">{{
+          <span class="text-xxs uppercase tracking-widest font-data">{{
             localeConfig.nativeName
           }}</span>
         </div>

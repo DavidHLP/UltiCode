@@ -47,7 +47,7 @@ function handleClose(value: boolean) {
       <div v-if="problem" class="space-y-4">
         <!-- Problem Title -->
         <div class="border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-3">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             Problem
           </span>
           <p class="text-sm font-medium mt-1">{{ problem.title }}</p>
@@ -55,7 +55,7 @@ function handleClose(value: boolean) {
 
         <!-- Status -->
         <div class="flex items-center justify-between">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.status') }}
           </span>
           <SemanticBadge
@@ -69,7 +69,7 @@ function handleClose(value: boolean) {
 
         <!-- Reason -->
         <div>
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reason') }}
           </span>
           <p
@@ -81,7 +81,7 @@ function handleClose(value: boolean) {
 
         <!-- Reported By -->
         <div v-if="problem.flagReportedBy" class="flex items-center justify-between">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reportedBy') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
@@ -91,7 +91,7 @@ function handleClose(value: boolean) {
 
         <!-- Reported At -->
         <div v-if="problem.flagReportedAt" class="flex items-center justify-between">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reportedAt') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
@@ -101,7 +101,7 @@ function handleClose(value: boolean) {
 
         <!-- Reviewed By -->
         <div v-if="problem.flagReviewedBy" class="flex items-center justify-between">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reviewedBy') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
@@ -111,7 +111,7 @@ function handleClose(value: boolean) {
 
         <!-- Reviewed At -->
         <div v-if="problem.flagReviewedAt" class="flex items-center justify-between">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reviewedAt') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
@@ -121,7 +121,7 @@ function handleClose(value: boolean) {
 
         <!-- Notes -->
         <div v-if="problem.flagNotes">
-          <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
+          <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.notes') }}
           </span>
           <p

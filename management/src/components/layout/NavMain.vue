@@ -90,7 +90,7 @@ watchEffect(() => {
   <SidebarGroup class="py-1">
     <SidebarGroupLabel
       v-if="title && items.length > 0"
-      class="px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] mt-2 mb-1"
+      class="px-2 py-1 text-2xs font-mono font-bold uppercase tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] mt-2 mb-1"
     >
       {{ title }}
     </SidebarGroupLabel>
@@ -130,7 +130,7 @@ watchEffect(() => {
               class="w-48 p-1.5 space-y-0.5 z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
             >
               <DropdownMenuArrow class="bg-[var(--card)] fill-[var(--card)] z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45" />
-              <DropdownMenuLabel class="px-2.5 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <DropdownMenuLabel class="px-2.5 py-1.5 text-2xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
                 {{ item.title }}
               </DropdownMenuLabel>
               <DropdownMenuSeparator class="bg-border mx-1" />

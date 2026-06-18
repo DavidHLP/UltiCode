@@ -208,7 +208,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         <button
           v-if="testCase.id === activeId && canRemoveCases"
           type="button"
-          class="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-none text-[10px] text-muted-foreground hover:text-foreground"
+          class="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-none text-2xs text-muted-foreground hover:text-foreground"
           :aria-label="t('problem.layout.removeTestCase') || 'Remove test case'"
           tabindex="0"
           @click.stop="removeCase(testCase.id)"
@@ -240,7 +240,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         <template v-if="inputFields.length">
           <div v-for="field in inputFields" :key="field.id" class="space-y-1.5">
             <div
-              class="font-data text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+              class="font-data text-xxs font-bold uppercase tracking-wider text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
             >
               {{ field.label }} =
             </div>

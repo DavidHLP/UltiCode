@@ -99,9 +99,9 @@ function handleOAuth() {
   height: 2.375rem;
   gap: 0.5rem;
   padding: 0 0.75rem;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-weight: 700;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-weight: var(--uc-font-weight-bold)
+  font-size: var(--uc-text-sm);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--foreground);

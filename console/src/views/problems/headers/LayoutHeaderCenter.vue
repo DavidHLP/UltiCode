@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
             <Button
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="bottomPanelStore.isRunning"
-              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-[var(--solarized-green)] px-3 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-[var(--solarized-green)]/40 hover:bg-[var(--solarized-green)] hover:text-white dark:hover:text-[var(--solarized-base03)] hover:border-[var(--solarized-green)] disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-[11px]"
+              class="group flex cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-[var(--solarized-green)] px-3 bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] border border-[var(--solarized-green)]/40 hover:bg-[var(--solarized-green)] hover:text-white dark:hover:text-[var(--solarized-base03)] hover:border-[var(--solarized-green)] disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs"
               @click="handleRun"
             >
               <Play
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
             <Button
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-white px-3 bg-[var(--accent-electric)] border border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/95 hover:border-[var(--accent-electric)]/95 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-[11px] shadow-sm"
+              class="group cursor-pointer gap-1.5 items-center h-8 transition-all duration-200 text-white px-3 bg-[var(--accent-electric)] border border-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/95 hover:border-[var(--accent-electric)]/95 disabled:opacity-50 rounded-none focus:outline-none focus:ring-0 focus:ring-offset-0 font-bold uppercase tracking-wider text-xxs shadow-sm"
               @click="handleSubmit"
             >
               <CloudUpload

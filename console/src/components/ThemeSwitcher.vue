@@ -44,7 +44,7 @@ const { t } = useI18n();
       >
         <div class="flex items-center gap-3">
           <Sun class="h-3.5 w-3.5" />
-          <span class="text-[11px] uppercase tracking-widest font-data">{{
+          <span class="text-xxs uppercase tracking-widest font-data">{{
             t("common.appearance.light")
           }}</span>
         </div>
@@ -65,7 +65,7 @@ const { t } = useI18n();
       >
         <div class="flex items-center gap-3">
           <Moon class="h-3.5 w-3.5" />
-          <span class="text-[11px] uppercase tracking-widest font-data">{{
+          <span class="text-xxs uppercase tracking-widest font-data">{{
             t("common.appearance.dark")
           }}</span>
         </div>
@@ -86,7 +86,7 @@ const { t } = useI18n();
       >
         <div class="flex items-center gap-3">
           <Laptop class="h-3.5 w-3.5" />
-          <span class="text-[11px] uppercase tracking-widest font-data">{{
+          <span class="text-xxs uppercase tracking-widest font-data">{{
             t("common.appearance.system")
           }}</span>
         </div>

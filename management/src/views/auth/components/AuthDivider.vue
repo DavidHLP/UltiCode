@@ -40,11 +40,11 @@ defineOptions({
 }
 
 .auth-divider__text {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-medium);
   color: var(--silver-500);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--uc-tracking-label);
   white-space: nowrap;
 }
 </style>

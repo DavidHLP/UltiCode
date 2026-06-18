@@ -116,7 +116,7 @@ function handleBlur() {
   width: 100%;
   height: 2.75rem;
   padding: 0 0 0.5rem;
-  font-size: 0.9375rem;
+  font-size: var(--uc-text-sm);
   color: var(--foreground);
   background: transparent;
   border: none;
@@ -148,7 +148,7 @@ function handleBlur() {
   position: absolute;
   left: 0;
   top: 1.125rem;
-  font-size: 1rem;
+  font-size: var(--uc-text-md);
   color: var(--silver-500);
   pointer-events: none;
   transform-origin: left center;
@@ -212,8 +212,8 @@ function handleBlur() {
 /* Error message */
 .auth-input__error {
   margin-top: 0.375rem;
-  font-size: 0.75rem;
+  font-size: var(--uc-text-sm);
   color: var(--status-error);
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 </style>

@@ -2,7 +2,7 @@
 
 > **作用**：R8.6 落地后，12 项 LOW（F-35~F-47）的最终状态。
 > **创建**：2026-06-17
-> **来源**：[EXECUTION_PLAN_R8.md §7](../EXECUTION_PLAN_R8.md)
+> **来源**：[EXECUTION_PLAN_R8.md §7](../_archive/EXECUTION_PLAN_R8_2026-06-17.md)
 
 ---
 

@@ -76,7 +76,7 @@ const { t } = useI18n()
   gap: 1.25rem;
 }
 
-/* Header */
+
 .signup-form__header {
   display: flex;
   flex-direction: column;
@@ -91,19 +91,19 @@ const { t } = useI18n()
 }
 
 .signup-form__title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-semibold)
+  letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
   line-height: 1.1;
 }
 
 .signup-form__subtitle {
-  font-size: 0.875rem;
+  font-size: var(--uc-text-sm);
   color: var(--silver-500);
 }
 
-/* Submit Button */
+
 .signup-form__submit {
   margin-top: 0.5rem;
 }
@@ -113,7 +113,7 @@ const { t } = useI18n()
   height: 1.125rem;
 }
 
-/* Footer */
+
 .signup-form__footer {
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@ const { t } = useI18n()
   gap: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--silver-100);
-  font-size: 0.875rem;
+  font-size: var(--uc-text-sm);
   color: var(--silver-500);
 }
 
@@ -132,7 +132,7 @@ const { t } = useI18n()
 .signup-form__link {
   color: var(--accent-primary);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--uc-font-weight-medium)
   transition: opacity var(--transition-fast);
 }
 

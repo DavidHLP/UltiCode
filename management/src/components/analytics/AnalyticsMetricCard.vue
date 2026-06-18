@@ -49,8 +49,8 @@ const sizeClasses = {
   sm: {
     card: 'p-3',
     value: 'text-xl',
-    title: 'text-[10px]',
-    change: 'text-[10px]',
+    title: 'text-2xs',
+    change: 'text-2xs',
   },
   md: {
     card: 'p-4',

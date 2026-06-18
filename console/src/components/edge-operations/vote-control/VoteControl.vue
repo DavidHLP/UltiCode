@@ -51,7 +51,7 @@ defineOptions({
           class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === 1 }"
         />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+        <span class="text-xxs tabular-nums font-mono font-bold">{{
           formatCount(likes)
         }}</span>
       </Button>
@@ -77,7 +77,7 @@ defineOptions({
           class="h-3.5 w-3.5 active:scale-125 transition-transform"
           :class="{ 'fill-current': userVote === -1 }"
         />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+        <span class="text-xxs tabular-nums font-mono font-bold">{{
           formatCount(dislikes)
         }}</span>
       </Button>
@@ -89,7 +89,7 @@ defineOptions({
         class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsUp class="h-3.5 w-3.5" />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+        <span class="text-xxs tabular-nums font-mono font-bold">{{
           formatCount(likes)
         }}</span>
       </div>
@@ -102,7 +102,7 @@ defineOptions({
         class="h-8 px-3 rounded-none text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] flex items-center gap-1.5 select-none font-bold text-xs"
       >
         <ThumbsDown class="h-3.5 w-3.5" />
-        <span class="text-[11px] tabular-nums font-mono font-bold">{{
+        <span class="text-xxs tabular-nums font-mono font-bold">{{
           formatCount(dislikes)
         }}</span>
       </div>

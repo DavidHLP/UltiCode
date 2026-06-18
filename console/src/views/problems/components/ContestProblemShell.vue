@@ -273,7 +273,7 @@ onMounted(() => {
       <!-- Back link -->
       <router-link
         :to="`/contest/${ctx.contest.value.slug}`"
-        class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-[var(--accent-electric)]"
+        class="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-[var(--accent-electric)]"
         :data-testid="'shell-back-to-contest'"
       >
         <ArrowLeft class="h-3.5 w-3.5" />
@@ -299,7 +299,7 @@ onMounted(() => {
       <!-- Timer (only when there's a meaningful target) -->
       <div
         v-if="timerTargetIso"
-        class="ml-auto flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
+        class="ml-auto flex items-center gap-1.5 text-2xs font-bold uppercase tracking-widest text-muted-foreground"
       >
         <Timer class="h-3.5 w-3.5" />
         <span>{{
@@ -322,7 +322,7 @@ onMounted(() => {
       class="mx-auto flex max-w-7xl items-center gap-3 border-t border-border/40 px-4 py-2 font-mono"
     >
       <!-- My score -->
-      <div class="flex items-center gap-1.5 text-[11px]" data-testid="shell-score">
+      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-score">
         <Trophy class="h-3.5 w-3.5 text-[var(--terminal-amber)]" />
         <span class="text-muted-foreground">{{ t("contest.detail.shell.score") }}</span>
         <span class="font-black text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
@@ -333,7 +333,7 @@ onMounted(() => {
       <div class="h-4 w-px flex-none bg-border/40" />
 
       <!-- My rank -->
-      <div class="flex items-center gap-1.5 text-[11px]" data-testid="shell-rank">
+      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-rank">
         <Target class="h-3.5 w-3.5 text-[var(--accent-electric)]" />
         <span class="text-muted-foreground">{{ t("contest.detail.shell.rank") }}</span>
         <span class="font-black text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]">
@@ -344,7 +344,7 @@ onMounted(() => {
       <div class="h-4 w-px flex-none bg-border/40" />
 
       <!-- Solved / total -->
-      <div class="flex items-center gap-1.5 text-[11px]" data-testid="shell-solved">
+      <div class="flex items-center gap-1.5 text-xxs" data-testid="shell-solved">
         <span class="text-muted-foreground">{{ t("contest.detail.shell.solved") }}</span>
         <span class="font-black text-[var(--terminal-green)]">
           {{ isAuthed ? solvedCount : "—" }}
@@ -360,7 +360,7 @@ onMounted(() => {
           class="flex items-center gap-1"
           :data-testid="'shell-problem-nav'"
         >
-          <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <span class="text-2xs font-black uppercase tracking-widest text-muted-foreground">
             {{ t("contest.detail.shell.problemNav") }}
           </span>
           <div class="flex overflow-hidden rounded-none border border-border">
@@ -369,7 +369,7 @@ onMounted(() => {
               :key="p.problemId"
               type="button"
               :class="[
-                'h-7 w-8 font-black text-[11px] uppercase tracking-wider transition-colors cursor-pointer',
+                'h-7 w-8 font-black text-xxs uppercase tracking-wider transition-colors cursor-pointer',
                 isActivePill(p)
                   ? 'bg-[var(--accent-electric)]/15 text-[var(--accent-electric)] border-r border-border last:border-r-0'
                   : 'bg-transparent text-muted-foreground hover:bg-[var(--silver-100)]/50 dark:hover:bg-[var(--solarized-base03)]/50 border-r border-border last:border-r-0',
@@ -394,7 +394,7 @@ onMounted(() => {
     <!-- Solutions-hidden hint (only when RUNNING / virtual) -->
     <div
       v-if="showSolutionsHiddenHint"
-      class="border-t border-border/40 bg-[var(--silver-100)]/40 px-4 py-1.5 font-mono text-[10px] text-muted-foreground dark:bg-[var(--solarized-base03)]/40"
+      class="border-t border-border/40 bg-[var(--silver-100)]/40 px-4 py-1.5 font-mono text-2xs text-muted-foreground dark:bg-[var(--solarized-base03)]/40"
       :data-testid="'shell-solutions-hidden-hint'"
     >
       <div class="mx-auto flex max-w-7xl items-center gap-1.5">

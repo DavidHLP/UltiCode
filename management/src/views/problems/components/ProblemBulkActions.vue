@@ -33,7 +33,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-[10px] border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-publish')"
         >
@@ -43,7 +43,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-[10px] border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-unpublish')"
         >
@@ -53,7 +53,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-[10px] border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
           :disabled="loading"
           @click="emit('bulk-delete')"
         >
@@ -63,7 +63,7 @@ const emit = defineEmits<{
         <Button
           variant="terminal"
           size="sm"
-          class="h-7 font-data text-[10px] border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]"
+          class="h-7 font-data text-2xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]"
           @click="emit('bulk-edit')"
         >
           <IconPencil class="h-3 w-3 mr-1" />

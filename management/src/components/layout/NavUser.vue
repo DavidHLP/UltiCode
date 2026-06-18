@@ -72,15 +72,15 @@ async function handleLogout() {
             </Avatar>
             <div class="grid flex-1 text-left text-xs leading-tight">
               <div class="flex items-center gap-1.5 min-w-0">
-                <span class="truncate font-bold text-[13px] text-foreground">{{ user.name }}</span>
+                <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                 <span
                   v-if="user.role"
-                  class="inline-flex items-center px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                  class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
                 >
                   {{ user.role }}
                 </span>
               </div>
-              <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-[10px]">
+              <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-2xs">
                 {{ user.email }}
               </span>
             </div>
@@ -105,12 +105,12 @@ async function handleLogout() {
                   <span class="truncate font-bold text-sm text-foreground">{{ user.name }}</span>
                   <span
                     v-if="user.role"
-                    class="inline-flex items-center px-1.5 py-0.2 text-[8px] font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
+                    class="inline-flex items-center px-1.5 py-0.2 text-2xs font-mono font-bold uppercase border border-[var(--silver-300)] bg-[var(--silver-100)] text-[var(--silver-500)] tracking-wide shrink-0"
                   >
                     {{ user.role }}
                   </span>
                 </div>
-                <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-[10px]">
+                <span class="text-[var(--silver-400)] truncate mt-0.5 font-mono text-2xs">
                   {{ user.email }}
                 </span>
               </div>

@@ -48,27 +48,27 @@ const { t } = useI18n();
         >
           <TableRow class="hover:bg-transparent">
             <TableHead
-              class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-20 pl-6 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.rankingHeaders.rank") }}</TableHead
             >
             <TableHead
-              class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.rankingHeaders.user") }}</TableHead
             >
             <TableHead
-              class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-24 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.rankingHeaders.score") }}</TableHead
             >
             <TableHead
-              class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-32 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.rankingHeaders.time") }}</TableHead
             >
             <TableHead
-              class="w-48 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-48 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.rankingHeaders.problems") }}</TableHead
             >
             <TableHead
-              class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-32 pr-6 text-right font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{
                 t("contest.detail.rankingHeaders.problemsSolved")
               }}</TableHead
@@ -120,7 +120,7 @@ const { t } = useI18n();
                     >{{ entry.username }}</span
                   >
                   <span
-                    class="text-[9px] font-bold text-muted-foreground uppercase tracking-widest"
+                    class="text-2xs font-bold text-muted-foreground uppercase tracking-widest"
                   >
                     {{ entry.ratingTitle || "NEWBIE" }}
                   </span>
@@ -144,7 +144,7 @@ const { t } = useI18n();
               <div class="flex flex-wrap gap-1">
                 <Badge
                   variant="secondary"
-                  class="min-w-[2rem] justify-center font-mono text-[10px] h-6 rounded-none px-2 border border-border/40 bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-foreground font-bold"
+                  class="min-w-[2rem] justify-center font-mono text-2xs h-6 rounded-none px-2 border border-border/40 bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-foreground font-bold"
                 >
                   {{ entry.problemsSolved }}
                 </Badge>

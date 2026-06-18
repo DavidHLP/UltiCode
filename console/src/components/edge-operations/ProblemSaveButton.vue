@@ -281,11 +281,11 @@ watch(
           />
           <span
             v-if="count !== undefined"
-            class="text-[11px] tabular-nums font-mono font-bold"
+            class="text-xxs tabular-nums font-mono font-bold"
           >
             {{ count }}
           </span>
-          <span class="hidden sm:inline text-[11px] font-bold opacity-80">
+          <span class="hidden sm:inline text-xxs font-bold opacity-80">
             {{ t("problem.save.title") }}
           </span>
         </Button>

@@ -153,27 +153,27 @@ function rowAction(
         >
           <TableRow class="hover:bg-transparent">
             <TableHead
-              class="w-20 pl-6 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-20 pl-6 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >#</TableHead
             >
             <TableHead
-              class="font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.title") }}</TableHead
             >
             <TableHead
-              class="w-32 font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-32 font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.difficulty") }}</TableHead
             >
             <TableHead
-              class="w-24 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-24 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.score") }}</TableHead
             >
             <TableHead
-              class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-32 text-center font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.acceptance") }}</TableHead
             >
             <TableHead
-              class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              class="w-32 pr-6 text-right font-bold font-mono text-2xs tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.action") }}</TableHead
             >
           </TableRow>
@@ -215,16 +215,16 @@ function rowAction(
                 <router-link
                   v-if="problem.slug"
                   :to="problemLink(problem.slug)"
-                  class="text-[15px] font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors"
+                  class="text-base font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors"
                   @click.stop
                 >
                   {{ problem.title }}
                 </router-link>
-                <span v-else class="text-[15px] font-bold text-foreground">{{
+                <span v-else class="text-base font-bold text-foreground">{{
                   problem.title
                 }}</span>
                 <div
-                  class="flex items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
+                  class="flex items-center gap-3 text-2xs font-bold text-muted-foreground uppercase tracking-wider"
                 >
                   <span class="flex items-center gap-1 font-mono">
                     <Target class="h-3.5 w-3.5" />
@@ -255,7 +255,7 @@ function rowAction(
                 variant="outline"
                 :class="[
                   getDifficultyColor(problem.difficulty || 'Medium'),
-                  'font-black text-[9px] uppercase tracking-wider h-5 px-2 rounded-none border-current/25 bg-current/5',
+                  'font-black text-2xs uppercase tracking-wider h-5 px-2 rounded-none border-current/25 bg-current/5',
                 ]"
               >
                 {{
@@ -296,7 +296,7 @@ function rowAction(
                 :variant="rowAction(problem.problemId).variant"
                 :disabled="rowAction(problem.problemId).key === 'locked'"
                 :class="[
-                  'rounded-none px-3 h-8 font-black text-[10px] uppercase tracking-widest cursor-pointer',
+                  'rounded-none px-3 h-8 font-black text-2xs uppercase tracking-widest cursor-pointer',
                   rowAction(problem.problemId).key === 'review'
                     ? 'border border-border bg-[var(--silver-100)]/60 hover:bg-[var(--silver-100)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] dark:bg-[var(--solarized-base03)]/60'
                     : rowAction(problem.problemId).key === 'continue'

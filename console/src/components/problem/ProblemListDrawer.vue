@@ -191,7 +191,7 @@ const navigateToProblem = (slug: string) => {
                   <!-- Spacer -->
                 </div>
                 <span
-                  class="truncate text-[13px] leading-none"
+                  class="truncate text-sm leading-none"
                   :class="currentProblemId === problem.id ? 'font-medium' : ''"
                 >
                   {{ problem.id }}. {{ problem.title }}
@@ -199,7 +199,7 @@ const navigateToProblem = (slug: string) => {
               </div>
 
               <!-- Right: Difficulty -->
-              <div class="shrink-0 ml-4 text-[12px]">
+              <div class="shrink-0 ml-4 text-xs">
                 <span
                   :class="
                     cn({

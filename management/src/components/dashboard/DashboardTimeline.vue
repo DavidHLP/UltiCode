@@ -164,7 +164,7 @@ const displayActivities = computed(() => {
                 <!-- Action Badge & Performer -->
                 <div class="flex items-center gap-2 flex-wrap">
                   <span
-                    class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-none border"
+                    class="text-2xs font-mono font-bold px-1.5 py-0.5 rounded-none border"
                     :style="{
                       color: getIconColor(activity.action),
                       borderColor: getIconColor(activity.action) + '50',
@@ -178,18 +178,18 @@ const displayActivities = computed(() => {
                   </span>
                 </div>
                 <!-- Time (Top-Right aligned) -->
-                <span class="text-[10px] font-mono text-[var(--silver-400)] tabular-nums shrink-0">
+                <span class="text-2xs font-mono text-[var(--silver-400)] tabular-nums shrink-0">
                   {{ activity.time }}
                 </span>
               </div>
 
               <!-- Target & Context Description -->
               <div class="text-xs text-[var(--silver-500)] flex items-center gap-1.5">
-                <span class="text-[var(--silver-400)] text-[10px] uppercase font-mono tracking-wide"
+                <span class="text-[var(--silver-400)] text-2xs uppercase font-mono tracking-wide"
                   >{{ t('audit.columns.target') }}:</span
                 >
                 <span
-                  class="font-mono bg-[var(--silver-100)] dark:bg-[var(--silver-200)]/20 px-1.5 py-0.5 text-[var(--silver-700)] dark:text-[var(--silver-300)] text-[11px] truncate max-w-[170px] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 rounded-none"
+                  class="font-mono bg-[var(--silver-100)] dark:bg-[var(--silver-200)]/20 px-1.5 py-0.5 text-[var(--silver-700)] dark:text-[var(--silver-300)] text-xxs truncate max-w-[170px] border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 rounded-none"
                 >
                   {{ getTargetLabel(activity.target) }}
                 </span>

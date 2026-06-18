@@ -128,7 +128,7 @@ function handleClose() {
         <div class="space-y-2">
           <Label
             for="name"
-            class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70"
+            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
             >{{ t("bookmark.name") }}</Label
           >
           <Input
@@ -143,7 +143,7 @@ function handleClose() {
         <div class="space-y-2">
           <Label
             for="description"
-            class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70"
+            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
             >{{ t("bookmark.description") }}</Label
           >
           <Textarea
@@ -158,7 +158,7 @@ function handleClose() {
 
         <div class="space-y-4">
           <Label
-            class="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70"
+            class="text-2xs font-black uppercase tracking-widest text-muted-foreground/70"
             >{{ t("bookmark.colorAppearance") }}</Label
           >
           <div class="grid grid-cols-6 gap-3">

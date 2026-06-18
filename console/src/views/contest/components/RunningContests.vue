@@ -113,7 +113,7 @@ onUnmounted(() => {
         </p>
       </div>
       <div
-        class="flex items-center gap-2 rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--terminal-red)]"
+        class="flex items-center gap-2 rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-2xs font-bold uppercase tracking-widest text-[var(--terminal-red)]"
       >
         <span
           class="h-2 w-2 rounded-none bg-[var(--terminal-red)] animate-pulse"
@@ -144,7 +144,7 @@ onUnmounted(() => {
                 </h3>
               </div>
               <div
-                class="rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--terminal-red)] flex items-center gap-1.5 shrink-0"
+                class="rounded-none border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-2.5 py-1 text-2xs font-bold uppercase tracking-wider text-[var(--terminal-red)] flex items-center gap-1.5 shrink-0"
               >
                 <span
                   class="h-1.5 w-1.5 bg-[var(--terminal-red)] animate-pulse inline-block"
@@ -195,7 +195,7 @@ onUnmounted(() => {
                 ></div>
               </div>
               <div
-                class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground"
+                class="flex items-center justify-between text-2xs font-mono uppercase tracking-widest text-muted-foreground"
               >
                 <span>{{ t("contest.list.liveProgress") }}</span>
                 <span class="font-bold text-foreground"

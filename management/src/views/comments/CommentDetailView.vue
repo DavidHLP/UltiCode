@@ -341,7 +341,7 @@ function handleFlagSuccess() {
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
               <h3
-                class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3"
+                class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3"
               >
                 {{ t('comments.detail.parent') }}
               </h3>
@@ -370,7 +370,7 @@ function handleFlagSuccess() {
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
               <h3
-                class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3"
+                class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3"
               >
                 {{ t('comments.detail.metadata') }}
               </h3>

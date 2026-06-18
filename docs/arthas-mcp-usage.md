@@ -1,3 +1,11 @@
+---
+title: Arthas MCP 实战使用手册
+tags: [ops, diagnostics, arthas, reference]
+status: living
+updated: 2026-06-18
+owner: backend
+---
+
 # Arthas MCP 实战使用手册 (watch / trace / stack)
 
 > 本文档基于 2026-06-18 真实测试(arthas 4.3.0 / STATELESS 协议 / Spring Boot 3.2.5)沉淀,目的是让任何人在 Claude Code 会话中**不再踩坑**地用上 watch/trace/stack。
@@ -248,3 +256,12 @@ timeout=12,            # ← 关键: 12s 内必须有人触发
 - ✅ `sc/sm` 300ms 返回
 
 所有命令**没有**触发 30s MCP timeout。
+
+---
+
+## See also
+
+- [README.md](./README.md) — 文档总入口
+- [RUNBOOK.md §5](./RUNBOOK.md#5-arthas-mcp) — Arthas MCP 三路互斥 wrapper
+- `CLAUDE.md` → **运行时调试 (Arthas)** 段（仓库根）— 协议锁死 STATELESS 与降级路径权威说明
+- `infrastructure/arthas/arthas.properties` — `arthas.mcpProtocol=STATELESS` 配置源

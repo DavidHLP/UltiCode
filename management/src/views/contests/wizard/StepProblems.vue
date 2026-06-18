@@ -96,27 +96,27 @@ function updateScore(problemId: string, score: number) {
             class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[50px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px]"
             >
               #
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
             >
               {{ t('contests.problemsStep.title') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
             >
               {{ t('contests.problemsStep.difficulty') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px]"
             >
               {{ t('contests.problemsStep.score') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[50px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px]"
             >
             </TableHead>
           </TableRow>

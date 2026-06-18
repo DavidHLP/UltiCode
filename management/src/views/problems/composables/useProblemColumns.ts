@@ -208,7 +208,7 @@ export function useProblemColumns(
             }),
             h(
               'span',
-              { class: ['font-data text-[10px] uppercase', colorClass].join(' ') },
+              { class: ['font-data text-2xs uppercase', colorClass].join(' ') },
               t(statusKey).slice(0, 3),
             ),
           ],

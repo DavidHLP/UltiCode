@@ -293,8 +293,8 @@ onUnmounted(() => {
   border: none;
   border-radius: 0;
   resize: none;
-  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   line-height: 1.6;
   background: var(--card);
   color: var(--foreground);
@@ -308,23 +308,23 @@ onUnmounted(() => {
   padding: 1rem;
 }
 
-/* Markdown preview styles */
+
 .preview-content :deep(h1) {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-bold)
   margin-top: 1rem;
   margin-bottom: 0.75rem;
 }
 
 .preview-content :deep(h2) {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: var(--uc-text-xl);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
 }
 
 .preview-content :deep(h3) {
-  font-size: 1rem;
+  font-size: var(--uc-text-md);
   font-weight: 650;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -339,8 +339,8 @@ onUnmounted(() => {
   background: var(--muted);
   padding: 0.125rem 0.25rem;
   border-radius: 0;
-  font-size: 0.875em;
-  font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
+  font-size: var(--uc-text-2xl);
+  font-family: var(--uc-font-code);
 }
 
 .preview-content :deep(pre) {

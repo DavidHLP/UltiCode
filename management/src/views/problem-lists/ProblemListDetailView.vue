@@ -85,7 +85,7 @@ function handleListUpdate(updatedList: ProblemListDetail | null) {
       <!-- Muted Status Ticker Metadata Line -->
       <div
         v-if="list && !isCreate"
-        class="flex flex-wrap items-center gap-2 font-mono text-[11px] text-[var(--editor-text-muted)]"
+        class="flex flex-wrap items-center gap-2 font-mono text-xxs text-[var(--editor-text-muted)]"
       >
         <span
           class="font-bold uppercase tracking-wider"

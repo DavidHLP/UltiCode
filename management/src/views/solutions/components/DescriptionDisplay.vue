@@ -98,7 +98,7 @@ const solutionContent = computed(() => ({
           :key="index"
           variant="default"
           :label="tag"
-          class="text-[10px] px-1.5 h-5"
+          class="text-2xs px-1.5 h-5"
         />
       </div>
     </div>

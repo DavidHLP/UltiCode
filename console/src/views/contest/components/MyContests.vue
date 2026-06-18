@@ -198,7 +198,7 @@ function navigateToContest(slug: string) {
                   <Badge
                     v-if="history.isRated"
                     variant="outline"
-                    class="font-data text-[10px]"
+                    class="font-data text-2xs"
                   >
                     {{ t("contest.list.rated") }}
                   </Badge>

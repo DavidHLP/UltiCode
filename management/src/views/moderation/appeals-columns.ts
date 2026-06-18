@@ -114,7 +114,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.appeals.appellant'),
         ),
       cell: ({ row }) => {
@@ -137,7 +137,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           'Queue ID',
         ),
       cell: ({ row }) => {
@@ -159,7 +159,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.appeals.reason'),
         ),
       cell: ({ row }) => {
@@ -178,7 +178,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -193,7 +193,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.appeals.reviewedBy'),
         ),
       cell: ({ row }) => {
@@ -211,7 +211,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
@@ -229,7 +229,7 @@ export function createAppealsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {

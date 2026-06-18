@@ -161,7 +161,7 @@ const setRef = (el: unknown) => {
         :style="{ color: header.iconColor }"
         class="h-3.5 w-3.5 mr-1.5"
       />
-      <span class="text-[11px] font-bold">{{ header.title }}</span>
+      <span class="text-xxs font-bold">{{ header.title }}</span>
     </Button>
   </div>
 </template>

@@ -480,15 +480,15 @@ const handleGoBack = () => {
 
 <style>
 .markdown-content h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-bold)
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .markdown-content h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: var(--uc-text-xl);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 0.875rem;
   margin-bottom: 0.5rem;
 }
@@ -519,8 +519,8 @@ const handleGoBack = () => {
 }
 
 .markdown-content code {
-  font-family: "Fira Code", monospace;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
 }
 
 .markdown-content pre code {

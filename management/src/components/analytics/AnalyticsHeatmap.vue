@@ -125,7 +125,7 @@ function handleMouseLeave() {
             <div
               v-for="(col, index) in columns"
               :key="index"
-              class="flex items-center justify-center text-[10px] text-[var(--silver-400)] font-data tabular-nums"
+              class="flex items-center justify-center text-2xs text-[var(--silver-400)] font-data tabular-nums"
               :style="{
                 width: cellSize + 'px',
                 marginRight: (index < columns.length - 1 ? cellGap : 0) + 'px',
@@ -146,7 +146,7 @@ function handleMouseLeave() {
               <!-- Row label -->
               <div
                 v-if="showLabels && rows"
-                class="shrink-0 w-12 text-right pr-2 text-[10px] text-[var(--silver-400)] font-data tabular-nums"
+                class="shrink-0 w-12 text-right pr-2 text-2xs text-[var(--silver-400)] font-data tabular-nums"
               >
                 {{ rows[rowIndex]?.label || '' }}
               </div>
@@ -175,7 +175,7 @@ function handleMouseLeave() {
           <div
             class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
           >
-            <span class="text-[10px] text-[var(--silver-400)]">{{
+            <span class="text-2xs text-[var(--silver-400)]">{{
               $t('analytics.heatmap.less')
             }}</span>
             <div class="flex gap-0.5">
@@ -191,7 +191,7 @@ function handleMouseLeave() {
                 }"
               />
             </div>
-            <span class="text-[10px] text-[var(--silver-400)]">{{
+            <span class="text-2xs text-[var(--silver-400)]">{{
               $t('analytics.heatmap.more')
             }}</span>
           </div>

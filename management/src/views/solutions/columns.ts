@@ -94,7 +94,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.id'),
         ),
       cell: ({ row }) => {
@@ -107,7 +107,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.solution'),
         ),
       cell: ({ row }) => {
@@ -126,7 +126,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.author'),
         ),
       cell: ({ row }) => {
@@ -146,7 +146,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.status'),
         ),
       cell: ({ row }) => {
@@ -159,7 +159,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.views'),
         ),
       cell: ({ row }) => {
@@ -176,7 +176,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.created'),
         ),
       cell: ({ row }) => {
@@ -193,7 +193,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('solutions.columns.actions'),
         ),
       cell: ({ row }) => {

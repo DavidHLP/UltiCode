@@ -122,7 +122,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.id'),
         ),
@@ -138,7 +138,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.problem'),
         ),
@@ -159,7 +159,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.difficulty'),
         ),
@@ -177,7 +177,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('common.status'),
         ),
@@ -196,7 +196,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.published'),
         ),
@@ -216,7 +216,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.flagged'),
         ),
@@ -257,7 +257,7 @@ export function createColumns(
             }),
             h(
               'span',
-              { class: ['font-data text-[10px] uppercase', colorClass].join(' ') },
+              { class: ['font-data text-2xs uppercase', colorClass].join(' ') },
               t(statusKey).slice(0, 3),
             ),
           ],
@@ -273,7 +273,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.submissions'),
         ),
@@ -298,7 +298,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('problems.columns.tags'),
         ),
@@ -315,7 +315,7 @@ export function createColumns(
               'span',
               {
                 class:
-                  'font-data text-[10px] uppercase px-1.5 py-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-600)] dark:text-[var(--silver-400)] rounded-none',
+                  'font-data text-2xs uppercase px-1.5 py-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-600)] dark:text-[var(--silver-400)] rounded-none',
               },
               tag.label,
             ),
@@ -332,7 +332,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('common.created'),
         ),
@@ -354,7 +354,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('common.actions.label'),
         ),

@@ -173,7 +173,7 @@ onMounted(loadData);
             <span class="sm:hidden">{{ t("contest.list.running") }}</span>
             <span
               v-if="runningContests.length > 0"
-              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--terminal-red)] text-[10px] font-bold text-white"
+              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--terminal-red)] text-2xs font-bold text-white"
             >
               {{ runningContests.length }}
             </span>

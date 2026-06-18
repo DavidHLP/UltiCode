@@ -1,3 +1,8 @@
+> ⚠️ **历史计划（证据链保留）**：v1.0 早期设想，含 HMAC / appSecret 等已被代码现实取代的方案（实际用 UUID，无 HMAC）。
+> - 当前权威**执行计划** → **[EXECUTION_PLAN.md](../EXECUTION_PLAN.md)**（R1–R5 可执行计划 + §0 框架说明）
+> - 最终**设计决策 / 定档** → **[REVIEW_V3.md](../REVIEW_V3.md)**（审查实际代码，模块 v4.2 完结）
+> - **不要沿用本文 Phase 0-9 框架**（见 EXECUTION_PLAN §0）；本文仅作决策溯源保留。
+
 # Contest 与虚拟竞赛完整执行流程及问题修复计划
 
 > **版本**: v1.0

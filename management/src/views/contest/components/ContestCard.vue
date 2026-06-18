@@ -109,7 +109,7 @@ function handleRegister(event: Event) {
           <span
             :class="
               cn(
-                'font-data text-[10px] font-medium uppercase tracking-[0.05em]',
+                'font-data text-2xs font-medium uppercase tracking-label',
                 'px-2 py-0.5 border rounded-none',
                 contest.type === 'PUBLIC'
                   ? 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)] text-[var(--terminal-cyan)]'

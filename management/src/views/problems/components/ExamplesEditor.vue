@@ -124,7 +124,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
           <CardContent class="space-y-4 pt-4 px-4 pb-4 bg-card rounded-none">
             <div class="space-y-1">
               <label
-                class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
               >
                 {{ t('problems.casesDisplay.input') }}
               </label>
@@ -139,7 +139,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
 
             <div class="space-y-1">
               <label
-                class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
               >
                 {{ t('problems.casesDisplay.output') }}
               </label>
@@ -154,7 +154,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
 
             <div class="space-y-1">
               <label
-                class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
               >
                 {{ t('problems.descriptionDisplay.explanation') }}
               </label>

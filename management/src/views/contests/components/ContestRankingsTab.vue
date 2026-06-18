@@ -39,7 +39,7 @@ function getRankIcon(rank: number) {
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center gap-2">
-      
+
       <span class="terminal-comment text-xs">[{{ rankings.length }}]</span>
     </div>
 
@@ -51,22 +51,22 @@ function getRankIcon(rank: number) {
             class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
           >
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[60px]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[60px]"
             >
               {{ $t('contests.detail.rank') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
             >
               {{ $t('contests.detail.user') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px] text-right"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px] text-right"
             >
               {{ $t('contests.detail.score') }}
             </TableHead>
             <TableHead
-              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px] text-right"
+              class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[100px] text-right"
             >
               {{ $t('contests.detail.penalty') }}
             </TableHead>

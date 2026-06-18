@@ -243,7 +243,7 @@ const hintsList = computed(() => {
                     <p class="text-muted-foreground mb-0.5">{{ t('common.status') }}</p>
                     <Badge
                       :variant="problem.isPublished ? 'default' : 'secondary'"
-                      class="text-[10px] px-1.5 py-0"
+                      class="text-2xs px-1.5 py-0"
                     >
                       {{
                         problem.isPublished

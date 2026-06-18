@@ -63,7 +63,7 @@ const commentTree = computed(() => {
           />
         </div>
         <span
-          class="font-[family-name:var(--font-mono)] text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200"
+          class="font-mono text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200"
           >{{ t("forum.comments.joinConversation") }}</span
         >
       </div>
@@ -82,7 +82,7 @@ const commentTree = computed(() => {
 
       <div
         v-if="isLocked"
-        class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 px-3 py-1.5 rounded-none border border-[var(--terminal-amber)]/30"
+        class="flex items-center gap-2 text-2xs font-black uppercase tracking-widest text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 px-3 py-1.5 rounded-none border border-[var(--terminal-amber)]/30"
       >
         <Lock class="h-3 w-3" /> {{ t("forum.comments.threadLocked") }}
       </div>

@@ -78,7 +78,7 @@ onMounted(() => {
         <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
           {{ t('problems.tagsSelector.selected') }}
         </span>
-        <span v-if="selectedTags.length" class="text-[10px] font-mono text-[var(--silver-500)]">
+        <span v-if="selectedTags.length" class="text-2xs font-mono text-[var(--silver-500)]">
           {{ selectedTags.length }} {{ t('problems.tagsSelector.selectedCount') }}
         </span>
       </div>
@@ -135,7 +135,7 @@ onMounted(() => {
         <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)]">
           {{ t('problems.tagsSelector.available') }}
         </span>
-        <span class="text-[10px] font-mono text-[var(--silver-500)]">
+        <span class="text-2xs font-mono text-[var(--silver-500)]">
           {{ filteredTags.length }} {{ t('problems.tagsSelector.totalCount') }}
         </span>
       </div>

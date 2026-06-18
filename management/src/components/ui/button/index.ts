@@ -35,7 +35,7 @@ export const buttonVariants = cva(
         'icon-lg': 'size-10',
         // Terminal sizes
         terminal: 'h-8 px-3 py-1.5',
-        terminal_sm: 'h-7 px-2.5 py-1 text-[10px]',
+        terminal_sm: 'h-7 px-2.5 py-1 text-2xs',
         terminal_lg: 'h-9 px-4 py-2',
       },
     },

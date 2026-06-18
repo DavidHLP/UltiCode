@@ -1,4 +1,4 @@
-> ⚠️ **历史证据（保留原样）**：当前权威定档见 **[REVIEW_V3.md](./REVIEW_V3.md)**（审查实际代码）。本文档为 v1/v2 审查的原始 finding 清单，finding 在代码中的实际去向见 [V3 §7](./REVIEW_V3.md)。
+> ⚠️ **历史证据（保留原样）**：当前权威定档见 **[REVIEW_V3.md](../REVIEW_V3.md)**（审查实际代码）。本文档为 v1/v2 审查的原始 finding 清单，finding 在代码中的实际去向见 [V3 §7](../REVIEW_V3.md)。
 
 # Contest 修复计划审查 — 原始 Finding 列表
 

@@ -53,7 +53,7 @@ const { t } = useI18n();
               />
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-muted text-foreground border border-border text-[10px] px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-muted text-foreground border border-border text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >2ND</span
                 >
               </div>
@@ -65,7 +65,7 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[1].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground"
+              <span class="text-2xs font-mono text-muted-foreground"
                 >{{ rankings[1].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >
@@ -101,7 +101,7 @@ const { t } = useI18n();
               />
               <div class="absolute -bottom-2.5 w-full text-center">
                 <span
-                  class="bg-[var(--terminal-amber)] text-white text-[11px] px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-[var(--terminal-amber)] text-white text-xxs px-2 py-0.5 rounded-none font-black shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >1ST</span
                 >
               </div>
@@ -113,7 +113,7 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[0].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground"
+              <span class="text-2xs font-mono text-muted-foreground"
                 >{{ rankings[0].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >
@@ -149,7 +149,7 @@ const { t } = useI18n();
               />
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-muted text-[var(--solarized-orange)] border border-[var(--solarized-orange)] text-[10px] px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
+                  class="bg-muted text-[var(--solarized-orange)] border border-[var(--solarized-orange)] text-2xs px-1.5 py-0.5 rounded-none font-bold shadow-[1px_1px_0px_0px_var(--border)] font-mono"
                   >3RD</span
                 >
               </div>
@@ -161,7 +161,7 @@ const { t } = useI18n();
             </p>
             <div class="flex flex-col items-center leading-tight">
               <RatingBadge :rating="rankings[2].rating" size="sm" />
-              <span class="text-[9px] font-mono text-muted-foreground"
+              <span class="text-2xs font-mono text-muted-foreground"
                 >{{ rankings[2].contestsAttended || 0 }}
                 {{ t("contest.ranking.title", "Contests") }}</span
               >

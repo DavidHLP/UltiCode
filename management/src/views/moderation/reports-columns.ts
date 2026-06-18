@@ -165,7 +165,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.reporter'),
         ),
       cell: ({ row }) => {
@@ -185,7 +185,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
@@ -204,7 +204,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.entity'),
         ),
       cell: ({ row }) => {
@@ -226,7 +226,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.category'),
         ),
       cell: ({ row }) => {
@@ -241,7 +241,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.reason'),
         ),
       cell: ({ row }) => {
@@ -263,7 +263,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.status'),
         ),
       cell: ({ row }) => {
@@ -278,7 +278,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
@@ -296,7 +296,7 @@ export function createReportsColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {

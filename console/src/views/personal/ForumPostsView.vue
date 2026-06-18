@@ -132,7 +132,7 @@ onMounted(loadPosts);
                 {{ post.community?.name ?? "General" }}
               </Badge>
               <div
-                class="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider"
+                class="flex items-center gap-1.5 text-2xs font-semibold text-muted-foreground uppercase tracking-wider"
               >
                 <Calendar class="h-3 w-3" />
                 {{
@@ -173,7 +173,7 @@ onMounted(loadPosts);
                   <Badge
                     v-if="post.flair"
                     variant="secondary"
-                    class="rounded-none h-5 text-[10px] font-semibold uppercase"
+                    class="rounded-none h-5 text-2xs font-semibold uppercase"
                   >
                     {{ post.flair.text }}
                   </Badge>
@@ -261,7 +261,7 @@ onMounted(loadPosts);
                 post.stats?.comments ?? 0
               }}</span>
               <span
-                class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest"
+                class="text-2xs font-semibold text-muted-foreground uppercase tracking-widest"
                 >{{ t("personal.forumPosts.stats.comments") }}</span
               >
             </div>
@@ -273,7 +273,7 @@ onMounted(loadPosts);
                 post.stats?.views ?? 0
               }}</span>
               <span
-                class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest"
+                class="text-2xs font-semibold text-muted-foreground uppercase tracking-widest"
                 >{{ t("personal.forumPosts.stats.views") }}</span
               >
             </div>

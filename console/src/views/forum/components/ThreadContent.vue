@@ -234,7 +234,7 @@ async function handleShare() {
           v-if="thread.flair"
           variant="secondary"
           :class="[
-            'ml-auto sm:ml-2 rounded-none px-2 py-0 text-[10px] h-5',
+            'ml-auto sm:ml-2 rounded-none px-2 py-0 text-2xs h-5',
             flairClasses[thread.flair.type],
           ]"
         >
@@ -252,7 +252,7 @@ async function handleShare() {
         <Badge
           v-if="thread.isPinned"
           :class="[
-            'flex items-center gap-1 rounded-none px-2 py-0.5 text-[10px] uppercase font-bold border-0',
+            'flex items-center gap-1 rounded-none px-2 py-0.5 text-2xs uppercase font-bold border-0',
             'bg-[oklch(0.6545_0.1340_85.7_/_0.15)] text-[var(--terminal-amber)]',
           ]"
         >
@@ -260,7 +260,7 @@ async function handleShare() {
         </Badge>
         <span
           v-if="thread.isLocked"
-          class="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--terminal-amber)]"
+          class="inline-flex items-center gap-1 text-xxs font-medium text-[var(--terminal-amber)]"
         >
           <Lock class="h-3 w-3" /> {{ t("forum.post.locked") }}
         </span>
@@ -357,7 +357,7 @@ async function handleShare() {
           >
             <header class="space-y-1">
               <p
-                class="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground"
+                class="text-xs font-semibold uppercase tracking-widest text-muted-foreground"
               >
                 {{ t("forum.post.poll.title") }}
               </p>
@@ -370,7 +370,7 @@ async function handleShare() {
                 class="space-y-1"
               >
                 <div
-                  class="flex items-center justify-between text-[11px] text-muted-foreground"
+                  class="flex items-center justify-between text-xxs text-muted-foreground"
                 >
                   <span class="text-foreground">{{ option.label }}</span>
                   <span>{{
@@ -387,7 +387,7 @@ async function handleShare() {
                 </div>
               </li>
             </ul>
-            <p class="text-[11px] text-muted-foreground">
+            <p class="text-xxs text-muted-foreground">
               {{ media.totalVotes }} {{ t("forum.post.poll.votes") }}
               <span v-if="media.closesAt">
                 · {{ t("forum.post.poll.closes") }} {{ media.closesAt }}</span

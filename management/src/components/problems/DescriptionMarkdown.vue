@@ -98,7 +98,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
 
 <style scoped>
 .description-markdown :deep(.markdown-content) {
-  font-size: 14px;
+  font-size: var(--uc-text-sm);
   line-height: 1.6;
   color: var(--foreground);
   font-family:
@@ -106,30 +106,30 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
 }
 
-/* Headings */
+
 .description-markdown :deep(.markdown-content h1) {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-semibold)
   margin-bottom: 1rem;
 }
 
 .description-markdown :deep(.markdown-content h2) {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: var(--uc-text-xl);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 .description-markdown :deep(.markdown-content h3) {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: var(--uc-text-md);
+  font-weight: var(--uc-font-weight-bold)
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 .description-markdown :deep(.markdown-content h4) {
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-bold)
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -138,7 +138,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   margin-bottom: 1em;
 }
 
-/* Lists */
+
 .description-markdown :deep(.markdown-content ul),
 .description-markdown :deep(.markdown-content ol) {
   padding-left: 1.25rem;
@@ -153,10 +153,10 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   margin-bottom: 0.25rem;
 }
 
-/* Inline Code - Pill Style */
+
 .description-markdown :deep(.markdown-content code) {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', ui-monospace, monospace;
-  font-size: 0.85em;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xl);
   background-color: var(--surface-sunken);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
@@ -165,7 +165,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   word-break: break-word;
 }
 
-/* Code Blocks */
+
 .description-markdown :deep(.markdown-content pre) {
   background-color: var(--surface-sunken);
   border-radius: 0;
@@ -180,10 +180,10 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   padding: 0;
   border-radius: 0;
   color: inherit;
-  font-size: 0.9em;
+  font-size: var(--uc-text-sm);
 }
 
-/* Blockquote - Example blocks */
+
 .description-markdown :deep(.markdown-content blockquote) {
   border-left: 3px solid var(--border);
   padding-left: 1rem;
@@ -191,14 +191,14 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   margin: 1rem 0;
 }
 
-/* Strong text */
+
 .description-markdown :deep(.markdown-content strong) {
-  font-weight: 600;
+  font-weight: var(--uc-font-weight-semibold)
 }
 
-/* Katex adjustments */
+
 .description-markdown :deep(.katex) {
-  font-size: 1.1em;
+  font-size: var(--uc-text-md);
 }
 
 .description-markdown :deep(.katex-display) {
@@ -207,7 +207,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   overflow-y: hidden;
 }
 
-/* Code Tabs Styles */
+
 .description-markdown :deep(.lc-code-tabs) {
   margin: 1rem 0;
   border: 1px solid var(--border);
@@ -227,7 +227,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--uc-text-sm);
   transition: all 0.2s;
   color: var(--muted-foreground);
 }

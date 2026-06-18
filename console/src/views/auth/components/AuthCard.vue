@@ -102,10 +102,10 @@ defineOptions({
 }
 
 .auth-card__title {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.75rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   color: var(--silver-500);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--uc-tracking-normal);
 }
 
 .auth-card__body {

@@ -140,12 +140,12 @@ onMounted(async () => {
           <div class="flex items-center justify-between mb-3">
             <Badge
               variant="outline"
-              class="font-mono text-[10px] bg-primary/5 text-primary border-primary/20 rounded-none"
+              class="font-mono text-2xs bg-primary/5 text-primary border-primary/20 rounded-none"
             >
               {{ sol.language }}
             </Badge>
             <div
-              class="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
+              class="flex items-center gap-1.5 text-2xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               <Calendar class="h-3 w-3" />
               {{
@@ -212,7 +212,7 @@ onMounted(async () => {
               v-for="tag in sol.tags"
               :key="tag"
               variant="secondary"
-              class="text-[10px] font-medium py-0 h-5 rounded-none"
+              class="text-2xs font-medium py-0 h-5 rounded-none"
             >
               {{ tag }}
             </Badge>

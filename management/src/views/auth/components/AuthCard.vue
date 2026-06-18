@@ -76,7 +76,7 @@ defineOptions({
   }
 }
 
-/* Terminal Window Header - subdued, integrated with card body */
+
 .auth-card__header {
   display: flex;
   align-items: center;
@@ -114,13 +114,13 @@ defineOptions({
 }
 
 .auth-card__title {
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 0.6875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-type-code-size);
   color: var(--silver-500);
   letter-spacing: 0.05em;
 }
 
-/* Card Body */
+
 .auth-card__body {
   padding: 2rem;
 }

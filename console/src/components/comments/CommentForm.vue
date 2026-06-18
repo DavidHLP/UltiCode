@@ -8,7 +8,7 @@
       <Textarea
         v-model="content"
         :placeholder="t('forum.comments.placeholder')"
-        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm placeholder:text-[var(--silver-400)]/60 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 font-[family-name:var(--font-mono)] leading-relaxed"
+        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm placeholder:text-[var(--silver-400)]/60 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 font-mono leading-relaxed"
       />
 
       <!-- Action bar -->
@@ -42,7 +42,7 @@
             type="button"
             variant="ghost"
             size="sm"
-            class="h-8 px-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider"
+            class="h-8 px-3 font-mono text-xs uppercase tracking-wider"
             @click="onCancel"
           >
             {{ t("common.actions.cancel") }}
@@ -51,7 +51,7 @@
             type="submit"
             variant="default"
             size="sm"
-            class="h-8 px-4 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider"
+            class="h-8 px-4 font-mono text-xs uppercase tracking-wider"
             :disabled="!content.trim()"
           >
             {{ t("forum.comments.submit") }}

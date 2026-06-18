@@ -311,7 +311,7 @@ watch(
                   <Badge
                     variant="outline"
                     :class="[
-                      'font-data text-[10px] uppercase',
+                      'font-data text-2xs uppercase',
                       getChangeTypeStyle(version.changeType).bg,
                       getChangeTypeStyle(version.changeType).border,
                       getChangeTypeStyle(version.changeType).text,

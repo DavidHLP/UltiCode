@@ -80,7 +80,7 @@ const { t } = useI18n();
               <Badge
                 v-if="list.isPublic"
                 variant="secondary"
-                class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 rounded-none"
+                class="h-5 px-1.5 text-2xs font-semibold uppercase tracking-widest bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 rounded-none"
               >
                 <Globe class="h-3 w-3 mr-1" />
                 {{ t("personal.problemLists.listCard.public") }}
@@ -88,7 +88,7 @@ const { t } = useI18n();
               <Badge
                 v-else
                 variant="outline"
-                class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-none"
+                class="h-5 px-1.5 text-2xs font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-none"
               >
                 <Lock class="h-3 w-3 mr-1" />
                 {{ t("personal.problemLists.listCard.private") }}

@@ -115,7 +115,7 @@ const { t } = useI18n();
               <span class="font-bold truncate">{{ list.name }}</span>
               <Badge
                 variant="secondary"
-                class="h-5 px-1.5 rounded-full text-[10px]"
+                class="h-5 px-1.5 rounded-full text-2xs"
               >
                 {{
                   t("personal.problemLists.listCard.problemsCount", {

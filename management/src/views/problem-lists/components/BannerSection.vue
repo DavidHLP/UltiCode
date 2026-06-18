@@ -148,7 +148,7 @@ function handleBlur() {
         </span>
       </div>
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="saveStatus !== 'idle'" class="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold">
+      <div v-if="saveStatus !== 'idle'" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
           <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.status.saving') }}</span>
@@ -171,7 +171,7 @@ function handleBlur() {
             <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
               {{ t('problemLists.form.bannerTag') }}
             </FormLabel>
-            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono">
+            <span class="text-2xs text-[var(--editor-text-muted)] font-mono">
               {{ localBannerTag.length }}/50
             </span>
           </div>
@@ -186,7 +186,7 @@ function handleBlur() {
             />
           </FormControl>
           <div class="select-none pt-0.5">
-            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono leading-none">
+            <span class="text-2xs text-[var(--editor-text-muted)] font-mono leading-none">
               {{ t('problemLists.form.bannerTagDescription') }}
             </span>
           </div>
@@ -237,7 +237,7 @@ function handleBlur() {
             />
           </FormControl>
           <div class="select-none pt-0.5">
-            <span class="text-[10px] text-[var(--editor-text-muted)] font-mono leading-none">
+            <span class="text-2xs text-[var(--editor-text-muted)] font-mono leading-none">
               {{ t('problemLists.form.sortOrderDescription') }}
             </span>
           </div>
@@ -250,8 +250,8 @@ function handleBlur() {
 
 <style scoped>
 .custom-terminal-input {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   border-radius: 0 !important;
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
@@ -261,7 +261,7 @@ function handleBlur() {
 
 :deep(.custom-terminal-input) {
   border-radius: 0 !important;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 
 .custom-terminal-input:hover:not(:disabled) {

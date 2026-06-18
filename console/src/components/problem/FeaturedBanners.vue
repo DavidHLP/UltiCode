@@ -42,7 +42,7 @@ const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
 const ICON_BASE =
   "w-12 h-12 rounded-none flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 border";
 const BADGE_BASE =
-  "px-2 py-0.5 rounded-none text-[10px] font-bold border uppercase tracking-widest";
+  "px-2 py-0.5 rounded-none text-2xs font-bold border uppercase tracking-widest";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-all duration-500 group-hover:scale-110";
 

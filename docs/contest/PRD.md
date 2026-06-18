@@ -6,7 +6,7 @@
 > **状态**: 草案 · 待产品/技术评审
 > **范围**: UltiCode `backend-spring/.../contest/` + `console/src/views/contest/` + `console/src/views/contest/detailed/` + 管理端相关模块
 
-> **📌 验收标准状态说明（2026-06-18）**：本文档 §5 列出的 `[ ]` 验收标准是**原始 spec 基线**（v1.0 草案），状态跟踪已迁移至 **[REVIEW_V3.md](./REVIEW_V3.md)** 与各 R 计划（[EXECUTION_PLAN.md](./EXECUTION_PLAN.md) / [EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md) / [completed/](./completed/)）。R1–R10 落地后当前权威裁决：模块 **v4.2 完结**（详见 [REVIEW_V3 §12](./REVIEW_V3.md)）。PRD §5 的 `[ ]` 保留为产品视角的"应有行为"原始基线，不在 R 计划中逐条改写。
+> **📌 验收标准状态说明（2026-06-18）**：本文档 §5 列出的 `[ ]` 验收标准是**原始 spec 基线**（v1.0 草案），状态跟踪已迁移至 **[REVIEW_V3.md](./REVIEW_V3.md)** 与各 R 计划（[EXECUTION_PLAN.md](./EXECUTION_PLAN.md) / [_archive/EXECUTION_PLAN_R{6,7,8,9,10}_*.md](./_archive/)）。R1–R10 落地后当前权威裁决：模块 **v4.2 完结**（详见 [REVIEW_V3 §12](./REVIEW_V3.md)）。PRD §5 的 `[ ]` 保留为产品视角的"应有行为"原始基线，不在 R 计划中逐条改写。
 
 ---
 

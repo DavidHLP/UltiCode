@@ -103,9 +103,9 @@ function handleBlur() {
 }
 
 .auth-input__label {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-bold)
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--solarized-base01);
@@ -117,7 +117,7 @@ function handleBlur() {
 }
 
 .auth-input__label--floating {
-  font-size: 0.625rem;
+  font-size: var(--uc-text-xs);
   color: var(--silver-500);
   transform: translateY(-0.5rem);
 }
@@ -136,7 +136,7 @@ function handleBlur() {
 
 .auth-input__prompt {
   color: var(--accent-electric);
-  font-weight: 700;
+  font-weight: var(--uc-font-weight-bold)
   margin-right: 0.375rem;
 }
 
@@ -144,8 +144,8 @@ function handleBlur() {
   width: 100%;
   height: 2.375rem;
   padding: 0 0.75rem;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   color: var(--solarized-base03);
   background: var(--surface-sunken);
   border: 1px solid var(--border);
@@ -183,7 +183,7 @@ function handleBlur() {
   cursor: not-allowed;
 }
 
-/* Bottom line + glow that activates on focus, matching management. */
+
 .auth-input__line {
   position: absolute;
   bottom: 0;
@@ -220,8 +220,8 @@ function handleBlur() {
 
 .auth-input__error {
   margin-top: 0.375rem;
-  font-size: 0.75rem;
+  font-size: var(--uc-text-sm);
   color: var(--status-error);
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 </style>

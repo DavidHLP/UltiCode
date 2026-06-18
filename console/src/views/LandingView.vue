@@ -128,7 +128,7 @@ const handleLoginRedirect = () => {
             <span class="font-data font-bold text-sm tracking-tight">{{
               t("landing.brand")
             }}</span>
-            <span class="text-[10px] text-muted-foreground ml-1 font-data">{{
+            <span class="text-2xs text-muted-foreground ml-1 font-data">{{
               t("landing.version")
             }}</span>
           </div>
@@ -188,7 +188,7 @@ const handleLoginRedirect = () => {
       <section class="grid gap-12 lg:grid-cols-12 items-center">
         <div class="lg:col-span-6 space-y-6">
           <div
-            class="inline-flex items-center gap-2 px-2.5 py-0.5 border bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_30%,transparent)] font-data text-[10px] tracking-wider uppercase"
+            class="inline-flex items-center gap-2 px-2.5 py-0.5 border bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_30%,transparent)] font-data text-2xs tracking-wider uppercase"
           >
             <Sparkles class="size-3" /> {{ t("landing.coreSessionReady") }}
           </div>
@@ -229,7 +229,7 @@ const handleLoginRedirect = () => {
           <!-- Hero ASCII progress stats -->
           <div class="pt-4 space-y-2 max-w-sm">
             <div
-              class="flex justify-between items-center text-[10px] font-data text-muted-foreground uppercase"
+              class="flex justify-between items-center text-2xs font-data text-muted-foreground uppercase"
             >
               <span>{{ t("landing.systemBootStatus") }}</span>
               <span>{{ t("landing.bootOk") }}</span>
@@ -287,7 +287,7 @@ const handleLoginRedirect = () => {
                       :key="lang"
                       @click="selectedLang = lang"
                       :class="[
-                        'px-2 py-0.5 font-data text-[10px] uppercase border transition-colors',
+                        'px-2 py-0.5 font-data text-2xs uppercase border transition-colors',
                         selectedLang === lang
                           ? 'border-[var(--accent-electric)] bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)]'
                           : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -299,7 +299,7 @@ const handleLoginRedirect = () => {
                   <button
                     @click="runSimulation"
                     :disabled="compiling"
-                    class="px-3 py-1 font-data text-[10px] uppercase bg-primary text-primary-foreground hover:bg-primary/95 flex items-center gap-1 disabled:opacity-50"
+                    class="px-3 py-1 font-data text-2xs uppercase bg-primary text-primary-foreground hover:bg-primary/95 flex items-center gap-1 disabled:opacity-50"
                   >
                     <Play class="size-3" />
                     {{
@@ -308,7 +308,7 @@ const handleLoginRedirect = () => {
                   </button>
                 </div>
                 <pre
-                  class="font-data text-[10px] text-foreground leading-tight overflow-x-auto max-h-[140px] max-w-full"
+                  class="font-data text-2xs text-foreground leading-tight overflow-x-auto max-h-[140px] max-w-full"
                 ><code>{{ codeSnippets[selectedLang as keyof typeof codeSnippets] }}</code></pre>
               </div>
 
@@ -321,7 +321,7 @@ const handleLoginRedirect = () => {
                   v-for="(log, i) in simulationTerminalText"
                   :key="i"
                   :class="[
-                    'font-data text-[10px] leading-tight',
+                    'font-data text-2xs leading-tight',
                     log.includes('[PASS]')
                       ? 'text-[var(--terminal-green)]'
                       : log.includes('STATUS')
@@ -333,7 +333,7 @@ const handleLoginRedirect = () => {
                 </p>
                 <div
                   v-if="showSuccessMsg"
-                  class="mt-2 p-2 bg-[color-mix(in_oklch,var(--terminal-green)_10%,transparent)] border border-[color-mix(in_oklch,var(--terminal-green)_25%,transparent)] flex items-center gap-2 text-[var(--terminal-green)] font-data text-[10px]"
+                  class="mt-2 p-2 bg-[color-mix(in_oklch,var(--terminal-green)_10%,transparent)] border border-[color-mix(in_oklch,var(--terminal-green)_25%,transparent)] flex items-center gap-2 text-[var(--terminal-green)] font-data text-2xs"
                 >
                   <CheckCircle2 class="size-3.5 shrink-0" />
                   <span>{{ t("landing.compileSuccess") }}</span>
@@ -365,7 +365,7 @@ const handleLoginRedirect = () => {
             class="precision-card precision-card--featured lg:col-span-3 border border-[var(--border)] bg-card p-6 shadow-[3px_3px_0px_0px_var(--border)] grid gap-6 md:grid-cols-12 relative overflow-hidden"
           >
             <div
-              class="absolute right-0 top-0 bg-[var(--accent-electric)] text-white font-data text-[9px] uppercase tracking-widest px-3 py-1 font-bold"
+              class="absolute right-0 top-0 bg-[var(--accent-electric)] text-white font-data text-2xs uppercase tracking-widest px-3 py-1 font-bold"
             >
               PRIMARY ENGINE
             </div>
@@ -381,7 +381,7 @@ const handleLoginRedirect = () => {
                 </div>
                 <div>
                   <span
-                    class="text-[9px] font-data text-[var(--accent-electric)] uppercase tracking-wider font-bold"
+                    class="text-2xs font-data text-[var(--accent-electric)] uppercase tracking-wider font-bold"
                     >HIGH PERFORMANCE</span
                   >
                   <h3 class="font-data font-bold text-base uppercase mt-0.5">
@@ -397,7 +397,7 @@ const handleLoginRedirect = () => {
               >
                 <div class="space-y-0.5">
                   <span
-                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    class="text-2xs text-muted-foreground uppercase font-data"
                     >EXECUTION SPEED</span
                   >
                   <p
@@ -408,7 +408,7 @@ const handleLoginRedirect = () => {
                 </div>
                 <div class="space-y-0.5">
                   <span
-                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    class="text-2xs text-muted-foreground uppercase font-data"
                     >CONTAINERIZATION</span
                   >
                   <p
@@ -419,7 +419,7 @@ const handleLoginRedirect = () => {
                 </div>
                 <div class="space-y-0.5">
                   <span
-                    class="text-[9px] text-muted-foreground uppercase font-data"
+                    class="text-2xs text-muted-foreground uppercase font-data"
                     >SUPPORTED LANGS</span
                   >
                   <p
@@ -432,12 +432,12 @@ const handleLoginRedirect = () => {
             </div>
 
             <div
-              class="md:col-span-5 border border-[var(--border)] bg-[var(--surface-sunken)] p-3 flex flex-col justify-between font-mono text-[10px] text-muted-foreground h-full min-h-[140px]"
+              class="md:col-span-5 border border-[var(--border)] bg-[var(--surface-sunken)] p-3 flex flex-col justify-between font-mono text-2xs text-muted-foreground h-full min-h-[140px]"
             >
               <div
                 class="flex items-center justify-between border-b border-[var(--border)] pb-1.5 mb-1.5"
               >
-                <span class="text-[9px] text-[var(--accent-electric)] font-bold"
+                <span class="text-2xs text-[var(--accent-electric)] font-bold"
                   >// SANDBOX RUNNER ACTIVE</span
                 >
                 <span
@@ -486,7 +486,7 @@ const handleLoginRedirect = () => {
               </p>
             </div>
             <div
-              class="text-[10px] font-data text-[var(--terminal-green)] uppercase tracking-wider flex items-center gap-1"
+              class="text-2xs font-data text-[var(--terminal-green)] uppercase tracking-wider flex items-center gap-1"
             >
               {{ t("landing.contestsFooter") }} <CheckCircle2 class="size-3" />
             </div>
@@ -510,7 +510,7 @@ const handleLoginRedirect = () => {
               </p>
             </div>
             <div
-              class="text-[10px] font-data text-[var(--terminal-amber)] uppercase tracking-wider flex items-center gap-1"
+              class="text-2xs font-data text-[var(--terminal-amber)] uppercase tracking-wider flex items-center gap-1"
             >
               {{ t("landing.feedFooter") }}
             </div>
@@ -534,7 +534,7 @@ const handleLoginRedirect = () => {
               </p>
             </div>
             <div
-              class="text-[10px] font-data text-[var(--terminal-purple)] uppercase tracking-wider flex items-center gap-1"
+              class="text-2xs font-data text-[var(--terminal-purple)] uppercase tracking-wider flex items-center gap-1"
             >
               {{ t("landing.badgesFooter") }}
             </div>
@@ -557,7 +557,7 @@ const handleLoginRedirect = () => {
           <div class="space-y-3 pt-2">
             <div class="space-y-1">
               <div
-                class="flex justify-between text-[11px] font-data text-muted-foreground"
+                class="flex justify-between text-xxs font-data text-muted-foreground"
               >
                 <span>{{ t("landing.solverCapacity") }}</span>
                 <span class="tabular-nums">84,912 / 100,000</span>
@@ -571,7 +571,7 @@ const handleLoginRedirect = () => {
 
             <div class="space-y-1">
               <div
-                class="flex justify-between text-[11px] font-data text-muted-foreground"
+                class="flex justify-between text-xxs font-data text-muted-foreground"
               >
                 <span>{{ t("landing.latencyStability") }}</span>
                 <span class="tabular-nums">99.86%</span>
@@ -608,7 +608,7 @@ const handleLoginRedirect = () => {
                     1,348,902
                   </p>
                   <p
-                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
                   >
                     {{ t("landing.totalSubmissionsDesc") }}
                   </p>
@@ -625,7 +625,7 @@ const handleLoginRedirect = () => {
                     42,918
                   </p>
                   <p
-                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
                   >
                     {{ t("landing.activeSolversDesc") }}
                   </p>
@@ -642,7 +642,7 @@ const handleLoginRedirect = () => {
                     14.2 ms
                   </p>
                   <p
-                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
                   >
                     {{ t("landing.compilationAvgDesc") }}
                   </p>
@@ -659,7 +659,7 @@ const handleLoginRedirect = () => {
                     142 {{ t("landing.eventsUnit") }}
                   </p>
                   <p
-                    class="text-[9px] text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
+                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
                   >
                     {{ t("landing.contestsCompletedDesc") }}
                   </p>
@@ -668,7 +668,7 @@ const handleLoginRedirect = () => {
 
               <!-- Terminal style code status log -->
               <div
-                class="border border-silver p-2.5 bg-[var(--surface-sunken)] text-[10px] text-muted-foreground space-y-0.5"
+                class="border border-silver p-2.5 bg-[var(--surface-sunken)] text-2xs text-muted-foreground space-y-0.5"
               >
                 <p>
                   <span class="text-[var(--terminal-cyan)]">[INFO]</span>

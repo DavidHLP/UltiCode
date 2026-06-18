@@ -309,7 +309,7 @@ onMounted(loadData);
                 >
                   <div class="border-b border-border px-4 py-3 bg-muted/30">
                     <h4
-                      class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                      class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
                     >
                       {{ t("forum.post.selectTags") }}
                     </h4>
@@ -345,7 +345,7 @@ onMounted(loadData);
                 v-for="tag in selectedTags"
                 :key="tag"
                 variant="secondary"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-[10px] font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_20%,transparent)] border shadow-sm"
+                class="flex items-center gap-1.5 h-7 px-3 rounded-none text-2xs font-data font-bold uppercase tracking-wider bg-[color-mix(in_oklch,var(--accent-electric)_10%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_20%,transparent)] border shadow-sm"
               >
                 {{ tag }}
                 <button
@@ -372,7 +372,7 @@ onMounted(loadData);
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
               >
                 <span
-                  class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                  class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
                   >{{ t("forum.post.editorMarkdown") }}</span
                 >
               </div>
@@ -391,7 +391,7 @@ onMounted(loadData);
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
               >
                 <span
-                  class="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                  class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
                   >{{ t("forum.post.livePreview") }}</span
                 >
               </div>

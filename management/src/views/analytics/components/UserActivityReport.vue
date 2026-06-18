@@ -154,11 +154,11 @@ function truncateUsername(username: string) {
             <line x1="45" y1="40" x2="580" y2="40" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
 
             <!-- Y-Axis labels (ticks) -->
-            <text x="35" y="203" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">0</text>
-            <text x="35" y="163" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.25)) }}</text>
-            <text x="35" y="123" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.5)) }}</text>
-            <text x="35" y="83" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.75)) }}</text>
-            <text x="35" y="43" class="text-[9px] font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(maxVal) }}</text>
+            <text x="35" y="203" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">0</text>
+            <text x="35" y="163" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.25)) }}</text>
+            <text x="35" y="123" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.5)) }}</text>
+            <text x="35" y="83" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.75)) }}</text>
+            <text x="35" y="43" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(maxVal) }}</text>
 
             <!-- Bars loop -->
             <g v-for="(user, i) in topUsers" :key="user.userId" class="group/bar">
@@ -174,7 +174,7 @@ function truncateUsername(username: string) {
               <text
                 :x="45 + i * 53 + 14"
                 :y="200 - (user.loginCount / maxVal) * 160 - 6"
-                class="text-[9px] font-mono font-bold fill-foreground text-center opacity-70 group-hover/bar:opacity-100 origin-bottom transition-all duration-150"
+                class="text-2xs font-mono font-bold fill-foreground text-center opacity-70 group-hover/bar:opacity-100 origin-bottom transition-all duration-150"
                 text-anchor="middle"
               >
                 {{ user.loginCount }}
@@ -183,7 +183,7 @@ function truncateUsername(username: string) {
               <text
                 :x="45 + i * 53 + 14"
                 :y="216"
-                class="text-[9px] font-mono fill-[var(--silver-500)] group-hover/bar:fill-foreground text-center font-medium transition-colors"
+                class="text-2xs font-mono fill-[var(--silver-500)] group-hover/bar:fill-foreground text-center font-medium transition-colors"
                 text-anchor="middle"
               >
                 {{ truncateUsername(user.username) }}

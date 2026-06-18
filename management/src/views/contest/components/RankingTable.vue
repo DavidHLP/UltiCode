@@ -108,27 +108,27 @@ const displayProblemLabels = computed(() => {
       <TableHeader class="bg-[var(--surface-sunken)]">
         <TableRow class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)]">
           <TableHead
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[60px]"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[60px]"
           >
             Rank
           </TableHead>
           <TableHead
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
           >
             User
           </TableHead>
           <TableHead
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[80px] text-right"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[80px] text-right"
           >
             Score
           </TableHead>
           <TableHead
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[80px] text-right"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[80px] text-right"
           >
             Time
           </TableHead>
           <TableHead
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[80px] text-right"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[80px] text-right"
           >
             Solved
           </TableHead>
@@ -136,7 +136,7 @@ const displayProblemLabels = computed(() => {
           <TableHead
             v-for="label in displayProblemLabels"
             :key="label"
-            class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[50px] text-center"
+            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)] w-[50px] text-center"
           >
             {{ label }}
           </TableHead>

@@ -225,7 +225,7 @@ const emit = defineEmits<{
 .problem-explorer-controls :deep(input),
 .problem-explorer-controls :deep([role="button"]),
 .problem-explorer-controls :deep([data-slot="badge"]) {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 
 .problem-explorer-controls :deep(.border-dashed) {

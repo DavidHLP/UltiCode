@@ -43,13 +43,13 @@ const isButton = computed(() => props.variant === "button");
     <component :is="icon" v-if="icon" class="h-4 w-4" />
     <span
       v-if="count !== undefined && count !== ''"
-      class="font-data font-bold text-[11px] tracking-tight tabular-nums"
+      class="font-data font-bold text-xxs tracking-tight tabular-nums"
     >
       {{ count }}
     </span>
     <span
       v-if="label"
-      class="hidden sm:inline text-[11px] font-bold opacity-80"
+      class="hidden sm:inline text-xxs font-bold opacity-80"
     >
       {{ label }}
     </span>

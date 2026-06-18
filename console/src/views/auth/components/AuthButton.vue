@@ -53,9 +53,9 @@ defineOptions({
   justify-content: center;
   width: 100%;
   height: 2.375rem;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-weight: 700;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-weight: var(--uc-font-weight-bold)
+  font-size: var(--uc-text-sm);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   border-radius: 0;

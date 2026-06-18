@@ -412,7 +412,7 @@ onMounted(() => {
                         >
                           <Badge
                             variant="secondary"
-                            class="text-[9px] font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
+                            class="text-2xs font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
                           >
                             {{
                               item.targetType.toLowerCase().replace("_", " ")

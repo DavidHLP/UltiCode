@@ -5,7 +5,7 @@
 | **状态 (Status)** | **Accepted** (R8.5 评估决策，2026-06-17) |
 | **日期 (Date)** | 2026-06-17 |
 | **作者 (Author)** | DavidHLP |
-| **来源** | [REVIEW_V3 §6 CRIT-6 / F-ARCH-07](../contest/REVIEW_V3.md) + [EXECUTION_PLAN_R8 §6](../contest/completed/EXECUTION_PLAN_R8.md) |
+| **来源** | [REVIEW_V3 §6 CRIT-6 / F-ARCH-07](../contest/REVIEW_V3.md) + [EXECUTION_PLAN_R8 §6](../contest/_archive/EXECUTION_PLAN_R8_2026-06-17.md) |
 | **关联 ADR** | [ADR-006 §2.4 灰度策略](./ADR-006-contest-scoring-engine-activation.md) + [ADR-007 §6 / §8](./ADR-007-virtual-contest-lifecycle-and-rating-isolation.md) |
 
 ---
@@ -48,6 +48,6 @@ REVIEW_V3 把 CRIT-6 (F-ARCH-07) 列为 review 残留：
 ## 5. References
 
 - [REVIEW_V3 §6 CRIT-6](../contest/REVIEW_V3.md)
-- [EXECUTION_PLAN_R8.md §6](../contest/completed/EXECUTION_PLAN_R8.md)
+- [EXECUTION_PLAN_R8 §6](../contest/_archive/EXECUTION_PLAN_R8_2026-06-17.md)
 - [ADR-006 §2.4 灰度策略](./ADR-006-contest-scoring-engine-activation.md)
 - [ADR-007 §8 R7 评估](./ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)

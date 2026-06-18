@@ -1,120 +1,11 @@
 @import "../../shared/design-system/style.css";
 
 :root {
-  --header-padding-y: 1.25rem;   /* 20px */
-  --stats-padding-y: 0.625rem;  /* 10px */
+  --header-padding-y: 1.25rem;
+  --stats-padding-y: 0.625rem;
 }
 
-/* Markdown content styles */
-.prose {
-  max-width: 65ch;
-  color: var(--foreground);
-}
 
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.prose h1 {
-  font-size: 2em;
-}
-
-.prose h2 {
-  font-size: 1.5em;
-}
-
-.prose h3 {
-  font-size: 1.25em;
-}
-
-.prose p {
-  margin-top: 0;
-  margin-bottom: 1em;
-}
-
-.prose code {
-  background: var(--muted);
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.875em;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.prose pre {
-  background: var(--muted);
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin-bottom: 1em;
-}
-
-.prose pre code {
-  background: transparent;
-  padding: 0;
-}
-
-.prose ul,
-.prose ol {
-  margin-left: 1.5rem;
-  margin-bottom: 1em;
-}
-
-.prose li {
-  margin-bottom: 0.25rem;
-}
-
-.prose a {
-  color: var(--primary);
-  text-decoration: underline;
-}
-
-.prose a:hover {
-  text-decoration: none;
-}
-
-.prose img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 0.5rem 0;
-}
-
-.prose table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1em;
-}
-
-.prose th,
-.prose td {
-  border: 1px solid var(--border);
-  padding: 0.5rem;
-}
-
-.prose th {
-  background: var(--muted);
-}
-
-.prose blockquote {
-  border-left: 4px solid var(--primary);
-  padding-left: 1rem;
-  margin: 1em 0;
-  color: var(--muted-foreground);
-}
-
-.prose hr {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1.5rem 0;
-}
 
 .code-viewer-surface {
   background: var(--surface-sunken);
@@ -126,7 +17,7 @@
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-200) 35%, transparent);
 }
 
-/* Highlight.js code block styles - Solarized Light Theme */
+
 .hljs {
   background: transparent;
   color: var(--silver-600);
@@ -195,7 +86,7 @@
 }
 
 .hljs-strong {
-  font-weight: bold;
+  font-weight: var(--uc-font-weight-bold)
 }
 
 .hljs-function {
@@ -222,7 +113,7 @@
   color: var(--silver-400);
 }
 
-/* Additional language-specific styles */
+
 .hljs-javascript .hljs-title,
 .hljs-typescript .hljs-title {
   color: var(--accent-electric);
@@ -236,7 +127,7 @@
   color: var(--accent-electric);
 }
 
-/* Highlight.js Dark Theme Override */
+
 .dark .hljs {
   color: var(--silver-600);
 }
@@ -254,7 +145,7 @@
   color: var(--silver-600);
 }
 
-/* Code tabs styles from markdown renderer */
+
 .lc-code-tabs {
   margin: 1em 0;
 }
@@ -267,7 +158,7 @@
 
 .lc-tab-btn {
   padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: var(--uc-text-sm);
   border-radius: 0.25rem;
   background: var(--muted);
   border: 1px solid var(--border);
@@ -326,85 +217,82 @@
   pointer-events: none;
 }
 
-/* Fix non-passive wheel event listener warning from @unovis/vue */
+
 [data-vis-xy-container] {
   overflow: hidden;
   contain: content;
   touch-action: none;
 }
 
-/* Align first/last column cells with header/footer layout padding */
+
 .terminal-table th:first-child,
 .terminal-table td:first-child {
-  padding-left: 1rem !important; /* 16px */
+  padding-left: 1rem !important;
 }
 
 .terminal-table th:last-child,
 .terminal-table td:last-child {
-  padding-right: 1rem !important; /* 16px */
+  padding-right: 1rem !important;
 }
 
 @media (min-width: 1024px) {
   .terminal-table th:first-child,
   .terminal-table td:first-child {
-    padding-left: 1.5rem !important; /* 24px */
+    padding-left: 1.5rem !important;
   }
 
   .terminal-table th:last-child,
   .terminal-table td:last-child {
-    padding-right: 1.5rem !important; /* 24px */
+    padding-right: 1.5rem !important;
   }
 }
 
-/* Row number column */
+
 .terminal-row-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-xxs);
+  font-variant-numeric: tabular-nums;
   color: var(--silver-400);
   text-align: right;
   user-select: none;
   width: 40px;
 }
 
-/* ========================================
-   Dark Mode Terminal Adjustments
-   ======================================== */
 
-/* Solarized Dark Mode Terminal (accent colors are identical to light mode) */
+
+
 .dark {
   --surface-elevated: oklch(0.3092 0.0518 219.7);
   --surface-sunken: oklch(0.2673 0.0486 219.8);
 }
 
-/* ========================================
-   Global Backend Layout & Spacing Overrides
-   ======================================== */
 
-/* Page header title row compacting */
+
+
 .px-4.lg\:px-6.py-4.flex.items-center.justify-between {
   padding-top: var(--header-padding-y) !important;
   padding-bottom: var(--header-padding-y) !important;
 }
 
-/* Page header stats bar compacting */
+
 .px-4.lg\:px-6.py-2\.5.flex.items-center.gap-6.border-t {
   padding-top: var(--stats-padding-y) !important;
   padding-bottom: var(--stats-padding-y) !important;
 }
 
-/* View Main content container spacing */
+
 .flex-1.py-4 {
-  padding-top: 0.875rem !important; /* 14px */
-  padding-bottom: 0px !important;    /* 0px - let the layout wrapper handle page bottom padding */
+  padding-top: 0.875rem !important;
+  padding-bottom: 0px !important;
 }
 
-/* Scrollbar gutter stabilization to prevent layout shifting and clipping */
+
 main.overflow-auto,
 .overflow-auto {
   scrollbar-gutter: stable;
 }
 
-/* Collapsible submenu transition animations */
+
 .animate-collapsible-down {
   animation: collapsible-down 0.2s cubic-bezier(0.87, 0, 0.13, 1);
 }

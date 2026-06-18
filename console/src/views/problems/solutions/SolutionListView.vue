@@ -214,7 +214,7 @@ onMounted(async () => {
               class="gap-1.5 text-xs rounded-none bg-card border-border text-foreground hover:bg-muted font-bold cursor-pointer h-8"
             >
               <ArrowDownAZ class="h-3.5 w-3.5" />
-              <span class="text-[11px] uppercase tracking-wider">{{
+              <span class="text-xxs uppercase tracking-wider">{{
                 t("common.actions.sort")
               }}</span>
             </Button>
@@ -248,7 +248,7 @@ onMounted(async () => {
         >
           <Badge
             variant="secondary"
-            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === 'all'
                 ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
@@ -265,7 +265,7 @@ onMounted(async () => {
             :key="option.value"
             translate="no"
             variant="secondary"
-            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+            class="lc-md:px-2 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-none border border-transparent px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider transition-colors"
             :class="
               languageFilter === option.value
                 ? 'bg-[var(--accent-electric)] text-white border-[var(--accent-electric)]'
@@ -291,7 +291,7 @@ onMounted(async () => {
                 <Check class="h-3 w-3 text-white" />
               </div>
               <span
-                class="text-[11px] font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate"
+                class="text-xxs font-bold uppercase tracking-wider text-[var(--solarized-green)] leading-tight truncate"
               >
                 {{ t("problem.solutions.alreadyShared") }}
               </span>
@@ -303,7 +303,7 @@ onMounted(async () => {
                 <Check class="h-3 w-3 text-white" />
               </div>
               <span
-                class="text-[11px] font-semibold text-foreground leading-tight truncate"
+                class="text-xxs font-semibold text-foreground leading-tight truncate"
               >
                 {{
                   t("problem.solutions.runtimeBeats", {
@@ -314,7 +314,7 @@ onMounted(async () => {
             </template>
             <template v-else>
               <span
-                class="text-[11px] font-semibold text-muted-foreground leading-tight truncate"
+                class="text-xxs font-semibold text-muted-foreground leading-tight truncate"
               >
                 {{ t("problem.solutions.solveToWrite") }}
               </span>
@@ -322,7 +322,7 @@ onMounted(async () => {
           </div>
 
           <button
-            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white dark:text-[var(--solarized-base03)] shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+            class="flex h-7.5 flex-shrink-0 items-center gap-1 rounded-none bg-[var(--accent-electric)] px-3 py-1 text-xxs font-bold uppercase tracking-wider text-white dark:text-[var(--solarized-base03)] shadow-xs transition-all hover:bg-[var(--accent-electric)]/90 active:bg-[var(--accent-electric)] cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
             <PenLine

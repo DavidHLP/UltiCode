@@ -18,6 +18,22 @@ export { getThemeStorage, setThemeStorage, type ThemeStorage } from './storage'
 // Pure DOM helpers (also used by the FOUC bootstrap script)
 export { applyThemeToDOM, isDarkMode } from './applyThemeToDOM'
 
+// Typography token metadata + density helper (see typography.css)
+export {
+  TYPOGRAPHY_DENSITIES,
+  TYPOGRAPHY_DENSITY,
+  applyTypographyDensity,
+  getTypographyDensity,
+  typographyCssVariables,
+  typographyFoundationPrefixes,
+  typographySizes,
+  typographyUtilityClasses,
+  type TypographyCssVariable,
+  type TypographyDensity,
+  type TypographySizeToken,
+  type TypographyUtilityClass,
+} from './typography'
+
 // Vue composable
 // Note: `__resetForTest` is intentionally NOT re-exported from the public
 // barrel — it is a test-only entry point and consumers should import it

@@ -56,7 +56,7 @@ const emit = defineEmits<{
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-0.5 h-4 px-1.5 text-[10px] font-bold rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20"
+              class="ml-0.5 h-4 px-1.5 text-2xs font-bold rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20"
             >
               {{ activeFilterCount }}
             </Badge>

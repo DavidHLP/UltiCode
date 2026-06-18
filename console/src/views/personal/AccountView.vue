@@ -219,7 +219,7 @@ onMounted(async () => {
                         class="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
                       />
                     </div>
-                    <p class="text-[0.7rem] text-muted-foreground italic">
+                    <p class="text-xxs text-muted-foreground italic">
                       {{ t("personal.account.usernameUnique") }}
                     </p>
                   </div>
@@ -234,7 +234,7 @@ onMounted(async () => {
                       v-model="user.name"
                       placeholder="John Doe"
                     />
-                    <p class="text-[0.7rem] text-muted-foreground">
+                    <p class="text-xxs text-muted-foreground">
                       {{ t("personal.profile.displayName") }}
                     </p>
                   </div>
@@ -252,7 +252,7 @@ onMounted(async () => {
                     :placeholder="t('personal.profile.bioPlaceholder')"
                     class="min-h-[120px] resize-none"
                   />
-                  <p class="text-[0.7rem] text-muted-foreground">
+                  <p class="text-xxs text-muted-foreground">
                     {{ t("personal.profile.bioPlaceholder") }}
                   </p>
                 </div>

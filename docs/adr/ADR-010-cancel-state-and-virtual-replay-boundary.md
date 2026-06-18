@@ -5,7 +5,7 @@
 | **状态 (Status)** | **Accepted** (R7.5 决策记录，2026-06-17) |
 | **日期 (Date)** | 2026-06-17 |
 | **作者 (Author)** | DavidHLP |
-| **来源** | [PRD §P4 / P5](../contest/PRD.md) + [REVIEW_V3 §3 P0-2 / P0-4](../contest/REVIEW_V3.md) + [EXECUTION_PLAN_R7 §6](../contest/completed/EXECUTION_PLAN_R7.md) |
+| **来源** | [PRD §P4 / P5](../contest/PRD.md) + [REVIEW_V3 §3 P0-2 / P0-4](../contest/REVIEW_V3.md) + [EXECUTION_PLAN_R7 §6](../contest/_archive/EXECUTION_PLAN_R7_2026-06-17.md) |
 | **关联代码** | `contest/scheduler/ContestScheduler.java` (transitionToFinished), `contest/service/impl/ContestSchedulerServiceImpl.java` (startVirtualContest) |
 
 ---
@@ -70,6 +70,6 @@ PRD P4/P5 决策 + REVIEW_V3 标注的"未实现状态"：
 ## 5. References
 
 - [REVIEW_V3.md §3 P0-2 / P0-4](../contest/REVIEW_V3.md)
-- [EXECUTION_PLAN_R7.md §6](../contest/completed/EXECUTION_PLAN_R7.md)
+- [EXECUTION_PLAN_R7 §6](../contest/_archive/EXECUTION_PLAN_R7_2026-06-17.md)
 - [F-22 audit doc](../contest/F-22-VIRTUAL-SESSION-CROSS-CONTEST-AUDIT.md)
 - [ADR-007 §6 / §7](../adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md)

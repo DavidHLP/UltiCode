@@ -44,8 +44,8 @@ function handleOAuth() {
   height: 2.75rem;
   gap: 0.75rem;
   padding: 0 1.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+  font-weight: var(--uc-font-weight-medium)
+  font-size: var(--uc-text-sm);
   color: var(--foreground);
   background: transparent;
   border: 1px solid var(--border);

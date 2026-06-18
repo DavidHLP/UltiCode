@@ -143,12 +143,12 @@ const recentActivity = computed(() => {
             <div class="mt-1 flex items-center gap-1.5">
               <Badge
                 variant="secondary"
-                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1 py-0 h-4 text-[9px] font-bold"
+                class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1 py-0 h-4 text-2xs font-bold"
               >
                 DIAMOND III
               </Badge>
               <span
-                class="text-[10px] text-muted-foreground font-medium uppercase"
+                class="text-2xs text-muted-foreground font-medium uppercase"
                 >{{ t("personal.stats.topPercent", { percent: "0.5" }) }}</span
               >
             </div>
@@ -173,7 +173,7 @@ const recentActivity = computed(() => {
             <div class="text-3xl font-bold tracking-tight text-foreground">
               {{ statsData?.totalSolved || 0 }}
             </div>
-            <div class="mt-1 text-[10px] text-muted-foreground font-medium">
+            <div class="mt-1 text-2xs text-muted-foreground font-medium">
               {{ t("personal.profile.totalProblems") }}
             </div>
           </CardContent>
@@ -228,7 +228,7 @@ const recentActivity = computed(() => {
                 <Target class="h-4 w-4 text-primary/80" />
                 {{ t("personal.profile.solvingProgress") }}
               </CardTitle>
-              <div class="text-[11px] font-bold text-muted-foreground/80">
+              <div class="text-xxs font-bold text-muted-foreground/80">
                 {{ t("personal.profile.overallProgress") }}
                 {{
                   (
@@ -255,13 +255,13 @@ const recentActivity = computed(() => {
                       t(`personal.stats.${difficulty}`)
                     }}</span>
                     <span
-                      class="font-mono text-muted-foreground/80 text-[10px]"
+                      class="font-mono text-muted-foreground/80 text-2xs"
                     >
                       {{ stat.count }} / {{ stat.total }}
                     </span>
                   </div>
                   <span
-                    class="font-mono font-black text-[11px]"
+                    class="font-mono font-black text-xxs"
                     :class="stat.color"
                   >
                     {{ ((stat.count / (stat.total || 1)) * 100).toFixed(1) }}%
@@ -294,7 +294,7 @@ const recentActivity = computed(() => {
               {{ t("personal.skills.title") }}
             </CardTitle>
             <CardDescription
-              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              class="text-xxs text-muted-foreground/85 mt-0.5"
               >{{ t("personal.skills.subtitle") }}</CardDescription
             >
           </CardHeader>
@@ -315,7 +315,7 @@ const recentActivity = computed(() => {
             {{ t("personal.profile.heatmapTitle") }}
           </CardTitle>
           <CardDescription
-            class="text-[11px] text-muted-foreground/85 mt-0.5"
+            class="text-xxs text-muted-foreground/85 mt-0.5"
             >{{ t("personal.profile.heatmapSubtitle") }}</CardDescription
           >
         </CardHeader>
@@ -337,7 +337,7 @@ const recentActivity = computed(() => {
               {{ t("personal.history.title") }}
             </CardTitle>
             <CardDescription
-              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              class="text-xxs text-muted-foreground/85 mt-0.5"
               >{{ t("personal.history.subtitle") }}</CardDescription
             >
           </CardHeader>
@@ -357,7 +357,7 @@ const recentActivity = computed(() => {
               {{ t("personal.learning.title") }}
             </CardTitle>
             <CardDescription
-              class="text-[11px] text-muted-foreground/85 mt-0.5"
+              class="text-xxs text-muted-foreground/85 mt-0.5"
               >{{ t("personal.learning.subtitle") }}</CardDescription
             >
           </CardHeader>
@@ -418,12 +418,12 @@ const recentActivity = computed(() => {
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
                   <span
-                    class="text-[10px] font-medium text-muted-foreground/75"
+                    class="text-2xs font-medium text-muted-foreground/75"
                     >{{ item.time }}</span
                   >
                   <Badge
                     variant="outline"
-                    class="text-[9px] h-3.5 px-1 rounded-none font-bold uppercase tracking-tighter"
+                    class="text-2xs h-3.5 px-1 rounded-none font-bold uppercase tracking-tighter"
                     :class="
                       item.status === 'Accepted'
                         ? 'border-[var(--terminal-green)]/50 text-[var(--terminal-green)]'

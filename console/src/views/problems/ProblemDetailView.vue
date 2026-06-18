@@ -17,6 +17,7 @@ import LayoutTree from "@/features/layout/tree/LayoutTree.vue";
 import { useProblemLayout } from "./composables/useProblemLayout";
 import { useProblemPanels } from "./composables/useProblemPanels";
 import { useContestProblemContext } from "./composables/useContestProblemContext";
+import ContestProblemShell from "./components/ContestProblemShell.vue";
 import { useProblemDetail } from "./useProblemDetail";
 
 import DescriptionView from "@/views/problems/description/DescriptionView.vue";
@@ -260,6 +261,14 @@ onMounted(() => {
         />
       </SheetContent>
     </Sheet>
+
+    <!--
+      Contest shell — sticky bar above the existing header. Renders
+      only when `?contestId=...` is set (handled inside the SFC).
+      Sits OUTSIDE <header> so it spans the full viewport width
+      with its own background and shadow.
+    -->
+    <ContestProblemShell />
 
     <header
       class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5"

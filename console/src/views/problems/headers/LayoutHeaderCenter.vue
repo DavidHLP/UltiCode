@@ -17,6 +17,7 @@ import { toast } from "vue-sonner";
 import { useProblemContext } from "../useProblemContext";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useAuthStore } from "@/stores/auth";
+import { useContestProblemShellStore } from "@/stores/contestProblemShell";
 import { useI18n } from "vue-i18n";
 import { registerGlobalShortcut } from "@/composables/useGlobalShortcuts";
 import KeyboardShortcutsModal from "@/components/editor/KeyboardShortcutsModal.vue";
@@ -69,7 +70,17 @@ async function handleSubmit() {
           language: currentLanguage,
           code: currentCode,
         });
-    toast.success(`${t("problem.editor.submit")} ${res.status}!`);
+    // In contest mode the contest-aware toast is rendered by the
+    // ContestProblemShell (it has access to score, rank, penalty).
+    // The shell watches `useContestProblemShellStore().lastSubmitResult`
+    // — pushing here is what triggers the toast + score refresh.
+    // Outside contest mode we keep the simple "Submitted: <verdict>"
+    // toast that's been there since v1.
+    if (contestId.value) {
+      useContestProblemShellStore().pushSubmit(res);
+    } else {
+      toast.success(`${t("problem.editor.submit")} ${res.status}!`);
+    }
     headerStore.setActiveGroup("problem-info");
     headerStore.setActiveHeader("problem-info", 3);
   } catch (e) {

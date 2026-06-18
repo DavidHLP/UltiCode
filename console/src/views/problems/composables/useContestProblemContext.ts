@@ -4,7 +4,7 @@
  * Centralises "what contest am I in, and is the current problem part of it"
  * for the problem page. Consumed by LayoutHeaderLeft (to swap the
  * site-wide prev/next/random nav for a contest-scoped one), the
- * ContestProblemShell, and the ContestReviewPanel.
+ * ContestProblemDock, and the announcement bell.
  *
  * Data sources (all from the contest store; no new endpoints):
  *   - `currentContest`            (loaded via loadContestDetail)
@@ -174,7 +174,8 @@ export function useContestProblemContext(
       a.problemIndex.localeCompare(b.problemIndex),
     );
     const pid = problem.value?.id;
-    const current = list.find((p: ContestProblemSummary) => p.problemId === pid) ?? null;
+    const current =
+      list.find((p: ContestProblemSummary) => p.problemId === pid) ?? null;
     if (!current) return { prev: null, next: null, current: null };
     const idx = list.indexOf(current);
     return {
@@ -193,7 +194,9 @@ export function useContestProblemContext(
     const pid = problem.value?.id;
     if (pid == null) return null;
     if (problems.value.length === 0) return null; // problems not loaded yet
-    return problems.value.some((p: ContestProblemSummary) => p.problemId === pid);
+    return problems.value.some(
+      (p: ContestProblemSummary) => p.problemId === pid,
+    );
   });
 
   async function refreshParticipation(): Promise<void> {

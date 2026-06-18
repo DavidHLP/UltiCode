@@ -15,9 +15,7 @@ function readSource(path: string) {
  * query parameter that the contest problem page sets.
  */
 describe("useProblemLayout hides solutions tab in contest mode", () => {
-  const source = readSource(
-    "views/problems/composables/useProblemLayout.ts",
-  );
+  const source = readSource("views/problems/composables/useProblemLayout.ts");
 
   it("treats the presence of route.query.contestId as contest context", () => {
     expect(source).toMatch(/route\.query\.contestId/);
@@ -99,15 +97,15 @@ describe("MobileProblemLayout hides solutions tab in contest mode", () => {
 
   it("reads contestId from the problem context", () => {
     expect(source).toMatch(/useProblemContext/);
-    expect(source).toMatch(/const\s*\{\s*contestId\s*\}\s*=\s*useProblemContext/);
+    expect(source).toMatch(
+      /const\s*\{\s*contestId\s*\}\s*=\s*useProblemContext/,
+    );
   });
 
   it("rebuilds the tab list when contestId changes", () => {
     // `tabs` must be a computed so the mobile tab bar reacts to the
     // contest query parameter.
-    expect(source).toMatch(
-      /const\s+tabs\s*=\s*computed\(\s*\(\)\s*=>\s*\{/,
-    );
+    expect(source).toMatch(/const\s+tabs\s*=\s*computed\(\s*\(\)\s*=>\s*\{/);
   });
 
   it("omits the solutions entry when contestId is set", () => {
@@ -126,7 +124,9 @@ describe("MobileProblemLayout hides solutions tab in contest mode", () => {
   it("falls back to description when the URL still points at solutions in contest mode", () => {
     // Initial URL→activeTab sync must rewrite `?tab=solutions` to
     // description so refreshes on the hidden tab do not break the UI.
-    expect(source).toMatch(/contestId\.value\s*!==\s*null[\s\S]*?"solutions"[\s\S]*?"description"/);
+    expect(source).toMatch(
+      /contestId\.value\s*!==\s*null[\s\S]*?"solutions"[\s\S]*?"description"/,
+    );
   });
 
   it("preserves route.query in the URL→activeTab sync", () => {
@@ -142,9 +142,7 @@ describe("MobileProblemLayout hides solutions tab in contest mode", () => {
 });
 
 describe("LayoutHeaderLeft preserves contest context on prev/next nav", () => {
-  const source = readSource(
-    "views/problems/headers/LayoutHeaderLeft.vue",
-  );
+  const source = readSource("views/problems/headers/LayoutHeaderLeft.vue");
 
   it("forwards the current query to the prev/next problem route", () => {
     // Both the previous- and next-problem RouterLink `to` objects must
@@ -158,5 +156,24 @@ describe("LayoutHeaderLeft preserves contest context on prev/next nav", () => {
     for (const block of toBlockMatches!) {
       expect(block).toMatch(/query:\s*\$route\.query/);
     }
+  });
+});
+
+describe("Problem detail contest context lives in the main toolbar", () => {
+  const problemDetailSource = readSource(
+    "views/problems/ProblemDetailView.vue",
+  );
+  const headerControlsSource = readSource(
+    "views/problems/headers/LayoutHeaderControls.vue",
+  );
+
+  it("does not render the old full-width contest shell above the problem workspace", () => {
+    expect(problemDetailSource).not.toMatch(/<ContestProblemShell\b/);
+    expect(problemDetailSource).not.toMatch(/<ContestReviewPanel\b/);
+  });
+
+  it("mounts the compact contest dock in the main toolbar controls", () => {
+    expect(headerControlsSource).toMatch(/ContestProblemDock/);
+    expect(headerControlsSource).toMatch(/<ContestProblemDock\s*\/>/);
   });
 });

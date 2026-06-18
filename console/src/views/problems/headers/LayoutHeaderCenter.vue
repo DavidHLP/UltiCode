@@ -71,8 +71,8 @@ async function handleSubmit() {
           code: currentCode,
         });
     // In contest mode the contest-aware toast is rendered by the
-    // ContestProblemShell (it has access to score, rank, penalty).
-    // The shell watches `useContestProblemShellStore().lastSubmitResult`
+    // ContestProblemDock (it has access to score, rank, penalty).
+    // The dock watches `useContestProblemShellStore().lastSubmitResult`
     // — pushing here is what triggers the toast + score refresh.
     // Outside contest mode we keep the simple "Submitted: <verdict>"
     // toast that's been there since v1.

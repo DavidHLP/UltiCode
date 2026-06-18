@@ -99,9 +99,8 @@ export default {
       description: "Return to the contest to browse its problems.",
       action: "Return to Contest",
     },
-    // ContestProblemShell labels — surfaced in the sticky bar above
-    // the problem page so the user always knows which contest
-    // they're in, how much time is left, and their score.
+    // ContestProblemDock labels — surfaced in the toolbar popover so
+    // contest context stays available without adding a full-width bar.
     shell: {
       score: "Score",
       rank: "Rank",
@@ -202,8 +201,7 @@ export default {
     layoutCollapsedForRunning: "Rules hidden while the contest is running",
   },
 
-  // ContestReviewPanel labels — surfaced only on FINISHED contest
-  // problem pages, behind the shell.
+  // Post-game review labels — surfaced in the contest toolbar popover.
   review: {
     title: "Review",
     firstACLabel: "First accepted",

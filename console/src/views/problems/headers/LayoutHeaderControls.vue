@@ -29,6 +29,7 @@ import { RouterLink } from "vue-router";
 import { ProblemEdgeOperations } from "@/components/edge-operations";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
+import ContestProblemDock from "../components/ContestProblemDock.vue";
 
 interface Props {
   currentLayout: "leet" | "classic" | "compact" | "wide";
@@ -129,6 +130,9 @@ const userEntryFallbackClass = [
 <template>
   <div class="flex flex-1 items-center justify-end overflow-hidden">
     <div class="flex items-center gap-3 focus:outline-none">
+      <!-- Group 0: Contest context dock (renders only for ?contestId=...) -->
+      <ContestProblemDock />
+
       <!-- Group 1: Problem Operations (Vote & Save) -->
       <ProblemEdgeOperations v-if="problem" :problem="problem" />
 

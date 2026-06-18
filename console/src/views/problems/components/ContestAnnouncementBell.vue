@@ -2,15 +2,15 @@
 /**
  * ContestAnnouncementBell
  *
- * Bell button in the ContestProblemShell that opens a popover with
- * the contest's announcements. Wired up in Chunk E (P1-5).
+ * Bell button inside the contest dock that opens a popover with the
+ * contest's announcements.
  *
  * Data flow:
  *  - Initial list: `getAnnouncements(contestId)` on mount.
  *  - Live updates: `useContestSocket().onAnnouncement(cb)` to prepend
  *    new items while the user is on the page.
  *  - Unread count: stored in `useContestProblemShellStore().announceUnreadCount`
- *    so the shell can show a red badge even when the popover is closed.
+ *    so the dock can show a red badge even when the popover is closed.
  *
  * v1 "unread" policy (per the product spec):
  *   The backend has no per-user lastReadAt. We use "created in the
@@ -22,7 +22,11 @@
 import { computed, inject, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { Bell, Pin } from "lucide-vue-next";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
 import { getAnnouncements } from "@/api/contest";
@@ -82,7 +86,10 @@ function handleSocketAnnouncement(payload: {
       contestId: payload.contestId,
       title: payload.title,
       content: payload.content,
-      createdAt: typeof payload.createdAt === "string" ? payload.createdAt : payload.createdAt.toISOString(),
+      createdAt:
+        typeof payload.createdAt === "string"
+          ? payload.createdAt
+          : payload.createdAt.toISOString(),
       // The WS payload doesn't expose `isPinned`; default to false
       // unless the rest fetch later fills it in.
       isPinned: false,
@@ -95,7 +102,10 @@ function handleSocketAnnouncement(payload: {
       contestId: payload.contestId,
       title: payload.title,
       content: payload.content,
-      createdAt: typeof payload.createdAt === "string" ? payload.createdAt : payload.createdAt.toISOString(),
+      createdAt:
+        typeof payload.createdAt === "string"
+          ? payload.createdAt
+          : payload.createdAt.toISOString(),
       isPinned: false,
       updatedAt: new Date().toISOString(),
       author: null,
@@ -175,7 +185,11 @@ onUnmounted(() => {
           class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[var(--terminal-amber)] px-1 text-[9px] font-black text-white"
           :data-testid="'shell-announcement-badge'"
         >
-          {{ shellStore.announceUnreadCount > 99 ? "99+" : shellStore.announceUnreadCount }}
+          {{
+            shellStore.announceUnreadCount > 99
+              ? "99+"
+              : shellStore.announceUnreadCount
+          }}
         </span>
       </button>
     </PopoverTrigger>
@@ -193,9 +207,11 @@ onUnmounted(() => {
           v-if="shellStore.announceUnreadCount > 0"
           class="text-[var(--terminal-amber)]"
         >
-          {{ t("contest.detail.announcements.unread", {
-            n: shellStore.announceUnreadCount,
-          }) }}
+          {{
+            t("contest.detail.announcements.unread", {
+              n: shellStore.announceUnreadCount,
+            })
+          }}
         </span>
       </header>
 
@@ -232,7 +248,9 @@ onUnmounted(() => {
                     {{ formatTime(a.createdAt) }}
                   </time>
                 </div>
-                <p class="mt-1 line-clamp-3 text-[11px] leading-snug text-muted-foreground">
+                <p
+                  class="mt-1 line-clamp-3 text-[11px] leading-snug text-muted-foreground"
+                >
                   {{ a.content }}
                 </p>
                 <p

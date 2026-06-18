@@ -10,8 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { toast } from "vue-sonner";
-import { Trophy, Calendar, Clock, Users } from "lucide-vue-next";
+import { Trophy, Calendar, Clock, Users, ChevronDown } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import VirtualContestTimer from "../components/VirtualContestTimer.vue";
 import ContestHeader from "./components/ContestHeader.vue";
@@ -335,27 +340,42 @@ function getErrorMessage(error: unknown, fallback: string) {
         </Card>
       </div>
 
-      <Card
+      <!--
+        Rules card — collapsed by default during RUNNING contests
+        (and during virtual replays) so the problem list is the
+        first scrollable content. Per PROBLEM_DETAIL_PAGE_PRODUCT_FIX.md
+        §P1-1, running contests should serve "enter the problem"
+        on first paint, not "read the rules".
+      -->
+      <Collapsible
         v-if="contest.rules"
+        :default-open="
+          contest.status !== 'RUNNING' && !virtualSessionActive
+        "
         class="border border-border bg-[var(--solarized-base3)] dark:bg-[var(--solarized-base02)] shadow-sm overflow-hidden rounded-none"
       >
-        <CardHeader
-          class="pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
-        >
-          <CardTitle
-            class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)]"
+        <CollapsibleTrigger as-child>
+          <CardHeader
+            class="cursor-pointer pb-3 border-b border-border bg-[var(--silver-100)]/50 dark:bg-[var(--solarized-base03)]/50"
           >
-            {{ t("contest.detail.rules") }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="p-6">
-          <p
-            class="text-sm text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] whitespace-pre-line leading-relaxed"
-          >
-            {{ contest.rules }}
-          </p>
-        </CardContent>
-      </Card>
+            <CardTitle
+              class="text-xs font-bold font-mono uppercase tracking-widest text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] flex items-center justify-between gap-2"
+            >
+              <span>{{ t("contest.detail.rules") }}</span>
+              <ChevronDown class="h-4 w-4 transition-transform" />
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent class="p-6">
+            <p
+              class="text-sm text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] whitespace-pre-line leading-relaxed"
+            >
+              {{ contest.rules }}
+            </p>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
 
       <!-- Main Content Area -->
       <Tabs default-value="problems" class="w-full">

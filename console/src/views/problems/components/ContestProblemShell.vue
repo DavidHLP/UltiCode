@@ -25,10 +25,11 @@
 import { computed, inject, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { ArrowLeft, Target, Trophy, Timer, Bell, Lightbulb } from "lucide-vue-next";
+import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import ContestStatusBadge from "@/views/contest/components/ContestStatusBadge.vue";
 import ContestTimer from "@/views/contest/components/ContestTimer.vue";
+import ContestAnnouncementBell from "./ContestAnnouncementBell.vue";
 import { ContestProblemContextKey } from "../problem-context";
 import { useContestProblemShellStore } from "@/stores/contestProblemShell";
 import { useContestStore } from "@/stores/contest";
@@ -347,24 +348,10 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Announcement bell — wired up in Chunk E; v1 just shows
-             the unread count from the shell store with a static
-             click handler that opens nothing yet. -->
-        <button
-          type="button"
-          class="relative flex h-7 w-7 items-center justify-center rounded-none border border-border text-muted-foreground transition-colors hover:bg-[var(--silver-100)]/50 hover:text-[var(--solarized-base01)] dark:hover:bg-[var(--solarized-base03)]/50 dark:hover:text-[var(--solarized-base1)] cursor-pointer"
-          :data-testid="'shell-announcement-bell'"
-          :title="t('contest.detail.announcements.title')"
-        >
-          <Bell class="h-3.5 w-3.5" />
-          <span
-            v-if="shellStore.announceUnreadCount > 0"
-            class="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[var(--terminal-amber)] px-1 text-[9px] font-black text-white"
-            :data-testid="'shell-announcement-badge'"
-          >
-            {{ shellStore.announceUnreadCount }}
-          </span>
-        </button>
+        <!-- Announcement bell — backed by ContestAnnouncementBell.
+             Renders the badge from the shell store; click opens a
+             popover with the contest's announcements. -->
+        <ContestAnnouncementBell />
       </div>
     </div>
 

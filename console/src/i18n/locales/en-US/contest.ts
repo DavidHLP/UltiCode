@@ -125,6 +125,17 @@ export default {
       wrongAnswer: "Wrong Answer — may add +{penalty}s penalty",
       compileError: "Compile Error — not scored",
     },
+    // Announcement bell in the shell. "unread" is a degraded
+    // v1 heuristic (last 24h); per-user lastReadAt is a
+    // future schema change.
+    announcements: {
+      title: "Announcements",
+      empty: "No announcements yet.",
+      unread: "{n} unread",
+      markRead: "Mark all as read",
+      pinned: "Pinned",
+    },
+    layoutCollapsedForRunning: "Rules hidden while the contest is running",
     registering: "Registering...",
     unregistering: "Unregistering...",
     starting: "Starting...",

@@ -125,19 +125,6 @@ export default {
       markRead: "全部标记为已读",
       pinned: "置顶",
     },
-    layoutCollapsedForRunning: "比赛进行中规则已折叠",
-  },
-
-  // ContestReviewPanel 标签 — 仅在已结束比赛的题目页显示。
-  review: {
-    title: "赛后复盘",
-    firstAC: "首次通过 {time}",
-    finalScore: "最终得分 {score}",
-    verdictBreakdown: "共 {n} 次提交 · 错 {wa} · TLE {tle} · RE {re} · CE {ce}",
-    retake: "重新练习",
-    addToNotebook: "加入错题本",
-    viewOnRanking: "查看",
-    empty: "暂无本题提交记录。",
     registering: "报名中...",
     unregistering: "取消报名中...",
     starting: "开始中...",
@@ -197,6 +184,22 @@ export default {
       description: "您正在寻找的比赛可能已被移动或删除。",
       return: "返回比赛列表",
     },
+    layoutCollapsedForRunning: "比赛进行中规则已折叠",
+  },
+
+  // ContestReviewPanel 标签 — 仅在已结束比赛的题目页显示。
+  review: {
+    title: "赛后复盘",
+    firstACLabel: "首次通过",
+    firstAC: "首次通过 {time}",
+    finalScoreLabel: "最终得分",
+    finalScore: "最终得分 {score}",
+    breakdownLabel: "判题分布",
+    verdictBreakdown: "共 {n} 次提交 · 错 {wa} · TLE {tle} · RE {re} · CE {ce}",
+    retake: "重新练习",
+    addToNotebook: "加入错题本",
+    viewOnRanking: "查看",
+    empty: "暂无本题提交记录。",
   },
 
   // My Contests page

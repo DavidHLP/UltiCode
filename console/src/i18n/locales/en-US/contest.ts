@@ -135,21 +135,6 @@ export default {
       markRead: "Mark all as read",
       pinned: "Pinned",
     },
-    layoutCollapsedForRunning: "Rules hidden while the contest is running",
-  },
-
-  // ContestReviewPanel labels — surfaced only on FINISHED contest
-  // problem pages, behind the shell.
-  review: {
-    title: "Review",
-    firstAC: "First accepted at {time}",
-    finalScore: "Final score: {score}",
-    verdictBreakdown:
-      "{n} submissions · {wa} wrong · {tle} TLE · {re} RE · {ce} CE",
-    retake: "Retake as practice",
-    addToNotebook: "Add to notebook",
-    viewOnRanking: "View",
-    empty: "No submissions for this problem yet.",
     registering: "Registering...",
     unregistering: "Unregistering...",
     starting: "Starting...",
@@ -214,6 +199,24 @@ export default {
         "The contest you are looking for might have been moved or removed.",
       return: "Return to Contests",
     },
+    layoutCollapsedForRunning: "Rules hidden while the contest is running",
+  },
+
+  // ContestReviewPanel labels — surfaced only on FINISHED contest
+  // problem pages, behind the shell.
+  review: {
+    title: "Review",
+    firstACLabel: "First accepted",
+    firstAC: "First accepted at {time}",
+    finalScoreLabel: "Final score",
+    finalScore: "Final score: {score}",
+    breakdownLabel: "Verdicts",
+    verdictBreakdown:
+      "{n} submissions · {wa} wrong · {tle} TLE · {re} RE · {ce} CE",
+    retake: "Retake as practice",
+    addToNotebook: "Add to notebook",
+    viewOnRanking: "View",
+    empty: "No submissions for this problem yet.",
   },
 
   // My Contests page

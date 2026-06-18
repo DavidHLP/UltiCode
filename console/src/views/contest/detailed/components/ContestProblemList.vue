@@ -88,9 +88,11 @@ function problemLink(slug: string) {
 }
 
 // Resolved per-row action (label + i18n key + button variant).
+type RowVariant = "default" | "outline" | "destructive" | "secondary" | "ghost" | "link";
+
 function rowAction(
   problemId: number,
-): { key: RowAction; label: string; variant: string } {
+): { key: RowAction; label: string; variant: RowVariant } {
   const action = getRowAction(props.contest.status, getProblemStatus(problemId));
   // i18n key per action; "review" is a separate branch so post-game
   // users get a distinct CTA even when the personal status is "todo".

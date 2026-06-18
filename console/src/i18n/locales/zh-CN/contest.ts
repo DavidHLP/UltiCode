@@ -95,6 +95,27 @@ export default {
       description: "请返回比赛页面查看本题集。",
       action: "返回比赛",
     },
+    // ContestProblemShell 顶部状态条标签。比赛中用户在题目页
+    // 始终能看到当前比赛、剩余时间、得分、排名。
+    shell: {
+      score: "得分",
+      rank: "排名",
+      solved: "已过",
+      problems: "题目",
+      endsIn: "剩余",
+      startsIn: "距开始",
+      problemNav: "题目导航",
+    },
+    // 标题下方一行小字,解释为什么比赛进行中看不到题解。
+    solutionsHiddenHint: "题解与公开代码已在比赛期间隐藏，比赛结束后开放。",
+    // 比赛化提交反馈 (Chunk D)。不同状态显示不同消息,让用户
+    // 立刻看到这次提交对比赛结果的影响。
+    submit: {
+      judging: "已提交,正在判题…",
+      accepted: "通过 +{delta} 分 · 当前 {total} 分 · 已过 {solved}/{totalProblems}",
+      wrongAnswer: "未通过 — 可能产生 +{penalty} 秒罚时",
+      compileError: "编译错误 — 不计入排名",
+    },
     registering: "报名中...",
     unregistering: "取消报名中...",
     starting: "开始中...",

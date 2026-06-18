@@ -99,6 +99,32 @@ export default {
       description: "Return to the contest to browse its problems.",
       action: "Return to Contest",
     },
+    // ContestProblemShell labels — surfaced in the sticky bar above
+    // the problem page so the user always knows which contest
+    // they're in, how much time is left, and their score.
+    shell: {
+      score: "Score",
+      rank: "Rank",
+      solved: "Solved",
+      problems: "Problems",
+      endsIn: "Ends in",
+      startsIn: "Starts in",
+      problemNav: "Problems",
+    },
+    // Sub-line under the title; explains why the Solutions tab
+    // isn't visible during a live contest. P1-3 in the spec.
+    solutionsHiddenHint:
+      "Solutions and public code are hidden during the contest. They unlock after it ends.",
+    // Contest-aware submit feedback (Chunk D). Each status maps
+    // to a dedicated message so the user can see how this submit
+    // changed their contest standing.
+    submit: {
+      judging: "Submitted — scoring…",
+      accepted:
+        "Accepted +{delta} pts · {total} pts · {solved}/{totalProblems} solved",
+      wrongAnswer: "Wrong Answer — may add +{penalty}s penalty",
+      compileError: "Compile Error — not scored",
+    },
     registering: "Registering...",
     unregistering: "Unregistering...",
     starting: "Starting...",

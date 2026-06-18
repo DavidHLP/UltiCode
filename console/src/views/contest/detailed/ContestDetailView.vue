@@ -35,9 +35,30 @@ const startingVirtual = ref(false);
 const contestProblems = ref<ContestProblemSummary[]>([]);
 
 const isRegistered = computed(() => contestStore.isRegistered(contestId));
-// 委托 store 的归一化判定（后端返回 status "started"，store 已处理枚举错配），
-// 避免在此重复硬编码 "IN_PROGRESS"。
-const virtualSessionActive = computed(() => contestStore.isInVirtualContest);
+// R10.6 / anti-cheat: 虚拟赛是「对某场赛的个人重放」，存在与否是 contest-scoped
+// 的。store 的 virtualSession 是单例 ref（在 store loadVirtualSession(contestId)
+// 完成时被覆盖为当前场次的 session），如果不显式校验 contestId，父组件会
+// 在切到另一场赛但旧 session 尚未被清掉的窗口期里误报 active，导致
+// ContestProblemList 给题目链接挂上 ?contestId=，反之亦然（用户在 A 场 active
+// session 时进 B 场赛详情，B 场被误判为 active）。
+// store 的 isInVirtualContest 只负责归一化 status 字面量（"started" /
+// "IN_PROGRESS" / isActive 布尔），避免在此重复硬编码。
+//
+// ⚠️ R10.6.1 / H2: 必须用 `contest.value?.id`（数据库主键）而不是 `contestId`
+//（URL slug）。两者看起来是同一类东西但语义不同：
+//   - route.params.slug       = "linked-list-special"        （URL 路径，路由参数）
+//   - contest.value.id        = "contest-upcoming-002"        （数据库主键）
+//   - session.contestId       = "contest-upcoming-002"        （后端存的是主键，见
+//                                  ContestSchedulerServiceImpl.getVirtualSession）
+// 后端 `resolveContestId(slug)` 在 controller 层把 URL 解析成主键再查 DB，
+// 但 API 响应里返回的 contestId 已经是主键，不是 slug。前两版 v10.6 / v10.6
+// fix 都用 slug 比对，导致 active virtual session 永远被判 false，`?contestId=`
+// 永远挂不上，Solutions tab 在虚拟赛进行中全程可见。
+const virtualSessionActive = computed(
+  () =>
+    contestStore.isInVirtualContest &&
+    contestStore.virtualSession?.contestId === contest.value?.id,
+);
 
 const {
   statusCountdown,

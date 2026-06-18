@@ -219,9 +219,45 @@ describe("ContestProblemList", () => {
     // FINISHED. Without the `isInVirtualSession` signal the Solutions
     // tab would be exposed mid-replay, defeating the anti-cheat
     // invariant at `useProblemLayout.ts:60-62`.
+    //
+    // R10.6 / H1: this case uses `isVirtual: true` (a virtual-only
+    // contest). The real-world regression was the case below, where
+    // `isVirtual: false` (a real, scheduled contest being virtually
+    // replayed). The two cases must both keep `?contestId=...`.
     routerPushMock.mockClear();
     const wrapper = mountList(
       makeContest({ status: "FINISHED", isVirtual: true }),
+      { isInVirtualSession: true },
+    );
+
+    await wrapper.find("tbody tr").trigger("click");
+    await flushPromises();
+
+    expect(routerPushMock).toHaveBeenCalledTimes(1);
+    expect(routerPushMock).toHaveBeenCalledWith({
+      name: "problem-detail",
+      params: { slug: "reverse-linked-list" },
+      query: { contestId: "linked-list-special" },
+    });
+  });
+
+  it("R10.6 keeps ?contestId=... when virtually replaying a real (isVirtual=false) contest", async () => {
+    // Anti-cheat regression: virtual contests are per-user replays of
+    // *real* scheduled contests — the DB `contests.is_virtual` flag
+    // is false for those, but the user has an active virtual session
+    // row in `contest_participants` (is_virtual=1). The previous guard
+    // also required `props.contest.isVirtual === true`, which is
+    // *false* for any real contest being replayed, so `?contestId=...`
+    // was dropped and the Solutions tab became visible mid-replay.
+    //
+    // The fix delegates contestId-scoping to ContestDetailView (which
+    // checks `virtualSession?.contestId === contestId`) and trusts
+    // `isInVirtualSession` alone here. This test pins that contract:
+    // `isVirtual: false` + `isInVirtualSession: true` MUST still keep
+    // `?contestId=...`.
+    routerPushMock.mockClear();
+    const wrapper = mountList(
+      makeContest({ status: "FINISHED", isVirtual: false }),
       { isInVirtualSession: true },
     );
 

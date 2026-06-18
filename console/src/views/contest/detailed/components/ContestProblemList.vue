@@ -50,14 +50,25 @@ const getProblemStatus = (problemId: number) => {
 // once the contest ends so users can browse solutions normally.
 //
 // We additionally keep solutions hidden while the viewer has an active
-// virtual contest session — virtual contests are per-user replays of
-// contests whose underlying `status` is already `FINISHED`, so status
-// alone would expose the Solutions tab mid-replay and bypass the
-// anti-cheat invariant.
+// virtual contest session on THIS contest — virtual contests are
+// per-user replays of contests whose underlying `status` is already
+// `FINISHED`, so status alone would expose the Solutions tab mid-replay
+// and bypass the anti-cheat invariant.
+//
+// R10.6 / anti-cheat fix: do NOT also require `props.contest.isVirtual`.
+// That field is the static "is this a virtual-only contest" flag on the
+// Contest entity (DB `contests.is_virtual`) and is *false* for any
+// real, scheduled contest — including ones the user is virtually
+// replaying. Conflating "user has a virtual session" with "the contest
+// itself is virtual-only" was the H1 regression in d219bd8c6: every
+// virtual replay of a real contest would drop `?contestId=...` and
+// expose editorial write-ups. The `isInVirtualSession` prop is supplied
+// by `ContestDetailView` and is already scoped to this contestId (it
+// checks `virtualSession?.contestId === contestId` upstream), so
+// trusting it alone is safe.
 const contestIsLive = computed(
   () =>
-    props.contest.status === "RUNNING" ||
-    (props.contest.isVirtual === true && props.isInVirtualSession === true),
+    props.contest.status === "RUNNING" || props.isInVirtualSession === true,
 );
 
 // Returned as a typed RouteLocationRaw-style object so vue-router picks up

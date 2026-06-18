@@ -125,6 +125,28 @@ export default {
       difficulty: "Difficulty",
       score: "Score",
       acceptance: "Acceptance",
+      action: "Action",
+    },
+    // Per-row action labels for the contest problem list. Driven by
+    // `getRowAction(contestStatus, problemStatus)` in
+    // ContestProblemList.vue. Each key maps to a short imperative
+    // verb; styling differentiates primary/secondary/disabled.
+    row: {
+      start: "Start",
+      continue: "Continue",
+      view: "View",
+      locked: "Locked",
+      review: "Review",
+      // 全场 / overall field-wide copy. We deliberately separate
+      // these from per-user status to avoid the previous "0 已解决"
+      // ambiguity (the user couldn't tell if 0 meant "no one tried"
+      // vs "system not loaded").
+      solvedByAll: "{n} solved overall",
+      totalSubmissions: "{n} submissions overall",
+      noDataYet: "No submissions yet",
+      attempted: "Attempted {n} times",
+      notStarted: "Not started",
+      solved: "Solved",
     },
     rankingHeaders: {
       rank: "Rank",

@@ -11,9 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Lock, ChevronRight, Target, Award, Check } from "lucide-vue-next";
+import { Lock, Target, Award, Check, Play } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import type { ContestDetail, ContestProblemSummary } from "@/types/contest";
+import {
+  formatAcceptanceRate,
+  getRowAction,
+  type ProblemStatus,
+  type RowAction,
+} from "./contestProblemRow";
 
 const props = defineProps<{
   contest: ContestDetail;
@@ -22,7 +28,7 @@ const props = defineProps<{
   isRegistered: boolean;
   registering: boolean;
   getDifficultyColor: (difficulty: string) => string;
-  problemStatuses?: Record<number, "solved" | "attempted" | "todo">;
+  problemStatuses?: Record<number, ProblemStatus>;
   // Whether the current viewer has an active virtual contest session on
   // this contest. Needed in addition to `contest.status` because virtual
   // contests are per-user replays of contests whose `status` is typically
@@ -38,7 +44,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-const getProblemStatus = (problemId: number) => {
+const getProblemStatus = (problemId: number): ProblemStatus => {
   return props.problemStatuses?.[problemId] || "todo";
 };
 
@@ -79,6 +85,21 @@ function problemLink(slug: string) {
     params: { slug },
     query: contestIsLive.value ? { contestId: props.contestId } : undefined,
   };
+}
+
+// Resolved per-row action (label + i18n key + button variant).
+function rowAction(
+  problemId: number,
+): { key: RowAction; label: string; variant: string } {
+  const action = getRowAction(props.contest.status, getProblemStatus(problemId));
+  // i18n key per action; "review" is a separate branch so post-game
+  // users get a distinct CTA even when the personal status is "todo".
+  const i18nKey = `contest.detail.row.${action}`;
+  const label = t(i18nKey);
+  // "locked" is the only disabled state; the rest are interactive
+  // (the click navigates to the problem page just like the row
+  // itself does).
+  return { key: action, label, variant: action === "locked" ? "outline" : "default" };
 }
 </script>
 
@@ -149,7 +170,10 @@ function problemLink(slug: string) {
               class="w-32 text-center font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
               >{{ t("contest.detail.problemHeaders.acceptance") }}</TableHead
             >
-            <TableHead class="w-20 pr-6 h-10"></TableHead>
+            <TableHead
+              class="w-32 pr-6 text-right font-bold font-mono text-[10px] tracking-wider uppercase text-muted-foreground h-10"
+              >{{ t("contest.detail.problemHeaders.action") }}</TableHead
+            >
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -164,20 +188,21 @@ function problemLink(slug: string) {
               <div
                 v-if="getProblemStatus(problem.problemId) === 'solved'"
                 class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/35 shadow-sm"
-                :title="t('problem.status.solved') || 'Solved'"
+                :title="t('contest.detail.row.solved')"
               >
                 <Check class="h-4.5 w-4.5 stroke-[3]" />
               </div>
               <div
                 v-else-if="getProblemStatus(problem.problemId) === 'attempted'"
                 class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/35 shadow-sm"
-                :title="t('problem.status.attempted') || 'Attempted'"
+                :title="t('contest.detail.row.attempted', { n: 0 })"
               >
                 {{ problem.problemIndex || "?" }}
               </div>
               <div
                 v-else
                 class="flex h-9 w-9 items-center justify-center rounded-none border font-mono text-xs font-black transition-all bg-[var(--silver-100)] dark:bg-[var(--solarized-base03)] text-muted-foreground border-border/40 group-hover:bg-[var(--solarized-base3)] dark:group-hover:bg-[var(--solarized-base02)]"
+                :title="t('contest.detail.row.notStarted')"
               >
                 {{ problem.problemIndex || "#" }}
               </div>
@@ -201,13 +226,24 @@ function problemLink(slug: string) {
                 >
                   <span class="flex items-center gap-1 font-mono">
                     <Target class="h-3.5 w-3.5" />
-                    {{ problem.solvedCount || 0 }}
-                    {{ t("problem.status.solved") }}
+                    <!--
+                      "全场 X 人通过" / "全场 X 次提交" — the backend
+                      returns counts of *other* contestants, not personal
+                      attempts. We render them as 全场 (overall) so the
+                      user understands this is field-wide data, not
+                      their own.
+                    -->
+                    {{
+                      t("contest.detail.row.solvedByAll", {
+                        n: problem.solvedCount || 0,
+                      })
+                    }}
                   </span>
-                  <span class="font-mono"
-                    >{{ problem.submissionCount || 0 }}
-                    {{ t("problem.detail.submissions") }}</span
-                  >
+                  <span class="font-mono">{{
+                    t("contest.detail.row.totalSubmissions", {
+                      n: problem.submissionCount || 0,
+                    })
+                  }}</span>
                 </div>
               </div>
             </TableCell>
@@ -240,20 +276,38 @@ function problemLink(slug: string) {
             <TableCell class="text-center py-3">
               <span
                 class="text-xs font-bold text-[var(--solarized-base00)] dark:text-[var(--solarized-base0)] font-mono"
+                :data-testid="`acceptance-rate-${problem.problemId}`"
               >
-                {{ problem.acceptanceRate || "0%" }}
+                <!--
+                  Backend returns a 0..1 fraction; render as
+                  "73.2%" with 1 decimal per the product spec.
+                  Falls back to "0.0%" if the rate is missing
+                  or non-numeric.
+                -->
+                {{ formatAcceptanceRate(problem.acceptanceRate) }}
               </span>
             </TableCell>
 
             <TableCell class="pr-6 py-3 text-right">
               <Button
                 v-if="problem.slug"
-                size="icon"
-                variant="ghost"
-                class="h-8 w-8 rounded-none text-muted-foreground group-hover:text-[var(--accent-electric)] group-hover:bg-[var(--silver-100)]/50 dark:group-hover:bg-[var(--solarized-base03)]/50 transition-all cursor-pointer"
-                @click.stop="$router.push(problemLink(problem.slug))"
+                :variant="rowAction(problem.problemId).variant"
+                :disabled="rowAction(problem.problemId).key === 'locked'"
+                :class="[
+                  'rounded-none px-3 h-8 font-black text-[10px] uppercase tracking-widest cursor-pointer',
+                  rowAction(problem.problemId).key === 'review'
+                    ? 'border border-border bg-[var(--silver-100)]/60 hover:bg-[var(--silver-100)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] dark:bg-[var(--solarized-base03)]/60'
+                    : rowAction(problem.problemId).key === 'continue'
+                      ? 'bg-[var(--terminal-amber)]/15 border border-[var(--terminal-amber)]/40 text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/25'
+                      : rowAction(problem.problemId).key === 'locked'
+                        ? 'border border-border bg-[var(--silver-100)]/40 text-muted-foreground cursor-not-allowed'
+                        : 'bg-[var(--accent-electric)]/15 border border-[var(--accent-electric)]/40 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25',
+                ]"
+                :data-testid="`row-action-${problem.problemId}`"
+                @click.stop="$router.push(problemLink(problem.slug!))"
               >
-                <ChevronRight class="h-4.5 w-4.5" />
+                <Play v-if="rowAction(problem.problemId).key === 'start'" class="h-3 w-3 mr-1" />
+                {{ rowAction(problem.problemId).label }}
               </Button>
             </TableCell>
           </TableRow>
@@ -262,3 +316,4 @@ function problemLink(slug: string) {
     </CardContent>
   </Card>
 </template>
+

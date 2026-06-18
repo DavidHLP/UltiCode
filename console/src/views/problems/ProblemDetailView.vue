@@ -16,6 +16,7 @@ import LayoutHeaderControls from "./headers/LayoutHeaderControls.vue";
 import LayoutTree from "@/features/layout/tree/LayoutTree.vue";
 import { useProblemLayout } from "./composables/useProblemLayout";
 import { useProblemPanels } from "./composables/useProblemPanels";
+import { useContestProblemContext } from "./composables/useContestProblemContext";
 import { useProblemDetail } from "./useProblemDetail";
 
 import DescriptionView from "@/views/problems/description/DescriptionView.vue";
@@ -35,6 +36,7 @@ import ProblemListDrawer from "@/components/problem/ProblemListDrawer.vue";
 import ProblemNotesDrawer from "@/components/problem/ProblemNotesDrawer.vue";
 import { problemHooks } from "@/hooks/problem-hooks";
 import {
+  ContestProblemContextKey,
   ProblemContextKey,
   ToggleNotesKey,
   ToggleSidePanelKey,
@@ -52,6 +54,14 @@ const { isSidePanelOpen, isNotesOpen, toggleSidePanel, toggleNotes } =
 
 provide(ToggleSidePanelKey, toggleSidePanel);
 provide(ToggleNotesKey, toggleNotes);
+
+// Provide the contest context for header / shell / review panel
+// consumers. The composable self-loads contest data from the store
+// when `route.query.contestId` is set; on a regular problem page
+// the inject in LayoutHeaderLeft falls back to a no-op and the
+// existing site-wide nav is preserved.
+const contestCtx = useContestProblemContext();
+provide(ContestProblemContextKey, contestCtx);
 
 // --- Data Fetching ---
 const route = useRoute();

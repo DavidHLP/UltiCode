@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { storeToRefs } from "pinia";
 import { useRoute } from "vue-router";
 import { useContestStore } from "@/stores/contest";
-import {
-  getContestProblems,
-  fetchContestProblemSubmissions,
-} from "@/api/contest";
+import { fetchContestProblemSubmissions } from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
 import type { ContestProblemSummary } from "@/types/contest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +30,20 @@ const contest = computed(() => contestStore.currentContest);
 const loading = computed(() => contestStore.loading);
 const registering = ref(false);
 const startingVirtual = ref(false);
-const contestProblems = ref<ContestProblemSummary[]>([]);
+// `contestProblems` is hoisted into the store (see stores/contest.ts) so
+// the problem page can read it without a parallel fetch. We mirror it
+// here as a local ref for the existing `ContestProblemList` prop
+// contract — reading from the store means the same data is reused
+// across the contest detail view and the problem page in one round trip.
+//
+// The map is keyed by the URL-stable form (`route.params.slug`) which
+// matches what `ContestProblemList.problemLink` puts in the `?contestId=`
+// query, so the problem page's `useContestProblemContext` can read
+// the same entry without re-fetching.
+const { contestProblems: contestProblemsMap } = storeToRefs(contestStore);
+const contestProblems = computed<ContestProblemSummary[]>(
+  () => contestProblemsMap.value.get(contestId) ?? [],
+);
 
 const isRegistered = computed(() => contestStore.isRegistered(contestId));
 // R10.6 / anti-cheat: 虚拟赛是「对某场赛的个人重放」，存在与否是 contest-scoped
@@ -115,10 +126,13 @@ onMounted(async () => {
         contestStore.loadParticipationStatus(contestId),
         contestStore.loadVirtualSession(contestId),
       ]),
-      getContestProblems(contestId),
+      // loadProblems is cached inside the store (see stores/contest.ts)
+      // so the problem page can read the same list without a second
+      // round trip. The local `contestProblems` computed mirrors the
+      // store's entry by URL slug.
+      contestStore.loadProblems(contestId),
     ]);
     if (problemsResult.status === "fulfilled") {
-      contestProblems.value = problemsResult.value;
       await loadProblemStatuses();
     }
   } catch (err) {

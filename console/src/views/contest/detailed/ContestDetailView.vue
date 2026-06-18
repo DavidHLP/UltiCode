@@ -352,6 +352,7 @@ function getErrorMessage(error: unknown, fallback: string) {
             :registering="registering"
             :get-difficulty-color="getDifficultyColor"
             :problem-statuses="problemStatuses"
+            :is-in-virtual-session="virtualSessionActive"
             @register="handleRegister"
           />
         </TabsContent>

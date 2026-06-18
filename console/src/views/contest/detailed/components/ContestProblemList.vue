@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,13 @@ const props = defineProps<{
   registering: boolean;
   getDifficultyColor: (difficulty: string) => string;
   problemStatuses?: Record<number, "solved" | "attempted" | "todo">;
+  // Whether the current viewer has an active virtual contest session on
+  // this contest. Needed in addition to `contest.status` because virtual
+  // contests are per-user replays of contests whose `status` is typically
+  // already `FINISHED`. Without this signal the Solutions tab would be
+  // exposed mid-replay, defeating the anti-cheat invariant documented at
+  // `useProblemLayout.ts:60-62`.
+  isInVirtualSession?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -33,6 +41,34 @@ const { t } = useI18n();
 const getProblemStatus = (problemId: number) => {
   return props.problemStatuses?.[problemId] || "todo";
 };
+
+// Only attach ?contestId=... while the contest is actually live. Once the
+// contest is finished (FINISHED) or never started (UPCOMING is locked
+// above), the problem-detail layout treats the URL query as an opaque
+// "contest mode" signal and hides the Solutions tab to keep competitors
+// from peeking at editorial write-ups. We must therefore drop the query
+// once the contest ends so users can browse solutions normally.
+//
+// We additionally keep solutions hidden while the viewer has an active
+// virtual contest session — virtual contests are per-user replays of
+// contests whose underlying `status` is already `FINISHED`, so status
+// alone would expose the Solutions tab mid-replay and bypass the
+// anti-cheat invariant.
+const contestIsLive = computed(
+  () =>
+    props.contest.status === "RUNNING" ||
+    (props.contest.isVirtual === true && props.isInVirtualSession === true),
+);
+
+// Returned as a typed RouteLocationRaw-style object so vue-router picks up
+// the absence of a query string when the contest is not live.
+function problemLink(slug: string) {
+  return {
+    name: "problem-detail" as const,
+    params: { slug },
+    query: contestIsLive.value ? { contestId: props.contestId } : undefined,
+  };
+}
 </script>
 
 <template>
@@ -110,14 +146,7 @@ const getProblemStatus = (problemId: number) => {
             v-for="problem in problems"
             :key="problem.id"
             class="group cursor-pointer hover:bg-[var(--silver-100)]/30 dark:hover:bg-[var(--solarized-base03)]/30 border-b border-border/30 last:border-b-0 transition-colors"
-            @click="
-              problem.slug &&
-              $router.push({
-                name: 'problem-detail',
-                params: { slug: problem.slug },
-                query: { contestId },
-              })
-            "
+            @click="problem.slug && $router.push(problemLink(problem.slug))"
           >
             <TableCell class="pl-6 py-3">
               <!-- Solved Status Block Indicator -->
@@ -147,11 +176,7 @@ const getProblemStatus = (problemId: number) => {
               <div class="space-y-0.5">
                 <router-link
                   v-if="problem.slug"
-                  :to="{
-                    name: 'problem-detail',
-                    params: { slug: problem.slug },
-                    query: { contestId },
-                  }"
+                  :to="problemLink(problem.slug)"
                   class="text-[15px] font-bold text-[var(--solarized-base01)] dark:text-[var(--solarized-base1)] group-hover:text-[var(--accent-electric)] transition-colors"
                   @click.stop
                 >
@@ -215,13 +240,7 @@ const getProblemStatus = (problemId: number) => {
                 size="icon"
                 variant="ghost"
                 class="h-8 w-8 rounded-none text-muted-foreground group-hover:text-[var(--accent-electric)] group-hover:bg-[var(--silver-100)]/50 dark:group-hover:bg-[var(--solarized-base03)]/50 transition-all cursor-pointer"
-                @click.stop="
-                  $router.push({
-                    name: 'problem-detail',
-                    params: { slug: problem.slug },
-                    query: { contestId },
-                  })
-                "
+                @click.stop="$router.push(problemLink(problem.slug))"
               >
                 <ChevronRight class="h-4.5 w-4.5" />
               </Button>

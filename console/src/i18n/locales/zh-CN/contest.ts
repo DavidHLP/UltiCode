@@ -120,6 +120,25 @@ export default {
       difficulty: "难度",
       score: "分数",
       acceptance: "通过率",
+      action: "操作",
+    },
+    // 题目列表每行的主操作按钮。`getRowAction()` 根据比赛状态
+    // 和个人提交状态返回对应的 key。视觉上区分主/次/禁用。
+    row: {
+      start: "开始",
+      continue: "继续",
+      view: "查看",
+      locked: "未解锁",
+      review: "复盘",
+      // 全场 (field-wide) 数据,区别于个人状态。之前的 "0 已解决"
+      // / "0 提交记录" 容易让用户混淆"没人提交"和"系统没数据",
+      // 这里显式写"全场"消除歧义。
+      solvedByAll: "全场 {n} 人通过",
+      totalSubmissions: "全场 {n} 次提交",
+      noDataYet: "暂无全场提交",
+      attempted: "已尝试 {n} 次",
+      notStarted: "未开始",
+      solved: "已通过",
     },
     rankingHeaders: {
       rank: "排名",

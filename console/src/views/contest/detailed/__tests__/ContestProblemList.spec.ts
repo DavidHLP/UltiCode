@@ -2,6 +2,10 @@ import { mount, flushPromises } from "@vue/test-utils";
 import type { Router } from "vue-router";
 import { describe, expect, it, vi } from "vitest";
 import ContestProblemList from "../components/ContestProblemList.vue";
+import {
+  formatAcceptanceRate,
+  getRowAction,
+} from "../components/contestProblemRow";
 import type {
   ContestDetail,
   ContestProblemSummary,
@@ -289,5 +293,55 @@ describe("ContestProblemList", () => {
       | { query?: Record<string, unknown> }
       | undefined;
     expect(call?.query?.contestId).toBeUndefined();
+  });
+});
+
+// ------------------------------------------------------------------
+// Pure helpers — getRowAction + formatAcceptanceRate. These live in
+// the SFC as named exports specifically so we can test them without
+// mounting the component (the SFC is heavy with stubs and i18n).
+// ------------------------------------------------------------------
+
+describe("getRowAction", () => {
+  it("returns 'locked' for any problem when the contest is UPCOMING", () => {
+    expect(getRowAction("UPCOMING", "solved")).toBe("locked");
+    expect(getRowAction("UPCOMING", "attempted")).toBe("locked");
+    expect(getRowAction("UPCOMING", "todo")).toBe("locked");
+  });
+
+  it("returns 'review' for FINISHED contests regardless of personal status", () => {
+    // Per the product decision: in post-game, every problem is
+    // reviewable — solved, attempted, and not-started alike.
+    expect(getRowAction("FINISHED", "solved")).toBe("review");
+    expect(getRowAction("FINISHED", "attempted")).toBe("review");
+    expect(getRowAction("FINISHED", "todo")).toBe("review");
+  });
+
+  it("returns 'view' for solved problems in active contests", () => {
+    expect(getRowAction("RUNNING", "solved")).toBe("view");
+    expect(getRowAction("REGISTRATION", "solved")).toBe("view");
+  });
+
+  it("returns 'continue' for attempted problems in active contests", () => {
+    expect(getRowAction("RUNNING", "attempted")).toBe("continue");
+  });
+
+  it("returns 'start' for untouched problems in active contests", () => {
+    expect(getRowAction("RUNNING", "todo")).toBe("start");
+  });
+});
+
+describe("formatAcceptanceRate", () => {
+  it("renders a 0..1 fraction as a 1-decimal percent string", () => {
+    expect(formatAcceptanceRate(0.732)).toBe("73.2%");
+    expect(formatAcceptanceRate(1)).toBe("100.0%");
+    expect(formatAcceptanceRate(0)).toBe("0.0%");
+    expect(formatAcceptanceRate(0.05)).toBe("5.0%");
+  });
+
+  it("falls back to 0.0% for nullish or non-finite inputs", () => {
+    expect(formatAcceptanceRate(null)).toBe("0.0%");
+    expect(formatAcceptanceRate(undefined)).toBe("0.0%");
+    expect(formatAcceptanceRate(Number.NaN)).toBe("0.0%");
   });
 });

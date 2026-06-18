@@ -116,6 +116,16 @@ export default {
       wrongAnswer: "未通过 — 可能产生 +{penalty} 秒罚时",
       compileError: "编译错误 — 不计入排名",
     },
+    // 比赛公告 bell (顶栏右侧铃铛)。"未读"采用降级 v1 策略
+    // (近 24h),未来 schema 变更可改为 per-user lastReadAt。
+    announcements: {
+      title: "公告",
+      empty: "暂无公告。",
+      unread: "{n} 条未读",
+      markRead: "全部标记为已读",
+      pinned: "置顶",
+    },
+    layoutCollapsedForRunning: "比赛进行中规则已折叠",
     registering: "报名中...",
     unregistering: "取消报名中...",
     starting: "开始中...",

@@ -239,9 +239,15 @@ export async function finishVirtualContest(
   contestId: string,
   sessionId: string,
 ): Promise<void> {
-  return apiPost<void>(`/contest/${contestId}/virtual/finish`, {
-    sessionId,
-  });
+  // R10.1 / F-51: backend's ContestController.finishVirtualContest reads
+  // sessionId via @RequestParam (not @RequestBody). Earlier we sent it in
+  // the JSON body which Spring silently ignored; the service then fell
+  // back to participant.getVirtualSessionId() and the call still worked
+  // for non-stale sessions. Switch to query param so the contract is
+  // explicit and matches the OpenAPI spec.
+  return apiPost<void>(
+    `/contest/${contestId}/virtual/finish?sessionId=${encodeURIComponent(sessionId)}`,
+  );
 }
 
 // ============================================================================

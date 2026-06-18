@@ -351,20 +351,25 @@ export const useContestStore = defineStore("contest", () => {
   }
 
   async function loadVirtualSession(contestId: string) {
-    // R3.4: prefer the persisted session so a page refresh keeps the user
-    // on the right timer. Only fall back to the server if storage is empty
-    // (e.g. user opened the page in a new tab that didn't see the start).
+    // R10.1 / F-51: the persisted session is a placeholder for instant
+    // render, NOT a source of truth. Always re-validate against the
+    // server. The backend may have finalized the session (F-07 90-min
+    // hard deadline, admin force-finish, scheduler sweep) while this
+    // tab was idle, and rehydrating the cache as-is would keep the
+    // timer card stuck on "进行中" with no manual way to recover.
+    // R3.4 (perf nicety): we still show the cache immediately so the
+    // timer card doesn't blank during the network round-trip.
     const persisted = loadVirtualSessionFromStorage(contestId);
-    if (persisted) {
-      virtualSession.value = persisted;
-      return;
-    }
+    if (persisted) virtualSession.value = persisted;
     try {
       const server = await fetchVirtualSession(contestId);
       virtualSession.value = server;
       saveVirtualSessionToStorage(contestId, server);
     } catch {
-      virtualSession.value = null;
+      // If the cache is present and the network failed, keep it so the
+      // timer survives an offline navigation. Otherwise clear so we
+      // don't render a phantom "in progress" card.
+      if (!persisted) virtualSession.value = null;
     }
   }
 

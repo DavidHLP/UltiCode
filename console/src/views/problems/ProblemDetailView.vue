@@ -57,15 +57,8 @@ const { isSidePanelOpen, isNotesOpen, toggleSidePanel, toggleNotes } =
 provide(ToggleSidePanelKey, toggleSidePanel);
 provide(ToggleNotesKey, toggleNotes);
 
-// Provide the contest context for header / shell / review panel
-// consumers. The composable self-loads contest data from the store
-// when `route.query.contestId` is set; on a regular problem page
-// the inject in LayoutHeaderLeft falls back to a no-op and the
-// existing site-wide nav is preserved.
-const contestCtx = useContestProblemContext();
-provide(ContestProblemContextKey, contestCtx);
-
-// --- Data Fetching ---
+// --- Data Fetching (must run BEFORE any composable that injects
+//     ProblemContextKey, so the provider is registered first) ---
 const route = useRoute();
 const slug = computed(() => {
   const slugParam = route.params.slug;
@@ -81,12 +74,23 @@ const contestId = computed(() => {
 });
 const { problem, runResult } = useProblemDetail(slug);
 
+// --- Context Providers ---
+// ProblemContextKey must be provided before any composable that
+// injects it (useContestProblemContext depends on it for the
+// `problem` ref used in contestProblemNav / problemBelongsToContest).
+provide(ProblemContextKey, { problem, runResult, contestId });
+
+// Provide the contest context for header / shell / review panel
+// consumers. The composable self-loads contest data from the store
+// when `route.query.contestId` is set; on a regular problem page
+// the inject in LayoutHeaderLeft falls back to a no-op and the
+// existing site-wide nav is preserved.
+const contestCtx = useContestProblemContext();
+provide(ContestProblemContextKey, contestCtx);
+
 onMounted(() => {
   void problemHooks.emit("problem:view:mount", { slug: slug.value });
 });
-
-// --- Context Provider ---
-provide(ProblemContextKey, { problem, runResult, contestId });
 
 // --- Connector Components ---
 const ConnectedDescriptionView = defineComponent({

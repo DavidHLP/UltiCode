@@ -26,17 +26,6 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({ isAuthenticated: testState.isAuth }),
 }));
 
-vi.mock("@/views/problems/useProblemContext", () => {
-  // The mock returns refs so that mutating `testState.problemIdValue`
-  // from tests is observed by the composable (otherwise we'd need to
-  // re-create the composable for every test).
-  const problemRef = ref<{ id: number | null } | null>({ id: testState.problemIdValue });
-  testState.problemRef = problemRef;
-  return {
-    useProblemContext: () => ({ problem: problemRef }),
-  };
-});
-
 vi.mock("pinia", () => ({
   // The real `storeToRefs` takes a reactive store and returns refs
   // for each property. Our mock returns the pre-allocated refs the
@@ -104,13 +93,13 @@ describe("useContestProblemContext", () => {
   });
 
   it("is a no-op when there is no ?contestId= in the route", async () => {
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     expect(ctx.isInContest.value).toBe(false);
   });
 
   it("loads contest data the first time the contestId appears", async () => {
     testState.contestIdValue = "linked-list-special";
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     await nextTick();
     await nextTick();
     expect(ctx.isInContest.value).toBe(true);
@@ -128,7 +117,7 @@ describe("useContestProblemContext", () => {
     };
     testState.contestIdValue = "linked-list-special";
 
-    useContestProblemContext();
+    useContestProblemContext(ref({ id: testState.problemIdValue }));
     await nextTick();
     await nextTick();
     // Slug matches the store's loaded contest, so the composable
@@ -139,7 +128,7 @@ describe("useContestProblemContext", () => {
 
   it("flags problemBelongsToContest=true when the current problem matches the list", async () => {
     testState.contestIdValue = "linked-list-special";
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     // The loader watch is async (awaits 3 store actions); each
     // `nextTick` flushes one microtask. Five ticks is enough to
     // settle the chain on a deterministic CI runner.
@@ -149,18 +138,14 @@ describe("useContestProblemContext", () => {
 
   it("flags problemBelongsToContest=false when the current problem is not in the list", async () => {
     testState.contestIdValue = "linked-list-special";
-    // The mock's `problemRef` is what the composable reads; we set
-    // its value to a non-matching problem id before constructing the
-    // composable so the initial watch sees 999.
-    if (testState.problemRef) testState.problemRef.value = { id: 999 };
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: 999 }));
     for (let i = 0; i < 5; i++) await nextTick();
     expect(ctx.problemBelongsToContest.value).toBe(false);
   });
 
   it("returns null for problemBelongsToContest while problems are still loading", async () => {
     testState.contestIdValue = "linked-list-special";
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     // Synchronously after the first watch run, problems haven't been
     // populated yet.
     expect(ctx.problemBelongsToContest.value).toBe(null);
@@ -168,7 +153,7 @@ describe("useContestProblemContext", () => {
 
   it("refreshParticipation re-calls the store action", async () => {
     testState.contestIdValue = "linked-list-special";
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     await nextTick();
     await nextTick();
     await ctx.refreshParticipation();
@@ -182,7 +167,7 @@ describe("useContestProblemContext", () => {
   it("does not populate participation for anonymous users", async () => {
     testState.isAuth = false;
     testState.contestIdValue = "linked-list-special";
-    const ctx = useContestProblemContext();
+    const ctx = useContestProblemContext(ref({ id: testState.problemIdValue }));
     await nextTick();
     await nextTick();
     expect(ctx.participation.value).toBe(null);

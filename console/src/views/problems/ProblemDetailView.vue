@@ -85,7 +85,7 @@ provide(ProblemContextKey, { problem, runResult, contestId });
 // when `route.query.contestId` is set; on a regular problem page
 // the inject in LayoutHeaderLeft falls back to a no-op and the
 // existing site-wide nav is preserved.
-const contestCtx = useContestProblemContext();
+const contestCtx = useContestProblemContext(problem);
 provide(ContestProblemContextKey, contestCtx);
 
 onMounted(() => {

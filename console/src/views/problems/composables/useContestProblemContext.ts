@@ -24,12 +24,12 @@ import { storeToRefs } from "pinia";
 import { useRoute } from "vue-router";
 import { useContestStore } from "@/stores/contest";
 import { useAuthStore } from "@/stores/auth";
-import { useProblemContext } from "@/views/problems/useProblemContext";
 import type {
   ContestDetail,
   ContestProblemSummary,
   ParticipationStatus,
 } from "@/types/contest";
+import type { ProblemDetail } from "@/types/problem-detail";
 
 export interface ContestProblemNav {
   prev: ContestProblemSummary | null;
@@ -56,11 +56,12 @@ export interface UseContestProblemContext {
   refreshProblems: () => Promise<void>;
 }
 
-export function useContestProblemContext(): UseContestProblemContext {
+export function useContestProblemContext(
+  problem: Ref<ProblemDetail | null>,
+): UseContestProblemContext {
   const route = useRoute();
   const contestStore = useContestStore();
   const authStore = useAuthStore();
-  const { problem } = useProblemContext();
 
   const { currentContest, userParticipation, contestProblems } =
     storeToRefs(contestStore);

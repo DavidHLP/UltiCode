@@ -246,7 +246,7 @@ function onCategoryUnsave(listId: string) {
               {{ t("personal.problemLists.tabs.myLists") }}
               <Badge
                 variant="secondary"
-                class="ml-2 h-5 min-w-[20px] px-1 rounded-full text-[10px]"
+                class="ml-2 h-5 min-w-[20px] px-1 rounded-full text-2xs"
                 >{{ data.ownLists.length }}</Badge
               >
             </TabsTrigger>
@@ -257,7 +257,7 @@ function onCategoryUnsave(listId: string) {
               {{ t("personal.problemLists.tabs.saved") }}
               <Badge
                 variant="secondary"
-                class="ml-2 h-5 min-w-[20px] px-1 rounded-full text-[10px]"
+                class="ml-2 h-5 min-w-[20px] px-1 rounded-full text-2xs"
                 >{{ totalSavedCount }}</Badge
               >
             </TabsTrigger>
@@ -353,13 +353,13 @@ function onCategoryUnsave(listId: string) {
                   <div class="space-y-1.5 flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                       <span
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20 rounded-none inline-flex items-center"
+                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.featured") }}
                       </span>
                       <span
                         v-if="list.isSaved"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20 rounded-none inline-flex items-center"
+                        class="h-5 px-1.5 text-2xs font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.saved") }}
                       </span>
@@ -381,7 +381,7 @@ function onCategoryUnsave(listId: string) {
 
                   <button
                     v-if="!list.isSaved"
-                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-all border border-border bg-background hover:bg-muted px-2 inline-flex items-center"
+                    class="rounded-full gap-1.5 h-8 font-bold text-2xs opacity-0 group-hover:opacity-100 transition-all border border-border bg-background hover:bg-muted px-2 inline-flex items-center"
                     @click="onSaveList(list)"
                   >
                     <Save class="h-3.5 w-3.5" />
@@ -389,7 +389,7 @@ function onCategoryUnsave(listId: string) {
                   </button>
                   <button
                     v-else
-                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-all bg-transparent hover:bg-muted px-2 inline-flex items-center"
+                    class="rounded-full gap-1.5 h-8 font-bold text-2xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-all bg-transparent hover:bg-muted px-2 inline-flex items-center"
                     @click="handleUnsaveList(list)"
                   >
                     <BookmarkMinus class="h-3.5 w-3.5" />

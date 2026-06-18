@@ -6,7 +6,7 @@
 | **日期 (Date)** | 2026-06-17 |
 | **作者 (Author)** | DavidHLP |
 | **来源** | [REVIEW_V3.md](../contest/REVIEW_V3.md) §3 P0-1 / F-03 / F-10 |
-| **执行计划** | [EXECUTION_PLAN_R6.md Round 6.1](../contest/EXECUTION_PLAN_R6.md) |
+| **执行计划** | [_archive/EXECUTION_PLAN_R6 Round 6.1](../contest/_archive/EXECUTION_PLAN_R6_2026-06-17.md#round-61--评分正确性收尾f-03--f-10-决策) |
 | **关联代码** | `contest/service/impl/RatingCalculationServiceImpl.java` (L36-49 isRated gate), `docs/adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md` §7 (F-10 决策) |
 
 ---
@@ -63,5 +63,5 @@ if (contest == null || !Boolean.TRUE.equals(contest.getIsRated())) {
 ## 5. References
 
 - [REVIEW_V3.md](../contest/REVIEW_V3.md) §3 P0-1
-- [EXECUTION_PLAN_R6.md Round 6.1](../contest/EXECUTION_PLAN_R6.md)
+- [_archive/EXECUTION_PLAN_R6 Round 6.1](../contest/_archive/EXECUTION_PLAN_R6_2026-06-17.md#round-61--评分正确性收尾f-03--f-10-决策)
 - [ADR-007 §7](../adr/ADR-007-virtual-contest-lifecycle-and-rating-isolation.md) F-10 决策

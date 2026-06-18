@@ -146,7 +146,7 @@ const visiblePages = computed(() => {
           <!-- Status -->
           <div class="w-auto sm:w-24 flex justify-start sm:justify-center">
             <span
-              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded-none"
+              class="inline-flex items-center border border-border bg-muted/65 text-muted-foreground px-2 py-0.5 text-2xs font-bold uppercase tracking-wide rounded-none"
             >
               {{ t("contest.list.finished") }}
             </span>

@@ -134,7 +134,7 @@ onMounted(async () => {
         <!-- Today's Problem Subtitle on narrow screens -->
         <div
           v-if="dailyProblem"
-          class="md:hidden mt-2 text-[11px] font-mono text-muted-foreground/90 border-t border-border/20 pt-2 flex items-center gap-1 flex-wrap"
+          class="md:hidden mt-2 text-xxs font-mono text-muted-foreground/90 border-t border-border/20 pt-2 flex items-center gap-1 flex-wrap"
           @click.stop
         >
           <span class="text-[var(--terminal-amber)] font-bold">></span>
@@ -146,7 +146,7 @@ onMounted(async () => {
             {{ dailyProblem.title }}
           </RouterLink>
           <span
-            class="text-[9px] font-bold uppercase tracking-tighter px-1 ml-1 rounded-none"
+            class="text-2xs font-bold uppercase tracking-tighter px-1 ml-1 rounded-none"
             :class="
               dailyProblem.difficulty === 'EASY'
                 ? 'text-[var(--terminal-green)] bg-[var(--terminal-green)]/10'
@@ -190,7 +190,7 @@ onMounted(async () => {
             "
           >
             <span
-              class="text-[10px] text-stone-600 dark:text-stone-600 font-mono mb-1 rounded-none"
+              class="text-2xs text-stone-600 dark:text-stone-600 font-mono mb-1 rounded-none"
             >
               {{ day.dayName }}
             </span>

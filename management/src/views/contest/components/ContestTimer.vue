@@ -165,7 +165,7 @@ watch(isFinished, (finished, wasFinished) => {
     <div class="flex flex-col gap-0.5">
       <span
         v-if="variant === 'default'"
-        class="font-data text-[10px] uppercase tracking-[0.1em] text-[var(--silver-400)]"
+        class="font-data text-2xs uppercase tracking-wide text-[var(--silver-400)]"
       >
         {{ label }}
       </span>

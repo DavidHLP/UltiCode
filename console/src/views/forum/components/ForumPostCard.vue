@@ -286,7 +286,7 @@ function handleCardClick(event: MouseEvent) {
             v-if="post.flair"
             variant="secondary"
             :class="[
-              'ml-auto sm:ml-2 rounded-none px-2 py-0 text-[10px] h-5',
+              'ml-auto sm:ml-2 rounded-none px-2 py-0 text-2xs h-5',
               flairClasses[post.flair.type],
             ]"
           >
@@ -316,7 +316,7 @@ function handleCardClick(event: MouseEvent) {
             class="markdown-view"
           >
             <div
-              class="text-[13px] leading-relaxed text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
+              class="text-sm leading-relaxed text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
               v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
             ></div>
           </div>
@@ -386,7 +386,7 @@ function handleCardClick(event: MouseEvent) {
               class="markdown-view"
             >
               <div
-                class="prose prose-sm dark:prose-invert max-w-none p-3 text-[13px] leading-relaxed"
+                class="prose prose-sm dark:prose-invert max-w-none p-3 text-sm leading-relaxed"
                 v-html="
                   sanitizeHtml(
                     renderMarkdown(media.markdown || media.body || ''),

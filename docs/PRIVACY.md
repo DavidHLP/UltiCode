@@ -1,8 +1,16 @@
+---
+title: UltiCode Privacy & Log Retention
+tags: [security, privacy, reference]
+status: living
+updated: 2026-06-18
+owner: backend+ops
+---
+
 # UltiCode Privacy & Log Retention
 
 > **作用**：UltiCode 项目用户生成数据保留与隐私治理基线。
 > **创建**：2026-06-17（R10.9，F-SEC-13 收口）
-> **关联**：[docs/contest/EXECUTION_PLAN_R10.md §9](./contest/EXECUTION_PLAN_R10.md) · [SECURITY_REVIEW.md F-SEC-13](./contest/SECURITY_REVIEW.md)
+| **关联**：[docs/contest/EXECUTION_PLAN_R10 §9](./contest/_archive/EXECUTION_PLAN_R10_2026-06-18.md) · [SECURITY_REVIEW F-SEC-13](./contest/_archive/SECURITY_REVIEW_2026-06-17.md) |
 > **维护者**：后端 + 运维
 
 ## Scope
@@ -110,3 +118,12 @@ the PR checklist (enforced via CODEOWNERS for `docs/PRIVACY.md`).
 - Add `contest_audit_log` table if product requires formal audit trail
 - Add `audit_log` table for admin scoring config changes (currently
   documented in R10.8 migration audit log only)
+
+---
+
+## See also
+
+- [README.md](./README.md) — 文档总入口
+- [contest/SECURITY_REVIEW (归档)](./contest/_archive/SECURITY_REVIEW_2026-06-17.md) — Contest 安全专项审查（F-SEC-13 来源）
+- [contest/EXECUTION_PLAN_R10 §9 (归档)](./contest/_archive/EXECUTION_PLAN_R10_2026-06-18.md) — 本文档的落地上下文
+- `CLAUDE.md` → **Security Invariants**（仓库根）— 安全不变量权威

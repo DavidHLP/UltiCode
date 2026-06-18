@@ -52,13 +52,12 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
 </template>
 
 <style scoped>
-/* Sibling of `.auth-logo` - same height, border, and background so the
- * two read as a single header bar. */
+
 .auth-theme-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  /* 2rem icon + 0.5rem x 2 padding = 3rem (48px), matching the logo card. */
+
   height: calc(2rem + 0.5rem * 2);
   padding: 0 0.75rem;
   border: 1px solid var(--border);
@@ -66,9 +65,9 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
   background: var(--background);
   color: var(--silver-500);
   cursor: pointer;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-  font-size: 0.6875rem;
-  font-weight: 500;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-type-code-size);
+  font-weight: var(--uc-font-weight-medium)
   letter-spacing: 0.1em;
   text-transform: uppercase;
   transition:
@@ -78,8 +77,7 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
     box-shadow var(--transition-fast);
 }
 
-/* Subtle terminal-state hover - same pattern as `.auth-logo` and other
- * actionable cards in the design system, not a brutalist offset shadow. */
+
 .auth-theme-toggle:hover {
   border-color: var(--accent-electric);
   color: var(--accent-electric);
@@ -96,7 +94,7 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
   box-shadow: 0 0 0 2px var(--accent-electric-glow);
 }
 
-/* Match `.auth-logo__icon` (size-4) so the two glyphs have equal weight. */
+
 .auth-theme-toggle__icon {
   width: 1rem;
   height: 1rem;

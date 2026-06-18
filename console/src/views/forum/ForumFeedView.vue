@@ -258,7 +258,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
           </Select>
         </div>
         <Button
-          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-[0.12em] border border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/20 shadow-none transition-colors duration-200"
+          class="h-10 rounded-none px-6 gap-2 font-data font-bold uppercase tracking-wide border border-[var(--accent-electric)] bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/20 shadow-none transition-colors duration-200"
           @click="handleCreatePost"
         >
           <Plus class="h-4 w-4" />

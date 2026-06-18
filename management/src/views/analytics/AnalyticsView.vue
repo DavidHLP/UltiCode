@@ -333,7 +333,7 @@ const endpointBarItems = computed(() => {
       >
         <!-- Monospace Status/Date Display -->
         <div
-          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-[11px] font-mono text-[var(--silver-500)] rounded-none sm:w-36"
+          class="flex h-8 w-full items-center justify-center gap-1.5 whitespace-nowrap bg-card px-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 text-xxs font-mono text-[var(--silver-500)] rounded-none sm:w-36"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-[var(--status-success)] animate-pulse"></span>
           <span class="text-[var(--silver-400)] font-data">{{ formattedDate }}</span>

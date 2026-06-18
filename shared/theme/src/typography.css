@@ -1,0 +1,275 @@
+/* ===========================================================================
+ * @ulticode/theme — typography foundation
+ *
+ * Single source of truth for font families, sizes, line heights, weights,
+ * letter spacing, and density-aware semantic roles. Replaces the previously
+ * ad-hoc typography declarations in `shared/design-system/style.css` and
+ * every app-local override.
+ *
+ * Layered contract:
+ *   1. Foundation tokens  (--uc-font-*, --uc-text-*, --uc-leading-*,
+ *                          --uc-font-weight-*, --uc-tracking-*)
+ *   2. Tailwind aliases   (--text-xs/sm/... — keep existing utility classes
+ *                          working through the migration)
+ *   3. Semantic roles     (--uc-type-body-*, --uc-type-control-*, ...)
+ *   4. Utility classes    (.uc-type-body, .uc-type-page-title, ...)
+ *   5. Density profiles   (:root + [data-uc-density="compact"])
+ *
+ * Apps may opt into a density profile by setting
+ * `document.documentElement.dataset.ucDensity = 'comfortable' | 'compact'`
+ * (see shared/theme/src/typography.ts → applyTypographyDensity).
+ *
+ * See docs/SHARED_TYPOGRAPHY_DESIGN.md for the design rationale and the
+ * migration plan that this file enables.
+ * =========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+
+/* ---------------------------------------------------------------------------
+ * 1. Foundation tokens
+ * --------------------------------------------------------------------------- */
+
+:root {
+  /* Font families */
+  --uc-font-ui:
+    "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas,
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", monospace;
+  --uc-font-code:
+    "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  --uc-font-data:
+    "JetBrains Mono", "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --uc-font-prose: var(--uc-font-ui);
+
+  /* Size scale */
+  --uc-text-2xs: 0.625rem;   /* 10px — dense terminal labels / table metadata only */
+  --uc-text-xxs: 0.6875rem;  /* 11px — badges, header buttons, row numbers */
+  --uc-text-xs:  0.75rem;    /* 12px — captions, helper text, compact cells */
+  --uc-text-sm:  0.875rem;   /* 14px — default app body + controls */
+  --uc-text-md:  1rem;       /* 16px — readable content, mobile inputs, markdown body */
+  --uc-text-lg:  1.125rem;   /* 18px — drawer titles, emphasized card titles */
+  --uc-text-xl:  1.25rem;    /* 20px — page titles, major panel titles */
+  --uc-text-2xl: 1.5rem;     /* 24px — marketing / auth / high-emphasis views */
+  --uc-text-3xl: 1.875rem;   /* 30px — rare landing or hero title */
+
+  /* Line heights */
+  --uc-leading-none: 1;
+  --uc-leading-tight: 1.25;
+  --uc-leading-snug: 1.35;
+  --uc-leading-code: 1.4;
+  --uc-leading-normal: 1.6;
+  --uc-leading-relaxed: 1.75;
+
+  /* Weights */
+  --uc-font-weight-regular: 400;
+  --uc-font-weight-medium: 500;
+  --uc-font-weight-semibold: 600;
+  --uc-font-weight-bold: 700;
+
+  /* Letter spacing — default is 0; spaced tracking is for short uppercase
+   * terminal labels only. Negative tracking is deprecated. */
+  --uc-tracking-normal: 0;
+  --uc-tracking-label: 0.05em;
+  --uc-tracking-terminal: 0.1em;
+  --uc-tracking-terminal-wide: 0.15em;
+
+  /* Numeric features (tabular numbers) */
+  --uc-font-feature-data: "tnum" on, "lnum" on;
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Tailwind-compatible aliases
+ *
+ * These keep existing `text-sm`, `text-xl`, `font-mono`, and `leading-normal`
+ * classes working unchanged while apps incrementally adopt the semantic
+ * `uc-type-*` classes. Values mirror the previous design-system declarations
+ * to avoid a one-shot visual regression.
+ * --------------------------------------------------------------------------- */
+
+@theme inline {
+  --font-sans: var(--uc-font-ui);
+  --font-mono: var(--uc-font-code);
+
+  /* Preserve the historical size scale that production code already depends
+   * on. The `text-base` → `--uc-text-md` mapping is the only intentional
+   * shift: 1rem is 16px on the root font size, matching the old `--text-base`
+   * literal, so callers see no change. */
+  --text-2xs:  var(--uc-text-2xs);  /* 10px */
+  --text-xxs:  var(--uc-text-xxs);  /* 11px */
+  --text-xs:   var(--uc-text-xs);
+  --text-sm:   var(--uc-text-sm);
+  --text-base: var(--uc-text-md);
+  --text-lg:   var(--uc-text-xl);
+  --text-xl:   var(--uc-text-2xl);
+  --text-2xl:  var(--uc-text-3xl);
+
+  --leading-normal: var(--uc-leading-normal);
+  --leading-code:   var(--uc-leading-code);
+
+  /* Negative tracking is deprecated; route the legacy alias to normal. */
+  --tracking-tight: var(--uc-tracking-normal);
+
+  /* The two spaced tracking presets apps can use via the Tailwind class
+   * API. `tracking-label` is the standard 0.05em label/component
+   * spacing; `tracking-wide` is the 0.1em terminal spacing;
+   * `tracking-widest` is the rare 0.15em uppercased label spacing. */
+  --tracking-label:  var(--uc-tracking-label);
+  --tracking-wide:   var(--uc-tracking-terminal);
+  --tracking-widest: var(--uc-tracking-terminal-wide);
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Semantic role variables
+ *
+ * Each role is a named bundle that components can use directly via
+ * var(--uc-type-*) or via the .uc-type-* utility classes below.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  --uc-type-body-family: var(--uc-font-ui);
+  --uc-type-body-size: var(--uc-text-sm);
+  --uc-type-body-line-height: var(--uc-leading-normal);
+  --uc-type-body-weight: var(--uc-font-weight-regular);
+
+  --uc-type-page-title-size: var(--uc-text-xl);
+  --uc-type-page-title-line-height: var(--uc-leading-tight);
+  --uc-type-page-title-weight: var(--uc-font-weight-semibold);
+
+  --uc-type-section-title-size: var(--uc-text-lg);
+  --uc-type-section-title-line-height: var(--uc-leading-snug);
+  --uc-type-section-title-weight: var(--uc-font-weight-semibold);
+
+  --uc-type-card-title-size: var(--uc-text-sm);
+  --uc-type-card-title-line-height: var(--uc-leading-snug);
+  --uc-type-card-title-weight: var(--uc-font-weight-semibold);
+
+  --uc-type-control-size: var(--uc-text-sm);
+  --uc-type-control-line-height: var(--uc-leading-tight);
+  --uc-type-control-weight: var(--uc-font-weight-medium);
+
+  --uc-type-label-size: var(--uc-text-xs);
+  --uc-type-label-line-height: var(--uc-leading-tight);
+  --uc-type-label-weight: var(--uc-font-weight-medium);
+
+  --uc-type-table-header-size: var(--uc-text-2xs);
+  --uc-type-table-cell-size: var(--uc-text-xs);
+
+  --uc-type-data-size: var(--uc-text-xs);
+  --uc-type-code-size: 0.85em;
+  --uc-type-markdown-size: var(--uc-text-md);
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Utility classes
+ *
+ * Stable classes for repeated patterns where Tailwind utility strings are
+ * too noisy or too easy to drift. Apps SHOULD prefer these over arbitrary
+ * `text-[…px]` and `tracking-[…em]` overrides.
+ * --------------------------------------------------------------------------- */
+
+.uc-type-body {
+  font-family: var(--uc-type-body-family);
+  font-size: var(--uc-type-body-size);
+  line-height: var(--uc-type-body-line-height);
+  font-weight: var(--uc-type-body-weight);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.uc-type-page-title {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-page-title-size);
+  line-height: var(--uc-type-page-title-line-height);
+  font-weight: var(--uc-type-page-title-weight);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.uc-type-section-title {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-section-title-size);
+  line-height: var(--uc-type-section-title-line-height);
+  font-weight: var(--uc-type-section-title-weight);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.uc-type-card-title {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-card-title-size);
+  line-height: var(--uc-type-card-title-line-height);
+  font-weight: var(--uc-type-card-title-weight);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.uc-type-control {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-control-size);
+  line-height: var(--uc-type-control-line-height);
+  font-weight: var(--uc-type-control-weight);
+  letter-spacing: var(--uc-tracking-normal);
+}
+
+.uc-type-label {
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-type-label-size);
+  line-height: var(--uc-type-label-line-height);
+  font-weight: var(--uc-type-label-weight);
+  letter-spacing: var(--uc-tracking-label);
+}
+
+.uc-type-data {
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-type-data-size);
+  line-height: var(--uc-leading-code);
+  font-feature-settings: var(--uc-font-feature-data);
+  font-variant-numeric: tabular-nums;
+}
+
+.uc-type-code {
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-type-code-size);
+  line-height: var(--uc-leading-code);
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. Density profiles
+ *
+ * Apps opt in by setting `data-uc-density` on <html>:
+ *   - 'comfortable' (default for console): generous reading surface
+ *   - 'compact'     (default for management): dense tables, queues
+ *
+ * The helper in shared/theme/src/typography.ts (applyTypographyDensity)
+ * owns the only place that writes this attribute. Apps MUST NOT set it
+ * from component code.
+ * --------------------------------------------------------------------------- */
+
+:root,
+[data-uc-density="comfortable"] {
+  --uc-type-body-size: var(--uc-text-sm);
+  --uc-type-control-size: var(--uc-text-sm);
+  --uc-type-table-cell-size: var(--uc-text-sm);
+  --uc-type-page-title-size: var(--uc-text-2xl);
+  --uc-type-markdown-size: var(--uc-text-md);
+}
+
+[data-uc-density="compact"] {
+  --uc-type-body-size: var(--uc-text-sm);
+  --uc-type-control-size: var(--uc-text-xs);
+  --uc-type-table-cell-size: var(--uc-text-xs);
+  --uc-type-page-title-size: var(--uc-text-xl);
+  --uc-type-markdown-size: var(--uc-text-sm);
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. Shared markdown contract
+ *
+ * `.markdown-block` is the canonical class for rendered Markdown in both
+ * apps. Management's local `.prose` is aliased to the same rules for the
+ * duration of the migration and will be removed once the codebase is clean.
+ * --------------------------------------------------------------------------- */
+
+.markdown-block,
+.prose {
+  font-family: var(--uc-font-prose);
+  font-size: var(--uc-type-markdown-size);
+  line-height: var(--uc-leading-relaxed);
+  letter-spacing: var(--uc-tracking-normal);
+}

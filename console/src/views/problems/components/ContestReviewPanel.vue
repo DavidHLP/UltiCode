@@ -168,7 +168,7 @@ onMounted(() => {
           <Clock v-else class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p
-              class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
+              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.firstACLabel") }}
             </p>
@@ -187,7 +187,7 @@ onMounted(() => {
           <Clock class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <div>
             <p
-              class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
+              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.verdictBreakdown", {
                 n: breakdown.total,
@@ -199,7 +199,7 @@ onMounted(() => {
             </p>
             <p class="text-xs font-bold text-[var(--terminal-green)]">
               {{ breakdown.accepted }} / {{ breakdown.total }}
-              <span class="text-[10px] text-muted-foreground">AC</span>
+              <span class="text-2xs text-muted-foreground">AC</span>
             </p>
           </div>
         </div>
@@ -209,7 +209,7 @@ onMounted(() => {
           <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0 text-[var(--terminal-amber)]" />
           <div>
             <p
-              class="text-[9px] font-black uppercase tracking-widest text-muted-foreground"
+              class="text-2xs font-black uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.review.finalScoreLabel") }}
             </p>
@@ -229,7 +229,7 @@ onMounted(() => {
         <li
           v-for="(s, idx) in submissions"
           :key="idx"
-          class="grid grid-cols-12 items-center gap-2 border-b border-border/30 px-3 py-1.5 text-[11px] last:border-b-0"
+          class="grid grid-cols-12 items-center gap-2 border-b border-border/30 px-3 py-1.5 text-xxs last:border-b-0"
         >
           <span class="col-span-3 font-mono text-muted-foreground">
             {{ formatTime(s.created_at) }}
@@ -257,7 +257,7 @@ onMounted(() => {
         <Button
           variant="default"
           size="sm"
-          class="h-8 rounded-none border border-[var(--accent-electric)]/40 bg-[var(--accent-electric)]/15 px-3 font-black text-[10px] uppercase tracking-widest text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25 cursor-pointer"
+          class="h-8 rounded-none border border-[var(--accent-electric)]/40 bg-[var(--accent-electric)]/15 px-3 font-black text-2xs uppercase tracking-widest text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/25 cursor-pointer"
           :disabled="!retakeHref()"
           data-testid="contest-review-retake"
           @click="handleRetake"
@@ -268,7 +268,7 @@ onMounted(() => {
         <Button
           variant="outline"
           size="sm"
-          class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground hover:bg-[var(--silver-100)] hover:text-foreground dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
+          class="h-8 rounded-none border border-border bg-transparent px-3 font-black text-2xs uppercase tracking-widest text-muted-foreground hover:bg-[var(--silver-100)] hover:text-foreground dark:hover:bg-[var(--solarized-base03)] cursor-pointer"
           data-testid="contest-review-notebook"
           @click="handleNotebook"
         >

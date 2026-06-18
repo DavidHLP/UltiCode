@@ -112,7 +112,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.contest'),
         ),
       cell: ({ row }) => {
@@ -160,7 +160,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.type'),
         ),
       cell: ({ row }) => {
@@ -173,7 +173,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.status'),
         ),
       cell: ({ row }) => {
@@ -186,7 +186,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.schedule'),
         ),
       cell: ({ row }) => {
@@ -213,7 +213,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.participants'),
         ),
       cell: ({ row }) => {
@@ -232,7 +232,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('contests.columns.actions'),
         ),
       cell: ({ row }) => {

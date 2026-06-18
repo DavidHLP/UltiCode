@@ -225,7 +225,7 @@ onMounted(async () => {
               }}
             </span>
             <span
-              class="text-[10px] text-muted-foreground uppercase tracking-wider font-medium"
+              class="text-2xs text-muted-foreground uppercase tracking-wider font-medium"
             >
               ID: {{ (item as SubmissionRecord).id.substring(0, 8) }}
             </span>
@@ -253,7 +253,7 @@ onMounted(async () => {
         <template #cell-runtime="{ item }">
           <div class="flex items-center gap-1.5 font-medium">
             {{ (item as SubmissionRecord).runtime
-            }}<span class="text-[10px] text-muted-foreground uppercase"
+            }}<span class="text-2xs text-muted-foreground uppercase"
               >ms</span
             >
           </div>
@@ -262,7 +262,7 @@ onMounted(async () => {
         <template #cell-memory="{ item }">
           <div class="flex items-center gap-1.5 font-medium">
             {{ (item as SubmissionRecord).memory
-            }}<span class="text-[10px] text-muted-foreground uppercase"
+            }}<span class="text-2xs text-muted-foreground uppercase"
               >mb</span
             >
           </div>

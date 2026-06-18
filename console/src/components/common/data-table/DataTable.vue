@@ -146,7 +146,7 @@ const getItemAtIndex = (index: number): T => {
                 v-for="col in columns"
                 :key="col.key"
                 :class="[
-                  'font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
+                  'font-extrabold text-[var(--primary)] text-xxs uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
                   col.headerClass,
                 ]"
               >
@@ -242,7 +242,7 @@ const getItemAtIndex = (index: number): T => {
               v-for="col in columns"
               :key="col.key"
               :class="[
-                'font-extrabold text-[var(--primary)] text-[11px] uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
+                'font-extrabold text-[var(--primary)] text-xxs uppercase tracking-widest py-4 px-4 bg-[var(--surface-sunken)]/60',
                 col.headerClass,
               ]"
             >

@@ -88,7 +88,7 @@ const statusConfig: Record<
 const config = computed(() => statusConfig[props.status] || statusConfig.draft)
 
 const sizeClasses = {
-  sm: 'text-[10px] px-1.5 py-0.5',
+  sm: 'text-2xs px-1.5 py-0.5',
   md: 'text-xs px-2 py-0.5',
   lg: 'text-sm px-2.5 py-1',
 }
@@ -106,7 +106,7 @@ const showAnimatedDot = computed(() => props.showIcon && props.status === 'ongoi
   <span
     :class="
       cn(
-        'inline-flex items-center gap-1.5 font-data font-medium uppercase tracking-[0.05em] border rounded-none',
+        'inline-flex items-center gap-1.5 font-data font-medium uppercase tracking-label border rounded-none',
         config.bg,
         config.border,
         config.text,

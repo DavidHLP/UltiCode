@@ -189,7 +189,7 @@ function back() {
             v-for="tab in tabs"
             :key="tab.value"
             :class="[
-              'px-4 py-3 font-data text-xs uppercase tracking-[0.05em] border-b-2 transition-colors cursor-pointer',
+              'px-4 py-3 font-data text-xs uppercase tracking-label border-b-2 transition-colors cursor-pointer',
               currentView === tab.value
                 ? 'border-[var(--accent-electric)] text-[var(--foreground)]'
                 : 'border-transparent text-[var(--silver-400)] hover:text-[var(--silver-600)] dark:hover:text-[var(--silver-300)]',

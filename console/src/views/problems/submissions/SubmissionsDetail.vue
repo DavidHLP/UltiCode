@@ -499,7 +499,7 @@ const handleWriteSolution = () => {
                   </div>
                 </div>
                 <span
-                  class="font-data text-[10px] uppercase text-muted-foreground"
+                  class="font-data text-2xs uppercase text-muted-foreground"
                 >
                   ms
                 </span>
@@ -540,7 +540,7 @@ const handleWriteSolution = () => {
                   </div>
                 </div>
                 <span
-                  class="font-data text-[10px] uppercase text-muted-foreground"
+                  class="font-data text-2xs uppercase text-muted-foreground"
                 >
                   MB
                 </span>

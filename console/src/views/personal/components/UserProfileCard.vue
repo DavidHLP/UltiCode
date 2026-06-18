@@ -74,7 +74,7 @@ const { t } = useI18n();
               >
               <Badge
                 variant="secondary"
-                class="rounded-none px-2 py-0 h-5 text-[10px] font-semibold uppercase tracking-wider"
+                class="rounded-none px-2 py-0 h-5 text-2xs font-semibold uppercase tracking-wider"
               >
                 {{ t("personal.profile.proBadge") }}
               </Badge>

@@ -245,7 +245,7 @@ function formatJson(val: any): string {
                   <!-- Old value -->
                   <div class="flex-1 px-3 py-2 min-w-0">
                     <div class="text-[var(--terminal-red)] opacity-70">
-                      <span class="opacity-50 text-[10px] mr-1">OLD</span>
+                      <span class="opacity-50 text-2xs mr-1">OLD</span>
                       <span class="truncate block">{{ change.oldVal }}</span>
                     </div>
                   </div>
@@ -256,7 +256,7 @@ function formatJson(val: any): string {
                   <!-- New value -->
                   <div class="flex-1 px-3 py-2 min-w-0">
                     <div class="text-[var(--terminal-green)]">
-                      <span class="opacity-50 text-[10px] mr-1">NEW</span>
+                      <span class="opacity-50 text-2xs mr-1">NEW</span>
                       <span class="truncate block">{{ change.newVal }}</span>
                     </div>
                   </div>
@@ -267,12 +267,12 @@ function formatJson(val: any): string {
               <template v-else>
                 <div class="p-3 space-y-3">
                   <div v-if="log.oldValues">
-                    <div class="text-[var(--silver-500)] mb-1 text-[10px] uppercase tracking-wider">Old Values</div>
-                    <pre class="text-[var(--terminal-red)] opacity-80 whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.oldValues) }}</pre>
+                    <div class="text-[var(--silver-500)] mb-1 text-2xs uppercase tracking-wider">Old Values</div>
+                    <pre class="text-[var(--terminal-red)] opacity-80 whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-xxs">{{ formatJson(log.oldValues) }}</pre>
                   </div>
                   <div v-if="log.newValues">
-                    <div class="text-[var(--silver-500)] mb-1 text-[10px] uppercase tracking-wider">New Values</div>
-                    <pre class="text-[var(--terminal-green)] whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[11px]">{{ formatJson(log.newValues) }}</pre>
+                    <div class="text-[var(--silver-500)] mb-1 text-2xs uppercase tracking-wider">New Values</div>
+                    <pre class="text-[var(--terminal-green)] whitespace-pre-wrap break-all bg-[var(--surface-sunken)] p-2 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-xxs">{{ formatJson(log.newValues) }}</pre>
                   </div>
                 </div>
               </template>

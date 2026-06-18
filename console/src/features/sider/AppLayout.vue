@@ -98,7 +98,7 @@ const isActiveNav = (item: NavItem) => {
                   <span>{{ item.label }}</span>
                   <span
                     v-if="item.comingSoon"
-                    class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                    class="rounded-full border px-1.5 py-0.5 text-2xs uppercase tracking-wide text-muted-foreground"
                   >
                     {{ t("common.labels.soon") }}
                   </span>
@@ -113,7 +113,7 @@ const isActiveNav = (item: NavItem) => {
                 <span>{{ item.label }}</span>
                 <span
                   v-if="item.comingSoon"
-                  class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
+                  class="rounded-full border px-1.5 py-0.5 text-2xs uppercase tracking-wide text-muted-foreground"
                 >
                   {{ t("common.labels.soon") }}
                 </span>

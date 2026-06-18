@@ -71,7 +71,7 @@ const sortedFolders = computed(() => {
             {{ folder.isDefault ? t("bookmark.defaultFolder") : folder.name }}
           </p>
           <p
-            class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1"
+            class="text-2xs font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1"
           >
             {{ folder.itemCount }} {{ t("bookmark.items") }}
           </p>

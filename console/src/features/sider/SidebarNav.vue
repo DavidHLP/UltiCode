@@ -97,7 +97,7 @@ const getItemIconColorClass = (url?: string) => {
       >
         <SidebarGroupLabel
           as-child
-          class="group/label w-full text-[10px] font-bold tracking-widest text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] hover:bg-transparent hover:text-[var(--accent-electric)] transition-colors select-none cursor-pointer"
+          class="group/label w-full text-2xs font-bold tracking-widest text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] hover:bg-transparent hover:text-[var(--accent-electric)] transition-colors select-none cursor-pointer"
         >
           <CollapsibleTrigger class="flex items-center w-full py-1">
             <span>{{ t(section.name).toUpperCase() }}</span>
@@ -116,7 +116,7 @@ const getItemIconColorClass = (url?: string) => {
               :key="item.title"
               :to="item.url || '#'"
               :class="[
-                'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none h-8.5 mx-1',
+                'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium rounded-none h-8.5 mx-1',
                 isItemActive(item.url)
                   ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
                   : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -134,7 +134,7 @@ const getItemIconColorClass = (url?: string) => {
               <Badge
                 v-if="item.badge"
                 :variant="item.badgeVariant || 'default'"
-                class="ml-auto h-5 px-1.5 text-[10px]"
+                class="ml-auto h-5 px-1.5 text-2xs"
               >
                 {{ item.badge }}
               </Badge>
@@ -166,7 +166,7 @@ const getItemIconColorClass = (url?: string) => {
                   <Badge
                     v-if="item.badge"
                     :variant="item.badgeVariant || 'default'"
-                    class="ml-auto h-5 px-1.5 text-[10px]"
+                    class="ml-auto h-5 px-1.5 text-2xs"
                   >
                     {{ item.badge }}
                   </Badge>
@@ -188,7 +188,7 @@ const getItemIconColorClass = (url?: string) => {
             :key="item.title"
             :to="item.url || '#'"
             :class="[
-              'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-[11px] font-medium rounded-none h-8.5 mx-1',
+              'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium rounded-none h-8.5 mx-1',
               isItemActive(item.url)
                 ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
                 : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -206,7 +206,7 @@ const getItemIconColorClass = (url?: string) => {
             <Badge
               v-if="item.badge"
               :variant="item.badgeVariant || 'default'"
-              class="ml-auto h-5 px-1.5 text-[10px]"
+              class="ml-auto h-5 px-1.5 text-2xs"
             >
               {{ item.badge }}
             </Badge>
@@ -238,7 +238,7 @@ const getItemIconColorClass = (url?: string) => {
                 <Badge
                   v-if="item.badge"
                   :variant="item.badgeVariant || 'default'"
-                  class="ml-auto h-5 px-1.5 text-[10px]"
+                  class="ml-auto h-5 px-1.5 text-2xs"
                 >
                   {{ item.badge }}
                 </Badge>

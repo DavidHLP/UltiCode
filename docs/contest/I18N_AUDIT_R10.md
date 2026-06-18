@@ -2,7 +2,7 @@
 
 > **作用**：R10.3 产物 —— 跨端 en-US / zh-CN i18n locale key 一致性审计
 > **创建**：2026-06-17
-> **关联**：[EXECUTION_PLAN_R10.md §4](./EXECUTION_PLAN_R10.md)
+> **关联**：[_archive/EXECUTION_PLAN_R10 §4](./_archive/EXECUTION_PLAN_R10_2026-06-18.md)
 
 ## 方法
 
@@ -104,7 +104,7 @@ A console/src/i18n/locales/{en-US,zh-CN}/contest.ts  (R9 已写回)
 
 ## R10 后续 i18n 任务
 
-- **R10.2 plan 误判**（2026-06-18 验证）：R10.2 假设需手动接线 4 个 view（ContestBrowseView / ContestRankingsView / MyContests / WS banner），但 R9 阶段已用业务命名空间（`contest.list.*` / `contest.myContests.*` / `contest.ranking.*`）完成 i18n 接线；9 个未引用的 key 是死键（locale 有但 view 零引用）。详见 [EXECUTION_PLAN_R10.md §3](./EXECUTION_PLAN_R10.md) 误判说明
+- **R10.2 plan 误判**（2026-06-18 验证）：R10.2 假设需手动接线 4 个 view（ContestBrowseView / ContestRankingsView / MyContests / WS banner），但 R9 阶段已用业务命名空间（`contest.list.*` / `contest.myContests.*` / `contest.ranking.*`）完成 i18n 接线；9 个未引用的 key 是死键（locale 有但 view 零引用）。详见 [_archive/EXECUTION_PLAN_R10 §3](./_archive/EXECUTION_PLAN_R10_2026-06-18.md) 误判说明
 - 死键处置（非 R10 强制）：
   - 选项 A：保留（无引用是观察性的，对未来扩展无害）
   - 选项 B：从 locale 文件删除（精简），需 R10.x 单独 PR

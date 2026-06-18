@@ -116,13 +116,13 @@ function retryFetch() {
             <div class="hidden sm:flex items-center gap-2">
               <span
                 v-if="!headerData.isPublished"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
+                class="font-data text-2xs uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.published.draft') }}
               </span>
               <span
                 v-if="headerData.isPremium"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
+                class="font-data text-2xs uppercase px-2 py-0.5 border rounded-none bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.badges.premium') }}
               </span>
@@ -137,25 +137,25 @@ function retryFetch() {
             <TabsList class="h-9 bg-transparent">
               <TabsTrigger
                 value="description"
-                class="h-7 px-3 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+                class="h-7 px-3 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
               >
                 {{ t('problems.tabs.description') }}
               </TabsTrigger>
               <TabsTrigger
                 value="code"
-                class="h-7 px-3 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+                class="h-7 px-3 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
               >
                 {{ t('problems.tabs.code') }}
               </TabsTrigger>
               <TabsTrigger
                 value="cases"
-                class="h-7 px-3 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+                class="h-7 px-3 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
               >
                 {{ t('problems.tabs.testCases') }}
               </TabsTrigger>
               <TabsTrigger
                 value="audit"
-                class="h-7 px-3 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+                class="h-7 px-3 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
               >
                 {{ t('problems.tabs.audit') }}
               </TabsTrigger>
@@ -168,7 +168,7 @@ function retryFetch() {
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-[10px] border-[var(--silver-300)]"
+            class="h-8 font-data text-2xs border-[var(--silver-300)]"
             @click="versionHistoryOpen = true"
           >
             <History :size="14" class="mr-1.5" />
@@ -180,7 +180,7 @@ function retryFetch() {
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-[10px] border-[var(--silver-300)] hidden sm:flex"
+            class="h-8 font-data text-2xs border-[var(--silver-300)] hidden sm:flex"
             @click="editProblem"
           >
             <Edit :size="14" class="mr-1.5" />
@@ -190,7 +190,7 @@ function retryFetch() {
           <Button
             :variant="headerData.isPublished ? 'terminal' : 'terminal_primary'"
             size="sm"
-            class="h-8 font-data text-[10px]"
+            class="h-8 font-data text-2xs"
             :disabled="publishing"
             @click="togglePublish"
           >
@@ -213,25 +213,25 @@ function retryFetch() {
           <TabsList class="w-full h-9 bg-transparent">
             <TabsTrigger
               value="description"
-              class="flex-1 h-7 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+              class="flex-1 h-7 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
             >
               {{ t('problems.tabs.description') }}
             </TabsTrigger>
             <TabsTrigger
               value="code"
-              class="flex-1 h-7 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+              class="flex-1 h-7 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
             >
               {{ t('problems.tabs.code') }}
             </TabsTrigger>
             <TabsTrigger
               value="cases"
-              class="flex-1 h-7 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+              class="flex-1 h-7 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
             >
               {{ t('problems.tabs.testCases') }}
             </TabsTrigger>
             <TabsTrigger
               value="audit"
-              class="flex-1 h-7 font-data text-[10px] uppercase tracking-[0.1em] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
+              class="flex-1 h-7 font-data text-2xs uppercase tracking-wide data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] border-b-2 border-transparent rounded-none data-[state=active]:bg-transparent"
             >
               {{ t('problems.tabs.audit') }}
             </TabsTrigger>

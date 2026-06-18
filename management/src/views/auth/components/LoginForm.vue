@@ -114,7 +114,7 @@ async function handleSubmit(event: Event) {
   gap: 1.5rem;
 }
 
-/* Header */
+
 .login-form__header {
   display: flex;
   flex-direction: column;
@@ -129,19 +129,19 @@ async function handleSubmit(event: Event) {
 }
 
 .login-form__title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-semibold)
+  letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
   line-height: 1.1;
 }
 
 .login-form__subtitle {
-  font-size: 0.875rem;
+  font-size: var(--uc-text-sm);
   color: var(--silver-500);
 }
 
-/* Error Alert */
+
 .login-form__error {
   display: flex;
   align-items: flex-start;
@@ -151,8 +151,8 @@ async function handleSubmit(event: Event) {
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
   color: var(--status-error);
-  font-size: 0.875rem;
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: var(--uc-text-sm);
+  font-family: var(--uc-font-code);
 }
 
 .dark .login-form__error {
@@ -161,11 +161,11 @@ async function handleSubmit(event: Event) {
 }
 
 .login-form__error-prefix {
-  font-weight: 600;
+  font-weight: var(--uc-font-weight-semibold)
   opacity: 0.9;
 }
 
-/* Submit Button */
+
 .login-form__submit {
   margin-top: 0.5rem;
 }

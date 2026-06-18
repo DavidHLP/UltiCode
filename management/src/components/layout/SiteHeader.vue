@@ -78,7 +78,7 @@ onUnmounted(() => {
             <span>{{ t('common.search') }}...</span>
           </div>
           <kbd
-            class="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 border border-[var(--silver-300)] bg-[var(--card)] px-1 font-mono text-[9px] font-medium text-[var(--silver-400)] shrink-0"
+            class="pointer-events-none inline-flex h-4 select-none items-center gap-0.5 border border-[var(--silver-300)] bg-[var(--card)] px-1 font-mono text-2xs font-medium text-[var(--silver-400)] shrink-0"
           >
             Ctrl+K
           </kbd>
@@ -89,7 +89,7 @@ onUnmounted(() => {
       <div class="flex items-center gap-4">
         <!-- System Telemetry Status (retro styled badge) -->
         <div
-          class="hidden sm:flex items-center gap-3 h-8 px-2.5 border border-[var(--silver-200)]/80 dark:border-[var(--silver-300)]/40 bg-transparent text-[10px] font-mono select-none"
+          class="hidden sm:flex items-center gap-3 h-8 px-2.5 border border-[var(--silver-200)]/80 dark:border-[var(--silver-300)]/40 bg-transparent text-2xs font-mono select-none"
         >
           <div class="flex items-center gap-1.5">
             <span class="relative flex h-1.5 w-1.5 shrink-0">
@@ -122,7 +122,7 @@ onUnmounted(() => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent variant="terminal" align="end" class="w-48">
-            <DropdownMenuLabel class="font-mono text-[10px] text-[var(--silver-400)] uppercase">{{
+            <DropdownMenuLabel class="font-mono text-2xs text-[var(--silver-400)] uppercase">{{
               t('dashboard.quickActions.title')
             }}</DropdownMenuLabel>
             <DropdownMenuSeparator />

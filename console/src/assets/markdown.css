@@ -1,6 +1,6 @@
-/* Global Code Block Styling for LeetCode Design */
 
-/* Code Tabs Styles - Container */
+
+
 .lc-code-tabs {
   border-radius: 0.5rem;
   overflow: hidden;
@@ -9,22 +9,22 @@
   background-color: var(--surface-sunken);
 }
 
-/* Header */
+
 .lc-tabs-header {
   display: flex;
   align-items: center;
-  background-color: inherit; /* Match container background for transparency */
+  background-color: inherit;
   border-bottom: 1px solid var(--border);
   padding: 0.5rem 1rem;
   overflow-x: auto;
   gap: 1rem;
 }
 
-/* Tab Buttons */
+
 .lc-tab-btn {
   padding: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-medium)
   color: var(--muted-foreground);
   background: none;
   border: none;
@@ -42,19 +42,19 @@
 
 .lc-tab-btn.active {
   color: var(--foreground);
-  font-weight: 600;
+  font-weight: var(--uc-font-weight-semibold)
   background-color: transparent;
   border-radius: 0;
   box-shadow: none;
 }
 
-/* Body Panel */
+
 .lc-tabs-body {
   position: relative;
   background-color: var(--surface-sunken);
 }
 
-/* Panel Visibility */
+
 .lc-code-panel {
   display: none;
 }
@@ -63,14 +63,14 @@
   display: block;
 }
 
-/* Code Block Override */
+
 .lc-code-block {
   position: relative;
   margin: 0 !important;
   background-color: transparent;
 }
 
-/* Copy Button */
+
 .lc-copy-wrapper {
   position: absolute;
   top: 0.5rem;
@@ -96,34 +96,34 @@
   background-color: var(--accent);
 }
 
-/* Pre/Code Overrides */
+
 .lc-code-block pre,
 .lc-code-body pre {
   margin: 0 !important;
   padding: 1rem;
   font-family: var(--font-mono) !important;
-  font-size: 0.875em !important;
+  font-size: var(--uc-text-sm) !important;
   line-height: var(--leading-code) !important;
   background-color: transparent !important;
   overflow-x: auto;
 }
 
-/* --- Unifying Typography & Layout from SolutionDetail.vue --- */
+
 
 .markdown-view .prose {
-  font-size: 14px;
+  font-size: var(--uc-text-sm);
   line-height: 1.6;
   color: var(--foreground);
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  max-width: none; /* Override prose max-width */
+  max-width: none;
 }
 
-/* Headings */
+
 .markdown-view .prose h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--uc-text-lg);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 1.25rem;
   margin-bottom: 0.625rem;
   color: var(--foreground);
@@ -131,8 +131,8 @@
 }
 
 .markdown-view .prose h2 {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--uc-text-md);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 1.125rem;
   margin-bottom: 0.5rem;
   color: var(--foreground);
@@ -140,8 +140,8 @@
 }
 
 .markdown-view .prose h3 {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 1rem;
   margin-bottom: 0.5rem;
   color: var(--foreground);
@@ -149,8 +149,8 @@
 }
 
 .markdown-view .prose h4 {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-semibold)
   margin-top: 0.875rem;
   margin-bottom: 0.375rem;
   color: var(--foreground);
@@ -163,7 +163,7 @@
   line-height: 1.6;
 }
 
-/* Lists */
+
 .markdown-view .prose ul,
 .markdown-view .prose ol {
   padding-left: 1.25rem;
@@ -178,32 +178,32 @@
 .markdown-view .prose li {
   margin-bottom: 0.25rem;
   margin-top: 0;
-  padding-left: 0; /* Remove prose padding if any */
+  padding-left: 0;
 }
 
-/* Inline Code - LeetCode Pill Style */
+
 .markdown-view .prose :not(pre) > code {
   font-family: var(--font-mono);
-  font-size: 0.85em;
+  font-size: var(--uc-text-xl);
   background-color: var(--muted);
   color: var(--foreground);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   white-space: pre-wrap;
   word-break: break-word;
-  font-weight: normal; /* Prose makes code bold by default sometimes */
+  font-weight: var(--uc-font-weight-regular)
 }
 
-/* Code Blocks */
-/* Note: lc-code-tabs handles complex blocks, this is for standard ones or overrides */
+
+
 .markdown-view .prose pre {
-  background-color: var(--muted); /* Fallback or match theme */
+  background-color: var(--muted);
   border-radius: 0.5rem;
   padding: 1rem;
   margin: 1rem 0;
   overflow-x: auto;
   color: inherit;
-  font-size: 0.9em;
+  font-size: var(--uc-text-sm);
   line-height: var(--leading-code);
 }
 
@@ -211,39 +211,39 @@
   background-color: transparent;
   padding: 0;
   border-radius: 0;
-  font-weight: normal;
+  font-weight: var(--uc-font-weight-regular)
   color: inherit;
   font-family: var(--font-mono);
 }
 
-/* Blockquote */
+
 .markdown-view .prose blockquote {
   border-left: 3px solid var(--border);
   padding-left: 1rem;
   color: var(--muted-foreground);
   margin: 1rem 0;
-  font-style: normal; /* Prose makes it italic */
+  font-style: normal;
 }
 
-/* Links */
+
 .markdown-view .prose a {
   color: hsl(var(--primary));
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--uc-font-weight-medium)
 }
 
 .markdown-view .prose a:hover {
   text-decoration: underline;
 }
 
-/* Images */
+
 .markdown-view .prose img {
   margin-top: 1rem;
   margin-bottom: 1rem;
   border-radius: 0.5rem;
 }
 
-/* --- High Contrast Solarized Theme Adjustments --- */
+
 .markdown-view .prose {
   color: var(--solarized-base02) !important;
 }
@@ -264,10 +264,10 @@
   color: var(--solarized-base1) !important;
 }
 
-/* --- Section Heading Accent Lines --- */
+
 .markdown-view .prose h2 {
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
+  font-size: var(--uc-text-xl) !important;
+  font-weight: var(--uc-font-weight-bold) !important;
   border-left: 4px solid var(--solarized-blue) !important;
   padding-left: 0.75rem !important;
   margin-top: 2.5rem !important;
@@ -276,8 +276,8 @@
 }
 
 .markdown-view .prose h3 {
-  font-size: 1.1rem !important;
-  font-weight: 700 !important;
+  font-size: var(--uc-text-lg) !important;
+  font-weight: var(--uc-font-weight-bold) !important;
   border-left: 3px solid var(--solarized-cyan) !important;
   padding-left: 0.6rem !important;
   margin-top: 2rem !important;
@@ -285,7 +285,7 @@
   line-height: 1.4 !important;
 }
 
-/* --- Standalone Code Block Toolbar & Styling --- */
+
 .lc-code-block-standalone {
   margin: 1.5rem 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -298,8 +298,8 @@
 }
 
 .lc-code-block-header span {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-semibold)
   color: var(--silver-600);
 }
 

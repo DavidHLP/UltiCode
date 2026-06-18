@@ -144,7 +144,7 @@
 
 ## 10. v3.3 / R7 收口（2026-06-17）
 
-R7 多轮执行（详见 [completed/EXECUTION_PLAN_R7.md](./completed/EXECUTION_PLAN_R7.md)）落地 7 项：
+R7 多轮执行（详见 [_archive/EXECUTION_PLAN_R7](./_archive/EXECUTION_PLAN_R7_2026-06-17.md)）落地 7 项：
 
 - **R7.2** F-22 audit doc 明确"无 violation"+ F-31 启动时 sweep
 - **R7.3** F-29 指数退避 + F-43 rejected 事件通道
@@ -167,7 +167,7 @@ R7 多轮执行（详见 [completed/EXECUTION_PLAN_R7.md](./completed/EXECUTION_
 
 ## 11. v3.3 / R8 收口（2026-06-17）
 
-R8 落地（详见 [completed/EXECUTION_PLAN_R8.md](./completed/EXECUTION_PLAN_R8.md)）：
+R8 落地（详见 [_archive/EXECUTION_PLAN_R8](./_archive/EXECUTION_PLAN_R8_2026-06-17.md)）：
 
 - **R8.1–R8.4** 评审发现 HIGH-1/HIGH-2/HIGH-3 + MED-1/2 修复（selectParticipantsKeyset NULL bug、ContestRankingsView WS 接入、ContestScoringServiceImpl 真实 participant 边界、autofinish 不重算虚拟）
 - **R8.5** ADR-011 决策：CRIT-6 灰度由 ADR-006 §2.4 覆盖，**不引独立 flag**（隐式灰度，避免运维摩擦）
@@ -179,7 +179,7 @@ R8 落地（详见 [completed/EXECUTION_PLAN_R8.md](./completed/EXECUTION_PLAN_R
 
 ## 12. v3.4 / R9 收口 — 模块 v4.2 完结（2026-06-17）
 
-R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R9.md)）：
+R9 落地（详见 [_archive/EXECUTION_PLAN_R9](./_archive/EXECUTION_PLAN_R9_2026-06-17.md)）：
 
 - **R9.1** F-24 keyset 分页重设计（`getContestRanking(contestId, limit, cursor)`，cursor 格式 `rank:userId`）
 - **R9.2** per-contest evict 占位 API 落地（`evictRankingCacheForContest(contestId)`；**真 per-contest eviction** → **R10**）
@@ -198,7 +198,7 @@ R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R
 
 ### R10 实际收口（2026-06-18 验证后）
 
-完整计划：[EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)
+完整计划：[_archive/EXECUTION_PLAN_R10](./_archive/EXECUTION_PLAN_R10_2026-06-18.md)
 
 > **R10 计划 9 项中 4 项 plan 误判**（基于 R9 文档推断而未做代码侧验证）。R10 实际完成度：5/9 ✅ + 4/9 plan 误判 + **0 行代码改动**。模块 v4.3 收口**不成立**；v4.2 保持为权威裁决。
 
@@ -209,22 +209,22 @@ R9 落地（详见 [completed/EXECUTION_PLAN_R9.md](./completed/EXECUTION_PLAN_R
 | **R10.2** | ⚠️ plan 误判 | R9 阶段已用业务命名空间完成 i18n；9 个 key 是死键 |
 | **R10.3** | ✅ 0 漂移 | [I18N_AUDIT_R10.md](./I18N_AUDIT_R10.md) |
 | **R10.4** | ⚠️ ABORTED | `getGlobalRankingsPaginated` 与 `getContestRanking` 是两个独立功能（全局 vs 单场），非同 API 旧/新版本 |
-| **R10.5** | ⚠️ plan 误判 / DEFERRED | denormalize 引入 cascade 写放大 + R6.2/F-06 双轨时钟对账风险；推荐改用单 SQL JOIN 方案（独立 PR）|
+| **R10.5** | ⚠️ plan 误判 / DEFERRED | denormalize 引入 cascade 写放大 + R6.2/F-06 双轨时钟对账风险；推荐改用单 SQL JOIN 方案（独立 PR） |
 | **R10.6/10.7** | ✅ F-01 销项 | doc-only 落地，详见下方 |
-| **R10.8/10.9** | ✅ F-SEC-10/13 收口 | doc-only 落地（`init-db/README.md` / `docs/PRIVACY.md`）|
+| **R10.8/10.9** | ✅ F-SEC-10/13 收口 | doc-only 落地（`init-db/README.md` / `docs/PRIVACY.md`） |
 | **MED-3** | ⏸ 留 R10.x 续轮 | `WebSocketAuthenticationException` 顶层化，cosmetic 重构 |
 
 ### F-01 状态机（已 R10 销项）
 
 - ✅ **R10.6** `finishVirtualContest` 复核：`ContestSchedulerServiceImpl.finishVirtualContest:251-255` 走 `bulkFinishByIds`，无 violation
 - ✅ **R10.7** F-06 `timeFromStart` 复核：`SubmissionServiceImpl.recordContestSubmissionIfNeeded:1387-1395` 三元分支正确（虚拟用 `p.getStartedAt()`，真实用 `contest.getActualStartTime()`），无 violation
-- 详见 [F-01-STATE_MACHINE_AUDIT.md §3.1/§6.4](./F-01-STATE_MACHINE_AUDIT.md) R10 复核结果 + [EXECUTION_PLAN_R10.md](./EXECUTION_PLAN_R10.md)
+- 详见 [F-01-STATE_MACHINE_AUDIT §3.1/§6.4](./F-01-STATE_MACHINE_AUDIT.md) R10 复核结果 + [_archive/EXECUTION_PLAN_R10](./_archive/EXECUTION_PLAN_R10_2026-06-18.md)
 
 ### SECURITY_REVIEW 残留
 
 - ✅ **F-SEC-10** MEDIUM Flyway 迁移期间 admin/用户操作无锁 —— **R10.8 已关单**（[init-db/README.md Migration Operational Checklist](../../init-db/README.md#migration-operational-checklist)）
 - 🟡 **F-SEC-12** LOW 反作弊钩子（开卷/刷题/账号多开）未设计 —— **业务决策项**，等产品定义反作弊需求后单独立项
-- ✅ **F-SEC-13** LOW 虚拟赛结束无审计 / log retention 不清 —— **R10.9 已关单**（[docs/PRIVACY.md Log Retention 表](../../PRIVACY.md#log-retention)）
+- ✅ **F-SEC-13** LOW 虚拟赛结束无审计 / log retention 不清 —— **R10.9 已关单**（[docs/PRIVACY.md Log Retention 表](../PRIVACY.md#log-retention)）
 - 🟡 **F-SEC-14** INFO 计划本身偏功能性，安全章节 0 字节 —— **文档结构问题**，建议 EXECUTION_PLAN.md 后续版本加 §"Security Requirements" 章节（OWASP API Top 10 逐条对应），不在 R10 范围
 
 > **R10 收口后 SECURITY 残留 4 项中 2 项已关单**（F-SEC-10/13），2 项保留为业务/文档决策（F-SEC-12/14）。F-SEC-14 留作后续 PLAN 改版时一并处理。

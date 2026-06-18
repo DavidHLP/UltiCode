@@ -93,7 +93,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('users.columns.user'),
         ),
       cell: ({ row }) => {
@@ -156,7 +156,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('users.columns.role'),
         ),
       cell: ({ row }) => {
@@ -169,7 +169,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('common.status'),
         ),
       cell: ({ row }) => {
@@ -182,7 +182,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('users.columns.joined'),
         ),
       cell: ({ row }) => {
@@ -199,7 +199,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('users.columns.lastLogin'),
         ),
       cell: ({ row }) => {
@@ -219,7 +219,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {

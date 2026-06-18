@@ -153,9 +153,9 @@ async function handleSubmit(event: Event) {
 }
 
 .register-form__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-bold)
+  letter-spacing: var(--uc-tracking-normal);
   color: var(--solarized-base03);
   line-height: 1.1;
 }
@@ -165,7 +165,7 @@ async function handleSubmit(event: Event) {
 }
 
 .register-form__subtitle {
-  font-size: 0.8125rem;
+  font-size: var(--uc-text-md);
   color: var(--solarized-base01);
 }
 
@@ -182,8 +182,8 @@ async function handleSubmit(event: Event) {
   border-radius: 0;
   background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
   color: var(--status-error);
-  font-size: 0.875rem;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: var(--uc-text-sm);
+  font-family: var(--uc-font-code);
 }
 
 .dark .register-form__error {
@@ -192,7 +192,7 @@ async function handleSubmit(event: Event) {
 }
 
 .register-form__error-prefix {
-  font-weight: 600;
+  font-weight: var(--uc-font-weight-semibold)
   opacity: 0.9;
 }
 
@@ -201,10 +201,10 @@ async function handleSubmit(event: Event) {
 }
 
 .register-form__signin {
-  font-size: 0.8125rem;
+  font-size: var(--uc-text-md);
   color: var(--solarized-base01);
   text-align: center;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 
 .dark .register-form__signin {

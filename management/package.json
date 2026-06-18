@@ -19,7 +19,8 @@
     "test": "vitest --run --passWithNoTests --exclude '**/shared/theme/**'",
     "test:watch": "vitest --passWithNoTests",
     "test:coverage": "vitest --coverage --passWithNoTests",
-    "verify:theme-sync": "node ../scripts/verify-theme-sync.mjs"
+    "verify:theme-sync": "node ../scripts/verify-theme-sync.mjs",
+    "verify:typography-tokens": "node ../scripts/verify-typography-tokens.mjs"
   },
   "dependencies": {
     "@dnd-kit/abstract": "^0.1.21",

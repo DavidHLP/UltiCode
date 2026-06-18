@@ -10,6 +10,7 @@ import "./assets/markdown.css";
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
 import { initTheme } from "@/composables/useTheme";
+import { applyTypographyDensity } from "@/composables/useTypographyDensity";
 
 /**
  * Application Bootstrap
@@ -34,6 +35,13 @@ async function bootstrap() {
   // call is a no-op for the initial paint but registers the OS-preference
   // listener for live updates.
   initTheme();
+  // Console is the comfortable reading surface: long-form problem
+  // statements, markdown, forum content, and personal dashboards all
+  // benefit from the default density. The shared typography CSS exposes
+  // a `data-uc-density="comfortable"` profile (see
+  // shared/theme/src/typography.css + docs/SHARED_TYPOGRAPHY_DESIGN.md
+  // §7). The helper below is the only place this attribute is written.
+  applyTypographyDensity("comfortable");
 
   const app = createApp(App);
   const pinia = createPinia();

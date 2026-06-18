@@ -53,9 +53,9 @@ defineOptions({
   justify-content: center;
   width: 100%;
   height: 2.75rem;
-  font-weight: 500;
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
+  font-weight: var(--uc-font-weight-medium)
+  font-size: var(--uc-text-sm);
+  letter-spacing: var(--uc-tracking-normal);
   border-radius: 0;
   border: 1px solid transparent;
   cursor: pointer;
@@ -68,7 +68,7 @@ defineOptions({
     color var(--transition-fast);
 }
 
-/* Primary variant - low-brightness accent-electric tint */
+
 .auth-button--primary {
   background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
   border-color: color-mix(in oklch, var(--accent-electric) 55%, transparent);
@@ -91,7 +91,7 @@ defineOptions({
   transform: translateY(0.5px);
 }
 
-/* Secondary variant - matches OAuth button visual language */
+
 .auth-button--secondary {
   background: transparent;
   color: var(--foreground);
@@ -113,18 +113,18 @@ defineOptions({
   transform: translateY(0.5px);
 }
 
-/* Disabled state */
+
 .auth-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Loading state */
+
 .auth-button--loading .auth-button__content {
   opacity: 0;
 }
 
-/* Content wrapper */
+
 .auth-button__content {
   display: flex;
   align-items: center;
@@ -133,7 +133,7 @@ defineOptions({
   transition: opacity var(--transition-fast);
 }
 
-/* Spinner */
+
 .auth-button__spinner {
   position: absolute;
   width: 1.25rem;

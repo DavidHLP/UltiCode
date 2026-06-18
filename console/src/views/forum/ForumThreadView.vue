@@ -433,7 +433,7 @@ const handleMobileTOCClick = (id: string) => {
                   class="absolute right-0 top-9 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
                 >
                   <div
-                    class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                    class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                   >
                     文章大纲
                   </div>
@@ -567,7 +567,7 @@ const handleMobileTOCClick = (id: string) => {
               u/{{ thread.author?.username || "unknown" }}
             </span>
             <span
-              class="text-[10px] text-muted-foreground truncate leading-none mt-0.5"
+              class="text-2xs text-muted-foreground truncate leading-none mt-0.5"
               v-if="thread.author?.karma !== undefined"
             >
               Reputation: {{ thread.author.karma }}
@@ -576,7 +576,7 @@ const handleMobileTOCClick = (id: string) => {
         </div>
 
         <div
-          class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+          class="text-2xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
         >
           <div>发布于：{{ createdAgo }}</div>
           <div v-if="thread.community" class="truncate">
@@ -587,7 +587,7 @@ const handleMobileTOCClick = (id: string) => {
             class="flex items-center gap-1.5 flex-wrap mt-1"
           >
             <span
-              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)]"
+              class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)]"
             >
               {{ thread.flair.text }}
             </span>
@@ -601,7 +601,7 @@ const handleMobileTOCClick = (id: string) => {
         class="bg-[var(--card)] border border-border shadow-sm p-4"
       >
         <div
-          class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+          class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
         >
           文章大纲
         </div>

@@ -208,7 +208,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="title">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                         >
                           {{ t('problems.form.title') }}
                         </FormLabel>
@@ -226,7 +226,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="slug">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                         >
                           {{ t('problems.form.slug') }}
                         </FormLabel>
@@ -247,7 +247,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="difficulty">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                         >
                           {{ t('problems.form.difficulty') }}
                         </FormLabel>
@@ -276,7 +276,7 @@ function isLanguageSelected(lang: string): boolean {
                     <FormField v-slot="{ componentField }" name="status">
                       <FormItem class="space-y-0.5">
                         <FormLabel
-                          class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                          class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                         >
                           {{ t('problems.form.status') }}
                         </FormLabel>
@@ -316,7 +316,7 @@ function isLanguageSelected(lang: string): boolean {
                             >
                               {{ t('problems.descriptionForm.premium') }}
                             </Label>
-                            <p class="text-[11px] text-[var(--silver-500)] leading-normal">
+                            <p class="text-xxs text-[var(--silver-500)] leading-normal">
                               {{ t('problems.descriptionForm.premiumDescription') }}
                             </p>
                           </div>
@@ -342,7 +342,7 @@ function isLanguageSelected(lang: string): boolean {
                             >
                               {{ t('problems.descriptionForm.published') }}
                             </Label>
-                            <p class="text-[11px] text-[var(--silver-500)] leading-normal">
+                            <p class="text-xxs text-[var(--silver-500)] leading-normal">
                               {{ t('problems.descriptionForm.publishedDescription') }}
                             </p>
                           </div>
@@ -379,7 +379,7 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField v-slot="{ componentField }" name="summary">
                     <FormItem class="space-y-0.5">
                       <FormLabel
-                        class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                       >
                         {{ t('problems.form.summary') }}
                       </FormLabel>
@@ -398,7 +398,7 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField v-slot="{ componentField }" name="content">
                     <FormItem class="space-y-0.5">
                       <FormLabel
-                        class="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
+                        class="text-xxs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] mb-1 block"
                       >
                         {{ t('problems.form.fullContent') }}
                       </FormLabel>

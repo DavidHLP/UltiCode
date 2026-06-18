@@ -88,7 +88,7 @@ function getActivityCount(level: number): string {
           <span
             v-for="(day, i) in days"
             :key="day"
-            class="flex h-3 items-center justify-end text-[10px] text-muted-foreground"
+            class="flex h-3 items-center justify-end text-2xs text-muted-foreground"
             :class="{ invisible: i % 2 === 1 }"
           >
             {{ day }}
@@ -120,7 +120,7 @@ function getActivityCount(level: number): string {
 
     <!-- Legend -->
     <div
-      class="flex items-center justify-end gap-1 text-[10px] text-muted-foreground"
+      class="flex items-center justify-end gap-1 text-2xs text-muted-foreground"
     >
       <span>Less</span>
       <div

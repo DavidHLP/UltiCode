@@ -39,7 +39,7 @@ const { t } = useI18n();
                 ? 'default'
                 : 'secondary'
           "
-          class="rounded-none px-3 h-5 font-bold uppercase text-[9px] tracking-widest border border-current/25 bg-current/5"
+          class="rounded-none px-3 h-5 font-bold uppercase text-2xs tracking-widest border border-current/25 bg-current/5"
           :class="
             contest.status === 'RUNNING'
               ? 'text-[var(--terminal-red)] border-[var(--terminal-red)]'

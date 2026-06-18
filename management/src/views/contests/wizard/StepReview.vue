@@ -69,7 +69,7 @@ function renderTypeBadge(type: string) {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-      
+
       <span class="terminal-cursor" />
     </div>
 
@@ -167,7 +167,7 @@ function renderTypeBadge(type: string) {
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span class="terminal-label text-[10px]">{{
+                <span class="terminal-label text-2xs">{{
                   t('scoringRules.form.baseScorePerProblem')
                 }}</span>
                 <p class="font-data text-[var(--terminal-cyan)] tabular-nums">
@@ -175,7 +175,7 @@ function renderTypeBadge(type: string) {
                 </p>
               </div>
               <div>
-                <span class="terminal-label text-[10px]">{{
+                <span class="terminal-label text-2xs">{{
                   t('scoringRules.form.wrongAnswerPenalty')
                 }}</span>
                 <p class="font-data text-[var(--terminal-red)] tabular-nums">

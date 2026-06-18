@@ -108,7 +108,7 @@ const htmlContent = computed(() =>
 
 <style scoped>
 .description-markdown :deep(.markdown-content) {
-  font-size: 13.5px;
+  font-size: var(--uc-text-sm);
   line-height: 1.7;
   color: var(--solarized-base00);
   font-family:
@@ -120,13 +120,13 @@ const htmlContent = computed(() =>
   color: var(--solarized-base0);
 }
 
-/* Headings with high contrast */
+
 .description-markdown :deep(.markdown-content h1),
 .description-markdown :deep(.markdown-content h2),
 .description-markdown :deep(.markdown-content h3),
 .description-markdown :deep(.markdown-content h4) {
   color: var(--solarized-base02);
-  font-weight: 700;
+  font-weight: var(--uc-font-weight-bold)
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-family: var(--font-sans);
@@ -140,23 +140,23 @@ const htmlContent = computed(() =>
 }
 
 .description-markdown :deep(.markdown-content h1) {
-  font-size: 1.35rem;
+  font-size: var(--uc-text-xl);
 }
 .description-markdown :deep(.markdown-content h2) {
-  font-size: 1.15rem;
+  font-size: var(--uc-text-lg);
 }
 .description-markdown :deep(.markdown-content h3) {
-  font-size: 0.95rem;
+  font-size: var(--uc-text-sm);
 }
 .description-markdown :deep(.markdown-content h4) {
-  font-size: 0.85rem;
+  font-size: var(--uc-text-sm);
 }
 
 .description-markdown :deep(.markdown-content p) {
   margin-bottom: 1em;
 }
 
-/* Lists */
+
 .description-markdown :deep(.markdown-content ul),
 .description-markdown :deep(.markdown-content ol) {
   padding-left: 1.25rem;
@@ -171,10 +171,10 @@ const htmlContent = computed(() =>
   margin-bottom: 0.35rem;
 }
 
-/* Inline Code - Solarized Pill Style */
+
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--font-mono);
-  font-size: 0.85em;
+  font-size: var(--uc-text-xl);
   background-color: var(--silver-100);
   color: var(--solarized-base01);
   padding: 0.1rem 0.3rem;
@@ -188,7 +188,7 @@ const htmlContent = computed(() =>
   color: var(--solarized-base1);
 }
 
-/* Code Blocks */
+
 .description-markdown :deep(.markdown-content pre) {
   background-color: var(--silver-100);
   border-radius: 0;
@@ -204,10 +204,10 @@ const htmlContent = computed(() =>
   border-radius: 0;
   border: none;
   color: inherit;
-  font-size: 0.85em;
+  font-size: var(--uc-text-xl);
 }
 
-/* Blockquote - Matches LeetCode example blocks */
+
 .description-markdown :deep(.markdown-content blockquote) {
   border-left: 3px solid var(--solarized-blue);
   background-color: var(--silver-100);
@@ -215,7 +215,7 @@ const htmlContent = computed(() =>
   margin: 1rem 0;
   color: var(--solarized-base00);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--uc-text-sm);
   line-height: 1.5;
 }
 
@@ -230,9 +230,9 @@ const htmlContent = computed(() =>
   color: inherit;
 }
 
-/* Strong text */
+
 .description-markdown :deep(.markdown-content strong) {
-  font-weight: 600;
+  font-weight: var(--uc-font-weight-semibold)
   color: var(--solarized-base01);
 }
 
@@ -240,9 +240,9 @@ const htmlContent = computed(() =>
   color: var(--solarized-base1);
 }
 
-/* Katex adjustments */
+
 .description-markdown :deep(.katex) {
-  font-size: 1.1em;
+  font-size: var(--uc-text-md);
 }
 
 .description-markdown :deep(.katex-display) {

@@ -103,7 +103,7 @@ const categoryColor = computed(
       v-if="achievement.points > 0"
       :class="
         cn(
-          'absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground',
+          'absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-bold text-primary-foreground',
           size === 'lg' && 'h-6 text-xs',
         )
       "
@@ -115,7 +115,7 @@ const categoryColor = computed(
     <span
       :class="
         cn(
-          'mt-1 text-[10px] font-medium uppercase tracking-wide',
+          'mt-1 text-2xs font-medium uppercase tracking-wide',
           categoryColor,
         )
       "

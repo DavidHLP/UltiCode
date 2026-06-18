@@ -35,10 +35,10 @@ defineProps<{
           class="flex items-center gap-2 px-4 py-3 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/40 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10"
         >
           <component :is="group.icon" class="size-4 text-[var(--accent-primary)]" />
-          <h2 class="text-[11px] font-bold font-mono uppercase tracking-wide text-foreground">
+          <h2 class="text-xxs font-bold font-mono uppercase tracking-wide text-foreground">
             {{ group.title }}
           </h2>
-          <span class="ml-auto text-[9px] font-data text-[var(--silver-400)]">
+          <span class="ml-auto text-2xs font-data text-[var(--silver-400)]">
             {{ String(groupIndex + 1).padStart(2, '0') }}
           </span>
         </header>
@@ -49,14 +49,14 @@ defineProps<{
             :key="item.label"
             class="flex min-h-9 items-center justify-between gap-3 py-1.5"
           >
-            <dt class="truncate text-[11px] font-mono text-[var(--silver-500)]">
+            <dt class="truncate text-xxs font-mono text-[var(--silver-500)]">
               {{ item.label }}
             </dt>
             <dd class="flex shrink-0 items-center gap-1.5 font-data tabular-nums">
               <span class="text-xs font-bold text-foreground">{{ item.value }}</span>
               <span
                 v-if="item.change"
-                class="border px-1 py-0.5 text-[9px] font-bold font-mono"
+                class="border px-1 py-0.5 text-2xs font-bold font-mono"
                 :style="item.changeStyle"
               >
                 {{ item.change }}

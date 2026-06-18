@@ -222,7 +222,7 @@ function cancelCreateNew() {
           </p>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.baseScorePerProblem')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
@@ -230,7 +230,7 @@ function cancelCreateNew() {
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.timeBonusPerMinute')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
@@ -238,7 +238,7 @@ function cancelCreateNew() {
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.wrongAnswerPenalty')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
@@ -246,7 +246,7 @@ function cancelCreateNew() {
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.timeLimitPenalty')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
@@ -254,7 +254,7 @@ function cancelCreateNew() {
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.firstSolveBonus')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
@@ -262,7 +262,7 @@ function cancelCreateNew() {
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{
+              <span class="terminal-label text-2xs">{{
                 t('scoringRules.form.fullScoreBonus')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">

@@ -79,7 +79,7 @@ const getCardAccent = (index: number) => {
     >
       <!-- Retro Terminal Window Header -->
       <div
-        class="dashboard-stat-card__header flex items-center justify-between px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider font-bold"
+        class="dashboard-stat-card__header flex items-center justify-between px-3 py-1.5 font-mono text-2xs uppercase tracking-wider font-bold"
       >
         <div class="flex items-center gap-1 shrink-0">
           <span class="dashboard-stat-card__dot size-1.5"></span>
@@ -119,7 +119,7 @@ const getCardAccent = (index: number) => {
         <div class="flex items-center gap-2 flex-wrap text-xs">
           <!-- Trend badge -->
           <span
-            class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-none border"
+            class="inline-flex items-center gap-1 text-2xs font-mono font-bold px-1.5 py-0.5 rounded-none border"
             :class="getTrendStyles(stat.trend).badge"
           >
             <component

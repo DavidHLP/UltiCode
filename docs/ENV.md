@@ -1,5 +1,7 @@
 # Development Environment Variables
 
+> 📌 文档总入口：[README.md](./README.md) · 文档规范：[DOCS-SPEC.md](./DOCS-SPEC.md)
+
 UltiCode uses one private root `.env` for Docker Compose, Flyway, PM2, the Spring
 backend, and both Vite applications.
 
@@ -204,5 +206,6 @@ Never run `down -v` when local data must be preserved.
 
 Development values are not production defaults. Production requires externally
 managed secrets, `JWT_COOKIE_SECURE=true`, real TLS origins, no infrastructure host
-ports, and the operational steps in
-`docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md`.
+ports, and the operational steps in [RUNBOOK.md](./RUNBOOK.md) +
+`CLAUDE.md` → **Security Invariants** (the standalone remediation runbook was
+consolidated into these in commit `9ce22f921`).

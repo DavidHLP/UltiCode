@@ -209,7 +209,7 @@ watch(
                 >{{ acceptanceRate }}%</span
               >
             </div>
-            <div class="ascii-progress text-[10px]">
+            <div class="ascii-progress text-2xs">
               <span class="text-[var(--terminal-green)]">{{ progressFilled }}</span>
               <span class="ascii-progress-track">{{ progressEmpty }}</span>
             </div>

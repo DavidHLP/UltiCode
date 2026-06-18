@@ -184,9 +184,9 @@ defineExpose({ saveStatus, form, saveChanges })
           01 // {{ t('problemLists.sections.basicInfo') }}
         </span>
       </div>
-      
+
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="!isCreate" class="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold">
+      <div v-if="!isCreate" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
           <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.form.saving') }}</span>
@@ -261,8 +261,8 @@ defineExpose({ saveStatus, form, saveChanges })
 
 <style scoped>
 .custom-terminal-input {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 13px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   border-radius: 0 !important;
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
@@ -272,7 +272,7 @@ defineExpose({ saveStatus, form, saveChanges })
 
 :deep(.custom-terminal-input) {
   border-radius: 0 !important;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 
 .custom-terminal-input:hover:not(:disabled) {
@@ -293,9 +293,9 @@ defineExpose({ saveStatus, form, saveChanges })
 }
 
 .custom-terminal-button {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: bold;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xxs);
+  font-weight: var(--uc-font-weight-bold)
   text-transform: uppercase;
   border-radius: 0 !important;
   padding: 8px 16px;

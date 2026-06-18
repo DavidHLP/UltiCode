@@ -4,6 +4,8 @@ Operational reference for deploying, monitoring, and recovering the UltiCode
 stack. Targets the PM2 + Docker Compose dev topology described in
 `docs/ENV.md` and the architecture in `docs/CODEMAPS/`.
 
+> 📌 文档总入口：[README.md](./README.md) · 文档规范：[DOCS-SPEC.md](./DOCS-SPEC.md)
+
 ---
 
 ## 1. Stack Overview
@@ -388,8 +390,10 @@ If a CI job fails:
 ## 9. Escalation
 
 - **Authentication / refresh token / seed account** issues: see
-  `docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md` (the security-fix
-  migration `V20260606130000` is the canonical reference).
+  `CLAUDE.md` → **Security Invariants** (canonical). The standalone
+  `SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md` was consolidated into this
+  RUNBOOK (§6 Database, §7 Rollback) and `CLAUDE.md` (commit `9ce22f921`);
+  migration `V20260606130000` remains the canonical schema reference.
 - **Cross-stack DTO / API alignment**: invoke
   `cross-stack-dto-granularity-alignment` skill from
   `.agents/skills/`.
@@ -465,15 +469,17 @@ pm2 logs ulticode-9001 --nostream --lines 200 | grep -E "app\.features|FeatureFl
 如果看不到 flag 启动打印, 确认 `application.yml` 暴露 `app.features` 段
 (在 `backend-spring/src/main/resources/application.yml:213-246`).
 
-### 10.6 产品功能 flag 详表 (5 个, 与 §10.1 重复处详见)
+### 10.6 产品功能 flag → 关联模块（仅 §10.1 未覆盖列）
 
-| Flag key                                            | 默认   | 何时切                                   | 关联模块 / 文件 |
-|-----------------------------------------------------|--------|------------------------------------------|-----------------|
-| `app.features.use-new-contest-system`               | `false` | 新计分系统 (point-based) 取代 Elo 切换   | contest verdict 路径 |
-| `app.features.realtime-ranking-enabled`             | `true`  | WebSocket 实时榜降级到轮询               | WebSocketRealtimeRankingService |
-| `app.features.first-solve-notifications-enabled`    | `true`  | 首杀通知关闭 (运营 spam 投诉场景)        | NotificationDispatcher → WS/email |
-| `app.features.anticheat-enabled`                    | `false` | 反作弊 (high CPU 开销, peak 时不开)      | AnticheatService |
-| `app.features.contest-analytics-enabled`            | `true`  | 比赛分析生成 (慢查询可能影响榜单)        | ContestAnalyticsJob |
+> 默认值 / 切换场景 / 风险统一见 [§10.1](#101-flag-总览-10-个-5-产品--5-cutover)；本节只保留 §10.1 没有的「关联模块 / 文件」映射，避免与 §10.1 重复列。
+
+| Flag key | 关联模块 / 文件 |
+|----------|-----------------|
+| `app.features.use-new-contest-system` | contest verdict 路径 |
+| `app.features.realtime-ranking-enabled` | `WebSocketRealtimeRankingService` |
+| `app.features.first-solve-notifications-enabled` | `NotificationDispatcher` → WS/email |
+| `app.features.anticheat-enabled` | `AnticheatService` |
+| `app.features.contest-analytics-enabled` | `ContestAnalyticsJob` |
 
 ### 10.7 Sandbox 切换 (不在 FeatureFlagsProperties 范围, 单独节)
 

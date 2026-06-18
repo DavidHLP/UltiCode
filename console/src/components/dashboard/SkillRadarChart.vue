@@ -152,7 +152,7 @@ const labelPositions = computed(() => {
           :y="label.y"
           :text-anchor="label.textAnchor"
           dominant-baseline="middle"
-          class="fill-current text-[10px] text-muted-foreground"
+          class="fill-current text-2xs text-muted-foreground"
         >
           {{ label.skill.tagName }}
         </text>

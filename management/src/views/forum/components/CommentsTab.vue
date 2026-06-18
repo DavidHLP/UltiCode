@@ -166,7 +166,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
         t('comments.columns.comment'),
       ),
     cell: ({ row }) => {
@@ -196,7 +196,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
         t('comments.columns.created'),
       ),
     cell: ({ row }) => {
@@ -213,7 +213,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
         t('comments.columns.status'),
       ),
     cell: ({ row }) => {
@@ -226,7 +226,7 @@ const columns: ColumnDef<Comment>[] = [
     header: () =>
       h(
         'span',
-        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
         t('common.actions.label'),
       ),
     cell: ({ row }) => {
@@ -347,7 +347,7 @@ const columns: ColumnDef<Comment>[] = [
       >
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            
+
             <span class="terminal-cursor" />
           </div>
           <IconMessage class="h-4 w-4 text-[var(--terminal-cyan)]" />

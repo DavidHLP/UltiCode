@@ -1,10 +1,10 @@
 # F-01 状态机互斥审计（F-01 / R6.2）
 
-> **作用**：基于 [PRD §1.3 F-01](../PRD.md) + [REVIEW_V3 §1-2](../REVIEW_V3.md) 的"待复核"标注，对 contest 模块所有 status transition 做一次系统性审计。
+> **作用**：基于 [PRD §1.3 F-01](./PRD.md) + [REVIEW_V3 §1-2](./REVIEW_V3.md) 的"待复核"标注，对 contest 模块所有 status transition 做一次系统性审计。
 > **创建**：2026-06-17（R6.2 实施时审计）
-> **R10 销项（2026-06-17）**：§3.1 `finishVirtualContest` + §6.4 F-06 `timeFromStart` 两项 R6.2 待复核已 R10 复核通过，无 violation。详见 [EXECUTION_PLAN_R10.md R10.6/10.7](./EXECUTION_PLAN_R10.md)
+> **R10 销项（2026-06-17）**：§3.1 `finishVirtualContest` + §6.4 F-06 `timeFromStart` 两项 R6.2 待复核已 R10 复核通过，无 violation。详见 [EXECUTION_PLAN_R10 R10.6/10.7](./_archive/EXECUTION_PLAN_R10_2026-06-18.md)
 > **方法**：逐方法枚举所有 status 转换点 + 标注 transition 保护机制 + 列出已发现的不变量 violation
-> **关联**：[EXECUTION_PLAN_R6.md §3.1](./EXECUTION_PLAN_R6.md#round-62--状态机--虚拟时间审计--服务端时间窗-f-01--f-06--f-07)
+> **关联**：[_archive/EXECUTION_PLAN_R6 §3.1](./_archive/EXECUTION_PLAN_R6_2026-06-17.md#round-62--状态机--虚拟时间审计--服务端时间窗-f-01--f-06--f-07)
 
 ---
 

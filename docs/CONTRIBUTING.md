@@ -250,6 +250,8 @@ Types: feat, fix, refactor, docs, test, chore, perf, ci
 
 | Document | Purpose |
 | --- | --- |
+| `docs/README.md` | **文档总入口**：架构 / 运维 / 决策 / 特性按主题与问题跳转 |
+| `docs/DOCS-SPEC.md` | 文档规范（命名 / 头 / 链接 / 归档 / 更新触发） |
 | `docs/ENV.md` | All environment variables consumed by backend / frontends / compose / Flyway |
 | `docs/RUNBOOK.md` | Deployment, health checks, common-issue fixes, rollback |
 | `docs/CONTRIBUTING.md` | This file — dev setup, scripts, style, PR checklist |

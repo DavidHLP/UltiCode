@@ -1,6 +1,6 @@
 # F-22 虚拟 session 跨 contest 复用审计
 
-> **作用**：基于 [EXECUTION_PLAN_R7 §3.1](./completed/EXECUTION_PLAN_R7.md)，对虚拟 session 在跨 contest 场景下是否破坏不变量做审计。
+> **作用**：基于 [_archive/EXECUTION_PLAN_R7 §3.1](./_archive/EXECUTION_PLAN_R7_2026-06-17.md)，对虚拟 session 在跨 contest 场景下是否破坏不变量做审计。
 > **创建**：2026-06-17（R7.2 实施时审计）
 > **结论**：**无 violation**。R3.3 FOR UPDATE 串行化 + 唯一约束已满足需求。
 

@@ -62,7 +62,7 @@ const voteCounts = computed(() =>
       <Avatar class="h-8 w-8 border border-border/50">
         <AvatarImage :src="authorAvatarUrl" :alt="props.item.author.name" />
         <AvatarFallback
-          class="text-[11px] font-semibold text-white"
+          class="text-xxs font-semibold text-white"
           :style="{ backgroundColor: props.item.author.avatarColor }"
         >
           {{ authorInitial }}
@@ -74,16 +74,16 @@ const voteCounts = computed(() =>
             {{ props.item.author.name }}
           </span>
           <span
-            class="text-[9px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none"
+            class="text-2xs font-bold uppercase tracking-wider text-muted-foreground bg-muted px-1 py-0.2 rounded-none"
           >
             {{ props.item.author.role }}
           </span>
-          <span class="text-[10px] text-muted-foreground ml-auto">
+          <span class="text-2xs text-muted-foreground ml-auto">
             {{ formattedDate }}
           </span>
           <span
             v-if="props.item.flair"
-            class="rounded-none bg-[var(--terminal-amber)]/15 px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20"
+            class="rounded-none bg-[var(--terminal-amber)]/15 px-1.5 py-0.2 text-2xs font-bold uppercase tracking-wider text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20"
           >
             {{ props.item.flair }}
           </span>
@@ -92,19 +92,19 @@ const voteCounts = computed(() =>
         <!-- Language and Topic badging -->
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--accent-electric)] uppercase tracking-wider"
+            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--accent-electric)] uppercase tracking-wider"
           >
             {{ languageLabel }}
           </span>
           <span
-            class="rounded-none bg-muted px-2 py-0.5 text-[10px] font-bold text-[var(--terminal-amber)] uppercase tracking-wider"
+            class="rounded-none bg-muted px-2 py-0.5 text-2xs font-bold text-[var(--terminal-amber)] uppercase tracking-wider"
           >
             {{ topicLabel }}
           </span>
           <span
             v-for="badge in props.item.badges"
             :key="badge"
-            class="rounded-none border border-border px-2 py-0.5 text-[10px] font-bold text-foreground uppercase tracking-wider"
+            class="rounded-none border border-border px-2 py-0.5 text-2xs font-bold text-foreground uppercase tracking-wider"
           >
             {{ badge }}
           </span>
@@ -116,7 +116,7 @@ const voteCounts = computed(() =>
       <div class="space-y-0.5">
         <p
           v-if="props.item.highlight"
-          class="text-[9px] font-bold uppercase tracking-widest text-[var(--accent-electric)]"
+          class="text-2xs font-bold uppercase tracking-widest text-[var(--accent-electric)]"
         >
           {{ props.item.highlight }}
         </p>
@@ -143,13 +143,13 @@ const voteCounts = computed(() =>
         <span
           v-for="tag in props.item.tags.slice(0, 2)"
           :key="tag"
-          class="rounded-none bg-muted/70 px-2 py-0.5 text-[10px] text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
+          class="rounded-none bg-muted/70 px-2 py-0.5 text-2xs text-muted-foreground capitalize border border-transparent hover:border-border transition-colors font-medium"
         >
           {{ tag }}
         </span>
         <span
           v-if="props.item.tags.length > 2"
-          class="text-[9px] font-bold text-muted-foreground bg-muted/40 px-1 py-0.2"
+          class="text-2xs font-bold text-muted-foreground bg-muted/40 px-1 py-0.2"
         >
           +{{ props.item.tags.length - 2 }}
         </span>
@@ -158,7 +158,7 @@ const voteCounts = computed(() =>
 
       <!-- Right: Community Interaction Stats -->
       <div
-        class="flex items-center gap-3.5 text-[11px] font-data text-muted-foreground"
+        class="flex items-center gap-3.5 text-xxs font-data text-muted-foreground"
       >
         <div
           class="flex items-center gap-1 hover:text-[var(--solarized-green)] transition-colors"

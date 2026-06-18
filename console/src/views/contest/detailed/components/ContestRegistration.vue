@@ -51,13 +51,13 @@ const statusColor = computed(() => {
         >
           <div class="space-y-3">
             <p
-              class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground"
+              class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground"
             >
               {{ t("contest.detail.contestStatus") }}
             </p>
             <div class="flex items-center gap-3">
               <span
-                class="inline-flex items-center gap-1.5 rounded-none px-2.5 py-0.5 text-[9px] font-bold font-mono uppercase tracking-widest border transition-all duration-300"
+                class="inline-flex items-center gap-1.5 rounded-none px-2.5 py-0.5 text-2xs font-bold font-mono uppercase tracking-widest border transition-all duration-300"
                 :style="{
                   color: statusColor,
                   backgroundColor: `color-mix(in oklch, ${statusColor} 10%, transparent)`,
@@ -134,7 +134,7 @@ const statusColor = computed(() => {
           <!-- Structured Details Table -->
           <div class="space-y-3.5">
             <p
-              class="text-[10px] font-bold font-mono uppercase tracking-[0.2em] text-muted-foreground border-b border-border/30 pb-1"
+              class="text-2xs font-bold font-mono uppercase tracking-widest text-muted-foreground border-b border-border/30 pb-1"
             >
               {{ t("contest.detail.details") || "CONTEST DETAILS" }}
             </p>
@@ -188,7 +188,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!isRegistered"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-[11px] shadow-sm"
+                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
                 :disabled="registering"
                 @click="emit('register')"
               >
@@ -203,7 +203,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold border border-destructive/50 hover:bg-destructive hover:border-destructive hover:text-white transition-colors cursor-pointer uppercase tracking-wider text-[11px] text-destructive"
+                class="w-full gap-2 rounded-none h-11 font-bold border border-destructive/50 hover:bg-destructive hover:border-destructive hover:text-white transition-colors cursor-pointer uppercase tracking-wider text-xxs text-destructive"
                 :disabled="registering"
                 @click="emit('unregister')"
               >
@@ -221,7 +221,7 @@ const statusColor = computed(() => {
               <div class="flex flex-col gap-2">
                 <Button
                   size="lg"
-                  class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--terminal-red)] hover:bg-[var(--terminal-red)]/90 text-white cursor-pointer uppercase tracking-wider text-[11px] shadow-sm animate-pulse"
+                  class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--terminal-red)] hover:bg-[var(--terminal-red)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm animate-pulse"
                   @click="emit('scrollToProblems')"
                 >
                   <PlayCircle class="h-4 w-4" />
@@ -230,7 +230,7 @@ const statusColor = computed(() => {
                 <Button
                   size="lg"
                   variant="outline"
-                  class="w-full gap-2 rounded-none h-11 font-bold border border-border hover:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)] cursor-pointer uppercase tracking-wider text-[11px]"
+                  class="w-full gap-2 rounded-none h-11 font-bold border border-border hover:bg-[var(--silver-100)] dark:hover:bg-[var(--solarized-base03)] cursor-pointer uppercase tracking-wider text-xxs"
                   @click="emit('scrollToRanking')"
                 >
                   <Trophy class="h-4 w-4" />
@@ -244,7 +244,7 @@ const statusColor = computed(() => {
               <Button
                 v-if="!virtualSessionActive"
                 size="lg"
-                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-[11px] shadow-sm"
+                class="w-full gap-2 rounded-none h-11 font-bold bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90 text-white cursor-pointer uppercase tracking-wider text-xxs shadow-sm"
                 :disabled="startingVirtual"
                 @click="emit('startVirtual')"
               >
@@ -259,7 +259,7 @@ const statusColor = computed(() => {
                 v-else
                 size="lg"
                 variant="outline"
-                class="w-full gap-2 rounded-none h-11 font-bold text-[var(--terminal-green)] border-[var(--terminal-green)]/40 bg-[var(--terminal-green)]/5 uppercase tracking-wider text-[11px]"
+                class="w-full gap-2 rounded-none h-11 font-bold text-[var(--terminal-green)] border-[var(--terminal-green)]/40 bg-[var(--terminal-green)]/5 uppercase tracking-wider text-xxs"
                 disabled
               >
                 <PlayCircle class="h-4 w-4" />

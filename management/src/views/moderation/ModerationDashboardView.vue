@@ -202,7 +202,7 @@ function navigateToAppeals() {
         <CardHeader class="pb-2">
           <CardTitle class="flex items-center gap-2 text-sm font-data">
             <component :is="card.icon" :class="['h-4 w-4', card.color]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-[10px]">
+            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
               {{ card.label }}
             </span>
           </CardTitle>
@@ -233,7 +233,7 @@ function navigateToAppeals() {
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-sm font-data">
             <IconChartBar class="h-4 w-4 text-[var(--silver-500)]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-[10px]">
+            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
               {{ t('moderation.stats.byCategory') }}
             </span>
           </CardTitle>
@@ -264,7 +264,7 @@ function navigateToAppeals() {
         <CardHeader>
           <CardTitle class="flex items-center gap-2 text-sm font-data">
             <IconTrendingUp class="h-4 w-4 text-[var(--silver-500)]" />
-            <span class="text-[var(--silver-500)] uppercase tracking-wider text-[10px]">
+            <span class="text-[var(--silver-500)] uppercase tracking-wider text-2xs">
               {{ t('moderation.stats.byEntityType') }}
             </span>
           </CardTitle>

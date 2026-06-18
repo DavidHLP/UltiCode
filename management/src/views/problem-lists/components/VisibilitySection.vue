@@ -83,7 +83,7 @@ const saveStatusText = {
         </span>
       </div>
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="saveStatusText[saveStatus]" class="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold">
+      <div v-if="saveStatusText[saveStatus]" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
           <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.form.saving') }}</span>
@@ -105,7 +105,7 @@ const saveStatusText = {
           <label class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer">
             {{ t('problemLists.form.isPublic') }}
           </label>
-          <span class="text-[11px] text-[var(--editor-text-muted)] leading-normal font-mono">
+          <span class="text-xxs text-[var(--editor-text-muted)] leading-normal font-mono">
             {{ t('problemLists.form.isPublicDescription') }}
           </span>
         </div>
@@ -128,19 +128,19 @@ const saveStatusText = {
             <TooltipProvider v-if="isFeatured">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <span class="text-[var(--editor-text-muted)] cursor-help font-mono text-[11px] font-bold"> [?] </span>
+                  <span class="text-[var(--editor-text-muted)] cursor-help font-mono text-xxs font-bold"> [?] </span>
                 </TooltipTrigger>
                 <TooltipContent
                   class="max-w-xs bg-[var(--surface-elevated)] border-[var(--editor-panel-border)] rounded-none"
                 >
-                  <p class="text-[11px] text-[var(--editor-text-primary)] font-mono">
+                  <p class="text-xxs text-[var(--editor-text-primary)] font-mono">
                     {{ t('problemLists.form.isFeaturedTooltip') }}
                   </p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
-          <span class="text-[11px] text-[var(--editor-text-muted)] leading-normal font-mono">
+          <span class="text-xxs text-[var(--editor-text-muted)] leading-normal font-mono">
             {{ t('problemLists.form.isFeaturedDescription') }}
           </span>
         </div>

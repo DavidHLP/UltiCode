@@ -171,7 +171,7 @@ watch(
               class="flex h-7 cursor-pointer items-center gap-1.5 rounded-none border border-border bg-muted/60 px-3 py-1 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[state=open]:border-ring/60 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
               :aria-label="t('problem.layout.selectLanguage')"
             >
-              <span class="text-[11px] uppercase tracking-wider font-bold">{{
+              <span class="text-xxs uppercase tracking-wider font-bold">{{
                 activeLanguageLabel
               }}</span>
               <ChevronDown class="h-3 w-3 opacity-60" />

@@ -319,16 +319,16 @@ async function handleReset(e: Event) {
 }
 
 .auth-logo__text {
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--uc-text-md);
+  font-weight: var(--uc-font-weight-semibold)
+  letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
 }
 
 .auth-logo__badge {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.5625rem;
-  font-weight: 600;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-2xs);
+  font-weight: var(--uc-font-weight-semibold)
   letter-spacing: 0.15em;
   color: var(--silver-500);
   text-transform: uppercase;
@@ -355,8 +355,8 @@ async function handleReset(e: Event) {
   justify-content: center;
   gap: 0.75rem;
   padding-top: 1rem;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.6875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-type-code-size);
   color: var(--silver-400);
 }
 
@@ -404,9 +404,9 @@ async function handleReset(e: Event) {
 }
 
 .reset-form__title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: var(--uc-text-2xl);
+  font-weight: var(--uc-font-weight-bold)
+  letter-spacing: var(--uc-tracking-normal);
   color: var(--solarized-base03);
   line-height: 1.1;
 }
@@ -416,7 +416,7 @@ async function handleReset(e: Event) {
 }
 
 .reset-form__subtitle {
-  font-size: 0.8125rem;
+  font-size: var(--uc-text-md);
   color: var(--solarized-base01);
 }
 
@@ -425,10 +425,10 @@ async function handleReset(e: Event) {
 }
 
 .reset-form__back {
-  font-size: 0.8125rem;
+  font-size: var(--uc-text-md);
   color: var(--solarized-base01);
   text-align: center;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-family: var(--uc-font-code);
 }
 
 .dark .reset-form__back {
@@ -451,17 +451,17 @@ async function handleReset(e: Event) {
 }
 
 .auth-pattern-text__prefix {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 1.25rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xl);
   color: var(--accent-primary);
   opacity: 0.8;
   margin-bottom: 0.5rem;
 }
 
 .auth-pattern-text__title {
-  font-size: 2.25rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: var(--uc-text-3xl);
+  font-weight: var(--uc-font-weight-bold)
+  letter-spacing: var(--uc-tracking-normal);
   line-height: 1.2;
   margin-bottom: 1rem;
   color: var(--solarized-base03);
@@ -472,10 +472,10 @@ async function handleReset(e: Event) {
 }
 
 .auth-pattern-text__subtitle {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   color: var(--solarized-base00);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--uc-tracking-normal);
   line-height: 1.5;
 }
 
@@ -494,7 +494,7 @@ async function handleReset(e: Event) {
   box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Retro console spec box */
+
 .auth-pattern-terminal {
   margin-top: 2.5rem;
   border: 1px solid var(--border);
@@ -524,8 +524,8 @@ async function handleReset(e: Event) {
 }
 
 .auth-pattern-terminal__title {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
-  font-size: 0.6875rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-type-code-size);
   color: var(--solarized-base01);
   margin-left: 0.5rem;
 }

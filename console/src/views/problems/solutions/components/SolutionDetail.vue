@@ -423,7 +423,7 @@ watch(
               <Badge
                 v-if="props.item.flair"
                 variant="secondary"
-                class="rounded-none bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20 border border-[var(--terminal-amber)]/30 select-none"
+                class="rounded-none bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20 border border-[var(--terminal-amber)]/30 select-none"
               >
                 {{ props.item.flair }}
               </Badge>
@@ -432,13 +432,13 @@ watch(
             <div class="flex flex-wrap items-center gap-2 mt-1">
               <Badge
                 variant="secondary"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-[10px] capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
+                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
               >
                 {{ languageLabel }}
               </Badge>
               <Badge
                 variant="secondary"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-[10px] capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
+                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)] select-none font-medium"
               >
                 {{ topicLabel }}
               </Badge>
@@ -446,7 +446,7 @@ watch(
                 v-for="badge in props.item.badges"
                 :key="badge"
                 variant="outline"
-                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-[10px] font-medium text-[var(--silver-500)] bg-transparent select-none"
+                class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2 py-0.5 text-2xs font-medium text-[var(--silver-500)] bg-transparent select-none"
               >
                 {{ badge }}
               </Badge>
@@ -474,7 +474,7 @@ watch(
                 class="absolute right-0 top-8 z-50 w-48 bg-[var(--card)] border border-border p-3 shadow-lg flex flex-col gap-2 rounded-none select-none font-mono"
               >
                 <div
-                  class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
+                  class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                 >
                   文章大纲
                 </div>
@@ -552,7 +552,7 @@ watch(
               v-for="tag in props.item.tags"
               :key="tag"
               variant="secondary"
-              class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-[10px] text-[var(--silver-500)] bg-[var(--surface-sunken)] font-[family-name:var(--font-mono)] select-none"
+              class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-2xs text-[var(--silver-500)] bg-[var(--surface-sunken)] font-mono select-none"
             >
               # {{ tag }}
             </Badge>
@@ -633,7 +633,7 @@ watch(
                 {{ props.item.author.name }}
               </span>
               <span
-                class="text-[10px] text-muted-foreground truncate leading-none mt-0.5"
+                class="text-2xs text-muted-foreground truncate leading-none mt-0.5"
               >
                 {{ props.item.author.role }}
               </span>
@@ -641,17 +641,17 @@ watch(
           </div>
 
           <div
-            class="text-[10px] text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
+            class="text-2xs text-muted-foreground/80 flex flex-col gap-1 border-t border-border/50 pt-2 font-mono"
           >
             <div>发布：{{ formattedDate }}</div>
             <div class="flex items-center gap-1.5 flex-wrap mt-1">
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] capitalize"
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)] capitalize"
               >
                 {{ languageLabel }}
               </span>
               <span
-                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-[9px] text-[var(--solarized-base01)] truncate max-w-[80px]"
+                class="inline-block px-1.5 py-0.5 bg-[var(--surface-sunken)] border border-border text-2xs text-[var(--solarized-base01)] truncate max-w-[80px]"
               >
                 {{ topicLabel }}
               </span>
@@ -665,7 +665,7 @@ watch(
           class="bg-[var(--card)] border border-border shadow-sm p-4"
         >
           <div
-            class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
+            class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
           >
             文章大纲
           </div>

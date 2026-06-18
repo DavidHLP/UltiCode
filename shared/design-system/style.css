@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
+@import "../theme/src/typography.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "katex/dist/katex.min.css";
@@ -19,14 +19,20 @@
     --vis-text-color: var(--muted-foreground);
   }
 
-  .markdown-block {
+  /* Canonical Markdown contract. Both `.markdown-block` and the
+   * management-local `.prose` selector map to the same rules so the
+   * two apps cannot drift apart. See docs/SHARED_TYPOGRAPHY_DESIGN.md §8
+   * for the design contract. */
+  .markdown-block,
+  .prose {
     display: block;
-    color: inherit;
+    color: var(--foreground);
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  .markdown-block :where(p, ul, ol, blockquote, pre, table) {
+  .markdown-block :where(p, ul, ol, blockquote, pre, table),
+  .prose :where(p, ul, ol, blockquote, pre, table) {
     margin-block: 0.5rem;
   }
 
@@ -35,36 +41,72 @@
   .markdown-block h3,
   .markdown-block h4,
   .markdown-block h5,
-  .markdown-block h6 {
+  .markdown-block h6,
+  .markdown-block h1,
+  .markdown-block h2,
+  .markdown-block h3,
+  .markdown-block h4,
+  .markdown-block h5,
+  .markdown-block h6,
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
     margin-top: 1rem;
     margin-bottom: 0.5rem;
-    font-weight: 600;
+    font-weight: var(--uc-font-weight-semibold);
     line-height: 1.3;
+    color: var(--foreground);
   }
 
-  .markdown-block code {
-    font-family:
-      "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo,
-      Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 0.85em;
+  .markdown-block h1,
+  .prose h1 {
+    font-size: 2em;
+  }
+
+  .markdown-block h2,
+  .prose h2 {
+    font-size: 1.5em;
+  }
+
+  .markdown-block h3,
+  .prose h3 {
+    font-size: 1.25em;
+  }
+
+  .markdown-block p,
+  .prose p {
+    margin-top: 0;
+    margin-bottom: 1em;
+  }
+
+  .markdown-block code,
+  .prose code {
+    font-family: var(--uc-font-code);
+    font-size: var(--uc-type-code-size);
     padding: 0.1rem 0.35rem;
     border-radius: 0;
     background-color: color-mix(in srgb, var(--muted) 80%, transparent);
   }
 
-  .markdown-block pre {
+  .markdown-block pre,
+  .prose pre {
     padding: 0.75rem 1rem;
     border-radius: 0;
     background-color: color-mix(in srgb, var(--muted) 70%, transparent);
     overflow-x: auto;
   }
 
-  .markdown-block pre code {
+  .markdown-block pre code,
+  .prose pre code {
     background: none;
     padding: 0;
   }
 
-  .markdown-block blockquote {
+  .markdown-block blockquote,
+  .prose blockquote {
     border-inline-start: 2px solid
       color-mix(in srgb, var(--foreground) 30%, transparent);
     padding-inline-start: 1rem;
@@ -73,16 +115,72 @@
       var(--muted-foreground) 90%,
       var(--foreground) 10%
     );
+    margin: 1em 0;
   }
 
-  .markdown-block ul {
+  .markdown-block ul,
+  .prose ul {
     list-style: disc;
     padding-inline-start: 1.25rem;
+    margin-bottom: 1em;
   }
 
-  .markdown-block ol {
+  .markdown-block ol,
+  .prose ol {
     list-style: decimal;
     padding-inline-start: 1.25rem;
+    margin-bottom: 1em;
+  }
+
+  .markdown-block li,
+  .prose li {
+    margin-bottom: 0.25rem;
+  }
+
+  .markdown-block a,
+  .prose a {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  .markdown-block a:hover,
+  .prose a:hover {
+    text-decoration: none;
+  }
+
+  .markdown-block img,
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+  }
+
+  .markdown-block table,
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+  }
+
+  .markdown-block th,
+  .markdown-block td,
+  .prose th,
+  .prose td {
+    border: 1px solid var(--border);
+    padding: 0.5rem;
+  }
+
+  .markdown-block th,
+  .prose th {
+    background: var(--muted);
+  }
+
+  .markdown-block hr,
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
   }
 
   .markdown-block .katex-display {
@@ -101,22 +199,10 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Primary Monospace Font Stack */
-  --font-sans: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
-  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
-
-  /* Typography Sizing Scale */
-  --text-xs: 0.75rem; /* 12px */
-  --text-sm: 0.875rem; /* 14px */
-  --text-base: 1rem; /* 16px */
-  --text-lg: 1.25rem; /* 20px */
-  --text-xl: 1.5rem; /* 24px */
-  --text-2xl: 1.875rem; /* 30px */
-
-  /* Typography Line Heights and Letter Spacing */
-  --leading-normal: 1.6;
-  --leading-code: 1.4;
-  --tracking-tight: -0.02em;
+  /* Font + size + leading + tracking aliases are owned by
+   * shared/theme/src/typography.css. They are re-imported above; this
+   * @theme inline block is intentionally left free of typography
+   * declarations to keep a single source of truth. */
 
   /* Solarized Color Palette & Accents */
   --color-solarized-base03: var(--solarized-base03);
@@ -223,9 +309,10 @@
 :root {
   --radius: 0;
 
-  /* Primary Monospace Font Stack */
-  --font-sans: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
-  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+  /* Font stacks (--font-sans, --font-mono) and the legacy Tailwind size
+   * aliases (--text-xs .. --text-2xl) are owned by
+   * shared/theme/src/typography.css, which is imported at the top of this
+   * file. Do not redeclare them here. */
 
   /* Solarized Color Palette Core (oklch mapping) */
   --solarized-base03: oklch(0.2673 0.0486 219.8);
@@ -402,21 +489,21 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-sans);
-    font-size: var(--text-sm);
-    line-height: var(--leading-normal);
+    font-family: var(--uc-type-body-family);
+    font-size: var(--uc-type-body-size);
+    line-height: var(--uc-type-body-line-height);
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    letter-spacing: var(--tracking-tight);
+    font-family: var(--uc-font-ui);
+    font-weight: var(--uc-font-weight-bold);
+    letter-spacing: var(--uc-tracking-normal);
   }
 
   pre, code, .font-mono, .font-data {
-    font-family: var(--font-mono);
-    line-height: var(--leading-code);
+    font-family: var(--uc-font-code);
+    line-height: var(--uc-leading-code);
   }
 
   /* WebKit Scrollbar */
@@ -454,11 +541,8 @@
    ======================================== */
 
 .font-data {
-  font-family:
-    "JetBrains Mono", "SF Mono", "Roboto Mono", ui-monospace, monospace;
-  font-feature-settings:
-    "tnum" on,
-    "lnum" on;
+  font-family: var(--uc-font-data);
+  font-feature-settings: var(--uc-font-feature-data);
 }
 
 .tabular-nums {
@@ -682,8 +766,8 @@
    ======================================== */
 
 .terminal-prompt {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 14px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   color: var(--accent-electric);
 }
 
@@ -703,17 +787,17 @@
 }
 
 .terminal-label {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 500;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-2xs);
+  font-weight: var(--uc-font-weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: var(--uc-tracking-terminal-wide);
   color: var(--muted-foreground);
 }
 
 .terminal-comment {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xxs);
   color: var(--silver-400);
   font-style: italic;
 }
@@ -723,29 +807,27 @@
 }
 
 .terminal-badge {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
-  font-weight: 500;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-xxs);
+  font-weight: var(--uc-font-weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--uc-tracking-label);
   padding: 2px 8px;
   border-radius: 0;
 }
 
 .terminal-kv-key {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-xxs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--uc-tracking-terminal);
   color: var(--silver-500);
 }
 
 .terminal-kv-value {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 14px;
-  font-feature-settings:
-    "tnum" on,
-    "lnum" on;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-sm);
+  font-feature-settings: var(--uc-font-feature-data);
 }
 
 /* ========================================
@@ -764,10 +846,10 @@
 }
 
 .terminal-card-header {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-xxs);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--uc-tracking-terminal);
   padding: 8px 12px;
   border-bottom: none;
   background:
@@ -827,8 +909,8 @@
 }
 
 .terminal-input {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 14px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
   border-radius: 0;
   border: 1px solid var(--silver-200);
   background: var(--surface-sunken);
@@ -925,10 +1007,10 @@
    ======================================== */
 
 .ascii-progress {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 12px;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xs);
   white-space: pre;
-  letter-spacing: 0;
+  letter-spacing: var(--uc-tracking-normal);
 }
 
 .ascii-progress-track {
@@ -966,8 +1048,8 @@
 }
 
 .terminal-row-num {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
+  font-family: var(--uc-font-data);
+  font-size: var(--uc-text-xxs);
   color: var(--silver-400);
   text-align: right;
   user-select: none;
@@ -1119,11 +1201,11 @@
 .header-btn {
   height: 2rem !important; /* h-8 */
   border-radius: 0 !important; /* rounded-none */
-  font-family: var(--font-mono) !important; /* matches engineering style code/text stack */
-  font-weight: 600 !important;
-  font-size: 11px !important;
+  font-family: var(--uc-font-code) !important; /* matches engineering style code/text stack */
+  font-weight: var(--uc-font-weight-semibold) !important;
+  font-size: var(--uc-text-xxs) !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: var(--uc-tracking-label) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;

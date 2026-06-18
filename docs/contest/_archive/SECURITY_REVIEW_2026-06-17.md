@@ -1,4 +1,4 @@
-> ⚠️ **历史证据（保留原样）**：当前权威定档见 **[REVIEW_V3.md](./REVIEW_V3.md)**（审查实际代码，裁决不建议合入）。本文档为 Security 审查历史证据，finding 在代码中的实际去向见 [V3 §7](./REVIEW_V3.md)。其中 CRIT-9/10（IDOR/appSecret）已在代码中用 UUID 方案修复，详见 V3 §5。
+> ⚠️ **历史证据（保留原样）**：当前权威定档见 **[REVIEW_V3.md](../REVIEW_V3.md)**（审查实际代码，裁决不建议合入）。本文档为 Security 审查历史证据，finding 在代码中的实际去向见 [V3 §7](../REVIEW_V3.md)。其中 CRIT-9/10（IDOR/appSecret）已在代码中用 UUID 方案修复，详见 V3 §5。
 
 # Contest 修复计划 — Security 专项审查 (Retry)
 

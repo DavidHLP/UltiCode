@@ -51,7 +51,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <h2 class="text-base font-bold tracking-tight text-foreground font-sans">
           {{ data.title || t('problems.preview.untitled') }}
         </h2>
-        <p class="text-[11px] font-mono text-[var(--silver-500)]">
+        <p class="text-xxs font-mono text-[var(--silver-500)]">
           {{ data.slug || '—' }}
         </p>
       </div>
@@ -65,14 +65,14 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <Badge
           v-if="data.isPremium"
           variant="outline"
-          class="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[10px] px-2 py-0.5 rounded-none font-mono"
+          class="bg-amber-500/10 text-amber-600 border border-amber-500/20 text-2xs px-2 py-0.5 rounded-none font-mono"
         >
           <IconLock class="h-3 w-3 mr-1 shrink-0" />
           {{ t('problems.badges.premium') }}
         </Badge>
         <Badge
           :variant="data.isPublished ? 'default' : 'outline'"
-          class="text-[10px] px-2 py-0.5 capitalize rounded-none font-mono"
+          class="text-2xs px-2 py-0.5 capitalize rounded-none font-mono"
         >
           {{ data.isPublished ? t('problems.published.published') : t('problems.published.draft') }}
         </Badge>
@@ -100,7 +100,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
             <div class="flex items-center justify-between group cursor-pointer">
               <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] flex items-center gap-2">
                 {{ t('problems.display.hints') }}
-                <Badge variant="secondary" class="rounded-none shadow-none font-mono text-[10px] px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]">
+                <Badge variant="secondary" class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]">
                   {{ data.hints.length }}
                 </Badge>
               </span>
@@ -118,7 +118,7 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
                 class="text-xs text-muted-foreground p-3 bg-card flex items-start gap-2.5"
               >
                 <span
-                  class="font-mono text-[11px] font-bold text-[var(--silver-600)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
+                  class="font-mono text-xxs font-bold text-[var(--silver-600)] bg-[var(--surface-sunken)]/25 border border-[var(--border)] px-1.5 shrink-0 h-5 flex items-center justify-center rounded-none"
                 >
                   {{ index + 1 }}
                 </span>

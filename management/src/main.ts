@@ -7,6 +7,7 @@ import router from './router'
 import i18n from './i18n'
 import { setLocale } from './i18n'
 import { initTheme } from '@/composables/useTheme'
+import { applyTypographyDensity } from '@/composables/useTypographyDensity'
 
 /**
  * Application Bootstrap
@@ -29,6 +30,12 @@ async function bootstrap() {
   // call is a no-op for the initial paint but registers the OS-preference
   // listener for live updates.
   initTheme()
+  // Management is the compact density profile: tables, moderation queues,
+  // audit logs, and dashboard metrics all benefit from tighter rows and
+  // smaller control text. See shared/theme/src/typography.css +
+  // docs/SHARED_TYPOGRAPHY_DESIGN.md §7. This helper is the only place
+  // that writes the `data-uc-density` attribute.
+  applyTypographyDensity('compact')
 
   const app = createApp(App)
   const pinia = createPinia()

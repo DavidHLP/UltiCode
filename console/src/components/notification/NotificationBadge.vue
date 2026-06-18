@@ -92,7 +92,7 @@ function goToNotifications() {
         <Badge
           v-if="hasUnread"
           variant="destructive"
-          class="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px] font-bold"
+          class="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-2xs font-bold"
           :aria-label="
             t('notification.unreadCountLabel', {
               count: notificationStore.unreadCount,
@@ -139,12 +139,12 @@ function goToNotifications() {
               />
               <div :class="cn('flex-1 min-w-0', notification.isRead && 'ml-4')">
                 <p
-                  class="text-[13px] font-semibold leading-snug text-foreground"
+                  class="text-sm font-semibold leading-snug text-foreground"
                 >
                   {{ localizedNotification(notification).title }}
                 </p>
                 <p
-                  class="mt-1 text-[12px] leading-relaxed text-muted-foreground line-clamp-2"
+                  class="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2"
                 >
                   {{ localizedNotification(notification).body }}
                 </p>
@@ -157,7 +157,7 @@ function goToNotifications() {
         <Button
           variant="ghost"
           size="sm"
-          class="w-full h-8 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+          class="w-full h-8 text-xs font-medium text-muted-foreground hover:text-foreground"
           @click="goToNotifications"
         >
           {{ t("notification.viewAll") }}

@@ -6,7 +6,7 @@
 | **日期 (Date)** | 2026-06-17 |
 | **作者 (Author)** | DavidHLP |
 | **来源** | [REVIEW_V3.md](../contest/REVIEW_V3.md) §3 P0 / F-04 / F-13 / F-17 / F-18 |
-| **执行计划** | [EXECUTION_PLAN_R6.md Round 6.4](../contest/EXECUTION_PLAN_R6.md) |
+| **执行计划** | [_archive/EXECUTION_PLAN_R6 Round 6.4](../contest/_archive/EXECUTION_PLAN_R6_2026-06-17.md#round-64--ws-全栈f-04--f-13--f-17--f-18) |
 | **关联代码** | `websocket/interceptor/ContestSubscribeAuthInterceptor.java` (R6.4 新增), `websocket/config/WebSocketChannelConfig.java` (interceptor 链), `console/src/composables/contest/useContestSocket.ts` (前端 socket), `console/src/views/contest/ContestRankingsView.vue` (R6.4 接入), `console/src/views/contest/components/VirtualContestTimer.vue` (R6.4 F-13) |
 
 ---
@@ -74,6 +74,6 @@ Spring STOMP adapter 把异常映射为 STOMP ERROR frame，client 收到错误�
 ## 5. References
 
 - [REVIEW_V3.md](../contest/REVIEW_V3.md) §3 F-04 / F-13 / F-17 / F-18
-- [EXECUTION_PLAN_R6.md Round 6.4](../contest/EXECUTION_PLAN_R6.md)
+- [_archive/EXECUTION_PLAN_R6 Round 6.4](../contest/_archive/EXECUTION_PLAN_R6_2026-06-17.md)
 - [CLAUDE.md §Security Invariants](../../CLAUDE.md) — WebSocket 鉴权**只接受** `access_token` cookie
 - ADR-007 §6 — R3.3 FOR UPDATE 实施偏差

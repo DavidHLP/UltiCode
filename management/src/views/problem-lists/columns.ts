@@ -101,7 +101,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('problemLists.columns.name'),
         ),
       cell: ({ row }) => {
@@ -121,7 +121,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('problemLists.columns.featured'),
         ),
       cell: ({ row }) => {
@@ -134,7 +134,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('problemLists.columns.visibility'),
         ),
       cell: ({ row }) => {
@@ -147,7 +147,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('problemLists.columns.problems'),
         ),
       cell: ({ row }) => {
@@ -164,7 +164,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('table.columnNames.authorName'),
         ),
       cell: ({ row }) => {
@@ -177,7 +177,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('problemLists.columns.order'),
         ),
       cell: ({ row }) => {
@@ -194,7 +194,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('common.updated'),
         ),
       cell: ({ row }) => {
@@ -211,7 +211,7 @@ export function createColumns(
       header: () =>
         h(
           'span',
-          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          { class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]' },
           t('common.actions.label'),
         ),
       cell: ({ row }) => {

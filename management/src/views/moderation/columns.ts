@@ -226,7 +226,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.entityType'),
         ),
@@ -243,7 +243,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.entity'),
         ),
@@ -276,7 +276,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.category'),
         ),
@@ -295,7 +295,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.status'),
         ),
@@ -314,7 +314,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.resolution'),
         ),
@@ -355,7 +355,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.priority'),
         ),
@@ -374,7 +374,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.reports'),
         ),
@@ -402,7 +402,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.assignedTo'),
         ),
@@ -420,7 +420,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.createdAt'),
         ),
@@ -440,7 +440,7 @@ export function createColumns(
         h(
           'span',
           {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+            class: 'font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]',
           },
           t('moderation.columns.actions'),
         ),

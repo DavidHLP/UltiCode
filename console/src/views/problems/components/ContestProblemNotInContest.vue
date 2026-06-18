@@ -25,7 +25,7 @@ const backHref = computed(() => `/contest/${props.contest.slug}`);
 
 <template>
   <div
-    class="flex items-center gap-3 border border-[var(--terminal-amber)]/40 bg-[var(--terminal-amber)]/10 px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-[var(--terminal-amber)]"
+    class="flex items-center gap-3 border border-[var(--terminal-amber)]/40 bg-[var(--terminal-amber)]/10 px-3 py-2 font-mono text-xxs uppercase tracking-wider text-[var(--terminal-amber)]"
     role="alert"
     data-testid="contest-problem-not-in-contest"
   >
@@ -42,7 +42,7 @@ const backHref = computed(() => `/contest/${props.contest.slug}`);
       <Button
         variant="outline"
         size="sm"
-        class="h-7 rounded-none border-[var(--terminal-amber)]/60 px-3 font-black text-[10px] uppercase tracking-widest text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/10"
+        class="h-7 rounded-none border-[var(--terminal-amber)]/60 px-3 font-black text-2xs uppercase tracking-widest text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/10"
         :data-testid="'back-to-contest-from-not-in-contest'"
         @click="$router.push(backHref)"
       >

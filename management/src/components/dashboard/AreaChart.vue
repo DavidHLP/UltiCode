@@ -269,7 +269,7 @@ const yDomain = computed(() => {
                 {{ t('dashboard.chart.noDataTitle') }}
               </EmptyTitle>
               <EmptyDescription
-                class="text-[11px] font-mono text-[var(--silver-400)] mt-1 max-w-xs mx-auto"
+                class="text-xxs font-mono text-[var(--silver-400)] mt-1 max-w-xs mx-auto"
               >
                 {{ t('dashboard.chart.noDataDesc') }}
               </EmptyDescription>

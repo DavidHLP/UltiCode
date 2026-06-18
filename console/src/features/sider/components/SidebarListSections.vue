@@ -62,7 +62,7 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
         >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
@@ -79,7 +79,7 @@ const isListActive = (id: string | number) => {
           <li v-for="item in data.ownLists" :key="item.id" class="group/item">
             <div
               :class="[
-                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
                   : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -90,7 +90,7 @@ const isListActive = (id: string | number) => {
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-[10px] text-muted-foreground font-data">{{
+                <span class="text-2xs text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -128,7 +128,7 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
         >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
@@ -145,7 +145,7 @@ const isListActive = (id: string | number) => {
           <li v-for="item in data.savedLists" :key="item.id" class="group/item">
             <div
               :class="[
-                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
                   : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -156,7 +156,7 @@ const isListActive = (id: string | number) => {
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-[10px] text-muted-foreground font-data">{{
+                <span class="text-2xs text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -207,7 +207,7 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
         >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
@@ -228,7 +228,7 @@ const isListActive = (id: string | number) => {
           >
             <div
               :class="[
-                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
                   : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -239,7 +239,7 @@ const isListActive = (id: string | number) => {
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-[10px] text-muted-foreground font-data">{{
+                <span class="text-2xs text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>
@@ -259,7 +259,7 @@ const isListActive = (id: string | number) => {
     <Collapsible :default-open="true" class="group/collapsible">
       <div class="flex items-center justify-between px-2 py-0.5 select-none">
         <CollapsibleTrigger
-          class="group/trigger flex flex-1 items-center gap-1 text-[10px] font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
+          class="group/trigger flex flex-1 items-center gap-1 text-2xs font-semibold tracking-wider text-[var(--silver-400)] dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors"
         >
           <ChevronRight
             class="h-3 w-3 transform transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 text-[var(--silver-400)] dark:text-[var(--silver-500)]"
@@ -299,7 +299,7 @@ const isListActive = (id: string | number) => {
           <li v-for="item in category.lists" :key="item.id" class="group/item">
             <div
               :class="[
-                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-[11px] font-medium',
+                'flex items-center justify-between gap-1 rounded-none px-3 py-1.5 transition-all duration-200 border-l-2 h-8.5 select-none text-xxs font-medium',
                 isListActive(item.id)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/5 text-[var(--accent-electric)] font-semibold pl-3'
                   : 'border-transparent text-[var(--silver-500)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
@@ -310,7 +310,7 @@ const isListActive = (id: string | number) => {
                 class="flex flex-1 items-center gap-2 truncate"
               >
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span class="text-[10px] text-muted-foreground font-data">{{
+                <span class="text-2xs text-muted-foreground font-data">{{
                   item.problemCount
                 }}</span>
               </RouterLink>

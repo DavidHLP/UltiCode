@@ -1,7 +1,7 @@
 # Contest 模块 R10 多轮执行计划 — 残留 deferred 收口 + 运维安全补全
 
 > **作用**：收口 R7–R9 累计 deferred + SECURITY_REVIEW 残留 + F-01 复核销项。**完成模块 v4.3 收口**。
-> **裁决依据**：[REVIEW_V3 §12](./REVIEW_V3.md) R10 deferred 5 项 + F-01 复核 2 项 + F-SEC-10/13 残留 2 项 = 9 项。
+> **裁决依据**：[REVIEW_V3 §12](../REVIEW_V3.md) R10 deferred 5 项 + F-01 复核 2 项 + F-SEC-10/13 残留 2 项 = 9 项。
 > **创建**：2026-06-17
 > **预计 R10 工期**：3–4 人日
 > **R10 完成条件**：9 项全绿 + F-01 audit doc §3.1/§6.4 标 ✅ + REVIEW_V3 §12 状态更新
@@ -16,7 +16,7 @@
 |---|---|---|---|
 | R10.1 | per-contest evict 真实现（改 `@Cacheable` key 模板去 `'getGlobalRanking:' + #limit` 兼容尾巴）| 性能 | ⚠️ 1.1 ✅（R9.1 已落地）/ 1.2 DEFERRED（`< 10k` 行可接受）|
 | R10.2 | i18n view 模板接线（`ContestBrowseView` / `ContestRankingsView` / `MyContests` / WS banner）| i18n | ⚠️ **plan 误判** — R9 阶段已用业务命名空间完成，9 个 key 是死键 |
-| R10.3 | i18n key 同步审计 | i18n | ✅ 0 漂移（[I18N_AUDIT_R10.md](./I18N_AUDIT_R10.md)）|
+| R10.3 | i18n key 同步审计 | i18n | ✅ 0 漂移（[I18N_AUDIT_R10.md](../I18N_AUDIT_R10.md)）|
 | R10.4 | 旧 `getGlobalRankingsPaginated(page, limit)` 签名删除（保留 1 个版本后清理）| 清理 | ⚠️ ABORTED — `getGlobalRankingsPaginated` 与 `getContestRanking` 是两个独立功能（全局 vs 单场）|
 | R10.5 | M1 `contestMapper.selectById` 多一次查询优化（跨 submission 模块，**独立 PR**）| 性能 | ⚠️ **plan 误判** — denormalize 引入 cascade 写放大 + R6.2/F-06 双轨时钟对账风险；推荐改用单 SQL JOIN 独立 PR |
 
@@ -429,10 +429,10 @@ This is **accepted as low risk** until product defines anti-cheat requirements.
 
 | 文档 | 关系 |
 |---|---|
-| [REVIEW_V3 §12](./REVIEW_V3.md) | 列出 5 项 R10 deferred 来源；R10 完成后更新状态 |
-| [F-01-STATE_MACHINE_AUDIT.md](./F-01-STATE_MACHINE_AUDIT.md) §3.1/§6.4 | R10.6/R10.7 复核销项落地 |
-| [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) F-SEC-10/13 | R10.8/R10.9 落地；建议同步起草 ADR-012（运维安全）|
-| [LOW_REMAINING.md](./completed/LOW_REMAINING.md) | R7 收口产物；R10 与之正交（LOW 已全 ✅）|
+| [REVIEW_V3 §12](../REVIEW_V3.md) | 列出 5 项 R10 deferred 来源；R10 完成后更新状态 |
+| [F-01-STATE_MACHINE_AUDIT.md](../F-01-STATE_MACHINE_AUDIT.md) §3.1/§6.4 | R10.6/R10.7 复核销项落地 |
+| [SECURITY_REVIEW (归档)](../_archive/SECURITY_REVIEW_2026-06-17.md) F-SEC-10/13 | R10.8/R10.9 落地；建议同步起草 ADR-012（运维安全）|
+| [LOW_REMAINING.md](../_archive/LOW_REMAINING_R8.6_2026-06-17.md) | R7 收口产物；R10 与之正交（LOW 已全 ✅）|
 
 ---
 

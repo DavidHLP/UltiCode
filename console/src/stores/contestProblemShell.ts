@@ -2,12 +2,12 @@
  * Cross-component signalling for the contest problem page.
  *
  * The submit button lives in LayoutHeaderCenter; the contest-aware
- * toast + score refresh live in ContestProblemShell. They live in
+ * toast + score refresh live in ContestProblemDock. They live in
  * different parts of the tree, so we use this tiny Pinia store as
  * a one-way message bus:
  *
  *   LayoutHeaderCenter       ── pushSubmit(result) ──▶   store.lastSubmitResult
- *   ContestProblemShell      ◀── watch lastSubmitResult ──▶  refresh + toast
+ *   ContestProblemDock       ◀── watch lastSubmitResult ──▶  refresh + toast
  *
  * The store is intentionally minimal: it doesn't talk to the
  * network and doesn't cache any state. Anything that wants to
@@ -16,7 +16,7 @@
  * submit-result events.
  *
  * `announceUnreadCount` lives here too because the announcement
- * bell (Chunk E) and the shell (Chunk C) share the same
+ * bell and the contest dock share the same
  * contest-scoped unread count.
  */
 import { defineStore } from "pinia";

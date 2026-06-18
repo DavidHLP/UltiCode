@@ -95,8 +95,8 @@ export default {
       description: "请返回比赛页面查看本题集。",
       action: "返回比赛",
     },
-    // ContestProblemShell 顶部状态条标签。比赛中用户在题目页
-    // 始终能看到当前比赛、剩余时间、得分、排名。
+    // ContestProblemDock 工具栏弹层标签。比赛中用户在题目页
+    // 可以收纳查看当前比赛、剩余时间、得分、排名。
     shell: {
       score: "得分",
       rank: "排名",
@@ -112,7 +112,8 @@ export default {
     // 立刻看到这次提交对比赛结果的影响。
     submit: {
       judging: "已提交,正在判题…",
-      accepted: "通过 +{delta} 分 · 当前 {total} 分 · 已过 {solved}/{totalProblems}",
+      accepted:
+        "通过 +{delta} 分 · 当前 {total} 分 · 已过 {solved}/{totalProblems}",
       wrongAnswer: "未通过 — 可能产生 +{penalty} 秒罚时",
       compileError: "编译错误 — 不计入排名",
     },
@@ -187,7 +188,7 @@ export default {
     layoutCollapsedForRunning: "比赛进行中规则已折叠",
   },
 
-  // ContestReviewPanel 标签 — 仅在已结束比赛的题目页显示。
+  // 赛后复盘标签 — 已收纳进竞赛工具栏弹层。
   review: {
     title: "赛后复盘",
     firstACLabel: "首次通过",

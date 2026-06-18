@@ -155,6 +155,11 @@ async function handleRandom() {
             :to="{
               name: 'problem-detail',
               params: { slug: adj.prev, tab: $route.params.tab },
+              // Preserve the query string (e.g. ?contestId=...) so that
+              // navigating to a sibling problem keeps the contest
+              // context intact and the hidden Solutions tab stays
+              // hidden.
+              query: $route.query,
             }"
             class="flex items-center justify-center w-full h-full text-current"
           >
@@ -193,6 +198,11 @@ async function handleRandom() {
             :to="{
               name: 'problem-detail',
               params: { slug: adj.next, tab: $route.params.tab },
+              // Preserve the query string (e.g. ?contestId=...) so that
+              // navigating to a sibling problem keeps the contest
+              // context intact and the hidden Solutions tab stays
+              // hidden.
+              query: $route.query,
             }"
             class="flex items-center justify-center w-full h-full text-current"
           >

@@ -19,10 +19,12 @@ import {
   SquareCheck,
   Terminal,
 } from "lucide-vue-next";
+import { useProblemContext } from "../useProblemContext";
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
+const { contestId } = useProblemContext();
 
 // Get the panel component map from parent
 const panelComponentMap = inject<Record<number, Component>>(
@@ -30,42 +32,50 @@ const panelComponentMap = inject<Record<number, Component>>(
   {},
 );
 
-// Tab configuration with icons
-const tabs = [
-  {
-    id: "description",
-    headerId: 1,
-    label: t("problem.layout.problemDescription"),
-    icon: FileText,
-  },
-  { id: "code", headerId: 4, label: t("problem.layout.code"), icon: Code2 },
-  {
-    id: "testcases",
-    headerId: 5,
-    label: t("problem.layout.testCases"),
-    icon: SquareCheck,
-  },
-  {
-    id: "testresults",
-    headerId: 6,
-    label: t("problem.layout.testResults"),
-    icon: Terminal,
-  },
-  {
-    id: "solutions",
-    headerId: 2,
-    label: t("problem.layout.solution"),
-    icon: FlaskConical,
-  },
-  {
+// Tab configuration with icons. In contest / virtual-contest context the
+// solutions tab is omitted so competitors cannot see other participants'
+// editorial-style write-ups while the contest is live.
+const tabs = computed(() => {
+  const isContest = contestId.value !== null;
+  const list = [
+    {
+      id: "description",
+      headerId: 1,
+      label: t("problem.layout.problemDescription"),
+      icon: FileText,
+    },
+    { id: "code", headerId: 4, label: t("problem.layout.code"), icon: Code2 },
+    {
+      id: "testcases",
+      headerId: 5,
+      label: t("problem.layout.testCases"),
+      icon: SquareCheck,
+    },
+    {
+      id: "testresults",
+      headerId: 6,
+      label: t("problem.layout.testResults"),
+      icon: Terminal,
+    },
+  ];
+  if (!isContest) {
+    list.push({
+      id: "solutions",
+      headerId: 2,
+      label: t("problem.layout.solution"),
+      icon: FlaskConical,
+    });
+  }
+  list.push({
     id: "submissions",
     headerId: 3,
     label: t("problem.layout.submissions"),
     icon: History,
-  },
-];
+  });
+  return list;
+});
 
-const tabIds = tabs.map((t) => t.id);
+const tabIds = computed(() => tabs.value.map((t) => t.id));
 
 // Guards to prevent infinite loop between URL and local state
 const isUpdatingFromRoute = ref(false);
@@ -76,17 +86,26 @@ const activeTab = ref("description");
 // Initialize activeTab from route
 const tabParam = route.params.tab;
 const initialTab = Array.isArray(tabParam) ? tabParam[0] : tabParam;
-if (initialTab && tabIds.includes(initialTab)) {
-  activeTab.value = initialTab;
+// In contest mode, fall back to description if the URL still points at the
+// (now-hidden) solutions tab.
+const resolvedInitial =
+  contestId.value !== null && initialTab === "solutions"
+    ? "description"
+    : initialTab;
+if (resolvedInitial && tabIds.value.includes(resolvedInitial)) {
+  activeTab.value = resolvedInitial;
 }
 
 // Sync route -> activeTab
 watch(
-  () => route.params.tab,
-  (newTab) => {
+  [() => route.params.tab, tabIds],
+  ([newTab, ids]) => {
     if (isUpdatingFromState.value) return;
-    const tabName = Array.isArray(newTab) ? newTab[0] : newTab;
-    if (tabName && tabIds.includes(tabName) && activeTab.value !== tabName) {
+    let tabName = Array.isArray(newTab) ? newTab[0] : newTab;
+    if (contestId.value !== null && tabName === "solutions") {
+      tabName = "description";
+    }
+    if (tabName && ids.includes(tabName) && activeTab.value !== tabName) {
       isUpdatingFromRoute.value = true;
       activeTab.value = tabName;
       nextTick(() => {
@@ -121,7 +140,7 @@ watch(activeTab, (newTab) => {
 });
 
 const currentComponent = computed(() => {
-  const tab = tabs.find((t) => t.id === activeTab.value);
+  const tab = tabs.value.find((t) => t.id === activeTab.value);
   if (!tab) return null;
   return panelComponentMap[tab.headerId] || null;
 });

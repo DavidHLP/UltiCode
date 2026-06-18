@@ -1,4 +1,4 @@
-import { ref, nextTick, watch, markRaw } from "vue";
+import { ref, nextTick, watch, markRaw, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useHeaderStore, type HeaderGroup } from "@/stores/headerStore";
@@ -18,34 +18,46 @@ const REV_TAB_MAP: Record<number, string> = {
   3: "submissions",
 };
 
-function createInitialHeaderGroups(t: (key: string) => string): HeaderGroup[] {
+// Header id 2 = solutions tab. Hidden in contest / virtual contest context
+// so competitors cannot see other participants' editorial-style solutions
+// while the contest is live.
+const SOLUTIONS_HEADER_ID = 2;
+
+function createInitialHeaderGroups(
+  t: (key: string) => string,
+  isContest: boolean,
+): HeaderGroup[] {
+  const problemInfoHeaders = [
+    {
+      id: 1,
+      index: 0,
+      title: t("problem.layout.problemDescription"),
+      icon: "FileText",
+      iconColor: "oklch(0.6149 0.1394 244.9)",
+    },
+  ];
+  if (!isContest) {
+    problemInfoHeaders.push({
+      id: SOLUTIONS_HEADER_ID,
+      index: problemInfoHeaders.length,
+      title: t("problem.layout.solution"),
+      icon: "FlaskConical",
+      iconColor: "oklch(0.6149 0.1394 244.9)",
+    });
+  }
+  problemInfoHeaders.push({
+    id: 3,
+    index: problemInfoHeaders.length,
+    title: t("problem.layout.submissions"),
+    icon: "History",
+    iconColor: "oklch(0.6149 0.1394 244.9)",
+  });
+
   return [
     {
       id: "problem-info",
       name: t("problem.layout.problemInfo"),
-      headers: [
-        {
-          id: 1,
-          index: 0,
-          title: t("problem.layout.problemDescription"),
-          icon: "FileText",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-        {
-          id: 2,
-          index: 1,
-          title: t("problem.layout.solution"),
-          icon: "FlaskConical",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-        {
-          id: 3,
-          index: 2,
-          title: t("problem.layout.submissions"),
-          icon: "History",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-      ],
+      headers: problemInfoHeaders,
     },
     {
       id: "code-editor",
@@ -97,8 +109,11 @@ function buildLayoutConfig(
   });
 }
 
-function getLeetLayoutConfig(t: (key: string) => string) {
-  const groups = createInitialHeaderGroups(t);
+function getLeetLayoutConfig(
+  t: (key: string) => string,
+  isContest: boolean,
+) {
+  const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
       id: "programming-left",
@@ -143,8 +158,11 @@ function getLeetLayoutConfig(t: (key: string) => string) {
   return { groups, layout };
 }
 
-function getClassicLayoutConfig(t: (key: string) => string) {
-  const groups = createInitialHeaderGroups(t);
+function getClassicLayoutConfig(
+  t: (key: string) => string,
+  isContest: boolean,
+) {
+  const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
       id: "classic-top",
@@ -189,8 +207,11 @@ function getClassicLayoutConfig(t: (key: string) => string) {
   return { groups, layout };
 }
 
-function getCompactLayoutConfig(t: (key: string) => string) {
-  const groups = createInitialHeaderGroups(t);
+function getCompactLayoutConfig(
+  t: (key: string) => string,
+  isContest: boolean,
+) {
+  const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
       id: "compact-left",
@@ -235,8 +256,11 @@ function getCompactLayoutConfig(t: (key: string) => string) {
   return { groups, layout };
 }
 
-function getWideLayoutConfig(t: (key: string) => string) {
-  const groups = createInitialHeaderGroups(t);
+function getWideLayoutConfig(
+  t: (key: string) => string,
+  isContest: boolean,
+) {
+  const groups = createInitialHeaderGroups(t, isContest);
   const children: LayoutNodeType[] = [
     {
       id: "wide-left",
@@ -279,16 +303,27 @@ export function useProblemLayout() {
   const currentLayout = ref<ProblemLayout>("leet");
   const lastTab = ref<string | null>(null);
 
+  // Contest context: ?contestId=... is set by the contest problem page
+  // (and virtual contest sessions share the same query). Solutions are
+  // hidden so contestants cannot read other people's editorial write-ups
+  // while the contest is live.
+  const contestId = computed(() => {
+    const v = route.query.contestId;
+    if (Array.isArray(v)) return v[0] ?? null;
+    return typeof v === "string" && v.length > 0 ? v : null;
+  });
+  const isContest = computed(() => contestId.value !== null);
+
   const getLayoutConfig = (newLayout: ProblemLayout) => {
     switch (newLayout) {
       case "leet":
-        return getLeetLayoutConfig(t);
+        return getLeetLayoutConfig(t, isContest.value);
       case "classic":
-        return getClassicLayoutConfig(t);
+        return getClassicLayoutConfig(t, isContest.value);
       case "compact":
-        return getCompactLayoutConfig(t);
+        return getCompactLayoutConfig(t, isContest.value);
       case "wide":
-        return getWideLayoutConfig(t);
+        return getWideLayoutConfig(t, isContest.value);
     }
   };
 
@@ -309,6 +344,24 @@ export function useProblemLayout() {
     (newTab) => {
       if (isUpdatingFromStore.value) return;
       const tabName = Array.isArray(newTab) ? newTab[0] : newTab;
+      // In contest mode the solutions tab does not exist; fall back to
+      // the description tab and rewrite the URL so reloads/deep links
+      // never land on a panel that cannot be rendered.
+      if (isContest.value && tabName === "solutions") {
+        isUpdatingFromRoute.value = true;
+        void router
+          .replace({
+            name: "problem-detail",
+            params: { ...route.params, tab: "description" },
+            query: route.query,
+          })
+          .finally(() => {
+            nextTick(() => {
+              isUpdatingFromRoute.value = false;
+            });
+          });
+        return;
+      }
       if (tabName && Object.prototype.hasOwnProperty.call(TAB_MAP, tabName)) {
         const targetId = TAB_MAP[tabName];
         if (
@@ -333,6 +386,30 @@ export function useProblemLayout() {
     },
   );
 
+  // Re-init the layout when the user navigates between a contest problem
+  // and a regular problem so the solutions tab appears/disappears
+  // consistently with the current contest state. Preserve the user's
+  // currently-selected tab when possible; only fall back to Description
+  // when the previous selection is no longer present (e.g. the user was
+  // on Solutions and is now entering a contest).
+  watch(isContest, () => {
+    const previousActive = headerStore.activeHeaderByGroup["problem-info"];
+    const config = getLayoutConfig(currentLayout.value);
+    headerStore.initData(config.groups, config.layout);
+    if (previousActive === null || previousActive === undefined) return;
+    const problemInfoGroup = config.groups.find(
+      (g) => g.id === "problem-info",
+    );
+    const stillExists = problemInfoGroup?.headers.some(
+      (h) => h.id === previousActive,
+    );
+    if (stillExists) {
+      headerStore.setActiveHeader("problem-info", previousActive);
+    }
+    // Otherwise initData already reset to the first header (Description),
+    // which is the safe default for the contest-entry case.
+  });
+
   // Sync Store to URL (when user clicks tabs)
   watch(
     () => headerStore.activeHeaderByGroup["problem-info"],
@@ -354,6 +431,11 @@ export function useProblemLayout() {
             .push({
               name: "problem-detail",
               params: { ...route.params, tab: tabName },
+              // Preserve the query string (notably ?contestId=...) so the
+              // contest-aware layout stays active. Dropping it here would
+              // cause `isContest` to flip false and the hidden Solutions
+              // tab to reappear on the very next tab click.
+              query: route.query,
             })
             .then(() => {
               nextTick(() => {
@@ -366,11 +448,16 @@ export function useProblemLayout() {
   );
 
   function initLayout() {
-    const initialConfig = getLeetLayoutConfig(t);
+    const initialConfig = getLeetLayoutConfig(t, isContest.value);
     headerStore.initData(initialConfig.groups, initialConfig.layout);
 
     const tabParam = route.params.tab;
-    const tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
+    let tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
+    // In contest mode the solutions tab is not rendered, so any
+    // ?tab=solutions deep link should resolve to the description tab.
+    if (isContest.value && tabName === "solutions") {
+      tabName = "description";
+    }
     if (tabName) {
       const targetId = TAB_MAP[tabName];
       if (targetId !== undefined) {

@@ -18,8 +18,10 @@ stack. Targets the PM2 + Docker Compose dev topology described in
 | Redis 7 | 26379 | Docker `ulticode-redis` | `docker logs ulticode-redis` |
 | Nacos 2.3.2 | 28848 | Docker `ulticode-nacos` | `docker logs ulticode-nacos` |
 
-> **PM2 app count = 4** (including `ulticode-arthas`). PM2 logs rotate at 20 MB
-> with 5 retained files (see `ecosystem.config.cjs`).
+> **PM2 defines 5 apps**: 4 long-running (`ulticode-9001`, `ulticode-9002`,
+> `ulticode-9003`, `ulticode-arthas`) plus the one-shot `ulticode-init-db`
+> migration task (runs once, then `stopped` — see §4.6). PM2 logs rotate at
+> 20 MB with 5 retained files (see `ecosystem.config.cjs`).
 
 ---
 

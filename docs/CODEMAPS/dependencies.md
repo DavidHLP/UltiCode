@@ -1,4 +1,4 @@
-<!-- Generated: 2026-06-12 | Token estimate: ~720 -->
+<!-- Generated: 2026-06-18 | Token estimate: ~720 -->
 
 # Dependencies & Integrations
 
@@ -82,9 +82,10 @@
 
 | Package                | Purpose                                                |
 | ---------------------- | ------------------------------------------------------ |
-| `shared/auth-core`     | Vue composable: cookie/CSRF/auth-state/permission      |
-| `shared/badge-config`  | Achievement / badge token config (shared by both FEs)  |
-| `shared/theme`         | Theme tokens + Vue composable + `public/theme-bootstrap.js` source |
+| `shared/auth-core`      | Vue composable: cookie/CSRF/auth-state/permission      |
+| `shared/badge-config`   | Achievement / badge token config (shared by both FEs)  |
+| `shared/sandbox-types`  | Shared sandbox DTO types (backend + sandbox harness)   |
+| `shared/theme`          | Theme tokens + Vue composable + `public/theme-bootstrap.js` source |
 | `shared/design-system`  | Legacy `style.css` only — to be retired                |
 
 ## Infrastructure (docker-compose)
@@ -103,8 +104,8 @@ publish the infra ports externally. Sandbox image is built locally from
 
 ## Runtime Tooling
 
-- **PM2** (`ecosystem.config.cjs`): 4 apps — `ulticode-9001`, `ulticode-9002`, `ulticode-9003`, `ulticode-arthas`
-- **Arthas 4.1.9** (`tools/arthas-boot.jar`): runtime JVM diagnostics
+- **PM2** (`ecosystem.config.cjs`): 5 apps — 4 long-running (`ulticode-9001`, `ulticode-9002`, `ulticode-9003`, `ulticode-arthas`) + one-shot `ulticode-init-db` migration task
+- **Arthas 4.2.2** (`tools/arthas-boot.jar`): runtime JVM diagnostics
   - Wrapper: `scripts/start-arthas.sh` (port 8563, three-launcher mutex: PM2 / SessionStart hook / CLI)
   - MCP endpoint: `http://localhost:8563/mcp`
 

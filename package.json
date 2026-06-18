@@ -1,9 +1,13 @@
 {
   "dependencies": {
     "@letta-ai/letta-client": "^1.10.3",
+    "@vitejs/plugin-vue": "^6.0.7",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
-    "playwright": "1.60.0"
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "playwright": "1.60.0",
+    "vitest": "^4.1.9"
   }
 }

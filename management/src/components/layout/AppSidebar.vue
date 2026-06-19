@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useSearchPalette } from '@/composables/useSearchPalette'
 import {
   IconCode,
   IconDashboard,
@@ -40,6 +41,7 @@ const { toggleSidebar } = useSidebar()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const { open: openSearch } = useSearchPalette()
 
 const user = computed(() => ({
   name: authStore.user?.name || 'Admin',
@@ -222,15 +224,16 @@ const navSecondary = computed(() => {
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({
       title: t('nav.getHelp'),
-      url: '#',
+      url: '/help',
       icon: IconHelp,
     })
 
     items.push({
       title: t('nav.search'),
-      url: '#',
+      url: '/search',
       icon: IconSearch,
-    })
+      onClick: openSearch,
+      })
   }
 
   return items

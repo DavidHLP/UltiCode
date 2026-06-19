@@ -14,6 +14,7 @@ import forum from './modules/forum'
 import problemLists from './modules/problemLists'
 import audit from './modules/audit'
 import account from './modules/account'
+import help from './modules/help'
 import analytics from './modules/analytics'
 import comments from './modules/comments'
 import notifications from './modules/notifications'
@@ -41,6 +42,7 @@ export default {
   problemLists,
   audit,
   account,
+  help,
   analytics,
   comments,
   notifications,

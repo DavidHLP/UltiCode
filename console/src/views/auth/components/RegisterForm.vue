@@ -154,7 +154,7 @@ async function handleSubmit(event: Event) {
 
 .register-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--solarized-base03);
   line-height: 1.1;
@@ -192,7 +192,7 @@ async function handleSubmit(event: Event) {
 }
 
 .register-form__error-prefix {
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   opacity: 0.9;
 }
 
@@ -214,7 +214,7 @@ async function handleSubmit(event: Event) {
 .register-form__signin a {
   color: var(--accent-electric);
   text-decoration: none;
-  font-weight: 750;
+  font-weight: var(--uc-font-weight-bold);
 }
 
 .register-form__signin a:hover {

@@ -86,8 +86,7 @@
 }
 
 .hljs-strong {
-  font-weight: var(--uc-font-weight-bold)
-}
+  font-weight: var(--uc-font-weight-bold);}
 
 .hljs-function {
   color: var(--accent-electric);

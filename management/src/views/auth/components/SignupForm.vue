@@ -92,7 +92,7 @@ const { t } = useI18n()
 
 .signup-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
   line-height: 1.1;
@@ -132,7 +132,7 @@ const { t } = useI18n()
 .signup-form__link {
   color: var(--accent-primary);
   text-decoration: none;
-  font-weight: var(--uc-font-weight-medium)
+  font-weight: var(--uc-font-weight-medium);
   transition: opacity var(--transition-fast);
 }
 

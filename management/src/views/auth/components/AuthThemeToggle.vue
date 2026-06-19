@@ -67,8 +67,8 @@ const labelFor = (mode: 'light' | 'dark' | 'system'): string => {
   cursor: pointer;
   font-family: var(--uc-font-code);
   font-size: var(--uc-type-code-size);
-  font-weight: var(--uc-font-weight-medium)
-  letter-spacing: 0.1em;
+  font-weight: var(--uc-font-weight-medium);
+  letter-spacing: var(--uc-tracking-terminal);
   text-transform: uppercase;
   transition:
     border-color var(--transition-fast),

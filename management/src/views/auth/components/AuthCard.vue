@@ -117,7 +117,7 @@ defineOptions({
   font-family: var(--uc-font-code);
   font-size: var(--uc-type-code-size);
   color: var(--silver-500);
-  letter-spacing: 0.05em;
+  letter-spacing: var(--uc-tracking-label);
 }
 
 

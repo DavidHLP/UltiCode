@@ -110,6 +110,16 @@ const PATTERNS = [
   // `font-family: var(--uc-font-code);`. Same backtracking-safe
   // construction as raw-font-size.
   { name: 'raw-font-family', regex: /(^|[\s;{])font-family\s*:\s*(?!var\b)\S[^;{}\n]+;/gm },
+  // Raw CSS font-weight in .css files / <style> blocks. Catches numeric
+  // weights like `font-weight: 750` but ignores both
+  // `font-weight: var(--uc-font-weight-bold)` and named keywords
+  // (normal/bold/bolder/lighter/inherit/initial/unset). The shared
+  // foundation exposes the four documented weights (regular/medium/
+  // semibold/bold) — anything else in app code is a regression against
+  // docs/SHARED_TYPOGRAPHY_DESIGN.md §5.4. Numeric values like 750 have
+  // appeared historically (console auth links) and drifted the design
+  // system; this rule funnels them back through the shared tokens.
+  { name: 'raw-font-weight', regex: /(^|[\s;{])font-weight\s*:\s*(?!var\b|normal\b|bold\b|bolder\b|lighter\b|inherit\b|initial\b|unset\b)\s*\d{1,3}\b/gm },
 ]
 
 function isAllowedPath(relPath) {

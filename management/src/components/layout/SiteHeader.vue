@@ -36,14 +36,63 @@ const { t } = useI18n()
 
 const isSearchOpen = ref(false)
 
+/**
+ * Navigation shortcuts. The key is matched case-insensitively against
+ * `e.key` after stripping the modifier (so "D" and "d" both work).
+ * Keep this in sync with the `<CommandShortcut>` labels rendered inside
+ * the palette.
+ */
+const shortcutRoutes: Record<string, string> = {
+  d: '/',
+  u: '/users',
+  p: '/problems',
+  c: '/contests',
+  a: '/audit',
+  y: '/analytics',
+  s: '/settings',
+}
+
+/** Targets where typing must not be hijacked by global shortcuts. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!target || !(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+  if (target.isContentEditable) return true
+  return false
+}
+
 function triggerSearch() {
   isSearchOpen.value = true
 }
 
 function handleKeyDown(e: KeyboardEvent) {
-  if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+  // Ignore IME composition, key auto-repeat, and Alt-modified chords
+  // so we never break native text entry or browser menu shortcuts.
+  if (e.isComposing || e.repeat || e.altKey) return
+  // Never hijack typing in form fields or contenteditable surfaces.
+  if (isEditableTarget(e.target)) return
+
+  const modifier = e.metaKey || e.ctrlKey
+  if (!modifier) return
+
+  const key = e.key.toLowerCase()
+
+  // Toggle palette
+  if (key === 'k') {
     e.preventDefault()
     isSearchOpen.value = !isSearchOpen.value
+    return
+  }
+
+  // Navigation shortcuts
+  const path = shortcutRoutes[key]
+  if (path !== undefined) {
+    // preventDefault covers browser-native actions on these chords:
+    //   Ctrl/Cmd+D = bookmark, U = view source, P = print, S = save,
+    //   A = select all, C = copy, Y = redo. Keeping them in-page only.
+    e.preventDefault()
+    isSearchOpen.value = false
+    router.push(path)
   }
 }
 
@@ -180,34 +229,34 @@ onUnmounted(() => {
       <CommandGroup heading="Navigation">
         <CommandItem value="dashboard" @select="goTo('/')">
           <span>{{ t('nav.dashboard') }}</span>
-          <CommandShortcut>⌘D</CommandShortcut>
+          <CommandShortcut>Ctrl+D</CommandShortcut>
         </CommandItem>
         <CommandItem value="users" @select="goTo('/users')">
           <span>{{ t('nav.users') }}</span>
-          <CommandShortcut>⌘U</CommandShortcut>
+          <CommandShortcut>Ctrl+U</CommandShortcut>
         </CommandItem>
         <CommandItem value="problems" @select="goTo('/problems')">
           <span>{{ t('nav.problems') }}</span>
-          <CommandShortcut>⌘P</CommandShortcut>
+          <CommandShortcut>Ctrl+P</CommandShortcut>
         </CommandItem>
         <CommandItem value="contests" @select="goTo('/contests')">
           <span>{{ t('nav.contests') }}</span>
-          <CommandShortcut>⌘C</CommandShortcut>
+          <CommandShortcut>Ctrl+C</CommandShortcut>
         </CommandItem>
       </CommandGroup>
       <CommandSeparator />
       <CommandGroup heading="System">
         <CommandItem value="audit" @select="goTo('/audit')">
           <span>{{ t('nav.auditLogs') }}</span>
-          <CommandShortcut>⌘A</CommandShortcut>
+          <CommandShortcut>Ctrl+A</CommandShortcut>
         </CommandItem>
         <CommandItem value="analytics" @select="goTo('/analytics')">
           <span>{{ t('nav.analytics') }}</span>
-          <CommandShortcut>⌘Y</CommandShortcut>
+          <CommandShortcut>Ctrl+Y</CommandShortcut>
         </CommandItem>
         <CommandItem value="settings" @select="goTo('/settings')">
           <span>{{ t('nav.settings') }}</span>
-          <CommandShortcut>⌘S</CommandShortcut>
+          <CommandShortcut>Ctrl+S</CommandShortcut>
         </CommandItem>
       </CommandGroup>
     </CommandList>

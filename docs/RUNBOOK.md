@@ -109,6 +109,8 @@ tr '\0' '\n' < /proc/$(pm2 pid ulticode-9001)/environ | grep -E 'DB_|REDIS_|JWT_
 
 (`pm2 env <id>` shows stale data and is **not** trustworthy.)
 
+具体触发案例:改 `.env` 后验证审核统计卡片时命中此陷阱 → [[moderation-stats-and-seed|审核模块运维深读]] §PM2 env 缓存陷阱。
+
 ## 3. Health Checks
 
 This project **does not** expose Spring Actuator. Use:

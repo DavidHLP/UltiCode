@@ -1,3 +1,29 @@
+---
+title: Runbook — Operations & Incident Response
+tags: [runbook, devops, incident, reference]
+status: living
+updated: 2026-06-19
+owner: devops
+---
+
+> **中文导读** | On-call 事故响应手册。**正文为英文**（上游脚本生成），本节提供章节地图与速查指针。
+>
+> | 章节 | 主题 | 何时看 |
+> |---|---|---|
+> | §0 Quick Reference | PM2 / MySQL / Redis / Nacos / Arthas 速查表 | **事故第一秒** |
+> | §1 Startup Order | Docker → init-db → 9001 → 前端 → Arthas 启动顺序 | 冷启动 / 启动崩溃 |
+> | §2 PM2 Apps | 5 个 app 列表 + env cache 陷阱 | `pm2` 异常 |
+> | §3 Health Checks | `lsof :9001` / `curl /auth/me` / 容器健康 | 排障起点 |
+> | §4 Common Issues | 后端崩溃循环 / 字符集 / Arthas / Flyway / 沙箱 / 前端端口 / Nacos | **90% 事故在此** |
+> | §5 Rollback | 代码 / 迁移 / 容器三种回滚 | 发版事故 |
+> | §6 Backup | `BackupService` / mysqldump / 完整性校验 | 数据问题 |
+> | §7 Monitoring & Alerts | 外部监控建议（Gitleaks / 容器健康） | 部署后 |
+> | §8 CI / Failure Triage | 路径触发的 CI job 与排查顺序 | CI 红 |
+> | §9 Escalation | SEV-1/2/3 分级 + 必带证据 | 升级判断 |
+> | §10 Operational Cheatsheet | 常用一行命令 | 日常随手 |
+>
+> **强相关 ADR**：[`adr/0005`](./adr/0005-rolling-deploy-rollback.md)（回滚演练）、[`adr/0008`](./adr/0008-websocket-cookie-auth.md)（STOMP 401）。
+
 # Runbook — Operations & Incident Response
 
 <!-- Generated: 2026-06-19 | Source: CLAUDE.md, AGENTS.md, ecosystem.config.cjs, scripts/, infra/ -->

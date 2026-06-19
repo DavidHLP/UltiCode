@@ -1,3 +1,28 @@
+---
+title: Contributing to UltiCode
+tags: [contributing, governance, onboarding]
+status: living
+updated: 2026-06-19
+owner: architect
+---
+
+> **中文导读** | 仓库级贡献者指南。**正文为英文**（上游脚本生成），本节提供章节地图与速查指针。
+>
+> | 章节 | 主题 | 何时看 |
+> |---|---|---|
+> | §1 Prerequisites | 工具链：Java 17 / Node / pnpm 10 / Docker / PM2 | 第一次 clone |
+> | §2 First-Time Setup | `./scripts/dev/init-env.sh` + `./scripts/dev/up.sh` | 第一次启动 |
+> | §3 Repository Layout | 顶层目录、模块边界 | 改架构前 |
+> | §4 Per-Package Setup | 每个包各自 `pnpm install` | 改 frontend / shared |
+> | §5 Available Scripts | console / management / shared / backend 全部命令 | 日常 dev loop |
+> | §6 Code Style | 前端 / 后端 / shared 规范要点 | 提交前自检 |
+> | §7 Database & Migrations | Flyway 单一真源、字符集陷阱 | 改 schema |
+> | §8 Testing | 单测 / 集成测 / 覆盖率 | 写新代码 |
+> | §9 CI | 路径触发的 GitHub Actions job 集 | CI 失败定位 |
+> | §10 PR Submission Checklist | 提 PR 前的硬清单 | **每个 PR 必看** |
+> | §11 Code Review Etiquette | 评审礼仪、squash-merge | 评审或被评审 |
+> | §12 Where to Get Help | 配套文档入口 | 任何时候 |
+
 # Contributing to UltiCode
 
 <!-- Generated: 2026-06-19 | Source: package.json (console/management/shared/auth-core), scripts/dev/, .claude/rules/, AGENTS.md, CLAUDE.md -->

@@ -1,7 +1,16 @@
 # `docs/ops/` — Operations & Tooling Reference
 
+> **中文导读** | 这是 `ops/` 子目录的**目录专属规范**。**正文为英文**（保留上游风格），本节给出中文意图说明。
+>
+> - **目的**：`ops/` 收**具体工具/具体场景的运维深读**（如 Arthas MCP 实战）
+> - **不要放**：`docs/` 顶层的项目政策（→ `CONTRIBUTING.md` / `RUNBOOK.md` / `ENV.md`）；事故响应 playbook（→ `RUNBOOK.md` §4）；架构图（→ `CODEMAPS/`）；架构决策（→ `adr/`）
+> - **命名**：`kebab-case-lowercase.md`，概念优先，不带数字前缀
+> - **frontmatter**：本目录文档需带 `title / tags / status / updated / owner`
+> - **状态机**：`living`（主动维护）/ `frozen`（历史参考）/ `draft`（未完成，禁链）
+> - **索引维护**：新增/移除/重命名时同步本文件底部的 Index 表
+
 > **Purpose**: this directory holds **operational runbooks and tooling references** —
-> not project-level policies (those live at `docs/` top level: `ENV.md`,
+> not project-wide policies (those live at `docs/` top level: `ENV.md`,
 > `CONTRIBUTING.md`, `RUNBOOK.md`) and not architecture codemaps (those live in
 > `docs/CODEMAPS/`).
 

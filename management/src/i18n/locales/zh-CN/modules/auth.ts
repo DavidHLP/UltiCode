@@ -33,6 +33,8 @@ export default {
     subtitle: '请输入您的信息以创建新账户',
     username: '用户名',
     usernamePlaceholder: '请输入用户名',
+    name: '显示名称',
+    namePlaceholder: '您希望如何展示您的名称？',
     email: '邮箱',
     emailPlaceholder: '请输入您的邮箱地址',
     password: '密码',
@@ -95,6 +97,7 @@ export default {
     usernameAlreadyExists: '用户名已被占用',
     sessionExpired: '会话已过期，请重新登录',
     passwordsDoNotMatch: '两次输入的密码不一致',
+    contactAdmin: '暂不开放自助注册，请联系管理员开通账号。',
   },
 
   // Guest user

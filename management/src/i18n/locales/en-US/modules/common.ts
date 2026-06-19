@@ -74,4 +74,11 @@ export default {
   reasonLabel: 'Reason',
   reasonPlaceholder: 'Please provide a reason...',
   noDataAvailable: 'No data available',
+
+  // Theme mode labels (used by AuthThemeToggle + settings page)
+  appearance: {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+  },
 } as const

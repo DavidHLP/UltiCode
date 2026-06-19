@@ -4,6 +4,13 @@
  * Backend reference:
  * - LoginDTO, RegisterDTO, LoginResponse, UserVO, UserWithCsrfVO
  * - in backend-spring/src/main/java/com/ulticode/modules/auth/
+ *
+ * NOTE: This file is console-specific. The User shape uses camelCase to
+ * match how console wires the response into Pinia stores / Vue templates.
+ * Management uses `shared/auth-core`'s snake_case User (see
+ * `shared/auth-core/src/types.ts`); the two are intentionally NOT
+ * unified in this refactor to avoid a wide blast radius. If a future
+ * PR aligns them, deprecate this file in favor of shared re-exports.
  */
 
 /**

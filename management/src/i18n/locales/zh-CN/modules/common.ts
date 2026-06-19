@@ -74,4 +74,11 @@ export default {
   reasonLabel: '标记原因',
   reasonPlaceholder: '请提供标记原因...',
   noDataAvailable: '暂无数据',
+
+  // 主题模式标签(AuthThemeToggle 与设置页共用)
+  appearance: {
+    light: '浅色',
+    dark: '深色',
+    system: '跟随系统',
+  },
 } as const

@@ -5,6 +5,7 @@ status: living
 updated: 2026-06-19
 owner: frontend
 generator: ecc:update-codemaps
+last_manual_edit: 2026-06-19 add shared/auth-ui package row (ADR-012)
 ---
 
 # Frontend Architecture (Vue 3.5 + Vite 8 + Pinia 3 + Tailwind 4)
@@ -16,7 +17,7 @@ generator: ecc:update-codemaps
 ```
 console/        (port 9002, user-facing, PWA-enabled via vite-plugin-pwa)
 management/     (port 9003, admin dashboard, Playwright E2E)
-shared/         (auth-core, theme, design-system, badge-config, sandbox-types)
+shared/         (auth-core, auth-ui, theme, design-system, badge-config, sandbox-types)
 ```
 
 Each package has its own `pnpm-lock.yaml` — never install from repo root.
@@ -77,11 +78,14 @@ Each package has its own `pnpm-lock.yaml` — never install from repo root.
 
 | Package                | Owner(s)             | Purpose                                       |
 | ---------------------- | -------------------- | --------------------------------------------- |
-| `auth-core`            | console + management | Cookie/CSRF/auth-state composable + permission helpers |
+| `auth-core`            | console + management | Cookie/CSRF/auth-state composable + permission helpers + `cn` util |
+| `auth-ui`              | console + management | Auth SFC primitives + `AuthLayout` / `AuthPatternBackground` view shells (ADR-012) |
 | `theme`                | console + management | DOM theme tokens, typography density (`useTypographyDensity`) |
 | `design-system`        | both                 | Shared CSS tokens (typography migration sync 2026-06-19) |
 | `badge-config`         | console + management | Achievement/rating badge mappings             |
 | `sandbox-types`        | both                 | Typed OJ sandbox DTOs (verdict, test_result)  |
+
+**Workspace**: `pnpm-workspace.yaml` at repo root declares `shared/* + console + management`. `auth-core` and `auth-ui` are real pnpm workspace members with their own `node_modules`; the older `theme / design-system / badge-config / sandbox-types` packages are still consumed via the `console/src/shared -> ../../shared` symlink (legacy). New shared packages should follow the workspace pattern.
 
 **Cross-cutting rule**: any change in `shared/` must verify in BOTH frontends (`pnpm test` + `pnpm type-check` in the package, then console + management).
 

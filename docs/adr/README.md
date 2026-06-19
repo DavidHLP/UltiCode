@@ -4,6 +4,7 @@ tags: [adr, index, governance]
 status: living
 updated: 2026-06-19
 owner: architect
+adr_count: 12
 ---
 
 # 架构决策记录（ADR）
@@ -113,6 +114,7 @@ superseded_by: <ADR-NNNN 或 N/A>
 | [[0009-israted-gate|0009]] | `isRated` 门控 + 虚拟等级隔离             | accepted | 2026-06-xx |
 | [[0010-cancel-state-virtual-replay|0010]] | 取消态 + 虚拟回放边界                | accepted | 2026-06-xx |
 | [[0011-crit6-shadow-mode|0011]] | CRIT-6 shadow mode 评估                         | proposed | 2026-06-xx |
+| [[0012-shared-auth-ui-extraction|0012]] | 抽取 auth UI 组件与 view shell 到 shared/auth-ui | accepted | 2026-06-19 |
 
 > **状态说明**：上表是权威索引。`CODEMAPS/architecture.md` §"Architecture Decisions" 是镜像 — **同一个 PR** 里同步更新两边。
 >

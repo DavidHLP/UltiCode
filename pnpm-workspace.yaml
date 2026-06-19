@@ -1,0 +1,10 @@
+# ---------------------------------------------------------------------------
+# pnpm workspace — UltiCode frontends + shared packages
+#
+# Adding a new shared package: drop it under `shared/<name>/` and add the
+# glob to `packages` below. Consumers reference it via `workspace:*`.
+# ---------------------------------------------------------------------------
+packages:
+  - "shared/*"
+  - "console"
+  - "management"

@@ -1,0 +1,13 @@
+{
+  "useMarkdownLinks": false,
+  "newLinkFormat": "shortest",
+  "alwaysUpdateLinks": true,
+  "useTabSettings": false,
+  "showLineNumber": true,
+  "strictLineBreaks": false,
+  "showInlineTitle": true,
+  "showFrontmatter": true,
+  "attachmentFolderPath": "./assets",
+  "newFileLocation": "current",
+  "spellcheck": false
+}

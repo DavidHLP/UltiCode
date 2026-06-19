@@ -1,9 +1,26 @@
-# Local IDE / tool state for the `docs/` vault.
-# These are per-user artifacts that must not enter version control:
-# - `.obsidian/` is the Obsidian vault config (workspace layout, plugin
-#   toggles, graph layout) — varies per machine.
-# - `.claudian/` is the Claudian plugin's local state (user settings,
-#   chat session history) — per-user, contains ephemeral data.
+# Obsidian vault config for the `docs/` knowledge base.
+#
+# Strategy: share the configuration that shapes the *team's* Obsidian experience
+# (link format, graph color groups, core plugin toggles), but ignore the
+# per-machine state that diverges between contributors.
+#
 # See docs/DOCS_CONVENTIONS.md for the docs/ directory contract.
-.obsidian/
+
+# --- Shared (committed): .obsidian/{app,graph,core-plugins,appearance}.json ---
+# --- Per-user (ignored) below ---
+
+# Workspace layout — window positions, open tabs, scroll state. Per-machine.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Community plugin binaries + their local data. realclaudian ships a bundled
+# agent plugin; its main.js + session data are per-user, not team config.
+.obsidian/plugins/
+.obsidian/community-plugins.json
+
+# Obsidian internal caches.
+.obsidian/.cache
+.obsidian/cache
+
+# Claudian plugin local state (user settings, chat session history).
 .claudian/

@@ -1,25 +1,22 @@
 <script setup lang="ts">
 /**
- * AuthCard - 精密仪器风格卡片容器
- *
- * 细边框卡片 + 微光阴影效果 + 淡入动画
+ * AuthCard - Terminal Precision style card container
  */
-import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
+import type { HTMLAttributes } from "vue";
+import { cn } from "@/lib/utils";
 
 const props = defineProps<{
-  class?: HTMLAttributes['class']
-  title?: string
-}>()
+  class?: HTMLAttributes["class"];
+  title?: string;
+}>();
 
 defineOptions({
-  name: 'AuthCard',
-})
+  name: "AuthCard",
+});
 </script>
 
 <template>
   <div :class="cn('auth-card', props.class)">
-    <!-- Terminal Window Header -->
     <div class="auth-card__header">
       <div class="auth-card__window-controls">
         <span class="auth-card__control auth-card__control--close"></span>
@@ -28,7 +25,6 @@ defineOptions({
       </div>
       <span class="auth-card__title">{{ title }}</span>
     </div>
-    <!-- Card Body -->
     <div class="auth-card__body">
       <slot />
     </div>
@@ -41,7 +37,7 @@ defineOptions({
   max-width: 25rem;
   border: 1px solid var(--border);
   border-radius: 0;
-  background: var(--background);
+  background: var(--card);
   box-shadow: var(--shadow-float);
   overflow: hidden;
   animation: card-fade-in 0.4s ease-out;
@@ -55,13 +51,9 @@ defineOptions({
   box-shadow: var(--shadow-float);
 }
 
-.auth-card:hover {
-  border-color: color-mix(in oklch, var(--accent-primary) 45%, var(--border));
-  box-shadow: var(--shadow-float-hover);
-}
-
+.auth-card:hover,
 .auth-card:focus-within {
-  border-color: var(--accent-primary);
+  border-color: color-mix(in oklch, var(--accent-electric) 45%, var(--border));
   box-shadow: var(--shadow-float-hover);
 }
 
@@ -76,58 +68,53 @@ defineOptions({
   }
 }
 
-
 .auth-card__header {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
   padding: 0.625rem 1rem;
-  background: transparent;
+  background: var(--surface-sunken);
   border-bottom: 1px solid var(--border);
 }
 
 .auth-card__window-controls {
   display: flex;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .auth-card__control {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.75rem;
+  height: 0.75rem;
   border-radius: 50%;
-  opacity: 0.55;
+  opacity: 0.8;
 }
 
 .auth-card__control--close {
   background: var(--terminal-red);
-  opacity: 0.65;
 }
 
 .auth-card__control--minimize {
   background: var(--terminal-amber);
-  opacity: 0.65;
 }
 
 .auth-card__control--maximize {
   background: var(--terminal-green);
-  opacity: 0.65;
 }
 
 .auth-card__title {
   font-family: var(--uc-font-code);
-  font-size: var(--uc-type-code-size);
+  font-size: var(--uc-text-sm);
   color: var(--silver-500);
-  letter-spacing: var(--uc-tracking-label);
+  letter-spacing: var(--uc-tracking-normal);
 }
 
-
 .auth-card__body {
-  padding: 2rem;
+  padding: 1.25rem;
 }
 
 @media (min-width: 768px) {
   .auth-card__body {
-    padding: 2.5rem;
+    padding: 1.5rem;
   }
 }
 </style>

@@ -1,59 +1,54 @@
 <script setup lang="ts">
 /**
- * AuthInput - 浮动标签输入框
- *
- * 特点：
- * - 浮动标签动画
- * - 底部细线样式
- * - 聚焦微光效果
- * - 错误状态样式
+ * AuthInput - Console parameter styled input field
  */
-import type { HTMLAttributes, InputHTMLAttributes } from 'vue'
-import { computed, ref, useId } from 'vue'
-import { cn } from '@/lib/utils'
+import type { HTMLAttributes, InputHTMLAttributes } from "vue";
+import { computed, ref, useId } from "vue";
+import { cn } from "@/lib/utils";
 
 const props = withDefaults(
   defineProps<{
-    class?: HTMLAttributes['class']
-    modelValue?: string
-    label: string
-    type?: InputHTMLAttributes['type']
-    id?: string
-    placeholder?: string
-    disabled?: boolean
-    error?: string
-    autocomplete?: string
+    class?: HTMLAttributes["class"];
+    modelValue?: string;
+    label: string;
+    type?: InputHTMLAttributes["type"];
+    id?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    error?: string;
+    autocomplete?: string;
   }>(),
   {
-    type: 'text',
-    placeholder: ' ',
+    type: "text",
+    placeholder: "",
   },
-)
+);
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
+  "update:modelValue": [value: string];
+}>();
 
 defineOptions({
-  name: 'AuthInput',
-})
+  name: "AuthInput",
+});
 
-const inputId = computed(() => props.id || `auth-input-${useId()}`)
-const isFocused = ref(false)
-const hasValue = computed(() => !!props.modelValue)
-const isFloating = computed(() => isFocused.value || hasValue.value)
+const autoId = useId();
+const inputId = computed(() => props.id || `auth-input-${autoId}`);
+const isFocused = ref(false);
+const hasValue = computed(() => !!props.modelValue);
+const isFloating = computed(() => isFocused.value || hasValue.value);
 
 function handleInput(event: Event) {
-  const target = event.target as HTMLInputElement
-  emit('update:modelValue', target.value)
+  const target = event.target as HTMLInputElement;
+  emit("update:modelValue", target.value);
 }
 
 function handleFocus() {
-  isFocused.value = true
+  isFocused.value = true;
 }
 
 function handleBlur() {
-  isFocused.value = false
+  isFocused.value = false;
 }
 </script>
 
@@ -61,10 +56,11 @@ function handleBlur() {
   <div
     :class="
       cn(
-        'auth-input',
+        'auth-input flex flex-col w-full',
         {
           'auth-input--focused': isFocused,
           'auth-input--has-value': hasValue,
+          'auth-input--floating': isFloating,
           'auth-input--error': error,
           'auth-input--disabled': disabled,
         },
@@ -72,7 +68,15 @@ function handleBlur() {
       )
     "
   >
-    <div class="auth-input__container">
+    <label
+      :for="inputId"
+      class="auth-input__label"
+      :class="{ 'auth-input__label--floating': isFloating }"
+    >
+      <span class="auth-input__prompt">&gt;</span>
+      {{ label }}
+    </label>
+    <div class="relative mt-1 w-full">
       <input
         :id="inputId"
         :type="type"
@@ -85,13 +89,6 @@ function handleBlur() {
         @focus="handleFocus"
         @blur="handleBlur"
       />
-      <label
-        :for="inputId"
-        class="auth-input__label"
-        :class="{ 'auth-input__label--floating': isFloating }"
-      >
-        {{ label }}
-      </label>
       <div class="auth-input__line">
         <div class="auth-input__line-glow"></div>
       </div>
@@ -103,54 +100,15 @@ function handleBlur() {
 <style scoped>
 .auth-input {
   position: relative;
-  width: 100%;
 }
 
-.auth-input__container {
-  position: relative;
-  padding-top: 0.5rem;
-}
-
-/* Input field */
-.auth-input__field {
-  width: 100%;
-  height: 2.75rem;
-  padding: 0 0 0.5rem;
-  font-size: var(--uc-text-sm);
-  color: var(--foreground);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  outline: none;
-  transition: border-color var(--transition-fast);
-}
-
-.auth-input__field::placeholder {
-  color: transparent;
-}
-
-.auth-input--focused .auth-input__field {
-  border-color: var(--accent-primary);
-}
-
-.auth-input--error .auth-input__field {
-  border-color: var(--status-error);
-}
-
-.auth-input--disabled .auth-input__field {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-/* Floating label */
 .auth-input__label {
-  position: absolute;
-  left: 0;
-  top: 1.125rem;
-  font-size: var(--uc-text-md);
-  color: var(--silver-500);
-  pointer-events: none;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
+  font-weight: var(--uc-font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--solarized-base01);
   transform-origin: left center;
   transition:
     transform var(--transition-fast),
@@ -159,26 +117,79 @@ function handleBlur() {
 }
 
 .auth-input__label--floating {
-  transform: translateY(-1.25rem) scale(0.75);
-  color: var(--silver-600);
+  font-size: var(--uc-text-xs);
+  color: var(--silver-500);
+  transform: translateY(-0.5rem);
 }
 
 .auth-input--focused .auth-input__label--floating {
-  color: var(--accent-primary);
+  color: var(--accent-electric);
 }
 
 .auth-input--error .auth-input__label--floating {
   color: var(--status-error);
 }
 
-/* Bottom line with glow effect */
+.dark .auth-input__label {
+  color: var(--silver-400);
+}
+
+.auth-input__prompt {
+  color: var(--accent-electric);
+  font-weight: var(--uc-font-weight-bold);
+  margin-right: 0.375rem;
+}
+
+.auth-input__field {
+  width: 100%;
+  height: 2.375rem;
+  padding: 0 0.75rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-sm);
+  color: var(--solarized-base03);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.dark .auth-input__field {
+  color: var(--silver-900);
+}
+
+.auth-input__field:focus {
+  background: var(--card);
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 1px var(--accent-electric-glow);
+}
+
+.auth-input__field::placeholder {
+  color: var(--solarized-base1);
+  opacity: 0.7;
+}
+
+.dark .auth-input__field::placeholder {
+  color: var(--solarized-base01);
+  opacity: 0.7;
+}
+
+.auth-input--error .auth-input__field {
+  border-color: var(--status-error);
+}
+
+.auth-input--disabled .auth-input__field {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .auth-input__line {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-primary);
+  background: var(--accent-electric);
   transform: scaleX(0);
   transform-origin: center;
   transition: transform var(--transition-fast);
@@ -187,7 +198,7 @@ function handleBlur() {
 .auth-input__line-glow {
   position: absolute;
   inset: -2px;
-  background: var(--accent-primary);
+  background: var(--accent-electric);
   filter: blur(4px);
   opacity: 0;
   transition: opacity var(--transition-fast);
@@ -201,15 +212,11 @@ function handleBlur() {
   opacity: 0.5;
 }
 
-.auth-input--error .auth-input__line {
-  background: var(--status-error);
-}
-
+.auth-input--error .auth-input__line,
 .auth-input--error .auth-input__line-glow {
   background: var(--status-error);
 }
 
-/* Error message */
 .auth-input__error {
   margin-top: 0.375rem;
   font-size: var(--uc-text-sm);

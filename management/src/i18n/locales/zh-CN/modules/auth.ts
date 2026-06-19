@@ -1,93 +1,120 @@
 export default {
-  // 登录
+  // Layout
+  layout: {
+    systemOnline: '系统在线',
+    codingConsole: '管理\n控制台',
+    codingConsoleSubtitle: '// 平台管理的精密工具',
+  },
+
+  // Login page
   login: {
-    title: '登录',
-    subtitle: '管理后台',
-    terminal: 'login.terminal',
+    terminal: 'login.sh',
+    title: '登录到您的账户',
+    subtitle: '请输入您的用户名和密码登录',
     username: '用户名',
-    usernamePlaceholder: 'admin',
+    usernamePlaceholder: '请输入用户名',
     password: '密码',
-    passwordPlaceholder: '••••••••',
-    rememberMe: '记住我',
+    passwordPlaceholder: '请输入密码',
     forgotPassword: '忘记密码？',
     submit: '登录',
     submitting: '登录中...',
-    loggingIn: '登录中...',
-    invalidCredentials: '用户名或密码错误',
-    accountDisabled: '账户已被禁用',
-    success: '登录成功',
-    error: '登录失败',
-    loginFailed: '登录失败，请重试。',
-    continueWithGithub: '使用 GitHub 继续',
+    orContinueWith: '或使用以下方式继续',
+    loginWithGithub: '使用 GitHub 登录',
+    loginWithGoogle: '使用 Google 登录',
+    noAccount: '还没有账户？',
+    signUp: '注册',
+    rememberMe: '记住我',
   },
 
-  // 登出
-  logout: {
-    title: '退出登录',
-    confirm: '确定要退出登录吗？',
-    success: '已退出登录',
-    error: '退出登录失败',
-  },
-
-  // 密码重置
-  resetPassword: {
-    title: '重置密码',
-    email: '邮箱',
-    emailPlaceholder: 'admin@@example.com',
-    submit: '发送重置链接',
-    sending: '发送中...',
-    success: '重置链接已发送到您的邮箱',
-    error: '发送重置链接失败',
-    backToLogin: '返回登录',
-    newPassword: '新密码',
-    confirmPassword: '确认密码',
-    passwordMismatch: '两次密码输入不一致',
-    passwordTooShort: '密码至少需要 8 个字符',
-    passwordResetSuccess: '密码重置成功',
-    passwordResetError: '密码重置失败',
-  },
-
-  // 会话管理
-  session: {
-    expired: '会话已过期，请重新登录',
-    invalid: '无效的会话，请重新登录',
-  },
-
-  // 权限
-  permissions: {
-    denied: '权限不足',
-    noAccess: '您没有权限访问此页面',
-    noAction: '您没有权限执行此操作',
-  },
-
-  // 注册页面
+  // Register page
   register: {
-    terminal: 'register.terminal',
-  },
-
-  // 注册
-  signup: {
+    terminal: 'register.sh',
     title: '创建账户',
-    subtitle: '加入管理员团队',
-    fullName: '姓名',
-    fullNamePlaceholder: '张三',
+    subtitle: '请输入您的信息以创建新账户',
+    username: '用户名',
+    usernamePlaceholder: '请输入用户名',
     email: '邮箱',
-    emailPlaceholder: 'admin@@example.com',
+    emailPlaceholder: '请输入您的邮箱地址',
     password: '密码',
+    passwordPlaceholder: '请输入密码',
     confirmPassword: '确认密码',
-    submit: '创建账户',
-    github: '使用 GitHub 继续',
-    alreadyHaveAccount: '已有账户？',
+    confirmPasswordPlaceholder: '再次输入密码',
+    submit: '注册',
+    submitting: '创建账户中...',
+    alreadyHaveAccount: '已经有账户了？',
     signIn: '登录',
-    orContinueWith: '或继续使用',
+    login: '登录',
+    termsAgreement: '注册即表示您同意我们的',
+    termsOfService: '服务条款',
+    and: '和',
+    privacyPolicy: '隐私政策',
   },
 
-  // 认证页面布局
-  layout: {
-    systemOnline: '系统在线',
-    managementConsole: '管理控制台',
-    managementConsoleSubtitle: '// 精密的平台管理工具',
-    joinTheTeam: '加入团队',
-    joinTheTeamSubtitle: '// 创建您的管理员账户',
+  // Forgot password page
+  forgotPassword: {
+    terminal: 'reset-request.sh',
+    title: '忘记密码',
+    subtitle: '请输入您的邮箱地址，我们会发送重置链接',
+    email: '邮箱',
+    emailPlaceholder: '请输入您注册的邮箱',
+    submit: '发送重置链接',
+    submitting: '发送中...',
+    backToLogin: '返回登录',
+    rememberPassword: '记得密码了？',
+    successMessage: '如果邮箱存在，重置链接已发送到您的收件箱',
+  },
+
+  // Reset password page
+  resetPassword: {
+    terminal: 'reset-password.sh',
+    title: '重置密码',
+    subtitle: '请输入您的新密码',
+    newPassword: '新密码',
+    newPasswordPlaceholder: '请输入新密码',
+    confirmPassword: '确认新密码',
+    confirmPasswordPlaceholder: '再次输入新密码',
+    submit: '重置密码',
+    submitting: '重置中...',
+    successMessage: '密码重置成功，请使用新密码登录',
+  },
+
+  // Toast messages
+  messages: {
+    loginSuccess: '登录成功',
+    loginFailed: '登录失败',
+    registerSuccess: '账户创建成功',
+    registerFailed: '注册失败',
+    logoutSuccess: '已退出登录',
+    passwordResetSuccess: '密码重置成功',
+    passwordResetFailed: '密码重置失败',
+    emailSent: '邮件已发送',
+    requestFailed: '请求处理失败',
+    invalidCredentials: '用户名或密码错误',
+    accountNotFound: '账户不存在',
+    emailAlreadyExists: '邮箱已被使用',
+    usernameAlreadyExists: '用户名已被占用',
+    sessionExpired: '会话已过期，请重新登录',
+    passwordsDoNotMatch: '两次输入的密码不一致',
+  },
+
+  // Guest user
+  guest: {
+    name: '访客',
+    loginToContinue: '请登录后继续',
+    welcome: '欢迎，登录以访问所有功能',
+  },
+
+  // Validation messages
+  validation: {
+    usernameRequired: '请输入用户名',
+    usernameMinLength: '用户名至少需要 3 个字符',
+    usernameMaxLength: '用户名不能超过 20 个字符',
+    usernameInvalid: '用户名只能包含字母、数字和下划线',
+    emailRequired: '请输入邮箱',
+    emailInvalid: '请输入有效的邮箱地址',
+    passwordRequired: '请输入密码',
+    passwordMinLength: '密码至少需要 6 个字符',
+    passwordMaxLength: '密码不能超过 50 个字符',
+    passwordMismatch: '两次输入的密码不一致',
   },
 } as const

@@ -1,12 +1,10 @@
 <script setup lang="ts">
 /**
- * AuthGrid - 精密仪器风格几何网格背景
- *
- * 使用 CSS linear-gradient 创建网格线，营造精密仪器的精确感
+ * AuthGrid - Precision geometric grid background
  */
 defineOptions({
-  name: 'AuthGrid',
-})
+  name: "AuthGrid",
+});
 </script>
 
 <template>
@@ -22,7 +20,7 @@ defineOptions({
   position: relative;
   display: none;
   overflow: hidden;
-  background: var(--silver-50);
+  background: var(--background);
 }
 
 @media (min-width: 1024px) {
@@ -33,34 +31,35 @@ defineOptions({
   }
 }
 
-/* Grid lines layer */
 .auth-grid__lines {
   position: absolute;
   inset: 0;
   background-image:
-    /* Vertical lines */
     linear-gradient(to right, var(--silver-200) 1px, transparent 1px),
-    /* Horizontal lines */ linear-gradient(to bottom, var(--silver-200) 1px, transparent 1px);
+    linear-gradient(to bottom, var(--silver-200) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.5;
+  opacity: 0.15;
 }
 
 .dark .auth-grid__lines {
   background-image:
     linear-gradient(to right, var(--silver-300) 1px, transparent 1px),
     linear-gradient(to bottom, var(--silver-300) 1px, transparent 1px);
-  opacity: 0.3;
+  opacity: 0.08;
 }
 
-/* Subtle glow effect */
 .auth-grid__glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
-  opacity: 0.3;
+  background: radial-gradient(
+    ellipse at center,
+    var(--accent-glow) 0%,
+    transparent 70%
+  );
+  opacity: 0.12;
 }
 
 .dark .auth-grid__glow {
-  opacity: 0.5;
+  opacity: 0.2;
 }
 </style>

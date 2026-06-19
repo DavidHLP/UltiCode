@@ -1,3 +1,12 @@
+---
+title: 项目截图索引
+tags: [index, screenshots, reference, living]
+status: living
+updated: 2026-06-20
+owner: design-system
+screenshot_count: 8
+---
+
 # 项目截图
 
 本目录收录在 README 顶部"项目截图"区块里展示的界面截图。

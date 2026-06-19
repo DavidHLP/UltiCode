@@ -1,62 +1,74 @@
 # Codemap Diff Report
 
-Generated: 2026-06-18
-Previous codemap baseline: 2026-06-12
+Generated: 2026-06-19
+Previous codemap baseline: 2026-06-18 (commit 7060279f4)
 Scan scope: docs/CODEMAPS/ (6 files)
-Diff threshold: <=30% → update in place (no overwrite approval needed). Overall weighted drift ~12%; data.md highest at ~25-30%.
-
-## Codemaps modified (5/6)
-
-| File | Change | Est. drift |
-| ---- | ------ | ---------- |
-| architecture.md | header + Arthas 4.2.2 + sandbox-types + PM2 5 apps + 4 new Data-Flow bullets + Migration Strategy + 4 new themes | ~12% |
-| data.md | header + migrations 25→34 + 9 new migration rows + Table Groups (6 new tables) + Key Relationships (contest) | ~25-30% |
-| dependencies.md | header + Arthas 4.2.2 + sandbox-types row + PM2 5 apps | ~8% |
-| backend.md | header date only (controllers 43 / modules 26 unchanged & verified) | <1% |
-| frontend.md | header date only (view/store tree stable) | <1% |
-| sandbox.md | unchanged (recently maintained, ADR-002 refs up to 2026-06-16) | 0% |
+Diff threshold: <=30% → update in place (no overwrite approval needed).
+Special case: a7cbe154d (2026-06-19) deleted all 6 codemaps via "drop legacy docs" chore
+              → full re-creation required (not a normal diff).
 
 ## Files added/removed/modified since last scan (codebase side)
 
-### New shared package
-- shared/sandbox-types/ (@ulticode/sandbox-types, Phase 4) — typed sandbox DTOs; now documented in architecture.md + dependencies.md
+### Commits since previous codemap sync (7060279f4..HEAD = 3 commits)
 
-### Migrations: 25 → 34 (+9)
-- V20260611141000__Create_Problem_Notes_Table (timestamp corrected; was mis-duped as _140000)
-- V20260613100000__Create_Judge_Outbox                 [ADR-003 outbox]
-- V20260613110000__Add_Submission_Generation_And_Lease [queue gen counter + lease]
-- V20260613120000__Create_Notification_Delivery_Ledger [per-channel delivery]
-- V20260615140000__Seed_Problem_Category_Tags          [seed]
-- V20260616000000__Seed_Missing_Test_Cases             [seed]
-- V20260616120000__Add_Problem_Resource_Limits         [time/memory/cpus cols]
-- V20260617120000__Contest_Scoring_Hardening           [ADR-006]
-- V20260617130000__Contest_Slug_Unique                 [unique constraint]
-- V20260617140000__Contest_Real_Unique_And_Session_Length [virtual_contest_sessions, ADR-007]
+- a7cbe154d  chore: drop legacy docs and sync shared typography tokens
+  - **Deleted** all 6 codemaps (this report's special case)
+  - Deleted docs/CONTRIBUTING.md, ENV.md, PRIVACY.md, README.md, RUNBOOK.md, SHARED_TYPOGRAPHY_DESIGN.md
+  - Deleted docs/adr/* (12 ADRs)
+  - Deleted docs/DOCS-SPEC.md, docs/contest/* (R-plans + reviews)
+  - Synced typography tokens across both frontends
+- 02fa0a919  chore: finalize shared typography migration across both apps
+  - console + management design-system alignment
+- 14ca103ba  chore: rollup prior session WIP and shared typography migration
+  - composite rollup of prior uncommitted typography work
 
-### New tables (post-baseline)
-judge_outbox, notification_delivery_ledger, virtual_contest_sessions,
-contest_rankings, contest_analytics, contest_scoring_rules (+ problem resource-limit columns)
+Net: **0 architecture/dependency changes** since 2026-06-18 baseline.
+All 3 commits are typography/cleanup only. Codemap content drift vs 7060279f4 baseline ≈ 0–2%.
+
+## Codemap re-creation (2026-06-19)
+
+| File                    | Bytes  | Token est. | Notes                                  |
+| ----------------------- | ------ | ---------- | -------------------------------------- |
+| architecture.md         | ~3700  | ~900       | ADR-008..011, 5 PM2 apps, full topology |
+| backend.md              | ~3300  | ~850       | 26 modules · 43 controllers · 588 Java |
+| frontend.md             | ~3600  | ~900       | Console + Management + shared/ layout  |
+| data.md                 | ~3600  | ~900       | 34 migrations, table groups, contest isolation |
+| dependencies.md         | ~3400  | ~850       | pom + both package.json + infra images |
+| sandbox.md              | ~3100  | ~850       | ADR-001/002 verdict codec, build pipeline |
+
+Total: ~20.7 KB / ~5250 tokens. All under 1000-token target per file.
+
+## Verified accurate (no drift) vs 2026-06-18 baseline
+
+- Backend: 26 modules, 43 controllers, 588 Java files (matches ecosystem + source scan)
+- Frontend: console (365 files) + management (348 files) — view/store trees stable
+- Migrations: still 34 (no new migrations in 3 commits)
+- PM2: still 5 apps (4 long-lived + 1 one-shot ulticode-init-db)
+- Arthas: still 4.2.2 STATELESS
+- Sandbox image: still ulticode-sandbox:latest
+- Shared packages: still 5 (auth-core, theme, design-system, badge-config, sandbox-types)
+- Docker images: mysql:9.1, redis:7-alpine, nacos/nacos-server:v2.3.2
 
 ## New dependencies detected
-- @ulticode/sandbox-types (shared DTO package, Phase 4)
+
+None — all changes are typography/design-system refactors of existing tokens. No new
+runtime deps added. No new Docker images pulled.
 
 ## Architecture changes
-- Queue/outbox pattern (ADR-003): judge_outbox + submission generation/lease for exactly-once verdict delivery
-- Contest scoring engine (ADR-006): scoring-rule activation, slug/real unique constraints
-- Virtual contests (ADR-007): virtual_contest_sessions, rating isolation
-- Problem resource limits: per-problem time/memory/cpus
-- Notification delivery ledger: per-channel delivery tracking
-- Runtime: Arthas 4.1.9 → 4.2.2 (STATELESS MCP); PM2 app count 4 → 5 (added one-shot ulticode-init-db)
 
-## Verified accurate (no drift)
-- Backend: 26 modules, 43 controllers (matches ecosystem + source scan)
-- Frontend: console/management view + store + composable trees stable
-- ENV.md / CONTRIBUTING.md script tables (synced in prior /ecc:update-docs pass)
-- Infrastructure images/ports (MySQL 9.1:23306, Redis 7:26379, Nacos 2.3.2:28848, Sandbox)
+None since 2026-06-18 baseline. Latest architecture shift (ADR-007 virtual contest
+lifecycle + ADR-011 CRIT-6 shadow mode) is already captured in last sync.
 
 ## Staleness warnings (90+ days)
-None. Oldest docs/*.md commit is 2026-06-10 (8 days). All CODEMAPS now stamped 2026-06-18.
+
+None. No `docs/*.md` file currently exceeds 30 days of age (all writes are within
+the 2026-06 cycle).
 
 ## Follow-up (not auto-fixed)
-- ecosystem.config.cjs code comment still says "协议 STREAMABLE"; project pins STATELESS (see infrastructure/arthas/arthas.properties). Stale CODE comment, out of codemap scope.
-- Frontend recommendation* orphan/dead-code dirs still flagged (pre-existing).
+
+- `.reports/codemap-diff.txt` itself — preserve last 2 versions for diff history
+- If /ecc:update-docs is also invoked next, it will need fresh CONTRIB/RUNBOOK/ENV
+  docs (all currently missing after a7cbe154d)
+- The 4 uncommitted local changes (incl. console/src/features/layout/panels/LayoutPanelHeader.vue)
+  are unrelated to codemap content; do not auto-include in codemaps until committed
+- repo is ahead 4 of origin/main; codemaps are untracked files in working tree, not committed

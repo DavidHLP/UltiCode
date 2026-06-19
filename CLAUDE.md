@@ -167,7 +167,7 @@ java -jar tools/arthas-boot.jar <PID>
   4. **回退**：`./mvnw -Dtest='*IT' test -B` 跑问题单测/集成测试做对照（验证 N+1 / 重复添加逻辑时直接走这条）
   5. 同步 MCP 阻塞 30s 时，**用 `mcp__plugin_context-mode_context-mode__ctx_execute` 跑 java 反射/grep 类检查**（后台子进程，无 MCP 超时）
 - 见 `.claude/rules/backend/09-java-runtime-diagnostics.md` 的强制约束：阻塞命令必须带 `-n N` (N ≤ 5) 限制执行次数
-- **Arthas MCP 实战手册**: `docs/arthas-mcp-usage.md` — 含 watch/trace/stack 真实调用样本(本会话 2026-06-18 验证)、OGNL 速查、降级路径
+- **Arthas MCP 实战手册**: `docs/ops/arthas-mcp-usage.md` — 含 watch/trace/stack 真实调用样本(本会话 2026-06-18 验证)、OGNL 速查、降级路径
 - **增强命令并发模式**: 后台 bash `run_in_background=true` 持续 curl 触发目标端点(选没限流的 register/GET,login 是 60s/5 次窗口会被拦截),同步发 `mcp__arthas-mcp__trace/watch/stack` 配 `numberOfExecutions=1` + `timeout=12`;MCP 客户端 timeout 30s,所以 arthas 端 timeout 永远 ≤ 25
 
 ### MCP 配置 (.mcp.json)

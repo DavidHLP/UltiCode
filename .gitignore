@@ -56,6 +56,12 @@ dist-ssr/
 .eslintcache
 .stylelintcache
 .vite-inspect
+# vue-tsc incremental build cache (replaces the stale `.tsbuildinfo`
+# pattern that only matched the flat-package layout; vue-tsc 2.x writes
+# `*.tsbuildinfo` next to each tsconfig.json).
+*.tsbuildinfo
+**/tsconfig.tsbuildinfo
+**/tsconfig.*.tsbuildinfo
 # 环境变量文件（含敏感信息，禁止进入 Git）
 .env
 .env.*

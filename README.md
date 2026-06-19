@@ -2,6 +2,28 @@
 
 **在线编程平台 (Online Judge)** — 一个功能完整的在线判题系统，支持题目练习、竞赛、社区讨论、成就系统等。
 
+## 项目截图
+
+> 想看更多视图、对比 light/dark 主题或下载原图：见 [docs/screenshots/](docs/screenshots/README.md)。
+
+### 用户端 (Console · 9002 · light)
+
+![论坛帖子列表](docs/screenshots/forum-list-light.png)
+
+### 用户端 (Console · 9002 · dark)
+
+![论坛平台](docs/screenshots/forum-thread-dark.png)
+![论坛帖子详情](docs/screenshots/forum-detail-dark.png)
+![UltiCode 竞赛](docs/screenshots/contests-dark.png)
+![题库专题](docs/screenshots/problem-set-dark.png)
+![题目详情 + 在线 IDE](docs/screenshots/problem-detail-dark.png)
+
+### 管理端 (Management · 9003 · dark)
+
+![管理后台 — 数据分析](docs/screenshots/analytics-dashboard-dark.png)
+![管理后台 — 仪表板](docs/screenshots/admin-dashboard-dark.png)
+
+
 ## 架构概览
 
 ```

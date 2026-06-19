@@ -78,6 +78,7 @@ owner: backend | frontend | devops | <module>
 | File                                                | Status | Owner    | Purpose                                                |
 | --------------------------------------------------- | ------ | -------- | ------------------------------------------------------ |
 | [[arthas-mcp-usage]]     | living | backend  | Arthas MCP watch/trace/stack 实战 (CLAUDE.md §运行时调试 配套) |
+| [[moderation-stats-and-seed]] | living | backend  | 审核模块运维深读 (状态机 / 种子数据 / 统计口径 / PM2 env 陷阱) |
 
 > 文档新增/移除/重命名时:同步更新本表 + 在 `docs/COODEMAPS/architecture.md` 数据流段落
 > 提及的 "运行时诊断" 链接(若有)。

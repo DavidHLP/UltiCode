@@ -33,6 +33,8 @@ export default {
     subtitle: "Enter your information to create a new account",
     username: "Username",
     usernamePlaceholder: "Enter a username",
+    name: "Display name",
+    namePlaceholder: "How should we display your name?",
     email: "Email",
     emailPlaceholder: "Enter your email address",
     password: "Password",
@@ -96,6 +98,7 @@ export default {
     emailAlreadyExists: "Email already in use",
     usernameAlreadyExists: "Username already taken",
     sessionExpired: "Session expired. Please login again.",
+    passwordsDoNotMatch: "Passwords do not match",
   },
 
   // Guest user

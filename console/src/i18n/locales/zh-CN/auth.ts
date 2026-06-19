@@ -33,6 +33,8 @@ export default {
     subtitle: "输入您的信息创建新账户",
     username: "用户名",
     usernamePlaceholder: "请输入用户名",
+    name: "显示名称",
+    namePlaceholder: "您希望如何展示您的名称？",
     email: "邮箱",
     emailPlaceholder: "请输入邮箱地址",
     password: "密码",
@@ -94,6 +96,7 @@ export default {
     emailAlreadyExists: "邮箱已被使用",
     usernameAlreadyExists: "用户名已被使用",
     sessionExpired: "登录已过期，请重新登录",
+    passwordsDoNotMatch: "两次输入的密码不一致",
   },
 
   // Guest user

@@ -33,6 +33,8 @@ export default {
     subtitle: 'Enter your information to create a new account',
     username: 'Username',
     usernamePlaceholder: 'Enter a username',
+    name: 'Display name',
+    namePlaceholder: 'How should we display your name?',
     email: 'Email',
     emailPlaceholder: 'Enter your email address',
     password: 'Password',
@@ -61,8 +63,7 @@ export default {
     submitting: 'Sending...',
     backToLogin: 'Back to login',
     rememberPassword: 'Remember your password?',
-    successMessage:
-      'If the email exists, a reset link has been sent to your inbox',
+    successMessage: 'If the email exists, a reset link has been sent to your inbox',
   },
 
   // Reset password page
@@ -76,8 +77,7 @@ export default {
     confirmPasswordPlaceholder: 'Re-enter new password',
     submit: 'Reset Password',
     submitting: 'Resetting...',
-    successMessage:
-      'Password reset successful. Please login with your new password.',
+    successMessage: 'Password reset successful. Please login with your new password.',
   },
 
   // Toast messages
@@ -97,6 +97,7 @@ export default {
     usernameAlreadyExists: 'Username already taken',
     sessionExpired: 'Session expired. Please login again.',
     passwordsDoNotMatch: 'Passwords do not match',
+    contactAdmin: 'Self-registration is disabled. Please contact an administrator.',
   },
 
   // Guest user
@@ -111,8 +112,7 @@ export default {
     usernameRequired: 'Username is required',
     usernameMinLength: 'Username must be at least 3 characters',
     usernameMaxLength: 'Username cannot exceed 20 characters',
-    usernameInvalid:
-      'Username can only contain letters, numbers, and underscores',
+    usernameInvalid: 'Username can only contain letters, numbers, and underscores',
     emailRequired: 'Email is required',
     emailInvalid: 'Please enter a valid email address',
     passwordRequired: 'Password is required',

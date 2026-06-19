@@ -14,6 +14,13 @@ interface NavItem {
   title: string
   url: string
   icon?: Component
+  /**
+   * Optional click handler. When set, takes precedence over navigation:
+   * the link's default behaviour is prevented and the handler is invoked.
+   * Useful for actions that don't correspond to a real route, e.g. opening
+   * the global command palette from the sidebar's search shortcut.
+   */
+  onClick?: (event: MouseEvent) => void
 }
 
 defineProps<{
@@ -42,7 +49,16 @@ function isActive(url: string): boolean {
                 : 'border-l-2 border-transparent'
             ]"
           >
-            <RouterLink v-if="item.url.startsWith('/')" :to="item.url">
+            <a
+              v-if="item.onClick"
+              href="#"
+              role="button"
+              @click.prevent="item.onClick($event)"
+            >
+              <component :is="item.icon" v-if="item.icon" />
+              <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
+            </a>
+            <RouterLink v-else-if="item.url.startsWith('/')" :to="item.url">
               <component :is="item.icon" v-if="item.icon" />
               <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
             </RouterLink>

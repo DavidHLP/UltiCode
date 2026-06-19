@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useSearchPalette } from '@/composables/useSearchPalette'
 import {
   IconSearch,
   IconBell,
@@ -34,7 +35,7 @@ import {
 const router = useRouter()
 const { t } = useI18n()
 
-const isSearchOpen = ref(false)
+const { isOpen: isSearchOpen, toggle: toggleSearch, close: closeSearch } = useSearchPalette()
 
 /**
  * Navigation shortcuts. The key is matched case-insensitively against
@@ -80,7 +81,7 @@ function handleKeyDown(e: KeyboardEvent) {
   // Toggle palette
   if (key === 'k') {
     e.preventDefault()
-    isSearchOpen.value = !isSearchOpen.value
+    toggleSearch()
     return
   }
 

@@ -1,0 +1,9 @@
+# Local IDE / tool state for the `docs/` vault.
+# These are per-user artifacts that must not enter version control:
+# - `.obsidian/` is the Obsidian vault config (workspace layout, plugin
+#   toggles, graph layout) — varies per machine.
+# - `.claudian/` is the Claudian plugin's local state (user settings,
+#   chat session history) — per-user, contains ephemeral data.
+# See docs/DOCS_CONVENTIONS.md for the docs/ directory contract.
+.obsidian/
+.claudian/

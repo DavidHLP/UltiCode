@@ -56,7 +56,7 @@ docs/theme/                         ← 本目录（设计文档）
 ## 关键约束（先记住这 5 条）
 
 1. **颜色只能用 `oklch()` 表达**，禁止 hex / rgb / hsl。Solarized 调色板的所有色值
-   已经在 [`design-tokens.md` §1](./design-tokens.md#1-颜色-color) 列全。
+   已经在 [[design-tokens#1 颜色 Color|`design-tokens.md` §1]] 列全。
 2. **Token 引用一律 `var(--uc-*)` 或 `var(--silver-*)`**，不写裸字面量。Tailwind 工具类
    已是 token 的别名（`text-sm` → `--uc-text-sm`），所以 `class="text-sm font-sans"` 是合法的。
 3. **`.dark` 是唯一的颜色模式开关**，由 `applyThemeToDOM()` 写到 `<html>`。
@@ -77,12 +77,12 @@ docs/theme/                         ← 本目录（设计文档）
 | 改 `shared/theme/src/index.ts` 公共 API | `architecture.md` §1                            |
 | 改 `theme-bootstrap.js` 行为        | `theme-modes.md` §1、§2                         |
 
-PR 描述里附上文档同步的 checklist（参见根 [`DOCS_CONVENTIONS.md` §7](../DOCS_CONVENTIONS.md#7-更新流程)）。
+PR 描述里附上文档同步的 checklist（参见根 [[DOCS_CONVENTIONS#7 更新流程|`DOCS_CONVENTIONS.md` §7]]）。
 
 ## 参见
 
-- [`docs/CODEMAPS/frontend.md`](../CODEMAPS/frontend.md) — 仓库前端架构、路由、store
-- [`docs/DOCS_CONVENTIONS.md`](../DOCS_CONVENTIONS.md) — 文档编写规范（frontmatter / 命名 / 链接）
+- [[frontend|docs/CODEMAPS/frontend.md]] — 仓库前端架构、路由、store
+- [[DOCS_CONVENTIONS|docs/DOCS_CONVENTIONS.md]] — 文档编写规范（frontmatter / 命名 / 链接）
 - `shared/theme/src/` — 状态层代码（`ThemeMode.ts` / `storage.ts` / `useTheme.ts` / `applyThemeToDOM.ts`）
 - `shared/design-system/style.css` — Token 层主文件（1257 行）
 - `shared/theme/src/typography.css` — 字体 Token 主文件

@@ -12,8 +12,8 @@ owner: design-system
 > 和密度（comfortable / compact）。覆盖公共 API、运行时生命周期、FOUC 防止、
 > 以及"如何加新模式"。
 >
-> 配套阅读：[`architecture.md`](./architecture.md) · [`design-tokens.md`](./design-tokens.md) ·
-> [`components.md`](./components.md)
+> 配套阅读：[[theme/architecture]] · [[design-tokens]] ·
+> [[components]]
 
 ## 0. 两个独立维度
 
@@ -137,7 +137,7 @@ function handleSystemThemeChange() {
 **引导脚本**（`console/public/theme-bootstrap.js` 与 `management/public/theme-bootstrap.js`）
 必须是**纯 ES JS**——它在 Vite 静态资源服务上跑，没有 TypeScript 编译。
 所以引导脚本是 `applyThemeToDOM` 逻辑的**手抄**（参见
-[`architecture.md` §2.3](./architecture.md#23-引导层consolepublicmanagementpublic)）。
+[[theme/architecture#23 引导层consolepublicmanagementpublic|`architecture.md` §2.3]]）。
 两份文件目前几乎一样，**任何逻辑修改必须两处同步**。
 
 > **未来改进**：把引导脚本抽到 `shared/theme/src/bootstrap.js`，然后两个前端
@@ -357,7 +357,7 @@ const density = getTypographyDensity()  // 'comfortable' | 'compact' | null
 
 8. **加测试**（`shared/theme/__tests__/useTheme.spec.ts`）——覆盖新 mode 的 cycle / persistence。
 
-9. **更新本文档** + [`README.md`](./README.md) 的"改动如何被收录"表。
+9. **更新本文档** + [[theme/README]] 的"改动如何被收录"表。
 
 ### 4.2 加新密度档（如 `extra-compact`，适合 13 寸屏管理端）
 
@@ -387,14 +387,14 @@ const density = getTypographyDensity()  // 'comfortable' | 'compact' | null
 
 5. **加测试**（`shared/theme/__tests__/typography.spec.ts`）——断言新 profile 存在。
 
-6. **更新本文档** §2.1 + [`README.md`](./README.md) 的"改动如何被收录"表。
+6. **更新本文档** §2.1 + [[theme/README]] 的"改动如何被收录"表。
 
 ## 5. 参见
 
-- [`architecture.md`](./architecture.md) — 模式状态机怎么和 Token 层联动
-- [`design-tokens.md`](./design-tokens.md) — 颜色 token + light/dark 切换表
-- [`components.md`](./components.md) — 组件怎么读 token（不写 `style="color: #fff"`）
-- [`extension.md`](./extension.md) — 加新 token 的步骤
+- [[theme/architecture]] — 模式状态机怎么和 Token 层联动
+- [[design-tokens]] — 颜色 token + light/dark 切换表
+- [[components]] — 组件怎么读 token（不写 `style="color: #fff"`）
+- [[extension]] — 加新 token 的步骤
 - `shared/theme/src/useTheme.ts` — 状态机主文件
 - `shared/theme/src/applyThemeToDOM.ts` — DOM 应用
 - `shared/theme/src/storage.ts` — localStorage 抽象

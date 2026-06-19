@@ -262,7 +262,7 @@ timeout=12,            # ← 关键: 12s 内必须有人触发
 ## See also
 
 - [`../../README.md`](../../README.md) — 仓库总入口
-- [`../RUNBOOK.md §4.3`](../RUNBOOK.md#43-arthas-mcp-returns-session-id-required-for-every-command) — Arthas MCP "Session ID required" 故障排除
+- [[RUNBOOK#43 Arthas Mcp Returns Session Id Required For Every Command|../RUNBOOK.md §4.3]] — Arthas MCP "Session ID required" 故障排除
 - [`../../CLAUDE.md` §运行时调试 (Arthas)](../../CLAUDE.md) — 协议锁死 STATELESS 与降级路径权威说明（仓库根）
 - [`../../infrastructure/arthas/arthas.properties`](../../infrastructure/arthas/arthas.properties) — `arthas.mcpProtocol=STATELESS` 配置源
-- 同目录其他 ops 文档：见 [`./README.md`](./README.md)
+- 同目录其他 ops 文档：见 [[ops/README|./README.md]]

@@ -126,7 +126,7 @@ const htmlContent = computed(() =>
 .description-markdown :deep(.markdown-content h3),
 .description-markdown :deep(.markdown-content h4) {
   color: var(--solarized-base02);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-family: var(--font-sans);
@@ -232,7 +232,7 @@ const htmlContent = computed(() =>
 
 
 .description-markdown :deep(.markdown-content strong) {
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   color: var(--solarized-base01);
 }
 

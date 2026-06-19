@@ -54,7 +54,7 @@ defineOptions({
   width: 100%;
   height: 2.375rem;
   font-family: var(--uc-font-code);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   font-size: var(--uc-text-sm);
   letter-spacing: 0.05em;
   text-transform: uppercase;

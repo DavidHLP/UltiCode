@@ -99,37 +99,35 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
 <style scoped>
 .description-markdown :deep(.markdown-content) {
   font-size: var(--uc-text-sm);
-  line-height: 1.6;
+  line-height: var(--uc-leading-normal);
   color: var(--foreground);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  font-family: var(--uc-font-prose);
 }
 
 
 .description-markdown :deep(.markdown-content h1) {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   margin-bottom: 1rem;
 }
 
 .description-markdown :deep(.markdown-content h2) {
   font-size: var(--uc-text-xl);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 .description-markdown :deep(.markdown-content h3) {
   font-size: var(--uc-text-md);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 .description-markdown :deep(.markdown-content h4) {
   font-size: var(--uc-text-sm);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
@@ -193,8 +191,7 @@ const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
 
 
 .description-markdown :deep(.markdown-content strong) {
-  font-weight: var(--uc-font-weight-semibold)
-}
+  font-weight: var(--uc-font-weight-semibold);}
 
 
 .description-markdown :deep(.katex) {

@@ -105,7 +105,7 @@ function handleBlur() {
 .auth-input__label {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-sm);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--solarized-base01);
@@ -136,7 +136,7 @@ function handleBlur() {
 
 .auth-input__prompt {
   color: var(--accent-electric);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   margin-right: 0.375rem;
 }
 

@@ -130,7 +130,7 @@ async function handleSubmit(event: Event) {
 
 .login-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
   line-height: 1.1;
@@ -161,7 +161,7 @@ async function handleSubmit(event: Event) {
 }
 
 .login-form__error-prefix {
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   opacity: 0.9;
 }
 

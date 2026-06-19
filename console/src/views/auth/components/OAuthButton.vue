@@ -100,7 +100,7 @@ function handleOAuth() {
   gap: 0.5rem;
   padding: 0 0.75rem;
   font-family: var(--uc-font-code);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   font-size: var(--uc-text-sm);
   letter-spacing: 0.05em;
   text-transform: uppercase;

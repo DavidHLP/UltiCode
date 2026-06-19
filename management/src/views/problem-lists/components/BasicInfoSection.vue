@@ -295,7 +295,7 @@ defineExpose({ saveStatus, form, saveChanges })
 .custom-terminal-button {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-xxs);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   text-transform: uppercase;
   border-radius: 0 !important;
   padding: 8px 16px;

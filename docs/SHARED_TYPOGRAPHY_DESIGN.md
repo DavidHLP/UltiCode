@@ -855,8 +855,6 @@ This design does not require:
 
 ## 18. Acceptance Criteria
 
-The migration is complete when:
-
 1. Typography foundation tokens live in `shared/theme/src/typography.css`.
 2. Non-CSS typography metadata lives in `shared/theme/src/typography.ts`.
 3. `console/` and `management/` consume the same shared CSS entry.
@@ -868,6 +866,54 @@ The migration is complete when:
 8. Shared theme tests pass.
 9. Console and management type-check, test, and build successfully.
 10. Key pages in both apps pass the visual QA checklist in light and dark mode.
+
+### 18.1 Current Snapshot (2026-06-19)
+
+The migration phases 1–6 are wired up and enforced:
+
+- **Phase 1**: `shared/theme/src/typography.css`, `typography.ts`,
+  `__tests__/typography.spec.ts` exist and are exported via
+  `shared/theme/src/index.ts`.
+- **Phase 2**: `shared/design-system/style.css` (the legacy entry) imports
+  the typography module and references `--uc-font-*`, `--uc-text-*`,
+  `--uc-leading-*`, `--uc-tracking-*`, `--uc-font-weight-*` and the
+  semantic `--uc-type-*` variables throughout its terminal-, table-,
+  markdown-, and hljs-classes. No raw font families or pixel/rem sizes
+  remain in that file.
+- **Phase 3**: `applyTypographyDensity` is re-exported through
+  `@/composables/useTypographyDensity` in both apps and called exactly once
+  per app from `src/main.ts` (`comfortable` for console, `compact` for
+  management).
+- **Phase 4**: `.markdown-block` and `.prose` share the same rules in
+  `shared/design-system/style.css`; the management-local `.prose`
+  duplication is gone.
+- **Phase 5**: business-side call sites consume shared tokens. The only
+  remaining direct `var(--uc-*)` references are in code that needs a
+  one-off role not yet covered by a `uc-type-*` class (mostly the
+  auth/login forms, which mix `font-family: var(--uc-font-code)` with
+  per-element color rules — these are tracked for a future incremental
+  semantic-class migration).
+- **Phase 6**: `scripts/verify-typography-tokens.mjs` is wired into both
+  apps as `pnpm verify:typography-tokens` and currently passes:
+
+  ```text
+  ✓ No raw typography overrides in console/src, management/src.
+  ✓ All app typography flows through shared tokens.
+  ```
+
+  Detection surface (regex patterns): arbitrary `text-[..px/rem/em]`,
+  arbitrary `font-[...]`, arbitrary `tracking-[..em/px/rem]`,
+  arbitrary `leading-[..px/rem/em/%]`, negative `letter-spacing:`,
+  raw `font-size:`, raw `font-family:`, raw numeric `font-weight:`
+  (excludes named keywords `normal`/`bold`/`bolder`/`lighter` and
+  the `var(...)` form).
+
+  Verified on 2026-06-19 after replacing six raw `font-weight: 750`
+  (console auth: ForgotPasswordView, ResetPasswordView, LoginForm,
+  RegisterForm) and one raw `font-weight: 650` (management
+  `MarkdownEditor.vue`) with `var(--uc-font-weight-bold)` /
+  `var(--uc-font-weight-semibold)` — the only four documented weights
+  per §5.4.
 
 ## 19. Recommended First Implementation Slice
 

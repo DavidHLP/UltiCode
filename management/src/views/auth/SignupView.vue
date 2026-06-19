@@ -163,7 +163,7 @@ defineOptions({
 
 .auth-logo__text {
   font-size: var(--uc-text-md);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
 }
@@ -171,8 +171,8 @@ defineOptions({
 .auth-logo__badge {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-2xs);
-  font-weight: var(--uc-font-weight-semibold)
-  letter-spacing: 0.15em;
+  font-weight: var(--uc-font-weight-semibold);
+  letter-spacing: var(--uc-tracking-terminal-wide);
   color: var(--silver-500);
   text-transform: uppercase;
 }
@@ -248,7 +248,7 @@ defineOptions({
 
 .auth-pattern-text__title {
   font-size: var(--uc-text-3xl);
-  font-weight: var(--uc-font-weight-medium)
+  font-weight: var(--uc-font-weight-medium);
   letter-spacing: var(--uc-tracking-normal);
   line-height: 1.1;
   margin-bottom: 1rem;

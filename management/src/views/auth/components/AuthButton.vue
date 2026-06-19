@@ -53,7 +53,7 @@ defineOptions({
   justify-content: center;
   width: 100%;
   height: 2.75rem;
-  font-weight: var(--uc-font-weight-medium)
+  font-weight: var(--uc-font-weight-medium);
   font-size: var(--uc-text-sm);
   letter-spacing: var(--uc-tracking-normal);
   border-radius: 0;

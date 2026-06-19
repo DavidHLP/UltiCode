@@ -274,7 +274,7 @@ async function handleSubmit(e: Event) {
 
 .auth-logo__text {
   font-size: var(--uc-text-md);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--foreground);
 }
@@ -282,8 +282,8 @@ async function handleSubmit(e: Event) {
 .auth-logo__badge {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-2xs);
-  font-weight: var(--uc-font-weight-semibold)
-  letter-spacing: 0.15em;
+  font-weight: var(--uc-font-weight-semibold);
+  letter-spacing: var(--uc-tracking-terminal-wide);
   color: var(--silver-500);
   text-transform: uppercase;
 }
@@ -359,7 +359,7 @@ async function handleSubmit(e: Event) {
 
 .forgot-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
   color: var(--solarized-base03);
   line-height: 1.1;
@@ -392,7 +392,7 @@ async function handleSubmit(e: Event) {
 .forgot-form__back a {
   color: var(--accent-electric);
   text-decoration: none;
-  font-weight: 750;
+  font-weight: var(--uc-font-weight-bold);
 }
 
 .forgot-form__back a:hover {
@@ -414,7 +414,7 @@ async function handleSubmit(e: Event) {
 
 .auth-pattern-text__title {
   font-size: var(--uc-text-3xl);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
   line-height: 1.2;
   margin-bottom: 1rem;

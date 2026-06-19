@@ -481,14 +481,14 @@ const handleGoBack = () => {
 <style>
 .markdown-content h1 {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-bold)
+  font-weight: var(--uc-font-weight-bold);
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .markdown-content h2 {
   font-size: var(--uc-text-xl);
-  font-weight: var(--uc-font-weight-semibold)
+  font-weight: var(--uc-font-weight-semibold);
   margin-top: 0.875rem;
   margin-bottom: 0.5rem;
 }

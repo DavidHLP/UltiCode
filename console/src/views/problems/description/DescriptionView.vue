@@ -84,7 +84,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
   <section class="space-y-6">
     <section class="space-y-3">
       <!-- Title -->
-      <h1 class="text-xl font-bold tracking-tight text-foreground">
+      <h1 class="uc-type-page-title text-foreground">
         {{ props.problem.id }}. {{ props.problem.title }}
       </h1>
 

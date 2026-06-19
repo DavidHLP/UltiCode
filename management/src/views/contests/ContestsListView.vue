@@ -183,7 +183,7 @@ async function handleDeleteContest(id: string | number) {
     <div
       :class="[
         'border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
-        'transition-all duration-500',
+        'transition-colors duration-200',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
@@ -197,7 +197,7 @@ async function handleDeleteContest(id: string | number) {
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors duration-200"
           @click="wizardOpen = true"
         >
           <IconPlus class="h-4 w-4 mr-1.5" />

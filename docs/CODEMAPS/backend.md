@@ -1,3 +1,12 @@
+---
+title: Backend Architecture (Spring Boot 3.2.5 / Java 17)
+tags: [reference, backend, architecture, living]
+status: living
+updated: 2026-06-19
+owner: backend
+generator: ecc:update-codemaps
+---
+
 # Backend Architecture (Spring Boot 3.2.5 / Java 17)
 
 <!-- Generated: 2026-06-19 | Java files: 588 | Modules: 26 | Controllers: 43 | Token estimate: ~850 -->

@@ -1,3 +1,12 @@
+---
+title: Data Model (MySQL 9.1 + Flyway)
+tags: [reference, database, architecture, living]
+status: living
+updated: 2026-06-19
+owner: backend
+generator: ecc:update-codemaps
+---
+
 # Data Model (MySQL 9.1 + Flyway)
 
 <!-- Generated: 2026-06-19 | Migrations: 34 | DB: ulticode | Port: 23306 | Token estimate: ~900 -->

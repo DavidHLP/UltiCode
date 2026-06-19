@@ -1,3 +1,12 @@
+---
+title: Frontend Architecture (Vue 3.5 + Vite 8 + Pinia 3 + Tailwind 4)
+tags: [reference, frontend, architecture, living]
+status: living
+updated: 2026-06-19
+owner: frontend
+generator: ecc:update-codemaps
+---
+
 # Frontend Architecture (Vue 3.5 + Vite 8 + Pinia 3 + Tailwind 4)
 
 <!-- Generated: 2026-06-19 | Console: 365 files | Management: 348 files | Token estimate: ~900 -->

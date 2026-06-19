@@ -1,3 +1,12 @@
+---
+title: System Architecture
+tags: [reference, architecture, living]
+status: living
+updated: 2026-06-19
+owner: architect
+generator: ecc:update-codemaps
+---
+
 # System Architecture
 
 <!-- Generated: 2026-06-19 | Files scanned: 1301 (588 Java + 713 FE) | Token estimate: ~900 -->

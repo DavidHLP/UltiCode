@@ -1,3 +1,12 @@
+---
+title: OJ Sandbox (D-form, ADR-002)
+tags: [reference, sandbox, architecture, living]
+status: living
+updated: 2026-06-19
+owner: sandbox
+generator: ecc:update-codemaps
+---
+
 # OJ Sandbox (D-form, ADR-002)
 
 <!-- Generated: 2026-06-19 | Languages: python/c/cpp/java | Image: ulticode-sandbox:latest | Token estimate: ~850 -->

@@ -102,18 +102,13 @@ const htmlContent = computed(() =>
 
 <template>
   <div class="description-markdown" @click="handleCopy">
-    <div class="markdown-content" v-html="htmlContent"></div>
+    <div class="markdown-content markdown-block" v-html="htmlContent"></div>
   </div>
 </template>
 
 <style scoped>
 .description-markdown :deep(.markdown-content) {
-  font-size: var(--uc-text-sm);
-  line-height: 1.7;
   color: var(--solarized-base00);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 .dark .description-markdown :deep(.markdown-content) {
@@ -140,16 +135,16 @@ const htmlContent = computed(() =>
 }
 
 .description-markdown :deep(.markdown-content h1) {
-  font-size: var(--uc-text-xl);
+  font-size: var(--uc-text-2xl);
 }
 .description-markdown :deep(.markdown-content h2) {
-  font-size: var(--uc-text-lg);
+  font-size: var(--uc-text-xl);
 }
 .description-markdown :deep(.markdown-content h3) {
-  font-size: var(--uc-text-sm);
+  font-size: var(--uc-text-lg);
 }
 .description-markdown :deep(.markdown-content h4) {
-  font-size: var(--uc-text-sm);
+  font-size: var(--uc-text-md);
 }
 
 .description-markdown :deep(.markdown-content p) {
@@ -174,7 +169,8 @@ const htmlContent = computed(() =>
 
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--font-mono);
-  font-size: var(--uc-text-xl);
+  font-size: var(--uc-type-code-size);
+  line-height: var(--uc-leading-code);
   background-color: var(--silver-100);
   color: var(--solarized-base01);
   padding: 0.1rem 0.3rem;
@@ -204,7 +200,7 @@ const htmlContent = computed(() =>
   border-radius: 0;
   border: none;
   color: inherit;
-  font-size: var(--uc-text-xl);
+  font-size: inherit;
 }
 
 
@@ -214,9 +210,9 @@ const htmlContent = computed(() =>
   padding: 0.75rem 1rem;
   margin: 1rem 0;
   color: var(--solarized-base00);
-  font-family: var(--font-mono);
-  font-size: var(--uc-text-sm);
-  line-height: 1.5;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: var(--uc-leading-normal);
 }
 
 .dark .description-markdown :deep(.markdown-content blockquote) {

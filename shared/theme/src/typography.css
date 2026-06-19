@@ -32,8 +32,9 @@
 :root {
   /* Font families */
   --uc-font-ui:
-    "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas,
-    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", monospace;
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", Arial, sans-serif;
   --uc-font-code:
     "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;

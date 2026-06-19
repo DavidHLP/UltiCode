@@ -146,7 +146,7 @@ const setRef = (el: unknown) => {
     <Button
       variant="ghost"
       size="sm"
-      class="relative h-8 -mb-px rounded-none font-data uppercase tracking-widest terminal-tab transition-all cursor-pointer"
+      class="relative h-8 -mb-px rounded-none terminal-tab transition-all cursor-pointer"
       :class="[
         isActive
           ? 'text-foreground hover:text-foreground hover:bg-background bg-background border-l border-r border-t-2 border-b-transparent border-border z-10'
@@ -161,7 +161,7 @@ const setRef = (el: unknown) => {
         :style="{ color: header.iconColor }"
         class="h-3.5 w-3.5 mr-1.5"
       />
-      <span class="text-xxs font-bold">{{ header.title }}</span>
+      <span class="text-xs font-semibold leading-none">{{ header.title }}</span>
     </Button>
   </div>
 </template>

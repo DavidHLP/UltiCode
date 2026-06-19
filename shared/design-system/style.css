@@ -880,6 +880,12 @@
 }
 
 .terminal-tab {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-type-control-size);
+  line-height: var(--uc-type-control-line-height);
+  font-weight: var(--uc-font-weight-medium);
+  text-transform: none;
+  letter-spacing: var(--uc-tracking-normal);
   transition:
     background-color var(--duration-fast) var(--ease-out-expo),
     border-color var(--duration-fast) var(--ease-out-expo),

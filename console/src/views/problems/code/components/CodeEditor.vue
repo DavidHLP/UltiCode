@@ -178,7 +178,7 @@ onMounted(async () => {
     theme: props.theme ?? "vs-dark",
     fontFamily:
       props.fontFamily ??
-      "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
+      '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
     fontLigatures: true,
     // IntelliSense and Suggestion Options
     quickSuggestions: {

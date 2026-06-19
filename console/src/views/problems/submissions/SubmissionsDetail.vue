@@ -148,7 +148,7 @@ function buildChartOption(
         fontSize: 10,
         color: colors.foreground,
         fontFamily:
-          "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
+          '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
       },
       axisLine: { lineStyle: { color: colors.border } },
     },
@@ -162,7 +162,7 @@ function buildChartOption(
         fontSize: 10,
         color: colors.foreground,
         fontFamily:
-          "JetBrains Mono, SF Mono, Roboto Mono, ui-monospace, monospace",
+          '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
       },
     },
     series: [

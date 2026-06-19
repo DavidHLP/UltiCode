@@ -41,6 +41,7 @@ owner: architect
 | [`CODEMAPS/`](./CODEMAPS/)                      | 自动生成的架构快照：拓扑、模块、schema、依赖、沙箱。由 `ecc:update-codemaps` 更新。                | 系统级架构 / 模块地图          |
 | [`adr/`](./adr/)                                | 架构决策记录（Architecture Decision Records）— 一个不那么显然的选择背后的**原因**                                                               | 不那么显然、横切多端、难以回退    |
 | [`ops/`](./ops/)                                | 运维深读：Arthas MCP、日志查询、工具参考                                                               | 具体工具或场景的参考（非政策） |
+| [`theme/`](./theme/)                            | 前端主题系统：Token、颜色模式、密度、组件原语、扩展指南 | 改前端颜色/字体/密度/动效、加新主题或新密度档 |
 
 ## 4. 按任务索引
 
@@ -57,6 +58,7 @@ owner: architect
 | 新增环境变量                                        | [`ENV.md`](./ENV.md)（完整表） + `application.yml` + `docker-compose.yml`   |
 | 在 Claude 会话里使用 Arthas                          | [`ops/arthas-mcp-usage.md`](./ops/arthas-mcp-usage.md)（深读）             |
 | 在 code review 里为一个不那么显然的设计决策举证       | 在 [`adr/`](./adr/) 下写一篇新 ADR（模板：[`adr/README.md`](./adr/README.md)） |
+| 改前端颜色 / 字体 / 密度 / 加新主题                  | [`theme/`](./theme/) 整套（6 篇，按需挑） + `.claude/rules/frontend-rules.md` |
 
 ### 4.2 「我在评审一个 PR…」
 
@@ -68,6 +70,7 @@ owner: architect
 | 修改共享 DTO / 枚举        | `cross-stack-dto-granularity-alignment` 技能 + 相关 ADR   |
 | 修改部署 / 回滚          | `adr/0005` + `adr/0005a` + `RUNBOOK.md` §5                     |
 | 修改比赛评分 / 等级   | `adr/0006` + `adr/0007` + `adr/0009` + `adr/0010`              |
+| 修改前端主题（颜色/字体/密度） | [`theme/`](./theme/) 全套 + `frontend-rules.md`  |
 
 ## 5. 维护契约
 

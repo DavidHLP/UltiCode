@@ -22,6 +22,22 @@ export interface LoginCredentials {
   password: string;
 }
 
+/**
+ * Registration request payload (matches backend RegisterDTO).
+ * Mirrors `LoginCredentials` plus optional email + display name.
+ *
+ * Note: console uses camelCase DTO shapes internally. The shared
+ * RegisterForm component accepts this exact shape via its `onSubmit`
+ * callback so apps can adapt (e.g. rename to `emailAddress`) at the
+ * adapter boundary without changing the shared form.
+ */
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  email?: string;
+  name?: string;
+}
+
 /** Successful login response returned by POST /auth/login. */
 export interface LoginResponse {
   csrfToken: string;

@@ -881,7 +881,7 @@
 
 .terminal-tab {
   font-family: var(--uc-font-ui);
-  font-size: var(--uc-type-control-size);
+  font-size: var(--uc-text-xs);
   line-height: var(--uc-type-control-line-height);
   font-weight: var(--uc-font-weight-medium);
   text-transform: none;

@@ -31,7 +31,7 @@ function metricColor(value: number, normalColor: string): string {
 
 <template>
   <Card
-    class="self-start gap-0 py-0 overflow-hidden rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 shadow-float"
+    class="h-full gap-0 py-0 overflow-hidden rounded-none border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 shadow-float flex flex-col"
   >
     <CardHeader
       class="flex flex-row items-center gap-2 px-4 py-3.5 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10"

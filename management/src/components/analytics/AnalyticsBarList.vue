@@ -47,7 +47,7 @@ const displayItems = computed(() => {
 <template>
   <Card
     class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden rounded-none"
-    :class="compact ? 'self-start gap-0 py-0' : 'h-full gap-0 py-0'"
+    :class="compact ? 'h-full gap-0 py-0' : 'h-full gap-0 py-0'"
   >
     <CardHeader
       v-if="title"

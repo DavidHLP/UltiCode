@@ -70,7 +70,7 @@ onUnmounted(() => {
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col gap-0 py-0 rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col gap-0 py-0 rounded-none h-full"
   >
     <CardHeader
       class="px-4 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"

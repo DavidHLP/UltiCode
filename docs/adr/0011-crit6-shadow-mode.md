@@ -47,4 +47,4 @@ CRIT-6 是安全审查中标记的项目：新的鉴权逻辑缺少**shadow-mode
 
 - **代码（proposed）**：`backend-spring/.../security/ShadowAuthDecorator.java`（目标位置）
 - **安全审查**：`docs/security-review-2026-06-06.md`（待写）
-- **相关 ADR**：`0005`（部署钩子）、`0008`（WebSocket 鉴权 — 可能是这个模式的第一个消费者）
+- **相关 ADR**：[[0005-rolling-deploy-rollback]]（部署钩子）、[[0008-websocket-cookie-auth]]（WebSocket 鉴权 — 可能是这个模式的第一个消费者）

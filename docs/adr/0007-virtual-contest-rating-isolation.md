@@ -46,5 +46,5 @@ superseded_by: N/A
 - **迁移**：`init-db/migrations/V20260617140000__Contest_Real_Unique_And_Session_Length.sql`
 - **代码**：`backend-spring/.../contest/service/RatingCalculationService.java`，
   虚拟 session join 在 `ContestService` 和 `RankingService` 中
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Contests"
-- **相关 ADR**：`0006`（评分）、`0009`（`isRated` 门控）、`0010`（取消态）
+- **CODEMAPS**：[[data]] § "Contests"
+- **相关 ADR**：[[0006-contest-scoring-activation]]（评分）、[[0009-israted-gate]]（`isRated` 门控）、[[0010-cancel-state-virtual-replay]]（取消态）

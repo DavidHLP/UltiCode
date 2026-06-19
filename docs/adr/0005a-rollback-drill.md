@@ -42,4 +42,4 @@ ADR-0005 要求**季度回滚演练**。没有自动化时，2026 Q1 跳过一�
 ## 参考
 
 - **代码**：`scripts/adr-005/create-milestone-issues.sh`
-- **相关 ADR**：`0005`（父决策）
+- **相关 ADR**：[[0005-rolling-deploy-rollback]]（父决策）

@@ -49,5 +49,5 @@ superseded_by: N/A
 - **迁移**：`init-db/migrations/V20260613120000__Create_Notification_Delivery_Ledger.sql`
 - **代码**：`backend-spring/.../notification/service/NotificationService.java`、
   `backend-spring/.../infrastructure/NotificationDeliveryWorker.java`
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Notifications & Delivery"
-- **相关 ADR**：`0003`（同一 outbox 模式）
+- **CODEMAPS**：[[data]] § "Notifications & Delivery"
+- **相关 ADR**：[[0003-queue-outbox-fencing]]（同一 outbox 模式）

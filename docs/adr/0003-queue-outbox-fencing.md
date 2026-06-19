@@ -52,6 +52,6 @@ superseded_by: N/A
   - `init-db/migrations/V20260613110000__Add_Submission_Generation_And_Lease.sql`
 - **代码**：`backend-spring/.../infrastructure/JudgeOutboxPoller.java`、
   `backend-spring/.../submission/service/SubmissionService.java`
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Submissions & Judging"、
-  [`backend.md`](../CODEMAPS/backend.md) § "Background Workers"
-- **相关 ADR**：`0001`（评测编解码）、`0002`（沙箱）、`0004`（通知账本 — 同一模式）
+- **CODEMAPS**：[[data]] § "Submissions & Judging"、
+  [[backend]] § "Background Workers"
+- **相关 ADR**：[[0001-verdict-status-codec]]（评测编解码）、[[0002-sandbox-hexagonal-dform]]（沙箱）、[[0004-notification-intents-ledger]]（通知账本 — 同一模式）

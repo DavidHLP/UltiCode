@@ -41,5 +41,5 @@ WebSocket（STOMP）鉴权**只**接受 `access_token` cookie：
 ## 参考
 
 - **代码**：`backend-spring/.../websocket/WebSocketAuthInterceptor.java`
-- **RUNBOOK**：[`RUNBOOK.md`](../RUNBOOK.md) §4（CSRF 机制）
-- **相关 ADR**：无
+- **RUNBOOK**：[[RUNBOOK]] §4（CSRF 机制）
+- **相关 ADR**：[[0011-crit6-shadow-mode]]（cookie-only 鉴权是 shadow mode 的首个候选消费者）

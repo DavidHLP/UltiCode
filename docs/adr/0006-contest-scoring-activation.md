@@ -47,6 +47,5 @@ superseded_by: N/A
 - **迁移**：`init-db/migrations/V20260617120000__Contest_Scoring_Hardening.sql`
 - **代码**：`backend-spring/.../contest/service/ContestScoringService.java`、
   `backend-spring/.../contest/service/ScoringRuleService.java`
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Contests"、
-  [`backend.md`](../CODEMAPS/backend.md) § "Key Services"
-- **相关 ADR**：`0007`（虚拟赛隔离）、`0009`（`isRated` 门控）
+- **CODEMAPS**：[[data]] § "Contests"、[[backend]] § "Key Services"
+- **相关 ADR**：[[0007-virtual-contest-rating-isolation]]（虚拟赛隔离）、[[0009-israted-gate]]（`isRated` 门控）、[[0010-cancel-state-virtual-replay]]（取消态 — 已取消的比赛不进评分）

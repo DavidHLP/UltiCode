@@ -53,5 +53,5 @@ superseded_by: N/A
   - `shared/sandbox-types/`（TS 枚举：`verdict`、`test_result`）
   - `docker/sandbox/harness/{python,c,cpp,java}/` — 产出 `verdict.json`
   - `backend-spring/.../submission/verdict/...` — 消费侧归一化
-- **CODEMAPS**：[`sandbox.md`](../CODEMAPS/sandbox.md) § "Verdict Status Codec"
-- **相关 ADR**：`0002`（D-form 沙箱）、`0003`（outbox 围栏）
+- **CODEMAPS**：[[sandbox]] § "Verdict Status Codec"
+- **相关 ADR**：[[0002-sandbox-hexagonal-dform]]（D-form 沙箱）、[[0003-queue-outbox-fencing]]（outbox 围栏）

@@ -42,5 +42,5 @@ superseded_by: N/A
 ## 参考
 
 - **代码**：`backend-spring/.../contest/service/RatingCalculationService.java`
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Contest Rating Isolation"
-- **相关 ADR**：`0007`（虚拟隔离）、`0010`（取消态）
+- **CODEMAPS**：[[data]] § "Contest Rating Isolation"
+- **相关 ADR**：[[0006-contest-scoring-activation]]（评分 — `isRated` 被 `ContestScoringService` 消费）、[[0007-virtual-contest-rating-isolation]]（虚拟隔离）、[[0010-cancel-state-virtual-replay]]（取消态）

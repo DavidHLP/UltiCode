@@ -1,33 +1,28 @@
 <script setup lang="ts">
 /**
- * AuthButton - 精密仪器风格按钮
- *
- * 特点：
- * - 主按钮样式 (深色填充)
- * - 悬停微光效果
- * - 加载状态
+ * AuthButton - Precision style button
  */
-import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-vue-next'
+import type { HTMLAttributes } from "vue";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-vue-next";
 
 const props = withDefaults(
   defineProps<{
-    class?: HTMLAttributes['class']
-    type?: 'button' | 'submit' | 'reset'
-    disabled?: boolean
-    loading?: boolean
-    variant?: 'primary' | 'secondary'
+    class?: HTMLAttributes["class"];
+    type?: "button" | "submit" | "reset";
+    disabled?: boolean;
+    loading?: boolean;
+    variant?: "primary" | "secondary";
   }>(),
   {
-    type: 'submit',
-    variant: 'primary',
+    type: "submit",
+    variant: "primary",
   },
-)
+);
 
 defineOptions({
-  name: 'AuthButton',
-})
+  name: "AuthButton",
+});
 </script>
 
 <template>
@@ -35,7 +30,12 @@ defineOptions({
     :type="type"
     :disabled="disabled || loading"
     :class="
-      cn('auth-button', `auth-button--${variant}`, { 'auth-button--loading': loading }, props.class)
+      cn(
+        'auth-button',
+        `auth-button--${variant}`,
+        { 'auth-button--loading': loading },
+        props.class,
+      )
     "
   >
     <Loader2 v-if="loading" class="auth-button__spinner" />
@@ -52,10 +52,12 @@ defineOptions({
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 2.75rem;
-  font-weight: var(--uc-font-weight-medium);
+  height: 2.375rem;
+  font-family: var(--uc-font-code);
+  font-weight: var(--uc-font-weight-bold);
   font-size: var(--uc-text-sm);
-  letter-spacing: var(--uc-tracking-normal);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   border-radius: 0;
   border: 1px solid transparent;
   cursor: pointer;
@@ -68,29 +70,18 @@ defineOptions({
     color var(--transition-fast);
 }
 
-
 .auth-button--primary {
-  background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
-  border-color: color-mix(in oklch, var(--accent-electric) 55%, transparent);
-  color: var(--accent-electric);
-}
-
-.auth-button--primary:hover:not(:disabled) {
-  background: color-mix(in oklch, var(--accent-electric) 20%, transparent);
-  border-color: var(--accent-electric);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
-.auth-button--primary:focus-visible {
-  outline: 2px solid var(--accent-electric);
-  outline-offset: 1px;
+.auth-button--primary:hover:not(:disabled) {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 0 0 1px var(--accent-electric);
 }
-
-.auth-button--primary:active:not(:disabled) {
-  background: color-mix(in oklch, var(--accent-electric) 28%, transparent);
-  transform: translateY(0.5px);
-}
-
 
 .auth-button--secondary {
   background: transparent;
@@ -100,30 +91,27 @@ defineOptions({
 
 .auth-button--secondary:hover:not(:disabled) {
   background: var(--surface-sunken);
-  border-color: color-mix(in oklch, var(--accent-primary) 35%, var(--border));
+  border-color: color-mix(in oklch, var(--accent-electric) 35%, var(--border));
 }
 
+.auth-button--primary:focus-visible,
 .auth-button--secondary:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 2px solid var(--accent-electric);
   outline-offset: 1px;
 }
 
-.auth-button--secondary:active:not(:disabled) {
-  background: color-mix(in oklch, var(--accent-primary) 12%, transparent);
+.auth-button:active:not(:disabled) {
   transform: translateY(0.5px);
 }
-
 
 .auth-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-
 .auth-button--loading .auth-button__content {
   opacity: 0;
 }
-
 
 .auth-button__content {
   display: flex;
@@ -132,7 +120,6 @@ defineOptions({
   gap: 0.5rem;
   transition: opacity var(--transition-fast);
 }
-
 
 .auth-button__spinner {
   position: absolute;

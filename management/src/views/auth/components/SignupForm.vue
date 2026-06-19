@@ -1,70 +1,125 @@
 <script setup lang="ts">
 /**
- * SignupForm - 注册表单
+ * SignupForm - Registration form
  *
- * 使用新的 AuthInput/AuthButton 组件
- * 保留 GitHub OAuth
+ * Management surfaces do not allow open self-registration; accounts are
+ * provisioned through the opt-in `AdminBootstrapRunner` or by an
+ * existing administrator. This form is a UI placeholder that matches
+ * the console's RegisterForm so the auth design stays consistent.
  */
-import type { HTMLAttributes } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { cn } from '@/lib/utils'
-import AuthInput from './AuthInput.vue'
-import AuthButton from './AuthButton.vue'
-import AuthDivider from './AuthDivider.vue'
-import OAuthButton from './OAuthButton.vue'
-import { ArrowRight } from 'lucide-vue-next'
+import type { HTMLAttributes } from "vue";
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { cn } from "@/lib/utils";
+import AuthInput from "./AuthInput.vue";
+import AuthButton from "./AuthButton.vue";
+import AuthDivider from "./AuthDivider.vue";
+import OAuthButton from "./OAuthButton.vue";
 
 const props = defineProps<{
-  class?: HTMLAttributes['class']
-}>()
+  class?: HTMLAttributes["class"];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
+
+const username = ref("");
+const email = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const error = ref("");
+const loading = ref(false);
+
+async function handleSubmit(event: Event) {
+  event.preventDefault();
+  error.value = "";
+
+  if (password.value !== confirmPassword.value) {
+    error.value = t("auth.messages.passwordsDoNotMatch");
+    return;
+  }
+
+  // Management does not expose self-registration. Surface a clear
+  // message so the design parity with the console does not hide the
+  // operational policy.
+  error.value = t("auth.messages.registerFailed");
+  loading.value = false;
+}
 </script>
 
 <template>
-  <form :class="cn('signup-form', props.class)">
+  <form :class="cn('signup-form', props.class)" @submit="handleSubmit">
     <!-- Header -->
     <div class="signup-form__header">
-      <h1 class="signup-form__title">{{ t('auth.signup.title') }}</h1>
-      <p class="signup-form__subtitle">{{ t('auth.signup.subtitle') }}</p>
+      <h1 class="signup-form__title">{{ t("auth.register.title") }}</h1>
+      <p class="signup-form__subtitle">{{ t("auth.register.subtitle") }}</p>
     </div>
 
-    <!-- Name Field -->
+    <!-- Error Alert -->
+    <div v-if="error" class="signup-form__error">
+      <span class="signup-form__error-prefix">[ERROR]</span>
+      <span>{{ error }}</span>
+    </div>
+
+    <!-- Username Field -->
     <AuthInput
-      :label="t('auth.signup.fullName')"
+      v-model="username"
+      :label="t('auth.register.username')"
       type="text"
-      :placeholder="t('auth.signup.fullNamePlaceholder')"
+      autocomplete="username"
+      :placeholder="t('auth.register.usernamePlaceholder')"
+      :disabled="loading"
     />
 
     <!-- Email Field -->
     <AuthInput
-      :label="t('auth.signup.email')"
+      v-model="email"
+      :label="t('auth.register.email')"
       type="email"
-      :placeholder="t('auth.signup.emailPlaceholder')"
+      autocomplete="email"
+      :placeholder="t('auth.register.emailPlaceholder')"
+      :disabled="loading"
     />
 
     <!-- Password Field -->
-    <AuthInput :label="t('auth.signup.password')" type="password" />
+    <AuthInput
+      v-model="password"
+      :label="t('auth.register.password')"
+      type="password"
+      autocomplete="new-password"
+      :placeholder="t('auth.register.passwordPlaceholder')"
+      :disabled="loading"
+    />
 
     <!-- Confirm Password Field -->
-    <AuthInput :label="t('auth.signup.confirmPassword')" type="password" />
+    <AuthInput
+      v-model="confirmPassword"
+      :label="t('auth.register.confirmPassword')"
+      type="password"
+      autocomplete="new-password"
+      :placeholder="t('auth.register.confirmPasswordPlaceholder')"
+      :disabled="loading"
+    />
 
     <!-- Submit Button -->
-    <AuthButton class="signup-form__submit">
-      <span>{{ t('auth.signup.submit') }}</span>
-      <ArrowRight class="signup-form__submit-icon" />
+    <AuthButton :loading="loading" class="signup-form__submit">
+      <span>{{
+        loading ? t("auth.register.submitting") : t("auth.register.submit")
+      }}</span>
     </AuthButton>
 
     <!-- Divider -->
     <AuthDivider />
 
-    <!-- GitHub OAuth -->
-    <OAuthButton>{{ t('auth.signup.github') }}</OAuthButton>
+    <!-- OAuth buttons grid -->
+    <div class="signup-form__oauth-grid">
+      <OAuthButton provider="github">GitHub</OAuthButton>
+      <OAuthButton provider="google">Google</OAuthButton>
+    </div>
 
     <!-- Sign In Link -->
-    <div class="signup-form__footer">
-      <span>{{ t('auth.signup.alreadyHaveAccount') }}</span>
-      <RouterLink to="/login" class="signup-form__link">{{ t('auth.signup.signIn') }}</RouterLink>
+    <div class="signup-form__signin">
+      {{ t("auth.register.alreadyHaveAccount") }}
+      <a href="/login">{{ t("auth.register.signIn") }}</a>
     </div>
   </form>
 </template>
@@ -73,71 +128,90 @@ const { t } = useI18n()
 .signup-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
-
 
 .signup-form__header {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--silver-100);
-}
-
-.dark .signup-form__header {
-  border-bottom-color: var(--silver-300);
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .signup-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-semibold);
+  font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
-  color: var(--foreground);
+  color: var(--solarized-base03);
   line-height: 1.1;
 }
 
-.signup-form__subtitle {
-  font-size: var(--uc-text-sm);
-  color: var(--silver-500);
+.dark .signup-form__title {
+  color: var(--silver-900);
 }
 
+.signup-form__subtitle {
+  font-size: var(--uc-text-md);
+  color: var(--solarized-base01);
+}
+
+.dark .signup-form__subtitle {
+  color: var(--silver-400);
+}
+
+.signup-form__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--terminal-red);
+  border-radius: 0;
+  background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
+  color: var(--status-error);
+  font-size: var(--uc-text-sm);
+  font-family: var(--uc-font-code);
+}
+
+.dark .signup-form__error {
+  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
+  border-left-color: var(--terminal-red);
+}
+
+.signup-form__error-prefix {
+  font-weight: var(--uc-font-weight-semibold);
+  opacity: 0.9;
+}
 
 .signup-form__submit {
   margin-top: 0.5rem;
 }
 
-.signup-form__submit-icon {
-  width: 1.125rem;
-  height: 1.125rem;
+.signup-form__signin {
+  font-size: var(--uc-text-md);
+  color: var(--solarized-base01);
+  text-align: center;
+  font-family: var(--uc-font-code);
 }
 
-
-.signup-form__footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--silver-100);
-  font-size: var(--uc-text-sm);
-  color: var(--silver-500);
+.dark .signup-form__signin {
+  color: var(--silver-400);
 }
 
-.dark .signup-form__footer {
-  border-top-color: var(--silver-300);
-}
-
-.signup-form__link {
-  color: var(--accent-primary);
+.signup-form__signin a {
+  color: var(--accent-electric);
   text-decoration: none;
-  font-weight: var(--uc-font-weight-medium);
-  transition: opacity var(--transition-fast);
+  font-weight: var(--uc-font-weight-bold);
 }
 
-.signup-form__link:hover {
-  opacity: 0.8;
+.signup-form__signin a:hover {
   text-decoration: underline;
+}
+
+.signup-form__oauth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 </style>

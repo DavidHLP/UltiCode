@@ -1,22 +1,20 @@
 <script setup lang="ts">
 /**
- * AuthDivider - 分隔线组件
- *
- * "或" 文字居中，细线分隔
+ * AuthDivider - Divider component
  */
-import { useI18n } from 'vue-i18n'
+import { useI18n } from "vue-i18n";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
 defineOptions({
-  name: 'AuthDivider',
-})
+  name: "AuthDivider",
+});
 </script>
 
 <template>
   <div class="auth-divider">
     <span class="auth-divider__line"></span>
-    <span class="auth-divider__text">{{ t('auth.signup.orContinueWith') }}</span>
+    <span class="auth-divider__text">{{ t("auth.login.orContinueWith") }}</span>
     <span class="auth-divider__line"></span>
   </div>
 </template>
@@ -26,7 +24,7 @@ defineOptions({
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 0;
+  padding: 0.375rem 0;
 }
 
 .auth-divider__line {

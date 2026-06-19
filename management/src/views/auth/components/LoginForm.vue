@@ -1,60 +1,54 @@
 <script setup lang="ts">
 /**
- * LoginForm - 登录表单
- *
- * 使用新的 AuthInput/AuthButton 组件
- * 移除演示账号功能
- * 添加 GitHub OAuth
+ * LoginForm - Login form with AuthInput/AuthButton components
  */
-import type { HTMLAttributes } from 'vue'
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/stores/auth'
-import AuthInput from './AuthInput.vue'
-import AuthButton from './AuthButton.vue'
-import AuthDivider from './AuthDivider.vue'
-import OAuthButton from './OAuthButton.vue'
-import { ArrowRight } from 'lucide-vue-next'
+import type { HTMLAttributes } from "vue";
+import { ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
+import AuthInput from "./AuthInput.vue";
+import AuthButton from "./AuthButton.vue";
+import AuthDivider from "./AuthDivider.vue";
+import OAuthButton from "./OAuthButton.vue";
+import { ArrowRight } from "lucide-vue-next";
 
 const props = defineProps<{
-  class?: HTMLAttributes['class']
-}>()
+  class?: HTMLAttributes["class"];
+}>();
 
-const { t } = useI18n()
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
 
-const username = ref('')
-const password = ref('')
-const error = ref('')
-const loading = ref(false)
+const username = ref("");
+const password = ref("");
+const error = ref("");
+const loading = ref(false);
 
 async function handleSubmit(event: Event) {
-  event.preventDefault()
-  error.value = ''
-  loading.value = true
+  event.preventDefault();
+  error.value = "";
+  loading.value = true;
 
   try {
-    const success = await authStore.login({
+    await authStore.login({
       username: username.value,
       password: password.value,
-    })
+    });
 
-    if (success) {
-      const redirect = (route.query.redirect as string) || '/'
-      await router.push(redirect)
-    } else {
-      error.value = t('auth.login.invalidCredentials')
+    if (authStore.isAuthenticated) {
+      const redirect = (route.query.redirect as string) || "/";
+      await router.push(redirect);
     }
   } catch (err: unknown) {
     error.value =
-      (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-      t('auth.login.loginFailed')
+      (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message || t("auth.messages.loginFailed");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 </script>
@@ -63,8 +57,8 @@ async function handleSubmit(event: Event) {
   <form :class="cn('login-form', props.class)" @submit="handleSubmit">
     <!-- Header -->
     <div class="login-form__header">
-      <h1 class="login-form__title">{{ t('auth.login.title') }}</h1>
-      <p class="login-form__subtitle">{{ t('auth.login.subtitle') }}</p>
+      <h1 class="login-form__title">{{ t("auth.login.title") }}</h1>
+      <p class="login-form__subtitle">{{ t("auth.login.subtitle") }}</p>
     </div>
 
     <!-- Error Alert -->
@@ -93,17 +87,33 @@ async function handleSubmit(event: Event) {
       :disabled="loading"
     />
 
+    <!-- Forgot Password -->
+    <div class="login-form__forgot">
+      <a href="/forgot-password">{{ t("auth.login.forgotPassword") }}</a>
+    </div>
+
     <!-- Submit Button -->
     <AuthButton :loading="loading" class="login-form__submit">
-      <span>{{ loading ? t('auth.login.submitting') : t('auth.login.submit') }}</span>
+      <span>{{
+        loading ? t("auth.login.submitting") : t("auth.login.submit")
+      }}</span>
       <ArrowRight v-if="!loading" class="login-form__submit-icon" />
     </AuthButton>
 
     <!-- Divider -->
     <AuthDivider />
 
-    <!-- GitHub OAuth -->
-    <OAuthButton>{{ t('auth.login.continueWithGithub') }}</OAuthButton>
+    <!-- OAuth buttons grid -->
+    <div class="login-form__oauth-grid">
+      <OAuthButton provider="github">GitHub</OAuthButton>
+      <OAuthButton provider="google">Google</OAuthButton>
+    </div>
+
+    <!-- Sign Up Link -->
+    <div class="login-form__signup">
+      {{ t("auth.login.noAccount") }}
+      <a href="/register">{{ t("auth.login.signUp") }}</a>
+    </div>
   </form>
 </template>
 
@@ -111,36 +121,38 @@ async function handleSubmit(event: Event) {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
 }
-
 
 .login-form__header {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--silver-100);
-}
-
-.dark .login-form__header {
-  border-bottom-color: var(--silver-300);
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .login-form__title {
   font-size: var(--uc-text-2xl);
-  font-weight: var(--uc-font-weight-semibold);
+  font-weight: var(--uc-font-weight-bold);
   letter-spacing: var(--uc-tracking-normal);
-  color: var(--foreground);
+  color: var(--solarized-base03);
   line-height: 1.1;
 }
 
-.login-form__subtitle {
-  font-size: var(--uc-text-sm);
-  color: var(--silver-500);
+.dark .login-form__title {
+  color: var(--silver-900);
 }
 
+.login-form__subtitle {
+  font-size: var(--uc-text-md);
+  color: var(--solarized-base01);
+}
+
+.dark .login-form__subtitle {
+  color: var(--silver-400);
+}
 
 .login-form__error {
   display: flex;
@@ -148,7 +160,7 @@ async function handleSubmit(event: Event) {
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   border-left: 3px solid var(--terminal-red);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-radius: 0;
   background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
   color: var(--status-error);
   font-size: var(--uc-text-sm);
@@ -165,6 +177,21 @@ async function handleSubmit(event: Event) {
   opacity: 0.9;
 }
 
+.login-form__forgot {
+  font-size: var(--uc-text-md);
+  text-align: right;
+  font-family: var(--uc-font-code);
+}
+
+.login-form__forgot a {
+  color: var(--accent-electric);
+  text-decoration: none;
+  font-weight: var(--uc-font-weight-bold);
+}
+
+.login-form__forgot a:hover {
+  text-decoration: underline;
+}
 
 .login-form__submit {
   margin-top: 0.5rem;
@@ -173,5 +200,32 @@ async function handleSubmit(event: Event) {
 .login-form__submit-icon {
   width: 1.125rem;
   height: 1.125rem;
+}
+
+.login-form__signup {
+  font-size: var(--uc-text-md);
+  color: var(--solarized-base01);
+  text-align: center;
+  font-family: var(--uc-font-code);
+}
+
+.dark .login-form__signup {
+  color: var(--silver-400);
+}
+
+.login-form__signup a {
+  color: var(--accent-electric);
+  text-decoration: none;
+  font-weight: var(--uc-font-weight-bold);
+}
+
+.login-form__signup a:hover {
+  text-decoration: underline;
+}
+
+.login-form__oauth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 </style>

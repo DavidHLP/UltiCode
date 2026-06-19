@@ -81,10 +81,10 @@ const problemDescription = computed<ProblemDescription>(() => ({
 </script>
 
 <template>
-  <section class="space-y-6">
-    <section class="space-y-3">
+  <section class="problem-description-view space-y-4">
+    <section class="space-y-2.5">
       <!-- Title -->
-      <h1 class="uc-type-page-title text-foreground">
+      <h1 class="problem-description-title text-foreground">
         {{ props.problem.id }}. {{ props.problem.title }}
       </h1>
 
@@ -350,3 +350,13 @@ const problemDescription = computed<ProblemDescription>(() => ({
     </section>
   </section>
 </template>
+
+<style scoped>
+.problem-description-title {
+  font-family: var(--uc-font-ui);
+  font-size: var(--uc-text-lg);
+  line-height: var(--uc-leading-snug);
+  font-weight: var(--uc-font-weight-bold);
+  letter-spacing: var(--uc-tracking-normal);
+}
+</style>

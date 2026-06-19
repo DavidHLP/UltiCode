@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
-import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea } from '@unovis/vue'
+import { VisAxis, VisLine, VisXYContainer, VisScatter, VisArea, VisCrosshair } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
+import { ChartContainer } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
 import { IconChartBar } from '@tabler/icons-vue'
@@ -209,11 +209,58 @@ const yDomain = computed(() => {
   const upper = Math.max(5, Math.ceil(max * 1.25))
   return [0, upper]
 })
+
+/**
+ * Crosshair tooltip template. Renders a compact, terminal-styled card
+ * showing the hovered date and one row per series. Returning an empty
+ * string hides the tooltip.
+ */
+function crosshairTemplate(d: Data) {
+  if (!d || !(d.date instanceof Date) || Number.isNaN(d.date.getTime())) return ''
+  const dateStr = d.date.toLocaleDateString(locale.value, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  })
+  const rows = seriesKeys.value
+    .map((key) => {
+      const cfg = chartConfig.value[key]
+      const label = typeof cfg?.label === 'string' ? cfg.label : key
+      const color = cfg?.color || 'var(--accent-primary)'
+      const value = Number(d[key]) || 0
+      return (
+        `<div class="uc-chart-tooltip__row">` +
+          `<span class="uc-chart-tooltip__dot" style="background:${color}"></span>` +
+          `<span class="uc-chart-tooltip__label">${escapeHtml(String(label))}</span>` +
+          `<span class="uc-chart-tooltip__value">${value.toLocaleString()}</span>` +
+        `</div>`
+      )
+    })
+    .join('')
+  return (
+    `<div class="uc-chart-tooltip">` +
+      `<div class="uc-chart-tooltip__date">${escapeHtml(dateStr)}</div>` +
+      `<div class="uc-chart-tooltip__divider"></div>` +
+      rows +
+    `</div>`
+  )
+}
+
+/** Minimal HTML escape for tooltip strings (labels, dates). */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 </script>
 
 <template>
   <Card
-    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none"
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card overflow-hidden shadow-float gap-0 py-0 rounded-none h-full flex flex-col"
   >
     <CardHeader
       class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
@@ -250,7 +297,7 @@ const yDomain = computed(() => {
       </div>
     </CardHeader>
 
-    <CardContent class="px-2 py-4 sm:px-5">
+    <CardContent class="px-2 py-4 sm:px-5 flex-1 min-h-0">
       <!-- Empty State -->
       <div
         v-if="filterRange.length === 0"
@@ -287,7 +334,7 @@ const yDomain = computed(() => {
       >
         <VisXYContainer
           :data="filterRange"
-          :margin="{ left: -10, right: 10, top: 10, bottom: 20 }"
+          :margin="{ left: 0, right: 16, top: 10, bottom: 20 }"
           :y-domain="yDomain"
         >
           <!-- Semi-transparent area fill -->
@@ -318,11 +365,80 @@ const yDomain = computed(() => {
             :domain-line="false"
             :grid-line="true"
             :grid-line-color="'color-mix(in oklch, var(--border) 45%, transparent)'"
-            :tick-format="(d: number) => d.toString()"
+            :tick-format="(d: number) => Number.isInteger(d) ? d.toString() : d.toFixed(1)"
           />
-          <ChartTooltip />
+          <!-- Vertical crosshair + tooltip showing the hovered data point -->
+          <VisCrosshair
+            :x="(d: Data) => d.date"
+            :y="getYValues"
+            :color="getColors"
+            :template="crosshairTemplate"
+            :hide-when-far-from-pointer="true"
+            :hide-when-far-from-pointer-distance="80"
+          />
         </VisXYContainer>
       </ChartContainer>
     </CardContent>
   </Card>
 </template>
+
+<style scoped>
+/* Unovis crosshair tooltip styling. The crosshair tooltip is rendered
+   into the document body by the VisTooltip that VisCrosshair manages
+   internally, so we use :deep to pierce the scoped boundary. */
+:deep(.uc-chart-tooltip) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 12rem;
+  padding: 0.5rem 0.625rem;
+  font-family: var(--uc-font-code);
+  font-size: var(--uc-text-xs);
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: var(--shadow-float);
+  pointer-events: none;
+}
+
+:deep(.uc-chart-tooltip__date) {
+  font-weight: var(--uc-font-weight-semibold);
+  font-size: var(--uc-text-2xs);
+  letter-spacing: 0.05em;
+  color: var(--silver-500);
+  text-transform: uppercase;
+}
+
+:deep(.uc-chart-tooltip__divider) {
+  height: 1px;
+  background: var(--border);
+  margin: 0.125rem 0;
+}
+
+:deep(.uc-chart-tooltip__row) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+:deep(.uc-chart-tooltip__dot) {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+:deep(.uc-chart-tooltip__label) {
+  flex: 1;
+  color: var(--silver-500);
+  font-size: var(--uc-text-xs);
+}
+
+:deep(.uc-chart-tooltip__value) {
+  color: var(--foreground);
+  font-weight: var(--uc-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+</style>

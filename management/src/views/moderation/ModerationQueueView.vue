@@ -263,7 +263,7 @@ const selectedActionOption = computed(() =>
     >
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-          {{ t('moderation.queue.title') }}
+          {{ t('nav.moderation') }}
         </h1>
         <Button
           variant="terminal"
@@ -314,7 +314,7 @@ const selectedActionOption = computed(() =>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconShield class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('moderation.queue.pageTitle') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('nav.moderation') }}</span>
         </div>
       </div>
     </div>

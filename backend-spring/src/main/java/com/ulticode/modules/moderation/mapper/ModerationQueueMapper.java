@@ -81,6 +81,27 @@ public interface ModerationQueueMapper extends BaseMapper<ModerationQueue> {
     long countUnderReview();
 
     /**
+     * Count items resolved by a substantive action (delete / hide / warn / ban / restore /
+     * appeal outcome). Excludes items dismissed as false reports so that resolvedCount and
+     * dismissedCount partition all RESOLVED items without overlap.
+     * IFNULL guards against hypothetically NULL resolution values on legacy rows.
+     *
+     * @return count of substantively resolved items
+     */
+    @Select("SELECT COUNT(*) FROM moderation_queue "
+        + "WHERE status = 'RESOLVED' AND IFNULL(resolution, '') <> 'DISMISSED'")
+    long countResolved();
+
+    /**
+     * Count items dismissed as false reports (status = RESOLVED, resolution = DISMISSED).
+     *
+     * @return count of dismissed items
+     */
+    @Select("SELECT COUNT(*) FROM moderation_queue "
+        + "WHERE status = 'RESOLVED' AND resolution = 'DISMISSED'")
+    long countDismissed();
+
+    /**
      * Count items resolved today.
      *
      * @return count of items resolved today

@@ -122,6 +122,8 @@ public class ModerationServiceImpl implements ModerationService {
         ModerationStatsVO stats = new ModerationStatsVO();
         stats.setPendingCount(queueMapper.countPending());
         stats.setUnderReviewCount(queueMapper.countUnderReview());
+        stats.setResolvedCount(queueMapper.countResolved());
+        stats.setDismissedCount(queueMapper.countDismissed());
         stats.setResolvedToday(queueMapper.countResolvedToday());
         stats.setPendingAppealsCount(appealMapper.countPending());
         stats.setAvgResolutionTimeHours(queueMapper.avgResolutionTimeHours());

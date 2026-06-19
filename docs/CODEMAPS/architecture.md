@@ -71,6 +71,7 @@ generator: ecc:update-codemaps
 - **ADR-009** `isRated` gate + virtual rating isolation
 - **ADR-010** cancel-state + virtual replay boundary
 - **ADR-011** CRIT-6 shadow mode evaluation
+- **ADR-012** extract auth UI components and view shells into `shared/auth-ui`
 
 ## Migration Strategy
 

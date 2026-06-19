@@ -19,11 +19,11 @@ owner: architect
 | **On-call 工程师**（事故 / 故障）     | [[RUNBOOK]] §0（速查表）+ §4（常见问题） |
 | **架构师 / 规划者**（新功能）        | [[CODEMAPS/architecture]] + [[adr/README]] |
 | **后端开发**（Spring Boot / MyBatis）      | [[backend]] + [[CONTRIBUTING]] §6 |
-| **前端开发**（Vue 3 / console 或 management）   | [[frontend]] + `.claude/rules/frontend-rules.md` |
+| **前端开发**（Vue 3 / console 或 management）   | [[frontend]] + `.claude/rules/frontend-rules.md` + [[0012-shared-auth-ui-extraction\|adr/0012]] |
 | **数据库工程师**（Flyway / MySQL）            | [[data]] + `.claude/rules/database/01-flyway-migrations.md` |
 | **沙箱 / 评测开发**                     | [[sandbox]] + [[0002-sandbox-hexagonal-dform|adr/0002]] |
 | **运维**（部署 / 环境 / 密钥）       | [[ENV]] + [[RUNBOOK]] §1–2 + [[0005-rolling-deploy-rollback|adr/0005]] |
-| **安全审查**                        | [[0008-websocket-cookie-auth|adr/0008]] + [[0011-crit6-shadow-mode|adr/0011]] |
+| **安全审查**                        | [[0008-websocket-cookie-auth|adr/0008]] + [[0011-crit6-shadow-mode|adr/0011]] + [[0012-shared-auth-ui-extraction\|adr/0012]] |
 
 ## 2. 顶层文档
 
@@ -52,7 +52,8 @@ owner: architect
 | 第一次搭建开发环境          | [[CONTRIBUTING#2 First Time Setup|`CONTRIBUTING.md` §2]]                    |
 | 新增后端模块                                    | [[CONTRIBUTING|`CONTRIBUTING.md` §3 + §6]] + [[backend]] |
 | 新增 Flyway 迁移                                  | [[data]] + `.claude/rules/database/01-flyway-migrations.md` |
-| 新增被两个前端共同消费的共享包      | [[CONTRIBUTING|`CONTRIBUTING.md` §6 (Shared)]] + [[frontend]] |
+| 新增被两个前端共同消费的共享包      | [[CONTRIBUTING|`CONTRIBUTING.md` §6 (Shared)]] + [[frontend]] + [[0012-shared-auth-ui-extraction\|adr/0012]]（参考：`shared/auth-ui` 模板） |
+| 修改 auth UI（登录/注册/找回）/ 视觉一致性 | [[frontend]] §"Shared Packages" + [[0012-shared-auth-ui-extraction\|adr/0012]] |
 | 排查 9001 启动崩溃循环                                 | [[RUNBOOK#41 Backend Crash Loops On Startup Count Rising|`RUNBOOK.md` §4.1]] |
 | 回滚一次失败的部署                               | [[RUNBOOK#53 Container Rollback Prod|`RUNBOOK.md` §5.3]] + [[0005-rolling-deploy-rollback|adr/0005]] |
 | 新增环境变量                                        | [[ENV]]（完整表） + `application.yml` + `docker-compose.yml`   |
@@ -66,7 +67,7 @@ owner: architect
 | ---------------------------------- | -------------------------------------------------------------- |
 | 新增后端模块 / 服务    | `springboot-rules.md` + 对应模块的 CODEMAPS 段     |
 | 新增 Flyway 迁移            | `database/01-flyway-migrations.md` + 本次迁移对应的 ADR（如有） |
-| 修改鉴权 / 安全            | `adr/0008` + `security-reviewer` 代理规则                   |
+| 修改鉴权 / 安全            | `adr/0008` + `security-reviewer` 代理规则 + `adr/0012`（如果触动 shared/auth-ui）|
 | 修改共享 DTO / 枚举        | `cross-stack-dto-granularity-alignment` 技能 + 相关 ADR   |
 | 修改部署 / 回滚          | `adr/0005` + `adr/0005a` + `RUNBOOK.md` §5                     |
 | 修改比赛评分 / 等级   | `adr/0006` + `adr/0007` + `adr/0009` + `adr/0010`              |

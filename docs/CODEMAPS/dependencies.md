@@ -1,3 +1,12 @@
+---
+title: Dependencies & External Services
+tags: [reference, devops, architecture, living]
+status: living
+updated: 2026-06-19
+owner: devops
+generator: ecc:update-codemaps
+---
+
 # Dependencies & External Services
 
 <!-- Generated: 2026-06-19 | Backend pom: 32 deps | Console pkg: 33+29 | Management pkg: 30+25 | Token estimate: ~850 -->

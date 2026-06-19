@@ -22,7 +22,7 @@ owner: devops
 > | §9 Escalation | SEV-1/2/3 分级 + 必带证据 | 升级判断 |
 > | §10 Operational Cheatsheet | 常用一行命令 | 日常随手 |
 >
-> **强相关 ADR**：[`adr/0005`](./adr/0005-rolling-deploy-rollback.md)（回滚演练）、[`adr/0008`](./adr/0008-websocket-cookie-auth.md)（STOMP 401）。
+> **强相关 ADR**：[[0005-rolling-deploy-rollback|adr/0005]]（回滚演练）、[[0008-websocket-cookie-auth|adr/0008]]（STOMP 401）。
 
 # Runbook — Operations & Incident Response
 

@@ -1,3 +1,11 @@
+---
+title: Operations & Tooling Reference (`docs/ops/`)
+tags: [index, ops, governance, living]
+status: living
+updated: 2026-06-19
+owner: devops
+---
+
 # `docs/ops/` — Operations & Tooling Reference
 
 > **中文导读** | 这是 `ops/` 子目录的**目录专属规范**。**正文为英文**（保留上游风格），本节给出中文意图说明。
@@ -69,7 +77,7 @@ owner: backend | frontend | devops | <module>
 
 | File                                                | Status | Owner    | Purpose                                                |
 | --------------------------------------------------- | ------ | -------- | ------------------------------------------------------ |
-| [`arthas-mcp-usage.md`](./arthas-mcp-usage.md)     | living | backend  | Arthas MCP watch/trace/stack 实战 (CLAUDE.md §运行时调试 配套) |
+| [[arthas-mcp-usage]]     | living | backend  | Arthas MCP watch/trace/stack 实战 (CLAUDE.md §运行时调试 配套) |
 
 > 文档新增/移除/重命名时:同步更新本表 + 在 `docs/COODEMAPS/architecture.md` 数据流段落
 > 提及的 "运行时诊断" 链接(若有)。

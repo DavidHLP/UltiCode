@@ -11,8 +11,8 @@ owner: design-system
 > **范围**：UltiCode 前端所有 Design Token 的**清单、含义、取值范围**。每个 token 都能在
 > `shared/design-system/style.css` 或 `shared/theme/src/typography.css` 里直接搜到定义。
 >
-> 配套阅读：[`architecture.md`](./architecture.md) · [`theme-modes.md`](./theme-modes.md) ·
-> [`components.md`](./components.md)
+> 配套阅读：[[theme/architecture]] · [[theme-modes]] ·
+> [[components]]
 
 ## 0. 命名规范
 
@@ -291,7 +291,7 @@ Light / dark 同值（Solarized 设计的"跨模式恒定"特性）。
 --uc-type-markdown-size:       var(--uc-text-md);    /* compact: sm */
 ```
 
-> 完整映射表见 [`components.md` §2](./components.md#2-语义角色-semantic-roles)。
+> 完整映射表见 [[components#2 语义角色 Semantic Roles|`components.md` §2]]。
 
 ### 2.3 工具类（utility classes）
 
@@ -418,10 +418,10 @@ Firefox 用 `scrollbar-color: var(--scrollbar-thumb) transparent;`。
 
 ## 9. 参见
 
-- [`architecture.md`](./architecture.md) — Token 在分层里的位置
-- [`theme-modes.md`](./theme-modes.md) — light/dark 怎么切；密度怎么写
-- [`components.md`](./components.md) — 完整的组件原语清单
-- [`extension.md`](./extension.md) — 加新 token 的步骤
+- [[theme/architecture]] — Token 在分层里的位置
+- [[theme-modes]] — light/dark 怎么切；密度怎么写
+- [[components]] — 完整的组件原语清单
+- [[extension]] — 加新 token 的步骤
 - `shared/design-system/style.css` — Token 定义真源
 - `shared/theme/src/typography.css` — 字体 Token 真源
 - `shared/theme/src/typography.ts` — 字体 Token 元数据（给 ECharts / Monaco / 测试用）

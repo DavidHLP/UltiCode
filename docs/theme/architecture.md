@@ -11,8 +11,8 @@ owner: design-system
 > **范围**：解释 UltiCode 前端主题系统的分层、文件归属、加载时序、运行时生命周期，
 > 以及"为什么用两个包（`shared/theme` + `shared/design-system`）"。
 >
-> 配套阅读：[`README.md`](./README.md) · [`design-tokens.md`](./design-tokens.md) ·
-> [`theme-modes.md`](./theme-modes.md)
+> 配套阅读：[[theme/README]] · [[design-tokens]] ·
+> [[theme-modes]]
 
 ## 1. 分层
 
@@ -161,7 +161,7 @@ T=ε+4 组件 onMounted → useColorTheme()   ← 不再初始化，只读共享
 顺序意义：字体 Token 必须先于 Tailwind（因为 Tailwind 的 `text-sm` 通过 `@theme inline`
 最终解析到 `--uc-text-sm`）；Tailwind 必须先于组件原语（因为 `.terminal-card` 里用了
 `@apply border-border`，这个 utility 在 Tailwind 之前不存在）。**不要改动这个顺序**，
-否则会有几类工具类失效（详见 [`components.md` §3](./components.md#3-utility-类)）。
+否则会有几类工具类失效（详见 [[components#3 Utility 类|`components.md` §3]]）。
 
 ### 3.3 主题切换（运行中）
 
@@ -226,8 +226,8 @@ export { cycleTheme, initTheme, setTheme, useColorTheme, useTheme }
 
 ## 参见
 
-- [`design-tokens.md`](./design-tokens.md) — 颜色/字体/间距/阴影/动效全部 token 速查
-- [`theme-modes.md`](./theme-modes.md) — light/dark/system + compact/comfortable 切换机制
-- [`components.md`](./components.md) — 组件级 override 模式
-- [`extension.md`](./extension.md) — 新增 token / 主题 / 密度 / 组件的步骤
-- [`docs/CODEMAPS/frontend.md`](../CODEMAPS/frontend.md) — 仓库前端架构总览
+- [[design-tokens]] — 颜色/字体/间距/阴影/动效全部 token 速查
+- [[theme-modes]] — light/dark/system + compact/comfortable 切换机制
+- [[components]] — 组件级 override 模式
+- [[extension]] — 新增 token / 主题 / 密度 / 组件的步骤
+- [[frontend|docs/CODEMAPS/frontend.md]] — 仓库前端架构总览

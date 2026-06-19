@@ -11,9 +11,9 @@ owner: design-system
 > **范围**：在 UltiCode 主题系统里**加新东西**的步骤。覆盖：新 token、新工具类、新组件原语、
 > 新颜色模式、新密度档。
 >
-> 配套阅读：[`README.md`](./README.md) · [`architecture.md`](./architecture.md) ·
-> [`design-tokens.md`](./design-tokens.md) · [`theme-modes.md`](./theme-modes.md) ·
-> [`components.md`](./components.md)
+> 配套阅读：[[theme/README]] · [[theme/architecture]] ·
+> [[design-tokens]] · [[theme-modes]] ·
+> [[components]]
 
 ## 0. 通用清单（任何扩展都走一遍）
 
@@ -70,7 +70,7 @@ owner: design-system
    ```
    > 当前仓库没这套自动测试——下面 §1.2 给出更轻量的"白名单"方式。
 
-4. **更新文档**：在 [`design-tokens.md` §1.4](./design-tokens.md#14-状态--强调--表面业务语义) 加一行表格。
+4. **更新文档**：在 [[design-tokens#14 状态 强调 表面业务语义|`design-tokens.md` §1.4]] 加一行表格。
 
 ### 1.2 用"白名单 + 搜索"代替运行时测试
 
@@ -107,7 +107,7 @@ const ALLOWED_PREFIXES = [
 
 1. **`typography.ts`** 的 `typographySizes` 加 `text4xl: '2.25rem'`
 2. **`Tailwind @theme inline`** 加 `--text-4xl: var(--uc-text-4xl)`（让 `text-4xl` 工具类可用）
-3. **文档**：[`design-tokens.md` §2.1 字号表](./design-tokens.md#字体家族) 加一行
+3. **文档**：[[design-tokens#字体家族|`design-tokens.md` §2.1 字号表]] 加一行
 4. **测试**：`typography.spec.ts` 加 `expect(typographySizes).toHaveProperty('text4xl')`
 
 ### 1.4 加新间距（一般不需要）
@@ -183,7 +183,7 @@ export const typographyUtilityClasses = [
    }
    ```
 
-2. **在 [`components.md` §3.2](./components.md#32-终端风terminal-)** 加一行表格。
+2. **在 [[components#32 终端风terminal|`components.md` §3.2]]** 加一行表格。
 
 3. **写一个示例组件**（`console/src/components/_examples/TerminalCalloutExample.vue`），
    跑 `pnpm dev` 目视确认 dark 模式下颜色对。
@@ -195,7 +195,7 @@ export const typographyUtilityClasses = [
 
 ## 4. 加新颜色模式 / 密度档
 
-详见 [`theme-modes.md` §4](./theme-modes.md#4-扩展指南)。简版：
+详见 [[theme-modes#4 扩展指南|`theme-modes.md` §4]]。简版：
 
 | 加什么          | 改哪些文件                                                                 |
 | --------------- | -------------------------------------------------------------------------- |
@@ -225,7 +225,7 @@ export const useColorTheme = () => { /* 新实现 */ }
 - [ ] 用浏览器的 dev tools 切换 dark 模式目视确认
 - [ ] 至少看 3 个页面：登录、列表、详情
 - [ ] 跑 `shared/theme pnpm test`
-- [ ] 如果新增/删除 token，更新 [`design-tokens.md`](./design-tokens.md)
+- [ ] 如果新增/删除 token，更新 [[design-tokens]]
 
 **特别注意**：
 
@@ -287,8 +287,8 @@ export const useColorTheme = () => { /* 新实现 */ }
 
 ## 9. 参见
 
-- [`README.md`](./README.md) — 索引
-- [`architecture.md`](./architecture.md) — 怎么分层
-- [`design-tokens.md`](./design-tokens.md) — 全部 token 速查
-- [`theme-modes.md`](./theme-modes.md) — 颜色模式 / 密度 / 切换 / FOUC
-- [`components.md`](./components.md) — 组件原语清单
+- [[theme/README]] — 索引
+- [[theme/architecture]] — 怎么分层
+- [[design-tokens]] — 全部 token 速查
+- [[theme-modes]] — 颜色模式 / 密度 / 切换 / FOUC
+- [[components]] — 组件原语清单

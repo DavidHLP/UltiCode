@@ -12,8 +12,8 @@ owner: design-system
 > `.uc-type-*` / `.animate-*` / `.hljs-*` / `.ascii-progress` / `.header-btn`），
 > 以及**写新组件时**应当遵守的覆盖策略。
 >
-> 配套阅读：[`architecture.md`](./architecture.md) · [`design-tokens.md`](./design-tokens.md) ·
-> [`extension.md`](./extension.md)
+> 配套阅读：[[theme/architecture]] · [[design-tokens]] ·
+> [[extension]]
 
 ## 1. 覆盖策略（重要）
 
@@ -62,7 +62,7 @@ owner: design-system
 
 ## 2. 语义角色（Semantic Roles）
 
-详细 token 见 [`design-tokens.md` §2.2](./design-tokens.md#22-语义角色semantic-roles)。
+详细 token 见 [[design-tokens#22 语义角色semantic Roles|`design-tokens.md` §2.2]]。
 下面是**"我是组件作者，该用哪个"** 的决策表：
 
 | 我在写什么                 | 用哪个 utility class          | 例                                   |
@@ -261,7 +261,7 @@ management 还有一个 `.prose` 别名——同样的样式集。**新代码不
 
 **组件级 `<style scoped>` 不应该：**
 
-- 定义新颜色（应该走 token，见 [`extension.md` §1](./extension.md#1-加新token)）
+- 定义新颜色（应该走 token，见 [[extension#1 加新token|`extension.md` §1]]）
 - 重新声明全局原语（不要 `.my-button { @apply .terminal-card }`——直接用 `class="terminal-card"`）
 - 写响应式断点以外的字面值（间距/字号用 token 或 Tailwind）
 
@@ -323,8 +323,8 @@ management 还有一个 `.prose` 别名——同样的样式集。**新代码不
 
 ## 7. 参见
 
-- [`architecture.md`](./architecture.md) — 原语在分层里的位置（L4）
-- [`design-tokens.md`](./design-tokens.md) — 原语背后引用的 token
-- [`theme-modes.md`](./theme-modes.md) — 原语怎么响应 dark 模式
-- [`extension.md`](./extension.md) — 加新原语的步骤
+- [[theme/architecture]] — 原语在分层里的位置（L4）
+- [[design-tokens]] — 原语背后引用的 token
+- [[theme-modes]] — 原语怎么响应 dark 模式
+- [[extension]] — 加新原语的步骤
 - `shared/design-system/style.css` — 原语实现真源（1257 行）

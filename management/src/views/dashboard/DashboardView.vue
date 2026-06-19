@@ -162,7 +162,7 @@ onMounted(() => loadData())
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 min-h-screen bg-background">
+  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
     <!-- Precision Header -->
     <header
       class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"

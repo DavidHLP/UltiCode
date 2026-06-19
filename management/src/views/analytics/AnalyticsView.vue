@@ -411,7 +411,7 @@ const endpointBarItems = computed(() => {
         <AnalyticsOverviewPanel :groups="metricGroups" />
 
         <!-- Row 2: User Activity Trends & Heatmap -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="lg:col-span-2">
             <AreaChart
               :title="t('analytics.userActivity.activeUsersTrend')"
@@ -442,7 +442,7 @@ const endpointBarItems = computed(() => {
         </div>
 
         <!-- Row 3: User and problem insights -->
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 items-start">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div class="lg:col-span-5">
             <AnalyticsTopUsersChart :data="topUsers" />
           </div>
@@ -462,31 +462,33 @@ const endpointBarItems = computed(() => {
           </div>
         </div>
 
-        <!-- Row 4: Contest intelligence -->
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 items-start">
-          <div class="lg:col-span-8">
+        <!-- Row 4: Contest intelligence — all three cards on the same row -->
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div class="lg:col-span-6">
             <AnalyticsBarList
               :title="t('analytics.contestParticipation.topContests')"
               :description="t('analytics.contestParticipation.topContestsDesc')"
               :items="topContestBarItems"
-              :limit="5"
+              :limit="3"
               compact
             />
           </div>
-          <div class="grid gap-4 lg:col-span-4">
+          <div class="lg:col-span-3">
             <AnalyticsBarList
               :title="t('analytics.contestParticipation.byType')"
               :description="t('analytics.contestParticipation.byTypeDesc')"
               :items="typeBarItems"
-              :limit="5"
+              :limit="3"
               compact
             />
+          </div>
+          <div class="lg:col-span-3">
             <AnalyticsTagCloud
               :title="t('analytics.problemCompletion.topTags')"
               :description="t('analytics.problemCompletion.topTagsDesc')"
               :tags="tagItems"
               :value-format="'percent'"
-              :limit="20"
+              :limit="10"
               compact
             />
           </div>
@@ -495,7 +497,7 @@ const endpointBarItems = computed(() => {
         <!-- Row 5: Diagnostics only when actionable data exists -->
         <div
           v-if="hardestBarItems.length > 0 || endpointBarItems.length > 0"
-          class="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start"
+          class="grid grid-cols-1 gap-4 lg:grid-cols-2"
         >
           <AnalyticsBarList
             v-if="hardestBarItems.length > 0"

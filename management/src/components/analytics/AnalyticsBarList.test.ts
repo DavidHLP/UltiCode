@@ -15,7 +15,7 @@ describe('AnalyticsBarList', () => {
     )
   })
 
-  it('uses content height and reduced spacing in compact mode', () => {
+  it('stretches to fill grid cell and uses reduced spacing in compact mode', () => {
     const wrapper = mount(AnalyticsBarList, {
       props: {
         compact: true,
@@ -24,7 +24,7 @@ describe('AnalyticsBarList', () => {
     })
 
     expect(wrapper.get('[data-slot="card"]').classes()).toEqual(
-      expect.arrayContaining(['self-start', 'gap-0', 'py-0']),
+      expect.arrayContaining(['h-full', 'gap-0', 'py-0']),
     )
     expect(wrapper.get('[data-slot="card-content"]').classes()).toContain('p-4')
     expect(wrapper.get('[data-testid="bar-list"]').classes()).toContain('space-y-2')

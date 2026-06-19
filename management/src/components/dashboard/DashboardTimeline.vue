@@ -104,7 +104,7 @@ const displayActivities = computed(() => {
 
 <template>
   <Card
-    class="border-2 border-[var(--silver-200)] dark:border-[var(--silver-300)] shadow-float h-full rounded-none"
+    class="border-2 border-[var(--silver-200)] dark:border-[var(--silver-300)] shadow-float h-full rounded-none gap-0 py-0 flex flex-col"
   >
     <CardHeader
       class="pb-3 pt-3 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/20 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"

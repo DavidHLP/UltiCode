@@ -1,0 +1,71 @@
+# Documentation Update
+
+Generated: 2026-06-19
+Trigger: /ecc:update-docs
+Previous docs baseline: 2026-06-18 (commit 7060279f4)
+Special case: a7cbe154d (2026-06-19) deleted the entire docs/ tree
+              (CONTRIBUTING/ENV/RUNBOOK/ADR/privacy/readme) as part of
+              "chore: drop legacy docs" — full re-creation required.
+
+## Updated (re-created from source-of-truth)
+
+| File                    | Bytes  | Token est. | Source-of-truth                                  |
+| ----------------------- | ------ | ---------- | ------------------------------------------------ |
+| docs/ENV.md             | 11935  | ~3100      | `.env.example`, `.env.test.example`, `application.yml`, `ecosystem.config.cjs`, `scripts/dev/init-env.sh` |
+| docs/CONTRIBUTING.md    | 13635  | ~3600      | `package.json` (console/management/shared/auth-core), `scripts/dev/`, `AGENTS.md`, `CLAUDE.md` |
+| docs/RUNBOOK.md         | 15942  | ~4100      | `CLAUDE.md`, `ecosystem.config.cjs`, `scripts/`, `infrastructure/`, `.github/workflows/` |
+
+Total new doc bytes: ~41.5 KB / ~10,800 tokens.
+
+## Auto-generated sections (marked in-file)
+
+- `docs/CONTRIBUTING.md` §5 — scripts tables (derived from each package's `package.json`)
+- `docs/ENV.md` — every env var table (derived from `.env.example` + `.env.test.example`)
+
+Manual sections (prose / narrative) are left intact and **not** wrapped in
+AUTO-GENERATED markers.
+
+## Flagged for manual review (90+ days)
+
+None. All 9 docs files (`arthas-mcp-usage.md` + `CODEMAPS/*` + new 3) were
+written/modified within the 2026-06-19 session.
+
+## Skipped (not auto-created per skill rule)
+
+The following were also deleted by `a7cbe154d` but are **not** auto-created
+("Only create new doc files if the command explicitly requests it"):
+
+- `docs/adr/ADR-000..011` (12 Architecture Decision Records)
+- `docs/PRIVACY.md` (privacy policy)
+- `docs/SHARED_TYPOGRAPHY_DESIGN.md` (typography design — obsolete post-migration)
+- `docs/DOCS-SPEC.md` (old docs spec — obsolete)
+- `docs/README.md` (docs/ index — top-level `README.md` is sufficient)
+- `docs/contest/*` (R-plans + reviews — task plans, ephemeral by nature)
+
+If the team wants the ADRs back, they should be recreated individually as they
+encode the actual decisions and can't be derived from code.
+
+## Other docs in tree (preserved)
+
+- `docs/arthas-mcp-usage.md` → moved to `docs/ops/arthas-mcp-usage.md` (11.0 KB, 2026-06-19) — Arthas MCP usage guide; `docs/ops/` is the new home for ops/tooling references
+- `docs/ops/README.md` (NEW, 2026-06-19) — naming + frontmatter convention for `docs/ops/`
+- `docs/CODEMAPS/{architecture,backend,frontend,data,dependencies,sandbox}.md`
+  (created earlier this session by /ecc:update-codemaps)
+
+## Verification recommendations
+
+After this docs pass, the team may want to spot-check that the auto-generated
+script tables match the actual `package.json` `scripts` blocks. The skill rule
+"Always generate from code, never manually edit generated sections" means
+future /ecc:update-docs runs should re-derive these tables.
+
+## Staleness warnings
+
+None.
+
+## Follow-up (not auto-fixed)
+
+- The 4 uncommitted local changes (incl. `console/src/features/layout/panels/LayoutPanelHeader.vue`)
+  remain in working tree; docs are untracked and not committed
+- repo is ahead 4 of origin/main
+- If a future task needs the ADRs back, run a one-off generation or hand-write them

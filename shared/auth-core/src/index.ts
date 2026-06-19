@@ -2,9 +2,10 @@
 // auth-core – public API
 // ---------------------------------------------------------------------------
 
-// Shared types (User, LoginCredentials, LoginResponse, Permission)
+// Shared types (User, LoginCredentials, LoginResponse, RegisterRequest, Permission)
 export {
   type LoginCredentials,
+  type RegisterRequest,
   type LoginResponse,
   type User,
   type Permission,
@@ -62,3 +63,8 @@ export {
   type AuthFailureReason,
   type AuthFailureHandler,
 } from './auth-failure';
+
+// Utility — className concatenation (clsx + tailwind-merge).
+// Single source of truth; `console/src/lib/utils.ts` and
+// `management/src/lib/utils.ts` re-export from here.
+export { cn } from './utils'

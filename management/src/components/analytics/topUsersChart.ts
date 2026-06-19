@@ -43,7 +43,7 @@ export function createTopUsersChartOption(
       padding: [8, 10],
       textStyle: {
         color: colors.foreground,
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
         fontSize: 11,
       },
       formatter: (params) => {
@@ -61,7 +61,7 @@ export function createTopUsersChartOption(
       axisTick: { show: false },
       axisLabel: {
         color: colors.axis,
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
         fontSize: 9,
       },
       splitLine: {
@@ -80,7 +80,7 @@ export function createTopUsersChartOption(
       axisTick: { show: false },
       axisLabel: {
         color: colors.axis,
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
         fontSize: 9,
         overflow: 'truncate',
         width: 78,
@@ -107,7 +107,7 @@ export function createTopUsersChartOption(
           show: true,
           position: 'right',
           color: colors.foreground,
-          fontFamily: 'JetBrains Mono, monospace',
+          fontFamily: '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
           fontSize: 9,
         },
       },

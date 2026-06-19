@@ -26,7 +26,7 @@ const DEFAULT_SETTINGS: EditorSettings = {
   wordWrap: false,
   minimap: false,
   lineNumbers: "on",
-  fontFamily: "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
+  fontFamily: '"LXGW WenKai", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace',
   reduceMotion: false,
   highContrast: false,
 };

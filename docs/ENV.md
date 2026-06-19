@@ -1,3 +1,29 @@
+---
+title: Environment Variables
+tags: [env, reference, devops]
+status: living
+updated: 2026-06-19
+owner: backend
+---
+
+> **中文导读** | 全部环境变量清单。**正文为英文**（上游脚本生成），本节提供分节地图。
+>
+> | 章节 | 主题 | 何时看 |
+> |---|---|---|
+> | Required | 启动失败的硬性变量（DB / Redis / JWT / Nacos） | 改 `.env` / 启动失败 |
+> | Runtime Topology | 端口 / 主机 / 镜像 | 跨环境部署 |
+> | JWT & Browser Security | `JWT_COOKIE_SECURE` / `CORS_ALLOWED_ORIGINS` | HTTPS 化 / 跨域 |
+> | Nacos | Nacos 客户端配置（默认 28848） | 配置中心调优 |
+> | Local Feature Toggles | `SANDBOX_*` / `BACKUP_DIR` / `AUDIT_EXPORT_LIMIT` | 本地开关 |
+> | One-Time Bootstrap | `APP_BOOTSTRAP_*` 一次性管理员 | 初始化 |
+> | Dev Seed Users | dev profile 下的 `admin/admin123` | 本地登录 |
+> | Optional Integrations | GitHub / Google OAuth / SMTP | 第三方接入 |
+> | Frontend (VITE_) | 前端构建期变量 | 改前端 base URL |
+> | Test-profile Overrides | 测试 profile 强制的覆盖项 | 跑集成测 |
+> | Secret Generation | `init-env.sh` 写什么值、长度 | 轮换密钥 |
+>
+> **新增变量时**：同时改 `application.yml` + `docker-compose.yml` + 本文件 + `.env.example`。
+
 # Environment Variables
 
 <!-- Generated: 2026-06-19 | Source: .env.example, .env.test.example, ecosystem.config.cjs, application.yml -->

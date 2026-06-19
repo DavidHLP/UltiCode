@@ -45,5 +45,5 @@ superseded_by: N/A
 
 - **迁移**：`init-db/migrations/V20260617140000__Contest_Real_Unique_And_Session_Length.sql`
 - **代码**：`backend-spring/.../contest/service/ContestSchedulerService.java`
-- **CODEMAPS**：[`data.md`](../CODEMAPS/data.md) § "Contests"
-- **相关 ADR**：`0007`（虚拟隔离）、`0009`（`isRated` 门控）
+- **CODEMAPS**：[[data]] § "Contests"
+- **相关 ADR**：[[0004-notification-intents-ledger]]（取消必发通知，正文复用其账本）、[[0006-contest-scoring-activation]]（评分 — 取消态从不更新 rating）、[[0007-virtual-contest-rating-isolation]]（虚拟隔离）、[[0009-israted-gate]]（`isRated` 门控）

@@ -46,6 +46,6 @@ superseded_by: N/A
 
 - **代码**：`scripts/adr-005/create-milestone-issues.sh`
 - **工作流**：`.github/workflows/cd-deploy.yml`、`.github/workflows/cd-rollback.yml`
-- **CODEMAPS**：[`architecture.md`](../CODEMAPS/architecture.md) § "Security Boundaries"
-- **RUNBOOK**：[`RUNBOOK.md`](../RUNBOOK.md) §5（回滚）、§9（升级）
-- **相关 ADR**：`0005a`（演练自动化）、`0011`（CRIT-6 shadow mode — 用到部署钩子）
+- **CODEMAPS**：[[architecture]] § "Security Boundaries"
+- **RUNBOOK**：[[RUNBOOK]] §5（回滚）、§9（升级）
+- **相关 ADR**：[[0005a-rollback-drill]]（演练自动化）、[[0011-crit6-shadow-mode]]（CRIT-6 shadow mode — 用到部署钩子）

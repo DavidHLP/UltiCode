@@ -53,6 +53,6 @@ diff docker/sandbox/harness/python/ docker/sandbox/harness-staging/python/
   - `docker/sandbox/harness/`（源）
   - `docker/sandbox/harness/build.sh`（staging + 镜像编排）
   - `docker/sandbox/Dockerfile`
-- **CODEMAPS**：[`sandbox.md`](../CODEMAPS/sandbox.md) § "Build Pipeline"、
+- **CODEMAPS**：[[sandbox]] § "Build Pipeline"、
   "Python Preamble Contract"、"Python Version Trap"
-- **相关 ADR**：`0001`（评测编解码）、`0003`（outbox 围栏）
+- **相关 ADR**：[[0001-verdict-status-codec]]（评测编解码）、[[0003-queue-outbox-fencing]]（outbox 围栏）

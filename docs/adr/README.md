@@ -101,20 +101,22 @@ superseded_by: <ADR-NNNN 或 N/A>
 
 | ADR     | 标题                                                 | 状态   | 日期       |
 | ------- | ----------------------------------------------------- | -------- | ---------- |
-| [0001](./0001-verdict-status-codec.md) | 评测状态码（沙箱 ↔ 后端）              | accepted | 2026-05-xx |
-| [0002](./0002-sandbox-hexagonal-dform.md) | 沙箱六边形重构（D-form）                  | accepted | 2026-05-xx |
-| [0003](./0003-queue-outbox-fencing.md) | 评测 outbox 围栏（`judge_outbox`、lease） | accepted | 2026-06-13 |
-| [0004](./0004-notification-intents-ledger.md) | 通知 intents + 投递账本                | accepted | 2026-06-13 |
-| [0005](./0005-rolling-deploy-rollback.md) | 滚动部署 + 回滚演练                        | accepted | 2026-06-xx |
-| [0005a](./0005a-rollback-drill.md) | 回滚演练自动化                              | accepted | 2026-06-xx |
-| [0006](./0006-contest-scoring-activation.md) | 比赛评分引擎激活                     | accepted | 2026-06-17 |
-| [0007](./0007-virtual-contest-rating-isolation.md) | 虚拟赛生命周期 + 等级隔离          | accepted | 2026-06-17 |
-| [0008](./0008-websocket-cookie-auth.md) | WebSocket 鉴权（仅 cookie，禁 query token）          | accepted | 2026-06-xx |
-| [0009](./0009-israted-gate.md) | `isRated` 门控 + 虚拟等级隔离             | accepted | 2026-06-xx |
-| [0010](./0010-cancel-state-virtual-replay.md) | 取消态 + 虚拟回放边界                | accepted | 2026-06-xx |
-| [0011](./0011-crit6-shadow-mode.md) | CRIT-6 shadow mode 评估                         | proposed | 2026-06-xx |
+| [[0001-verdict-status-codec|0001]] | 评测状态码（沙箱 ↔ 后端）              | accepted | 2026-05-xx |
+| [[0002-sandbox-hexagonal-dform|0002]] | 沙箱六边形重构（D-form）                  | accepted | 2026-05-xx |
+| [[0003-queue-outbox-fencing|0003]] | 评测 outbox 围栏（`judge_outbox`、lease） | accepted | 2026-06-13 |
+| [[0004-notification-intents-ledger|0004]] | 通知 intents + 投递账本                | accepted | 2026-06-13 |
+| [[0005-rolling-deploy-rollback|0005]] | 滚动部署 + 回滚演练                        | accepted | 2026-06-xx |
+| [[0005a-rollback-drill|0005a]] | 回滚演练自动化                              | accepted | 2026-06-xx |
+| [[0006-contest-scoring-activation|0006]] | 比赛评分引擎激活                     | accepted | 2026-06-17 |
+| [[0007-virtual-contest-rating-isolation|0007]] | 虚拟赛生命周期 + 等级隔离          | accepted | 2026-06-17 |
+| [[0008-websocket-cookie-auth|0008]] | WebSocket 鉴权（仅 cookie，禁 query token）          | accepted | 2026-06-xx |
+| [[0009-israted-gate|0009]] | `isRated` 门控 + 虚拟等级隔离             | accepted | 2026-06-xx |
+| [[0010-cancel-state-virtual-replay|0010]] | 取消态 + 虚拟回放边界                | accepted | 2026-06-xx |
+| [[0011-crit6-shadow-mode|0011]] | CRIT-6 shadow mode 评估                         | proposed | 2026-06-xx |
 
 > **状态说明**：上表是权威索引。`CODEMAPS/architecture.md` §"Architecture Decisions" 是镜像 — **同一个 PR** 里同步更新两边。
+>
+> **日期说明**：标 `2026-xx-xx` / `2026-06-xx` 的条目是决策接受时的精确日**尚未回填**（占位符，诚实表示"未知"）。知悉真实日期者请把 `date:` frontmatter 与本表同步补全为 `YYYY-MM-DD` —— **不要编造日期**（ADR 不可变，历史日期是事实）。
 
 ## 编写工作流
 
@@ -133,6 +135,6 @@ superseded_by: <ADR-NNNN 或 N/A>
 
 ## 参见
 
-- [`docs/CODEMAPS/architecture.md`](../CODEMAPS/architecture.md) — 架构总览，列出当前 ADR
-- [`docs/RUNBOOK.md`](../RUNBOOK.md) §5 — 回滚流程按编号引用 ADR
-- [`docs/CONTRIBUTING.md`](../CONTRIBUTING.md) §11 — ADR PR 的评审礼仪
+- [[CODEMAPS/architecture|docs/CODEMAPS/architecture.md]] — 架构总览，列出当前 ADR
+- [[RUNBOOK|docs/RUNBOOK.md]] §5 — 回滚流程按编号引用 ADR
+- [[CONTRIBUTING|docs/CONTRIBUTING.md]] §11 — ADR PR 的评审礼仪

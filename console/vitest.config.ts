@@ -39,6 +39,19 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**", "**/shared/**"],
     root: fileURLToPath(new URL("./src", import.meta.url)),
     globals: true,
+    server: {
+      // shared/ is reached through the @/shared/... alias, but its real
+      // files live at the repo root (console/src/shared -> ../../shared).
+      // Without this inline list, vitest resolves bare imports inside
+      // shared/* (e.g. axiosCsrfInterceptor.ts -> `import axios from
+      // 'axios'`) starting from the file's physical location — which
+      // has no node_modules — and fails with "Failed to resolve import".
+      // Marking the prefix `shared/` as inline forces vitest to bundle
+      // it from this app's resolve root so console/node_modules wins.
+      deps: {
+        inline: [/^shared\//],
+      },
+    },
   },
   resolve: {
     alias: {

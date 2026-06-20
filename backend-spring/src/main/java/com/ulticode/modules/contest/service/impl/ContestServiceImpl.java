@@ -422,14 +422,27 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
-    @Cacheable(value = "contestRanking", key = "'globalPaginated:' + #page + ':' + #limit")
-    public PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit) {
+    @Cacheable(value = "contestRanking", key = "'globalPaginated:' + #page + ':' + #limit + ':' + (#country ?: '_all')")
+    public PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit, String country) {
         int currentPage = (page != null && page > 0) ? page : 1;
         int currentLimit = (limit != null && limit > 0) ? Math.min(limit, 100) : 50;
+        boolean filtered = country != null && !country.isBlank();
 
-        long total = globalRankingMapper.countTotal();
+        long total = filtered
+                ? globalRankingMapper.findByCountry(country).size()
+                : globalRankingMapper.countTotal();
         int offset = (currentPage - 1) * currentLimit;
-        List<GlobalRanking> rankings = globalRankingMapper.findRankingsPaginated(currentLimit, offset);
+        List<GlobalRanking> rankings = filtered
+                ? globalRankingMapper.findByCountry(country)
+                : globalRankingMapper.findRankingsPaginated(currentLimit, offset);
+        // Apply in-memory pagination for the filtered branch since findByCountry
+        // returns the full per-country list; for the global branch the SQL already
+        // paginated.
+        if (filtered) {
+            int from = Math.min(offset, rankings.size());
+            int to = Math.min(offset + currentLimit, rankings.size());
+            rankings = rankings.subList(from, to);
+        }
         List<ContestRankingVO> paginatedList = rankings.stream()
                 .map(this::toRankingVO)
                 .collect(Collectors.toList());

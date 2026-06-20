@@ -191,8 +191,10 @@ public class ContestController {
      * Get global rankings with pagination.
      * Public endpoint - accessible without authentication.
      *
-     * @param page  the page number (1-based)
-     * @param limit the number of items per page
+     * @param page    the page number (1-based)
+     * @param limit   the number of items per page
+     * @param country optional country filter (matches against global_rankings.country);
+     *                null/blank returns the unfiltered global leaderboard
      * @return paginated list of global rankings
      */
     @Operation(summary = "Get global rankings with pagination", description = "Get paginated global leaderboard")
@@ -202,9 +204,11 @@ public class ContestController {
             @Parameter(description = "Page number (1-based)")
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @Parameter(description = "Number of items per page")
-            @RequestParam(required = false, defaultValue = "50") Integer limit) {
+            @RequestParam(required = false, defaultValue = "50") Integer limit,
+            @Parameter(description = "Country filter (matches global_rankings.country)")
+            @RequestParam(required = false) String country) {
 
-        PageResult<ContestRankingVO> result = contestService.getGlobalRankingsPaginated(page, limit);
+        PageResult<ContestRankingVO> result = contestService.getGlobalRankingsPaginated(page, limit, country);
         return Result.success(result);
     }
 

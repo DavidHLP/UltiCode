@@ -634,11 +634,11 @@ const handleMobileTOCClick = (id: string) => {
     <!-- Right Sidebar Column: details & sticky TOC -->
     <aside
       v-if="isWideLayout && thread"
-      class="flex flex-col gap-4 w-60 shrink-0 self-stretch select-none"
+      class="flex flex-col gap-4 w-60 shrink-0 self-stretch sticky top-14 max-h-[calc(100vh-4rem)] overflow-y-auto select-none"
     >
       <!-- Author Profile Card -->
       <div
-        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 flex flex-col gap-3"
+        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 flex flex-col gap-3 w-full max-w-[16rem]"
       >
         <div class="flex items-center gap-2">
           <Avatar class="h-9 w-9 border border-border/40 shrink-0">
@@ -690,14 +690,14 @@ const handleMobileTOCClick = (id: string) => {
       <!-- Table of Contents Widget -->
       <div
         v-if="headings.length > 1"
-        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 sticky top-4 self-start"
+        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 self-stretch w-full max-w-[16rem]"
       >
         <div
           class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
         >
           {{ t("forum.sidebar.toc") }}
         </div>
-        <nav class="flex flex-col gap-1 max-h-[calc(100vh-8rem)] overflow-y-auto">
+        <nav class="flex flex-col gap-1">
           <button
             v-for="h in headings"
             :key="h.id"

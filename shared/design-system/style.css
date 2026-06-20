@@ -484,15 +484,24 @@
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
   }
+  /*
+   * Use `overflow-x: clip` (not `hidden`) to prevent horizontal scrollbar
+   * while keeping html/body out of the scroll-container chain. `hidden`
+   * implicitly forces `overflow-y: auto`, which turns the root into a
+   * scroll container and breaks `position: sticky` for every descendant
+   * (sticky elements would scroll with the page instead of pinning to
+   * the viewport). `clip` clips overflow without creating a scroll
+   * container, so sticky behaves correctly against the viewport.
+   */
   html {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground;
     font-family: var(--uc-type-body-family);
     font-size: var(--uc-type-body-size);
     line-height: var(--uc-type-body-line-height);
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   h1, h2, h3, h4, h5, h6 {

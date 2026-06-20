@@ -239,7 +239,10 @@ const createdAgo = computed(() =>
 // --- Table of Contents & Scroll Spy ---
 const getPostContent = () => {
   if (!thread.value) return "";
+  // Prefer explicit body, then excerpt (current backend stores the full
+  // markdown under `excerpt`), then text-typed media attachments.
   if (thread.value.body) return thread.value.body;
+  if (thread.value.excerpt) return thread.value.excerpt;
   if (thread.value.media) {
     const m = thread.value.media as {
       type?: string;
@@ -259,34 +262,96 @@ const getPostContent = () => {
   return "";
 };
 
+const slugifyHeading = (text: string) =>
+  text
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
+
 const headings = computed(() => {
   const content = getPostContent();
   const lines = content.split("\n");
-  const result: { id: string; text: string; level: number }[] = [];
+  const result: { id: string; text: string; level: number; exists: boolean }[] =
+    [];
   let codeBlock = false;
+  const seenIds = new Set<string>();
 
+  const pushUnique = (entry: {
+    id: string;
+    text: string;
+    level: number;
+    exists: boolean;
+  }) => {
+    let id = entry.id;
+    let suffix = 2;
+    while (seenIds.has(id)) {
+      id = `${entry.id}-${suffix++}`;
+    }
+    seenIds.add(id);
+    result.push({ ...entry, id });
+  };
+
+  // First pass: explicit ## / ### markdown headings (rendered as <h2>/<h3> by
+  // renderMarkdown, which assigns a matching `id`).
   lines.forEach((line: string) => {
     const trimmed = line.trim();
     if (trimmed.startsWith("```")) {
       codeBlock = !codeBlock;
+      return;
     }
     if (codeBlock) return;
-
-    // Match ## heading or ### heading
     const match = trimmed.match(/^(#{2,3})\s+(.+)$/);
     if (match) {
       const level = match[1].length;
       const text = match[2].trim();
-      const id = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
-      result.push({ id, text, level });
+      pushUnique({
+        id: slugifyHeading(text),
+        text,
+        level,
+        exists: true,
+      });
     }
   });
 
+  // Fallback pass: when there are few/zero headings, harvest bold lead-ins
+  // and short standalone bold lines so short posts still get a useful TOC.
+  if (result.length < 2) {
+    lines.forEach((line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("```")) return;
+      if (trimmed.startsWith("#")) return;
+      const boldLead = trimmed.match(/^\*\*([^*][^*]*?):\*\*\s*$/);
+      if (boldLead) {
+        const text = boldLead[1].trim();
+        pushUnique({
+          id: slugifyHeading(text),
+          text,
+          level: 3,
+          exists: false,
+        });
+        return;
+      }
+      const standaloneBold = trimmed.match(/^\*\*([^*][^*]*?)\*\*\s*$/);
+      if (standaloneBold) {
+        const text = standaloneBold[1].trim();
+        if (text.length <= 40) {
+          pushUnique({
+            id: slugifyHeading(text),
+            text,
+            level: 3,
+            exists: false,
+          });
+        }
+      }
+    });
+  }
+
   // Always append comments section
-  result.push({
+  pushUnique({
     id: "comments-section",
     text: t("forum.comments.title"),
     level: 2,
+    exists: true,
   });
 
   return result;
@@ -362,10 +427,39 @@ onBeforeUnmount(() => {
 });
 
 const scrollToHeading = (id: string) => {
-  const el = document.getElementById(id);
+  let el = document.getElementById(id);
+  if (!el) {
+    // Fallback entries aren't real headings; locate the matching rendered
+    // <strong> text and scroll/highlight it instead.
+    const heading = headings.value.find((h) => h.id === id);
+    if (heading && heading.exists === false) {
+      const strongs = document.querySelectorAll(
+        ".markdown-view strong, .markdown-view p",
+      );
+      for (const node of Array.from(strongs)) {
+        if (
+          (node.textContent || "").trim().replace(/[:：]\s*$/, "") ===
+          heading.text
+        ) {
+          el = node as HTMLElement;
+          break;
+        }
+      }
+    }
+  }
   if (el) {
     el.scrollIntoView({ behavior: "smooth", block: "start" });
     activeHeadingId.value = id;
+    if (el.tagName !== "H2" && el.tagName !== "H3") {
+      el.classList.add("ring-2", "ring-[var(--solarized-blue)]", "rounded-sm");
+      window.setTimeout(() => {
+        el?.classList.remove(
+          "ring-2",
+          "ring-[var(--solarized-blue)]",
+          "rounded-sm",
+        );
+      }, 1500);
+    }
   }
 };
 
@@ -378,10 +472,10 @@ const handleMobileTOCClick = (id: string) => {
 <template>
   <div
     ref="wrapperRef"
-    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500"
+    class="mx-auto flex w-full max-w-7xl items-start gap-6 px-4 py-8 relative"
   >
     <main
-      class="min-w-0 space-y-6"
+      class="min-w-0 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
       :class="[isWideLayout ? 'max-w-4xl flex-1' : 'w-full']"
     >
       <div v-if="isLoading" class="space-y-6">
@@ -399,21 +493,19 @@ const handleMobileTOCClick = (id: string) => {
 
       <template v-else-if="thread">
         <div class="space-y-4">
-          <!-- Back Link Header -->
-          <div class="flex items-center">
-            <RouterLink
-              to="/forum"
-              class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground hover:border-[var(--silver-300)] active:bg-[var(--silver-200)] dark:active:bg-[var(--silver-300)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
-            >
-              <ArrowLeft class="h-3.5 w-3.5 mr-1.5" />
-              <span>{{ t("forum.feedback.backToDiscussions") }}</span>
-            </RouterLink>
-          </div>
-
           <div class="terminal-card overflow-hidden w-full">
             <div
-              class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-6 pt-4"
+              class="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-4"
             >
+              <!-- Back Link: placed in the toolbar so the right sidebar's
+                   Author Profile card shares the thread card's top edge -->
+              <RouterLink
+                to="/forum"
+                class="inline-flex h-8 px-3 items-center justify-center rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] text-[var(--solarized-base01)] dark:text-[var(--solarized-base0)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--solarized-base03)] dark:hover:text-foreground hover:border-[var(--silver-300)] active:bg-[var(--silver-200)] dark:active:bg-[var(--silver-300)] active:scale-[0.98] transition-all font-bold text-xs shadow-sm"
+              >
+                <ArrowLeft class="h-3.5 w-3.5 mr-1.5" />
+                <span>{{ t("forum.feedback.backToDiscussions") }}</span>
+              </RouterLink>
               <!-- Mobile Table of Contents button (narrow container only) -->
               <div v-if="!isWideLayout && headings.length > 1" class="relative">
                 <Button
@@ -435,7 +527,7 @@ const handleMobileTOCClick = (id: string) => {
                   <div
                     class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/85 border-b border-border/50 pb-1"
                   >
-                    文章大纲
+                    {{ t("forum.sidebar.toc") }}
                   </div>
                   <nav class="flex flex-col gap-1 max-h-60 overflow-y-auto">
                     <button
@@ -539,14 +631,14 @@ const handleMobileTOCClick = (id: string) => {
       </div>
     </main>
 
-    <!-- Right Sidebar Column: Sticky details & TOC -->
+    <!-- Right Sidebar Column: details & sticky TOC -->
     <aside
       v-if="isWideLayout && thread"
-      class="flex flex-col gap-4 w-60 shrink-0 sticky top-4 select-none"
+      class="flex flex-col gap-4 w-60 shrink-0 self-stretch select-none"
     >
       <!-- Author Profile Card -->
       <div
-        class="bg-[var(--card)] border border-border p-4 shadow-sm flex flex-col gap-3"
+        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 flex flex-col gap-3"
       >
         <div class="flex items-center gap-2">
           <Avatar class="h-9 w-9 border border-border/40 shrink-0">
@@ -598,14 +690,14 @@ const handleMobileTOCClick = (id: string) => {
       <!-- Table of Contents Widget -->
       <div
         v-if="headings.length > 1"
-        class="bg-[var(--card)] border border-border shadow-sm p-4"
+        class="terminal-card overflow-hidden bg-[var(--card)] border border-border p-4 sticky top-4 self-start"
       >
         <div
           class="text-2xs font-bold uppercase tracking-wider text-muted-foreground/80 mb-2.5 border-b border-border/50 pb-1.5 select-none font-mono"
         >
-          文章大纲
+          {{ t("forum.sidebar.toc") }}
         </div>
-        <nav class="flex flex-col gap-1">
+        <nav class="flex flex-col gap-1 max-h-[calc(100vh-8rem)] overflow-y-auto">
           <button
             v-for="h in headings"
             :key="h.id"

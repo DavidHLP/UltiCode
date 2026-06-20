@@ -113,6 +113,7 @@ export default {
     postsWeek: "Posts This Week",
     communityRules: "Community Rules",
     resources: "Resources",
+    toc: "Outline",
   },
 
   // Categories

@@ -130,6 +130,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # where the global ignore isn't installed.
 .claude/settings.local.json
 .claude/.arthas/
+.zcode/
 # ====================================================================
 # 6. 测试与覆盖率 (Tests & Coverage)
 # ====================================================================

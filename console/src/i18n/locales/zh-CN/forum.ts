@@ -111,6 +111,7 @@ export default {
     postsWeek: "本周帖子",
     communityRules: "社区规则",
     resources: "相关资源",
+    toc: "文章大纲",
   },
 
   // Categories

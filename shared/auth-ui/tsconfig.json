@@ -1,13 +1,36 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.tsx"],
-  "exclude": ["node_modules", "dist", "**/__tests__/**"],
+  // Inlined from `@vue/tsconfig` (^0.7.0) — see
+  // node_modules/@vue/tsconfig/{tsconfig.json,tsconfig.dom.json}.
+  // We inline instead of `extends` because the Docker build context for
+  // console/management does not install shared/auth-ui dependencies, so
+  // oxc fails to resolve `@vue/tsconfig` and reports "Tsconfig not found"
+  // for every .vue file under shared/auth-ui. Mirroring the config keeps
+  // local dev and CI builds identical.
   "compilerOptions": {
     "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "noImplicitThis": true,
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "libReplacement": false,
+    "skipLibCheck": true,
     "baseUrl": ".",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**"]
 }

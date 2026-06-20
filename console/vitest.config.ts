@@ -50,11 +50,18 @@ export default defineConfig({
       // tests pass on machines where the symlink is intact (local dev)
       // and on CI where it has been replaced with a regular directory.
       "@/shared": fileURLToPath(new URL("../shared", import.meta.url)),
-      // Files inside shared/ (e.g. axiosCsrfInterceptor.ts) do `import
-      // axios from 'axios'`. Resolve bare `axios` from console's own
-      // node_modules so vitest does not look for a phantom axios under
-      // the repo root.
+      // Files inside shared/ (axiosCsrfInterceptor.ts, utils.ts, etc.)
+      // import their runtime deps as bare specifiers. Resolve them from
+      // console/node_modules rather than letting vite walk up from the
+      // shared/ file's physical location (which has no node_modules and
+      // would otherwise fail to resolve axios, clsx, tailwind-merge,
+      // lucide-vue-next on CI). Peer deps (vue / vue-i18n / vue-router)
+      // are already pinned in console/package.json so vite's normal
+      // resolution finds them.
       axios: fileURLToPath(new URL("./node_modules/axios", import.meta.url)),
+      clsx: fileURLToPath(new URL("./node_modules/clsx", import.meta.url)),
+      "tailwind-merge": fileURLToPath(new URL("./node_modules/tailwind-merge", import.meta.url)),
+      "lucide-vue-next": fileURLToPath(new URL("./node_modules/lucide-vue-next", import.meta.url)),
     },
   },
 });

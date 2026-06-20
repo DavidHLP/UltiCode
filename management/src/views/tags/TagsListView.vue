@@ -4,22 +4,18 @@ import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
-  IconCircleXFilled,
   IconDotsVertical,
   IconGitMerge,
   IconHash,
   IconPencil,
   IconPlus,
-  IconRefresh,
   IconTag,
   IconTrash,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,13 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useTagsStore } from '@/stores/admin/tags'
 import { useAuthStore } from '@/stores/auth'
 import { TagType, type Tag } from '@/api/admin/tags'

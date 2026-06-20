@@ -6,8 +6,6 @@ import {
   IconCheck,
   IconMessage,
   IconTrash,
-  IconEye,
-  IconFlag,
   IconUser,
   IconFileText,
 } from '@tabler/icons-vue'
@@ -23,14 +21,13 @@ import {
 
 import { useCommentsStore } from '@/stores/admin/comments'
 import { useAuthStore } from '@/stores/auth'
-import { PERM } from '@/constants/permissions'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { createColumns, type CommentActions } from './columns'
+import { createColumns } from './columns'
 import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
 
 const { t } = useI18n()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSearchPalette } from '@/composables/useSearchPalette'
@@ -35,7 +35,7 @@ import {
 const router = useRouter()
 const { t } = useI18n()
 
-const { isOpen: isSearchOpen, toggle: toggleSearch, close: closeSearch } = useSearchPalette()
+const { isOpen: isSearchOpen, toggle: toggleSearch } = useSearchPalette()
 
 /**
  * Navigation shortcuts. The key is matched case-insensitively against

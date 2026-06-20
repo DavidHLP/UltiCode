@@ -16,8 +16,15 @@ RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-f
 # Copy source code
 COPY console ./console
 
-# Copy shared directory (used by console via @/shared alias)
-COPY shared ./console/src/shared
+# Mirror the monorepo layout: console/ and shared/ are siblings. Locally
+# console/src/shared is a symlink to ../../shared, which `COPY` cannot
+# preserve (it follows symlinks and bakes shared/ into src/shared/). Place
+# shared at the repo root and recreate the symlink so (a) tsconfig.app.json
+# `../shared/auth-ui/...` resolves correctly and (b) the vite `@` alias
+# (mapped to ./src) reaches shared/ via the symlink as it does on host.
+COPY shared ./shared
+RUN rm -rf /app/console/src/shared && \
+    ln -sfn /app/shared /app/console/src/shared
 
 # Build application
 WORKDIR /app/console

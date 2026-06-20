@@ -16,8 +16,15 @@ RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-f
 # Copy source code
 COPY management ./management
 
-# Copy shared directory (used by management via @/shared alias)
-COPY shared ./management/src/shared
+# Mirror the monorepo layout: management/ and shared/ are siblings. Locally
+# management/src/shared is a symlink to ../../shared, which `COPY` cannot
+# preserve (it follows symlinks and bakes shared/ into src/shared/). Place
+# shared at the repo root and recreate the symlink so (a) tsconfig.app.json
+# `../shared/auth-ui/...` resolves correctly and (b) the vite `@` alias
+# (mapped to ./src) reaches shared/ via the symlink as it does on host.
+COPY shared ./shared
+RUN rm -rf /app/management/src/shared && \
+    ln -sfn /app/shared /app/management/src/shared
 
 # Build application
 WORKDIR /app/management

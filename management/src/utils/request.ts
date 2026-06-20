@@ -124,13 +124,11 @@ const service: AxiosInstance = axios.create({
 
 const refreshAccessToken = createRefreshAccessToken(csrfManager)
 const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL, refreshAccessToken)
-// Cast to any to handle axios version mismatch between auth-core (1.16.0) and management (1.14.0)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-service.interceptors.request.use(csrfInterceptors.requestInterceptor as any)
+service.interceptors.request.use(csrfInterceptors.requestInterceptor)
 
 service.interceptors.response.use(
-  csrfInterceptors.responseInterceptor as any,
-  csrfInterceptors.errorInterceptor as any,
+  csrfInterceptors.responseInterceptor,
+  csrfInterceptors.errorInterceptor,
 )
 
 /**

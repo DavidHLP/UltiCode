@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconClock, IconUser, IconInfoCircle, IconArrowRight, IconChevronDown, IconChevronRight } from '@tabler/icons-vue'
@@ -71,7 +71,10 @@ interface ChangeEntry {
   newVal: string
 }
 
-function getChanges(oldValues: Record<string, any> | null, newValues: Record<string, any> | null): ChangeEntry[] {
+function getChanges(
+  oldValues: Record<string, unknown> | null,
+  newValues: Record<string, unknown> | null,
+): ChangeEntry[] {
   const changes: ChangeEntry[] = []
   const allKeys = new Set([
     ...Object.keys(oldValues || {}),
@@ -92,20 +95,23 @@ function getChanges(oldValues: Record<string, any> | null, newValues: Record<str
   return changes
 }
 
-function formatValue(val: any): string {
+function formatValue(val: unknown): string {
   if (val === null || val === undefined) return '—'
   if (typeof val === 'object') return JSON.stringify(val)
   return String(val)
 }
 
-function formatJson(val: any): string {
-  if (!val) return '—'
+function formatJson(val: unknown): string {
+  if (val === null || val === undefined) return '—'
+  let parsed: unknown = val
   if (typeof val === 'string') {
     try {
-      val = JSON.parse(val)
-    } catch {}
+      parsed = JSON.parse(val)
+    } catch {
+      return val
+    }
   }
-  return JSON.stringify(val, null, 2)
+  return JSON.stringify(parsed, null, 2)
 }
 </script>
 

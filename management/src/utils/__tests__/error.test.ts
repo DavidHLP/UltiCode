@@ -31,7 +31,7 @@ describe('getErrorContext', () => {
        
       const error = new ApiError('Invalid field', 400, {
         data: { message: 'Invalid field' },
-      } as any)
+      } as unknown as Parameters<typeof ApiError>[2])
       const result = getErrorContext(error, 'Create', mockT)
 
       expect(result.title).toBe('Validation Error')

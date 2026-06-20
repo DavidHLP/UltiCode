@@ -45,13 +45,9 @@ function getInitialLocale(): string {
   return 'zh-CN' // Default locale
 }
 
-const messages: Record<string, any> = {
+const messages = {
   'zh-CN': zhCN,
   'en-US': enUS,
-}
-
-export async function loadLocale(locale: 'zh-CN' | 'en-US'): Promise<void> {
-  // Eagerly loaded, nothing to do
 }
 
 // Create i18n instance
@@ -68,7 +64,7 @@ export const i18n = createI18n({
 
 // Get active locale from i18n instance
 export function getActiveLocale(): string {
-  const locale = i18n.global.locale.value as string
+  const locale = i18n.global.locale.value
   if (['zh-CN', 'en-US'].includes(locale)) {
     return locale
   }

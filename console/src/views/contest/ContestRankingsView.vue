@@ -32,8 +32,8 @@ watch(isConnected, (connected) => {
 const liveRankings = ref<unknown[] | null>(null);
 const unsubscribeRanking = onRankingUpdate((data) => {
   if (Array.isArray(data)) liveRankings.value = data;
-  else if (data && typeof data === "object" && Array.isArray((data as any).items)) {
-    liveRankings.value = (data as any).items;
+  else if (data && typeof data === "object" && Array.isArray((data as { items?: unknown[] }).items)) {
+    liveRankings.value = (data as { items?: unknown[] }).items ?? null;
   }
 });
 
@@ -102,7 +102,7 @@ onMounted(async () => {
   if (contestId.value) {
     try {
       await joinContest(contestId.value);
-    } catch (e) {
+    } catch {
       // joinContest may reject if the user is not registered; the
       // server-side ContestSubscribeAuthInterceptor (F-17) handles this.
     }
@@ -114,8 +114,6 @@ onMounted(async () => {
 // list so the template can show the freshest order. If the WS feed
 // is empty, we keep the REST result; the v-if guards against showing
 // an empty list before the first REST response.
-const rankingList = computed(() => liveRankings.value);
-
 onUnmounted(() => {
   unsubscribeRanking();
   void leaveContest();

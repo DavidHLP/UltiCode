@@ -39,8 +39,6 @@ const filteredTags = computed(() => {
 
 const showSearch = computed(() => store.allTags.length > 20)
 
-const tagsContainerId = ref(`tags-container-${Math.random().toString(36).substring(2, 9)}`)
-
 function toggleTag(tagId: string) {
   const current = [...modelValueSafe.value]
   const index = current.indexOf(tagId)

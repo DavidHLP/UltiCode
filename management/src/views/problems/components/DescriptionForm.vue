@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Accordion,
   AccordionContent,
@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { IconFileDescription, IconCheck } from '@tabler/icons-vue'
-import { Badge } from '@/components/ui/badge'
 import MarkdownEditor from '@/components/problem/MarkdownEditor.vue'
 import ExamplesEditor from './ExamplesEditor.vue'
 import ConstraintsEditor from './ConstraintsEditor.vue'

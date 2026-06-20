@@ -145,11 +145,12 @@ public interface ContestService {
     /**
      * Get global ranking with pagination.
      *
-     * @param page  the page number (1-based)
-     * @param limit the number of items per page
+     * @param page    the page number (1-based)
+     * @param limit   the number of items per page
+     * @param country optional country filter (ISO code or free-text match); null/blank = global
      * @return paginated list of global rankings
      */
-    PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit);
+    PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit, String country);
 
     /**
      * Register a user for a contest.

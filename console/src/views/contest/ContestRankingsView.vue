@@ -47,10 +47,27 @@ const initialLoading = ref(true);
 
 const userCountry = computed(() => {
   const user = authStore.user as Record<string, unknown> | null;
-  if (user && typeof user.country === "string") {
-    return user.country;
+  // Resolution order:
+  //   1. explicit `user.country` (matches backend `users.country` once rolled out)
+  //   2. `user.location` (existing profile field — often contains a country name)
+  //   3. browser language (`zh-CN` → "CN", `en-US` → "US", …)
+  //   4. hard-coded "CN" dev fallback so the "local" tab stays usable while the
+  //      dedicated country column is still being rolled out across the auth/me
+  //      DTOs and the bootstrap seed.
+  if (user) {
+    const country = (user as { country?: unknown }).country;
+    if (typeof country === "string" && country.trim()) return country.trim();
+    const location = (user as { location?: unknown }).location;
+    if (typeof location === "string" && location.trim()) return location.trim();
   }
-  return undefined;
+  if (typeof navigator !== "undefined") {
+    const lang = navigator.language;
+    if (typeof lang === "string" && lang.includes("-")) {
+      const region = lang.split("-").pop();
+      if (region && region.length === 2) return region.toUpperCase();
+    }
+  }
+  return "CN";
 });
 
 const hasUserCountry = computed(() => !!userCountry.value);

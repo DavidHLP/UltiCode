@@ -39,23 +39,22 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**", "**/shared/**"],
     root: fileURLToPath(new URL("./src", import.meta.url)),
     globals: true,
-    server: {
-      // shared/ is reached through the @/shared/... alias, but its real
-      // files live at the repo root (console/src/shared -> ../../shared).
-      // Without this inline list, vitest resolves bare imports inside
-      // shared/* (e.g. axiosCsrfInterceptor.ts -> `import axios from
-      // 'axios'`) starting from the file's physical location — which
-      // has no node_modules — and fails with "Failed to resolve import".
-      // Marking the prefix `shared/` as inline forces vitest to bundle
-      // it from this app's resolve root so console/node_modules wins.
-      deps: {
-        inline: [/^shared\//],
-      },
-    },
   },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // The local monorepo layout has `console/src/shared` as a symlink to
+      // the repo-root `shared/`. CI's `actions/checkout@v6` does not
+      // preserve that symlink, so `@/shared/...` would resolve into a
+      // missing path. Alias directly to the real repo-root location so
+      // tests pass on machines where the symlink is intact (local dev)
+      // and on CI where it has been replaced with a regular directory.
+      "@/shared": fileURLToPath(new URL("../shared", import.meta.url)),
+      // Files inside shared/ (e.g. axiosCsrfInterceptor.ts) do `import
+      // axios from 'axios'`. Resolve bare `axios` from console's own
+      // node_modules so vitest does not look for a phantom axios under
+      // the repo root.
+      axios: fileURLToPath(new URL("./node_modules/axios", import.meta.url)),
     },
   },
 });

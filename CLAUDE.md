@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **[.claude/rules/](./.claude/rules/)** | Claude Code 按 paths 触发的子规则 (backend/, frontend/, database/) | 触及对应路径时自动加载 |
 | **[.cursor/rules/](./.cursor/rules/)** | Cursor IDE 按 globs 触发的 `.mdc` 规则（codegraph、frontend-rules、springboot-rules） | Cursor 环境中触及 `console/`/`management/`/`backend-spring/` 时 |
 | **[.claude/agents/](./.claude/agents/)** | 可调用的领域子代理 | 复杂规划、代码审查、安全审查、TDD、构建修复等场景 |
-| **[docs/](./docs/)** | 项目工程文档。子目录：`README.md`（索引）· `CONTRIBUTING.md`（开发）· `RUNBOOK.md`（on-call）· `ENV.md`（环境变量）· `DOCS_CONVENTIONS.md`（文档规范）· `CODEMAPS/`（架构快照）· `adr/`（决策记录）· `ops/`（运维深读）· **`theme/`**（前端主题系统，6 篇：Token / 颜色模式 / 密度 / 组件原语 / 扩展；2026-06-19 新增） | 查架构/部署/合规走 [`docs/README.md` §1–§3](./docs/README.md) 的"先读这份"表 |
+| **[docs/](./docs/)** | 项目工程文档（llm-wiki 活知识库）。顶层：`README.md`（着陆）· `SCHEMA.md`（三层/三动作/写作规范）· `index.md`（内容目录）· `log.md`（维护时间线）· `CONTRIBUTING.md`（开发）· `RUNBOOK.md`（on-call）· `ENV.md`（环境变量）；子目录：`CODEMAPS/`（架构快照）· `adr/`（决策记录）· `entities/`·`concepts/`（综合页）· `ops/`（运维深读）· **`theme/`**（前端主题系统，6 篇：Token / 颜色模式 / 密度 / 组件原语 / 扩展） | 查架构/部署/合规走 [`docs/index.md`](./docs/index.md) 的"先读这份"表；维护规则见 [`docs/SCHEMA.md`](./docs/SCHEMA.md) |
 | **[docs/theme/](./docs/theme/)** | 前端主题系统（2026-06-19 新增）。4 层分层（state / tokens / primitives / bootstrap）、Design Token 全集、light/dark/system + compact/comfortable 切换、组件原语清单。**项目字体 = LXGW WenKai 楷体，全站统一（包括 Monaco 编辑器 / ECharts 默认字体）** | 改前端颜色 / 字体 / 密度 / 动效 / 组件样式时先读 [`docs/theme/README.md`](./docs/theme/README.md) |
 
 子代理简表（详见 `.claude/agents/<name>.md`）：

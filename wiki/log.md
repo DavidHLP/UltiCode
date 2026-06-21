@@ -17,9 +17,38 @@ Format: `## [YYYY-MM-DD] <type> | <summary>`
 
 ---
 
+## [2026-06-21] ingest | Promoted 9 low-density modules to entity pages (admin/search/i18n/monitoring/backup/achievement/follow/subscription + interactions merge)
+
+Closed the 10 follow-up module page gaps from the initial bootstrap. Eight
+modules got their own page; `bookmark` + `vote` + `edgeoperations` were
+**merged** into a single `interactions` page because the three modules share
+the same widget surface (the "interactions" UI hits all three) and the data
+model shares `targetType` semantics. The `backend-modules-overview` table was
+rewritten to point at the new pages (the previous `(table only)` markers
+across `admin` / `search` / `i18n` / `monitoring` / `backup` /
+`achievement` / `follow` / `bookmark` / `vote` / `subscription` rows are
+gone). `index.md` updated to 25 entities; total now **48 pages**.
+
+**New entity pages (8)**: `admin`, `search`, `i18n`, `monitoring`, `backup`,
+`achievement`, `follow`, `subscription`.
+
+**New merged entity page (1)**: `interactions` (`bookmark` + `vote` +
+`edgeoperations`).
+
+**Updated**: `overview/backend-modules-overview.md` (10 row links + the
+"16/10" intro), `index.md` (10 new lines + counts), `log.md` (this entry).
+
+**Design notes**:
+- `search` is **MeiliSearch**, not Elasticsearch — corrected from the
+  original `(Elasticsearch-shaped)` table marker.
+- `interactions` deliberately keeps three Java modules' detail in one
+  page; splitting them would repeat the same widget flow three times.
+- `subscription` has **two** controllers (`/admin/subscriptions` +
+  `/subscription`); only the user-facing one is non-admin.
+
 ## [2026-06-21] bootstrap | Initial wiki scaffold (39 pages)
 
-Created the wiki from a clean `docs/` directory, following the LLM Wiki pattern
+Created the wiki from a clean `wiki/` directory, following the LLM Wiki pattern
 and [`SCHEMA.md`](SCHEMA.md). Decisions locked: full first cut (~39 pages),
 pure-idea taxonomy (`overview/` + `entities/` + `concepts/`), English prose.
 
@@ -47,6 +76,6 @@ arthas-diagnostics.
 bookmark, vote, edgeoperations, i18n, monitoring, backup, search, achievement,
 follow, subscription) are covered by the `backend-modules-overview` table rather
 than their own entity page; `CLAUDE.md`/`AGENTS.md` still reference the old
-`docs/theme|ops|adr|CODEMAPS` paths and need updating separately; the wiki is the
+`wiki/theme|ops|adr|CODEMAPS` paths and need updating separately; the wiki is the
 knowledge layer and does not duplicate the command layer.
 

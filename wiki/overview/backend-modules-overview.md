@@ -13,9 +13,9 @@ sources:
 
 The backend is 26 modules under `backend-spring/src/main/java/com/ulticode/modules/`.
 Each follows the [[concepts/module-layering|controller→service→mapper→entity]] shape.
-This page is the index of all 26 — **16 have their own entity page**, the other 10
-(lower knowledge density) are described in the table here and can be promoted later
-via ingest.
+This page is the index of all 26 — **25 have their own entity page**, the
+remaining one (`vote` + `edgeoperations` are merged into
+[[entities/interactions]]) is described in the table here.
 
 Controllers expose these `@RequestMapping` prefixes (public unless `/admin/`):
 
@@ -47,9 +47,9 @@ End-to-end: [[overview/judging-pipeline-overview]]. Pattern:
 | `auth` | `/auth` | login/logout, JWT issue, CSRF token | [[entities/auth]] |
 | `refreshtoken` | *(via `/auth/refresh`)* | hash-only refresh token store, rotate/revoke | [[entities/refreshtoken]] |
 | `permission` | *(internal)* | RBAC: `user_permissions`, `role_permissions` | [[entities/permission]] |
-| `follow` | `/users` (sub-routes) | follow graph, `user_follows` | *(table only)* |
-| `bookmark` | `/bookmarks` | collections / collection_items | *(table only)* |
-| `vote` (`edgeoperations`) | `/edge-operations` | likes/saves via `edge_operations` | *(table only)* |
+| `follow` | `/users` (sub-routes) | follow graph, `user_follows` | [[entities/follow]] |
+| `bookmark` | `/bookmarks` | collections / collection_items | [[entities/interactions]] |
+| `vote` (`edgeoperations`) | `/edge-operations` | likes/saves via `edge_operations` | [[entities/interactions]] |
 
 Auth deep-dive: [[overview/auth-flow-overview]]. Security model:
 [[concepts/security-invariants]] · [[concepts/refresh-token-hash-only-storage]] ·
@@ -71,18 +71,18 @@ Pattern: [[concepts/notification-idempotency]].
 | Module | Prefix | Owns | Entity page |
 |--------|--------|------|-------------|
 | `moderation` | `/moderation` | reports, queue, actions (warn/ban/delete/restore), appeals | [[entities/moderation]] |
-| `achievement` | `/achievements` | achievements, `user_achievements` | *(table only)* |
-| `subscription` | `/subscription` | paid/VIP tier entitlements | *(table only)* |
+| `achievement` | `/achievements` | achievements, `user_achievements` | [[entities/achievement]] |
+| `subscription` | `/subscription` | paid/VIP tier entitlements | [[entities/subscription]] |
 
 ## Platform
 
 | Module | Prefix | Owns | Entity page |
 |--------|--------|------|-------------|
-| `admin` | `/admin/{users,problems,contest,forum,...}`, `/admin/dashboard`, `/admin/audit` | aggregated admin surface + `audit_logs`, `system_settings` | *(table only — largest module, ~145 files)* |
-| `search` | `/search` | search integration (Elasticsearch-shaped) | *(table only)* |
-| `i18n` | `/i18n` | `translations` table, locale serving | *(table only)* |
-| `monitoring` | `/monitoring` | health/metrics surface | *(table only)* |
-| `backup` | `/admin/backups` | DB export/restore jobs, `backups` | *(table only)* |
+| `admin` | `/admin/{users,problems,contest,forum,...}`, `/admin/dashboard`, `/admin/audit` | aggregated admin surface + `audit_logs`, `system_settings` | [[entities/admin]] |
+| `search` | `/search` | search integration (MeiliSearch) | [[entities/search]] |
+| `i18n` | `/i18n` | `translations` table, locale serving | [[entities/i18n]] |
+| `monitoring` | `/monitoring` | health/metrics surface | [[entities/monitoring]] |
+| `backup` | `/admin/backups` | DB export/restore jobs, `backups` | [[entities/backup]] |
 
 ## Cross-cutting packages (not modules)
 

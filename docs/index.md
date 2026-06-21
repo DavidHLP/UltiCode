@@ -1,0 +1,69 @@
+---
+title: Index
+type: index
+tags: [meta]
+status: living
+updated: 2026-06-21
+sources: []
+---
+
+# Index
+
+Catalog of every page in the wiki, grouped by type. One line per page. When you
+ingest a new source, add its line here and append to [`log.md`](log.md). See
+[`SCHEMA.md`](SCHEMA.md) for the conventions.
+
+## Meta
+
+- [README](README.md) — landing: what the wiki is, 3 layers, 3 operations, how to use
+- [SCHEMA](SCHEMA.md) — the convention doc: layers, operations, frontmatter, linking, writing rules
+- [Index](index.md) — this catalog
+- [Log](log.md) — append-only maintenance timeline
+
+## Overviews — whole-system synthesis
+
+- [Architecture Overview](overview/architecture-overview.md) — system map, request lifecycle, tech stack
+- [Backend Modules Overview](overview/backend-modules-overview.md) — all 26 modules, prefixes, ownership
+- [Frontend Apps Overview](overview/frontend-apps-overview.md) — console + management + shared, API styles
+- [Judging Pipeline Overview](overview/judging-pipeline-overview.md) — submit → queue → sandbox → judge → notify
+- [Auth Flow Overview](overview/auth-flow-overview.md) — login → JWT → CSRF → WebSocket → RBAC
+- [Database Schema Overview](overview/database-schema-overview.md) — tables by domain + migration timeline
+- [Dev Environment Overview](overview/dev-environment-overview.md) — PM2 + docker + scripts + Arthas + traps
+
+## Entities — domain objects & modules
+
+- [Submission](entities/submission.md) — judging state machine, generation fence, lease
+- [Contest](entities/contest.md) — lifecycle, scoring rules, rankings, virtual mode
+- [Problem](entities/problem.md) — CRUD, test cases, versions, notes
+- [Notification](entities/notification.md) — intent + delivery ledger + push
+- [User](entities/user.md) — profile, settings, rating
+- [Auth](entities/auth.md) — login/logout, token issue, CSRF mint
+- [Forum](entities/forum.md) — posts, comments, communities, tags
+- [Moderation](entities/moderation.md) — reports, queue, action handlers, appeals
+- [Judge Queue](entities/judge-queue.md) — outbox → streams → worker (hexagonal)
+- [Sandbox (D-form)](entities/sandbox.md) — judge image, 4 languages, seccomp
+- [Solution](entities/solution.md) — community writeups + comments + topics
+- [Problem List](entities/problemlist.md) — curated problem collections
+- [WebSocket](entities/websocket.md) — realtime push, cookie-only auth
+- [Permission](entities/permission.md) — RBAC roles + per-user grants
+- [Refresh Token](entities/refreshtoken.md) — hash-only refresh store
+- [Email](entities/email.md) — templates, logs, verification
+
+## Concepts — decisions, patterns, invariants
+
+- [Exactly-Once Judging](concepts/exactly-once-judging.md) — outbox + generation fence + lease
+- [Notification Idempotency](concepts/notification-idempotency.md) — intent + delivery ledger dedup
+- [Refresh Token Hash-Only Storage](concepts/refresh-token-hash-only-storage.md) — irrecoverable refresh tokens
+- [Virtual Contest](concepts/virtual-contest.md) — isolated replay sessions
+- [Security Invariants](concepts/security-invariants.md) — the non-negotiable rules
+- [CSRF Mechanism](concepts/csrf-mechanism.md) — Redis double-submit token
+- [Sandbox Security Contract](concepts/sandbox-security-contract.md) — seccomp + zero-import preamble
+- [Theme System](concepts/theme-system.md) — 4-layer, LXGW WenKai, FOUC killer
+- [Result Envelope & Case Mapping](concepts/result-envelope-and-case-mapping.md) — Result&lt;T&gt; + snake↔camel
+- [Module Layering](concepts/module-layering.md) — controller→service→mapper→entity
+- [Flyway Migration Discipline](concepts/flyway-migration-discipline.md) — append-only, no credential seeds
+- [Arthas Diagnostics](concepts/arthas-diagnostics.md) — STATELESS MCP + degrade path
+
+---
+
+**Counts**: 4 meta · 7 overviews · 16 entities · 12 concepts = **39 pages**.

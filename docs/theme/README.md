@@ -77,12 +77,12 @@ docs/theme/                         ← 本目录（设计文档）
 | 改 `shared/theme/src/index.ts` 公共 API | `architecture.md` §1                            |
 | 改 `theme-bootstrap.js` 行为        | `theme-modes.md` §1、§2                         |
 
-PR 描述里附上文档同步的 checklist（参见根 [[DOCS_CONVENTIONS#7 更新流程|`DOCS_CONVENTIONS.md` §7]]）。
+PR 描述里附上文档同步的 checklist（参见根 [[SCHEMA#8 更新流程|`SCHEMA.md` §8]]）。
 
 ## 参见
 
 - [[frontend|docs/CODEMAPS/frontend.md]] — 仓库前端架构、路由、store
-- [[DOCS_CONVENTIONS|docs/DOCS_CONVENTIONS.md]] — 文档编写规范（frontmatter / 命名 / 链接）
+- [[SCHEMA|docs/SCHEMA.md]] — 文档 wiki schema（三层 / 三动作 / frontmatter / 命名 / 链接）
 - `shared/theme/src/` — 状态层代码（`ThemeMode.ts` / `storage.ts` / `useTheme.ts` / `applyThemeToDOM.ts`）
 - `shared/design-system/style.css` — Token 层主文件（1257 行）
 - `shared/theme/src/typography.css` — 字体 Token 主文件

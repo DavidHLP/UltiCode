@@ -1,7 +1,7 @@
 ---
 title: Architecture Overview
 type: overview
-tags: [architecture, map]
+tags: [architecture, map, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -17,10 +17,13 @@ sources:
 
 # Architecture Overview
 
+> [!quote] Essence
+> Three deployable apps (backend, console, management) + shared libraries
+> (`shared/auth-core`, `shared/theme`) + Flyway migrations + D-form sandbox.
+
 UltiCode is an online judge: users solve programming problems, submit code, and
 get it judged in an isolated sandbox; contests, a forum, achievements, and a
-notification system sit on top. The system is **three deployable apps + shared
-libraries + a migration tool + an execution sandbox**.
+notification system sit on top.
 
 ## System map
 
@@ -122,3 +125,11 @@ controllers. Responses are wrapped in `Result<T>` — see
 
 Operational specifics (PM2, Arthas, the sandbox image build) live in
 `AGENTS.md` and `CLAUDE.md`; this page is the map, not the runbook.
+
+## Links out
+
+> [!link] Related pages
+> - [[overview/backend-modules-overview]] · [[overview/frontend-apps-overview]]
+> - [[overview/judging-pipeline-overview]] · [[overview/auth-flow-overview]]
+> - [[overview/database-schema-overview]] · [[overview/dev-environment-overview]]
+> - [[concepts/module-layering]] · [[concepts/result-envelope-and-case-mapping]]

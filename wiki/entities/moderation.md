@@ -1,7 +1,7 @@
 ---
 title: Moderation
 type: entity
-tags: [moderation, trust-safety, core]
+tags: [moderation, trust-safety, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

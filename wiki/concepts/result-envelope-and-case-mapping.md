@@ -1,7 +1,7 @@
 ---
 title: Result Envelope & Case Mapping
 type: concept
-tags: [api, backend, frontend]
+tags: [api, backend, frontend, type/concept]
 status: living
 updated: 2026-06-21
 sources:

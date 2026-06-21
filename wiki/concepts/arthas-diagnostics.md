@@ -1,7 +1,7 @@
 ---
 title: Arthas Diagnostics
 type: concept
-tags: [ops, runtime, diagnostics]
+tags: [ops, runtime, diagnostics, type/concept]
 status: living
 updated: 2026-06-21
 sources:

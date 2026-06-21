@@ -1,7 +1,7 @@
 ---
 title: Exactly-Once Judging
 type: concept
-tags: [judging, idempotency, core]
+tags: [judging, idempotency, core, type/concept]
 status: living
 updated: 2026-06-21
 sources:

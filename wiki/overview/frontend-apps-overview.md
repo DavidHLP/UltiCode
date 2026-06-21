@@ -1,7 +1,7 @@
 ---
 title: Frontend Apps Overview
 type: overview
-tags: [frontend, map]
+tags: [frontend, map, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -14,10 +14,11 @@ sources:
 
 # Frontend Apps Overview
 
-Two Vue 3 single-page apps — `console/` (users, port 9002) and `management/`
-(admins, port 9003) — plus shared libraries in `shared/`. Both are TypeScript +
-Vite + Pinia + Tailwind v4 + shadcn-vue, but they differ in **API style** and
-**audience**.
+> [!quote] Essence
+> Two Vue 3 single-page apps — `console/` (users, port 9002) and `management/`
+> (admins, port 9003) — plus shared libraries in `shared/`. Both are TypeScript +
+> Vite + Pinia + Tailwind v4 + shadcn-vue, but they differ in **API style** and
+> **audience**.
 
 ## Map
 
@@ -78,15 +79,22 @@ console/   (port 9002, users)        management/   (port 9003, admins)
 
 ## Type alignment with backend
 
-Frontend uses proper TS enums; backend DTO enum fields are still raw `String`
-(e.g. `PerformModerationActionDTO.action`). Some management API files define
-"ghost" types with no backend endpoint yet (`UserWarning`, `CreateUserBanDto`) —
-treat as dead code until an endpoint appears. Aligning shared DTO/enums is an
-audited cross-stack procedure — see the `cross-stack-dto-granularity-alignment`
-skill, and [[concepts/result-envelope-and-case-mapping]].
+> [!warning] Open alignment item
+> Frontend uses proper TS enums; backend DTO enum fields are still raw `String`
+> (e.g. `PerformModerationActionDTO.action`). Some management API files define
+> "ghost" types with no backend endpoint yet (`UserWarning`, `CreateUserBanDto`) —
+> treat as dead code until an endpoint appears. Aligning shared DTO/enums is an
+> audited cross-stack procedure — see the `cross-stack-dto-granularity-alignment`
+> skill, and [[concepts/result-envelope-and-case-mapping]].
 
 ## Toolchain pins
 
 Node `^20.19.0 || >=22.12.0`, pnpm 10, each package with its **own** lockfile
 (no root install substituting for `console/`/`management/`/`shared/auth-core/`).
 Verification commands live in `AGENTS.md` § Verification Matrix.
+
+## Links out
+
+> [!link] Related pages
+> - [[overview/architecture-overview]]
+> - [[concepts/result-envelope-and-case-mapping]] · [[concepts/theme-system]]

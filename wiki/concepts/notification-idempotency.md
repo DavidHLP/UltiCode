@@ -1,7 +1,7 @@
 ---
 title: Notification Idempotency
 type: concept
-tags: [notification, idempotency]
+tags: [notification, idempotency, type/concept]
 status: living
 updated: 2026-06-21
 sources:

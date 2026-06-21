@@ -1,7 +1,7 @@
 ---
 title: UltiCode Wiki
 type: index
-tags: [meta]
+tags: [meta, type/index, type/landing]
 status: living
 updated: 2026-06-21
 sources:
@@ -10,6 +10,11 @@ sources:
 ---
 
 # UltiCode Wiki
+
+> [!tldr] One-sentence summary
+> A persistent, **LLM-maintained** knowledge base for the UltiCode online-judge
+> platform — compiled once and kept current, with semantic color-group callouts
+> per `SCHEMA.md § 9`.
 
 A persistent, **LLM-maintained** knowledge base for the UltiCode online-judge
 platform. Unlike RAG — which re-derives answers from raw files on every question —
@@ -21,7 +26,8 @@ You read it. The LLM writes and maintains all of it. Think of it as the codebase
 own companion wiki — the cross-references are already wired, the architecture is
 already mapped, the hard decisions are already recorded.
 
-> Browse in Obsidian for the graph view, or read on GitHub — every link resolves either way.
+> Browse in Obsidian for the graph view (where the color-group callouts really
+> land), or read on GitHub — every link resolves either way.
 
 ## Start here
 
@@ -61,11 +67,15 @@ wiki/
 ├── README.md   SCHEMA.md   index.md   log.md
 ├── overview/   # synthesis — architecture, pipelines, whole-system maps
 ├── entities/   # domain objects & backend modules
-└── concepts/   # cross-cutting decisions, patterns, invariants
+├── concepts/   # cross-cutting decisions, patterns, invariants
+├── templates/  # Obsidian templates (entity / concept / overview / daily-note)
+└── daily-notes/  # one file per day — human ingest journal (see SCHEMA § 10)
 ```
 
 ## Status
 
 Bootstrapped **2026-06-21** with 39 pages (4 skeleton + 7 overviews + 16 entities
-+ 12 concepts). See [`log.md`](log.md) for the evolution timeline. Pages marked
-`status: stub` in frontmatter are placeholders awaiting a deeper ingest pass.
++ 12 concepts). Promoted 9 low-density modules the same day → **48 pages**
+(7 overviews + 25 entities + 12 concepts). See [`log.md`](log.md) for the
+evolution timeline. Pages marked `status: stub` in frontmatter are placeholders
+awaiting a deeper ingest pass.

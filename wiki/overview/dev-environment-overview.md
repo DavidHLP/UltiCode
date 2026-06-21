@@ -1,7 +1,7 @@
 ---
 title: Development Environment Overview
 type: overview
-tags: [ops, dev, map]
+tags: [ops, dev, map, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -15,10 +15,11 @@ sources:
 
 # Development Environment Overview
 
-What runs locally, how it's orchestrated, and the ordering traps that bite. This
-is the **knowledge layer** — the operational command reference lives in
-`AGENTS.md` and `CLAUDE.md`. Runtime diagnostics deep-dive:
-[[concepts/arthas-diagnostics]].
+> [!quote] Essence
+> What runs locally, how it's orchestrated, and the ordering traps that bite.
+> This is the **knowledge layer** — the operational command reference lives in
+> `AGENTS.md` and `CLAUDE.md`. Runtime diagnostics deep-dive:
+> [[concepts/arthas-diagnostics]].
 
 ## What runs
 
@@ -75,23 +76,24 @@ Fix path: `up.sh --skip-install` re-runs the sequence in order.
 
 ## Known traps
 
-- **`pm2 restart --update-env` does not reload `envFromFile`** — it uses the
-  daemon cache. If `.env` changed and 9001 throws `RedisWrongPasswordException`
-  with ↺ climbing, force a re-read: `pm2 delete ulticode-9001 && pm2 start
-  ecosystem.config.cjs --only ulticode-9001`. Inspect the real env via
-  `/proc/$(pm2 pid ulticode-9001)/environ` (`pm2 env <id>` shows stale values).
-- **`up.sh` cold-start pause is expected** — the dev-admin bootstrap
-  (`spring-boot:run --web-application-type=none`) blocks ~105s before the timeout
-  reaps it ("Bootstrap JVM did not self-exit… continuing"). Don't intervene; the
-  real failure signal is the background output file's mtime stalling **plus** PM2
-  empty **plus** ports free.
-- **MySQL charset via `docker exec`** — the container defaults
-  `character_set_client=latin1`. Direct `docker exec mysql -e "INSERT 中文…"`
-  double-encodes. Always pass `--default-character-set=utf8mb4` (or `SET NAMES
-  utf8mb4;`). The JDBC URL already has `useUnicode=true&characterEncoding=UTF-8`,
-  so app/Flyway writes are fine — only manual `docker exec` is affected.
-- **No Spring Actuator** — don't use `/actuator/health` for readiness. Use a known
-  public API + the two frontend roots + PM2 status + container health checks.
+> [!warning] Traps
+> - **`pm2 restart --update-env` does not reload `envFromFile`** — it uses the
+>   daemon cache. If `.env` changed and 9001 throws `RedisWrongPasswordException`
+>   with ↺ climbing, force a re-read: `pm2 delete ulticode-9001 && pm2 start
+>   ecosystem.config.cjs --only ulticode-9001`. Inspect the real env via
+>   `/proc/$(pm2 pid ulticode-9001)/environ` (`pm2 env <id>` shows stale values).
+> - **`up.sh` cold-start pause is expected** — the dev-admin bootstrap
+>   (`spring-boot:run --web-application-type=none`) blocks ~105s before the timeout
+>   reaps it ("Bootstrap JVM did not self-exit… continuing"). Don't intervene; the
+>   real failure signal is the background output file's mtime stalling **plus** PM2
+>   empty **plus** ports free.
+> - **MySQL charset via `docker exec`** — the container defaults
+>   `character_set_client=latin1`. Direct `docker exec mysql -e "INSERT 中文…"`
+>   double-encodes. Always pass `--default-character-set=utf8mb4` (or `SET NAMES
+>   utf8mb4;`). The JDBC URL already has `useUnicode=true&characterEncoding=UTF-8`,
+>   so app/Flyway writes are fine — only manual `docker exec` is affected.
+> - **No Spring Actuator** — don't use `/actuator/health` for readiness. Use a known
+>   public API + the two frontend roots + PM2 status + container health checks.
 
 ## Arthas runtime diagnostics
 
@@ -113,9 +115,17 @@ dashboard/thread/watch/trace/ognl directly.
 
 ## Security posture (dev)
 
-- Dev override (`docker-compose.dev.yml`) binds infra ports **only to `127.0.0.1`**.
-- Base/prod compose publish **no** MySQL/Redis/Nacos/backend ports.
-- Nacos auth stays on; default `nacos/nacos` stays disabled.
-- Dev login `admin`/`admin123` is dev-profile-only bootstrap, off in prod.
+> [!danger] Production-vs-dev port exposure
+> - Dev override (`docker-compose.dev.yml`) binds infra ports **only to `127.0.0.1`**.
+> - Base/prod compose publish **no** MySQL/Redis/Nacos/backend ports.
+> - Nacos auth stays on; default `nacos/nacos` stays disabled.
+> - Dev login `admin`/`admin123` is dev-profile-only bootstrap, off in prod.
+>
+> Invariants: [[concepts/security-invariants]]. Operational commands: `AGENTS.md`.
 
-Invariants: [[concepts/security-invariants]]. Operational commands: `AGENTS.md`.
+## Links out
+
+> [!link] Related pages
+> - [[overview/architecture-overview]]
+> - [[concepts/arthas-diagnostics]] · [[concepts/security-invariants]]
+> - [[concepts/theme-system]]

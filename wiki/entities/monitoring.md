@@ -1,7 +1,7 @@
 ---
 title: Monitoring
 type: entity
-tags: [monitoring, platform, ops]
+tags: [monitoring, platform, ops, type/entity]
 status: living
 updated: 2026-06-21
 sources:

@@ -1,7 +1,7 @@
 ---
 title: Permission
 type: entity
-tags: [auth, security, rbac]
+tags: [auth, security, rbac, type/entity]
 status: living
 updated: 2026-06-21
 sources:

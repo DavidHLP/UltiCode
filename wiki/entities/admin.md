@@ -1,7 +1,7 @@
 ---
 title: Admin
 type: entity
-tags: [admin, platform, core]
+tags: [admin, platform, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

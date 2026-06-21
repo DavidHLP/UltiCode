@@ -1,7 +1,7 @@
 ---
 title: Contest
 type: entity
-tags: [contest, core]
+tags: [contest, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

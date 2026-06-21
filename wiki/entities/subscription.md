@@ -1,7 +1,7 @@
 ---
 title: Subscription
 type: entity
-tags: [subscription, billing, vip]
+tags: [subscription, billing, vip, type/entity]
 status: living
 updated: 2026-06-21
 sources:

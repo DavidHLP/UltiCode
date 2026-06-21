@@ -1,7 +1,7 @@
 ---
 title: WebSocket
 type: entity
-tags: [websocket, realtime, security]
+tags: [websocket, realtime, security, type/entity]
 status: living
 updated: 2026-06-21
 sources:

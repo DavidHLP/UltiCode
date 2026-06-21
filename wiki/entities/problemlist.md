@@ -1,7 +1,7 @@
 ---
 title: Problem List
 type: entity
-tags: [problemlist, community]
+tags: [problemlist, community, type/entity]
 status: living
 updated: 2026-06-21
 sources:

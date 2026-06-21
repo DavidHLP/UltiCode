@@ -1,7 +1,7 @@
 ---
 title: Judge Queue
 type: entity
-tags: [judging, queue, core]
+tags: [judging, queue, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

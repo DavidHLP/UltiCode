@@ -1,7 +1,7 @@
 ---
 title: Auth Flow Overview
 type: overview
-tags: [auth, security, map]
+tags: [auth, security, map, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -14,10 +14,9 @@ sources:
 
 # Auth Flow Overview
 
-How a request proves who it is, stays logged in, and is allowed to do the thing.
-UltiCode uses **JWT access + refresh tokens in HttpOnly cookies**, a **Redis-backed
-CSRF token**, and **RBAC** (`user_permissions` / `role_permissions`). The security
-invariants are non-negotiable — see [[concepts/security-invariants]].
+> [!quote] Essence
+> JWT access + refresh in HttpOnly cookies + Redis-backed CSRF + RBAC. Security
+> invariants are non-negotiable — see [[concepts/security-invariants]].
 
 ## The tokens
 
@@ -75,11 +74,12 @@ See [[entities/refreshtoken]] and [[concepts/refresh-token-hash-only-storage]].
 
 ## WebSocket auth
 
-- Authentication is **only** via the access-token cookie on the handshake.
-- **Forbidden**: query-string token, URL token, client-side STOMP auth header.
-- Rationale: keeping the credential out of URLs/logs — see [[concepts/security-invariants]].
-
-See [[entities/websocket]].
+> [!danger] Auth contract
+> - Authentication is **only** via the access-token cookie on the handshake.
+> - **Forbidden**: query-string token, URL token, client-side STOMP auth header.
+> - Rationale: keeping the credential out of URLs/logs — see [[concepts/security-invariants]].
+>
+> See [[entities/websocket]].
 
 ## Authorization (RBAC)
 
@@ -105,6 +105,7 @@ does not "revoke" them instantly — the short TTL is the mitigation.
 
 ## Reading order
 
-`entities/auth` → `concepts/csrf-mechanism` → `entities/refreshtoken` →
-`concepts/refresh-token-hash-only-storage` → `concepts/security-invariants` →
-`entities/permission`.
+> [!link] Suggested path
+> `entities/auth` → `concepts/csrf-mechanism` → `entities/refreshtoken` →
+> `concepts/refresh-token-hash-only-storage` → `concepts/security-invariants` →
+> `entities/permission`.

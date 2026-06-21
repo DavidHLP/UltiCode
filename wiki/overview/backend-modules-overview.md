@@ -1,7 +1,7 @@
 ---
 title: Backend Modules Overview
 type: overview
-tags: [backend, map, modules]
+tags: [backend, map, modules, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -11,11 +11,11 @@ sources:
 
 # Backend Modules Overview
 
-The backend is 26 modules under `backend-spring/src/main/java/com/ulticode/modules/`.
-Each follows the [[concepts/module-layering|controller→service→mapper→entity]] shape.
-This page is the index of all 26 — **25 have their own entity page**, the
-remaining one (`vote` + `edgeoperations` are merged into
-[[entities/interactions]]) is described in the table here.
+> [!quote] Essence
+> 26 backend modules under `backend-spring/src/main/java/com/ulticode/modules/`,
+> each following the [[concepts/module-layering|controller→service→mapper→entity]]
+> shape. 25 have their own entity page; `vote` + `edgeoperations` are merged into
+> [[entities/interactions]].
 
 Controllers expose these `@RequestMapping` prefixes (public unless `/admin/`):
 
@@ -100,3 +100,10 @@ Outside `modules/`, under `com.ulticode`:
 - "What tables back this?" → the entity page's **Key tables** section, or
   [[overview/database-schema-overview]].
 - "What's the convention for adding a module?" → `AGENTS.md` + `.claude/rules/backend/`.
+
+## Links out
+
+> [!link] Related pages
+> - [[overview/architecture-overview]] · [[overview/auth-flow-overview]]
+> - [[overview/judging-pipeline-overview]] · [[overview/database-schema-overview]]
+> - [[concepts/module-layering]]

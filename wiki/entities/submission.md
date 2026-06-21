@@ -1,7 +1,7 @@
 ---
 title: Submission
 type: entity
-tags: [judging, core]
+tags: [judging, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

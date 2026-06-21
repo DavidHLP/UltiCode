@@ -1,7 +1,7 @@
 ---
 title: Sandbox Security Contract
 type: concept
-tags: [sandbox, security]
+tags: [sandbox, security, type/concept]
 status: living
 updated: 2026-06-21
 sources:

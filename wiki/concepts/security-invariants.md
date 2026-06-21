@@ -1,7 +1,7 @@
 ---
 title: Security Invariants
 type: concept
-tags: [security, meta]
+tags: [security, meta, type/concept]
 status: living
 updated: 2026-06-21
 sources:

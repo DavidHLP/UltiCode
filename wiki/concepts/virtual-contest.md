@@ -1,7 +1,7 @@
 ---
 title: Virtual Contest
 type: concept
-tags: [contest]
+tags: [contest, type/concept]
 status: living
 updated: 2026-06-21
 sources:

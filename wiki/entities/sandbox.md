@@ -1,7 +1,7 @@
 ---
 title: Sandbox (D-form)
 type: entity
-tags: [judging, sandbox, security, core]
+tags: [judging, sandbox, security, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

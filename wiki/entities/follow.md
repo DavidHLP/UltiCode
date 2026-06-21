@@ -1,7 +1,7 @@
 ---
 title: Follow
 type: entity
-tags: [follow, social, user]
+tags: [follow, social, user, type/entity]
 status: living
 updated: 2026-06-21
 sources:

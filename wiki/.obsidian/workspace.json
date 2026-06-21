@@ -4,17 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "7d7f35e75875b37c",
+        "id": "7c76d9f9e0fda306",
         "type": "tabs",
         "children": [
           {
-            "id": "09ac12fb003c7f0e",
+            "id": "1fe40eba9182d14d",
             "type": "leaf",
             "state": {
-              "type": "graph",
+              "type": "empty",
               "state": {},
-              "icon": "lucide-git-fork",
-              "title": "关系图谱"
+              "icon": "lucide-file",
+              "title": "新标签页"
             }
           }
         ]
@@ -177,6 +177,8 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
       "switcher:打开快速切换": false,
       "graph:查看关系图谱": false,
       "canvas:新建白板": false,
@@ -185,8 +187,9 @@
       "realclaudian:Open Claudian": false
     }
   },
-  "active": "09ac12fb003c7f0e",
+  "active": "1fe40eba9182d14d",
   "lastOpenFiles": [
+    "daily-notes/2026-06-21.md",
     "SCHEMA.md.tmp.817141.83a80bc743ba",
     "log.md.tmp.817141.10e52d59c701",
     "SCHEMA.md.tmp.817141.db878c7be8ce",
@@ -196,10 +199,8 @@
     "SCHEMA.md.tmp.817141.a37a030f948b",
     "SCHEMA.md.tmp.817141.c3281be7e733",
     "SCHEMA.md.tmp.817141.457b93a91146",
-    "daily-notes/2026-06-21.md",
     "daily-notes/2026-06-21.md.tmp.817141.4899550b1573",
     "templates/daily-note.md",
-    "templates/daily-note.md.tmp.817141.dc4624bfc006",
     "overview/architecture-overview.md",
     "overview/backend-modules-overview.md",
     "entities/interactions.md",

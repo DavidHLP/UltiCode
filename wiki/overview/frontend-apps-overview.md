@@ -35,7 +35,7 @@ console/   (port 9002, users)        management/   (port 9003, admins)
 ├── stores/      Pinia                  │                system, tags, solutions, audit
 ├── components/  + ui/ (shadcn)         ├── stores/      Pinia (auth)
 ├── composables/ useXxx                 ├── components/  TestCasesEditor, MarkdownEditor…
-├── i18n/        vue-i18n (en/zh)       ├── i18n/        vue-i18n + docs/i18n-design.md
+├── i18n/        vue-i18n (en/zh)       ├── i18n/        vue-i18n + wiki/i18n-design.md
 └── utils/       request.ts (Axios)     └── utils/       request.ts (Axios)
 ```
 

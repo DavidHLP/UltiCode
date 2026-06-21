@@ -39,7 +39,7 @@ already mapped, the hard decisions are already recorded.
 | Layer | What | Owner |
 |-------|------|-------|
 | **Raw sources** | The codebase + `AGENTS.md` / `CLAUDE.md` / `.claude/rules/`. Immutable truth. | Humans |
-| **The wiki** | This `docs/` tree — distilled, interlinked markdown. | LLM |
+| **The wiki** | This `wiki/` tree — distilled, interlinked markdown. | LLM |
 | **The schema** | [`SCHEMA.md`](SCHEMA.md) — how the wiki is structured & maintained. | Human + LLM |
 
 The wiki is the **knowledge layer** (how things work and why). `AGENTS.md` and
@@ -57,7 +57,7 @@ Full workflows in [`SCHEMA.md`](SCHEMA.md) § 2.
 ## Layout
 
 ```
-docs/
+wiki/
 ├── README.md   SCHEMA.md   index.md   log.md
 ├── overview/   # synthesis — architecture, pipelines, whole-system maps
 ├── entities/   # domain objects & backend modules

@@ -48,6 +48,15 @@ ingest a new source, add its line here and append to [`log.md`](log.md). See
 - [Permission](entities/permission.md) — RBAC roles + per-user grants
 - [Refresh Token](entities/refreshtoken.md) — hash-only refresh store
 - [Email](entities/email.md) — templates, logs, verification
+- [Admin](entities/admin.md) — aggregated admin surface, audit logs, system settings
+- [Search](entities/search.md) — MeiliSearch full-text across problems/users/posts/solutions
+- [I18n](entities/i18n.md) — per-entity translation rows, locale serving
+- [Monitoring](entities/monitoring.md) — admin-only system/DB/queue/Redis/health telemetry
+- [Backup](entities/backup.md) — DB export/restore with scheduled runs
+- [Achievement](entities/achievement.md) — badge catalog + event-driven earnings
+- [Follow](entities/follow.md) — directed follow graph on `/users/{id}/follow*`
+- [Subscription](entities/subscription.md) — paid tier / VIP entitlements
+- [Interactions](entities/interactions.md) — bookmarks, votes, edge operations merged
 
 ## Concepts — decisions, patterns, invariants
 
@@ -66,4 +75,4 @@ ingest a new source, add its line here and append to [`log.md`](log.md). See
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 16 entities · 12 concepts = **39 pages**.
+**Counts**: 4 meta · 7 overviews · 25 entities · 12 concepts = **48 pages**.

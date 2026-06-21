@@ -14,8 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **[.claude/rules/](./.claude/rules/)** | Claude Code 按 paths 触发的子规则 (backend/, frontend/, database/) | 触及对应路径时自动加载 |
 | **[.cursor/rules/](./.cursor/rules/)** | Cursor IDE 按 globs 触发的 `.mdc` 规则（codegraph、frontend-rules、springboot-rules） | Cursor 环境中触及 `console/`/`management/`/`backend-spring/` 时 |
 | **[.claude/agents/](./.claude/agents/)** | 可调用的领域子代理 | 复杂规划、代码审查、安全审查、TDD、构建修复等场景 |
-| **[docs/](./docs/)** | 项目工程文档（llm-wiki 活知识库）。顶层：`README.md`（着陆）· `SCHEMA.md`（三层/三动作/写作规范）· `index.md`（内容目录）· `log.md`（维护时间线）· `CONTRIBUTING.md`（开发）· `RUNBOOK.md`（on-call）· `ENV.md`（环境变量）；子目录：`CODEMAPS/`（架构快照）· `adr/`（决策记录）· `entities/`·`concepts/`（综合页）· `ops/`（运维深读）· **`theme/`**（前端主题系统，6 篇：Token / 颜色模式 / 密度 / 组件原语 / 扩展） | 查架构/部署/合规走 [`docs/index.md`](./docs/index.md) 的"先读这份"表；维护规则见 [`docs/SCHEMA.md`](./docs/SCHEMA.md) |
-| **[docs/theme/](./docs/theme/)** | 前端主题系统（2026-06-19 新增）。4 层分层（state / tokens / primitives / bootstrap）、Design Token 全集、light/dark/system + compact/comfortable 切换、组件原语清单。**项目字体 = LXGW WenKai 楷体，全站统一（包括 Monaco 编辑器 / ECharts 默认字体）** | 改前端颜色 / 字体 / 密度 / 动效 / 组件样式时先读 [`docs/theme/README.md`](./docs/theme/README.md) |
+| **[wiki/](./wiki/)** | 项目工程文档（LLM Wiki 活知识库，2026-06-21 重建为纯理念版）。顶层：`README.md`（着陆）· `SCHEMA.md`（三层/三动作/写作规范）· `index.md`（内容目录）· `log.md`（维护时间线）；子目录：`overview/`（综合页）· `entities/`（实体页）· `concepts/`（概念页）· `templates/`（Obsidian ingest 模板） | 查架构/部署/合规走 [`wiki/index.md`](./wiki/index.md) 的"先读这份"表；维护规则见 [`wiki/SCHEMA.md`](./wiki/SCHEMA.md)；运维命令见 `AGENTS.md` |
+| **[shared/theme/](./shared/theme/)** | 前端主题系统（2026-06-19 落地）。4 层分层（state / tokens / primitives / bootstrap）、Design Token 全集、light/dark/system + compact/comfortable 切换、组件原语清单。**项目字体 = LXGW WenKai 楷体，全站统一（包括 Monaco 编辑器 / ECharts 默认字体）**。Wiki 知识页：[[wiki/concepts/theme-system]] | 改前端颜色 / 字体 / 密度 / 动效 / 组件样式时先读 `shared/theme/src/applyThemeToDOM.ts` + wiki 概念页 |
 
 子代理简表（详见 `.claude/agents/<name>.md`）：
 `planner` · `architect` · `code-reviewer` · `java-reviewer` · `security-reviewer` · `tdd-guide` · `build-error-resolver` · `refactor-cleaner` · `doc-updater` · `e2e-runner` · `rust-reviewer`
@@ -168,7 +168,7 @@ java -jar tools/arthas-boot.jar <PID>
   4. **回退**：`./mvnw -Dtest='*IT' test -B` 跑问题单测/集成测试做对照（验证 N+1 / 重复添加逻辑时直接走这条）
   5. 同步 MCP 阻塞 30s 时，**用 `mcp__plugin_context-mode_context-mode__ctx_execute` 跑 java 反射/grep 类检查**（后台子进程，无 MCP 超时）
 - 见 `.claude/rules/backend/09-java-runtime-diagnostics.md` 的强制约束：阻塞命令必须带 `-n N` (N ≤ 5) 限制执行次数
-- **Arthas MCP 实战手册**: `docs/ops/arthas-mcp-usage.md` — 含 watch/trace/stack 真实调用样本(本会话 2026-06-18 验证)、OGNL 速查、降级路径
+- **Arthas MCP 实战手册**: wiki 概念页 [[wiki/concepts/arthas-diagnostics]] — 含 STATELESS pin 协议、三路互斥、watch/trace/tt 真实调用样本(本会话 2026-06-18 验证)、OGNL 速查、降级路径。`scripts/arthas-cli.sh` 是交互式入口。
 - **增强命令并发模式**: 后台 bash `run_in_background=true` 持续 curl 触发目标端点(选没限流的 register/GET,login 是 60s/5 次窗口会被拦截),同步发 `mcp__arthas-mcp__trace/watch/stack` 配 `numberOfExecutions=1` + `timeout=12`;MCP 客户端 timeout 30s,所以 arthas 端 timeout 永远 ≤ 25
 
 ### MCP 配置 (.mcp.json)
@@ -420,7 +420,7 @@ git diff --check
 
 ### Security Invariants
 
-变更认证/部署密钥/seed 账号/网络暴露前**先读** `docs/SECURITY_REVIEW_2026-06-06.md` + `docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md`，用 `security-review` skill。
+变更认证/部署密钥/seed 账号/网络暴露前**先读** wiki 概念页 [[wiki/concepts/security-invariants]] + 关联的 [[concepts/refresh-token-hash-only-storage]] / [[concepts/csrf-mechanism]] / [[concepts/sandbox-security-contract]]，用 `security-review` skill。
 
 - 凭据永不硬编码/提交；运行时密钥来自 `.env` / CI secrets / 部署密钥库
 - **JWT secret ≥ 32 字符**
@@ -517,7 +517,7 @@ git diff --check
 - **Frontend API patterns**: Management uses typed API functions (`moderation.ts` with `moderationQueueApi`, `reportsApi`, `appealsApi`). Console uses direct `apiPost/apiGet` calls without typed wrappers. When adding new APIs, define typed functions for management; console may use direct calls.
 - **Frontend ghost types**: Management API files (e.g., `moderation.ts`) may define types with no backend endpoint (e.g., `UserWarning`, `UserBan`, `CreateUserBanDto`). These are pre-defined for future use — treat as dead code until an endpoint exists.
 - **Cross-stack DTO alignment**: When adding or modifying a shared DTO, API endpoint, or enum value, audit both frontends (`console/` + `management/`) and the backend for field, type, and enum alignment before merging. Do not delete "ghost" frontend types (types defined with no backend endpoint yet) or leave "orphan" backend endpoints (no frontend caller) without confirming with the team — see the `cross-stack-dto-granularity-alignment` skill for the audit procedure.
-- **Analysis docs**: Cross-module analysis reports go in `docs/` at project root (e.g., `docs/moderation-api-granularity-analysis.md`).
+- **Analysis docs**: Cross-module analysis reports go in `wiki/` at project root (e.g., `wiki/moderation-api-granularity-analysis.md`).
 
 ## CI
 
@@ -737,7 +737,7 @@ The dedicated `Grep` and `Glob` tools are NOT available in this environment (ses
 
 ### PRP Output Locations
 *~200 tokens/session saved*
-PRP (ecc:prp-plan / -implement / -commit / -code-review) artifacts have a fixed layout: plans go in `.claude/PRPs/plans/{name}.plan.md`, reports in `.claude/PRPs/reports/{name}.report.md`, reviews in `.claude/reviews/{name}-review.md`. Move completed plans to `.claude/PRPs/plans/completed/`. The whole `.claude/PRPs/` tree is gitignored (see existing rule), so use `git add -f` or move to `docs/` if you need to commit the artifacts.
+PRP (ecc:prp-plan / -implement / -commit / -code-review) artifacts have a fixed layout: plans go in `.claude/PRPs/plans/{name}.plan.md`, reports in `.claude/PRPs/reports/{name}.report.md`, reviews in `.claude/reviews/{name}-review.md`. Move completed plans to `.claude/PRPs/plans/completed/`. The whole `.claude/PRPs/` tree is gitignored (see existing rule), so use `git add -f` or move to `wiki/` if you need to commit the artifacts.
 
 ### Arthas MCP Lifecycle
 *~600 tokens/session saved*
@@ -753,6 +753,6 @@ User says "启动这个项目" → run `./scripts/dev/up.sh` (or `--skip-install
 
 ### PRP Artifacts Gitignore
 *~300 tokens/session saved*
-`.claude/PRPs/{plans,reports,reviews}` is gitignored. To commit PRP artifacts use `git add -f` or move them to a tracked path like `docs/`.
+`.claude/PRPs/{plans,reports,reviews}` is gitignored. To commit PRP artifacts use `git add -f` or move them to a tracked path like `wiki/`.
 
 <!-- headroom:learn:end -->

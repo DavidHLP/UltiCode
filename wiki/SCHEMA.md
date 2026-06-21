@@ -12,7 +12,7 @@ sources:
 # SCHEMA — How this wiki is structured and maintained
 
 This is the **single source of truth** for how the UltiCode wiki is organized.
-Every page in `docs/` follows the rules below. When the LLM ingests a new source,
+Every page in `wiki/` follows the rules below. When the LLM ingests a new source,
 answers a query, or runs a lint pass, it consults this file first.
 
 > Read [`README.md`](README.md) for the 30-second orientation. This file is the
@@ -23,7 +23,7 @@ answers a query, or runs a lint pass, it consults this file first.
 | Layer | What it is | Who writes it |
 |-------|-----------|---------------|
 | **Raw sources** | The codebase and authoritative instruction docs — `backend-spring/`, `console/`, `management/`, `shared/`, `init-db/migrations/`, `docker/`, `scripts/`, `infrastructure/`, `.github/workflows/`, plus `AGENTS.md`, `CLAUDE.md`, `.claude/rules/`. **Immutable.** The source of truth. | Humans |
-| **The wiki** | This `docs/` tree — LLM-generated markdown (entities, concepts, overviews, index, log). Explains, synthesizes, and cross-references the raw sources. | **LLM** (you) |
+| **The wiki** | This `wiki/` tree — LLM-generated markdown (entities, concepts, overviews, index, log). Explains, synthesizes, and cross-references the raw sources. | **LLM** (you) |
 | **The schema** | This file (`SCHEMA.md`) + [`README.md`](README.md). Tells the LLM how the wiki is structured and what workflows to follow. Co-evolved by human + LLM. | Human + LLM |
 
 The wiki **never duplicates** `AGENTS.md` / `CLAUDE.md` directives. Those are the
@@ -31,7 +31,7 @@ The wiki **never duplicates** `AGENTS.md` / `CLAUDE.md` directives. Those are th
 and why). When a page needs an operational fact that lives in `AGENTS.md`, it
 links out: "see `AGENTS.md` § Development Startup" — it does not copy the steps.
 
-Raw sources are **implicit**: there is no `docs/.raw/` mirror. Pages cite sources
+Raw sources are **implicit**: there is no `wiki/.raw/` mirror. Pages cite sources
 by repo-relative path literal (e.g. ``backend-spring/.../modules/submission/``).
 
 ## 2. The three operations
@@ -67,7 +67,7 @@ A periodic health check. Look for:
 ## 3. Directory layout
 
 ```
-docs/
+wiki/
 ├── README.md          # landing / orientation
 ├── SCHEMA.md          # this file
 ├── index.md           # content catalog (one line per page, by type)
@@ -163,10 +163,10 @@ aliases: []                    # alternate names or 中文别名 for search
 
 ```bash
 # All wikilink targets
-grep -rhoE '\[\[[^]|]+' docs/ | sed 's/\[\[//' | sort -u
+grep -rhoE '\[\[[^]|]+' wiki/ | sed 's/\[\[//' | sort -u
 # Pages with no inbound links (orphans) — diff outbound targets against file list
-comm -23 <(find docs -name '*.md' | sed 's#docs/##; s#\.md##' | sort) \
-        <(grep -rhoE '\[\[[^]|]+' docs/ | sed 's/\[\[//' | sort -u)
+comm -23 <(find docs -name '*.md' | sed 's#wiki/##; s#\.md##' | sort) \
+        <(grep -rhoE '\[\[[^]|]+' wiki/ | sed 's/\[\[//' | sort -u)
 # Stale source paths — every sources: entry must exist
 # (spot-check with: ls <path>)
 ```

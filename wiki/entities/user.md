@@ -1,7 +1,7 @@
 ---
 title: User
 type: entity
-tags: [user, core]
+tags: [user, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

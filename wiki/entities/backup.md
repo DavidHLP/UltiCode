@@ -1,7 +1,7 @@
 ---
 title: Backup
 type: entity
-tags: [backup, platform, ops]
+tags: [backup, platform, ops, type/entity]
 status: living
 updated: 2026-06-21
 sources:

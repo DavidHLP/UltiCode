@@ -1,7 +1,7 @@
 ---
 title: Search
 type: entity
-tags: [search, platform]
+tags: [search, platform, type/entity]
 status: living
 updated: 2026-06-21
 sources:

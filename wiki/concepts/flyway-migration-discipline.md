@@ -1,7 +1,7 @@
 ---
 title: Flyway Migration Discipline
 type: concept
-tags: [database, migration]
+tags: [database, migration, type/concept]
 status: living
 updated: 2026-06-21
 sources:

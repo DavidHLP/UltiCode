@@ -1,7 +1,7 @@
 ---
 title: Interactions
 type: entity
-tags: [bookmark, vote, edgeoperations, interactions]
+tags: [bookmark, vote, edgeoperations, interactions, type/entity]
 status: living
 updated: 2026-06-21
 sources:

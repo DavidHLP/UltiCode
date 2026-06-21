@@ -1,7 +1,7 @@
 ---
 title: Database Schema Overview
 type: overview
-tags: [database, schema, map]
+tags: [database, schema, map, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -11,10 +11,11 @@ sources:
 
 # Database Schema Overview
 
-MySQL 9.1 (port 23306). Schema is owned by **Flyway migrations** in
-`init-db/migrations/` — the only source. This page maps the major tables by domain
-and traces the migration timeline (especially the security + idempotency
-hardening). Discipline: [[concepts/flyway-migration-discipline]].
+> [!quote] Essence
+> MySQL 9.1 (port 23306). Schema is owned by **Flyway migrations** in
+> `init-db/migrations/` — the only source. This page maps the major tables by
+> domain and traces the migration timeline (especially the security + idempotency
+> hardening). Discipline: [[concepts/flyway-migration-discipline]].
 
 ## Conventions
 
@@ -27,8 +28,8 @@ hardening). Discipline: [[concepts/flyway-migration-discipline]].
 
 ## Tables by domain
 
-> Derived from `@TableName` annotations. Representative, not exhaustive — grep
-> `@TableName` in a module's `entity/` for the authoritative list.
+Derived from `@TableName` annotations. Representative, not exhaustive — grep
+`@TableName` in a module's `entity/` for the authoritative list.
 
 **Judging**
 - `submissions` — the core submission row (status, generation, lease).
@@ -107,12 +108,13 @@ The three **★ inflection points** are the design backbone: 06-06 security,
 
 ## Seed accounts
 
-- Demo/dev seed users were inserted in the 06-03 batch.
-- `V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts` **locks** those
-  seed accounts afterward — keep it after any demo seed, never delete it.
-- The real admin is created only by the opt-in `AdminBootstrapRunner`
-(dev-profile-only, off in normal startup). **Migrations must never insert a
-usable default user or a public password.**
+> [!warning] Don't break this chain
+> - Demo/dev seed users were inserted in the 06-03 batch.
+> - `V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts` **locks** those
+>   seed accounts afterward — keep it after any demo seed, never delete it.
+> - The real admin is created only by the opt-in `AdminBootstrapRunner`
+>   (dev-profile-only, off in normal startup). **Migrations must never insert a
+>   usable default user or a public password.**
 
 ## Working with migrations
 
@@ -122,3 +124,10 @@ usable default user or a public password.**
   PATH). Repair: `./scripts/dev/migrate.sh repair`. See
   [[concepts/flyway-migration-discipline]].
 - Verify locally: `./scripts/dev/test.sh integration` (Testcontainers MySQL 9.1).
+
+## Links out
+
+> [!link] Related pages
+> - [[concepts/flyway-migration-discipline]]
+> - [[concepts/refresh-token-hash-only-storage]] · [[concepts/exactly-once-judging]]
+> - [[concepts/virtual-contest]]

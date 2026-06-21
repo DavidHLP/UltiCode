@@ -1,7 +1,7 @@
 ---
 title: Problem
 type: entity
-tags: [problem, core]
+tags: [problem, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

@@ -1,7 +1,7 @@
 ---
 title: Judging Pipeline Overview
 type: overview
-tags: [judging, pipeline, core]
+tags: [judging, pipeline, core, type/overview]
 status: living
 updated: 2026-06-21
 sources:
@@ -14,10 +14,10 @@ sources:
 
 # Judging Pipeline Overview
 
-The path a submission travels from keystroke to verdict. This is UltiCode's
-central pipeline and the place three correctness invariants meet:
-**exactly-once delivery**, **generation fencing**, and **lease-protected judging**.
-Deep rationale in [[concepts/exactly-once-judging]].
+> [!quote] Essence
+> The path a submission travels from keystroke to verdict. Three correctness
+> invariants meet here: **exactly-once delivery**, **generation fencing**, and
+> **lease-protected judging**. Deep rationale in [[concepts/exactly-once-judging]].
 
 ## End-to-end
 
@@ -107,5 +107,6 @@ and [[concepts/virtual-contest]].
 
 ## Reading order
 
-`entities/submission` → `entities/judge-queue` → `entities/sandbox` →
-`concepts/exactly-once-judging` → `concepts/notification-idempotency`.
+> [!link] Suggested path
+> `entities/submission` → `entities/judge-queue` → `entities/sandbox` →
+> `concepts/exactly-once-judging` → `concepts/notification-idempotency`.

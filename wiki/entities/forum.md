@@ -1,7 +1,7 @@
 ---
 title: Forum
 type: entity
-tags: [forum, community]
+tags: [forum, community, type/entity]
 status: living
 updated: 2026-06-21
 sources:

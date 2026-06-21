@@ -1,7 +1,7 @@
 ---
 title: Auth
 type: entity
-tags: [auth, security, core]
+tags: [auth, security, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

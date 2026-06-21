@@ -1,7 +1,7 @@
 ---
 title: Theme System
 type: concept
-tags: [frontend, theme, design-system]
+tags: [frontend, theme, design-system, type/concept]
 status: living
 updated: 2026-06-21
 sources:

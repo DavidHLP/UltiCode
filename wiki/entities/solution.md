@@ -1,7 +1,7 @@
 ---
 title: Solution
 type: entity
-tags: [solution, community]
+tags: [solution, community, type/entity]
 status: living
 updated: 2026-06-21
 sources:

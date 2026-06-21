@@ -1,7 +1,7 @@
 ---
 title: Notification
 type: entity
-tags: [notification, core]
+tags: [notification, core, type/entity]
 status: living
 updated: 2026-06-21
 sources:

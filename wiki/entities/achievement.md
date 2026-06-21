@@ -1,7 +1,7 @@
 ---
 title: Achievement
 type: entity
-tags: [achievement, gamification]
+tags: [achievement, gamification, type/entity]
 status: living
 updated: 2026-06-21
 sources:

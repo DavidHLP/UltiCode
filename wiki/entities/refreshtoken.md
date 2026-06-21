@@ -1,7 +1,7 @@
 ---
 title: Refresh Token
 type: entity
-tags: [auth, security]
+tags: [auth, security, type/entity]
 status: living
 updated: 2026-06-21
 sources:

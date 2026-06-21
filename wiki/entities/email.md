@@ -1,7 +1,7 @@
 ---
 title: Email
 type: entity
-tags: [email, communication]
+tags: [email, communication, type/entity]
 status: living
 updated: 2026-06-21
 sources:

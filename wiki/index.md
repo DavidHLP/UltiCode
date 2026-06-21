@@ -1,7 +1,7 @@
 ---
 title: Index
 type: index
-tags: [meta]
+tags: [meta, type/index]
 status: living
 updated: 2026-06-21
 sources: []
@@ -9,9 +9,11 @@ sources: []
 
 # Index
 
-Catalog of every page in the wiki, grouped by type. One line per page. When you
-ingest a new source, add its line here and append to [`log.md`](log.md). See
-[`SCHEMA.md`](SCHEMA.md) for the conventions.
+> [!info] How to maintain
+> Catalog of every page in the wiki, grouped by type. One line per page. When you
+> ingest a new source, add its line here and append to [`log.md`](log.md). See
+> [`SCHEMA.md`](SCHEMA.md) for the conventions, and [`SCHEMA.md § 9`](SCHEMA.md)
+> for the Obsidian callout (color-group) palette used across all content pages.
 
 ## Meta
 

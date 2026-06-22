@@ -68,6 +68,8 @@ module.exports = {
     {
       name: "ulticode-9001",
       // 先 clean install 编译，再启动 Spring Boot，确保代码干净
+      // interpreter: "none" 让 PM2 直接 exec PATH 中的 bash (Git Bash on Windows / bash on Linux)
+      // 注意: 不要用 interpreter: "bash" — PM2 会把 bash 路径和 args 拼成绝对路径调用，引发 Windows "cannot execute binary file"
       script: "bash",
       args: "-c \"cd backend-spring && ./mvnw clean install -DskipTests && ./mvnw spring-boot:run -Dmaven.test.skip=true\"",
       cwd: ".",
@@ -89,10 +91,9 @@ module.exports = {
       // 导致 up.sh 末尾用 127.0.0.1 的就绪检查失败。显式绑定 127.0.0.1
       // 既能通过校验，又符合项目"只 bind loopback"的安全策略。
       name: "ulticode-9002",
-      script: "./node_modules/vite/bin/vite.js",
-      args: "--port 9002 --host 127.0.0.1",
+      script: "node",
+      args: "./node_modules/vite/bin/vite.js --port 9002 --host 127.0.0.1",
       cwd: "./console",
-      interpreter: "none",
       ...logConfig("9002"),
       env: {
         ...envFromFile,
@@ -101,10 +102,9 @@ module.exports = {
     },
     {
       name: "ulticode-9003",
-      script: "./node_modules/vite/bin/vite.js",
-      args: "--port 9003 --host 127.0.0.1",
+      script: "node",
+      args: "./node_modules/vite/bin/vite.js --port 9003 --host 127.0.0.1",
       cwd: "./management",
-      interpreter: "none",
       ...logConfig("9003"),
       env: {
         ...envFromFile,

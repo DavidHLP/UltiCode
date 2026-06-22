@@ -196,3 +196,39 @@ than their own entity page; `CLAUDE.md`/`AGENTS.md` still reference the old
 `wiki/theme|ops|adr|CODEMAPS` paths and need updating separately; the wiki is the
 knowledge layer and does not duplicate the command layer.
 
+## [2026-06-22] ingest | Process Management concept page — PM2 vs Preview port mutex
+
+A recurring 9001/9002/9003 outage pattern motivated this page: Claude Code
+Preview (`pnpm exec vite` in `.claude/launch.json`) and PM2 (`node vite` in
+`ecosystem.config.cjs`) both want the same ports, the Preview tool's
+`autoPort` doesn't work with vite's `--port 0` (the panel points at 9002
+while vite silently slips to 5173), and `pm2 list` shows `ulticode-9001`
+as `online` with `↺=45` when it isn't actually serving — a state no
+existing page warned about.
+
+**New page** — `wiki/concepts/process-management.md` codifies:
+- The two **modes** (PM2 long-running / Preview per-session) and the rule
+  that you pick one, don't mix on the same port.
+- The three operational rules: which mode → which command;
+  `pnpm exec vite --strictPort` (not `pnpm dev`) for Preview; one
+  `scripts/dev/doctor.sh` as the read-only inspector and recommender.
+- Trade-offs — `--strictPort` is loud-on-conflict, doctor is read-only
+  by design, `autoPort: true` is decorative for vite today.
+
+**Cross-links added** — `wiki/index.md` (catalog, 12 → 13 concepts; 48 →
+49 pages) and a forward link from `wiki/overview/dev-environment-overview`
+to the new page (so the existing "PM2 + docker + Arthas" map points
+readers at the new "which mode am I in" question).
+
+**New file in sources** — `scripts/dev/doctor.sh`: 4-port occupancy +
+PM2 health (with `↺ ≥ 10` warning) + Docker container health +
+recommendation. Pure `bash` + `node` (already required by the frontends);
+no `python3` or `jq` dependency. Cross-platform: `lsof` first, `netstat
+-ano` on Windows, `/proc/<pid>/cmdline` on Linux. Exits 0 when all
+listeners are accounted for, 1 if a port is held by an unknown owner.
+
+**Files touched (3 new / edited)**:
+- `wiki/concepts/process-management.md` (new, ~150 lines)
+- `wiki/index.md` (1 line added, count updated)
+- `wiki/overview/dev-environment-overview.md` (1 forward link)
+

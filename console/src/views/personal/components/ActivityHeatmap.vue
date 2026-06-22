@@ -20,7 +20,8 @@ const activityData = computed(() => {
     // Fill in missing days for the last year with 0
     const fullData: { date: string; level: number }[] = [];
     const today = new Date();
-    // Start from 365 days ago
+    // Start from 365 days ago, fill forward in chronological order
+    // (oldest first → today last) so grid-flow-col renders left=old, right=new.
     for (let i = 364; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
@@ -36,10 +37,13 @@ const activityData = computed(() => {
     return fullData;
   }
 
-  // Fallback if no data provided (e.g. loading or empty) - generate empty grid
+  // Fallback if no data provided (e.g. loading or empty) - empty grid in
+  // chronological order (oldest first). Without reverse(), the previous
+  // implementation pushed today→i=364 then back, which grid-flow-col would
+  // render in a confusing reversed date order.
   const emptyData: { date: string; level: number }[] = [];
   const today = new Date();
-  for (let i = 0; i < 365; i++) {
+  for (let i = 364; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
@@ -51,7 +55,7 @@ const activityData = computed(() => {
     }
   }
 
-  return emptyData.reverse();
+  return emptyData;
 });
 
 const getColorClass = (level: number) => {
@@ -61,11 +65,16 @@ const getColorClass = (level: number) => {
     case 2:
       return "bg-[oklch(0.6444_0.1508_118.6/0.4)] dark:bg-[oklch(0.6444_0.1508_118.6/0.5)]";
     case 3:
-      return "bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.7)]";
+      return "bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.6)]";
     case 4:
       return "bg-[oklch(0.6444_0.1508_118.6/0.8)] dark:bg-[oklch(0.6444_0.1508_118.6)]";
     default:
-      return "bg-secondary/60"; // Empty/None
+      // Empty cell: use `bg-muted` instead of `bg-secondary/60` so the
+      // placeholder square is visible in both light and dark themes.
+      // `bg-secondary/60` collapses to near-background in the dark
+      // theme (where --secondary is close to the page background),
+      // making the heatmap appear to have no grid at all.
+      return "bg-muted";
   }
 };
 
@@ -125,7 +134,7 @@ const months = computed(() => [
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{{ t("common.labels.less") }}</span>
         <div class="flex gap-[2px]">
-          <div class="h-3 w-3 rounded-none bg-secondary/60"></div>
+          <div class="h-3 w-3 rounded-none bg-muted"></div>
           <div
             class="h-3 w-3 rounded-none bg-[oklch(0.6444_0.1508_118.6/0.2)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]"
           ></div>

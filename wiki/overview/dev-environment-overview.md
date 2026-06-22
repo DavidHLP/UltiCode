@@ -19,7 +19,9 @@ sources:
 > What runs locally, how it's orchestrated, and the ordering traps that bite.
 > This is the **knowledge layer** — the operational command reference lives in
 > `AGENTS.md` and `CLAUDE.md`. Runtime diagnostics deep-dive:
-> [[concepts/arthas-diagnostics]].
+> [[concepts/arthas-diagnostics]]. When to use the **Preview MCP panel**
+> vs PM2, and how to detect which mode you're in:
+> [[concepts/process-management]].
 
 ## What runs
 
@@ -129,3 +131,4 @@ dashboard/thread/watch/trace/ognl directly.
 > - [[overview/architecture-overview]]
 > - [[concepts/arthas-diagnostics]] · [[concepts/security-invariants]]
 > - [[concepts/theme-system]]
+> - [[concepts/process-management]]

@@ -74,7 +74,8 @@ sources: []
 - [Module Layering](concepts/module-layering.md) — controller→service→mapper→entity
 - [Flyway Migration Discipline](concepts/flyway-migration-discipline.md) — append-only, no credential seeds
 - [Arthas Diagnostics](concepts/arthas-diagnostics.md) — STATELESS MCP + degrade path
+- [Process Management](concepts/process-management.md) — PM2 vs Preview modes, port mutex, doctor.sh
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 25 entities · 12 concepts = **48 pages**.
+**Counts**: 4 meta · 7 overviews · 25 entities · 13 concepts = **49 pages**.

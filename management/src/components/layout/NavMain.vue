@@ -13,7 +13,6 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubItem,
-  SidebarMenuSubButton,
   useSidebar,
 } from '@/components/ui/sidebar'
 import {
@@ -30,6 +29,9 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuArrow } from 'reka-ui'
+import {
+  SidebarMenuSubItem as SharedSidebarMenuSubItem,
+} from '@/shared/sidebar-menu/src'
 
 interface NavItem {
   title: string
@@ -47,36 +49,18 @@ const route = useRoute()
 const { state } = useSidebar()
 const openMenus = ref<Record<string, boolean>>({})
 
-/**
- * Check if the given URL matches the current route.
- * Handles both exact matches and prefix matches for nested routes.
- */
 function isActive(url: string): boolean {
   const currentPath = route.path
-
-  // Exact match
-  if (currentPath === url) {
-    return true
-  }
-
-  // Handle root url special case to avoid matching everything
-  if (url === '/') {
-    return currentPath === '/'
-  }
-
-  // Check if current path starts with url + '/' to ensure we don't match /users-extra against /users
+  if (currentPath === url) return true
+  if (url === '/') return currentPath === '/'
   return currentPath.startsWith(url + '/')
 }
 
-/**
- * Check if any sub-item in a menu item is currently active.
- */
 function isSubmenuActive(item: NavItem): boolean {
   if (!item.items) return false
   return item.items.some((subItem) => isActive(subItem.url))
 }
 
-// Automatically open parent submenu on initial load if any child is active
 watchEffect(() => {
   props.items.forEach((item) => {
     if (item.items && isSubmenuActive(item)) {
@@ -106,7 +90,7 @@ watchEffect(() => {
                   class="h-9 transition-all duration-200 w-full"
                   :class="[
                     isSubmenuActive(item)
-                      ? 'border-l-4 border-[var(--accent-primary)] bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] pl-2 font-semibold'
+                      ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
                       : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
                   ]"
                 >
@@ -116,7 +100,7 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-primary)] stroke-[2.5]'
+                        ? 'text-[var(--accent-electric)] stroke-[2.5]'
                         : 'text-[var(--silver-400)] stroke-[1.8]'
                     "
                   />
@@ -140,23 +124,20 @@ watchEffect(() => {
                 as-child
                 class="p-0 rounded-none focus:bg-accent focus:text-accent-foreground"
               >
-                <RouterLink
+                <SharedSidebarMenuSubItem
+                  :is-active="isActive(subItem.url)"
                   :to="subItem.url"
-                  class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono text-popover-foreground hover:text-popover-foreground transition-colors"
-                  :class="[
-                    isActive(subItem.url)
-                      ? 'bg-accent/10 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)] pl-1.5'
-                      : ''
-                  ]"
+                  as="link"
+                  class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono rounded-none border-l-4"
                 >
                   <component
                     :is="subItem.icon"
                     v-if="subItem.icon"
                     class="size-3.5 shrink-0"
-                    :class="isActive(subItem.url) ? 'text-[var(--accent-primary)]' : 'text-muted-foreground'"
+                    :class="isActive(subItem.url) ? 'text-[var(--accent-electric)]' : 'text-muted-foreground'"
                   />
                   <span>{{ subItem.title }}</span>
-                </RouterLink>
+                </SharedSidebarMenuSubItem>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -175,7 +156,7 @@ watchEffect(() => {
                   class="h-9 transition-all duration-200 w-full"
                   :class="[
                     isSubmenuActive(item)
-                      ? 'border-l-4 border-[var(--accent-primary)] bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] pl-2 font-semibold'
+                      ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
                       : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
                   ]"
                 >
@@ -185,7 +166,7 @@ watchEffect(() => {
                     class="size-4 shrink-0 transition-colors"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-primary)] stroke-[2.5]'
+                        ? 'text-[var(--accent-electric)] stroke-[2.5]'
                         : 'text-[var(--silver-400)] group-hover/collapsible:text-foreground stroke-[1.8]'
                     "
                   />
@@ -193,7 +174,7 @@ watchEffect(() => {
                     class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                     :class="
                       isSubmenuActive(item)
-                        ? 'text-[var(--accent-primary)] font-semibold'
+                        ? 'text-[var(--accent-electric)] font-semibold'
                         : 'text-[var(--silver-500)] group-hover/collapsible:text-foreground'
                     "
                   >
@@ -203,43 +184,35 @@ watchEffect(() => {
                     class="ml-auto size-3.5 shrink-0 transition-transform duration-200 text-[var(--silver-400)] group-hover/collapsible:text-foreground group-data-[collapsible=icon]:hidden"
                     :class="[
                       openMenus[item.title] ? 'rotate-90' : '',
-                      isSubmenuActive(item) ? 'text-[var(--accent-primary)]' : '',
+                      isSubmenuActive(item) ? 'text-[var(--accent-electric)]' : '',
                     ]"
                   />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
 
-              <CollapsibleContent
-                class="transition-all duration-200 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden"
-              >
+              <CollapsibleContent>
                 <SidebarMenuSub
                   class="mt-0.5 border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
                 >
                   <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
-                    <SidebarMenuSubButton
+                    <SharedSidebarMenuSubItem
                       :is-active="isActive(subItem.url)"
-                      as-child
-                      class="h-8 transition-all duration-200 pl-3 rounded-md"
-                      :class="[
-                        isActive(subItem.url)
-                          ? 'bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)] pl-2.5'
-                          : 'hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] border-l border-transparent',
-                      ]"
+                      :to="subItem.url"
+                      as="link"
+                      class="flex items-center gap-2 w-full pl-3 rounded-md"
                     >
-                      <RouterLink :to="subItem.url" class="flex items-center gap-2 w-full">
-                        <component
-                          :is="subItem.icon"
-                          v-if="subItem.icon"
-                          class="size-3.5 shrink-0 transition-colors"
-                          :class="
-                            isActive(subItem.url)
-                              ? 'text-[var(--accent-primary)] stroke-[2.5]'
-                              : 'text-[var(--silver-400)] stroke-[1.8]'
-                          "
-                        />
-                        <span class="truncate text-xs">{{ subItem.title }}</span>
-                      </RouterLink>
-                    </SidebarMenuSubButton>
+                      <component
+                        :is="subItem.icon"
+                        v-if="subItem.icon"
+                        class="size-3.5 shrink-0 transition-colors"
+                        :class="
+                          isActive(subItem.url)
+                            ? 'text-[var(--accent-electric)] stroke-[2.5]'
+                            : 'text-[var(--silver-400)] stroke-[1.8]'
+                        "
+                      />
+                      <span class="truncate text-xs">{{ subItem.title }}</span>
+                    </SharedSidebarMenuSubItem>
                   </SidebarMenuSubItem>
                 </SidebarMenuSub>
               </CollapsibleContent>
@@ -255,7 +228,7 @@ watchEffect(() => {
               class="h-9 transition-all duration-200"
               :class="[
                 isActive(item.url)
-                  ? 'border-l-4 border-[var(--accent-primary)] bg-[var(--accent-primary)]/8 text-[var(--accent-primary)] pl-2 font-semibold'
+                  ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
                   : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2',
               ]"
             >
@@ -266,7 +239,7 @@ watchEffect(() => {
                   class="size-4 shrink-0 transition-colors"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--accent-primary)] stroke-[2.5]'
+                      ? 'text-[var(--accent-electric)] stroke-[2.5]'
                       : 'text-[var(--silver-400)] group-hover:text-foreground stroke-[1.8]'
                   "
                 />
@@ -274,7 +247,7 @@ watchEffect(() => {
                   class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                   :class="
                     isActive(item.url)
-                      ? 'text-[var(--accent-primary)] font-semibold'
+                      ? 'text-[var(--accent-electric)] font-semibold'
                       : 'text-[var(--silver-500)] group-hover:text-foreground'
                   "
                 >
@@ -288,4 +261,3 @@ watchEffect(() => {
     </SidebarGroupContent>
   </SidebarGroup>
 </template>
-

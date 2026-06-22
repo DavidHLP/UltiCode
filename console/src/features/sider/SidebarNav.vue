@@ -5,13 +5,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
@@ -19,6 +16,11 @@ import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import type { SidebarSection } from "./sidebar.data";
 import { useRoute } from "vue-router";
+import {
+  SidebarMenuItem as SharedSidebarMenuItem,
+  SidebarMenuSubItem as SharedSidebarMenuSubItem,
+  SidebarGroupCollapsible,
+} from "@/shared/sidebar-menu/src";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -90,47 +92,43 @@ const getItemIconColorClass = (url?: string) => {
       class="py-0"
     >
       <!-- Collapsible Section -->
-      <Collapsible
+      <SidebarGroupCollapsible
         v-if="section.collapsible"
+        v-slot="{ open: isOpen }"
         :default-open="true"
-        class="group/collapsible"
       >
-        <SidebarGroupLabel
-          as-child
-          class="group/label w-full text-2xs font-bold tracking-widest text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] hover:bg-transparent hover:text-[var(--accent-electric)] transition-colors select-none cursor-pointer"
+        <CollapsibleTrigger
+          class="flex w-full items-center text-2xs font-bold tracking-widest text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] hover:text-[var(--accent-electric)] transition-colors select-none py-1 px-2 outline-hidden"
         >
-          <CollapsibleTrigger class="flex items-center w-full py-1">
-            <span>{{ t(section.name).toUpperCase() }}</span>
-            <ChevronRight
-              class="ml-auto h-3 w-3 text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] transition-transform group-data-[state=open]/collapsible:rotate-90"
-            />
-          </CollapsibleTrigger>
-        </SidebarGroupLabel>
+          <span>{{ t(section.name).toUpperCase() }}</span>
+          <ChevronRight
+            :class="[
+              'ml-auto h-3 w-3 text-[var(--solarized-base01)]/80 dark:text-[var(--silver-500)] transition-transform',
+              isOpen ? 'rotate-90' : '',
+            ]"
+          />
+        </CollapsibleTrigger>
         <CollapsibleContent>
-          <div
+          <SidebarMenuSub
             v-if="state !== 'collapsed'"
-            class="flex flex-col gap-0.5 px-1 py-0.5"
+            class="mx-3.5 border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
           >
-            <router-link
+            <SharedSidebarMenuSubItem
               v-for="item in section.items"
               :key="item.title"
+              :is-active="isItemActive(item.url)"
               :to="item.url || '#'"
-              :class="[
-                'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium rounded-none h-8.5 mx-1',
-                isItemActive(item.url)
-                  ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
-                  : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
-              ]"
+              class="flex items-center gap-2 w-full"
             >
               <component
                 :is="item.icon"
                 v-if="item.icon"
                 :class="[
-                  'h-4 w-4 shrink-0 transition-colors',
+                  'h-3.5 w-3.5 shrink-0 transition-colors',
                   getItemIconColorClass(item.url),
                 ]"
               />
-              <span class="truncate">{{ t(item.title) }}</span>
+              <span class="truncate text-xs">{{ t(item.title) }}</span>
               <Badge
                 v-if="item.badge"
                 :variant="item.badgeVariant || 'default'"
@@ -138,8 +136,8 @@ const getItemIconColorClass = (url?: string) => {
               >
                 {{ item.badge }}
               </Badge>
-            </router-link>
-          </div>
+            </SharedSidebarMenuSubItem>
+          </SidebarMenuSub>
           <SidebarMenu v-else>
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
               <SidebarMenuButton
@@ -147,10 +145,10 @@ const getItemIconColorClass = (url?: string) => {
                 :is-active="isItemActive(item.url)"
                 as-child
                 :class="[
-                  'group rounded-none mx-1',
+                  'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
                   isItemActive(item.url)
-                    ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
-                    : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
+                    ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
+                    : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
                 ]"
               >
                 <router-link :to="item.url || '#'">
@@ -175,7 +173,7 @@ const getItemIconColorClass = (url?: string) => {
             </SidebarMenuItem>
           </SidebarMenu>
         </CollapsibleContent>
-      </Collapsible>
+      </SidebarGroupCollapsible>
 
       <!-- Non-collapsible Section -->
       <template v-else>
@@ -183,16 +181,11 @@ const getItemIconColorClass = (url?: string) => {
           v-if="state !== 'collapsed'"
           class="flex flex-col gap-0.5 px-1 py-0.5"
         >
-          <router-link
+          <SharedSidebarMenuItem
             v-for="item in section.items"
             :key="item.title"
+            :is-active="isItemActive(item.url)"
             :to="item.url || '#'"
-            :class="[
-              'group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium rounded-none h-8.5 mx-1',
-              isItemActive(item.url)
-                ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
-                : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--accent-electric)]/4 hover:text-[var(--accent-electric)] hover:translate-x-0.5',
-            ]"
           >
             <component
               :is="item.icon"
@@ -210,7 +203,7 @@ const getItemIconColorClass = (url?: string) => {
             >
               {{ item.badge }}
             </Badge>
-          </router-link>
+          </SharedSidebarMenuItem>
         </div>
         <SidebarMenu v-else class="mt-2">
           <SidebarMenuItem v-for="item in section.items" :key="item.title">
@@ -219,10 +212,10 @@ const getItemIconColorClass = (url?: string) => {
               :is-active="isItemActive(item.url)"
               as-child
               :class="[
-                'group rounded-none mx-1',
+                'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
                 isItemActive(item.url)
-                  ? 'bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] font-bold'
-                  : 'text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/4',
+                  ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
+                  : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
               ]"
             >
               <router-link :to="item.url || '#'">

@@ -88,9 +88,31 @@ export default defineConfig({
     }) as any,
   ],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    alias: [
+      // Most-specific first: @/shared must be matched before the
+      // catch-all `@` → ./src alias rewrites the path to <console>/src/shared/...
+      // (where `shared` is a broken plain-text file on this checkout, not a
+      // symlink). Vite's resolve.alias uses startsWith matching in
+      // declaration order, so order matters.
+      {
+        find: '@/shared',
+        replacement: fileURLToPath(new URL('../shared', import.meta.url)),
+      },
+      // Catch-all `@` → ./src
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      // Files inside shared/ (axiosCsrfInterceptor.ts, utils.ts, etc.)
+      // import their runtime deps as bare specifiers. Resolve them from
+      // console/node_modules rather than letting vite walk up from the
+      // shared/ file's physical location (which has no node_modules and
+      // would otherwise fail to resolve axios, clsx, tailwind-merge,
+      // lucide-vue-next on CI). Peer deps (vue / vue-i18n / vue-router)
+      // are already pinned in console/package.json so vite's normal
+      // resolution finds them.
+      { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
+      { find: /^clsx$/, replacement: fileURLToPath(new URL('./node_modules/clsx', import.meta.url)) },
+      { find: /^tailwind-merge$/, replacement: fileURLToPath(new URL('./node_modules/tailwind-merge', import.meta.url)) },
+      { find: /^lucide-vue-next$/, replacement: fileURLToPath(new URL('./node_modules/lucide-vue-next', import.meta.url)) },
+    ],
   },
   server: {
     port: 9002,

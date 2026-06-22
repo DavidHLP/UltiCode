@@ -9,17 +9,48 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // Shared `shared/badge-config/src/utils/cn.ts` imports clsx/tailwind-merge
-      // directly. The shared package has no node_modules, so we resolve these
-      // from the app's own node_modules.
-      clsx: path.resolve(fileURLToPath(new URL('.', import.meta.url)), 'node_modules/clsx'),
-      'tailwind-merge': path.resolve(
-        fileURLToPath(new URL('.', import.meta.url)),
-        'node_modules/tailwind-merge',
-      ),
-    },
+    alias: [
+      // Most-specific first: @/shared must be matched before the
+      // catch-all `@` → ./src alias rewrites the path to <management>/src/shared/...
+      // (where `shared` is a broken plain-text file on this checkout, not a
+      // symlink). Vite's resolve.alias uses startsWith matching in
+      // declaration order, so order matters.
+      {
+        find: '@/shared',
+        replacement: fileURLToPath(new URL('../shared', import.meta.url)),
+      },
+      // Catch-all `@` → ./src
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      // Shared `shared/badge-config/src/utils/cn.ts` (and other files under
+      // shared/) import clsx/tailwind-merge/axios/lucide-vue-next as bare
+      // specifiers. The shared package has no node_modules, so we resolve
+      // them from the app's own node_modules.
+      {
+        find: /^clsx$/,
+        replacement: path.resolve(fileURLToPath(new URL('.', import.meta.url)), 'node_modules/clsx'),
+      },
+      {
+        find: /^tailwind-merge$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/tailwind-merge',
+        ),
+      },
+      {
+        find: /^axios$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/axios',
+        ),
+      },
+      {
+        find: /^lucide-vue-next$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/lucide-vue-next',
+        ),
+      },
+    ],
     dedupe: ['vue'],
   },
   server: {

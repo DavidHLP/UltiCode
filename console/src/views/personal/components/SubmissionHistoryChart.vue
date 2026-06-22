@@ -86,32 +86,27 @@ const initChart = () => {
     },
   ];
 
-  // Add pie chart for language distribution on the right side
+  // Append a horizontal bar series for language distribution so the
+  // submission-history card uses the same bar-chart visual language as
+  // the rest of the dashboard (LearningProgress, etc.) rather than a
+  // pie/donut chart that visually breaks the row.
   if (languages.length > 0) {
     series.push({
       name: t("personal.history.languageDistribution"),
-      type: "pie",
-      radius: ["20%", "35%"],
-      center: ["85%", "40%"],
-      data: languages.map((lang, idx) => ({
-        name: lang,
-        value: languageCounts[idx],
-      })),
-      label: {
-        show: false,
+      type: "bar",
+      xAxisIndex: 1,
+      yAxisIndex: 1,
+      data: languageCounts,
+      itemStyle: {
+        color: "oklch(0.6545 0.1340 85.7 / 0.7)",
+        borderRadius: 0,
       },
       emphasis: {
-        label: {
-          show: true,
-          fontSize: 10,
-          fontWeight: "bold",
+        itemStyle: {
+          color: "oklch(0.6545 0.1340 85.7)",
         },
       },
-      itemStyle: {
-        borderRadius: 0,
-        borderColor: "var(--background)",
-        borderWidth: 2,
-      },
+      barCategoryGap: "40%",
     });
   }
 
@@ -129,6 +124,9 @@ const initChart = () => {
       data: [
         t("personal.history.totalSubmissions"),
         t("personal.history.accepted"),
+        ...(languages.length > 0
+          ? [t("personal.history.languageDistribution")]
+          : []),
       ],
       bottom: 0,
       textStyle: {
@@ -136,45 +134,91 @@ const initChart = () => {
         fontSize: 11,
       },
     },
-    grid: {
-      left: "3%",
-      right: "15%",
-      bottom: "15%",
-      top: "10%",
-      containLabel: true,
-    },
-    xAxis: {
-      type: "category",
-      data: months,
-      axisLine: {
-        lineStyle: {
-          color: "var(--border)",
+    grid: [
+      {
+        left: "3%",
+        right: "55%",
+        bottom: "15%",
+        top: "10%",
+        containLabel: true,
+      },
+      {
+        left: "55%",
+        right: "3%",
+        bottom: "15%",
+        top: "10%",
+        containLabel: true,
+      },
+    ],
+    xAxis: [
+      {
+        type: "category",
+        data: months,
+        axisLine: {
+          lineStyle: {
+            color: "var(--border)",
+          },
+        },
+        axisLabel: {
+          color: "var(--muted-foreground)",
+          fontSize: 10,
+          rotate: 45,
         },
       },
-      axisLabel: {
-        color: "var(--muted-foreground)",
-        fontSize: 10,
-        rotate: 45,
-      },
-    },
-    yAxis: {
-      type: "value",
-      axisLine: {
-        lineStyle: {
-          color: "var(--border)",
+      {
+        gridIndex: 1,
+        type: "value",
+        axisLine: {
+          lineStyle: {
+            color: "var(--border)",
+          },
+        },
+        axisLabel: {
+          color: "var(--muted-foreground)",
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            color: "var(--border)",
+            type: "dashed",
+          },
         },
       },
-      axisLabel: {
-        color: "var(--muted-foreground)",
-        fontSize: 10,
-      },
-      splitLine: {
-        lineStyle: {
-          color: "var(--border)",
-          type: "dashed",
+    ],
+    yAxis: [
+      {
+        type: "value",
+        axisLine: {
+          lineStyle: {
+            color: "var(--border)",
+          },
+        },
+        axisLabel: {
+          color: "var(--muted-foreground)",
+          fontSize: 10,
+        },
+        splitLine: {
+          lineStyle: {
+            color: "var(--border)",
+            type: "dashed",
+          },
         },
       },
-    },
+      {
+        gridIndex: 1,
+        type: "category",
+        data: languages,
+        axisLine: {
+          lineStyle: {
+            color: "var(--border)",
+          },
+        },
+        axisLabel: {
+          color: "var(--muted-foreground)",
+          fontSize: 10,
+        },
+      },
+    ],
     series,
   };
 

@@ -22,9 +22,20 @@ ARTHAS_PORT=8563
 
 mkdir -p "$PID_DIR"
 
+# 端口检测: 优先 lsof (Linux/macOS), 回退 netstat (Windows Git Bash 缺 lsof)
+# 与 start-arthas.sh 保持一致, 否则本 hook 在 Windows 上会因 lsof 缺失报 'command not found'
+port_listening() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti :"$port" >/dev/null 2>&1
+    return $?
+  fi
+  netstat -ano 2>/dev/null | grep -qE "[:.]${port}[[:space:]]"
+}
+
 # 1) 端口已监听: 跳过启动
 #    场景: 上一轮 attach 留下的 agent 仍活, 或 PM2 在跑 wrapper
-if lsof -ti ":${ARTHAS_PORT}" >/dev/null 2>&1; then
+if port_listening "$ARTHAS_PORT"; then
   echo "[arthas-hook] Port ${ARTHAS_PORT} already listening, skip"
   exit 0
 fi

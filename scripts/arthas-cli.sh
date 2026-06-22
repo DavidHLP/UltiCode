@@ -42,19 +42,25 @@ read_pid_file() {
   return 0
 }
 
-# 检查端口是否监听
+# 检查端口是否监听 (优先 lsof, 回退 netstat — 与 start-arthas.sh 一致)
+# 缺了 netstat 兜底在 Windows Git Bash (lsof 不存在) 会全部误报 'not listening'
 port_listening() {
-  lsof -ti ":${ARTHAS_PORT}" >/dev/null 2>&1
+  local port="${1:-$ARTHAS_PORT}"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti :"$port" >/dev/null 2>&1
+    return $?
+  fi
+  netstat -ano 2>/dev/null | grep -qE "[:.]${port}[[:space:]]"
 }
 
 # 检查 Spring Boot 是否在跑
 spring_boot_running() {
-  lsof -ti ":${SPRING_BOOT_PORT}" >/dev/null 2>&1
+  port_listening "$SPRING_BOOT_PORT"
 }
 
-# MCP 端点 TCP 可达性
+# MCP 端点 TCP 可达性 — 用 port_listening 而不是 /dev/tcp/ (后者在 MSYS 上不可靠)
 mcp_reachable() {
-  (echo > "/dev/tcp/127.0.0.1/${ARTHAS_PORT}") 2>/dev/null
+  port_listening "$ARTHAS_PORT"
 }
 
 # 启动 wrapper

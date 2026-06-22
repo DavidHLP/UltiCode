@@ -47,12 +47,19 @@ const heatmapGrid = computed(() => {
   return grid;
 });
 
+// Level → CSS background. Uses project design tokens (Solarized palette)
+// so the heatmap harmonizes with both light & dark themes. The active color
+// is `--status-success` (Solarized green), mixed with `transparent` at
+// increasing opacity per activity level. The empty cell uses a token
+// derived from `--card` rather than `bg-muted`, because in dark mode
+// `--card` and `--muted` resolve to the same Solarized base02 — using
+// `bg-muted` directly would make empty cells invisible against the card.
 const levelColors = [
-  "bg-muted",
-  "bg-[oklch(0.6444_0.1508_118.6/0.2)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]",
-  "bg-[oklch(0.6444_0.1508_118.6/0.4)] dark:bg-[oklch(0.6444_0.1508_118.6/0.5)]",
-  "bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.6)]",
-  "bg-[oklch(0.6444_0.1508_118.6/0.8)] dark:bg-[oklch(0.6444_0.1508_118.6)]",
+  "bg-[color-mix(in_oklch,var(--card)_60%,var(--muted))] dark:bg-[color-mix(in_oklch,var(--card)_40%,var(--foreground))]",
+  "bg-[color-mix(in_oklch,var(--status-success)_20%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_30%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success)_40%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_50%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success)_60%,transparent)]",
+  "bg-[color-mix(in_oklch,var(--status-success)_80%,transparent)] dark:bg-[color-mix(in_oklch,var(--status-success)_100%,transparent)]",
 ];
 
 const levelLabels = [

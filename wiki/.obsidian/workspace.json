@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "7c76d9f9e0fda306",
+        "id": "90242ce72f6f7e21",
         "type": "tabs",
         "children": [
           {
-            "id": "1fe40eba9182d14d",
+            "id": "a0a2026c5da6e808",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -187,10 +187,20 @@
       "realclaudian:Open Claudian": false
     }
   },
-  "active": "1fe40eba9182d14d",
+  "active": "a0a2026c5da6e808",
   "lastOpenFiles": [
-    "concepts/process-management.md",
+    "entities/email.md",
+    "index.md.tmp.230396.2ab709e6cf73",
+    "index.md.tmp.230396.a1645bcd0df2",
+    "concepts/notification-dispatch-and-preferences.md",
+    "overview/backend-modules-overview.md",
+    "index.md",
     "daily-notes/2026-06-21.md",
+    "templates/daily-note.md",
+    "entities/judge-queue.md",
+    "entities/submission.md",
+    "concepts/exactly-once-judging.md",
+    "concepts/process-management.md",
     "SCHEMA.md.tmp.817141.83a80bc743ba",
     "log.md.tmp.817141.10e52d59c701",
     "SCHEMA.md.tmp.817141.db878c7be8ce",
@@ -199,11 +209,7 @@
     "README.md.tmp.817141.dfcff9b00da7",
     "SCHEMA.md.tmp.817141.a37a030f948b",
     "SCHEMA.md.tmp.817141.c3281be7e733",
-    "SCHEMA.md.tmp.817141.457b93a91146",
-    "daily-notes/2026-06-21.md.tmp.817141.4899550b1573",
-    "templates/daily-note.md",
     "overview/architecture-overview.md",
-    "overview/backend-modules-overview.md",
     "entities/interactions.md",
     "entities/subscription.md",
     "entities/follow.md",
@@ -218,12 +224,6 @@
     "templates/entity.md",
     "SCHEMA.md",
     "README.md",
-    "index.md",
-    "overview/judging-pipeline-overview.md",
-    "overview/frontend-apps-overview.md",
-    "overview/dev-environment-overview.md",
-    "overview/database-schema-overview.md",
-    "overview/auth-flow-overview.md",
-    "entities/auth.md"
+    "overview/judging-pipeline-overview.md"
   ]
 }

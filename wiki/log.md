@@ -264,3 +264,16 @@ rather than back-dating).
 - `wiki/index.md` (Meta line; frontmatter date)
 - `wiki/log.md` (this entry; frontmatter date)
 
+
+## [2026-06-24] ingest | Notification Dispatch & Preferences (ADR-004) concept page
+
+Consolidated ADR-004 (previously Javadoc across 10+ notification files: §2.1
+sealed intent, §2.3 fan-out, M4a-M4d migration, F9 statelessness, finding #7
+CONTEST removal) into one concept page: typed dispatcher, preference gate, 4
+categories, idempotency ledger, dual-path migration via
+FeatureFlags.useNotificationIntent. Filed with the admin-broadcast
+preference-bypass fix (MARKETING/COMMUNICATION now filtered; SECURITY/SYSTEM
+force-delivered).
+
+Pages: new `concepts/notification-dispatch-and-preferences.md`; `index.md`
+(concept row + counts 13->14, 49->50).

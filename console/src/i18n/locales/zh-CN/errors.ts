@@ -97,4 +97,9 @@ export default {
   // Default error message
   default: "操作失败，请稍后重试",
   unknown: "发生未知错误",
+
+  // Rate limiting
+  rateLimitExceeded: "请求过于频繁，请等待 {seconds} 秒后重试",
+  rateLimitDescription: "您在短时间内发送了太多请求，请稍后再试",
+  runCodeFailed: "运行代码失败，请重试",
 } as const;

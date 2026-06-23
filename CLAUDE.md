@@ -529,18 +529,18 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 
 ## PM2 Services
 
-**PM2 管理后端服务，前端由 Claude Code 管理**
+**PM2 管理后端 + 前端 (9001/9002/9003 全在 `ecosystem.config.cjs`)**
 
 | Port | Name | Type |
 |------|------|------|
 | 9001 | ulticode-9001 | Spring Boot Backend |
+| 9002 | ulticode-9002 | Console (Vite, `--host 127.0.0.1`) |
+| 9003 | ulticode-9003 | Management (Vite, `--host 127.0.0.1`) |
 | 8563 | ulticode-arthas | Arthas MCP Server (PM2 主, hook/cli 兜底, 三路互斥) |
 | - | ulticode-init-db | 数据库迁移服务 (一次性任务) |
 | 28848 | (nacos container) | Nacos 控制台 `/nacos` (默认账号 nacos/nacos) |
 
-**前端服务（由 Claude Code 管理）**:
-- Console (9002): `pnpm dev` 或 Claude Code Preview 系统
-- Management (9003): `pnpm dev` 或 Claude Code Preview 系统
+**⚠️ Vite `--host 127.0.0.1` 不可省**:Vite v8 默认绑 IPv6 `[::1]`,up.sh 就绪检查用 `127.0.0.1` 探测会假阴性(exit 1)。ecosystem 的 9002/9003 显式 `--host 127.0.0.1` 绕过——**改 ecosystem 勿删这两个 app 定义**(c26f45889 曾误删致回归)。前端单跑调试用 `cd console && pnpm exec vite`(绑 ::1,用 `curl localhost` 验证)。
 
 **Terminal Commands:**
 ```bash
@@ -557,7 +557,7 @@ pm2 resurrect                    # Restore saved list
 
 1. Docker 基础设施 (`ulticode-mysql/redis/nacos`) 必须先 Up/Healthy,再 `pm2 start`
 2. 容器都 Exited 时直接 `pm2 start ecosystem.config.cjs` → init-db 报 `连接被拒绝` → 9001 反复崩溃 → 8563 永远空
-3. 一键修复: `./scripts/dev/up.sh --skip-install` (顺序处理基础设施 → 迁移 → 应用)
+3. 一键启动: `./scripts/dev/up.sh` (全量: 基础设施 → Nacos → 迁移 → dev-admin → install → PM2)。参数化: `--quick`(改代码后热重启,跳过 infra/迁移/admin/install 只重启 PM2)、`--only <apps>`(如 `--only 9001`)、`--no-frontend`/`--frontend-only`、`--skip-infra`/`--skip-migrate`/`--skip-bootstrap`/`--skip-install`、`-h` 看帮助
 4. 手动按序: `docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis nacos` → `pm2 restart ulticode-init-db` → `pm2 restart ulticode-9001`
 
 ### 故障诊断信号

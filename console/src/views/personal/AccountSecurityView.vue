@@ -55,7 +55,7 @@ const { t } = useI18n();
         </div>
       </CardContent>
       <CardFooter class="bg-muted/5 border-t justify-end py-4">
-        <Button class="rounded-full px-8">
+        <Button class="rounded-none px-8">
           {{ t("personal.account.updatePassword") }}
         </Button>
       </CardFooter>
@@ -74,7 +74,7 @@ const { t } = useI18n();
         <p class="text-sm text-muted-foreground mb-4">
           {{ t("personal.account.deleteWarning") }}
         </p>
-        <Button variant="destructive" class="rounded-full">
+        <Button variant="destructive" class="rounded-none">
           {{ t("personal.account.deleteAccount") }}
         </Button>
       </CardContent>

@@ -245,7 +245,7 @@ onMounted(async () => {
           <Button
             @click="saveProfile"
             :disabled="saving"
-            class="rounded-full px-8"
+            class="rounded-none px-8"
           >
             <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
             {{ t("personal.account.saveChanges") }}

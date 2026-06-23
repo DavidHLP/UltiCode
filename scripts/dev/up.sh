@@ -3,15 +3,105 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
-SKIP_INSTALL=false
 
-if [[ "${1:-}" == "--skip-install" ]]; then
+# ===== 参数解析 =====
+SKIP_INSTALL=false
+SKIP_INFRA=false
+SKIP_MIGRATE=false
+SKIP_BOOTSTRAP=false
+QUICK=false
+NO_FRONTEND=false
+FRONTEND_ONLY=false
+ONLY=""
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/dev/up.sh [options]
+
+启动 UltiCode 开发栈: Docker 基础设施 → Nacos 配置 → Flyway 迁移 → dev-admin
+→ pnpm install → PM2 服务 → 就绪检查。
+
+Options:
+  --quick              热重启: 跳过 infra/Nacos/迁移/admin/依赖, 只重启 PM2 服务
+                       (改代码后最快路径)
+  --skip-infra         跳过 Docker 基础设施 (假设 mysql/redis/nacos 已运行)
+  --skip-migrate       跳过 Flyway 迁移
+  --skip-bootstrap     跳过 dev-admin bootstrap (省 ~90s, admin 已存在时)
+  --skip-install       跳过 pnpm install (依赖未变时)
+  --only <apps>        只起指定 PM2 app, 逗号分隔
+                       (如 9001 或 9001,9002; 可简写或带 ulticode- 前缀)
+  --no-frontend        不起前端 (等同 --only 9001)
+  --frontend-only      只起前端 (9002/9003), 并跳过后端栈步骤
+  -h, --help           显示此帮助
+
+Examples:
+  ./scripts/dev/up.sh                          # 全量冷启动
+  ./scripts/dev/up.sh --quick                  # 改代码后热重启 (最快)
+  ./scripts/dev/up.sh --only 9001              # 只起后端
+  ./scripts/dev/up.sh --frontend-only          # 只起前端
+  ./scripts/dev/up.sh --no-frontend --skip-bootstrap
+  ./scripts/dev/up.sh --skip-infra --skip-migrate
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-install)   SKIP_INSTALL=true; shift ;;
+    --skip-infra)     SKIP_INFRA=true; shift ;;
+    --skip-migrate)   SKIP_MIGRATE=true; shift ;;
+    --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;
+    --quick)          QUICK=true; shift ;;
+    --no-frontend)    NO_FRONTEND=true; shift ;;
+    --frontend-only)  FRONTEND_ONLY=true; shift ;;
+    --only)           ONLY="${2:-}"; shift 2 ;;
+    -h|--help)        usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; echo >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+# ===== 预设与语义推导 =====
+# --quick: 假设 infra/迁移/admin/依赖都已就绪, 只重启 PM2 服务
+if [[ "$QUICK" == true ]]; then
+  SKIP_INFRA=true
+  SKIP_MIGRATE=true
+  SKIP_BOOTSTRAP=true
   SKIP_INSTALL=true
-elif [[ $# -gt 0 ]]; then
-  echo "Usage: ./scripts/dev/up.sh [--skip-install]" >&2
-  exit 2
 fi
 
+# --frontend-only: 前端进程不需要后端栈步骤
+if [[ "$FRONTEND_ONLY" == true ]]; then
+  SKIP_INFRA=true
+  SKIP_MIGRATE=true
+  SKIP_BOOTSTRAP=true
+fi
+
+# 把 "9001,9002" 或 "ulticode-9001,ulticode-9002" 统一规范化
+normalize_apps() {
+  local IFS=','
+  local out=""
+  for a in $1; do
+    a="${a// /}"
+    [[ -z "$a" ]] && continue
+    case "$a" in
+      ulticode-*) out="${out:+$out,}$a" ;;
+      *)          out="${out:+$out,}ulticode-$a" ;;
+    esac
+  done
+  echo "$out"
+}
+
+# 决定起哪些 PM2 app (--only 优先级最高, 其次 --frontend-only / --no-frontend)
+if [[ -n "$ONLY" ]]; then
+  PM2_APPS="$(normalize_apps "$ONLY")"
+elif [[ "$FRONTEND_ONLY" == true ]]; then
+  PM2_APPS="ulticode-9002,ulticode-9003"
+elif [[ "$NO_FRONTEND" == true ]]; then
+  PM2_APPS="ulticode-9001"
+else
+  PM2_APPS="ulticode-9001,ulticode-9002,ulticode-9003"
+fi
+
+# ===== 前置检查 =====
 for command in docker mvn pnpm pm2 curl timeout; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
@@ -67,19 +157,31 @@ wait_for_health() {
   return 1
 }
 
-echo "Starting MySQL, Redis, and Nacos..."
-"${compose[@]}" up -d
-wait_for_health ulticode-mysql
-wait_for_health ulticode-redis
-wait_for_health ulticode-nacos
+# ===== 步骤 1: Docker 基础设施 =====
+if [[ "$SKIP_INFRA" != true ]]; then
+  echo "Starting MySQL, Redis, and Nacos..."
+  "${compose[@]}" up -d
+  wait_for_health ulticode-mysql
+  wait_for_health ulticode-redis
+  wait_for_health ulticode-nacos
 
-echo "Provisioning the local Nacos administrator..."
-"$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
+  # ===== 步骤 2: Nacos 管理员配置 (依赖 Nacos 运行, 故随 infra 一起) =====
+  echo "Provisioning the local Nacos administrator..."
+  "$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
+else
+  echo "Skipping Docker infrastructure + Nacos provisioning (--skip-infra / --quick / --frontend-only)."
+fi
 
-echo "Applying database migrations..."
-"$ROOT_DIR/scripts/dev/migrate.sh" migrate
+# ===== 步骤 3: Flyway 迁移 =====
+if [[ "$SKIP_MIGRATE" != true ]]; then
+  echo "Applying database migrations..."
+  "$ROOT_DIR/scripts/dev/migrate.sh" migrate
+else
+  echo "Skipping database migrations (--skip-migrate / --quick / --frontend-only)."
+fi
 
-if [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+# ===== 步骤 4: dev-admin bootstrap =====
+if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
   echo "Creating or restoring the documented development administrator..."
   # NOTE: web-application-type=none 关闭 web 容器,只运行 DevUserBootstrapRunner 创建 dev admin。
   # 应用内存在非 daemon 线程(Redisson netty / 调度器),runner 完成后 JVM 不自退,会永久阻塞脚本。
@@ -113,38 +215,58 @@ if [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       exit "$bootstrap_rc"
       ;;
   esac
+else
+  echo "Skipping dev-admin bootstrap (--skip-bootstrap / --quick / --frontend-only)."
 fi
 
+# ===== 步骤 5: pnpm install =====
 if [[ "$SKIP_INSTALL" != true ]]; then
   echo "Installing frontend and shared dependencies..."
   for package in console management shared/auth-core; do
     (cd "$ROOT_DIR/$package" && pnpm install --frozen-lockfile)
   done
+else
+  echo "Skipping dependency install (--skip-install / --quick / --frontend-only)."
 fi
 
-echo "Starting backend and frontends with PM2..."
+# ===== 步骤 6: PM2 服务 =====
+echo "Starting PM2 services: $PM2_APPS"
 (
   cd "$ROOT_DIR"
   pm2 startOrRestart ecosystem.config.cjs \
-    --only ulticode-9001,ulticode-9002,ulticode-9003 \
+    --only "$PM2_APPS" \
     --update-env
   pm2 save
 )
 
+# ===== 步骤 7: 就绪检查 (只探测实际启动的服务对应端口) =====
+check_url() {
+  curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "$1" 2>/dev/null || true
+}
+
+apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 90); do
-  backend_code="$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:9001/contest?page=1&size=1' 2>/dev/null || true)"
-  console_code="$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:9002/' 2>/dev/null || true)"
-  management_code="$(curl -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:9003/' 2>/dev/null || true)"
-  if [[ "$backend_code" == "200" && "$console_code" == "200" && "$management_code" == "200" ]]; then
+  all_ok=true
+  if [[ "$apps_csv" == *",ulticode-9001,"* ]]; then
+    [[ "$(check_url 'http://127.0.0.1:9001/contest?page=1&size=1')" == "200" ]] || all_ok=false
+  fi
+  if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
+    [[ "$(check_url 'http://127.0.0.1:9002/')" == "200" ]] || all_ok=false
+  fi
+  if [[ "$apps_csv" == *",ulticode-9003,"* ]]; then
+    [[ "$(check_url 'http://127.0.0.1:9003/')" == "200" ]] || all_ok=false
+  fi
+  if [[ "$all_ok" == true ]]; then
     cat <<EOF
-Development stack is ready.
+Development stack is ready (services: $PM2_APPS).
 
   Console:    http://localhost:9002
   Management: http://localhost:9003
   Backend:    http://localhost:9001
   Nacos:      http://localhost:28848/nacos
 EOF
-    if [[ "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
+    # admin 凭据只在起了后端时显示 (admin 由 dev-admin bootstrap 维护)
+    if [[ "$apps_csv" == *",ulticode-9001,"* && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
       cat <<EOF
 
 Local development administrator:
@@ -153,13 +275,12 @@ Local development administrator:
 EOF
     else
       echo
-      echo "Development user initialization is disabled."
     fi
     exit 0
   fi
   sleep 2
 done
 
-echo "Application readiness check timed out." >&2
+echo "Application readiness check timed out for: $PM2_APPS" >&2
 pm2 status >&2 || true
 exit 1

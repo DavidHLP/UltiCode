@@ -3,7 +3,7 @@ title: Index
 type: index
 tags: [meta, type/index]
 status: living
-updated: 2026-06-21
+updated: 2026-06-23
 sources: []
 ---
 
@@ -21,6 +21,7 @@ sources: []
 - [SCHEMA](SCHEMA.md) — the convention doc: layers, operations, frontmatter, linking, writing rules
 - [Index](index.md) — this catalog
 - [Log](log.md) — append-only maintenance timeline
+- Page manifest — `wiki/.meta/manifest.json`, per-page git provenance (last commit + body hash); see [SCHEMA §12](SCHEMA.md)
 
 ## Overviews — whole-system synthesis
 

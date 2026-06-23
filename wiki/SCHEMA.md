@@ -3,7 +3,7 @@ title: SCHEMA — Wiki Convention
 type: schema
 tags: [meta, convention, type/schema]
 status: living
-updated: 2026-06-21
+updated: 2026-06-23
 sources:
   - AGENTS.md
   - CLAUDE.md
@@ -63,6 +63,7 @@ A periodic health check. Look for:
 - **Missing cross-references** — two pages that should link but don't.
 - **Missing pages** — an important concept mentioned everywhere but with no page.
 - **Source drift** — a `sources:` path that no longer exists in the repo.
+- **Stale frontmatter dates** — a page whose `updated:` predates its last real edit; run `scripts/dev/wiki-manifest.sh --check` (see §12).
 
 ## 3. Directory layout
 
@@ -76,7 +77,8 @@ wiki/
 ├── entities/          # domain objects / backend modules
 ├── concepts/          # cross-cutting design ideas, decisions, patterns
 ├── templates/         # Obsidian templates (entity / concept / overview / daily-note)
-└── daily-notes/       # one-file-per-day ingest journal (auto-created by Daily Notes core plugin)
+├── daily-notes/       # one-file-per-day ingest journal (auto-created by Daily Notes core plugin)
+└── .meta/             # generated provenance manifest (see §12); NOT a content layer
 ```
 
 Only three content types: `overview`, `entity`, `concept`. There is deliberately
@@ -305,3 +307,68 @@ generation), use one of:
 
 All three read the same `#type/<x>` tag convention from § 5, so adopting
 this section now keeps the door open for any of them later.
+
+## 12. Page versioning & manifest (`wiki/.meta/manifest.json`)
+
+Every content page carries a hand-maintained `updated:` date. That date is a
+**human semantic signal** ("when the meaning last changed") and it drifts: a
+page gets a typo fix or a cross-link in a later commit and no one bumps the
+date. `wiki/.meta/manifest.json` is the **machine-traceable** companion — for
+every page it records the last git commit that touched it, so audits and lint
+can answer *"which commit last modified this page, and by whom?"*.
+
+### What it stores
+
+```jsonc
+{
+  "$schema": "wiki-manifest-v1",
+  "generated_with_head": "<full HEAD sha>",              // determinism anchor (no timestamp)
+  "stats": { "pages": 54, "by_type": { "entity": 26, "concept": 14, "overview": 8, ... } },
+  "pages": [
+    {
+      "path": "wiki/entities/submission.md",
+      "type": "entity", "title": "Submission", "status": "living",
+      "frontmatter_updated": "2026-06-21",               // echoed from frontmatter
+      "last_commit": {                                    // `git log -1 -- <path>`
+        "sha": "0dc3c0e2d...", "short": "0dc3c0e2d",
+        "committed_at": "2026-06-21T17:47:08+08:00",
+        "author": "DavidHLP",
+        "subject": "docs: restructure wiki ..."
+      },
+      "body_sha256": "<sha256 of body, LF-normalized>"
+    }
+  ]
+}
+```
+
+`last_commit.sha` is the page's **version identifier** — the git provenance this
+manifest exists to surface. `body_sha256` (over the body, frontmatter stripped,
+line endings normalized) detects content change independent of commit history.
+
+### Generate / lint
+
+```bash
+scripts/dev/wiki-manifest.sh             # regenerate manifest from git history
+scripts/dev/wiki-manifest.sh --check     # lint; exit 1 on any finding
+```
+
+The manifest is a **derived, deterministic** artifact: at a given HEAD it
+reproduces byte-for-byte. Commit it alongside content changes so the whole
+team shares one provenance view.
+
+### Lint signals (`--check`)
+
+| Signal | Meaning |
+|--------|---------|
+| `[stale-fm]` | `frontmatter_updated` is behind the page's `last_commit` date — bump the frontmatter date (§ 9 "keep it current"). |
+| `[unregistered]` | a wiki `.md` exists that the manifest doesn't list — regenerate. |
+| `[stale-entry]` | the manifest lists a file that no longer exists — regenerate. |
+| `[drift]` | a page's body hash or last-commit changed since the manifest was recorded — regenerate. |
+| `[head]` | HEAD moved since the manifest's anchor — regenerate. |
+
+### Workflow
+
+After editing any wiki page, **regenerate the manifest in the same change**:
+edit pages → `scripts/dev/wiki-manifest.sh` → `git add wiki/.meta/manifest.json`
+→ commit. A `--check` gate flags any content change shipped without a matching
+manifest refresh.

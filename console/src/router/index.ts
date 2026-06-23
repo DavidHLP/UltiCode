@@ -191,8 +191,29 @@ const personalRoutes: RouteRecordRaw = {
     },
     {
       path: "account",
-      name: "personal-account",
       component: () => import("@/views/personal/AccountView.vue"),
+      children: [
+        {
+          path: "",
+          redirect: { name: "personal-account-general" },
+        },
+        {
+          path: "general",
+          name: "personal-account-general",
+          component: () => import("@/views/personal/AccountGeneralView.vue"),
+        },
+        {
+          path: "security",
+          name: "personal-account-security",
+          component: () => import("@/views/personal/AccountSecurityView.vue"),
+        },
+        {
+          path: "notifications",
+          name: "personal-account-notifications",
+          component: () =>
+            import("@/views/personal/AccountNotificationsView.vue"),
+        },
+      ],
     },
     {
       path: "submissions",

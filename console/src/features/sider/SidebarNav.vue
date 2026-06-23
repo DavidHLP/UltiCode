@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import type { SidebarSection } from "./sidebar.data";
-import { useRoute } from "vue-router";
+import type { SidebarItem, SidebarSection } from "./sidebar.data";
+import { useRoute, useRouter } from "vue-router";
 import {
   SidebarMenuItem as SharedSidebarMenuItem,
   SidebarMenuSubItem as SharedSidebarMenuSubItem,
@@ -25,6 +24,7 @@ import {
 const { t } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
+const router = useRouter();
 const { state } = useSidebar();
 
 const props = defineProps<{
@@ -42,39 +42,76 @@ const visibleSections = computed(() => {
     .filter((section) => section.items.length > 0);
 });
 
-const isItemActive = (url?: string) => {
-  if (!url) return false;
-  if (
-    url === "/" ||
-    url === "/forum" ||
-    url === "/contest" ||
-    url === "/personal" ||
-    url === "/problemset"
-  ) {
-    return route.path === url;
+const EXACT_URLS = new Set<string>([
+  "/",
+  "/forum",
+  "/contest",
+  "/personal",
+  "/problemset",
+]);
+
+const isExactUrl = (url?: string) => !!url && EXACT_URLS.has(url);
+
+const isItemActive = (item: SidebarItem): boolean => {
+  // A parent with children is "active" if the current path matches it or any descendant.
+  if (item.children && item.children.length > 0) {
+    return item.children.some((child) => isItemActive(child));
   }
-  return route.path.startsWith(url);
+  if (!item.url) return false;
+  if (isExactUrl(item.url)) return route.path === item.url;
+  return route.path === item.url || route.path.startsWith(item.url + "/");
 };
 
-const getItemIconColorClass = (url?: string) => {
-  if (!url) return "";
-  const active = isItemActive(url);
-  if (url.includes("/forum/c/interview")) {
+const handleParentClick = (item: SidebarItem, event: MouseEvent) => {
+  // If the click was on the toggle chevron, the inner @click.stop has already
+  // toggled openParents and we should NOT navigate.
+  const target = event.target as HTMLElement | null;
+  if (target?.closest?.('[data-parent-toggle]')) return;
+  if (item.url) {
+    router.push(item.url);
+  }
+};
+
+// Track open/closed state per parent item (key = item.title)
+const openParents = ref<Record<string, boolean>>({});
+
+watch(
+  () => route.path,
+  () => {
+    for (const section of visibleSections.value) {
+      for (const item of section.items) {
+        if (item.children && item.children.length > 0) {
+          // Auto-open any parent whose subtree is currently active
+          if (isItemActive(item)) {
+            openParents.value[item.title] = true;
+          }
+        }
+      }
+    }
+  },
+  { immediate: true },
+);
+
+const getItemIconColorClass = (item: SidebarItem) => {
+  if (!item.url && !item.children) return "";
+  const active = isItemActive(item);
+  const probeUrl = item.url || item.children?.[0]?.url || "";
+  if (probeUrl.includes("/forum/c/interview")) {
     return active
       ? "text-[#f59e0b]"
       : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#f59e0b]";
   }
-  if (url.includes("/forum/c/career")) {
+  if (probeUrl.includes("/forum/c/career")) {
     return active
       ? "text-[#14b8a6]"
       : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#14b8a6]";
   }
-  if (url.includes("/forum/c/compensation")) {
+  if (probeUrl.includes("/forum/c/compensation")) {
     return active
       ? "text-[#10b981]"
       : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#10b981]";
   }
-  if (url.includes("/forum/c/technology")) {
+  if (probeUrl.includes("/forum/c/technology")) {
     return active
       ? "text-[#06b6d4]"
       : "text-[var(--silver-400)] dark:text-[var(--silver-500)] group-hover:text-[#06b6d4]";
@@ -116,7 +153,7 @@ const getItemIconColorClass = (url?: string) => {
             <SharedSidebarMenuSubItem
               v-for="item in section.items"
               :key="item.title"
-              :is-active="isItemActive(item.url)"
+              :is-active="isItemActive(item)"
               :to="item.url || '#'"
               class="flex items-center gap-2 w-full"
             >
@@ -125,7 +162,7 @@ const getItemIconColorClass = (url?: string) => {
                 v-if="item.icon"
                 :class="[
                   'h-3.5 w-3.5 shrink-0 transition-colors',
-                  getItemIconColorClass(item.url),
+                  getItemIconColorClass(item),
                 ]"
               />
               <span class="truncate text-xs">{{ t(item.title) }}</span>
@@ -142,11 +179,11 @@ const getItemIconColorClass = (url?: string) => {
             <SidebarMenuItem v-for="item in section.items" :key="item.title">
               <SidebarMenuButton
                 :tooltip="t(item.title)"
-                :is-active="isItemActive(item.url)"
+                :is-active="isItemActive(item)"
                 as-child
                 :class="[
                   'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
-                  isItemActive(item.url)
+                  isItemActive(item)
                     ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
                     : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
                 ]"
@@ -157,7 +194,7 @@ const getItemIconColorClass = (url?: string) => {
                     v-if="item.icon"
                     :class="[
                       'transition-colors',
-                      getItemIconColorClass(item.url),
+                      getItemIconColorClass(item),
                     ]"
                   />
                   <span>{{ t(item.title) }}</span>
@@ -181,39 +218,102 @@ const getItemIconColorClass = (url?: string) => {
           v-if="state !== 'collapsed'"
           class="flex flex-col gap-0.5 px-1 py-0.5"
         >
-          <SharedSidebarMenuItem
-            v-for="item in section.items"
-            :key="item.title"
-            :is-active="isItemActive(item.url)"
-            :to="item.url || '#'"
-          >
-            <component
-              :is="item.icon"
-              v-if="item.icon"
-              :class="[
-                'h-4 w-4 shrink-0 transition-colors',
-                getItemIconColorClass(item.url),
-              ]"
-            />
-            <span class="truncate">{{ t(item.title) }}</span>
-            <Badge
-              v-if="item.badge"
-              :variant="item.badgeVariant || 'default'"
-              class="ml-auto h-5 px-1.5 text-2xs"
+          <template v-for="item in section.items" :key="item.title">
+            <!-- Item with children: collapsible parent (click anywhere toggles + navigates) -->
+            <Collapsible
+              v-if="item.children && item.children.length > 0"
+              v-model:open="openParents[item.title]"
+              :default-open="isItemActive(item)"
+              class="group/parent"
             >
-              {{ item.badge }}
-            </Badge>
-          </SharedSidebarMenuItem>
+              <button
+                type="button"
+                :class="[
+                  'group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium h-8.5 mx-1 rounded-md border-l-4 w-full',
+                  isItemActive(item)
+                    ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
+                    : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
+                ]"
+                @click="handleParentClick(item, $event)"
+              >
+                <component
+                  :is="item.icon"
+                  v-if="item.icon"
+                  :class="[
+                    'h-4 w-4 shrink-0 transition-colors',
+                    getItemIconColorClass(item),
+                  ]"
+                />
+                <span class="truncate">{{ t(item.title) }}</span>
+                <span
+                  class="ml-auto inline-flex h-5 w-5 items-center justify-center rounded text-[var(--silver-400)] hover:text-[var(--accent-electric)] transition-colors"
+                  :aria-label="`Toggle ${t(item.title)}`"
+                  role="button"
+                  data-parent-toggle
+                  @click.stop="openParents[item.title] = !openParents[item.title]"
+                >
+                  <ChevronRight
+                    :class="[
+                      'h-3 w-3 transition-transform duration-200',
+                      openParents[item.title] ? 'rotate-90' : '',
+                    ]"
+                  />
+                </span>
+              </button>
+              <CollapsibleContent class="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 pl-2">
+                <SharedSidebarMenuSubItem
+                  v-for="child in item.children"
+                  :key="child.title"
+                  :is-active="isItemActive(child)"
+                  :to="child.url || '#'"
+                  class="flex items-center gap-2 w-full"
+                >
+                  <component
+                    :is="child.icon"
+                    v-if="child.icon"
+                    :class="[
+                      'h-3.5 w-3.5 shrink-0 transition-colors',
+                      getItemIconColorClass(child),
+                    ]"
+                  />
+                  <span class="truncate text-xs">{{ t(child.title) }}</span>
+                </SharedSidebarMenuSubItem>
+              </CollapsibleContent>
+            </Collapsible>
+            <!-- Plain item -->
+            <SharedSidebarMenuItem
+              v-else
+              :is-active="isItemActive(item)"
+              :to="item.url || '#'"
+            >
+              <component
+                :is="item.icon"
+                v-if="item.icon"
+                :class="[
+                  'h-4 w-4 shrink-0 transition-colors',
+                  getItemIconColorClass(item),
+                ]"
+              />
+              <span class="truncate">{{ t(item.title) }}</span>
+              <Badge
+                v-if="item.badge"
+                :variant="item.badgeVariant || 'default'"
+                class="ml-auto h-5 px-1.5 text-2xs"
+              >
+                {{ item.badge }}
+              </Badge>
+            </SharedSidebarMenuItem>
+          </template>
         </div>
         <SidebarMenu v-else class="mt-2">
           <SidebarMenuItem v-for="item in section.items" :key="item.title">
             <SidebarMenuButton
               :tooltip="t(item.title)"
-              :is-active="isItemActive(item.url)"
+              :is-active="isItemActive(item)"
               as-child
               :class="[
                 'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
-                isItemActive(item.url)
+                isItemActive(item)
                   ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
                   : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
               ]"
@@ -224,7 +324,7 @@ const getItemIconColorClass = (url?: string) => {
                   v-if="item.icon"
                   :class="[
                     'transition-colors',
-                    getItemIconColorClass(item.url),
+                    getItemIconColorClass(item),
                   ]"
                 />
                 <span>{{ t(item.title) }}</span>

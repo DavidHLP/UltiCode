@@ -19,6 +19,7 @@ import {
   Bookmark,
   CheckCircle2,
   Bell,
+  Lock,
 } from "lucide-vue-next";
 
 export interface SidebarItem {
@@ -171,6 +172,23 @@ export const personalSidebarData: SidebarSection[] = [
         title: "sidebar.personal.accountSettings",
         url: "/personal/account",
         icon: Settings,
+        children: [
+          {
+            title: "sidebar.personal.accountSettingsGeneral",
+            url: "/personal/account/general",
+            icon: User,
+          },
+          {
+            title: "sidebar.personal.accountSettingsSecurity",
+            url: "/personal/account/security",
+            icon: Lock,
+          },
+          {
+            title: "sidebar.personal.accountSettingsNotifications",
+            url: "/personal/account/notifications",
+            icon: Bell,
+          },
+        ],
       },
       {
         title: "sidebar.personal.notifications",

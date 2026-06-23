@@ -150,7 +150,7 @@ code-execution:
     cpus: ${SANDBOX_CPUS:1.0}
     timeout: ${SANDBOX_TIMEOUT:10}
     pids-limit: ${SANDBOX_PIDS_LIMIT:128}
-    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
+    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:C:/Project/UltiCode/docker/sandbox/seccomp-profile.json}
     # D-form (LeetCode/HackerRank harness) refactor — see
     # docker/sandbox/harness/README.md and .claude/PRPs/plans/oj-sandbox-d-form-refactor.plan.md
     # Phase 5.5: D-form is the sole dispatch path. The flag below is

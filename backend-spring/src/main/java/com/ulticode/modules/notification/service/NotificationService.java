@@ -85,6 +85,13 @@ public interface NotificationService {
      * {@link #createNotificationRowOnly} instead so the WebSocket push is
      * owned by {@code WebSocketNotificationChannel} on its own.
      *
+     * <p><b>Does NOT consult {@code NotificationPreference}.</b> The row is
+     * persisted unconditionally. Only {@code NotificationDispatcher} /
+     * {@code NotificationDispatchService} enforce opt-out; callers that bypass
+     * dispatch (e.g. {@code AdminNotificationService} force-delivery of
+     * SECURITY/SYSTEM) must do so deliberately. Business code should dispatch,
+     * not call this directly.
+     *
      * @param userId   the user ID
      * @param type     the notification type
      * @param category the notification category
@@ -108,6 +115,12 @@ public interface NotificationService {
      * defaults (isRead=false, id=ASSIGN_UUID, metadata JSON-serialized) — so
      * the existing {@code notification} row shape is unchanged from the
      * legacy path. Validation matrix (ADR-004 §4 #4): row schema unchanged.
+     *
+     * <p><b>Does NOT consult {@code NotificationPreference}.</b> This is the
+     * channel-internal persistence primitive invoked by
+     * {@code InAppNotificationChannel} <em>after</em> the dispatcher has
+     * already enforced the preference gate. Do not call it directly as a
+     * preference-aware send — use {@code NotificationDispatcher} instead.
      */
     NotificationVO createNotificationRowOnly(String userId, String type, String category,
                                               String title, String body, String link,

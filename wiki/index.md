@@ -65,6 +65,7 @@ sources: []
 
 - [Exactly-Once Judging](concepts/exactly-once-judging.md) — outbox + generation fence + lease
 - [Notification Idempotency](concepts/notification-idempotency.md) — intent + delivery ledger dedup
+- [Notification Dispatch & Preferences](concepts/notification-dispatch-and-preferences.md) — ADR-004: typed dispatcher, preference gate, 4 categories, migration flag
 - [Refresh Token Hash-Only Storage](concepts/refresh-token-hash-only-storage.md) — irrecoverable refresh tokens
 - [Virtual Contest](concepts/virtual-contest.md) — isolated replay sessions
 - [Security Invariants](concepts/security-invariants.md) — the non-negotiable rules
@@ -79,4 +80,4 @@ sources: []
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 25 entities · 13 concepts = **49 pages**.
+**Counts**: 4 meta · 7 overviews · 25 entities · 14 concepts = **50 pages**.

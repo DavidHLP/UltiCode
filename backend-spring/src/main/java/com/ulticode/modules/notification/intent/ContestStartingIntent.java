@@ -7,10 +7,14 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import java.time.LocalDateTime;
 
 /**
- * Intent emitted by {@code ContestScheduler} to remind a participant that a
- * contest is starting soon. Replaces the legacy per-reminder
- * {@code Map<String, Object>} dispatch in
- * {@code ContestScheduler.sendContestReminder}.
+ * Intent for reminding a participant that a contest is starting soon.
+ *
+ * <p><b>Status: reserved, not yet wired (ADR-004 M4c pending).</b> The type,
+ * channels, and dispatcher projection are implemented, but
+ * {@code ContestScheduler} still dispatches contest reminders through the
+ * legacy {@code NotificationDispatchService} path. No production caller
+ * constructs this intent yet; it activates once the contest module migrates
+ * to the typed dispatcher behind {@code FeatureFlags.useNotificationIntent}.
  *
  * <p>The {@code reminderType} is one of {@code "24h"} / {@code "1h"}; it is part
  * of the intent id so the 24h and 1h reminders for the same user/contest

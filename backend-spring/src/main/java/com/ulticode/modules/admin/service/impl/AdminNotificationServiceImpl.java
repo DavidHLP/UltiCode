@@ -18,7 +18,9 @@ import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import com.ulticode.modules.notification.entity.Notification;
+import com.ulticode.modules.notification.entity.NotificationPreference;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
+import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,12 +38,23 @@ import java.util.stream.Collectors;
 public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private static final String SYSTEM_CATEGORY = "SYSTEM";
+    private static final String MARKETING_CATEGORY = "MARKETING";
+    private static final String COMMUNICATION_CATEGORY = "COMMUNICATION";
+
+    /**
+     * Categories whose delivery must respect per-user opt-out preferences
+     * (ADR-004 §2.3). {@code SECURITY} and {@code SYSTEM} announcements are
+     * force-delivered and bypass this filter.
+     */
+    private static final Set<String> PREFERENCE_GATED_CATEGORIES =
+            Set.of(MARKETING_CATEGORY, COMMUNICATION_CATEGORY);
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "createdAt", "title", "type", "category", "announcementId"
     );
 
     private final NotificationMapper notificationMapper;
+    private final NotificationPreferenceMapper preferenceMapper;
     private final UserMapper userMapper;
 
     @Override
@@ -79,9 +92,20 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Current user not found");
         }
 
+        String category = request.getCategory() != null ? request.getCategory() : SYSTEM_CATEGORY;
+
         List<String> targetUserIds = getTargetUserIds(request.getTarget(), request.getUserIds());
         if (targetUserIds.isEmpty()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "No target users found");
+        }
+
+        // ADR-004 §2.3: respect per-user opt-out for MARKETING / COMMUNICATION.
+        // SECURITY / SYSTEM announcements are force-delivered (never filtered).
+        List<String> recipientIds = filterRecipientsByPreference(targetUserIds, category);
+        int suppressedCount = targetUserIds.size() - recipientIds.size();
+        if (suppressedCount > 0) {
+            log.info("System notification '{}' category={}: {}/{} recipients suppressed by preference opt-out",
+                    request.getTitle(), category, suppressedCount, targetUserIds.size());
         }
 
         Map<String, Object> metadata = new HashMap<>();
@@ -92,11 +116,11 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         String announcementId = UUID.randomUUID().toString();
 
         List<Notification> notificationsToCreate = new ArrayList<>();
-        for (String userId : targetUserIds) {
+        for (String userId : recipientIds) {
             Notification notification = new Notification();
             notification.setUserId(userId);
             notification.setType(request.getType());
-            notification.setCategory(request.getCategory());
+            notification.setCategory(category);
             notification.setTitle(request.getTitle());
             notification.setBody(request.getContent());
             notification.setLink(null);
@@ -111,15 +135,22 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             notificationMapper.batchInsert(notificationsToCreate);
         }
 
-        log.info("Created system notification '{}' for {} users by admin {} (announcementId={})",
-                request.getTitle(), targetUserIds.size(), currentUserId, announcementId);
+        log.info("Created system notification '{}' for {}/{} users by admin {} (announcementId={})",
+                request.getTitle(), recipientIds.size(), targetUserIds.size(), currentUserId, announcementId);
 
         AuditContext.setNewValues(Map.of(
             "title", request.getTitle() != null ? request.getTitle() : "",
-            "targetCount", targetUserIds.size(),
+            "targetCount", recipientIds.size(),
+            "suppressedCount", suppressedCount,
             "target", request.getTarget() != null ? request.getTarget() : ""
         ));
 
+        if (notificationsToCreate.isEmpty()) {
+            // Every recipient opted out — record the announcement intent without
+            // persisting any user-facing notification row.
+            AuditContext.setEntityId(announcementId);
+            return buildAnnouncementVo(request, category, announcementId);
+        }
         Notification representative = notificationsToCreate.get(0);
         AuditContext.setEntityId(representative.getId());
         return toAdminVOForSingle(representative);
@@ -240,6 +271,57 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * Filter the target user list by per-user notification preferences.
+     *
+     * <p>{@code SECURITY} and {@code SYSTEM} announcements bypass this filter
+     * (always delivered). For {@code MARKETING} / {@code COMMUNICATION}, users
+     * who have explicitly opted out are removed. Users without a preference row
+     * are resolved against the DDL defaults — marketing=false (opt-out),
+     * communication=true (opt-in) — matching {@code NotificationDispatcher} and
+     * the legacy {@code NotificationDispatchServiceImpl} so admin broadcast and
+     * event-driven dispatch apply identical preference semantics.
+     */
+    private List<String> filterRecipientsByPreference(List<String> userIds, String category) {
+        if (userIds.isEmpty() || !PREFERENCE_GATED_CATEGORIES.contains(category)) {
+            return userIds;
+        }
+        Map<String, NotificationPreference> prefById = preferenceMapper.selectList(
+                        new LambdaQueryWrapper<NotificationPreference>()
+                                .in(NotificationPreference::getUserId, userIds))
+                .stream()
+                .collect(Collectors.toMap(NotificationPreference::getUserId, Function.identity()));
+        boolean marketing = MARKETING_CATEGORY.equals(category);
+        return userIds.stream()
+                .filter(uid -> {
+                    NotificationPreference pref = prefById.get(uid);
+                    if (pref == null) {
+                        // DDL defaults: marketing=false, communication=true.
+                        return !marketing;
+                    }
+                    return marketing
+                            ? Boolean.TRUE.equals(pref.getMarketing())
+                            : Boolean.TRUE.equals(pref.getCommunication());
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Build a lightweight VO for an announcement that produced zero deliveries
+     * (every recipient opted out). No row is persisted; this only gives the
+     * admin a response payload and an audit anchor.
+     */
+    private AdminNotificationVO buildAnnouncementVo(CreateSystemNotificationRequest request,
+                                                    String category, String announcementId) {
+        AdminNotificationVO vo = new AdminNotificationVO();
+        vo.setAnnouncementId(announcementId);
+        vo.setTitle(request.getTitle());
+        vo.setContent(request.getContent());
+        vo.setType(request.getType());
+        vo.setCategory(category);
+        return vo;
     }
 
     private List<AdminNotificationVO> toAdminVOList(List<Notification> notifications) {

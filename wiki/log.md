@@ -3,7 +3,7 @@ title: Maintenance Log
 type: log
 tags: [meta, type/log]
 status: living
-updated: 2026-06-21
+updated: 2026-06-23
 sources: []
 ---
 
@@ -231,4 +231,36 @@ listeners are accounted for, 1 if a port is held by an unknown owner.
 - `wiki/concepts/process-management.md` (new, ~150 lines)
 - `wiki/index.md` (1 line added, count updated)
 - `wiki/overview/dev-environment-overview.md` (1 forward link)
+
+## [2026-06-23] ingest | wiki manifest v1 — per-page git provenance
+
+Added `wiki/.meta/manifest.json`, a **derived, deterministic** manifest that
+binds every wiki content page to the last git commit that modified it
+(`last_commit.sha` + author + date + subject) plus a `body_sha256`. It is the
+machine-traceable companion to the hand-maintained frontmatter `updated:` date
+— see [SCHEMA §12](SCHEMA.md).
+
+**Why** — frontmatter `updated:` is a human semantic signal and it drifts: the
+first `--check` run flagged pages whose `updated:` still read 2026-06-21 but
+were materially edited on 2026-06-22 (`index.md`, `log.md`,
+`dev-environment-overview.md`). The manifest surfaces that gap for audits.
+
+**New tooling** — `scripts/dev/wiki-manifest.sh` generates the manifest from
+git history and lints it (`--check`): `[stale-fm]` (frontmatter date behind
+last commit), `[unregistered]`, `[stale-entry]`, `[drift]`, `[head]`. Pure
+`node` (no extra deps); reads scalar frontmatter fields via regex.
+
+**Frontmatter dates bumped to 2026-06-23** on the three pages materially edited
+in this change (`SCHEMA.md`, `index.md`, `log.md`).
+`dev-environment-overview.md` is intentionally left at its 2026-06-21 date —
+its real last edit was the 2026-06-22 forward-link ingest; correcting that date
+is deferred to its next material edit (kept as a standing `[stale-fm]` reminder
+rather than back-dating).
+
+**Files touched**:
+- `scripts/dev/wiki-manifest.sh` (new)
+- `wiki/.meta/manifest.json` (new, 54 pages)
+- `wiki/SCHEMA.md` (§3 layout, §2 lint, new §12; frontmatter date)
+- `wiki/index.md` (Meta line; frontmatter date)
+- `wiki/log.md` (this entry; frontmatter date)
 

@@ -1,0 +1,19 @@
+# Base image for UltiCode sandbox
+# Provides: openjdk-17-jdk, python3, gcc, g++, sandbox user
+FROM alpine:3.19
+
+# Install essential packages
+RUN apk add --no-cache \
+    openjdk17 \
+    python3 \
+    python3-dev \
+    gcc \
+    g++ \
+    make \
+    bash
+
+# Create sandbox user
+RUN adduser -u 1000 -s /bin/bash -D sandbox
+
+USER sandbox
+WORKDIR /home/sandbox

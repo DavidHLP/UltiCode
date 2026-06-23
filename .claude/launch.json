@@ -6,21 +6,21 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:/Project/UltiCode/backend-spring/start.cjs"],
       "port": 9001,
-      "autoPort": true
+      "autoPort": false
     },
     {
       "name": "ulticode-9002-console",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "console", "exec", "vite", "--port", "9002", "--host", "127.0.0.1", "--strictPort"],
       "port": 9002,
-      "autoPort": true
+      "autoPort": false
     },
     {
       "name": "ulticode-9003-management",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--dir", "management", "exec", "vite", "--port", "9003", "--host", "127.0.0.1", "--strictPort"],
       "port": 9003,
-      "autoPort": true
+      "autoPort": false
     },
     {
       "name": "ulticode-init-db",
@@ -33,7 +33,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["./scripts/start-arthas.sh"],
       "port": 8563,
-      "autoPort": true
+      "autoPort": false
     }
   ]
 }

@@ -120,7 +120,7 @@ Arthas wrapper (`scripts/start-arthas.sh`) 由 **三路** 都能拉起, **任何
 | 实际生效位置 | `~/.arthas/lib/<version>/arthas/arthas.properties` |
 
 ```bash
-# === 推荐: PM2 一键全起 (含 9001/9002/9003/arthas) ===
+# === 推荐: PM2 一键全起 (含 9001/arthas) ===
 pm2 start ecosystem.config.cjs
 pm2 status                 # 看 ulticode-arthas 状态
 pm2 logs ulticode-arthas   # 看 wrapper 日志
@@ -529,13 +529,18 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 
 ## PM2 Services
 
+**PM2 管理后端服务，前端由 Claude Code 管理**
+
 | Port | Name | Type |
 |------|------|------|
 | 9001 | ulticode-9001 | Spring Boot Backend |
-| 9002 | ulticode-9002 | Console Frontend (Vite) |
-| 9003 | ulticode-9003 | Management Frontend (Vite) |
 | 8563 | ulticode-arthas | Arthas MCP Server (PM2 主, hook/cli 兜底, 三路互斥) |
+| - | ulticode-init-db | 数据库迁移服务 (一次性任务) |
 | 28848 | (nacos container) | Nacos 控制台 `/nacos` (默认账号 nacos/nacos) |
+
+**前端服务（由 Claude Code 管理）**:
+- Console (9002): `pnpm dev` 或 Claude Code Preview 系统
+- Management (9003): `pnpm dev` 或 Claude Code Preview 系统
 
 **Terminal Commands:**
 ```bash

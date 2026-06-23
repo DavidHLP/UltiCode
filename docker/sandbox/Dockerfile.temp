@@ -1,0 +1,11 @@
+# UltiCode sandbox — D-form (LeetCode/HackerRank harness) image
+# Alpine-based with Java 17 and Python 3 support
+
+FROM ulticode-sandbox:base-17 AS runtime
+
+# Copy pre-compiled harnesses
+COPY --chown=sandbox:sandbox harness-staging/java/   /opt/harness/java/
+COPY --chown=sandbox:sandbox harness-staging/python/ /opt/harness/python/
+
+USER sandbox
+WORKDIR /home/sandbox

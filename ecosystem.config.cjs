@@ -87,6 +87,31 @@ module.exports = {
       },
     },
     {
+      // Vite 默认绑定到 "localhost"，在 Linux 上只解析为 IPv6 ::1，
+      // 导致 up.sh 末尾用 127.0.0.1 的就绪检查失败。显式绑定 127.0.0.1
+      // 既能通过校验，又符合项目"只 bind loopback"的安全策略。
+      name: "ulticode-9002",
+      script: "node",
+      args: "./node_modules/vite/bin/vite.js --port 9002 --host 127.0.0.1",
+      cwd: "./console",
+      ...logConfig("9002"),
+      env: {
+        ...envFromFile,
+        NODE_ENV: "development",
+      },
+    },
+    {
+      name: "ulticode-9003",
+      script: "node",
+      args: "./node_modules/vite/bin/vite.js --port 9003 --host 127.0.0.1",
+      cwd: "./management",
+      ...logConfig("9003"),
+      env: {
+        ...envFromFile,
+        NODE_ENV: "development",
+      },
+    },
+    {
       // 数据库迁移服务: 一次性跑 Flyway migrate, 成功即退出 (exit 0)
       // 启动顺序: 先 `pm2 start ulticode-init-db` 等 stopped, 再 `pm2 start ulticode-9001`
       name: "ulticode-init-db",

@@ -99,4 +99,9 @@ export default {
   // Default error message
   default: "Operation failed. Please try again later.",
   unknown: "An unknown error occurred",
+
+  // Rate limiting
+  rateLimitExceeded: "Rate limit exceeded. Please try again in {seconds} seconds.",
+  rateLimitDescription: "You've made too many requests. Please wait before trying again.",
+  runCodeFailed: "Failed to run code. Please try again.",
 } as const;

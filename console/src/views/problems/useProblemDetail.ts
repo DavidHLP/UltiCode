@@ -97,6 +97,24 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
           runResult: result,
         });
       } catch (error) {
+        // Rate limit error handling - show user-friendly message with wait time
+        if (error instanceof ApiError) {
+          if (error.code === 429) { // TOO_MANY_REQUESTS
+            const message = error.message || "Rate limit exceeded";
+            const waitTimeMatch = message.match(/(\d+)\s+seconds?/);
+            const waitSeconds = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+
+            toast.error(
+              t("errors.rateLimitExceeded", { seconds: waitSeconds }),
+              {
+                duration: 5000,
+                description: t("errors.rateLimitDescription", { seconds: waitSeconds })
+              }
+            );
+          } else {
+            toast.error(t("errors.runCodeFailed"));
+          }
+        }
         console.error("Failed to run submission", error);
         runResult.value = null;
         await problemHooks.emit("problem:run:error", {

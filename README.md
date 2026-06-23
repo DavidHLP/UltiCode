@@ -87,23 +87,45 @@
 
 ## 界面预览
 
+> 视口 1496×933 桌面端。浅 / 深主题通过右上角用户菜单 → 主题 切换；以下所有截图源文件见 [docs/screenshots/](docs/screenshots/README.md)。
+
 ### 🖥️ 用户端 (Console · 9002)
 
 **Light**
 
 ![论坛列表](docs/screenshots/forum-list-light.png)
 
-**Dark**
+**Dark · 浏览与社区**
 
-| 论坛平台 | 帖子详情 | 竞赛 | 题库专题 | 题目详情 |
-|:-:|:-:|:-:|:-:|:-:|
-| ![论坛平台](docs/screenshots/forum-thread-dark.png) | ![帖子详情](docs/screenshots/forum-detail-dark.png) | ![竞赛](docs/screenshots/contests-dark.png) | ![题单](docs/screenshots/problem-set-dark.png) | ![题目](docs/screenshots/problem-detail-dark.png) |
+| 论坛平台 | 帖子详情 | 比赛首页 | 比赛详情 |
+|:-:|:-:|:-:|:-:|
+| ![论坛平台](docs/screenshots/forum-thread-dark.png) | ![帖子详情](docs/screenshots/forum-detail-dark.png) | ![比赛首页](docs/screenshots/contests-dark.png) | ![比赛详情](docs/screenshots/contest-detail-dark.png) |
+
+**Dark · 题库与题目**
+
+| 题库专题 | 题单详情 | 题目详情 |
+|:-:|:-:|:-:|
+| ![题库专题](docs/screenshots/problem-set-dark.png) | ![题单详情](docs/screenshots/problem-list-dark.png) | ![题目详情](docs/screenshots/problem-detail-dark.png) |
+
+**Dark · 个人中心**
+
+| 个人 Dashboard | 提交记录 | 成就徽章 |
+|:-:|:-:|:-:|
+| ![个人 Dashboard](docs/screenshots/personal-dashboard-dark.png) | ![提交记录](docs/screenshots/submissions-list-dark.png) | ![成就徽章](docs/screenshots/achievements-dark.png) |
 
 ### 🛡️ 管理端 (Management · 9003)
+
+**Dark · 概览**
 
 | 数据分析 | 仪表板 |
 |:-:|:-:|
 | ![数据分析](docs/screenshots/analytics-dashboard-dark.png) | ![仪表板](docs/screenshots/admin-dashboard-dark.png) |
+
+**Dark · 治理与审计**
+
+| 用户管理 | 比赛管理 | 内容审核 | 提交审计 |
+|:-:|:-:|:-:|:-:|
+| ![用户管理](docs/screenshots/user-management-dark.png) | ![比赛管理](docs/screenshots/contest-management-dark.png) | ![内容审核](docs/screenshots/moderation-dark.png) | ![提交审计](docs/screenshots/submissions-audit-dark.png) |
 
 ---
 

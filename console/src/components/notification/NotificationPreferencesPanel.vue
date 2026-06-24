@@ -75,9 +75,9 @@ async function togglePreference(
         </div>
         <Switch
           :id="`pref-${item.key}`"
-          :checked="preferences[item.key]"
+          :model-value="preferences[item.key]"
           :disabled="loading"
-          @update:checked="(v: boolean) => togglePreference(item.key, v)"
+          @update:model-value="(v: boolean) => togglePreference(item.key, v)"
         />
       </div>
     </div>

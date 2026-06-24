@@ -5,6 +5,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.achievement.dto.AchievementProgressVO;
 import com.ulticode.modules.achievement.service.AchievementService;
+import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
@@ -65,6 +66,23 @@ public class UserController {
     public Result<UserVO> updateCurrentUser(@Valid @RequestBody UpdateUserDTO updateDTO) {
         UserVO user = userService.updateCurrentUser(updateDTO);
         return Result.success(user);
+    }
+
+    /**
+     * Change the current authenticated user's password.
+     *
+     * @param changePasswordDTO the change password data
+     * @return success result
+     */
+    @Operation(summary = "Change password", description = "Change the current user's password")
+    @ApiResponse(responseCode = "200", description = "Password changed")
+    @ApiResponse(responseCode = "400", description = "Validation error or incorrect current password")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @RateLimit(key = "user:password", limit = 5, period = 60)
+    @PatchMapping("/me/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
+        userService.changePassword(changePasswordDTO);
+        return Result.success();
     }
 
     /**

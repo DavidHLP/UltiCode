@@ -12,6 +12,7 @@ const { t } = useI18n();
 const {
   data,
   allCategories,
+  loadError,
   isCreateCategoryOpen,
   isCreatingCategory,
   createCategoryForm,
@@ -37,6 +38,7 @@ const {
   isCreatingList,
   createListForm,
   handleCreateList,
+  loadData,
 } = useSidebarLists();
 </script>
 
@@ -67,11 +69,13 @@ const {
   <SidebarListSections
     :data="data"
     :all-categories="allCategories"
+    :has-error="loadError"
     @delete-list="openDeleteListDialog"
     @unsave-list="handleUnsaveList"
     @move-list-to-category="handleMoveListToCategory"
     @edit-category="openEditCategoryDialog"
     @delete-category="openDeleteCategoryDialog"
+    @retry-load="loadData(true)"
   />
 
   <!-- Dialogs -->

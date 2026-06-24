@@ -25,6 +25,8 @@ import {
   User,
   BookmarkMinus,
   Pencil,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-vue-next";
 import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 import { RouterLink, useRoute } from "vue-router";
@@ -39,6 +41,7 @@ const emit = defineEmits<{
   moveListToCategory: [list: ProblemList, categoryId: string | null];
   editCategory: [category: ProblemListCategory];
   deleteCategory: [category: ProblemListCategory];
+  retryLoad: [];
 }>();
 
 defineProps<{
@@ -49,6 +52,7 @@ defineProps<{
     categories: (ProblemListCategory & { lists: ProblemList[] })[];
   };
   allCategories: ProblemListCategory[];
+  hasError?: boolean;
 }>();
 
 const isListActive = (id: string | number) => {
@@ -57,6 +61,27 @@ const isListActive = (id: string | number) => {
 </script>
 
 <template>
+  <!-- Load Failure Placeholder -->
+  <div
+    v-if="hasError"
+    class="px-3 py-3 mx-1 my-1 flex items-start gap-2 border border-dashed border-destructive/40 bg-destructive/5 text-destructive"
+  >
+    <AlertCircle class="h-3.5 w-3.5 mt-0.5 shrink-0" />
+    <div class="flex-1 min-w-0">
+      <p class="text-xxs font-semibold leading-tight">
+        {{ t("problem.banners.unableToLoad") }}
+      </p>
+      <button
+        type="button"
+        class="mt-1 inline-flex items-center gap-1 text-xxs underline underline-offset-2 hover:text-destructive/80"
+        @click="emit('retryLoad')"
+      >
+        <RefreshCw class="h-3 w-3" />
+        {{ t("common.actions.retry") }}
+      </button>
+    </div>
+  </div>
+
   <!-- My Lists Section -->
   <div class="px-1 py-0.5" v-if="data.ownLists.length > 0">
     <Collapsible :default-open="true" class="group/collapsible">

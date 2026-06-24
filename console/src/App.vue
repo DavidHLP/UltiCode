@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
+import { Toaster } from "vue-sonner";
 import PWAUpdatePrompt from "@/components/common/PWAUpdatePrompt.vue";
 
 const handleError = (event: ErrorEvent) => {
@@ -24,6 +25,7 @@ onUnmounted(() => {
 <template>
   <RouterView />
   <PWAUpdatePrompt />
+  <Toaster position="top-right" rich-colors close-button />
 </template>
 
 <style scoped></style>

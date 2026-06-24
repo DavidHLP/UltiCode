@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent } from "@/components/ui/card";
-import { fetchFeaturedProblemLists } from "@/api/problem-list";
 import type { ProblemList } from "@/types/problem-list";
-import { computed, onMounted, onBeforeUnmount, ref } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import {
   ArrowRight,
@@ -16,7 +15,7 @@ import {
 } from "lucide-vue-next";
 import type { LucideIcon } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
-import { useAuthStore } from "@/stores/auth";
+import { useProblemListsStore } from "@/stores/problemLists";
 
 type BannerTheme = {
   card: string;
@@ -34,7 +33,7 @@ type DisplayBanner = ProblemList & {
 };
 
 const { t } = useI18n();
-const authStore = useAuthStore();
+const problemListsStore = useProblemListsStore();
 
 const CARD_BASE =
   "relative overflow-hidden border border-border/80 border-l-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md h-full rounded-none group bg-card";
@@ -100,7 +99,6 @@ const resolveIcon = (key?: string): LucideIcon =>
 
 const banners = ref<ProblemList[]>([]);
 const isLoading = ref(true);
-const hasError = ref(false);
 const scrollContainer = ref<HTMLElement | null>(null);
 
 // Current scroll position tracking
@@ -180,23 +178,7 @@ const displayBanners = computed<DisplayBanner[]>(() =>
 const needsScroll = computed(() => displayBanners.value.length > 3);
 
 onMounted(async () => {
-  try {
-    isLoading.value = true;
-    hasError.value = false;
-
-    // Only fetch for authenticated users
-    if (authStore.isAuthenticated) {
-      banners.value = await fetchFeaturedProblemLists();
-    } else {
-      banners.value = [];
-    }
-  } catch (error) {
-    console.error("Failed to load featured lists", error);
-    hasError.value = true;
-    banners.value = [];
-  } finally {
-    isLoading.value = false;
-  }
+  await problemListsStore.loadOverview();
 
   // Set up scroll listeners after data loads
   if (scrollContainer.value) {
@@ -208,6 +190,22 @@ onMounted(async () => {
     updateScrollState();
   }
 });
+
+watch(
+  () => problemListsStore.isLoading,
+  (loading) => {
+    isLoading.value = loading;
+  },
+  { immediate: true },
+);
+
+watch(
+  () => problemListsStore.featuredLists,
+  (lists) => {
+    banners.value = [...lists];
+  },
+  { immediate: true },
+);
 
 onBeforeUnmount(() => {
   if (scrollContainer.value) {
@@ -271,7 +269,7 @@ onBeforeUnmount(() => {
           </div>
           <p class="text-base font-bold text-foreground tracking-tight">
             {{
-              hasError
+              problemListsStore.loadError
                 ? t("problem.banners.unableToLoad")
                 : t("problem.banners.noBanners")
             }}
@@ -280,7 +278,7 @@ onBeforeUnmount(() => {
             class="text-xs text-muted-foreground mt-2 max-w-[280px] leading-relaxed"
           >
             {{
-              hasError
+              problemListsStore.loadError
                 ? t("problem.banners.tryAgain")
                 : t("problem.banners.featuredListsConfigured")
             }}

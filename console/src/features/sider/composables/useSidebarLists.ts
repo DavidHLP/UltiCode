@@ -1,13 +1,10 @@
 import { ref, computed, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import { ApiError } from "@/utils/request";
 import type {
   ProblemList,
   ProblemListCategory,
-  UserProblemListsResponse,
 } from "@/types/problem-list";
 import {
-  fetchProblemListsOverview,
   createCategory,
   updateCategory,
   deleteCategory,
@@ -16,37 +13,25 @@ import {
   deleteProblemList,
   createProblemList,
 } from "@/api/problem-list";
+import { useProblemListsStore } from "@/stores/problemLists";
 import { toast } from "vue-sonner";
 
 export function useSidebarLists() {
   const currentUserId = useAuthStore().fetchCurrentUserId();
+  const problemListsStore = useProblemListsStore();
 
-  // Data state
-  const data = ref<UserProblemListsResponse>({
-    ownLists: [],
-    savedLists: [],
-    featuredLists: [],
-    categories: [],
-  });
-  const isLoading = ref(false);
+  const data = computed(() => problemListsStore.data);
+  const isLoading = computed(() => problemListsStore.isLoading);
 
-  const loadData = async () => {
-    if (!currentUserId) return;
-    isLoading.value = true;
-    try {
-      data.value = await fetchProblemListsOverview();
-    } catch (e) {
-      // Ignore request cancellation caused by deduplication
-      if (e instanceof ApiError && e.code === -1) return;
-      console.error("Failed to load problem lists", e);
-    } finally {
-      isLoading.value = false;
-    }
+  const loadData = async (force = false) => {
+    await problemListsStore.loadOverview(force);
   };
 
-  onMounted(loadData);
+  onMounted(() => {
+    void loadData();
+  });
 
-  const allCategories = computed(() => data.value.categories);
+  const allCategories = computed(() => problemListsStore.categories);
 
   // --- Create Category ---
   const isCreateCategoryOpen = ref(false);
@@ -67,7 +52,7 @@ export function useSidebarLists() {
       toast.success("Category created successfully");
       isCreateCategoryOpen.value = false;
       createCategoryForm.value = { name: "" };
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to create category", e);
       toast.error("Failed to create category");
@@ -101,7 +86,7 @@ export function useSidebarLists() {
       });
       toast.success("Category updated successfully");
       isEditCategoryOpen.value = false;
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to update category", e);
       toast.error("Failed to update category");
@@ -127,7 +112,7 @@ export function useSidebarLists() {
       await deleteCategory(categoryToDelete.value.id);
       toast.success("Category deleted successfully");
       isDeleteCategoryOpen.value = false;
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to delete category", e);
       toast.error("Failed to delete category");
@@ -153,7 +138,7 @@ export function useSidebarLists() {
       await deleteProblemList(listToDelete.value.id);
       toast.success(`Deleted "${listToDelete.value.name}"`);
       isDeleteListOpen.value = false;
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to delete list", e);
       toast.error("Failed to delete list");
@@ -168,7 +153,7 @@ export function useSidebarLists() {
     try {
       await unsaveList(list.id);
       toast.success(`Removed "${list.name}" from saved`);
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to unsave list", e);
       toast.error("Failed to remove from saved");
@@ -188,7 +173,7 @@ export function useSidebarLists() {
           ? `Moved "${list.name}" to category`
           : `Removed "${list.name}" from category`,
       );
-      await loadData();
+      await loadData(true);
     } catch (e) {
       console.error("Failed to move list", e);
       toast.error("Failed to move list");
@@ -216,7 +201,7 @@ export function useSidebarLists() {
       toast.success("Problem list created successfully");
       isCreateListOpen.value = false;
       createListForm.value = { name: "", description: "", isPublic: false };
-      await loadData();
+      await loadData(true);
       window.location.href = `/problemset/list/${newList.id}`;
     } catch (e) {
       console.error("Failed to create list", e);
@@ -231,6 +216,8 @@ export function useSidebarLists() {
     data,
     isLoading,
     allCategories,
+    loadError: computed(() => problemListsStore.loadError),
+    loadData,
 
     // Category CRUD
     isCreateCategoryOpen,

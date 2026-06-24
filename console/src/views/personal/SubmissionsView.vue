@@ -168,7 +168,7 @@ onMounted(async () => {
       :description="t('personal.submissions.subtitle')"
     >
       <template #actions>
-        <Button variant="outline" size="sm" class="gap-2 rounded-full" as-child>
+        <Button variant="outline" size="sm" class="gap-2" as-child>
           <RouterLink to="/problemset">
             {{ t("personal.submissions.browseProblems") }}
             <ExternalLink class="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ onMounted(async () => {
       <p class="text-muted-foreground mb-4">
         {{ t("personal.submissions.loginToView") }}
       </p>
-      <Button as-child class="rounded-full px-6 h-10 font-bold">
+      <Button as-child class="px-6 h-10 font-bold">
         <RouterLink to="/login">{{ t("personal.profile.signIn") }}</RouterLink>
       </Button>
     </div>
@@ -301,7 +301,7 @@ onMounted(async () => {
             <p class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground">
               {{ t("personal.submissions.noSubmissionsDesc") }}
             </p>
-            <Button class="rounded-full px-8 h-10 font-bold" as-child>
+            <Button class="px-8 h-10 font-bold" as-child>
               <RouterLink to="/problemset">{{
                 t("personal.submissions.startSolving")
               }}</RouterLink>

@@ -69,6 +69,14 @@ export async function updateMyProfile(
   return apiPatch<UserProfile>("/users/me", data);
 }
 
+export async function changePassword(data: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<void> {
+  return apiPatch<void>("/users/me/password", data);
+}
+
 export async function fetchUserStats(userId: string): Promise<UserStats> {
   return apiGet<UserStats>(`/users/${userId}/stats`);
 }

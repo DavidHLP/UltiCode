@@ -65,6 +65,7 @@ export default {
     changeEmail: "更改邮箱",
     password: "密码",
     changePassword: "更改密码",
+    changePasswordDesc: "使用强密码以保护您的账户安全。",
     currentPassword: "当前密码",
     newPassword: "新密码",
     confirmNewPassword: "确认新密码",
@@ -83,6 +84,9 @@ export default {
     usernameUnique: "用户名是唯一的，无法更改。",
     saveChanges: "保存所有更改",
     updatePassword: "更新密码",
+    passwordMismatch: "新密码与确认密码不匹配",
+    passwordMinLength: "密码至少需要 6 个字符",
+    deleteNotAvailable: "账户删除功能暂未开放，如有需要请联系管理员。",
     notificationTypes: {
       communication: "交流与互动",
       communicationDesc: "接收有关账户活动和更新的电子邮件。",

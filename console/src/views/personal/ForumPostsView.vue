@@ -77,7 +77,7 @@ onMounted(loadPosts);
       :description="t('personal.forumPosts.subtitle')"
     >
       <template #actions>
-        <Button as-child class="rounded-full gap-2">
+        <Button as-child class="gap-2">
           <RouterLink to="/forum/create">
             <Plus class="h-4 w-4" />
             {{ t("personal.forumPosts.newPost") }}
@@ -109,7 +109,7 @@ onMounted(loadPosts);
       <p class="mb-8 mt-2 max-w-[300px] text-sm text-muted-foreground">
         {{ t("personal.forumPosts.noPostsDesc") }}
       </p>
-      <Button as-child class="rounded-full px-8 h-10 font-bold">
+      <Button as-child class="px-8 h-10 font-bold">
         <RouterLink to="/forum/create">{{
           t("personal.forumPosts.createFirst")
         }}</RouterLink>

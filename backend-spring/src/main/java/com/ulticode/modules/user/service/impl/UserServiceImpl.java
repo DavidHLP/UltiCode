@@ -11,6 +11,7 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,6 +59,7 @@ public class UserServiceImpl implements UserService {
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final FollowMapper followMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Optional<User> findById(String id) {
@@ -456,5 +459,31 @@ public class UserServiceImpl implements UserService {
 
         log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
         return avatarUrl;
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordDTO changePasswordDTO) {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        User user = findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(changePasswordDTO.getCurrentPassword(), user.getPassword())) {
+            throw new BusinessException(ErrorCode.USER_PASSWORD_INCORRECT);
+        }
+
+        if (!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmPassword())) {
+            throw new BusinessException(ErrorCode.USER_PASSWORD_MISMATCH);
+        }
+
+        String hashedPassword = passwordEncoder.encode(changePasswordDTO.getNewPassword());
+        user.setPassword(hashedPassword);
+        userMapper.updateById(user);
+
+        log.info("Password changed for user: {}", userId);
     }
 }

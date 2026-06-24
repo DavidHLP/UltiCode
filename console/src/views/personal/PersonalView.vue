@@ -90,7 +90,7 @@ onMounted(async () => {
         <p class="mb-6 mt-2 text-sm text-muted-foreground">
           {{ t("personal.profile.loginToView") }}
         </p>
-        <Button as-child class="rounded-full px-6 font-bold">
+        <Button as-child class="px-6 font-bold">
           <RouterLink to="/login">{{
             t("personal.profile.signIn")
           }}</RouterLink>

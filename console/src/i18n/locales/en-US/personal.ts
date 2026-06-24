@@ -68,6 +68,7 @@ export default {
     changeEmail: "Change Email",
     password: "Password",
     changePassword: "Change Password",
+    changePasswordDesc: "Use a strong password to protect your account.",
     currentPassword: "Current Password",
     newPassword: "New Password",
     confirmNewPassword: "Confirm New Password",
@@ -88,6 +89,9 @@ export default {
     usernameUnique: "Usernames are unique and cannot be changed.",
     saveChanges: "Save All Changes",
     updatePassword: "Update Password",
+    passwordMismatch: "New password and confirmation do not match",
+    passwordMinLength: "Password must be at least 6 characters",
+    deleteNotAvailable: "Account deletion is not yet available. Contact an administrator if needed.",
     notificationTypes: {
       communication: "Communication",
       communicationDesc:

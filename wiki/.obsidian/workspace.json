@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "90242ce72f6f7e21",
+        "id": "9904f9fa10aa2698",
         "type": "tabs",
         "children": [
           {
-            "id": "a0a2026c5da6e808",
+            "id": "81f557ce2502ed9a",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -187,14 +187,17 @@
       "realclaudian:Open Claudian": false
     }
   },
-  "active": "a0a2026c5da6e808",
+  "active": "81f557ce2502ed9a",
   "lastOpenFiles": [
+    "concepts/flyway-migration-discipline.md",
+    "overview/database-schema-overview.md",
+    "index.md",
+    "log.md",
     "entities/email.md",
     "index.md.tmp.230396.2ab709e6cf73",
     "index.md.tmp.230396.a1645bcd0df2",
     "concepts/notification-dispatch-and-preferences.md",
     "overview/backend-modules-overview.md",
-    "index.md",
     "daily-notes/2026-06-21.md",
     "templates/daily-note.md",
     "entities/judge-queue.md",
@@ -221,9 +224,6 @@
     "entities/admin.md",
     "templates/overview.md",
     "templates/concept.md",
-    "templates/entity.md",
-    "SCHEMA.md",
-    "README.md",
-    "overview/judging-pipeline-overview.md"
+    "templates/entity.md"
   ]
 }

@@ -14,7 +14,6 @@ import {
   FileText,
   HelpCircle,
   User,
-  Settings,
   List,
   Bookmark,
   CheckCircle2,
@@ -164,32 +163,38 @@ export const contestSidebarData: SidebarSection[] = [
 
 export const personalSidebarData: SidebarSection[] = [
   {
-    name: "sidebar.personal.account",
+    name: "sidebar.personal.accountSettings",
+    collapsible: true,
+    requiresAuth: true,
+    items: [
+      {
+        title: "sidebar.personal.accountSettingsGeneral",
+        url: "/personal/account/general",
+        icon: User,
+      },
+      {
+        title: "sidebar.personal.accountSettingsSecurity",
+        url: "/personal/account/security",
+        icon: Lock,
+      },
+      {
+        title: "sidebar.personal.accountSettingsNotifications",
+        url: "/personal/account/notifications",
+        icon: Bell,
+      },
+    ],
+  },
+  {
+    name: "sidebar.personal.profile",
     requiresAuth: true,
     items: [
       { title: "sidebar.personal.profile", url: "/personal", icon: User },
-      {
-        title: "sidebar.personal.accountSettings",
-        url: "/personal/account",
-        icon: Settings,
-        children: [
-          {
-            title: "sidebar.personal.accountSettingsGeneral",
-            url: "/personal/account/general",
-            icon: User,
-          },
-          {
-            title: "sidebar.personal.accountSettingsSecurity",
-            url: "/personal/account/security",
-            icon: Lock,
-          },
-          {
-            title: "sidebar.personal.accountSettingsNotifications",
-            url: "/personal/account/notifications",
-            icon: Bell,
-          },
-        ],
-      },
+    ],
+  },
+  {
+    name: "sidebar.personal.notifications",
+    requiresAuth: true,
+    items: [
       {
         title: "sidebar.personal.notifications",
         url: "/personal/notifications",

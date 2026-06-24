@@ -272,7 +272,7 @@ onMounted(() => {
       <template #actions>
         <Button
           @click="showCreateDialog = true"
-          class="rounded-full gap-2 shadow-[var(--shadow-float)]"
+          class="gap-2 shadow-[var(--shadow-float)]"
         >
           <Plus class="h-4 w-4" />
           {{ t("personal.bookmarks.newCollection") }}
@@ -401,7 +401,10 @@ onMounted(() => {
                           :to="getItemUrl(item)"
                           class="text-base font-semibold hover:text-primary transition-colors line-clamp-1 flex items-center gap-2"
                         >
-                          {{ item.title ?? `Item ${item.targetId}` }}
+                          {{
+                            item.title ??
+                            t("bookmark.itemFallback", { id: item.targetId })
+                          }}
                           <ExternalLink
                             class="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity"
                           />
@@ -415,7 +418,9 @@ onMounted(() => {
                             class="text-2xs font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
                           >
                             {{
-                              item.targetType.toLowerCase().replace("_", " ")
+                              t(
+                                `bookmark.itemTypes.${item.targetType}`,
+                              )
                             }}
                           </Badge>
 
@@ -428,13 +433,14 @@ onMounted(() => {
                               v-if="getForumMetadata(item)?.communityName"
                               class="text-xs font-medium text-muted-foreground"
                             >
-                              r/{{ getForumMetadata(item)?.communityName }}
+                              {{ t("bookmark.communityPrefix")
+                              }}{{ getForumMetadata(item)?.communityName }}
                             </div>
                             <div
                               v-if="getForumMetadata(item)?.authorName"
                               class="text-xs font-medium text-muted-foreground flex items-center gap-1"
                             >
-                              by
+                              {{ t("bookmark.authorPrefix") }}
                               <span class="font-semibold text-foreground/80">{{
                                 getForumMetadata(item)?.authorName
                               }}</span>

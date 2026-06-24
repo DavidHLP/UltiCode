@@ -21,13 +21,18 @@ export default defineConfig({
       },
       // Catch-all `@` → ./src
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-      // Shared `shared/badge-config/src/utils/cn.ts` (and other files under
-      // shared/) import clsx/tailwind-merge/axios/lucide-vue-next as bare
-      // specifiers. The shared package has no node_modules, so we resolve
-      // them from the app's own node_modules.
+      // Files under shared/ (including the auth-ui & sidebar-menu components)
+      // import their runtime + peer deps as bare specifiers. The shared
+      // packages have no node_modules, so resolve them from the app's own
+      // node_modules — clsx/tailwind-merge/axios/lucide-vue-next plus the
+      // peer deps vue-router/vue-i18n/reka-ui consumed by shared/auth-ui &
+      // shared/sidebar-menu. `vue` itself is handled by the plugin + dedupe.
       {
         find: /^clsx$/,
-        replacement: path.resolve(fileURLToPath(new URL('.', import.meta.url)), 'node_modules/clsx'),
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/clsx',
+        ),
       },
       {
         find: /^tailwind-merge$/,
@@ -48,6 +53,27 @@ export default defineConfig({
         replacement: path.resolve(
           fileURLToPath(new URL('.', import.meta.url)),
           'node_modules/lucide-vue-next',
+        ),
+      },
+      {
+        find: /^reka-ui$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/reka-ui',
+        ),
+      },
+      {
+        find: /^vue-router$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/vue-router',
+        ),
+      },
+      {
+        find: /^vue-i18n$/,
+        replacement: path.resolve(
+          fileURLToPath(new URL('.', import.meta.url)),
+          'node_modules/vue-i18n',
         ),
       },
     ],

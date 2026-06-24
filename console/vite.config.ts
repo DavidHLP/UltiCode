@@ -100,18 +100,22 @@ export default defineConfig({
       },
       // Catch-all `@` → ./src
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
-      // Files inside shared/ (axiosCsrfInterceptor.ts, utils.ts, etc.)
-      // import their runtime deps as bare specifiers. Resolve them from
-      // console/node_modules rather than letting vite walk up from the
-      // shared/ file's physical location (which has no node_modules and
-      // would otherwise fail to resolve axios, clsx, tailwind-merge,
-      // lucide-vue-next on CI). Peer deps (vue / vue-i18n / vue-router)
-      // are already pinned in console/package.json so vite's normal
-      // resolution finds them.
+      // Files inside shared/ (axiosCsrfInterceptor.ts, utils.ts, and the
+      // auth-ui / sidebar-menu components) import their runtime + peer deps
+      // as bare specifiers. Resolve them from console/node_modules rather
+      // than letting vite walk up from the shared/ file's physical location
+      // (which has no node_modules and fails to resolve on the Docker CI
+      // build). Covers axios, clsx, tailwind-merge, lucide-vue-next, and the
+      // peer deps vue-router / vue-i18n / reka-ui consumed by shared/auth-ui
+      // & shared/sidebar-menu. `vue` itself is resolved by the plugin, so it
+      // needs no alias here.
       { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
       { find: /^clsx$/, replacement: fileURLToPath(new URL('./node_modules/clsx', import.meta.url)) },
       { find: /^tailwind-merge$/, replacement: fileURLToPath(new URL('./node_modules/tailwind-merge', import.meta.url)) },
       { find: /^lucide-vue-next$/, replacement: fileURLToPath(new URL('./node_modules/lucide-vue-next', import.meta.url)) },
+      { find: /^vue-router$/, replacement: fileURLToPath(new URL('./node_modules/vue-router', import.meta.url)) },
+      { find: /^vue-i18n$/, replacement: fileURLToPath(new URL('./node_modules/vue-i18n', import.meta.url)) },
+      { find: /^reka-ui$/, replacement: fileURLToPath(new URL('./node_modules/reka-ui', import.meta.url)) },
     ],
   },
   server: {

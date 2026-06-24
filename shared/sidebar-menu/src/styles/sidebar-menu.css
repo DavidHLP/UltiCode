@@ -39,6 +39,11 @@
  * two apps never hand-write `border-l-4 border-[--accent-electric]`
  * again. Depends on tokens from shared/design-system/style.css
  * (--accent-electric, --solarized-base01, --silver-*, --foreground).
+ *
+ * Tinted backgrounds use `color-mix()` and are wrapped in @supports so
+ * browsers without it (Chrome <111 / Safari <16.2 / Firefox <113) still
+ * render the activation bar + color + font-weight feedback — only the
+ * tinted background is dropped, never the whole declaration.
  * ============================================================ */
 
 /* --- Top-level menu item: 4px left activation bar --- */
@@ -52,12 +57,10 @@
 }
 .uc-sidebar-item[data-active='true'] {
   border-left-color: var(--accent-electric);
-  background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
   color: var(--accent-electric);
   font-weight: 700;
 }
 .uc-sidebar-item[data-active='false']:hover {
-  background: color-mix(in srgb, var(--silver-200) 40%, transparent);
   color: var(--foreground);
 }
 
@@ -66,13 +69,27 @@
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 .uc-sidebar-sub-item[data-active='true'] {
-  background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
   color: var(--accent-electric);
   font-weight: 600;
 }
 .uc-sidebar-sub-item[data-active='false']:hover {
-  background: color-mix(in srgb, var(--silver-200) 40%, transparent);
   color: var(--foreground);
+}
+
+/* color-mix backgrounds — progressive enhancement only */
+@supports (background: color-mix(in srgb, red 8%, transparent)) {
+  .uc-sidebar-item[data-active='true'] {
+    background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
+  }
+  .uc-sidebar-item[data-active='false']:hover {
+    background: color-mix(in srgb, var(--silver-200) 40%, transparent);
+  }
+  .uc-sidebar-sub-item[data-active='true'] {
+    background: color-mix(in srgb, var(--accent-electric) 8%, transparent);
+  }
+  .uc-sidebar-sub-item[data-active='false']:hover {
+    background: color-mix(in srgb, var(--silver-200) 40%, transparent);
+  }
 }
 
 /* --- Section group label: 2xs uppercase tracking --- */
@@ -88,14 +105,19 @@
 .dark .uc-sidebar-group-label {
   color: var(--silver-400);
 }
+.uc-sidebar-group-label[data-active='true'] {
+  color: var(--accent-electric);
+}
 
 /* --- Hover-revealed row action button ---
- * Hidden by default; shown when a `.group` ancestor is hovered.
- * Call sites place the button inside a `group`-classed row. */
+ * Hidden by default; shown when a `.group` ancestor is hovered. The second
+ * selector covers Tailwind named groups (`group/collapsible`, `group/item`)
+ * which emit `class="group/..."` and are NOT matched by the bare `.group`. */
 .uc-sidebar-icon-button {
   opacity: 0;
   transition: opacity 0.15s ease;
 }
-.group:hover .uc-sidebar-icon-button {
+.group:hover .uc-sidebar-icon-button,
+[class*='group/']:hover .uc-sidebar-icon-button {
   opacity: 1;
 }

@@ -16,11 +16,37 @@ describe('SidebarMenuItem', () => {
     expect(wrapper.attributes('data-active')).toBe('false')
   })
 
+  it('renders as a router-link (stubbed <a>) by default and forwards :to + data-active', () => {
+    // `as` defaults to 'link' → <component :is="'router-link'">; RouterLink is
+    // globally stubbed to <a> in __tests__/setup.ts, so the production path
+    // (console passes :to) is now covered.
+    const wrapper = mount(SidebarMenuItem, {
+      props: { isActive: true },
+      attrs: { to: '/home' },
+    })
+    const link = wrapper.find('a')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('to')).toBe('/home')
+    expect(link.attributes('data-active')).toBe('true')
+  })
+
+  it('renders a <button> element when as=button', () => {
+    const wrapper = mount(SidebarMenuItem, { props: { as: 'button' } })
+    expect(wrapper.element.tagName).toBe('BUTTON')
+  })
+
   it('renders the badge when provided', () => {
     const wrapper = mount(SidebarMenuItem, {
       props: { badge: 3, as: 'a' },
     })
     expect(wrapper.text()).toContain('3')
+  })
+
+  it('renders badge=0 (falsy but valid count — not swallowed by a truthy-only guard)', () => {
+    const wrapper = mount(SidebarMenuItem, {
+      props: { badge: 0, as: 'a' },
+    })
+    expect(wrapper.text()).toContain('0')
   })
 
   it('omits the badge when undefined', () => {

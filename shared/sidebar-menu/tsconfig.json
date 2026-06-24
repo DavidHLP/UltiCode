@@ -30,7 +30,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "vue": ["../../console/node_modules/vue"],
-      "reka-ui": ["../../console/node_modules/reka-ui"]
+      "reka-ui": ["../../console/node_modules/reka-ui"],
+      "vue-router": ["../../console/node_modules/vue-router"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "src/**/*.tsx"],

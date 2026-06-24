@@ -62,6 +62,17 @@ const isItemActive = (item: SidebarItem): boolean => {
   return route.path === item.url || route.path.startsWith(item.url + "/");
 };
 
+// Activation class for the collapsed-state rows (shadcn SidebarMenuButton +
+// tooltip), which cannot reuse the shared .uc-sidebar-item contract because of
+// the popover/tooltip structure. Extracted so the two collapsed branches below
+// never drift apart. Expanded-state rows use SharedSidebarMenuItem /
+// SharedSidebarMenuSubItem (data-active contract) instead.
+function itemRowClass(active: boolean): string {
+  return active
+    ? "border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold"
+    : "border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground";
+}
+
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
   const active = isItemActive(item);
@@ -151,12 +162,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                 :tooltip="t(item.title)"
                 :is-active="isItemActive(item)"
                 as-child
-                :class="[
-                  'group rounded-md mx-1 h-9 transition-all duration-200 border-l-4',
-                  isItemActive(item)
-                    ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
-                    : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
-                ]"
+                :class="['group rounded-md mx-1 h-9 transition-all duration-200 border-l-4', itemRowClass(isItemActive(item))]"
               >
                 <router-link :to="item.url || '#'">
                   <component
@@ -186,7 +192,12 @@ const getItemIconColorClass = (item: SidebarItem) => {
           class="flex flex-col gap-0.5 px-1 py-0.5"
         >
           <template v-for="item in section.items" :key="item.title">
-            <!-- Item with children: shared SidebarParentItem (link + collapsible children) -->
+            <!-- Item with children: shared SidebarParentItem (link + collapsible children).
+                 NOTE: console sidebar.data is currently flat (no item has
+                 children), so this branch is dormant — it activates once
+                 children are added. defaultOpen only seeds state at mount;
+                 route-driven auto-expand would need SidebarGroupCollapsible
+                 (conditional :open forwarding) instead. -->
             <SidebarParentItem
               v-if="item.children && item.children.length > 0"
               :title="t(item.title)"

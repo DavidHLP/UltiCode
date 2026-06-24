@@ -1,5 +1,4 @@
 @import "../theme/src/typography.css";
-@import "../sidebar-menu/src/styles/sidebar-menu.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "katex/dist/katex.min.css";

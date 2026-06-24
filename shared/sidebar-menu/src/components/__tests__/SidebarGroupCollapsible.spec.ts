@@ -19,6 +19,27 @@ describe('SidebarGroupCollapsible', () => {
     expect(wrapper.find('.uc-sidebar-group-label').exists()).toBe(false)
   })
 
+  it('reflects active on the label via data-active="true" (CSS contract, not a hand-written class)', () => {
+    const wrapper = mount(SidebarGroupCollapsible, {
+      props: { title: 'Sec', active: true },
+    })
+    expect(wrapper.find('.uc-sidebar-group-label').attributes('data-active')).toBe('true')
+  })
+
+  it('defaults the label to data-active="false"', () => {
+    const wrapper = mount(SidebarGroupCollapsible, { props: { title: 'Sec' } })
+    expect(wrapper.find('.uc-sidebar-group-label').attributes('data-active')).toBe('false')
+  })
+
+  it('is uncontrolled — forwards defaultOpen, does NOT bind :open', () => {
+    // Binding :open=undefined makes reka treat the root as controlled-closed
+    // (fc266ce10 regression). This component is uncontrolled by design, so the
+    // root must mount in its defaultOpen state. Callers place CollapsibleContent
+    // in the default slot (as console does) to gate children on open.
+    const wrapper = mount(SidebarGroupCollapsible, { props: { defaultOpen: true } })
+    expect(wrapper.find('[data-slot="collapsible"]').exists()).toBe(true)
+  })
+
   it('renders the default slot', () => {
     const wrapper = mount(SidebarGroupCollapsible, {
       props: { defaultOpen: true },

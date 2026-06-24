@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import { cn } from '../utils'
 
+// Root binds $attrs explicitly (v-bind="$attrs"); disable automatic fallthrough
+// so attrs (to, events, ...) are not applied twice.
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     isActive?: boolean

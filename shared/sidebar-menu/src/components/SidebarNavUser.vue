@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { cn } from '../utils'
 import type { SidebarUser } from '../utils'
 
@@ -6,6 +7,10 @@ const props = defineProps<{
   user: SidebarUser
   class?: string
 }>()
+
+// Avatar image load failure (404 / broken src) falls back to the initials
+// span so the row never shows a broken-image icon.
+const avatarFailed = ref(false)
 </script>
 
 <template>
@@ -13,10 +18,11 @@ const props = defineProps<{
     <!-- Avatar (overridable via #avatar slot) -->
     <slot name="avatar" :user="user">
       <img
-        v-if="user.avatar"
+        v-if="user.avatar && !avatarFailed"
         :src="user.avatar"
         :alt="user.name"
         class="size-8 shrink-0 rounded-full object-cover"
+        @error="avatarFailed = true"
       />
       <span
         v-else

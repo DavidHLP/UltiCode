@@ -134,7 +134,6 @@ watchEffect(() => {
                 <SharedSidebarMenuSubItem
                   :is-active="isActive(subItem.url)"
                   :to="subItem.url"
-                  as="link"
                   class="flex items-center gap-2 px-2.5 py-2 w-full text-xs font-mono rounded-none border-l-4"
                 >
                   <component
@@ -201,7 +200,6 @@ watchEffect(() => {
                     <SharedSidebarMenuSubItem
                       :is-active="isActive(subItem.url)"
                       :to="subItem.url"
-                      as="link"
                       class="flex items-center gap-2 w-full pl-3 rounded-md"
                     >
                       <component

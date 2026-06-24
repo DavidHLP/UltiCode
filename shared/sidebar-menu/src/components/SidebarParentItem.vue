@@ -3,15 +3,29 @@ import type { Component } from 'vue'
 import { CollapsibleRoot, CollapsibleTrigger, CollapsibleContent } from 'reka-ui'
 import { cn } from '../utils'
 
+/**
+ * SidebarParentItem — a parent row that is both a link and a collapsible
+ * group of children.
+ *
+ * - Mode A (`url` provided): the title is a `router-link` (navigates on
+ *   click) and a separate chevron button toggles collapse. Matches console's
+ *   "parent = link + collapsible children".
+ * - Mode B (no `url`): the title row itself is the collapse trigger.
+ *   Matches management's "parent = group-only (no navigation)".
+ *
+ * Uncontrolled only — open state is seeded from `defaultOpen` at mount and
+ * then managed internally by reka. There is intentionally no `v-model:open`:
+ * binding `:open="undefined"` makes reka treat CollapsibleRoot as
+ * controlled-closed (see commit fc266ce10). If you need route-driven
+ * auto-expand, use `SidebarGroupCollapsible` (which forwards `open`
+ * conditionally) instead.
+ *
+ * Security: `url` must be a trusted internal route string. Do NOT bind
+ * user-supplied input directly — vue-router does not block `javascript:` URLs.
+ */
 const props = withDefaults(
   defineProps<{
     title: string
-    /**
-     * When provided, the title row is a router-link (navigates on click) and a
-     * separate chevron toggles collapse — matches console's "parent = link +
-     * collapsible children". When absent, the title row itself is the collapse
-     * trigger — matches management's "parent = group-only (no navigation)".
-     */
     url?: string
     /** Leading icon component (lucide in console, tabler in management). */
     icon?: Component
@@ -50,7 +64,7 @@ const rowBase =
         <CollapsibleTrigger as-child>
           <button
             type="button"
-            class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--silver-500)] hover:bg-[var(--silver-200)]/40 hover:text-[var(--foreground)]"
+            class="mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-[var(--silver-500)] hover:bg-[var(--silver-200)]/40 hover:text-[var(--foreground)] min-h-11 min-w-11 sm:min-h-7 sm:min-w-7"
             :aria-label="isOpen ? 'collapse section' : 'expand section'"
           >
             <slot name="chevron" :open="isOpen">

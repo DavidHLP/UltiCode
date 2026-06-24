@@ -19,16 +19,10 @@ const props = withDefaults(
     iconClass?: string
     active?: boolean
     defaultOpen?: boolean
-    /** v-model:open — controlled open state. */
-    open?: boolean
     class?: string
   }>(),
   { active: false, defaultOpen: true },
 )
-
-const emit = defineEmits<{
-  'update:open': [boolean]
-}>()
 
 const rowBase =
   'uc-sidebar-item group flex flex-1 cursor-pointer items-center gap-2.5 rounded-md mx-1 h-9 pl-2.5 pr-3 py-1.5 text-sm font-medium transition-all duration-200 select-none'
@@ -37,10 +31,8 @@ const rowBase =
 <template>
   <CollapsibleRoot
     :default-open="defaultOpen"
-    :open="open"
     data-slot="collapsible"
     class="group/collapsible"
-    @update:open="emit('update:open', $event)"
     v-slot="{ open: isOpen }"
   >
     <div :class="cn('group flex items-center', props.class)">

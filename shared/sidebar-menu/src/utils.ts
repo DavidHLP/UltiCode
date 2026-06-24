@@ -7,6 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export type SidebarItemActiveFn = (url?: string) => boolean
 
+export interface SidebarUser {
+  name: string
+  email?: string
+  avatar?: string
+  role?: string
+}
+
 export function isExactOrStartsWith(
   currentPath: string,
   url: string | undefined,

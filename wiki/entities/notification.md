@@ -69,7 +69,7 @@ exactly-once user-visible delivery. See [[concepts/notification-idempotency]].
 ## Cross-links
 
 - [[entities/websocket]] · [[entities/email]] · [[entities/submission]]
-- [[concepts/notification-idempotency]]
+- [[concepts/notification-idempotency]] · [[concepts/notification-dispatch-and-preferences]]
 - [[overview/judging-pipeline-overview]] (notify stage)
 
 ## Gotchas

@@ -47,6 +47,7 @@ computation (contest-driven).
 
 - [[entities/auth]] · [[entities/refreshtoken]] · [[entities/permission]]
 - [achievement / follow modules](../overview/backend-modules-overview.md) (covered in module table)
+- [[entities/achievement]] · [[entities/follow]] · [[entities/subscription]]
 - [[overview/auth-flow-overview]]
 
 ## Gotchas

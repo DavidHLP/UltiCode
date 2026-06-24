@@ -98,3 +98,4 @@ Verification commands live in `AGENTS.md` § Verification Matrix.
 > [!link] Related pages
 > - [[overview/architecture-overview]]
 > - [[concepts/result-envelope-and-case-mapping]] · [[concepts/theme-system]]
+> - [[concepts/sidebar-menu]]

@@ -90,7 +90,7 @@ unknown formats).
 
 ## Cross-links
 
-- [[entities/user]] · [[entities/problem]] · [[entities/contest]] · [[entities/solution]] · [[entities/forum]] · [[entities/moderation]]
+- [[entities/user]] · [[entities/problem]] · [[entities/contest]] · [[entities/solution]] · [[entities/forum]] · [[entities/moderation]] · [[entities/monitoring]] · [[entities/backup]]
 - [[concepts/security-invariants]] · [[concepts/module-layering]]
 - [[overview/backend-modules-overview]]
 

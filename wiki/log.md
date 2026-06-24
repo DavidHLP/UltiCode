@@ -307,3 +307,28 @@ reviews recoverable via `git show 66cd1be64`).
 
 **Verified**: shared/sidebar-menu 41/41 + `vue-tsc` 0; console + management
 `vue-tsc` 0. Manifest regenerated.
+
+## [2026-06-24] docs | wiki cross-links — back-link 9 orphan / weakly-linked pages
+
+Full-link graph pass over `wiki/` (basename-resolved `[[...]]`; content inbound
+`ci` excludes index/log/SCHEMA/templates/daily). Baseline was healthy — 99%
+resolve, 4 "dead" links all template/SCHEMA placeholders — but 9 content pages
+were under-linked: 2 orphans (`concepts/notification-dispatch-and-preferences`,
+`concepts/sidebar-menu`, ci=0) and 7 weak (ci=1: `entities/{achievement, backup,
+follow, i18n, monitoring, search, subscription}`). Root cause was mostly
+**missing back-links** — the cited side named its neighbour in `Cross-links`
+but the neighbour never returned it (`backup`→admin, `monitoring`→admin), plus
+a sibling-concept gap (notification-idempotency ↔ dispatch) and `user.md`
+using a markdown link where a wikilink belonged.
+
+Added one semantically-justified inbound link per page across 9 files
+(page-tail `Cross-links` / `Related` / `Links out` only; no prose changes):
+`entities/{notification, user, interactions, problem, admin}` ·
+`concepts/{notification-idempotency, theme-system, arthas-diagnostics}` ·
+`overview/frontend-apps-overview`.
+
+**Verified**: re-ran the graph — orphans 2→0, weak 7→0, all 9 targets now
+ci≥2 (follow/monitoring=3, rest=2); dead links unchanged at 4 placeholders;
+resolve-rate 98.9% (345/349); `git diff --check` clean. sidebar-menu's
+annotated list-style `## Related` left as-is (its refactor-archive note is
+load-bearing; SCHEMA format treated as guideline). Manifest regenerated.

@@ -4,17 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "9904f9fa10aa2698",
+        "id": "2860e3db57cebb45",
         "type": "tabs",
         "children": [
           {
-            "id": "81f557ce2502ed9a",
+            "id": "c6ac5e9e27c97651",
             "type": "leaf",
             "state": {
-              "type": "empty",
+              "type": "graph",
               "state": {},
-              "icon": "lucide-file",
-              "title": "新标签页"
+              "icon": "lucide-git-fork",
+              "title": "关系图谱"
             }
           }
         ]
@@ -187,11 +187,18 @@
       "realclaudian:Open Claudian": false
     }
   },
-  "active": "81f557ce2502ed9a",
+  "active": "c6ac5e9e27c97651",
   "lastOpenFiles": [
+    "concepts/sidebar-menu.md.tmp.13967.6c0b23efe974",
+    "concepts/sidebar-menu.md.tmp.13967.fdad4678f12c",
+    "index.md.tmp.13967.eace382d9d23",
+    "index.md.tmp.13967.f5c50685eeca",
+    "index.md.tmp.13967.7166119621c8",
+    "concepts/sidebar-menu.md",
+    "index.md",
+    "templates/overview.md",
     "concepts/flyway-migration-discipline.md",
     "overview/database-schema-overview.md",
-    "index.md",
     "log.md",
     "entities/email.md",
     "index.md.tmp.230396.2ab709e6cf73",
@@ -208,10 +215,6 @@
     "log.md.tmp.817141.10e52d59c701",
     "SCHEMA.md.tmp.817141.db878c7be8ce",
     "log.md.tmp.817141.4526ed94b523",
-    "README.md.tmp.817141.c62612f6f60f",
-    "README.md.tmp.817141.dfcff9b00da7",
-    "SCHEMA.md.tmp.817141.a37a030f948b",
-    "SCHEMA.md.tmp.817141.c3281be7e733",
     "overview/architecture-overview.md",
     "entities/interactions.md",
     "entities/subscription.md",
@@ -221,9 +224,6 @@
     "entities/monitoring.md",
     "entities/i18n.md",
     "entities/search.md",
-    "entities/admin.md",
-    "templates/overview.md",
-    "templates/concept.md",
-    "templates/entity.md"
+    "entities/admin.md"
   ]
 }

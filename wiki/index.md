@@ -77,7 +77,8 @@ sources: []
 - [Flyway Migration Discipline](concepts/flyway-migration-discipline.md) — append-only, no credential seeds
 - [Arthas Diagnostics](concepts/arthas-diagnostics.md) — STATELESS MCP + degrade path
 - [Process Management](concepts/process-management.md) — PM2 vs Preview modes, port mutex, doctor.sh
+- [Sidebar Menu Visual Contract](concepts/sidebar-menu.md) — ADR-005: `.uc-sidebar-*` shared CSS contract, two-tier naming, icon-neutral
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 25 entities · 14 concepts = **50 pages**.
+**Counts**: 4 meta · 7 overviews · 25 entities · 15 concepts = **51 pages**.

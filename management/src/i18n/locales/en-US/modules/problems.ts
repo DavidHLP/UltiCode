@@ -290,7 +290,8 @@ export default {
       title: 'Constraints',
       add: 'Add Constraint',
       empty: 'No constraints yet',
-      emptyDescription: 'No constraints added yet. Constraints describe the limits and rules for the problem (e.g., array length, value ranges).',
+      emptyDescription:
+        'No constraints added yet. Constraints describe the limits and rules for the problem (e.g., array length, value ranges).',
       addNew: 'Add new constraint',
       placeholder: 'e.g., 1 <= nums.length <= 10^5',
     },

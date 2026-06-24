@@ -25,7 +25,8 @@ export default {
   export: 'Export',
   importTestCases: 'Import Test Cases',
   importData: 'Paste or upload test cases in JSON / CSV format',
-  importPlaceholder: 'One case per line; comma- or tab-separated fields: input,output,score,isSample,isHidden',
+  importPlaceholder:
+    'One case per line; comma- or tab-separated fields: input,output,score,isSample,isHidden',
   importHelp: 'Accepts JSON arrays or CSV/TSV text; the first line may be a header',
   replaceExisting: 'Replace existing test cases',
   importing: 'Importing',

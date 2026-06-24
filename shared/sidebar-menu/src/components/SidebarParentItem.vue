@@ -27,7 +27,7 @@ const rowBase =
 </script>
 
 <template>
-  <CollapsibleRoot :default-open="defaultOpen" class="group/collapsible" v-slot="{ open }">
+  <CollapsibleRoot :default-open="defaultOpen" data-slot="collapsible" class="group/collapsible" v-slot="{ open }">
     <div :class="cn('group flex items-center', props.class)">
       <!-- Mode A: title navigates; chevron is a separate collapse trigger. -->
       <template v-if="url">

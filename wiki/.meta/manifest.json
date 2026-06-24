@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "94fe6f362fe2081922189859440e5058afc54dd6",
+  "generated_with_head": "b5df5070be3b0cd1bb372260522695a7f2b62464",
   "stats": {
     "pages": 56,
     "by_type": {
@@ -231,11 +231,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "b5df5070be3b0cd1bb372260522695a7f2b62464",
+        "short": "b5df5070b",
+        "committed_at": "2026-06-24T17:56:19+08:00",
+        "author": "DavidHLP",
+        "subject": "docs: sidebar-menu unification concept page + manifest + land spec"
       },
       "body_sha256": "e0f958b8ed6de2fc94ea627905b60587c8737d060b8b4f333d6271f6e1beab54"
     },
@@ -664,13 +664,13 @@
       "type": "index",
       "title": "Index",
       "status": "living",
-      "frontmatter_updated": "2026-06-23",
+      "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "cc3448f41d90746b487e2384e2a01762e6e4a361",
-        "short": "cc3448f41",
-        "committed_at": "2026-06-24T00:31:11+08:00",
+        "sha": "b5df5070be3b0cd1bb372260522695a7f2b62464",
+        "short": "b5df5070b",
+        "committed_at": "2026-06-24T17:56:19+08:00",
         "author": "DavidHLP",
-        "subject": "fix(notification): honor preference opt-out in admin broadcast"
+        "subject": "docs: sidebar-menu unification concept page + manifest + land spec"
       },
       "body_sha256": "ac3208287b22162cbba55207430c7ec48e6ca56b6719074b1ecd1f0ded115e09"
     },

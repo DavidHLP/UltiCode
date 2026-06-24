@@ -3,7 +3,7 @@ title: Index
 type: index
 tags: [meta, type/index]
 status: living
-updated: 2026-06-23
+updated: 2026-06-24
 sources: []
 ---
 

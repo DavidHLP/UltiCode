@@ -9,7 +9,6 @@ sources:
   - shared/sidebar-menu/src/styles/sidebar-menu.css
   - console/src/features/sider/
   - management/src/components/layout/
-  - docs/architecture/sidebar-menu-unification.md
 aliases: [ADR-005, Sidebar Menu Unification, uc-sidebar]
 ---
 
@@ -54,4 +53,4 @@ A token or spacing tweak should land in one file, not four. The shared package a
 
 - [[theme-system]] — owns the `.uc-` token family this builds on.
 - [[module-layering]] — the `shared/` split (`auth-core`, `auth-ui`, `sidebar-menu`, `theme`).
-- Source spec `docs/architecture/sidebar-menu-unification.md` and its three code reviews (`.CR-2026-06-24.md`, `.CR-2026-06-24.codex.md`, `.review.md`).
+- The refactor's spec + six code reviews (3 plan-level, 3 code-level) were retired from `docs/architecture/` once this page absorbed them; recoverable via `git show 66cd1be64` if ever needed.

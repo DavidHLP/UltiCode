@@ -43,6 +43,17 @@ export default {
     folderName: "My Folder",
     description: "A brief description...",
   },
+  itemFallback: "Item {id}",
+  communityPrefix: "r/",
+  authorPrefix: "by",
+  itemTypes: {
+    PROBLEM: "PROBLEM",
+    SOLUTION: "SOLUTION",
+    FORUM_POST: "FORUM POST",
+    PROBLEM_LIST: "PROBLEM LIST",
+    SOLUTION_COMMENT: "SOLUTION COMMENT",
+    FORUM_COMMENT: "FORUM COMMENT",
+  },
   toasts: {
     loginRequired: "Please log in to manage bookmarks",
     updateFailed: "Failed to update bookmark",

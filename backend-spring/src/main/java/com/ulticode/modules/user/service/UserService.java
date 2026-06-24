@@ -1,6 +1,7 @@
 package com.ulticode.modules.user.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
@@ -147,4 +148,11 @@ public interface UserService {
      * @return the URL of the uploaded avatar
      */
     String uploadAvatar(MultipartFile file);
+
+    /**
+     * Change the current authenticated user's password.
+     *
+     * @param changePasswordDTO the change password data
+     */
+    void changePassword(ChangePasswordDTO changePasswordDTO);
 }

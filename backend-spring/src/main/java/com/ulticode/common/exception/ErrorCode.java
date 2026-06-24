@@ -49,6 +49,8 @@ public enum ErrorCode {
     USER_NOT_FOUND(20001, "User not found", HttpStatus.NOT_FOUND),
     USER_CANNOT_EDIT_OTHERS(20002, "Cannot edit other users", HttpStatus.FORBIDDEN),
     USER_BANNED(20003, "You are banned from posting content", HttpStatus.FORBIDDEN),
+    USER_PASSWORD_INCORRECT(20004, "Current password is incorrect", HttpStatus.BAD_REQUEST),
+    USER_PASSWORD_MISMATCH(20005, "New password and confirmation do not match", HttpStatus.BAD_REQUEST),
 
     // Problem module (3xxxx)
     PROBLEM_NOT_FOUND(30001, "Problem not found", HttpStatus.NOT_FOUND),

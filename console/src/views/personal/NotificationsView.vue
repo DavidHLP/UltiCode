@@ -256,7 +256,7 @@ watch(currentPage, () => {
       <p class="text-muted-foreground mb-4">
         {{ t("personal.account.loginToManage") }}
       </p>
-      <Button as-child class="rounded-full px-6">
+      <Button as-child class="px-6">
         <RouterLink to="/login">{{ t("personal.profile.signIn") }}</RouterLink>
       </Button>
     </div>

@@ -180,7 +180,7 @@ function onCategoryUnsave(listId: string) {
           <Button
             variant="outline"
             @click="isCreateCategoryOpen = true"
-            class="gap-2 rounded-full"
+            class="gap-2"
           >
             <FolderPlus class="h-4 w-4" />
             <span class="hidden sm:inline">{{
@@ -189,7 +189,7 @@ function onCategoryUnsave(listId: string) {
           </Button>
           <Button
             @click="isCreateOpen = true"
-            class="gap-2 rounded-full shadow-sm"
+            class="gap-2 shadow-sm"
           >
             <Plus class="h-4 w-4" />
             <span>{{ t("personal.problemLists.actions.newList") }}</span>
@@ -225,7 +225,7 @@ function onCategoryUnsave(listId: string) {
       <p class="text-muted-foreground mb-6 text-center max-w-xs mt-2">
         {{ t("personal.problemLists.loginToManage") }}
       </p>
-      <Button as-child class="rounded-full px-8 h-10 font-bold">
+      <Button as-child class="px-8 h-10 font-bold">
         <router-link to="/login">{{
           t("personal.profile.signIn")
         }}</router-link>

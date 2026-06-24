@@ -99,9 +99,9 @@ onMounted(async () => {
               </div>
             </div>
             <Switch
-              :checked="preferences?.communication ?? true"
+              :model-value="preferences?.communication ?? true"
               :disabled="saving || !preferences"
-              @update:checked="
+              @update:model-value="
                 (value: boolean) =>
                   handlePreferenceChange('communication', value)
               "
@@ -127,9 +127,9 @@ onMounted(async () => {
               </div>
             </div>
             <Switch
-              :checked="preferences?.marketing ?? false"
+              :model-value="preferences?.marketing ?? false"
               :disabled="saving || !preferences"
-              @update:checked="
+              @update:model-value="
                 (value: boolean) => handlePreferenceChange('marketing', value)
               "
             />
@@ -154,7 +154,7 @@ onMounted(async () => {
               </div>
             </div>
             <Switch
-              :checked="preferences?.security ?? true"
+              :model-value="preferences?.security ?? true"
               disabled
             />
           </div>

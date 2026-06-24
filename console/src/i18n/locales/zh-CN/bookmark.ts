@@ -43,6 +43,17 @@ export default {
     folderName: "我的收藏夹",
     description: "简短的描述...",
   },
+  itemFallback: "项目 {id}",
+  communityPrefix: "社区 /",
+  authorPrefix: "作者",
+  itemTypes: {
+    PROBLEM: "题目",
+    SOLUTION: "题解",
+    FORUM_POST: "论坛帖子",
+    PROBLEM_LIST: "题单",
+    SOLUTION_COMMENT: "题解评论",
+    FORUM_COMMENT: "论坛评论",
+  },
   toasts: {
     loginRequired: "请登录以管理书签",
     updateFailed: "更新书签失败",

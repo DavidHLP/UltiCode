@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "b5df5070be3b0cd1bb372260522695a7f2b62464",
+  "generated_with_head": "fc266ce10754796d440da1cedab007bfc0fc6a91",
   "stats": {
     "pages": 56,
     "by_type": {
@@ -237,7 +237,7 @@
         "author": "DavidHLP",
         "subject": "docs: sidebar-menu unification concept page + manifest + land spec"
       },
-      "body_sha256": "e0f958b8ed6de2fc94ea627905b60587c8737d060b8b4f333d6271f6e1beab54"
+      "body_sha256": "622db4965ec23e6e1376bae8cc23b7cd29d8cb51c693f1beafbedc12e8e3d9f0"
     },
     {
       "path": "wiki/concepts/theme-system.md",
@@ -666,11 +666,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "b5df5070be3b0cd1bb372260522695a7f2b62464",
-        "short": "b5df5070b",
-        "committed_at": "2026-06-24T17:56:19+08:00",
+        "sha": "fc266ce10754796d440da1cedab007bfc0fc6a91",
+        "short": "fc266ce10",
+        "committed_at": "2026-06-24T18:01:20+08:00",
         "author": "DavidHLP",
-        "subject": "docs: sidebar-menu unification concept page + manifest + land spec"
+        "subject": "fix(sidebar-menu): drop SidebarParentItem open prop (controlled-closed regression)"
       },
       "body_sha256": "ac3208287b22162cbba55207430c7ec48e6ca56b6719074b1ecd1f0ded115e09"
     },

@@ -27,6 +27,25 @@ describe('SidebarNavUser', () => {
     expect(wrapper.find('img').attributes('src')).toBe('https://x/y.png')
   })
 
+  it('falls back to initials when the avatar fails to load (@error)', async () => {
+    const wrapper = mount(SidebarNavUser, {
+      props: { user: { name: 'Dan', avatar: 'https://broken/x.png' } },
+    })
+    expect(wrapper.find('img').exists()).toBe(true)
+    await wrapper.find('img').trigger('error')
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.text()).toContain('D')
+  })
+
+  it('handles an empty name without crashing', () => {
+    const wrapper = mount(SidebarNavUser, {
+      props: { user: { name: '' } },
+    })
+    expect(wrapper.find('img').exists()).toBe(false)
+    // name.charAt(0) is '' → initials span renders empty; no throw.
+    expect(wrapper.find('div.min-w-0').exists()).toBe(true)
+  })
+
   it('renders #menu slot', () => {
     const wrapper = mount(SidebarNavUser, {
       props: { user: { name: 'A' } },

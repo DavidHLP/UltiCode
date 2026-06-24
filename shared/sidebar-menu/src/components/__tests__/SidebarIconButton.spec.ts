@@ -19,6 +19,14 @@ describe('SidebarIconButton', () => {
     expect(wrapper.emitted('click')).toBeTruthy()
   })
 
+  it('emits click with the MouseEvent payload', async () => {
+    const wrapper = mount(SidebarIconButton, { props: { label: 'x' } })
+    await wrapper.trigger('click')
+    const events = wrapper.emitted('click')
+    expect(events).toBeTruthy()
+    expect(events![0][0]).toBeInstanceOf(MouseEvent)
+  })
+
   it('renders the default slot (icon)', () => {
     const wrapper = mount(SidebarIconButton, {
       props: { label: 'x' },

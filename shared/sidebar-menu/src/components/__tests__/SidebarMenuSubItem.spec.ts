@@ -14,6 +14,24 @@ describe('SidebarMenuSubItem', () => {
     expect(wrapper.attributes('data-active')).toBe('false')
   })
 
+  it('renders a router-link (stubbed <a>) when :to is provided', () => {
+    // Production path: console/management pass :to → router-link branch.
+    const wrapper = mount(SidebarMenuSubItem, {
+      props: { isActive: true },
+      attrs: { to: '/sub' },
+    })
+    const link = wrapper.find('a')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('to')).toBe('/sub')
+    expect(link.attributes('data-active')).toBe('true')
+  })
+
+  it('renders a plain <a> with no `to` attr when :to is absent', () => {
+    const wrapper = mount(SidebarMenuSubItem)
+    expect(wrapper.find('a').exists()).toBe(true)
+    expect(wrapper.find('a').attributes('to')).toBeUndefined()
+  })
+
   it('exposes the size via data-size', () => {
     const wrapper = mount(SidebarMenuSubItem, { props: { size: 'sm' } })
     expect(wrapper.attributes('data-size')).toBe('sm')

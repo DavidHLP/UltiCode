@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -114,6 +115,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         metadata.put("isSystemAnnouncement", true);
 
         String announcementId = UUID.randomUUID().toString();
+        // batchInsert uses a custom @Insert that bypasses MyBatis-Plus field-fill,
+        // so created_at / updated_at must be set explicitly (both are NOT NULL).
+        LocalDateTime now = LocalDateTime.now();
 
         List<Notification> notificationsToCreate = new ArrayList<>();
         for (String userId : recipientIds) {
@@ -128,6 +132,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             notification.setAnnouncementId(announcementId);
             notification.setIsRead(false);
             notification.setReadAt(null);
+            notification.setCreatedAt(now);
+            notification.setUpdatedAt(now);
+            notification.setDeleted(0);
             notificationsToCreate.add(notification);
         }
 

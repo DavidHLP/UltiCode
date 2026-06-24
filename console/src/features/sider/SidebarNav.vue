@@ -7,24 +7,24 @@ import {
   SidebarMenuSub,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import type { SidebarItem, SidebarSection } from "./sidebar.data";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import {
   SidebarMenuItem as SharedSidebarMenuItem,
   SidebarMenuSubItem as SharedSidebarMenuSubItem,
   SidebarGroupCollapsible,
+  SidebarParentItem,
 } from "@/shared/sidebar-menu/src";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
-const router = useRouter();
 const { state } = useSidebar();
 
 const props = defineProps<{
@@ -61,36 +61,6 @@ const isItemActive = (item: SidebarItem): boolean => {
   if (isExactUrl(item.url)) return route.path === item.url;
   return route.path === item.url || route.path.startsWith(item.url + "/");
 };
-
-const handleParentClick = (item: SidebarItem, event: MouseEvent) => {
-  // If the click was on the toggle chevron, the inner @click.stop has already
-  // toggled openParents and we should NOT navigate.
-  const target = event.target as HTMLElement | null;
-  if (target?.closest?.('[data-parent-toggle]')) return;
-  if (item.url) {
-    router.push(item.url);
-  }
-};
-
-// Track open/closed state per parent item (key = item.title)
-const openParents = ref<Record<string, boolean>>({});
-
-watch(
-  () => route.path,
-  () => {
-    for (const section of visibleSections.value) {
-      for (const item of section.items) {
-        if (item.children && item.children.length > 0) {
-          // Auto-open any parent whose subtree is currently active
-          if (isItemActive(item)) {
-            openParents.value[item.title] = true;
-          }
-        }
-      }
-    }
-  },
-  { immediate: true },
-);
 
 const getItemIconColorClass = (item: SidebarItem) => {
   if (!item.url && !item.children) return "";
@@ -192,10 +162,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                   <component
                     :is="item.icon"
                     v-if="item.icon"
-                    :class="[
-                      'transition-colors',
-                      getItemIconColorClass(item),
-                    ]"
+                    :class="['transition-colors', getItemIconColorClass(item)]"
                   />
                   <span>{{ t(item.title) }}</span>
                   <Badge
@@ -219,48 +186,19 @@ const getItemIconColorClass = (item: SidebarItem) => {
           class="flex flex-col gap-0.5 px-1 py-0.5"
         >
           <template v-for="item in section.items" :key="item.title">
-            <!-- Item with children: collapsible parent (click anywhere toggles + navigates) -->
-            <Collapsible
+            <!-- Item with children: shared SidebarParentItem (link + collapsible children) -->
+            <SidebarParentItem
               v-if="item.children && item.children.length > 0"
-              v-model:open="openParents[item.title]"
+              :title="t(item.title)"
+              :url="item.url"
+              :icon="item.icon"
+              :icon-class="getItemIconColorClass(item)"
+              :active="isItemActive(item)"
               :default-open="isItemActive(item)"
-              class="group/parent"
             >
-              <button
-                type="button"
-                :class="[
-                  'group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-sm font-medium h-9 mx-1 rounded-md border-l-4 w-full',
-                  isItemActive(item)
-                    ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
-                    : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',
-                ]"
-                @click="handleParentClick(item, $event)"
+              <div
+                class="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 pl-2"
               >
-                <component
-                  :is="item.icon"
-                  v-if="item.icon"
-                  :class="[
-                    'h-4 w-4 shrink-0 transition-colors',
-                    getItemIconColorClass(item),
-                  ]"
-                />
-                <span class="truncate">{{ t(item.title) }}</span>
-                <span
-                  class="ml-auto inline-flex h-5 w-5 items-center justify-center rounded text-[var(--silver-400)] hover:text-[var(--accent-electric)] transition-colors"
-                  :aria-label="`Toggle ${t(item.title)}`"
-                  role="button"
-                  data-parent-toggle
-                  @click.stop="openParents[item.title] = !openParents[item.title]"
-                >
-                  <ChevronRight
-                    :class="[
-                      'h-3 w-3 transition-transform duration-200',
-                      openParents[item.title] ? 'rotate-90' : '',
-                    ]"
-                  />
-                </span>
-              </button>
-              <CollapsibleContent class="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 pl-2">
                 <SharedSidebarMenuSubItem
                   v-for="child in item.children"
                   :key="child.title"
@@ -278,8 +216,8 @@ const getItemIconColorClass = (item: SidebarItem) => {
                   />
                   <span class="truncate text-xs">{{ t(child.title) }}</span>
                 </SharedSidebarMenuSubItem>
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+            </SidebarParentItem>
             <!-- Plain item -->
             <SharedSidebarMenuItem
               v-else
@@ -322,10 +260,7 @@ const getItemIconColorClass = (item: SidebarItem) => {
                 <component
                   :is="item.icon"
                   v-if="item.icon"
-                  :class="[
-                    'transition-colors',
-                    getItemIconColorClass(item),
-                  ]"
+                  :class="['transition-colors', getItemIconColorClass(item)]"
                 />
                 <span>{{ t(item.title) }}</span>
                 <Badge

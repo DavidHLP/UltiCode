@@ -42,6 +42,7 @@ export default {
     problems: '题目',
     featured: '精选',
     total: '总计',
+    saving: '保存中...',
   },
 
   // ========== 可见性 ==========
@@ -94,6 +95,8 @@ export default {
     saved: '已保存',
     saveError: '保存失败',
     saveChanges: '保存更改',
+    creating: '创建中...',
+    createList: '创建列表',
     validation: {
       nameRequired: '名称是必填项',
     },

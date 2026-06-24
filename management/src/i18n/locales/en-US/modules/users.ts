@@ -102,6 +102,7 @@ export default {
     banUser: 'Ban User',
     bulkBanUser: 'Bulk Ban Users',
     unbanUser: 'Unban User',
+    unbanUserDescription: 'Are you sure you want to unban {username}?',
     banUserDescription: 'Please provide a reason for banning {username}.',
     thisUser: 'this user',
     resetPasswordDescription: 'Set a new login password for {username}.',
@@ -176,4 +177,5 @@ export default {
   clearSelection: 'Clear Selection',
   deleteConfirm: 'Are you sure you want to delete {count} users?',
   typeToConfirm: 'Type {text} to confirm',
+  typeConfirmLabel: 'To confirm, type the text below:',
 } as const

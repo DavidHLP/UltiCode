@@ -102,6 +102,7 @@ export default {
     banUser: '封禁用户',
     bulkBanUser: '批量封禁用户',
     unbanUser: '解封用户',
+    unbanUserDescription: '确定要解封 {username} 吗?',
     banUserDescription: '请提供封禁 {username} 的原因。',
     thisUser: '该用户',
     resetPasswordDescription: '为 {username} 设置新的登录密码。',
@@ -175,4 +176,5 @@ export default {
   clearSelection: '清除选择',
   deleteConfirm: '确定要删除 {count} 个用户吗？',
   typeToConfirm: '请输入 {text} 以确认',
+  typeConfirmLabel: '为确认操作,请输入下方文字:',
 } as const

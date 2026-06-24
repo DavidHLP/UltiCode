@@ -32,6 +32,9 @@ export default {
     EASY: '简单',
     MEDIUM: '中等',
     HARD: '困难',
+    easy: '简单',
+    medium: '中等',
+    hard: '困难',
   },
 
   // 状态
@@ -473,6 +476,11 @@ export default {
     status: '审核状态',
     notes: '审核备注',
     noFlagInfo: '该题目未被标记',
+    noReason: '未提供原因',
+    reportedBy: '举报人',
+    reportedAt: '举报时间',
+    reviewedBy: '审核人',
+    reviewedAt: '审核时间',
   },
 
   // 版本历史
@@ -595,5 +603,22 @@ export default {
     explanationOptional: '解释（可选）',
     explanationPlaceholder: '请输入解释...',
     noCases: '暂无测试用例',
+  },
+
+  // 批量编辑弹窗 (BulkEditDialog)
+  bulkEdit: {
+    title: '批量编辑题目',
+    description: '对选中的 {count} 道题目应用更改。',
+    difficulty: '难度',
+    difficultyPlaceholder: '选择难度',
+    premium: '高级',
+    premiumHint: '将选中题目标记为高级内容',
+    editing: '保存中...',
+    edit: '应用更改',
+    noChanges: '请至少选择一项要编辑的字段',
+    success: '成功更新 {count} 道题目',
+    failure: '更新选中题目失败',
+    partial: '已更新 {success} 道题目,{failed} 道失败',
+    error: '更新题目时发生错误',
   },
 } as const

@@ -30,6 +30,10 @@ export default {
     performerId: 'Performer ID',
     userId: 'Target User ID',
     advancedFilters: 'Advanced Filters',
+    entityType: 'Entity Type',
+    allEntityTypes: 'All Entity Types',
+    action: 'Action',
+    search: 'Search',
   },
 
   entityTypes: {

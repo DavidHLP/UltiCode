@@ -1,4 +1,19 @@
 export default {
+  // Field labels (HiddenCasesView / TestCaseForm)
+  input: 'Input',
+  output: 'Output',
+  explanation: 'Explanation',
+
+  // Form / dialog (TestCaseForm)
+  editTestCase: 'Edit Test Case',
+  createTestCase: 'Create Test Case',
+  inputPlaceholder: 'Enter test input...',
+  outputPlaceholder: 'Enter expected output...',
+  explanationPlaceholder: 'Enter explanation...',
+
+  // Confirm dialog (useTestCases)
+  confirmDelete: 'Delete this test case?',
+
   // Hidden tab list / list-page header (HiddenTestCasesEditor)
   title: 'Test Cases',
   sample: 'Sample',
@@ -48,6 +63,7 @@ export default {
     scopeRequired: 'Please choose a test case scope',
     inputOutputRequired: 'Input and output are required',
     importTextRequired: 'Import content is required',
+    noValidTestCases: 'No valid test cases found to import',
   },
 
   // Confirm / dialog
@@ -68,6 +84,8 @@ export default {
     importing: 'Importing...',
     imported: 'Imported {count} test cases',
     importFailed: 'Failed to import test cases',
+    importSuccess: 'Imported {count} test cases',
+    updateFailed: 'Failed to update test case',
   },
 
   // View mode (read-only)

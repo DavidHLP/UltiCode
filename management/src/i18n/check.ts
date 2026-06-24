@@ -86,6 +86,9 @@ function keyExists(obj: TranslationObject, keyPath: string): boolean {
 async function findSourceFiles(dir: string): Promise<string[]> {
   const files: string[] = []
   const excludeDirs = ['node_modules', '__tests__', 'locales', '.git']
+  // Exclude this checker's own source: its doc-comment examples (e.g. `t('dotted.key')`)
+  // are illustrative, not real translations, and would otherwise be reported as missing keys.
+  const excludeFiles = ['check.ts']
 
   let entries
   try {
@@ -100,7 +103,11 @@ async function findSourceFiles(dir: string): Promise<string[]> {
       if (!excludeDirs.includes(entry.name)) {
         files.push(...(await findSourceFiles(fullPath)))
       }
-    } else if (entry.isFile() && (entry.name.endsWith('.vue') || entry.name.endsWith('.ts'))) {
+    } else if (
+      entry.isFile() &&
+      (entry.name.endsWith('.vue') || entry.name.endsWith('.ts')) &&
+      !excludeFiles.includes(entry.name)
+    ) {
       files.push(fullPath)
     }
   }
@@ -135,6 +142,7 @@ function extractStaticKeys(content: string): string[] {
       !key.startsWith('@/') &&
       !key.startsWith('./') &&
       !key.startsWith('.') &&
+      !key.endsWith('.') &&
       !key.includes(':') &&
       !key.includes(' ')
     ) {

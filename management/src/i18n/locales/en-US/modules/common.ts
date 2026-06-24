@@ -75,6 +75,26 @@ export default {
   reasonPlaceholder: 'Please provide a reason...',
   noDataAvailable: 'No data available',
 
+  // Form field annotations (TestCaseForm)
+  optional: 'optional',
+
+  // Flag action (EntityActionDialog)
+  flag: 'Flag',
+  flagConfirm: 'Flag',
+  flagDescription: 'Flag this content for moderator review.',
+  flagSuccess: 'Content flagged successfully',
+  flagError: 'Failed to flag content',
+
+  // Delete action (EntityActionDialog)
+  deleteDescription: 'Are you sure you want to delete this item? This action cannot be undone.',
+  deleteDescriptionWithName:
+    'Are you sure you want to delete "{name}"? This action cannot be undone.',
+  deleteSuccess: 'Deleted successfully',
+  deleteError: 'Failed to delete',
+
+  // Reason validation (EntityActionDialog)
+  reasonRequired: 'A reason is required',
+
   // Theme mode labels (used by AuthThemeToggle + settings page)
   appearance: {
     light: 'Light',

@@ -1,4 +1,19 @@
 export default {
+  // 字段标签 (HiddenCasesView / TestCaseForm)
+  input: '输入',
+  output: '输出',
+  explanation: '解释',
+
+  // 表单 / 弹窗 (TestCaseForm)
+  editTestCase: '编辑测试用例',
+  createTestCase: '创建测试用例',
+  inputPlaceholder: '请输入测试输入...',
+  outputPlaceholder: '请输入预期输出...',
+  explanationPlaceholder: '请输入解释...',
+
+  // 确认弹窗 (useTestCases)
+  confirmDelete: '确定删除此测试用例?',
+
   // Hidden tab list / list-page header (HiddenTestCasesEditor)
   title: '测试用例',
   sample: '样例',
@@ -48,6 +63,7 @@ export default {
     scopeRequired: '请选择用例类型',
     inputOutputRequired: '输入和输出不能为空',
     importTextRequired: '导入内容不能为空',
+    noValidTestCases: '没有找到可导入的有效测试用例',
   },
 
   // Confirm / dialog
@@ -68,6 +84,8 @@ export default {
     importing: '导入中...',
     imported: '已导入 {count} 个测试用例',
     importFailed: '导入测试用例失败',
+    importSuccess: '已导入 {count} 个测试用例',
+    updateFailed: '更新测试用例失败',
   },
 
   // View mode (read-only)

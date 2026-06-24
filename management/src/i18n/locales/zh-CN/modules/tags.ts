@@ -80,5 +80,11 @@ export default {
     bulkDeleteConfirm: '确定要删除 {count} 个标签吗？',
     bulkDeleteSuccess: '已成功删除 {count} 个标签',
     bulkDeleteFailed: '批量删除失败',
+    updatedSuccessfully: '标签更新成功',
+    createdSuccessfully: '标签创建成功',
+    failedToUpdate: '更新标签失败',
+    failedToCreate: '创建标签失败',
+    mergedSuccessfully: '标签合并成功',
+    failedToMerge: '合并标签失败',
   },
 } as const

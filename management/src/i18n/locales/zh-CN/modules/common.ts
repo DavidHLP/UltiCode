@@ -75,6 +75,25 @@ export default {
   reasonPlaceholder: '请提供标记原因...',
   noDataAvailable: '暂无数据',
 
+  // 表单字段标注 (TestCaseForm)
+  optional: '可选',
+
+  // 标记操作 (EntityActionDialog)
+  flag: '标记',
+  flagConfirm: '标记',
+  flagDescription: '将此内容标记以供管理员审核。',
+  flagSuccess: '内容已成功标记',
+  flagError: '标记内容失败',
+
+  // 删除操作 (EntityActionDialog)
+  deleteDescription: '确定要删除此项吗?此操作无法撤销。',
+  deleteDescriptionWithName: '确定要删除"{name}"吗?此操作无法撤销。',
+  deleteSuccess: '删除成功',
+  deleteError: '删除失败',
+
+  // 原因校验 (EntityActionDialog)
+  reasonRequired: '请填写原因',
+
   // 主题模式标签(AuthThemeToggle 与设置页共用)
   appearance: {
     light: '浅色',

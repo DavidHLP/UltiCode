@@ -32,6 +32,9 @@ export default {
     EASY: 'Easy',
     MEDIUM: 'Medium',
     HARD: 'Hard',
+    easy: 'Easy',
+    medium: 'Medium',
+    hard: 'Hard',
   },
 
   // Status
@@ -477,6 +480,11 @@ export default {
     status: 'Review Status',
     notes: 'Moderation Notes',
     noFlagInfo: 'This problem has not been flagged',
+    noReason: 'No reason provided',
+    reportedBy: 'Reported By',
+    reportedAt: 'Reported At',
+    reviewedBy: 'Reviewed By',
+    reviewedAt: 'Reviewed At',
   },
 
   // Version history
@@ -600,5 +608,22 @@ export default {
     explanationOptional: 'Explanation (optional)',
     explanationPlaceholder: 'Enter explanation...',
     noCases: 'No test cases',
+  },
+
+  // Bulk edit dialog (BulkEditDialog)
+  bulkEdit: {
+    title: 'Bulk Edit Problems',
+    description: 'Apply changes to {count} selected problem(s).',
+    difficulty: 'Difficulty',
+    difficultyPlaceholder: 'Select difficulty',
+    premium: 'Premium',
+    premiumHint: 'Mark selected problems as premium content',
+    editing: 'Saving...',
+    edit: 'Apply Changes',
+    noChanges: 'Please select at least one field to edit',
+    success: 'Successfully updated {count} problem(s)',
+    failure: 'Failed to update the selected problem(s)',
+    partial: 'Updated {success} problem(s), {failed} failed',
+    error: 'An error occurred while updating the problems',
   },
 } as const

@@ -81,5 +81,11 @@ export default {
     bulkDeleteConfirm: 'Are you sure you want to delete {count} tags?',
     bulkDeleteSuccess: 'Successfully deleted {count} tags',
     bulkDeleteFailed: 'Failed to bulk delete tags',
+    updatedSuccessfully: 'Tag updated successfully',
+    createdSuccessfully: 'Tag created successfully',
+    failedToUpdate: 'Failed to update tag',
+    failedToCreate: 'Failed to create tag',
+    mergedSuccessfully: 'Tags merged successfully',
+    failedToMerge: 'Failed to merge tags',
   },
 } as const

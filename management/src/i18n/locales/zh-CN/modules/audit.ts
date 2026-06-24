@@ -30,6 +30,10 @@ export default {
     performerId: '操作者 ID',
     userId: '目标用户 ID',
     advancedFilters: '高级筛选',
+    entityType: '实体类型',
+    allEntityTypes: '全部实体类型',
+    action: '操作',
+    search: '搜索',
   },
 
   entityTypes: {

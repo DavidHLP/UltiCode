@@ -42,6 +42,7 @@ export default {
     problems: 'Problems',
     featured: 'Featured',
     total: 'Total',
+    saving: 'Saving...',
   },
 
   // ========== Visibility ==========
@@ -95,6 +96,8 @@ export default {
     saved: 'Saved',
     saveError: 'Save Failed',
     saveChanges: 'Save Changes',
+    creating: 'Creating...',
+    createList: 'Create List',
     validation: {
       nameRequired: 'Name is required',
     },

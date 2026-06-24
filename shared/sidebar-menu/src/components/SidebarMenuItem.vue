@@ -19,7 +19,7 @@ const tag = computed(() => {
 
 const mergedClass = computed(() =>
   cn(
-    'group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-xxs font-medium h-8.5 mx-1 rounded-md border-l-4',
+    'group flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 transition-all duration-200 select-none text-sm font-medium h-9 mx-1 rounded-md border-l-4',
     props.isActive
       ? 'border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] font-bold'
       : 'border-transparent text-[var(--solarized-base01)] dark:text-[var(--silver-400)] hover:bg-[var(--silver-200)]/40 hover:text-foreground',

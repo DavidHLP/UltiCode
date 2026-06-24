@@ -61,6 +61,17 @@ function isSubmenuActive(item: NavItem): boolean {
   return item.items.some((subItem) => isActive(subItem.url))
 }
 
+// Shared activation class for every nav row (4px accent bar). Extracted so the
+// three render branches (collapsed popover / expanded collapsible / plain item)
+// never drift apart. NOTE: management uses a font-mono / text-xs terminal style
+// that differs from shared/sidebar-menu's text-sm contract, so rows stay on the
+// shadcn SidebarMenuButton here; only the duplicated class string is unified.
+function itemRowClass(active: boolean): string {
+  return active
+    ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
+    : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
+}
+
 watchEffect(() => {
   props.items.forEach((item) => {
     if (item.items && isSubmenuActive(item)) {
@@ -88,11 +99,7 @@ watchEffect(() => {
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
                   class="h-9 transition-all duration-200 w-full"
-                  :class="[
-                    isSubmenuActive(item)
-                      ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
-                      : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
-                  ]"
+                  :class="itemRowClass(isSubmenuActive(item))"
                 >
                   <component
                     :is="item.icon"
@@ -154,11 +161,7 @@ watchEffect(() => {
                 <SidebarMenuButton
                   :tooltip="String(item.title)"
                   class="h-9 transition-all duration-200 w-full"
-                  :class="[
-                    isSubmenuActive(item)
-                      ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
-                      : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2'
-                  ]"
+                  :class="itemRowClass(isSubmenuActive(item))"
                 >
                   <component
                     :is="item.icon"
@@ -226,11 +229,7 @@ watchEffect(() => {
               :is-active="isActive(item.url)"
               as-child
               class="h-9 transition-all duration-200"
-              :class="[
-                isActive(item.url)
-                  ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--accent-electric)] pl-2 font-semibold'
-                  : 'border-l-4 border-transparent hover:bg-[var(--silver-200)]/40 hover:text-foreground text-[var(--silver-500)] pl-2',
-              ]"
+              :class="itemRowClass(isActive(item.url))"
             >
               <RouterLink :to="item.url" class="flex items-center gap-2.5 w-full">
                 <component

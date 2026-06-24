@@ -16,11 +16,6 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <!--
-    `.uc-sidebar-icon-button` is opacity:0 by default and revealed when a
-    `.group` ancestor is hovered (see sidebar-menu.css). Place this button
-    inside a `group`-classed row.
-  -->
   <button
     type="button"
     :aria-label="label"

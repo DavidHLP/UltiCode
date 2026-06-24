@@ -25,6 +25,15 @@ COPY console ./console
 COPY shared ./shared
 RUN rm -rf /app/console/src/shared && \
     ln -sfn /app/shared /app/console/src/shared
+# Give the shared/ packages a node_modules so their bare imports (vue,
+# vue-router, vue-i18n, reka-ui, clsx, ...) resolve from console's installed
+# deps. The shared packages ship source only — peer deps are provided by the
+# host app — so in Docker they have no node_modules of their own, and
+# vue-tsc (type-check), @vue/compiler-sfc (.vue compile), AND vite/rolldown
+# all fail to resolve those imports. Symlinking shared/node_modules →
+# console/node_modules fixes all three resolution paths at once via Node's
+# standard upward node_modules lookup.
+RUN ln -sfn /app/console/node_modules /app/shared/node_modules
 
 # Build application
 WORKDIR /app/console

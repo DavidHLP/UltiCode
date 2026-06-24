@@ -25,6 +25,14 @@ COPY management ./management
 COPY shared ./shared
 RUN rm -rf /app/management/src/shared && \
     ln -sfn /app/shared /app/management/src/shared
+# Give the shared/ packages a node_modules so their bare imports resolve from
+# management's installed deps. The shared packages ship source only (peer deps
+# provided by the host app), so in Docker they have no node_modules of their
+# own — vue-tsc (type-check), @vue/compiler-sfc (.vue compile), and
+# vite/rolldown all fail to resolve vue / reka-ui / vue-router / vue-i18n /
+# clsx / etc. Symlinking shared/node_modules → management/node_modules fixes
+# all three resolution paths via Node's standard upward node_modules lookup.
+RUN ln -sfn /app/management/node_modules /app/shared/node_modules
 
 # Build application
 WORKDIR /app/management

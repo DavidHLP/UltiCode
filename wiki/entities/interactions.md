@@ -99,7 +99,7 @@ would repeat the same flow narrative three times.
 
 ## Cross-links
 
-- [[entities/problem]] · [[entities/solution]] · [[entities/forum]]
+- [[entities/problem]] · [[entities/solution]] · [[entities/forum]] · [[entities/follow]]
 - [[overview/backend-modules-overview]]
 
 ## Gotchas

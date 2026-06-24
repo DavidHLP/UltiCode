@@ -51,4 +51,4 @@ without redeploy or restart. And the LLM wants to drive Arthas directly over MCP
 - Don't downgrade to 4.1.9 — STATELESS works on 4.2.2.
 
 ## Related
-[[overview/dev-environment-overview]] · [[overview/architecture-overview]]
+[[overview/dev-environment-overview]] · [[overview/architecture-overview]] · [[entities/monitoring]]

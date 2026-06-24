@@ -45,4 +45,4 @@ A **4-layer** system, owned by `shared/theme`:
   needs a nonce/hash, and `index.html` updated to match.
 
 ## Related
-[[overview/frontend-apps-overview]] · [[overview/architecture-overview]]
+[[overview/frontend-apps-overview]] · [[overview/architecture-overview]] · [[concepts/sidebar-menu]]

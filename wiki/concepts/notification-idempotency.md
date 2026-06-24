@@ -38,4 +38,4 @@ authorities.
 ## Related
 [[entities/notification]] · [[entities/websocket]] ·
 [[concepts/exactly-once-judging]] (sibling idempotency pattern) ·
-[[overview/judging-pipeline-overview]]
+[[overview/judging-pipeline-overview]] · [[concepts/notification-dispatch-and-preferences]]

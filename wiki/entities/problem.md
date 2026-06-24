@@ -68,7 +68,7 @@ allow-list, **version history with diffs**, and per-user notes.
 
 ## Cross-links
 
-- [[entities/submission]] · [[entities/problemlist]] · [[entities/solution]]
+- [[entities/submission]] · [[entities/problemlist]] · [[entities/solution]] · [[entities/i18n]] · [[entities/search]]
 - [[concepts/module-layering]]
 - [[overview/backend-modules-overview]]
 

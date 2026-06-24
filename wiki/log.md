@@ -3,7 +3,7 @@ title: Maintenance Log
 type: log
 tags: [meta, type/log]
 status: living
-updated: 2026-06-23
+updated: 2026-06-24
 sources: []
 ---
 
@@ -277,3 +277,33 @@ force-delivered).
 
 Pages: new `concepts/notification-dispatch-and-preferences.md`; `index.md`
 (concept row + counts 13->14, 49->50).
+
+
+## [2026-06-24] fix | sidebar-menu — cross-CR fixes (uncontrolled collapse, router-link coverage, CSS)
+
+Closed all findings from three code-level CRs (claude/glm-5.2, codex/MiniMax-M3,
+opencode/deepseek) on the sidebar-menu unification commits `a47423c4d..fc266ce10`.
+
+**Correctness** — `SidebarGroupCollapsible` + `SidebarParentItem` made purely
+uncontrolled (the `fc266ce10` `:open=undefined` → controlled-closed class of bug
+is now structurally impossible; a new `defaultOpen=false` spec guard catches
+what the pre-fix test couldn't); `SidebarMenuSubItem` / `SidebarMenuItem` got
+`inheritAttrs:false` + dead `attrClass` removed; `SidebarParentItem` chevron
+hit-area enlarged for touch; `SidebarNavUser` `@error` avatar fallback;
+`SidebarGroupCollapsible.active` now drives `[data-active]` (not a class).
+
+**CSS contract** — `color-mix` tinted backgrounds wrapped in `@supports`;
+`.group:hover` extended to named groups (`group/collapsible`, `group/item`);
+`.uc-sidebar-group-label[data-active]` added; the duplicate `@import` removed
+from `shared/design-system/style.css` (it loaded before tailwind AND twice).
+
+**Tests** — global `RouterLink` stub in `src/__tests__/setup.ts` unlocked
+`as='link'` / Mode-A / `:to` coverage (41 specs, +14 vs prior 27).
+
+**Docs** — `shared/sidebar-menu/README.md` created; `wiki/concepts/sidebar-menu.md`
+Trade-offs now record the cascade / uncontrolled / @beta decisions; the
+`docs/architecture/` spec + 6 CRs were retired (this wiki is the single source;
+reviews recoverable via `git show 66cd1be64`).
+
+**Verified**: shared/sidebar-menu 41/41 + `vue-tsc` 0; console + management
+`vue-tsc` 0. Manifest regenerated.

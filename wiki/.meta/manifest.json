@@ -1,11 +1,11 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "fc266ce10754796d440da1cedab007bfc0fc6a91",
+  "generated_with_head": "5a50ad7382a28e6dee2f95ceb78b71ec5b9b4de9",
   "stats": {
-    "pages": 56,
+    "pages": 57,
     "by_type": {
       "concept": 16,
-      "daily": 2,
+      "daily": 3,
       "entity": 26,
       "index": 2,
       "log": 1,
@@ -231,13 +231,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "b5df5070be3b0cd1bb372260522695a7f2b62464",
-        "short": "b5df5070b",
-        "committed_at": "2026-06-24T17:56:19+08:00",
+        "sha": "66cd1be646975555f31263ea06ad7b07c8ae8a6e",
+        "short": "66cd1be64",
+        "committed_at": "2026-06-24T20:20:56+08:00",
         "author": "DavidHLP",
-        "subject": "docs: sidebar-menu unification concept page + manifest + land spec"
+        "subject": "fix(sidebar-menu): apply cross-CR fixes (uncontrolled collapse, tests, CSS)"
       },
-      "body_sha256": "622db4965ec23e6e1376bae8cc23b7cd29d8cb51c693f1beafbedc12e8e3d9f0"
+      "body_sha256": "6c0476265bb0604f7a55f95d77ce3c96e85050cc432eca4b70cd339d62f311a8"
     },
     {
       "path": "wiki/concepts/theme-system.md",
@@ -283,6 +283,21 @@
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
       "body_sha256": "ee2054f5614a9d60e9306670b6384f75d958a78f93694aa2965d54e5c8b2cb43"
+    },
+    {
+      "path": "wiki/daily-notes/2026-06-24.md",
+      "type": "daily",
+      "title": "2026-06-24",
+      "status": "living",
+      "frontmatter_updated": "2026-06-24",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "30bffb861beaf2b7861153734b49fcc3c30b50f8e31d7a6548381e9b5a1aae4a"
     },
     {
       "path": "wiki/entities/achievement.md",
@@ -679,7 +694,7 @@
       "type": "log",
       "title": "Maintenance Log",
       "status": "living",
-      "frontmatter_updated": "2026-06-23",
+      "frontmatter_updated": "2026-06-24",
       "last_commit": {
         "sha": "cc3448f41d90746b487e2384e2a01762e6e4a361",
         "short": "cc3448f41",
@@ -687,7 +702,7 @@
         "author": "DavidHLP",
         "subject": "fix(notification): honor preference opt-out in admin broadcast"
       },
-      "body_sha256": "dbdfe55419922b44f4499fc400dd7abc680cb067fb7bdd54e2584fe6ed03ad53"
+      "body_sha256": "fb88d1fc56ccab618b0e5d42f41b335091d4f5c2d279dd04efacd8793dc32c19"
     },
     {
       "path": "wiki/overview/architecture-overview.md",

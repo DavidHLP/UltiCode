@@ -2,7 +2,8 @@ package com.ulticode.modules.queue.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.infrastructure.redis.RedisService;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.util.concurrent.TimeUnit;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobRequestDTO;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,8 +52,8 @@ class QueueServiceTest {
     @Mock
     private RQueue<Object> notificationQueue;
 
-    @Mock
-    private RedisService redisService;
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private RedisTemplate<String, Object> jobStatusRedisTemplate;
 
     @Spy
     private QueueConfig queueConfig = new QueueConfig();
@@ -190,7 +192,7 @@ class QueueServiceTest {
             queueService.enqueueJudgeJob(job);
 
             // Assert
-            verify(redisService).setEx(anyString(), any(JobStatusDTO.class), anyLong());
+            verify(jobStatusRedisTemplate.opsForValue()).set(anyString(), any(JobStatusDTO.class), anyLong(), any(TimeUnit.class));
         }
 
         @Test
@@ -211,7 +213,7 @@ class QueueServiceTest {
             queueService.enqueueJudgeJob(job);
 
             // Assert
-            verify(redisService, never()).setEx(anyString(), any(), anyLong());
+            verify(jobStatusRedisTemplate.opsForValue(), never()).set(anyString(), any(), anyLong(), any(TimeUnit.class));
         }
 
         @Test
@@ -329,7 +331,7 @@ class QueueServiceTest {
                     .payload(Map.of("testKey", "testValue"))
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(redisService.get(QueueConstants.JOB_STATUS_PREFIX + JOB_ID)).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(QueueConstants.JOB_STATUS_PREFIX + JOB_ID)).thenReturn(status);
 
             // Act
             JobStatusDTO result = queueService.getJobStatus(JOB_ID);
@@ -343,7 +345,7 @@ class QueueServiceTest {
         @DisplayName("should throw exception when job not found")
         void shouldThrowExceptionWhenJobNotFound() {
             // Arrange
-            when(redisService.get(anyString())).thenReturn(null);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -394,20 +396,20 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(redisService.get(anyString())).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
 
             // Act
             queueService.cancelJob(JOB_ID);
 
             // Assert
-            verify(redisService).setEx(anyString(), any(JobStatusDTO.class), anyLong());
+            verify(jobStatusRedisTemplate.opsForValue()).set(anyString(), any(JobStatusDTO.class), anyLong(), any(TimeUnit.class));
         }
 
         @Test
         @DisplayName("should throw exception when job not found")
         void shouldThrowExceptionWhenJobNotFound() {
             // Arrange
-            when(redisService.get(anyString())).thenReturn(null);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -424,7 +426,7 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PROCESSING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(redisService.get(anyString())).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -441,7 +443,7 @@ class QueueServiceTest {
         @DisplayName("should throw exception when job not found")
         void shouldThrowExceptionWhenJobNotFound() {
             // Arrange
-            when(redisService.get(anyString())).thenReturn(null);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -459,7 +461,7 @@ class QueueServiceTest {
                     .queueName(QueueConstants.JUDGE_QUEUE)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(redisService.get(anyString())).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -494,7 +496,7 @@ class QueueServiceTest {
                     .submissionId(SUBMISSION_ID)
                     .build();
             when(judgeQueue.poll()).thenReturn(job);
-            when(redisService.get(anyString())).thenReturn(
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(
                     JobStatusDTO.builder()
                             .jobId(JOB_ID)
                             .status(QueueConstants.JobStatus.PENDING)
@@ -557,13 +559,13 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(redisService.get(anyString())).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
 
             // Act
             queueService.updateJobStatus(JOB_ID, QueueConstants.JobStatus.PROCESSING.name(), null);
 
             // Assert
-            verify(redisService).setEx(anyString(), any(JobStatusDTO.class), anyLong());
+            verify(jobStatusRedisTemplate.opsForValue()).set(anyString(), any(JobStatusDTO.class), anyLong(), any(TimeUnit.class));
         }
 
         @Test
@@ -576,13 +578,13 @@ class QueueServiceTest {
                     .startedAt(LocalDateTime.now().minusMinutes(1))
                     .createdAt(LocalDateTime.now().minusMinutes(2))
                     .build();
-            when(redisService.get(anyString())).thenReturn(status);
+            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
 
             // Act
             queueService.updateJobStatus(JOB_ID, QueueConstants.JobStatus.COMPLETED.name(), null);
 
             // Assert
-            verify(redisService).setEx(anyString(), any(JobStatusDTO.class), anyLong());
+            verify(jobStatusRedisTemplate.opsForValue()).set(anyString(), any(JobStatusDTO.class), anyLong(), any(TimeUnit.class));
         }
     }
 

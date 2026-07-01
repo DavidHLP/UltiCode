@@ -20,6 +20,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.SubmissionStateMachine;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ import java.util.stream.Collectors;
 public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     private final SubmissionMapper submissionMapper;
+    private final AdminSubmissionReadPort submissionReadPort;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final QueueService queueService;
@@ -193,28 +195,25 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     public SubmissionStatistics getStatistics() {
         SubmissionStatistics stats = new SubmissionStatistics();
 
-        // Total submissions
-        Long total = submissionMapper.selectCount(null);
-        stats.setTotal(total);
+        // Total submissions — via the typed read port (no mapper leak)
+        stats.setTotal(submissionReadPort.countAll());
 
-        // By status — aggregate SQL query instead of loading all records
+        // By status — typed projection from the read port
         List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        List<Map<String, Object>> statusRows = submissionMapper.countByStatus();
-        for (Map<String, Object> row : statusRows) {
+        for (com.ulticode.modules.submission.dto.StatusCountDTO row : submissionReadPort.countByStatus()) {
             SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
-            sc.setStatus((String) row.get("status"));
-            sc.setCount(((Number) row.get("count")).longValue());
+            sc.setStatus(row.getStatus());
+            sc.setCount(row.getCount());
             byStatus.add(sc);
         }
         stats.setByStatus(byStatus);
 
-        // By language — aggregate SQL query instead of loading all records
+        // By language — typed projection from the read port
         List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        List<Map<String, Object>> languageRows = submissionMapper.countByLanguage();
-        for (Map<String, Object> row : languageRows) {
+        for (com.ulticode.modules.submission.dto.LanguageCountDTO row : submissionReadPort.countByLanguage()) {
             SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
-            lc.setLanguage((String) row.get("language"));
-            lc.setCount(((Number) row.get("count")).longValue());
+            lc.setLanguage(row.getLanguage());
+            lc.setCount(row.getCount());
             byLanguage.add(lc);
         }
         stats.setByLanguage(byLanguage);

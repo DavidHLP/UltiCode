@@ -2,7 +2,7 @@ package com.ulticode.modules.queue.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.infrastructure.redis.RedisService;
+import org.springframework.data.redis.core.RedisTemplate;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobRequestDTO;
@@ -32,7 +32,7 @@ public class QueueServiceImpl implements QueueService {
     private final RQueue<Object> judgeQueue;
     private final RQueue<Object> emailQueue;
     private final RQueue<Object> notificationQueue;
-    private final RedisService redisService;
+    private final RedisTemplate<String, Object> jobStatusRedisTemplate;
     private final QueueConfig queueConfig;
 
     @Override
@@ -133,7 +133,7 @@ public class QueueServiceImpl implements QueueService {
     @Override
     public JobStatusDTO getJobStatus(String jobId) {
         String key = QueueConstants.JOB_STATUS_PREFIX + jobId;
-        Object status = redisService.get(key);
+        Object status = jobStatusRedisTemplate.opsForValue().get(key);
 
         if (status == null) {
             throw new BusinessException(ErrorCode.QUEUE_JOB_NOT_FOUND,
@@ -277,7 +277,8 @@ public class QueueServiceImpl implements QueueService {
      */
     private void saveJobStatus(String jobId, JobStatusDTO status) {
         String key = QueueConstants.JOB_STATUS_PREFIX + jobId;
-        redisService.setEx(key, status, queueConfig.getJobStatusTtlSeconds());
+        jobStatusRedisTemplate.opsForValue().set(
+                key, status, queueConfig.getJobStatusTtlSeconds(), TimeUnit.SECONDS);
     }
 
     /**

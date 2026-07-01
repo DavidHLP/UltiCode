@@ -92,6 +92,19 @@ public interface ContestService {
     List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId);
 
     /**
+     * Resolve a path-variable problem identifier into the underlying numeric
+     * problem id. Accepts either a numeric id (e.g. "1") or the composite
+     * contest_problem id (e.g. "cp-u1-A"). Throws 404 with a clear message
+     * if neither resolves. This was previously a private helper on the
+     * controller; the controller no longer reaches into the mapper directly.
+     *
+     * @param contestId   the resolved contest id
+     * @param problemPath the raw path value (numeric or composite)
+     * @return the numeric problem id
+     */
+    Long resolveContestProblemId(String contestId, String problemPath);
+
+    /**
      * Submit code for a problem in a specific contest.
      */
     SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO);

@@ -3,7 +3,9 @@ package com.ulticode.modules.submission.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.modules.submission.dto.LanguageCountDTO;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
+import com.ulticode.modules.submission.dto.StatusCountDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.dto.UserBestStats;
@@ -266,6 +268,20 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT DISTINCT language FROM submissions ORDER BY language")
     List<String> findDistinctLanguages();
+
+    /**
+     * Count submissions grouped by status — typed projection. Replaces the
+     * previous {@code Map<String,Object>} return so callers cannot mistype
+     * a key and produce a silent runtime bug.
+     */
+    @Select("SELECT status, COUNT(*) AS count FROM submissions WHERE status IS NOT NULL GROUP BY status")
+    List<StatusCountDTO> countByStatusTyped();
+
+    /**
+     * Count submissions grouped by language — typed projection.
+     */
+    @Select("SELECT language, COUNT(*) AS count FROM submissions WHERE language IS NOT NULL GROUP BY language ORDER BY count DESC")
+    List<LanguageCountDTO> countByLanguageTyped();
 
     /**
      * Per-user best (MIN runtime, MIN memory) among accepted submissions for

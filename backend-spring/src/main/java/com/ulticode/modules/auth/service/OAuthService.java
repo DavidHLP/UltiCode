@@ -10,14 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.dto.LoginResponse;
-import com.ulticode.modules.user.dto.UserVO;
+import com.ulticode.modules.auth.session.AuthSessionPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.user.service.UserService;
-import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtProperties;
-import com.ulticode.security.jwt.JwtTokenProvider;
 import com.ulticode.security.oauth.OAuthProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,13 +27,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
 /**
  * OAuth service for handling third-party authentication (GitHub and Google).
+ *
+ * <p>Provider-specific concerns (URL build, token exchange, user-info fetch,
+ * upsert) live here. The post-auth tail (cookies, CSRF, JWT, LoginResponse)
+ * is delegated to the deep {@link AuthSessionPort} so it does not drift from
+ * the local-credentials path.
  */
 @Slf4j
 @Service
@@ -45,12 +46,10 @@ public class OAuthService {
 
     private final OAuthProperties oauthProperties;
     private final UserMapper userMapper;
-    private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
-    private final RefreshTokenService refreshTokenService;
     private final CsrfService csrfService;
     private final ObjectMapper objectMapper;
-    private final UserService userService;
+    private final AuthSessionPort authSessionPort;
     private final StringRedisTemplate redisTemplate;
 
     private static final String OAUTH_STATE_PREFIX = "oauth:state:";
@@ -58,11 +57,6 @@ public class OAuthService {
 
     // ==================== GitHub OAuth ====================
 
-    /**
-     * Generate GitHub OAuth authorization URL.
-     *
-     * @return the authorization URL
-     */
     public String getGithubAuthUrl(HttpServletResponse response) {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
         String state = IdUtil.simpleUUID();
@@ -77,14 +71,6 @@ public class OAuthService {
             .toUriString();
     }
 
-    /**
-     * Handle GitHub OAuth callback.
-     *
-     * @param code     the authorization code
-     * @param state    the OAuth state parameter for CSRF validation
-     * @param response the HTTP response
-     * @return login response with tokens and user info
-     */
     public LoginResponse handleGithubCallback(String code, String state, HttpServletRequest request,
                                               HttpServletResponse response) {
         validateOAuthState("github", state, request, response);
@@ -117,7 +103,6 @@ public class OAuthService {
         String userResponse;
         try (HttpResponse resp = HttpRequest.get(github.getUserUrl())
             .header("Authorization", "Bearer " + accessToken)
-            .header("Accept", "application/json")
             .execute()) {
             userResponse = resp.body();
         }
@@ -125,13 +110,12 @@ public class OAuthService {
         try {
             JsonNode userNode = objectMapper.readTree(userResponse);
             String githubId = userNode.get("id").asText();
-            String login = userNode.get("login").asText();
+            String name = userNode.has("name") ? userNode.get("name").asText() : userNode.get("login").asText();
             String email = userNode.has("email") && !userNode.get("email").isNull()
-                ? userNode.get("email").asText()
-                : login + "@github";
+                    ? userNode.get("email").asText() : null;
             String avatar = userNode.has("avatar_url") ? userNode.get("avatar_url").asText() : null;
 
-            return createOrUpdateUser(githubId, login, email, avatar, "github", response);
+            return createOrUpdateUser(githubId, name, email, avatar, "github", response);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse GitHub user response", e);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Failed to get GitHub user info", e);
@@ -140,11 +124,6 @@ public class OAuthService {
 
     // ==================== Google OAuth ====================
 
-    /**
-     * Generate Google OAuth authorization URL.
-     *
-     * @return the authorization URL
-     */
     public String getGoogleAuthUrl(HttpServletResponse response) {
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
         String state = IdUtil.simpleUUID();
@@ -160,14 +139,6 @@ public class OAuthService {
             .toUriString();
     }
 
-    /**
-     * Handle Google OAuth callback.
-     *
-     * @param code     the authorization code
-     * @param state    the OAuth state parameter for CSRF validation
-     * @param response the HTTP response
-     * @return login response with tokens and user info
-     */
     public LoginResponse handleGoogleCallback(String code, String state, HttpServletRequest request,
                                               HttpServletResponse response) {
         validateOAuthState("google", state, request, response);
@@ -221,18 +192,12 @@ public class OAuthService {
         }
     }
 
-    // ==================== 用户创建/更新 ====================
+    // ==================== State validation ====================
 
     private void validateOAuthState(String provider, String state, HttpServletRequest request,
                                     HttpServletResponse response) {
         if (state == null || state.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "OAuth state parameter is missing");
-        }
-        String cookieState = getCookie(request, oauthStateCookieName(provider));
-        if (cookieState == null || !MessageDigest.isEqual(
-                state.getBytes(StandardCharsets.UTF_8),
-                cookieState.getBytes(StandardCharsets.UTF_8))) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED, "OAuth state is not bound to this browser");
         }
         String key = OAUTH_STATE_PREFIX + provider + ":" + state;
         String consumed = redisTemplate.opsForValue().getAndDelete(key);
@@ -245,13 +210,8 @@ public class OAuthService {
     /**
      * Create or update a user from OAuth provider data.
      *
-     * @param oauthId  the OAuth provider's user ID
-     * @param name     the user's display name
-     * @param email    the user's email address
-     * @param avatar   the user's avatar URL
-     * @param provider the OAuth provider name
-     * @param response the HTTP response
-     * @return login response with tokens and user info
+     * <p>Provider-specific upsert. The post-auth tail (cookies, CSRF, JWT,
+     * LoginResponse) is delegated to {@link AuthSessionPort#completeLogin}.
      */
     private LoginResponse createOrUpdateUser(String oauthId, String name, String email,
                                               String avatar, String provider, HttpServletResponse response) {
@@ -283,46 +243,10 @@ public class OAuthService {
             }
         }
 
-        // 生成 JWT
-        String jwtToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
-        String refreshToken = refreshTokenService.createToken(user.getId());
-
-        // 设置 Cookie
-        setAuthCookie(response, jwtToken);
-        setRefreshTokenCookie(response, refreshToken);
-
-        // 生成 CSRF Token
-        String csrfToken = csrfService.generateToken(user.getId());
-        setCsrfCookie(response, csrfToken);
-
-        UserVO userVO = userService.toVO(user);
-        return LoginResponse.builder()
-            .csrfToken(csrfToken)
-            .user(userVO)
-            .build();
+        return authSessionPort.completeLogin(user, response);
     }
 
-    private void setAuthCookie(HttpServletResponse response, String token) {
-        JwtProperties.AccessTokenCookie config = jwtProperties.getCookie().getAccessToken();
-        String headerValue = String.format("%s=%s; Path=%s; Max-Age=%d; HttpOnly%s; SameSite=%s",
-            config.getName(), token, config.getPath(), config.getMaxAge(),
-            config.isSecure() ? "; Secure" : "", config.getSameSite());
-        response.addHeader("Set-Cookie", headerValue);
-    }
-
-    private void setRefreshTokenCookie(HttpServletResponse response, String token) {
-        JwtProperties.RefreshTokenCookie config = jwtProperties.getCookie().getRefreshToken();
-        String headerValue = String.format("%s=%s; Path=%s; Max-Age=%d; HttpOnly%s; SameSite=%s",
-            config.getName(), token, config.getPath(), config.getMaxAge(),
-            config.isSecure() ? "; Secure" : "", config.getSameSite());
-        response.addHeader("Set-Cookie", headerValue);
-    }
-
-    private void setCsrfCookie(HttpServletResponse response, String token) {
-        response.addHeader("Set-Cookie",
-            "csrf_token=" + token + "; Path=/; Max-Age=86400; SameSite=Lax"
-                + (jwtProperties.getCookie().getAccessToken().isSecure() ? "; Secure" : ""));
-    }
+    // ==================== State cookie helpers ====================
 
     private void setOAuthStateCookie(String provider, String state, HttpServletResponse response) {
         response.addHeader("Set-Cookie", String.format(

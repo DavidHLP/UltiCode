@@ -32,6 +32,9 @@ class AdminSubmissionServiceImplTest {
     private SubmissionMapper submissionMapper;
 
     @Mock
+    private com.ulticode.modules.admin.port.AdminSubmissionReadPort submissionReadPort;
+
+    @Mock
     private UserMapper userMapper;
 
     @Mock
@@ -50,7 +53,7 @@ class AdminSubmissionServiceImplTest {
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService,
+                submissionMapper, submissionReadPort, userMapper, problemMapper, queueService,
                 null, flags, null);
     }
 

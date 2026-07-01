@@ -6,14 +6,14 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.dto.LoginDTO;
 import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.auth.dto.RegisterDTO;
+import com.ulticode.modules.auth.session.AuthSessionPort;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.user.service.UserService;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
-import com.ulticode.security.csrf.CsrfService;
-import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,18 +22,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,17 +50,14 @@ class AuthServiceImplTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
-    @Spy
-    private JwtProperties jwtProperties = new JwtProperties();
-
     @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private CsrfService csrfService;
+    private RefreshTokenService refreshTokenService;
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private AuthSessionPort authSessionPort;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -68,9 +65,7 @@ class AuthServiceImplTest {
     private static final String USER_ID = "test-user-123";
     private static final String USERNAME = "testuser";
     private static final String PASSWORD = "password123";
-    private static final String ACCESS_TOKEN = "access-token-value";
     private static final String REFRESH_TOKEN = "refresh-token-value";
-    private static final String CSRF_TOKEN = "csrf-token-value";
 
     private User createActiveUser() {
         User user = new User();
@@ -83,8 +78,11 @@ class AuthServiceImplTest {
         return user;
     }
 
-    private HttpServletResponse mockResponse() {
-        return mock(HttpServletResponse.class);
+    private LoginResponse stubbedSessionResponse() {
+        return LoginResponse.builder()
+                .csrfToken("csrf-from-session")
+                .user(mock(UserVO.class))
+                .build();
     }
 
     @Nested
@@ -92,7 +90,7 @@ class AuthServiceImplTest {
     class LoginTests {
 
         @Test
-        @DisplayName("successful login returns response with csrf token")
+        @DisplayName("successful login delegates to AuthSessionPort and returns response")
         void login_validCredentials_returnsLoginResponse() {
             // Arrange
             LoginDTO loginDTO = new LoginDTO();
@@ -102,20 +100,15 @@ class AuthServiceImplTest {
             User user = createActiveUser();
             when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
-            when(jwtTokenProvider.generateAccessToken(USER_ID, USERNAME, "USER"))
-                    .thenReturn(ACCESS_TOKEN);
-            when(refreshTokenService.createToken(USER_ID)).thenReturn(REFRESH_TOKEN);
-            when(csrfService.generateToken(USER_ID)).thenReturn(CSRF_TOKEN);
-            when(userService.toVO(user)).thenReturn(mock(UserVO.class));
+            LoginResponse expected = stubbedSessionResponse();
+            when(authSessionPort.completeLogin(any(User.class), any())).thenReturn(expected);
 
             // Act
-            LoginResponse response = authService.login(loginDTO, mockResponse());
+            LoginResponse response = authService.login(loginDTO, mock(HttpServletResponse.class));
 
             // Assert
-            assertThat(response.getCsrfToken()).isEqualTo(CSRF_TOKEN);
-            assertThat(response.getUser()).isNotNull();
-            verify(jwtTokenProvider).generateAccessToken(USER_ID, USERNAME, "USER");
-            verify(csrfService).generateToken(USER_ID);
+            assertThat(response).isSameAs(expected);
+            verify(authSessionPort).completeLogin(eq(user), any());
             verify(userService).updateLastLoginAt(USER_ID);
         }
 
@@ -127,10 +120,11 @@ class AuthServiceImplTest {
             loginDTO.setPassword(PASSWORD);
             when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
-            assertThatThrownBy(() -> authService.login(loginDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
+            verify(authSessionPort, never()).completeLogin(any(), any());
         }
 
         @Test
@@ -144,10 +138,11 @@ class AuthServiceImplTest {
             when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(false);
 
-            assertThatThrownBy(() -> authService.login(loginDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
+            verify(authSessionPort, never()).completeLogin(any(), any());
         }
 
         @Test
@@ -162,7 +157,7 @@ class AuthServiceImplTest {
             when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
 
-            assertThatThrownBy(() -> authService.login(loginDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
@@ -181,7 +176,7 @@ class AuthServiceImplTest {
             when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
 
-            assertThatThrownBy(() -> authService.login(loginDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
@@ -193,35 +188,26 @@ class AuthServiceImplTest {
     class RegisterTests {
 
         @Test
-        @DisplayName("valid registration delegates to login and returns response")
+        @DisplayName("valid registration persists user, updates last login, and delegates to AuthSessionPort")
         void register_validRegistration_delegatesToLogin() {
-            // Arrange
             RegisterDTO registerDTO = new RegisterDTO();
             registerDTO.setUsername(USERNAME);
             registerDTO.setPassword(PASSWORD);
             registerDTO.setEmail("test@example.com");
 
-            // selectCount returns 0 for both username and email checks
             when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
             when(passwordEncoder.encode(PASSWORD)).thenReturn("encoded-password");
 
-            // For the internal login call
-            User user = createActiveUser();
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
-            when(passwordEncoder.matches(PASSWORD, "encoded-password")).thenReturn(true);
-            when(jwtTokenProvider.generateAccessToken(anyString(), anyString(), anyString()))
-                    .thenReturn(ACCESS_TOKEN);
-            when(refreshTokenService.createToken(anyString())).thenReturn(REFRESH_TOKEN);
-            when(csrfService.generateToken(anyString())).thenReturn(CSRF_TOKEN);
-            when(userService.toVO(user)).thenReturn(mock(UserVO.class));
+            LoginResponse expected = stubbedSessionResponse();
+            when(authSessionPort.completeLogin(any(User.class), any())).thenReturn(expected);
 
             // Act
-            LoginResponse response = authService.register(registerDTO, mockResponse());
+            LoginResponse response = authService.register(registerDTO, mock(HttpServletResponse.class));
 
             // Assert
-            assertThat(response).isNotNull();
-            assertThat(response.getCsrfToken()).isEqualTo(CSRF_TOKEN);
+            assertThat(response).isSameAs(expected);
             verify(userMapper).insert(any(User.class));
+            verify(userService).updateLastLoginAt(anyString());
         }
 
         @Test
@@ -234,10 +220,12 @@ class AuthServiceImplTest {
 
             when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
-            assertThatThrownBy(() -> authService.register(registerDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.register(registerDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_USERNAME_TAKEN));
+            verify(userMapper, never()).insert(any(User.class));
+            verify(authSessionPort, never()).completeLogin(any(), any());
         }
 
         @Test
@@ -248,15 +236,15 @@ class AuthServiceImplTest {
             registerDTO.setPassword(PASSWORD);
             registerDTO.setEmail("test@example.com");
 
-            // First selectCount for username returns 0, second for email returns 1
             when(userMapper.selectCount(any(LambdaQueryWrapper.class)))
                     .thenReturn(0L)
                     .thenReturn(1L);
 
-            assertThatThrownBy(() -> authService.register(registerDTO, mockResponse()))
+            assertThatThrownBy(() -> authService.register(registerDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_EMAIL_TAKEN));
+            verify(userMapper, never()).insert(any(User.class));
         }
     }
 
@@ -265,64 +253,57 @@ class AuthServiceImplTest {
     class RefreshTests {
 
         @Test
-        @DisplayName("valid refresh token returns new tokens")
+        @DisplayName("valid refresh token returns session response from deep module")
         void refresh_validToken_returnsNewTokens() {
             User user = createActiveUser();
 
             when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
                     .thenReturn(new RefreshTokenService.RotationResult(USER_ID, "new-refresh-token"));
             when(userMapper.selectById(USER_ID)).thenReturn(user);
-            when(jwtTokenProvider.generateAccessToken(USER_ID, USERNAME, "USER"))
-                    .thenReturn(ACCESS_TOKEN);
-            when(csrfService.generateToken(USER_ID)).thenReturn(CSRF_TOKEN);
-            when(userService.toVO(user)).thenReturn(mock(UserVO.class));
+            LoginResponse expected = stubbedSessionResponse();
+            when(authSessionPort.completeRefresh(any(User.class), eq("new-refresh-token"), any())).thenReturn(expected);
 
-            LoginResponse response = authService.refresh(REFRESH_TOKEN, mockResponse());
+            LoginResponse response = authService.refresh(REFRESH_TOKEN, mock(HttpServletResponse.class));
 
-            assertThat(response).isNotNull();
-            assertThat(response.getCsrfToken()).isEqualTo(CSRF_TOKEN);
-            verify(jwtTokenProvider).generateAccessToken(USER_ID, USERNAME, "USER");
-            verify(csrfService).generateToken(USER_ID);
+            assertThat(response).isSameAs(expected);
+            verify(authSessionPort).completeRefresh(eq(user), eq("new-refresh-token"), any());
         }
 
         @Test
-        @DisplayName("null refresh token throws AUTH_TOKEN_EXPIRED")
-        void refresh_nullToken_throwsException() {
-            assertThatThrownBy(() -> authService.refresh(null, mockResponse()))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.AUTH_TOKEN_EXPIRED));
-        }
-
-        @Test
-        @DisplayName("blank refresh token throws AUTH_TOKEN_EXPIRED")
-        void refresh_blankToken_throwsException() {
-            assertThatThrownBy(() -> authService.refresh("   ", mockResponse()))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.AUTH_TOKEN_EXPIRED));
-        }
-
-        @Test
-        @DisplayName("refresh token returning null userId throws AUTH_TOKEN_EXPIRED")
-        void refresh_invalidToken_throwsException() {
+        @DisplayName("expired JWT throws AUTH_INVALID_CREDENTIALS")
+        void refresh_expiredJwt_throwsException() {
             when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
-                    .thenThrow(new BusinessException(ErrorCode.AUTH_TOKEN_EXPIRED));
+                    .thenThrow(new ExpiredJwtException(null, null, "expired"));
 
-            assertThatThrownBy(() -> authService.refresh(REFRESH_TOKEN, mockResponse()))
+            assertThatThrownBy(() -> authService.refresh(REFRESH_TOKEN, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.AUTH_TOKEN_EXPIRED));
+                            .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
+            verify(authSessionPort, never()).completeRefresh(any(), anyString(), any());
+        }
+
+        @Test
+        @DisplayName("refresh rotating to a missing user throws AUTH_USER_NOT_FOUND")
+        void refresh_missingUser_throwsException() {
+            when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
+                    .thenReturn(new RefreshTokenService.RotationResult(USER_ID, "new-refresh-token"));
+            when(userMapper.selectById(USER_ID)).thenReturn(null);
+
+            assertThatThrownBy(() -> authService.refresh(REFRESH_TOKEN, mock(HttpServletResponse.class)))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.AUTH_USER_NOT_FOUND));
         }
     }
 
     @Test
-    @DisplayName("logout revokes the presented refresh token")
+    @DisplayName("logout revokes the presented refresh token and clears session cookies")
     void logout_revokesPresentedToken() {
-        HttpServletResponse response = mockResponse();
+        HttpServletResponse response = mock(HttpServletResponse.class);
 
         authService.logout(REFRESH_TOKEN, response);
 
         verify(refreshTokenService).revokePresentedToken(REFRESH_TOKEN);
+        verify(authSessionPort).clearSession(response);
     }
 }

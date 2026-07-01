@@ -34,7 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
-        value = ContestController.class,
+        controllers = {ContestSubmissionBridgeController.class, ContestCatalogController.class,
+                ContestRankingController.class, ContestParticipationController.class},
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = MapperConfig.class
@@ -83,6 +84,7 @@ class ContestPublicControllerTest {
             when(contestService.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
             when(contestService.getContestProblemSubmissions("contest-running-001", 1L, "user-1"))
                     .thenReturn(List.of());
+            when(contestService.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
 
             mockMvc.perform(get("/contest/ulticode-weekly-42/problems/1/submissions"))
                     .andExpect(status().isOk())
@@ -107,6 +109,7 @@ class ContestPublicControllerTest {
 
             when(contestService.findById("ulticode-weekly-42")).thenReturn(Optional.empty());
             when(contestService.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
+            when(contestService.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
             when(contestService.submitContestProblem(eq("contest-running-001"), eq(1L), eq("user-1"), any(CreateSubmissionDTO.class)))
                     .thenReturn(submission);
 

@@ -242,6 +242,29 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
+    public Long resolveContestProblemId(String contestId, String problemPath) {
+        if (problemPath == null || problemPath.isBlank()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem id is required");
+        }
+        // 1) Try parsing as numeric (legacy & most common case).
+        try {
+            return Long.parseLong(problemPath);
+        } catch (NumberFormatException ignored) {
+            // fall through to contest_problem.id lookup
+        }
+        // 2) Look up the composite id in contest_problems.
+        return contestProblemMapper.findByContestIdAndId(contestId, problemPath)
+                .map(cp -> {
+                    if (cp.getProblemId() == null) {
+                        throw new BusinessException(ErrorCode.NOT_FOUND,
+                                "Contest problem has no underlying problem id: " + problemPath);
+                    }
+                    return cp.getProblemId();
+                })
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND,
+                        "Contest problem not found: " + problemPath));
+    }
+
     public List<SubmissionVO> getContestProblemSubmissions(String contestId, Long problemId, String userId) {
         ContestProblem contestProblem = getContestProblemOrThrow(contestId, problemId);
 

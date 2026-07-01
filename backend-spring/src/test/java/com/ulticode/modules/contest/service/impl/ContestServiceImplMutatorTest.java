@@ -18,6 +18,7 @@ import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,6 +68,7 @@ class ContestServiceImplMutatorTest {
     @Mock AchievementTriggerService achievementTriggerService;
     @Mock ProblemMapper problemMapper;
     @Mock SubmissionService submissionService;
+    @Mock SubmissionProjection submissionProjection;
 
     ContestServiceImpl service;
 
@@ -76,7 +78,8 @@ class ContestServiceImplMutatorTest {
                 contestMapper, contestProblemMapper, participantMapper,
                 globalRankingMapper, schedulerService, rankingService,
                 achievementTriggerService, contestAnnouncementMapper,
-                contestSubmissionMapper, problemMapper, submissionService, null);
+                contestSubmissionMapper, problemMapper, submissionService,
+                submissionProjection, null);
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

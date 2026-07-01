@@ -33,6 +33,7 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ProblemMapper problemMapper;
     private final SubmissionService submissionService;
+    private final SubmissionProjection submissionProjection;
     // P2-5 fix: cascade-delete helper invoked from deleteContest.
     private final ContestScoringService contestScoringService;
 
@@ -246,7 +248,7 @@ public class ContestServiceImpl implements ContestService {
         return contestSubmissionMapper
                 .findSubmissionsByContestProblemAndUser(contestId, contestProblem.getId(), userId)
                 .stream()
-                .map(submissionService::toVO)
+                .map(submissionProjection::toVO)
                 .toList();
     }
 

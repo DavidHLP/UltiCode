@@ -16,6 +16,7 @@ import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -91,6 +92,8 @@ class SubmissionServiceImplIT {
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     @Mock
     private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
+    @Mock
+    private SubmissionProjection submissionProjection;
 
     private SubmissionServiceImpl submissionService;
 
@@ -256,7 +259,9 @@ class SubmissionServiceImplIT {
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, objectMapper, queueService, realtimeService,
+                submissionMapper, userMapper, problemMapper, objectMapper,
+                submissionProjection,
+                queueService, realtimeService,
                 contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
                 achievementTriggerService, notificationService, notificationDispatchService,
                 notificationDispatcher,

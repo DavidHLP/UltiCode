@@ -1,80 +1,55 @@
-package com.ulticode.modules.submission.service.impl;
+package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.common.config.FeatureFlagsProperties;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
-import com.ulticode.modules.notification.service.NotificationDispatchService;
-import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
-import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.websocket.service.RealtimeService;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
- * P0-1: {@code SubmissionServiceImpl.toVO(Submission)} must project
- * per-case details through {@code CaseScope.isUserVisible()} so that
- * the canonical user-facing {@code SubmissionVO} never carries hidden
- * case inputs / outputs / expectedOutput.
+ * Tests the P0-1 user-projection contract of {@link DefaultSubmissionProjection}.
  *
- * <p>This is a pure unit test: all collaborators are stubbed so we can
- * construct scenarios covering SAMPLE, HIDDEN, legacy null, and mixed
- * failing-detail ordering.
+ * <p>Focused on the new deep module: this test mocks only the four collaborators
+ * the projection owns ({@code SubmissionMapper}, {@code UserMapper},
+ * {@code ProblemMapper}, {@code ObjectMapper}). The previous incarnation
+ * lived in {@code SubmissionVOProjectionTest} and required seventeen mocks
+ * (every dependency of {@code SubmissionServiceImpl}) just to exercise the
+ * projection rules.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SubmissionServiceImpl.toVO - P0-1 user projection")
-class SubmissionVOProjectionTest {
+@DisplayName("DefaultSubmissionProjection - P0-1 user projection")
+class DefaultSubmissionProjectionTest {
 
     @Mock private SubmissionMapper submissionMapper;
     @Mock private UserMapper userMapper;
     @Mock private ProblemMapper problemMapper;
-    @Mock private QueueService queueService;
-    @Mock private RealtimeService realtimeService;
-    @Mock private ContestProblemMapper contestProblemMapper;
-    @Mock private ContestSubmissionMapper contestSubmissionMapper;
-    @Mock private ContestMapper contestMapper;
-    @Mock private ContestParticipantMapper contestParticipantMapper;
-    @Mock private AchievementTriggerService achievementTriggerService;
-    @Mock private NotificationService notificationService;
-    @Mock private NotificationDispatchService notificationDispatchService;
-    @Mock private NotificationDispatcher notificationDispatcher;
-    @Mock private JudgeOutboxMapper judgeOutboxMapper;
-    @Mock private FeatureFlagsProperties featureFlags;
-    @Mock private MeterRegistry meterRegistry;
 
-    private SubmissionServiceImpl service;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private DefaultSubmissionProjection projection;
 
     @BeforeEach
     void setUp() {
-        service = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, new ObjectMapper(),
-                queueService, realtimeService, contestProblemMapper, contestSubmissionMapper,
-                contestMapper, contestParticipantMapper, achievementTriggerService,
-                notificationService, notificationDispatchService, notificationDispatcher,
-                judgeOutboxMapper, featureFlags, meterRegistry, null);
+        projection = new DefaultSubmissionProjection(
+                submissionMapper, userMapper, problemMapper, objectMapper);
     }
 
     private Submission buildSubmission(Submission.TestCaseDetail... details) {
@@ -116,7 +91,7 @@ class SubmissionVOProjectionTest {
         when(userMapper.selectById("u-1")).thenReturn(null);
         when(problemMapper.selectById(100L)).thenReturn(null);
 
-        SubmissionVO vo = service.toVO(s);
+        SubmissionVO vo = projection.toVO(s);
 
         // Only the sample appears in vo.tests; the hidden case is dropped entirely.
         assertThat(vo.getTests()).hasSize(1);
@@ -137,7 +112,7 @@ class SubmissionVOProjectionTest {
         when(userMapper.selectById("u-1")).thenReturn(null);
         when(problemMapper.selectById(100L)).thenReturn(null);
 
-        SubmissionVO vo = service.toVO(s);
+        SubmissionVO vo = projection.toVO(s);
 
         assertThat(vo.getTests()).hasSize(1);
         assertThat(vo.getErrorDetail()).isEqualTo("diff");
@@ -156,7 +131,7 @@ class SubmissionVOProjectionTest {
         when(userMapper.selectById("u-1")).thenReturn(null);
         when(problemMapper.selectById(100L)).thenReturn(null);
 
-        SubmissionVO vo = service.toVO(s);
+        SubmissionVO vo = projection.toVO(s);
 
         assertThat(vo.getTests()).hasSize(1); // only SAMPLE in tests
         // HIDDEN failed; sample passed → errorDetail from HIDDEN, no I/O
@@ -176,7 +151,7 @@ class SubmissionVOProjectionTest {
         when(userMapper.selectById("u-1")).thenReturn(null);
         when(problemMapper.selectById(100L)).thenReturn(null);
 
-        SubmissionVO vo = service.toVO(s);
+        SubmissionVO vo = projection.toVO(s);
 
         // SAMPLE's I/O wins over HIDDEN's
         assertThat(vo.getErrorDetail()).isEqualTo("sample-diff");
@@ -193,11 +168,114 @@ class SubmissionVOProjectionTest {
         when(userMapper.selectById("u-1")).thenReturn(null);
         when(problemMapper.selectById(100L)).thenReturn(null);
 
-        SubmissionVO vo = service.toVO(s);
+        SubmissionVO vo = projection.toVO(s);
 
         assertThat(vo.getCompilerError()).isEqualTo("javac: class Solution is missing");
         assertThat(vo.getErrorDetail()).isEqualTo("javac: class Solution is missing");
         assertThat(vo.getOutput()).isEmpty();
         assertThat(vo.getExpectedOutput()).isEmpty();
+    }
+
+    @Nested
+    @DisplayName("List projection")
+    class ListProjection {
+
+        @Test
+        @DisplayName("User and problem info are populated from pre-loaded DTO (no extra mapper calls)")
+        void populatesFromPreloadedDto() {
+            SubmissionMapper.SubmissionWithProblem row =
+                    new SubmissionMapper.SubmissionWithProblem(
+                            "sub-9", 200L, "u-9", "java", "code", "Accepted",
+                            42, 64.0, "notes", 0,
+                            java.time.LocalDateTime.now(),
+                            50.0, 60.0, null, null, null,
+                            "Two Sum", "two-sum");
+
+            SubmissionListItemVO vo = projection.toListItemVO(row);
+
+            assertThat(vo.getId()).isEqualTo("sub-9");
+            assertThat(vo.getStatus()).isEqualTo("Accepted");
+            assertThat(vo.getLanguage()).isEqualTo("java");
+            assertThat(vo.getRuntime()).isEqualTo(42);
+            assertThat(vo.getMemory()).isEqualTo(64.0);
+            assertThat(vo.getProblem()).isNotNull();
+            assertThat(vo.getProblem().getId()).isEqualTo(200L);
+            assertThat(vo.getProblem().getTitle()).isEqualTo("Two Sum");
+            assertThat(vo.getProblem().getSlug()).isEqualTo("two-sum");
+        }
+
+        @Test
+        @DisplayName("Null problem fields on the DTO do not break the projection")
+        void nullProblemFieldsDoNotBreakProjection() {
+            SubmissionMapper.SubmissionWithProblem row =
+                    new SubmissionMapper.SubmissionWithProblem(
+                            "sub-9", 200L, "u-9", "java", "code", "Accepted",
+                            42, 64.0, null, 0,
+                            java.time.LocalDateTime.now(),
+                            null, null, null, null, null,
+                            null, null);
+
+            SubmissionListItemVO vo = projection.toListItemVO(row);
+
+            assertThat(vo.getId()).isEqualTo("sub-9");
+            assertThat(vo.getProblem()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Aggregate delegation")
+    class AggregateDelegation {
+
+        @Test
+        @DisplayName("aggregateDates forwards to the mapper unchanged")
+        void aggregateDatesDelegates() {
+            when(submissionMapper.findSubmissionDatesByYear("u-1", 2026))
+                    .thenReturn(List.of("2026-01-01", "2026-01-02"));
+
+            List<String> result = projection.aggregateDates("u-1", 2026);
+
+            assertThat(result).containsExactly("2026-01-01", "2026-01-02");
+        }
+
+        @Test
+        @DisplayName("aggregateDates passes through a null year")
+        void aggregateDatesPassesNullYear() {
+            when(submissionMapper.findSubmissionDatesByYear("u-1", null))
+                    .thenReturn(List.of("2025-12-31"));
+
+            assertThat(projection.aggregateDates("u-1", null))
+                    .containsExactly("2025-12-31");
+        }
+
+        @Test
+        @DisplayName("Empty learning progress: empty weekly, totals zero")
+        void aggregateLearningProgressEmpty() {
+            when(submissionMapper.findWeeklyProgress("u-1")).thenReturn(List.of());
+            when(submissionMapper.calculateStreak("u-1")).thenReturn(0);
+
+            var result = projection.aggregateLearningProgress("u-1");
+
+            assertThat(result.getWeeklyProgress()).isEmpty();
+            assertThat(result.getTotalProblems()).isZero();
+            assertThat(result.getTotalTimeHours()).isZero();
+            assertThat(result.getAvgTimePerProblem()).isZero();
+            assertThat(result.getCurrentStreak()).isZero();
+            assertThat(result.getLongestStreak()).isZero();
+        }
+
+        @Test
+        @DisplayName("Empty history: monthly and language lists empty, acceptance 0.0")
+        void aggregateHistoryEmpty() {
+            when(submissionMapper.findMonthlySubmissionStats("u-1")).thenReturn(List.of());
+            when(submissionMapper.findLanguageStats("u-1")).thenReturn(List.of());
+
+            var result = projection.aggregateHistory("u-1");
+
+            assertThat(result.getMonthly()).isEmpty();
+            assertThat(result.getLanguages()).isEmpty();
+            assertThat(result.getTotalSubmissions()).isZero();
+            assertThat(result.getTotalAccepted()).isZero();
+            assertThat(result.getAcceptanceRate()).isZero();
+        }
     }
 }

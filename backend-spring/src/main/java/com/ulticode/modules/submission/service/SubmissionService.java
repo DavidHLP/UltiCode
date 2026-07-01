@@ -2,9 +2,7 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
-import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
-import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
@@ -15,7 +13,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service interface for submission-related operations.
+ * Service interface for submission state changes and single-row reads.
+ *
+ * <p>Read-side rollups (calendar dates, learning progress, submission history)
+ * live behind {@link com.ulticode.modules.submission.projection.SubmissionProjection}.
+ * The two interfaces share the same {@code Submission} domain but sit at
+ * different seams: this one owns the <em>state machine</em> (submit, judge
+ * updates, fenced writes); the projection owns the <em>view shape</em>.
+ *
+ * <p>Returning {@link SubmissionVO} from {@code submit} and {@code findBest}
+ * stays on this interface because the caller has just crossed the state
+ * boundary and wants a directly usable payload. The actual entity-to-VO
+ * projection is delegated to {@code SubmissionProjection} so the rules
+ * live in one place.
  */
 public interface SubmissionService {
 
@@ -73,39 +83,6 @@ public interface SubmissionService {
      * @return the submission entity, or empty if not found
      */
     Optional<Submission> getSubmissionEntity(String id);
-
-    /**
-     * Convert a Submission entity to SubmissionVO.
-     *
-     * @param submission the submission entity
-     * @return the submission view object
-     */
-    SubmissionVO toVO(Submission submission);
-
-    /**
-     * Get the list of dates (YYYY-MM-DD) when a user made submissions in a given year.
-     *
-     * @param userId the user ID
-     * @param year   the year to filter by
-     * @return list of date strings
-     */
-    List<String> getSubmissionDates(String userId, Integer year);
-
-    /**
-     * Get learning progress data for a user.
-     *
-     * @param userId the user ID
-     * @return learning progress data
-     */
-    LearningProgressDTO getLearningProgress(String userId);
-
-    /**
-     * Get submission history data for a user.
-     *
-     * @param userId the user ID
-     * @return submission history data
-     */
-    SubmissionHistoryDTO getSubmissionHistory(String userId);
 
     /**
      * Get submission status metadata for frontend display.

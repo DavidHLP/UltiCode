@@ -13,6 +13,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class SubmissionController {
 
     private final SubmissionService submissionService;
+    private final SubmissionProjection submissionProjection;
 
     /**
      * Submit code for a problem.
@@ -149,7 +151,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        List<String> dates = submissionService.getSubmissionDates(userId, year);
+        List<String> dates = submissionProjection.aggregateDates(userId, year);
         return Result.success(dates);
     }
 
@@ -193,7 +195,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        LearningProgressDTO progress = submissionService.getLearningProgress(userId);
+        LearningProgressDTO progress = submissionProjection.aggregateLearningProgress(userId);
         return Result.success(progress);
     }
 
@@ -212,7 +214,7 @@ public class SubmissionController {
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        SubmissionHistoryDTO history = submissionService.getSubmissionHistory(userId);
+        SubmissionHistoryDTO history = submissionProjection.aggregateHistory(userId);
         return Result.success(history);
     }
 

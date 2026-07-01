@@ -21,6 +21,7 @@ import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -78,6 +79,8 @@ class ContestServiceImplTest {
     private ProblemMapper problemMapper;
     @Mock
     private SubmissionService submissionService;
+    @Mock
+    private SubmissionProjection submissionProjection;
 
     private ContestServiceImpl contestService;
 
@@ -97,7 +100,8 @@ class ContestServiceImplTest {
                 contestAnnouncementMapper,
                 contestSubmissionMapper,
                 problemMapper,
-                submissionService
+                submissionService,
+                submissionProjection
         , null);
     }
 
@@ -485,7 +489,7 @@ class ContestServiceImplTest {
             when(contestSubmissionMapper.findSubmissionsByContestProblemAndUser(
                     "contest-1", "contest-problem-1", REGULAR_USER_ID))
                     .thenReturn(List.of(submission));
-            when(submissionService.toVO(submission)).thenReturn(submissionVO);
+            when(submissionProjection.toVO(submission)).thenReturn(submissionVO);
 
             List<SubmissionVO> result = contestService.getContestProblemSubmissions(
                     "contest-1", 42L, REGULAR_USER_ID);

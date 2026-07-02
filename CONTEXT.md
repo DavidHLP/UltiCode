@@ -33,7 +33,7 @@
   ContestSubmission (`SubmissionServiceImpl.submit`).
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
-  `ProblemProjection`, `SubmissionProjection`.
+  `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`.
 - **Port** — an interface owned by the consuming module describing a
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
@@ -64,4 +64,5 @@
 
 ## Decisions
 
-- See `docs/adr/` — ADR-0001 (submission-contest decoupling).
+- See `docs/adr/` — ADR-0001 (submission-contest decoupling), ADR-0004
+  (moderation projection extraction).

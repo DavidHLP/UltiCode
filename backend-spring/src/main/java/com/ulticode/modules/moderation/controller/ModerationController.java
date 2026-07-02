@@ -5,6 +5,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.moderation.dto.*;
+import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,6 +23,10 @@ import java.util.Map;
 
 /**
  * Controller for moderation operations.
+ *
+ * <p>Read paths (queue / report / appeal list, detail, stats) depend on
+ * {@link ModerationProjection} directly; write paths and the
+ * authorisation-guarded appeal detail depend on {@link ModerationService}.
  */
 @Tag(name = "Moderation", description = "Content moderation API")
 @RestController
@@ -31,6 +36,7 @@ import java.util.Map;
 public class ModerationController {
 
     private final ModerationService moderationService;
+    private final ModerationProjection moderationProjection;
 
     // ==================== Queue Operations ====================
 
@@ -38,14 +44,14 @@ public class ModerationController {
     @GetMapping("/queue")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<ModerationQueueVO>> getQueue(QueryModerationQueueDTO query) {
-        return Result.success(moderationService.getQueueItems(query));
+        return Result.success(moderationProjection.listQueueItems(query));
     }
 
     @Operation(summary = "Get moderation statistics")
     @GetMapping("/queue/stats")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationStatsVO> getStats() {
-        return Result.success(moderationService.getStats());
+        return Result.success(moderationProjection.stats());
     }
 
     @Operation(summary = "Get moderation enums")
@@ -65,7 +71,7 @@ public class ModerationController {
     @GetMapping("/queue/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> getQueueItem(@PathVariable String id) {
-        return Result.success(moderationService.getQueueItem(id));
+        return Result.success(moderationProjection.queueItemById(id));
     }
 
     @Operation(summary = "Claim a queue item")
@@ -112,7 +118,7 @@ public class ModerationController {
     public Result<ModerationQueueVO> findByEntity(
             @PathVariable String entityType,
             @PathVariable String entityId) {
-        return Result.success(moderationService.findByEntity(entityType, entityId));
+        return Result.success(moderationProjection.queueItemByEntity(entityType, entityId));
     }
 
     @Operation(summary = "Batch moderation action")
@@ -142,21 +148,21 @@ public class ModerationController {
     public Result<List<ReportVO>> getReportsForEntity(
             @PathVariable String entityType,
             @PathVariable String entityId) {
-        return Result.success(moderationService.getReportsForEntity(entityType, entityId));
+        return Result.success(moderationProjection.reportsForEntity(entityType, entityId));
     }
 
     @Operation(summary = "Get paginated reports")
     @GetMapping("/reports")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<ReportVO>> getReports(QueryReportsDTO query) {
-        return Result.success(moderationService.getReports(query));
+        return Result.success(moderationProjection.listReports(query));
     }
 
     @Operation(summary = "Get report details")
     @GetMapping("/reports/{id}")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ReportVO> getReport(@PathVariable String id) {
-        return Result.success(moderationService.getReport(id));
+        return Result.success(moderationProjection.reportById(id));
     }
 
     // ==================== Appeal Operations ====================
@@ -174,7 +180,7 @@ public class ModerationController {
     @GetMapping("/appeals")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AppealVO>> getAppeals(QueryAppealsDTO query) {
-        return Result.success(moderationService.getAppeals(query));
+        return Result.success(moderationProjection.listAppeals(query));
     }
 
     @Operation(summary = "Get appeal details", description = "Returns a single appeal. "
@@ -193,14 +199,14 @@ public class ModerationController {
     @PreAuthorize("isAuthenticated()")
     public Result<List<AppealVO>> getMyAppeals() {
         String appellantId = SecurityUtil.getCurrentUserId();
-        return Result.success(moderationService.getMyAppeals(appellantId));
+        return Result.success(moderationProjection.myAppeals(appellantId));
     }
 
     @Operation(summary = "Get appeal statistics")
     @GetMapping("/appeals/stats")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<AppealStatsVO> getAppealStats() {
-        return Result.success(moderationService.getAppealStats());
+        return Result.success(moderationProjection.appealStats());
     }
 
     @Operation(summary = "Review an appeal",

@@ -8,6 +8,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
+import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
 import com.ulticode.security.AuthenticationEntryPointImpl;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
@@ -72,6 +73,9 @@ class ModerationControllerTest {
 
     @MockBean
     private ModerationService moderationService;
+
+    @MockBean
+    private ModerationProjection moderationProjection;
 
     // SecurityConfig dependencies
     @MockBean
@@ -217,7 +221,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with paginated queue items")
         void getQueueItems_success() throws Exception {
-            when(moderationService.getQueueItems(any())).thenReturn(buildPageResult());
+            when(moderationProjection.listQueueItems(any())).thenReturn(buildPageResult());
 
             mockMvc.perform(get("/moderation/queue")
                             .param("page", "1")
@@ -237,7 +241,7 @@ class ModerationControllerTest {
         @DisplayName("should return 200 with empty page when no items")
         void getQueueItems_empty() throws Exception {
             PageResult<ModerationQueueVO> emptyResult = PageResult.of(Collections.emptyList(), 0L, 1, 10);
-            when(moderationService.getQueueItems(any())).thenReturn(emptyResult);
+            when(moderationProjection.listQueueItems(any())).thenReturn(emptyResult);
 
             mockMvc.perform(get("/moderation/queue"))
                     .andExpect(status().isOk())
@@ -254,7 +258,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with queue item details")
         void getQueueItem_success() throws Exception {
-            when(moderationService.getQueueItem("queue-1")).thenReturn(buildQueueVO());
+            when(moderationProjection.queueItemById("queue-1")).thenReturn(buildQueueVO());
 
             mockMvc.perform(get("/moderation/queue/queue-1"))
                     .andExpect(status().isOk())
@@ -270,7 +274,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 404 when queue item not found")
         void getQueueItem_notFound() throws Exception {
-            when(moderationService.getQueueItem("nonexistent"))
+            when(moderationProjection.queueItemById("nonexistent"))
                     .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/queue/nonexistent"))
@@ -285,7 +289,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with queue item for entity")
         void getQueueItemByEntity_success() throws Exception {
-            when(moderationService.findByEntity("ForumPost", "post-1"))
+            when(moderationProjection.queueItemByEntity("ForumPost", "post-1"))
                     .thenReturn(buildQueueVO());
 
             mockMvc.perform(get("/moderation/queue/entity/ForumPost/post-1"))
@@ -304,7 +308,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with moderation statistics")
         void getStats_success() throws Exception {
-            when(moderationService.getStats()).thenReturn(buildStatsVO());
+            when(moderationProjection.stats()).thenReturn(buildStatsVO());
 
             mockMvc.perform(get("/moderation/queue/stats"))
                     .andExpect(status().isOk())
@@ -332,7 +336,7 @@ class ModerationControllerTest {
             ModerationStatsVO stats = buildStatsVO();
             stats.setByCategory(byCategory);
             stats.setByEntityType(byEntityType);
-            when(moderationService.getStats()).thenReturn(stats);
+            when(moderationProjection.stats()).thenReturn(stats);
 
             mockMvc.perform(get("/moderation/queue/stats"))
                     .andExpect(status().isOk())
@@ -695,7 +699,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with paginated reports")
         void getReports_success() throws Exception {
-            when(moderationService.getReports(any())).thenReturn(buildReportPageResult());
+            when(moderationProjection.listReports(any())).thenReturn(buildReportPageResult());
 
             mockMvc.perform(get("/moderation/reports")
                             .param("page", "1")
@@ -713,7 +717,7 @@ class ModerationControllerTest {
         @DisplayName("should return 200 with empty page when no reports")
         void getReports_empty() throws Exception {
             PageResult<ReportVO> emptyResult = PageResult.of(Collections.emptyList(), 0L, 1, 20);
-            when(moderationService.getReports(any())).thenReturn(emptyResult);
+            when(moderationProjection.listReports(any())).thenReturn(emptyResult);
 
             mockMvc.perform(get("/moderation/reports"))
                     .andExpect(status().isOk())
@@ -730,7 +734,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with report details")
         void getReport_success() throws Exception {
-            when(moderationService.getReport("report-1")).thenReturn(buildReportVO());
+            when(moderationProjection.reportById("report-1")).thenReturn(buildReportVO());
 
             mockMvc.perform(get("/moderation/reports/report-1"))
                     .andExpect(status().isOk())
@@ -745,7 +749,7 @@ class ModerationControllerTest {
         void getReport_notFound() throws Exception {
             // Service reuses MODERATION_QUEUE_NOT_FOUND for missing reports —
             // a dedicated MODERATION_REPORT_NOT_FOUND should be added
-            when(moderationService.getReport("nonexistent"))
+            when(moderationProjection.reportById("nonexistent"))
                     .thenThrow(new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND));
 
             mockMvc.perform(get("/moderation/reports/nonexistent"))
@@ -760,7 +764,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with reports for entity")
         void getReportsForEntity_success() throws Exception {
-            when(moderationService.getReportsForEntity("ForumPost", "post-1"))
+            when(moderationProjection.reportsForEntity("ForumPost", "post-1"))
                     .thenReturn(List.of(buildReportVO()));
 
             mockMvc.perform(get("/moderation/reports/entity/ForumPost/post-1"))
@@ -773,7 +777,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with empty list when no reports")
         void getReportsForEntity_empty() throws Exception {
-            when(moderationService.getReportsForEntity("ForumPost", "nonexistent"))
+            when(moderationProjection.reportsForEntity("ForumPost", "nonexistent"))
                     .thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/moderation/reports/entity/ForumPost/nonexistent"))
@@ -792,7 +796,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with paginated appeals")
         void getAppeals_success() throws Exception {
-            when(moderationService.getAppeals(any())).thenReturn(buildAppealPageResult());
+            when(moderationProjection.listAppeals(any())).thenReturn(buildAppealPageResult());
 
             mockMvc.perform(get("/moderation/appeals")
                             .param("page", "1")
@@ -812,7 +816,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with user's appeals")
         void getMyAppeals_success() throws Exception {
-            when(moderationService.getMyAppeals(any())).thenReturn(List.of(buildAppealVO()));
+            when(moderationProjection.myAppeals(any())).thenReturn(List.of(buildAppealVO()));
 
             mockMvc.perform(get("/moderation/appeals/my"))
                     .andExpect(status().isOk())
@@ -870,7 +874,7 @@ class ModerationControllerTest {
         @Test
         @DisplayName("should return 200 with appeal statistics")
         void getAppealStats_success() throws Exception {
-            when(moderationService.getAppealStats()).thenReturn(buildAppealStatsVO());
+            when(moderationProjection.appealStats()).thenReturn(buildAppealStatsVO());
 
             mockMvc.perform(get("/moderation/appeals/stats"))
                     .andExpect(status().isOk())

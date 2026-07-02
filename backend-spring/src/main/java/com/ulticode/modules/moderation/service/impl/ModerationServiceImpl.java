@@ -1,21 +1,18 @@
 package com.ulticode.modules.moderation.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.moderation.dto.*;
-import com.ulticode.modules.moderation.entity.*;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.modules.moderation.dto.*;
+import com.ulticode.modules.moderation.entity.*;
 import com.ulticode.modules.moderation.mapper.*;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +24,27 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
- * Implementation of ModerationService.
+ * Implementation of {@link ModerationService} — the moderation state-machine.
+ *
+ * <p>Owns the write paths: claim / assign / unassign / perform-action /
+ * batch-action on the queue, report intake, and appeal create / review (plus
+ * the authorisation-guarded appeal read). All entity-to-VO projection and
+ * read-side aggregation (queue / report / appeal list, detail, stats) live in
+ * {@link ModerationProjection}; this service delegates to it for the view
+ * shapes the write paths still return — the post-action queue reload and the
+ * post-create / post-review appeal view — so every projection rule stays in
+ * one place.
+ *
+ * <p>The package-private mutation helpers ({@link #createUserWarning},
+ * {@link #createUserBan}, {@link #updateContentFlagStatus}) are called by the
+ * {@link ModerationActionHandler} strategies through {@code ActionContext},
+ * which holds a {@code this} reference. They are intentionally not part of
+ * the service interface.
  */
 @Slf4j
 @Service
@@ -50,119 +63,9 @@ public class ModerationServiceImpl implements ModerationService {
     private final SolutionMapper solutionMapper;
     private final SolutionCommentMapper solutionCommentMapper;
     private final ProblemMapper problemMapper;
+    private final ModerationProjection moderationProjection;
 
     // ==================== Queue Operations ====================
-
-    @Override
-    public PageResult<ModerationQueueVO> getQueueItems(QueryModerationQueueDTO query) {
-        LambdaQueryWrapper<ModerationQueue> wrapper = new LambdaQueryWrapper<>();
-
-        if (query.getStatus() != null && !query.getStatus().isEmpty()) {
-            wrapper.eq(ModerationQueue::getStatus, query.getStatus());
-        }
-        if (query.getEntityType() != null && !query.getEntityType().isEmpty()) {
-            wrapper.eq(ModerationQueue::getEntityType, query.getEntityType());
-        }
-        if (query.getAssignedTo() != null && !query.getAssignedTo().isEmpty()) {
-            wrapper.eq(ModerationQueue::getAssignedToId, query.getAssignedTo());
-        }
-        if (query.getPrimaryCategory() != null && !query.getPrimaryCategory().isEmpty()) {
-            wrapper.eq(ModerationQueue::getPrimaryCategory, query.getPrimaryCategory());
-        }
-        if (query.getMinPriority() != null) {
-            wrapper.ge(ModerationQueue::getPriority, query.getMinPriority());
-        }
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
-            switch (query.getSortBy()) {
-                case "priority":
-                    wrapper.orderBy(true, isAsc, ModerationQueue::getPriority);
-                    break;
-                case "createdAt":
-                    wrapper.orderBy(true, isAsc, ModerationQueue::getCreatedAt);
-                    break;
-                case "updatedAt":
-                    wrapper.orderBy(true, isAsc, ModerationQueue::getUpdatedAt);
-                    break;
-                default:
-                    wrapper.orderByDesc(ModerationQueue::getPriority)
-                           .orderByAsc(ModerationQueue::getCreatedAt);
-            }
-        } else {
-            wrapper.orderByDesc(ModerationQueue::getPriority)
-                   .orderByAsc(ModerationQueue::getCreatedAt);
-        }
-
-        Page<ModerationQueue> page = new Page<>(query.getPage(), query.getLimit());
-        Page<ModerationQueue> result = queueMapper.selectPage(page, wrapper);
-
-        List<ModerationQueue> records = result.getRecords();
-        Map<String, User> userMap = buildUserMap(records);
-
-        List<ModerationQueueVO> voList = records.stream()
-                .map(item -> toQueueVO(item, userMap))
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
-    }
-
-    @Override
-    public ModerationQueueVO getQueueItem(String id) {
-        ModerationQueue item = queueMapper.selectById(id);
-        if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
-        }
-        Map<String, User> userMap = buildUserMap(List.of(item));
-        return toQueueVO(item, userMap);
-    }
-
-    @Override
-    public ModerationStatsVO getStats() {
-        ModerationStatsVO stats = new ModerationStatsVO();
-        stats.setPendingCount(queueMapper.countPending());
-        stats.setUnderReviewCount(queueMapper.countUnderReview());
-        stats.setResolvedCount(queueMapper.countResolved());
-        stats.setDismissedCount(queueMapper.countDismissed());
-        stats.setResolvedToday(queueMapper.countResolvedToday());
-        stats.setPendingAppealsCount(appealMapper.countPending());
-        stats.setAvgResolutionTimeHours(queueMapper.avgResolutionTimeHours());
-        stats.setByCategory(toCountMap(queueMapper.countByCategory()));
-        stats.setByEntityType(toCountMap(queueMapper.countByEntityType()));
-        return stats;
-    }
-
-    /**
-     * Convert raw SQL group-by rows ({key, value}) to a Map<String, Long>.
-     * Preserves the order returned by the SQL (LinkedHashMap).
-     *
-     * @param raw list of row maps from a group-by query
-     * @return ordered map of key to count, empty if input is null/empty
-     */
-    private Map<String, Long> toCountMap(List<Map<String, Object>> raw) {
-        if (raw == null || raw.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        Map<String, Long> result = new LinkedHashMap<>();
-        for (Map<String, Object> row : raw) {
-            Object key = row.get("key");
-            Object value = row.get("value");
-            if (key != null && value instanceof Number) {
-                result.put(key.toString(), ((Number) value).longValue());
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public ModerationQueueVO findByEntity(String entityType, String entityId) {
-        ModerationQueue item = queueMapper.findByEntity(entityType, entityId);
-        if (item == null) {
-            return null;
-        }
-        Map<String, User> userMap = buildUserMap(List.of(item));
-        return toQueueVO(item, userMap);
-    }
 
     @Override
     @Transactional
@@ -180,7 +83,7 @@ public class ModerationServiceImpl implements ModerationService {
             }
             // If already assigned to current moderator, consider it success
         }
-        return getQueueItem(id);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
@@ -198,7 +101,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
 
         queueMapper.assignToModerator(id, assignedTo);
-        return getQueueItem(id);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
@@ -210,7 +113,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
 
         queueMapper.unassign(id);
-        return getQueueItem(id);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
@@ -249,7 +152,7 @@ public class ModerationServiceImpl implements ModerationService {
         updateReportsStatus(id, actionType == ModerationActionType.DISMISSED ? "DISMISSED" : "RESOLVED");
 
         log.info("Moderation action {} performed on queue item {} by moderator {}", actionType, id, moderatorId);
-        return getQueueItem(id);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
@@ -328,69 +231,6 @@ public class ModerationServiceImpl implements ModerationService {
         log.info("Report created by user {} for entity {}/{}", reporterId, dto.getEntityType(), dto.getEntityId());
     }
 
-    @Override
-    public List<ReportVO> getReportsForEntity(String entityType, String entityId) {
-        List<Report> reports = reportMapper.findByEntity(entityType, entityId);
-        return reports.stream()
-                .map(this::toReportVO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public PageResult<ReportVO> getReports(QueryReportsDTO query) {
-        LambdaQueryWrapper<Report> wrapper = new LambdaQueryWrapper<>();
-
-        if (query.getStatus() != null && !query.getStatus().isEmpty()) {
-            wrapper.eq(Report::getStatus, query.getStatus());
-        }
-        if (query.getCategory() != null && !query.getCategory().isEmpty()) {
-            wrapper.eq(Report::getCategory, query.getCategory());
-        }
-        if (query.getReporterId() != null && !query.getReporterId().isEmpty()) {
-            wrapper.eq(Report::getReporterId, query.getReporterId());
-        }
-        if (query.getEntityType() != null && !query.getEntityType().isEmpty()) {
-            wrapper.eq(Report::getEntityType, query.getEntityType());
-        }
-        if (query.getEntityId() != null && !query.getEntityId().isEmpty()) {
-            wrapper.eq(Report::getEntityId, query.getEntityId());
-        }
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
-            switch (query.getSortBy()) {
-                case "createdAt":
-                    wrapper.orderBy(true, isAsc, Report::getCreatedAt);
-                    break;
-                case "updatedAt":
-                    wrapper.orderBy(true, isAsc, Report::getUpdatedAt);
-                    break;
-                default:
-                    wrapper.orderByDesc(Report::getCreatedAt);
-            }
-        } else {
-            wrapper.orderByDesc(Report::getCreatedAt);
-        }
-
-        Page<Report> page = new Page<>(query.getPage(), query.getLimit());
-        Page<Report> result = reportMapper.selectPage(page, wrapper);
-
-        List<ReportVO> voList = result.getRecords().stream()
-                .map(this::toReportVO)
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
-    }
-
-    @Override
-    public ReportVO getReport(String id) {
-        Report report = reportMapper.selectById(id);
-        if (report == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND, "Report not found: " + id);
-        }
-        return toReportVO(report);
-    }
-
     // ==================== Appeal Operations ====================
 
     @Override
@@ -424,47 +264,7 @@ public class ModerationServiceImpl implements ModerationService {
         queueMapper.updateById(queueItem);
 
         log.info("Appeal created by user {} for queue item {}", appellantId, dto.getQueueId());
-        return toAppealVO(appeal);
-    }
-
-    @Override
-    public PageResult<AppealVO> getAppeals(QueryAppealsDTO query) {
-        LambdaQueryWrapper<Appeal> wrapper = new LambdaQueryWrapper<>();
-
-        if (query.getStatus() != null && !query.getStatus().isEmpty()) {
-            wrapper.eq(Appeal::getStatus, query.getStatus());
-        }
-        if (query.getQueueId() != null && !query.getQueueId().isEmpty()) {
-            wrapper.eq(Appeal::getQueueId, query.getQueueId());
-        }
-        if (query.getAppellantId() != null && !query.getAppellantId().isEmpty()) {
-            wrapper.eq(Appeal::getAppellantId, query.getAppellantId());
-        }
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
-            switch (query.getSortBy()) {
-                case "createdAt":
-                    wrapper.orderBy(true, isAsc, Appeal::getCreatedAt);
-                    break;
-                case "updatedAt":
-                    wrapper.orderBy(true, isAsc, Appeal::getUpdatedAt);
-                    break;
-                default:
-                    wrapper.orderByDesc(Appeal::getCreatedAt);
-            }
-        } else {
-            wrapper.orderByDesc(Appeal::getCreatedAt);
-        }
-
-        Page<Appeal> page = new Page<>(query.getPage(), query.getLimit());
-        Page<Appeal> result = appealMapper.selectPage(page, wrapper);
-
-        List<AppealVO> voList = result.getRecords().stream()
-                .map(this::toAppealVO)
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
+        return moderationProjection.toAppealVO(appeal);
     }
 
     @Override
@@ -485,28 +285,7 @@ public class ModerationServiceImpl implements ModerationService {
                     currentUserId, id, appeal.getAppellantId());
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
-        return toAppealVO(appeal);
-    }
-
-    @Override
-    public List<AppealVO> getMyAppeals(String appellantId) {
-        LambdaQueryWrapper<Appeal> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Appeal::getAppellantId, appellantId);
-        wrapper.orderByDesc(Appeal::getCreatedAt);
-        List<Appeal> appeals = appealMapper.selectList(wrapper);
-        return appeals.stream()
-                .map(this::toAppealVO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public AppealStatsVO getAppealStats() {
-        AppealStatsVO stats = new AppealStatsVO();
-        stats.setTotalPending(appealMapper.countByStatus("PENDING"));
-        stats.setTotalUnderReview(appealMapper.countByStatus("UNDER_REVIEW"));
-        stats.setTotalApproved(appealMapper.countByStatus("APPROVED"));
-        stats.setTotalRejected(appealMapper.countByStatus("REJECTED"));
-        return stats;
+        return moderationProjection.toAppealVO(appeal);
     }
 
     @Override
@@ -553,7 +332,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
 
         log.info("Appeal {} {} by moderator {}", id, decision, moderatorId);
-        return toAppealVO(appeal);
+        return moderationProjection.toAppealVO(appeal);
     }
 
     // ==================== Private Helper Methods ====================
@@ -641,120 +420,5 @@ public class ModerationServiceImpl implements ModerationService {
 
     private void updateReportsStatus(String queueId, String status) {
         reportMapper.updateStatusByQueueId(queueId, status);
-    }
-
-    private Map<String, User> buildUserMap(List<ModerationQueue> items) {
-        Set<String> userIds = new HashSet<>();
-        for (ModerationQueue item : items) {
-            if (item.getAuthorId() != null) userIds.add(item.getAuthorId());
-            if (item.getAssignedToId() != null) userIds.add(item.getAssignedToId());
-            if (item.getReviewedById() != null) userIds.add(item.getReviewedById());
-        }
-        if (userIds.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
-    }
-
-    private ModerationQueueVO toQueueVO(ModerationQueue item, Map<String, User> userMap) {
-        ModerationQueueVO vo = new ModerationQueueVO();
-        vo.setId(item.getId());
-        vo.setEntityType(item.getEntityType());
-        vo.setEntityId(item.getEntityId());
-        // 解析 parentId（对于 solution_comment 类型）
-        if ("solution_comment".equals(item.getEntityType())) {
-            SolutionComment comment = solutionCommentMapper.selectById(item.getEntityId());
-            if (comment != null) {
-                vo.setParentId(comment.getSolutionId());
-            }
-        }
-        vo.setAuthorId(item.getAuthorId());
-        vo.setPriority(item.getPriority());
-        vo.setStatus(item.getStatus());
-        vo.setReportCount(item.getReportCount());
-        vo.setPrimaryCategory(item.getPrimaryCategory());
-        vo.setAssignedToId(item.getAssignedToId());
-        vo.setAssignedAt(item.getAssignedAt());
-        vo.setReviewedById(item.getReviewedById());
-        vo.setReviewedAt(item.getReviewedAt());
-        vo.setResolution(item.getResolution());
-        vo.setResolutionNote(item.getResolutionNote());
-        vo.setCreatedAt(item.getCreatedAt());
-        vo.setUpdatedAt(item.getUpdatedAt());
-        vo.setResolvedAt(item.getResolvedAt());
-
-        User author = userMap.get(item.getAuthorId());
-        if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
-        }
-        User assignedTo = userMap.get(item.getAssignedToId());
-        if (assignedTo != null) {
-            vo.setAssignedToName(assignedTo.getName());
-            vo.setAssignedToUsername(assignedTo.getUsername());
-        }
-        User reviewedBy = userMap.get(item.getReviewedById());
-        if (reviewedBy != null) {
-            vo.setReviewedByName(reviewedBy.getName());
-        }
-
-        return vo;
-    }
-
-    private ReportVO toReportVO(Report report) {
-        ReportVO vo = new ReportVO();
-        vo.setId(report.getId());
-        vo.setReporterId(report.getReporterId());
-        vo.setEntityType(report.getEntityType());
-        vo.setEntityId(report.getEntityId());
-        vo.setCategory(report.getCategory());
-        vo.setReason(report.getReason());
-        vo.setEvidence(report.getEvidence());
-        vo.setStatus(report.getStatus());
-        vo.setQueueId(report.getQueueId());
-        vo.setCreatedAt(report.getCreatedAt());
-        vo.setUpdatedAt(report.getUpdatedAt());
-
-        if (report.getReporterId() != null) {
-            User reporter = userMapper.selectById(report.getReporterId());
-            if (reporter != null) {
-                vo.setReporterName(reporter.getName());
-                vo.setReporterUsername(reporter.getUsername());
-            }
-        }
-
-        return vo;
-    }
-
-    private AppealVO toAppealVO(Appeal appeal) {
-        AppealVO vo = new AppealVO();
-        vo.setId(appeal.getId());
-        vo.setQueueId(appeal.getQueueId());
-        vo.setAppellantId(appeal.getAppellantId());
-        vo.setReason(appeal.getReason());
-        vo.setEvidence(appeal.getEvidence());
-        vo.setStatus(appeal.getStatus());
-        vo.setReviewedById(appeal.getReviewedById());
-        vo.setReviewedAt(appeal.getReviewedAt());
-        vo.setResponse(appeal.getResponse());
-        vo.setCreatedAt(appeal.getCreatedAt());
-        vo.setUpdatedAt(appeal.getUpdatedAt());
-
-        if (appeal.getAppellantId() != null) {
-            User appellant = userMapper.selectById(appeal.getAppellantId());
-            if (appellant != null) {
-                vo.setAppellantName(appellant.getName());
-                vo.setAppellantUsername(appellant.getUsername());
-            }
-        }
-        if (appeal.getReviewedById() != null) {
-            User reviewedBy = userMapper.selectById(appeal.getReviewedById());
-            if (reviewedBy != null) {
-                vo.setReviewedByName(reviewedBy.getName());
-            }
-        }
-
-        return vo;
     }
 }

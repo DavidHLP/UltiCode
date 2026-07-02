@@ -1,48 +1,28 @@
 package com.ulticode.modules.moderation.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.moderation.dto.*;
-
-import java.util.List;
+import com.ulticode.modules.moderation.dto.AppealVO;
+import com.ulticode.modules.moderation.dto.BatchActionResultVO;
+import com.ulticode.modules.moderation.dto.BatchModerationActionDTO;
+import com.ulticode.modules.moderation.dto.CreateAppealDTO;
+import com.ulticode.modules.moderation.dto.CreateReportDTO;
+import com.ulticode.modules.moderation.dto.ModerationQueueVO;
+import com.ulticode.modules.moderation.dto.PerformModerationActionDTO;
+import com.ulticode.modules.moderation.dto.ReviewAppealDTO;
 
 /**
- * Service interface for moderation operations.
+ * Service interface for moderation <em>state-change</em> operations.
+ *
+ * <p>The read paths (queue list / detail / stats, report list / detail, appeal
+ * list / detail / stats) live on {@link com.ulticode.modules.moderation.projection.ModerationProjection};
+ * controllers depend on that seam directly for reads and on this service for
+ * writes and for the authorisation-guarded appeal lookup. This interface
+ * dropped ten pure-read methods when the projection module was extracted —
+ * they were earning no locality next to the write paths and forced every
+ * projection test to mock twelve collaborators.
  */
 public interface ModerationService {
 
     // ==================== Queue Operations ====================
-
-    /**
-     * Get paginated queue items.
-     *
-     * @param query the query parameters
-     * @return paginated queue items
-     */
-    PageResult<ModerationQueueVO> getQueueItems(QueryModerationQueueDTO query);
-
-    /**
-     * Get a specific queue item by ID.
-     *
-     * @param id the queue item ID
-     * @return the queue item
-     */
-    ModerationQueueVO getQueueItem(String id);
-
-    /**
-     * Get moderation statistics.
-     *
-     * @return the statistics
-     */
-    ModerationStatsVO getStats();
-
-    /**
-     * Find queue item by entity.
-     *
-     * @param entityType the entity type
-     * @param entityId   the entity ID
-     * @return the queue item or null
-     */
-    ModerationQueueVO findByEntity(String entityType, String entityId);
 
     /**
      * Claim a queue item for the current moderator.
@@ -101,31 +81,6 @@ public interface ModerationService {
      */
     void createReport(CreateReportDTO dto, String reporterId);
 
-    /**
-     * Get reports for a specific entity.
-     *
-     * @param entityType the entity type
-     * @param entityId   the entity ID
-     * @return list of reports
-     */
-    List<ReportVO> getReportsForEntity(String entityType, String entityId);
-
-    /**
-     * Get paginated reports.
-     *
-     * @param query the query parameters
-     * @return paginated reports
-     */
-    PageResult<ReportVO> getReports(QueryReportsDTO query);
-
-    /**
-     * Get a specific report by ID.
-     *
-     * @param id the report ID
-     * @return the report
-     */
-    ReportVO getReport(String id);
-
     // ==================== Appeal Operations ====================
 
     /**
@@ -136,14 +91,6 @@ public interface ModerationService {
      * @return the created appeal
      */
     AppealVO createAppeal(CreateAppealDTO dto, String appellantId);
-
-    /**
-     * Get paginated appeals.
-     *
-     * @param query the query parameters
-     * @return paginated appeals
-     */
-    PageResult<AppealVO> getAppeals(QueryAppealsDTO query);
 
     /**
      * Get a specific appeal by ID.
@@ -157,21 +104,6 @@ public interface ModerationService {
      * @throws com.ulticode.common.exception.BusinessException 404 if not found, 403 if not authorized
      */
     AppealVO getAppeal(String id, String currentUserId);
-
-    /**
-     * Get appeals for the current user.
-     *
-     * @param appellantId the appellant ID
-     * @return list of user's appeals
-     */
-    List<AppealVO> getMyAppeals(String appellantId);
-
-    /**
-     * Get appeal statistics.
-     *
-     * @return the appeal statistics
-     */
-    AppealStatsVO getAppealStats();
 
     /**
      * Review an appeal.

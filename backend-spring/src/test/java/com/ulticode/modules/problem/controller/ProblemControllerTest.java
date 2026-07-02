@@ -6,6 +6,7 @@ import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemVO;
+import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.security.AuthenticationEntryPointImpl;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
@@ -63,9 +64,13 @@ class ProblemControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // Service dependency
+    // Service dependency (state machine + premium-guarded read entry points)
     @MockBean
     private ProblemService problemService;
+
+    // Read-side projection dependency (list/detail/random/adjacent paths)
+    @MockBean
+    private ProblemProjection problemProjection;
 
     // SecurityConfig dependencies
     @MockBean
@@ -89,7 +94,7 @@ class ProblemControllerTest {
         @DisplayName("should return 200 with paginated result")
         void listProblems_success() throws Exception {
             PageResult<ProblemVO> pageResult = PageResult.of(List.of(), 0L, 1, 20);
-            when(problemService.listProblems(any())).thenReturn(pageResult);
+            when(problemProjection.listProblems(any())).thenReturn(pageResult);
 
             mockMvc.perform(get("/problems"))
                     .andExpect(status().isOk())
@@ -108,7 +113,7 @@ class ProblemControllerTest {
             problemVO.setDifficulty("EASY");
 
             PageResult<ProblemVO> pageResult = PageResult.of(List.of(problemVO), 1L, 1, 20);
-            when(problemService.listProblems(any())).thenReturn(pageResult);
+            when(problemProjection.listProblems(any())).thenReturn(pageResult);
 
             mockMvc.perform(get("/problems")
                             .param("page", "1")
@@ -136,7 +141,7 @@ class ProblemControllerTest {
             response.setSlug("two-sum");
             response.setDifficulty("EASY");
 
-            when(problemService.getProblemDetailResponse(1L)).thenReturn(response);
+            when(problemProjection.publicDetailById(1L)).thenReturn(response);
 
             mockMvc.perform(get("/problems/1"))
                     .andExpect(status().isOk())
@@ -159,7 +164,7 @@ class ProblemControllerTest {
             response.setTitle("Two Sum");
             response.setSlug("two-sum");
 
-            when(problemService.getProblemDetailResponseBySlug("two-sum")).thenReturn(response);
+            when(problemProjection.publicDetailBySlug("two-sum")).thenReturn(response);
 
             mockMvc.perform(get("/problems/slug/two-sum"))
                     .andExpect(status().isOk())

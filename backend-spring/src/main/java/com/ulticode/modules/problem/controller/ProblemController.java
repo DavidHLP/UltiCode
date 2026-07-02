@@ -9,6 +9,7 @@ import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
+import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProblemController {
 
     private final ProblemService problemService;
+    private final ProblemProjection problemProjection;
 
     /**
      * List problems with pagination and filters.
@@ -51,7 +53,7 @@ public class ProblemController {
     @ApiResponse(responseCode = "200", description = "Problems retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping
     public Result<PageResult<ProblemVO>> listProblems(@Validated @ModelAttribute ProblemQueryDTO query) {
-        PageResult<ProblemVO> result = problemService.listProblems(query);
+        PageResult<ProblemVO> result = problemProjection.listProblems(query);
         return Result.success(result);
     }
 
@@ -77,7 +79,7 @@ public class ProblemController {
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
-        ProblemDetailPublicVO problem = problemService.getProblemDetailResponse(problemId);
+        ProblemDetailPublicVO problem = problemProjection.publicDetailById(problemId);
         return Result.success(problem);
     }
 
@@ -95,7 +97,7 @@ public class ProblemController {
     public Result<ProblemDetailPublicVO> getProblemBySlug(
             @Parameter(description = "Problem slug")
             @PathVariable String slug) {
-        ProblemDetailPublicVO problem = problemService.getProblemDetailResponseBySlug(slug);
+        ProblemDetailPublicVO problem = problemProjection.publicDetailBySlug(slug);
         return Result.success(problem);
     }
 
@@ -113,7 +115,7 @@ public class ProblemController {
     public Result<AdjacentProblemsVO> getAdjacentProblems(
             @Parameter(description = "Current problem ID")
             @PathVariable Long id) {
-        AdjacentProblemsVO adjacent = problemService.getAdjacentProblems(id);
+        AdjacentProblemsVO adjacent = problemProjection.adjacentProblems(id);
         return Result.success(adjacent);
     }
 
@@ -128,7 +130,7 @@ public class ProblemController {
     @ApiResponse(responseCode = "404", description = "No published problems available")
     @GetMapping("/random")
     public Result<ProblemVO> getRandomProblem() {
-        return Result.success(problemService.findRandomPublished());
+        return Result.success(problemProjection.findRandomPublished());
     }
 
     /**

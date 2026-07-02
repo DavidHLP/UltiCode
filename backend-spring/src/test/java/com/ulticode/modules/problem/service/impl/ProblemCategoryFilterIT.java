@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Regression guard for the problem category filter emitted by
- * {@code ProblemServiceImpl.buildProblemQueryWrapper}.
+ * {@code DefaultProblemProjection.buildProblemQueryWrapper}.
  *
  * <p>Top-level categories (algorithms/database/shell/concurrency) are stored as
  * {@code problem_tags} rows with slug {@code 'problem-category-<value>'}. The
@@ -112,7 +112,7 @@ class ProblemCategoryFilterIT {
      * Replays the service's category filter SQL and returns the matched problem ids.
      */
     private List<Long> problemIdsForCategory(String category) throws Exception {
-        // Mirrors ProblemServiceImpl.buildProblemQueryWrapper category branch.
+        // Mirrors DefaultProblemProjection.buildProblemQueryWrapper category branch.
         String sql = "SELECT ptr.problem_id FROM problem_tag_relations ptr " +
                 "JOIN problem_tags pt ON ptr.tag_id = pt.id " +
                 "WHERE pt.slug = CONCAT('problem-category-', ?)";
@@ -133,7 +133,7 @@ class ProblemCategoryFilterIT {
      * Replays the service's fine-grained tag filter (label / slug / id OR-match).
      */
     private List<Long> problemIdsForTag(String tag) throws Exception {
-        // Mirrors ProblemServiceImpl.buildProblemQueryWrapper tag branch.
+        // Mirrors DefaultProblemProjection.buildProblemQueryWrapper tag branch.
         String sql = "SELECT ptr.problem_id FROM problem_tag_relations ptr " +
                 "LEFT JOIN problem_tags pt ON ptr.tag_id = pt.id " +
                 "WHERE pt.label = ? OR pt.slug = ? OR pt.id = ?";

@@ -19,6 +19,7 @@ import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
+import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.modules.submission.entity.Submission;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +43,7 @@ public class AdminProblemController {
     private static final int MAX_EXPORT_SIZE = 10000;
 
     private final ProblemService problemService;
+    private final ProblemProjection problemProjection;
     private final AdminProblemService adminProblemService;
     private final ObjectMapper objectMapper;
 
@@ -49,7 +51,7 @@ public class AdminProblemController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<ProblemVO>> getProblems(ProblemQueryDTO query) {
-        return Result.success(problemService.listProblems(query));
+        return Result.success(problemProjection.listProblems(query));
     }
 
     @Operation(summary = "Export problems", description = "Export problems as JSON or CSV file")
@@ -71,7 +73,7 @@ public class AdminProblemController {
         // Set response encoding first
         response.setCharacterEncoding("UTF-8");
 
-        List<ProblemVO> problems = problemService.listAllProblems(query);
+        List<ProblemVO> problems = problemProjection.listAllProblems(query);
 
         // Enforce export size limit to prevent memory issues
         if (problems.size() > MAX_EXPORT_SIZE) {

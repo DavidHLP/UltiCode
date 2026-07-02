@@ -52,11 +52,7 @@ class SubmissionServiceImplTest {
     @Mock private ProblemMapper problemMapper;
     @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock private QueueService queueService;
-    @Mock private com.ulticode.modules.websocket.service.RealtimeService realtimeService;
-    @Mock private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
-    @Mock private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
-    @Mock private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
-    @Mock private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
+    @Mock private com.ulticode.modules.submission.port.ContestSubmissionPort contestSubmissionPort;
     @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     @Mock private com.ulticode.modules.notification.service.NotificationService notificationService;
     @Mock private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
@@ -78,12 +74,17 @@ class SubmissionServiceImplTest {
         // dispatch service. Flags default to false → legacy path is active.
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
+        // Real stats module wired with the mocked SubmissionMapper so the
+        // existing percentile/bin assertions exercise the extracted math
+        // end-to-end (no behaviour change vs. pre-deepening).
+        com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
+                new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, objectMapper,
-                submissionProjection,
+                submissionProjection, performanceStats,
                 queueService,
-                realtimeService, contestProblemMapper, contestSubmissionMapper,
-                contestMapper, contestParticipantMapper, achievementTriggerService,
+                contestSubmissionPort,
+                achievementTriggerService,
                 notificationService, notificationDispatchService, notificationDispatcher,
                 null, flags, null, null);
         // Default projection stubs: the service delegates to SubmissionProjection

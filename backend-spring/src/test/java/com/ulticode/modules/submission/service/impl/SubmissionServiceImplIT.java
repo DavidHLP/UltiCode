@@ -75,13 +75,7 @@ class SubmissionServiceImplIT {
     @Mock
     private QueueService queueService;
     @Mock
-    private com.ulticode.modules.websocket.service.RealtimeService realtimeService;
-    @Mock
-    private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
-    @Mock
-    private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
-    @Mock
-    private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
+    private com.ulticode.modules.submission.port.ContestSubmissionPort contestSubmissionPort;
     @Mock
     private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     @Mock
@@ -90,8 +84,6 @@ class SubmissionServiceImplIT {
     private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
     @Mock
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
-    @Mock
-    private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
     @Mock
     private SubmissionProjection submissionProjection;
 
@@ -258,11 +250,12 @@ class SubmissionServiceImplIT {
         // to the pre-fence behavior). meterRegistry null = metrics no-op.
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
+        com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
+                new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, objectMapper,
-                submissionProjection,
-                queueService, realtimeService,
-                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
+                submissionProjection, performanceStats,
+                queueService, contestSubmissionPort,
                 achievementTriggerService, notificationService, notificationDispatchService,
                 notificationDispatcher,
                 null, flags, null, null);

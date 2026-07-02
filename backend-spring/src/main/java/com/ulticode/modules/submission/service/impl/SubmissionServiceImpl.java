@@ -18,28 +18,18 @@ import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
-import com.ulticode.modules.submission.dto.UserBestStats;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.ContestSubmissionPort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.common.config.FeatureFlagsProperties;
-import com.ulticode.modules.websocket.service.RealtimeService;
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestParticipant;
-import com.ulticode.modules.contest.entity.ContestProblem;
-import com.ulticode.modules.contest.entity.ContestSubmission;
-import com.ulticode.modules.contest.entity.enums.ContestStatus;
-import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
@@ -54,14 +44,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -78,12 +64,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final ProblemMapper problemMapper;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final SubmissionProjection submissionProjection;
+    private final SubmissionPerformanceStats performanceStats;
     private final QueueService queueService;
-    private final RealtimeService realtimeService;
-    private final ContestProblemMapper contestProblemMapper;
-    private final ContestSubmissionMapper contestSubmissionMapper;
-    private final ContestMapper contestMapper;
-    private final ContestParticipantMapper contestParticipantMapper;
+    private final ContestSubmissionPort contestSubmissionPort;
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
@@ -123,13 +106,6 @@ public class SubmissionServiceImpl implements SubmissionService {
     private static final List<String> SUPPORTED_LANGUAGES = List.of(
             "javascript", "python", "java", "c", "cpp"
     );
-
-    /**
-     * Number of buckets used when the distinct-value count exceeds the
-     * exact-mode threshold (see {@link #buildDistributionBins}). 12 is the
-     * chosen "small but readable" default for runtime/memory histograms.
-     */
-    private static final int DEFAULT_DISTRIBUTION_BIN_COUNT = 12;
 
     @Override
     @Transactional
@@ -205,7 +181,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         // --- Contest submission recording (D-04, D-05, D-06) ---
         try {
-            recordContestSubmissionIfNeeded(submission.getId(), userId, createDTO.getProblemId());
+            contestSubmissionPort.recordSubmissionIfNeeded(submission.getId(), userId, createDTO.getProblemId());
         } catch (Exception e) {
             log.warn("Failed to record contest submission for submission {}", submission.getId(), e);
             // Don't fail the main submission -- contest recording is supplementary
@@ -252,7 +228,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         PerformanceStats stats = PerformanceStats.EMPTY;
         if ("Accepted".equals(submission.getStatus())) {
-            stats = computePerformanceStats(submission,
+            stats = performanceStats.compute(submission,
                     submission.getRuntime() != null ? submission.getRuntime() : 0,
                     submission.getMemory());
         }
@@ -325,7 +301,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submission.setMemory(memory);
         submission.setTestDetails(testDetails);
         if ("Accepted".equals(status)) {
-            PerformanceStats stats = computePerformanceStats(submission, runtime, memory);
+            PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
         }
         submissionMapper.updateById(submission);
@@ -337,9 +313,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             // R6.3 / F-08: skip achievement triggers for virtual-contest
             // submissions. Virtual replays are not part of the user's
             // earned-achievements history.
-            boolean isVirtual = contestParticipantMapper
-                    .findIsVirtualBySubmissionId(submissionId)
-                    .orElse(false);
+            boolean isVirtual = contestSubmissionPort.isVirtualParticipation(submissionId);
             if (isVirtual) {
                 log.info("R6.3 / F-08: skipping achievement triggers for virtual submission {}", submissionId);
             } else {
@@ -460,7 +434,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * had a window where an admin rejudge could bump the generation between the
      * CAS and the {@code updateById}; the unfenced update would then write the
      * stale Accepted status + old generation back over the rejudge, defeating
-     * the fence exactly when {@code computePerformanceStats} is slow. Computing
+     * the fence exactly when {@code performanceStats.compute} is slow. Computing
      * the stats BEFORE the CAS and persisting them in the CAS eliminates the
      * second write entirely — all six data columns land (or are rejected)
      * atomically behind the fence.
@@ -492,7 +466,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         // F4: compute performance stats BEFORE the CAS and persist them in the
         // same fenced write. We read the row pre-CAS to get the problemId /
-        // language / userId needed by computePerformanceStats (these columns are
+        // language / userId needed by performanceStats.compute (these columns are
         // not fenced — only status/runtime/memory/test_details/percentile/lease
         // are — so reading them now is safe even though the generation may move
         // between this read and the CAS). For non-Accepted verdicts we pass
@@ -505,7 +479,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         if ("Accepted".equals(status)) {
             Submission pre = submissionMapper.selectById(submissionId);
             if (pre != null) {
-                PerformanceStats stats = computePerformanceStats(pre, runtime, memory);
+                PerformanceStats stats = performanceStats.compute(pre, runtime, memory);
                 runtimePercentile = stats.runtimePercentile();
                 memoryPercentile = stats.memoryPercentile();
                 runtimeDistBinsJson = serializeBins(stats.runtimeDistBinsMs());
@@ -597,7 +571,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * path computes the stats BEFORE the verdict CAS and folds them into
      * {@link SubmissionMapper#writeVerdictFencedWithStats} so all six data
      * columns land atomically behind the generation+attempt fence. The previous
-     * {@code computePerformanceStats} + {@code submissionMapper.updateById}
+     * {@code performanceStats.compute} + {@code submissionMapper.updateById}
      * here was an <b>unfenced</b> write that could clobber a concurrent rejudge
      * bump happening between the verdict CAS and this side-effect step. The
      * legacy {@link #updateSubmissionResult} path keeps its own (unfenced, by
@@ -668,54 +642,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
-    private PerformanceStats computePerformanceStats(Submission current, int runtime, Double memory) {
-        // Per-user best stats aggregated in SQL. Bounded by distinct-user
-        // count, not by total accepted submissions (see SubmissionMapper
-        // #findBestStatsByProblemAndLanguage).
-        List<UserBestStats> peerBest = submissionMapper.findBestStatsByProblemAndLanguage(
-                current.getProblemId(), current.getLanguage());
-        if (peerBest == null) {
-            peerBest = List.of();
-        }
-
-        List<Double> peerRuntimes = new ArrayList<>();
-        List<Double> peerMemories = new ArrayList<>();
-        for (UserBestStats stats : peerBest) {
-            // Skip the current user — "better than X% of OTHER users" is
-            // the intended comparison axis, matching the previous in-memory
-            // implementation.
-            if (Objects.equals(stats.userId(), current.getUserId())) {
-                continue;
-            }
-            if (stats.bestRuntimeMs() != null && stats.bestRuntimeMs() >= 0) {
-                peerRuntimes.add(stats.bestRuntimeMs().doubleValue());
-            }
-            if (stats.bestMemoryMb() != null && stats.bestMemoryMb() >= 0) {
-                peerMemories.add(stats.bestMemoryMb());
-            }
-        }
-
-        Double runtimePercentile = null;
-        List<Map<String, Number>> runtimeBins = List.of();
-        if (runtime >= 0) {
-            List<Double> runtimes = new ArrayList<>(peerRuntimes);
-            runtimes.add((double) runtime);
-            runtimePercentile = calculateBetterThanPercentile(runtimes, runtime);
-            runtimeBins = buildDistributionBins(runtimes);
-        }
-
-        Double memoryPercentile = null;
-        List<Map<String, Number>> memoryBins = List.of();
-        if (memory != null && memory >= 0) {
-            List<Double> memories = new ArrayList<>(peerMemories);
-            memories.add(memory);
-            memoryPercentile = calculateBetterThanPercentile(memories, memory);
-            memoryBins = buildDistributionBins(memories);
-        }
-
-        return new PerformanceStats(runtimePercentile, runtimeBins, memoryPercentile, memoryBins);
-    }
-
     /**
      * Apply a {@link PerformanceStats} snapshot to the entity so that the
      * next {@code submissionMapper.updateById} persists the percentile and
@@ -733,72 +659,6 @@ public class SubmissionServiceImpl implements SubmissionService {
         entity.setRuntimeDistBinsMs(stats.runtimeDistBinsMs());
         entity.setMemoryPercentile(stats.memoryPercentile());
         entity.setMemoryDistBinsMb(stats.memoryDistBinsMb());
-    }
-
-    private double calculateBetterThanPercentile(List<Double> values, double currentValue) {
-        if (values.isEmpty()) {
-            return 0.0;
-        }
-        long slowerCount = values.stream()
-                .filter(value -> value > currentValue)
-                .count();
-        return Math.round((slowerCount * 1000.0) / values.size()) / 10.0;
-    }
-
-    private List<Map<String, Number>> buildDistributionBins(List<Double> values) {
-        if (values.isEmpty()) {
-            return List.of();
-        }
-
-        Map<Double, Long> exactCounts = values.stream()
-                .filter(Objects::nonNull)
-                .sorted()
-                .collect(
-                        LinkedHashMap::new,
-                        (counts, value) -> counts.merge(value, 1L, Long::sum),
-                        LinkedHashMap::putAll);
-
-        if (exactCounts.size() <= DEFAULT_DISTRIBUTION_BIN_COUNT) {
-            return exactCounts.entrySet().stream()
-                    .map(entry -> Map.<String, Number>of(
-                            "bin", formatDistributionBin(entry.getKey()),
-                            "count", entry.getValue()))
-                    .toList();
-        }
-
-        double min = values.stream().min(Comparator.naturalOrder()).orElse(0.0);
-        double max = values.stream().max(Comparator.naturalOrder()).orElse(min);
-        if (Double.compare(min, max) == 0) {
-            return List.of(Map.<String, Number>of(
-                    "bin", formatDistributionBin(min),
-                    "count", values.size()));
-        }
-
-        int bucketCount = DEFAULT_DISTRIBUTION_BIN_COUNT;
-        double bucketSize = (max - min) / bucketCount;
-        long[] counts = new long[bucketCount];
-        for (Double value : values) {
-            int index = (int) Math.floor((value - min) / bucketSize);
-            counts[Math.min(index, bucketCount - 1)]++;
-        }
-
-        List<Map<String, Number>> bins = new ArrayList<>();
-        for (int i = 0; i < bucketCount; i++) {
-            bins.add(Map.<String, Number>of(
-                    "bin", formatDistributionBin(min + (bucketSize * i)),
-                    "count", counts[i]));
-        }
-        return bins;
-    }
-
-    /**
-     * Round a bin label to one decimal place. Always returns a
-     * {@code double} so JSON consumers (frontend) see a single stable type
-     * for the {@code bin} field regardless of whether the underlying
-     * value happens to be an integer.
-     */
-    private double formatDistributionBin(double value) {
-        return Math.round(value * 10.0) / 10.0;
     }
 
     @Override
@@ -951,57 +811,4 @@ public class SubmissionServiceImpl implements SubmissionService {
         return statuses;
     }
 
-    /**
-     * Record contest submission if user is participating in an active contest containing this problem.
-     * Per D-04: creates ContestSubmission alongside regular Submission in same transaction.
-     * Per D-06: only records if user has STARTED status (matches DB enum).
-     */
-    private void recordContestSubmissionIfNeeded(String submissionId, String userId, Long problemId) {
-        // 1. Find contest_problems containing this problem
-        List<ContestProblem> contestProblems = contestProblemMapper.findByProblemId(problemId);
-
-        for (ContestProblem cp : contestProblems) {
-            // 2. Check if contest is RUNNING
-            Contest contest = contestMapper.selectById(cp.getContestId());
-            if (contest == null || !ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-                continue;
-            }
-
-            // 3. Check if user has STARTED status (D-06 -- matches DB enum 'STARTED')
-            Optional<ContestParticipant> participant = contestParticipantMapper
-                    .findByContestIdAndUserId(cp.getContestId(), userId);
-            if (participant.isEmpty() ||
-                    !ContestParticipantStatus.STARTED.name().equals(participant.get().getStatus())) {
-                continue;
-            }
-
-            // 4. Create ContestSubmission (D-05)
-            ContestSubmission cs = new ContestSubmission();
-            cs.setSubmissionId(submissionId);
-            cs.setContestId(cp.getContestId());
-            cs.setContestProblemId(cp.getId());
-            cs.setParticipantId(participant.get().getId());
-            // R6.2 / F-06: pick the right clock per participant type. Real
-            // contests use actualStartTime (fallback to startTime if admin
-            // never triggered the scheduler transition); virtual sessions
-            // use the participant's own startedAt — contest.startTime is
-            // irrelevant for replays and would yield nonsense offsets.
-            ContestParticipant p = participant.get();
-            LocalDateTime contestClock = contest.getActualStartTime() != null
-                    ? contest.getActualStartTime()
-                    : contest.getStartTime();
-            LocalDateTime virtualClock = p.getStartedAt();
-            LocalDateTime clock = Boolean.TRUE.equals(p.getIsVirtual()) ? virtualClock : contestClock;
-            if (clock != null) {
-                cs.setTimeFromStart((int) Duration.between(clock, LocalDateTime.now()).getSeconds());
-            }
-            cs.setIsAccepted(false); // Will be updated when judge completes
-            cs.setSubmittedAt(LocalDateTime.now());
-            contestSubmissionMapper.insert(cs);
-            realtimeService.markDirty(contest.getId());
-
-            // Only record for the first matching active contest
-            break;
-        }
-    }
 }

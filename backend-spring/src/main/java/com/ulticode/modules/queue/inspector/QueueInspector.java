@@ -1,0 +1,58 @@
+package com.ulticode.modules.queue.inspector;
+
+import com.ulticode.modules.queue.dto.JobStatusDTO;
+import com.ulticode.modules.queue.dto.QueueStatsDTO;
+
+/**
+ * Read-only inspection deep module for queue state.
+ *
+ * <p>Owns every pure-read path that asks the queue subsystem about
+ * the world: job status look-up, queue size, queue statistics. The
+ * interface is intentionally small so {@link com.ulticode.modules.queue.service.QueueService}
+ * can keep its write-path contract (enqueue, cancel, retry, clear,
+ * update, poll-with-side-effect) without dragging read concerns along.
+ *
+ * <p>Deliberately side-effect free: every method here returns a
+ * snapshot and does not mutate Redis state. Write-with-side-effect
+ * paths (e.g. {@code pollJob} which transitions a job to
+ * {@code PROCESSING}) stay on {@code QueueService}.
+ *
+ * <p>Test surface: a unit test for this module mocks a
+ * {@link org.springframework.data.redis.core.RedisTemplate} and the
+ * three {@link org.redisson.api.RQueue} beans, with no need to
+ * stub any write-path collaborators.
+ */
+public interface QueueInspector {
+
+    /**
+     * Get the status of a job.
+     *
+     * @param jobId the job ID
+     * @return the job status
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@code QUEUE_JOB_NOT_FOUND} when the job is unknown
+     *         or the stored payload is not a {@code JobStatusDTO}
+     */
+    JobStatusDTO getJobStatus(String jobId);
+
+    /**
+     * Get statistics for a queue.
+     *
+     * @param queueName the queue name (must match a known constant in
+     *                  {@code QueueConstants})
+     * @return the queue statistics
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@code QUEUE_NOT_FOUND} when the queue name is unknown
+     */
+    QueueStatsDTO getQueueStats(String queueName);
+
+    /**
+     * Get the number of jobs waiting in a queue.
+     *
+     * @param queueName the queue name
+     * @return the number of waiting jobs
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@code QUEUE_NOT_FOUND} when the queue name is unknown
+     */
+    long getQueueSize(String queueName);
+}

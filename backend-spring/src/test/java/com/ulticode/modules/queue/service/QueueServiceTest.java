@@ -8,7 +8,7 @@ import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobRequestDTO;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
-import com.ulticode.modules.queue.dto.QueueStatsDTO;
+import com.ulticode.modules.queue.inspector.QueueInspector;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.service.impl.QueueServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +55,9 @@ class QueueServiceTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private RedisTemplate<String, Object> jobStatusRedisTemplate;
 
+    @Mock
+    private QueueInspector queueInspector;
+
     @Spy
     private QueueConfig queueConfig = new QueueConfig();
 
@@ -73,6 +76,7 @@ class QueueServiceTest {
         ReflectionTestUtils.setField(queueService, "judgeQueue", judgeQueue);
         ReflectionTestUtils.setField(queueService, "emailQueue", emailQueue);
         ReflectionTestUtils.setField(queueService, "notificationQueue", notificationQueue);
+        ReflectionTestUtils.setField(queueService, "queueInspector", queueInspector);
         ReflectionTestUtils.setField(queueConfig, "enableStatusTracking", true);
         ReflectionTestUtils.setField(queueConfig, "jobStatusTtlSeconds", 86400L);
     }
@@ -318,72 +322,6 @@ class QueueServiceTest {
     }
 
     @Nested
-    @DisplayName("getJobStatus Tests")
-    class GetJobStatusTests {
-
-        @Test
-        @DisplayName("should return job status when found")
-        void shouldReturnJobStatusWhenFound() {
-            // Arrange
-            JobStatusDTO status = JobStatusDTO.builder()
-                    .jobId(JOB_ID)
-                    .status(QueueConstants.JobStatus.PENDING)
-                    .payload(Map.of("testKey", "testValue"))
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            when(jobStatusRedisTemplate.opsForValue().get(QueueConstants.JOB_STATUS_PREFIX + JOB_ID)).thenReturn(status);
-
-            // Act
-            JobStatusDTO result = queueService.getJobStatus(JOB_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(JOB_ID, result.getJobId());
-        }
-
-        @Test
-        @DisplayName("should throw exception when job not found")
-        void shouldThrowExceptionWhenJobNotFound() {
-            // Arrange
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
-
-            // Act & Assert
-            BusinessException exception = assertThrows(BusinessException.class,
-                    () -> queueService.getJobStatus(JOB_ID));
-            assertEquals(ErrorCode.QUEUE_JOB_NOT_FOUND, exception.getErrorCode());
-        }
-    }
-
-    @Nested
-    @DisplayName("getQueueStats Tests")
-    class GetQueueStatsTests {
-
-        @Test
-        @DisplayName("should return queue stats")
-        void shouldReturnQueueStats() {
-            // Arrange
-            when(judgeQueue.size()).thenReturn(5);
-
-            // Act
-            QueueStatsDTO stats = queueService.getQueueStats(QueueConstants.JUDGE_QUEUE);
-
-            // Assert
-            assertNotNull(stats);
-            assertEquals(QueueConstants.JUDGE_QUEUE, stats.getQueueName());
-            assertEquals(5, stats.getWaitingCount());
-        }
-
-        @Test
-        @DisplayName("should throw exception for unknown queue")
-        void shouldThrowExceptionForUnknownQueue() {
-            // Act & Assert
-            BusinessException exception = assertThrows(BusinessException.class,
-                    () -> queueService.getQueueStats("unknown_queue"));
-            assertEquals(ErrorCode.QUEUE_NOT_FOUND, exception.getErrorCode());
-        }
-    }
-
-    @Nested
     @DisplayName("cancelJob Tests")
     class CancelJobTests {
 
@@ -396,7 +334,7 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
+            when(queueInspector.getJobStatus(anyString())).thenReturn(status);
 
             // Act
             queueService.cancelJob(JOB_ID);
@@ -409,7 +347,8 @@ class QueueServiceTest {
         @DisplayName("should throw exception when job not found")
         void shouldThrowExceptionWhenJobNotFound() {
             // Arrange
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
+            when(queueInspector.getJobStatus(anyString()))
+                    .thenThrow(new BusinessException(ErrorCode.QUEUE_JOB_NOT_FOUND, "Job not found: " + JOB_ID));
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -426,7 +365,7 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PROCESSING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
+            when(queueInspector.getJobStatus(anyString())).thenReturn(status);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -443,7 +382,8 @@ class QueueServiceTest {
         @DisplayName("should throw exception when job not found")
         void shouldThrowExceptionWhenJobNotFound() {
             // Arrange
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(null);
+            when(queueInspector.getJobStatus(anyString()))
+                    .thenThrow(new BusinessException(ErrorCode.QUEUE_JOB_NOT_FOUND, "Job not found: " + JOB_ID));
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -461,7 +401,7 @@ class QueueServiceTest {
                     .queueName(QueueConstants.JUDGE_QUEUE)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
+            when(queueInspector.getJobStatus(anyString())).thenReturn(status);
 
             // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
@@ -496,7 +436,7 @@ class QueueServiceTest {
                     .submissionId(SUBMISSION_ID)
                     .build();
             when(judgeQueue.poll()).thenReturn(job);
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(
+            when(queueInspector.getJobStatus(anyString())).thenReturn(
                     JobStatusDTO.builder()
                             .jobId(JOB_ID)
                             .status(QueueConstants.JobStatus.PENDING)
@@ -559,7 +499,7 @@ class QueueServiceTest {
                     .status(QueueConstants.JobStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
+            when(queueInspector.getJobStatus(anyString())).thenReturn(status);
 
             // Act
             queueService.updateJobStatus(JOB_ID, QueueConstants.JobStatus.PROCESSING.name(), null);
@@ -578,7 +518,7 @@ class QueueServiceTest {
                     .startedAt(LocalDateTime.now().minusMinutes(1))
                     .createdAt(LocalDateTime.now().minusMinutes(2))
                     .build();
-            when(jobStatusRedisTemplate.opsForValue().get(anyString())).thenReturn(status);
+            when(queueInspector.getJobStatus(anyString())).thenReturn(status);
 
             // Act
             queueService.updateJobStatus(JOB_ID, QueueConstants.JobStatus.COMPLETED.name(), null);
@@ -587,31 +527,5 @@ class QueueServiceTest {
             verify(jobStatusRedisTemplate.opsForValue()).set(anyString(), any(JobStatusDTO.class), anyLong(), any(TimeUnit.class));
         }
     }
-
-    @Nested
-    @DisplayName("getQueueSize Tests")
-    class GetQueueSizeTests {
-
-        @Test
-        @DisplayName("should return queue size")
-        void shouldReturnQueueSize() {
-            // Arrange
-            when(judgeQueue.size()).thenReturn(10);
-
-            // Act
-            long size = queueService.getQueueSize(QueueConstants.JUDGE_QUEUE);
-
-            // Assert
-            assertEquals(10, size);
-        }
-
-        @Test
-        @DisplayName("should throw exception for unknown queue")
-        void shouldThrowExceptionForUnknownQueue() {
-            // Act & Assert
-            BusinessException exception = assertThrows(BusinessException.class,
-                    () -> queueService.getQueueSize("unknown_queue"));
-            assertEquals(ErrorCode.QUEUE_NOT_FOUND, exception.getErrorCode());
-        }
-    }
 }
+

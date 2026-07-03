@@ -7,7 +7,7 @@ import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobRequestDTO;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
-import com.ulticode.modules.queue.dto.QueueStatsDTO;
+import com.ulticode.modules.queue.inspector.QueueInspector;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.service.QueueService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Implementation of QueueService using Redisson queues.
+ * Implementation of QueueService using Redisson queues. Owns the
+ * write-path contract: enqueue, cancel, retry, clear, update-status,
+ * and poll-with-side-effect (which transitions a job to
+ * {@code PROCESSING}). Pure read paths
+ * ({@code getJobStatus}, {@code getQueueStats}, {@code getQueueSize})
+ * delegate to {@link QueueInspector}; this class injects that
+ * module for its own internal status reads.
  */
 @Slf4j
 @Service
@@ -34,6 +40,7 @@ public class QueueServiceImpl implements QueueService {
     private final RQueue<Object> notificationQueue;
     private final RedisTemplate<String, Object> jobStatusRedisTemplate;
     private final QueueConfig queueConfig;
+    private final QueueInspector queueInspector;
 
     @Override
     public String enqueueJudgeJob(String submissionId, String problemId, String userId,
@@ -131,37 +138,8 @@ public class QueueServiceImpl implements QueueService {
     }
 
     @Override
-    public JobStatusDTO getJobStatus(String jobId) {
-        String key = QueueConstants.JOB_STATUS_PREFIX + jobId;
-        Object status = jobStatusRedisTemplate.opsForValue().get(key);
-
-        if (status == null) {
-            throw new BusinessException(ErrorCode.QUEUE_JOB_NOT_FOUND,
-                    "Job not found: " + jobId);
-        }
-
-        if (status instanceof JobStatusDTO) {
-            return (JobStatusDTO) status;
-        }
-
-        throw new BusinessException(ErrorCode.QUEUE_JOB_NOT_FOUND,
-                "Invalid job status data for: " + jobId);
-    }
-
-    @Override
-    public QueueStatsDTO getQueueStats(String queueName) {
-        RQueue<Object> queue = getQueue(queueName);
-
-        return QueueStatsDTO.builder()
-                .queueName(queueName)
-                .waitingCount(queue.size())
-                .paused(false)
-                .build();
-    }
-
-    @Override
     public void cancelJob(String jobId) {
-        JobStatusDTO status = getJobStatus(jobId);
+        JobStatusDTO status = queueInspector.getJobStatus(jobId);
 
         if (status.getStatus() == QueueConstants.JobStatus.PROCESSING) {
             throw new BusinessException(ErrorCode.QUEUE_OPERATION_FAILED,
@@ -177,7 +155,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     public String retryJob(String jobId) {
-        JobStatusDTO status = getJobStatus(jobId);
+        JobStatusDTO status = queueInspector.getJobStatus(jobId);
 
         if (status.getStatus() != QueueConstants.JobStatus.FAILED) {
             throw new BusinessException(ErrorCode.QUEUE_OPERATION_FAILED,
@@ -221,7 +199,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     public void updateJobStatus(String jobId, String status, String error) {
-        JobStatusDTO jobStatus = getJobStatus(jobId);
+        JobStatusDTO jobStatus = queueInspector.getJobStatus(jobId);
 
         QueueConstants.JobStatus newStatus = QueueConstants.JobStatus.valueOf(status);
         jobStatus.setStatus(newStatus);
@@ -245,12 +223,6 @@ public class QueueServiceImpl implements QueueService {
 
         saveJobStatus(jobId, jobStatus);
         log.debug("Updated job {} status to {}", jobId, status);
-    }
-
-    @Override
-    public long getQueueSize(String queueName) {
-        RQueue<Object> queue = getQueue(queueName);
-        return queue.size();
     }
 
     /**

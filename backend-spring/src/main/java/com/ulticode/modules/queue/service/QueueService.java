@@ -1,13 +1,15 @@
 package com.ulticode.modules.queue.service;
 
 import com.ulticode.modules.queue.dto.JobRequestDTO;
-import com.ulticode.modules.queue.dto.JobStatusDTO;
-import com.ulticode.modules.queue.dto.QueueStatsDTO;
 import com.ulticode.modules.queue.job.JudgeJob;
 
 /**
  * Service interface for queue operations.
- * Provides methods for enqueuing jobs, checking status, and managing queues.
+ * Provides methods for enqueuing jobs, managing job lifecycle, and
+ * poll-with-side-effect. Read-only inspection (job status look-up,
+ * queue size, queue statistics) lives on
+ * {@link com.ulticode.modules.queue.inspector.QueueInspector} —
+ * keeping the write-path contract here uncluttered.
  */
 public interface QueueService {
 
@@ -40,22 +42,6 @@ public interface QueueService {
      * @return the job ID
      */
     String enqueueJob(String queueName, JobRequestDTO request);
-
-    /**
-     * Get the status of a job.
-     *
-     * @param jobId the job ID
-     * @return the job status, or null if not found
-     */
-    JobStatusDTO getJobStatus(String jobId);
-
-    /**
-     * Get statistics for a queue.
-     *
-     * @param queueName the queue name
-     * @return the queue statistics
-     */
-    QueueStatsDTO getQueueStats(String queueName);
 
     /**
      * Cancel a job.
@@ -95,12 +81,4 @@ public interface QueueService {
      * @param error  the error message (if failed)
      */
     void updateJobStatus(String jobId, String status, String error);
-
-    /**
-     * Get the number of jobs waiting in a queue.
-     *
-     * @param queueName the queue name
-     * @return the number of waiting jobs
-     */
-    long getQueueSize(String queueName);
 }

@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
@@ -55,6 +56,9 @@ class ContestPublicControllerTest {
     private ContestService contestService;
 
     @MockBean
+    private ContestProjection contestProjection;
+
+    @MockBean
     private RankingService rankingService;
 
     @MockBean
@@ -80,11 +84,11 @@ class ContestPublicControllerTest {
         @DisplayName("GET should route to the current user's contest problem submissions")
         void getContestProblemSubmissions_routes() throws Exception {
             Contest contest = contest();
-            when(contestService.findById("ulticode-weekly-42")).thenReturn(Optional.empty());
-            when(contestService.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
-            when(contestService.getContestProblemSubmissions("contest-running-001", 1L, "user-1"))
+            when(contestProjection.findById("ulticode-weekly-42")).thenReturn(Optional.empty());
+            when(contestProjection.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
+            when(contestProjection.getContestProblemSubmissions("contest-running-001", 1L, "user-1"))
                     .thenReturn(List.of());
-            when(contestService.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
+            when(contestProjection.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
 
             mockMvc.perform(get("/contest/ulticode-weekly-42/problems/1/submissions"))
                     .andExpect(status().isOk())
@@ -107,9 +111,9 @@ class ContestPublicControllerTest {
             submission.setProblemId(1L);
             submission.setStatus("Pending");
 
-            when(contestService.findById("ulticode-weekly-42")).thenReturn(Optional.empty());
-            when(contestService.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
-            when(contestService.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
+            when(contestProjection.findById("ulticode-weekly-42")).thenReturn(Optional.empty());
+            when(contestProjection.findBySlug("ulticode-weekly-42")).thenReturn(Optional.of(contest));
+            when(contestProjection.resolveContestProblemId("contest-running-001", "1")).thenReturn(1L);
             when(contestService.submitContestProblem(eq("contest-running-001"), eq(1L), eq("user-1"), any(CreateSubmissionDTO.class)))
                     .thenReturn(submission);
 

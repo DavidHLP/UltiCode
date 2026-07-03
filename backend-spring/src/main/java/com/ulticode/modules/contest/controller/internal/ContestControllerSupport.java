@@ -4,7 +4,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.contest.projection.ContestProjection;
 
 /**
  * Shared package-private helpers for the contest controller family.
@@ -23,14 +23,18 @@ public final class ContestControllerSupport {
     /**
      * Resolve a contest ID or slug to the actual database contest ID.
      * Throws 404 when neither id nor slug matches (no silent fallback).
+     *
+     * @param contestProjection the contest read-side projection (owns entity accessors)
+     * @param idOrSlug          the raw path variable (contest id or slug)
+     * @return the resolved database contest id
      */
-    public static String resolveContestId(ContestService contestService, String idOrSlug) {
+    public static String resolveContestId(ContestProjection contestProjection, String idOrSlug) {
         if (idOrSlug == null) {
             return null;
         }
-        return contestService.findById(idOrSlug)
+        return contestProjection.findById(idOrSlug)
                 .map(Contest::getId)
-                .or(() -> contestService.findBySlug(idOrSlug).map(Contest::getId))
+                .or(() -> contestProjection.findBySlug(idOrSlug).map(Contest::getId))
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.CONTEST_NOT_FOUND,
                         "Contest not found by id or slug: " + idOrSlug));

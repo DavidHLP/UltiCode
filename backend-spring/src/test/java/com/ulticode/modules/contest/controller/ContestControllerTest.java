@@ -6,6 +6,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.security.jwt.JwtTokenProvider;
@@ -56,6 +57,9 @@ class ContestControllerTest {
 
     @MockBean
     private ContestService contestService;
+
+    @MockBean
+    private ContestProjection contestProjection;
 
     @MockBean
     private RankingService rankingService;

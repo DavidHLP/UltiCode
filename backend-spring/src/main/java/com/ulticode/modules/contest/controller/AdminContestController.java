@@ -7,6 +7,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminContestController {
 
     private final ContestService contestService;
+    private final ContestProjection contestProjection;
 
     @Operation(summary = "List all contests (admin)", description = "Get all contests including drafts and invisible ones")
     @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
@@ -52,7 +54,7 @@ public class AdminContestController {
         query.setDirection(direction);
 
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(contestService.findAllAdmin(query, userId));
+        return Result.success(contestProjection.findAllAdmin(query, userId));
     }
 
     @Operation(summary = "Get contest details (admin)", description = "Get contest details by ID")
@@ -64,7 +66,7 @@ public class AdminContestController {
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(contestService.getContestById(id, userId));
+        return Result.success(contestProjection.getContestById(id, userId));
     }
 
     @Operation(summary = "Create contest", description = "Create a new contest")
@@ -145,7 +147,7 @@ public class AdminContestController {
             @Parameter(description = "Page number (1-based)") @RequestParam(required = false, defaultValue = "1") Integer page,
             @Parameter(description = "Number of items per page") @RequestParam(required = false, defaultValue = "50") Integer limit) {
 
-        return Result.success(contestService.getAdminContestRanking(id, page, limit));
+        return Result.success(contestProjection.getAdminContestRanking(id, page, limit));
     }
 
     @Operation(summary = "Start contest", description = "Transition a contest from DRAFT/UPCOMING to RUNNING")

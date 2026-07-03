@@ -10,7 +10,7 @@ import com.ulticode.modules.contest.dto.ContestQueryDTO;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.GlobalContestStatsVO;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,6 +31,9 @@ import java.util.List;
  * by-id, problems, announcements. The deep module is intentionally
  * public — it does not require auth, but uses the optional
  * current-user-id to enrich responses.
+ *
+ * <p>All endpoints are pure reads and depend on {@link ContestProjection}
+ * directly.
  */
 @Tag(name = "Contest Catalog", description = "Public contest catalog endpoints")
 @RestController
@@ -38,7 +41,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContestCatalogController {
 
-    private final ContestService contestService;
+    private final ContestProjection contestProjection;
 
     @Operation(summary = "Get contest list",
             description = "Get a paginated list of contests with optional filters")
@@ -64,21 +67,21 @@ public class ContestCatalogController {
         query.setIsRated(isRated);
 
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(contestService.findAllListVO(query, userId));
+        return Result.success(contestProjection.findAllListVO(query, userId));
     }
 
     @Operation(summary = "Get upcoming contests",
             description = "Get a paginated list of upcoming contests")
     @GetMapping("/upcoming")
     public Result<PageResult<ContestListVO>> getUpcomingContests() {
-        return Result.success(contestService.findUpcoming(SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findUpcoming(SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Get running contests",
             description = "Get a paginated list of currently running contests")
     @GetMapping("/running")
     public Result<PageResult<ContestListVO>> getRunningContests() {
-        return Result.success(contestService.findRunning(SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findRunning(SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Get past contests",
@@ -87,7 +90,7 @@ public class ContestCatalogController {
     public Result<PageResult<ContestListVO>> getPastContests(
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
-        return Result.success(contestService.findPast(page, pageSize, SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findPast(page, pageSize, SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Get contest statistics",
@@ -95,7 +98,7 @@ public class ContestCatalogController {
     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = GlobalContestStatsVO.class)))
     @GetMapping("/stats")
     public Result<GlobalContestStatsVO> getContestStats() {
-        return Result.success(contestService.getStats());
+        return Result.success(contestProjection.getStats());
     }
 
     @Operation(summary = "Get contest by ID",
@@ -104,8 +107,8 @@ public class ContestCatalogController {
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}")
     public Result<ContestVO> getContestById(@PathVariable String id) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestService, id);
-        return Result.success(contestService.getContestById(resolvedId, SecurityUtil.getCurrentUserId()));
+        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
+        return Result.success(contestProjection.getContestById(resolvedId, SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Get contest problems",
@@ -113,8 +116,8 @@ public class ContestCatalogController {
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}/problems")
     public Result<List<ContestProblemVO>> getContestProblems(@PathVariable String id) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestService, id);
-        return Result.success(contestService.getContestProblems(resolvedId));
+        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
+        return Result.success(contestProjection.getContestProblems(resolvedId));
     }
 
     @Operation(summary = "Get contest announcements",
@@ -122,7 +125,7 @@ public class ContestCatalogController {
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}/announcements")
     public Result<List<ContestAnnouncement>> getContestAnnouncements(@PathVariable String id) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestService, id);
-        return Result.success(contestService.getContestAnnouncements(resolvedId));
+        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
+        return Result.success(contestProjection.getContestAnnouncements(resolvedId));
     }
 }

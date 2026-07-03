@@ -9,23 +9,18 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
-import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
-import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.contest.service.ContestScoringService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,25 +29,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Smoke test for the 7 admin contest mutator fixes (see admin-contests-mutator-fixes.plan.md).
+ * Smoke test for the contest admin mutator guards (see admin-contests-mutator-fixes.plan.md).
  * Uses pure Mockito (no Spring context) — sufficient for service-layer guard logic
  * but does NOT cover the @Audited AOP weaving or LambdaUpdateWrapper SQL fragment
  * (both need @SpringBootTest). deleteContest_persistsAllThreeFields is covered by
  * the runtime curl test in docs/contests-api-test-report.md §3.5.
  *
- * Covers defects #2 (updateContest UPCOMING guard), #5 (rankings 404),
- * #6 (mutators reject is_deleted contests).
+ * <p>The getAdminContestRanking 404 guard moved to
+ * {@link com.ulticode.modules.contest.projection.DefaultContestProjectionTest}
+ * when the read path was lifted into {@link ContestProjection}.
+ *
+ * <p>Covers defects #2 (updateContest UPCOMING guard) and #6 (mutators reject
+ * is_deleted contests).
  */
 @ExtendWith(MockitoExtension.class)
 class ContestServiceImplMutatorTest {
@@ -60,15 +56,11 @@ class ContestServiceImplMutatorTest {
     @Mock ContestMapper contestMapper;
     @Mock ContestProblemMapper contestProblemMapper;
     @Mock ContestParticipantMapper participantMapper;
-    @Mock GlobalRankingMapper globalRankingMapper;
-    @Mock ContestAnnouncementMapper contestAnnouncementMapper;
-    @Mock ContestSubmissionMapper contestSubmissionMapper;
     @Mock ContestSchedulerService schedulerService;
-    @Mock RankingService rankingService;
     @Mock AchievementTriggerService achievementTriggerService;
-    @Mock ProblemMapper problemMapper;
     @Mock SubmissionService submissionService;
-    @Mock SubmissionProjection submissionProjection;
+    @Mock ContestScoringService contestScoringService;
+    @Mock ContestProjection contestProjection;
 
     ContestServiceImpl service;
 
@@ -76,10 +68,8 @@ class ContestServiceImplMutatorTest {
     void setUp() {
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
-                globalRankingMapper, schedulerService, rankingService,
-                achievementTriggerService, contestAnnouncementMapper,
-                contestSubmissionMapper, problemMapper, submissionService,
-                submissionProjection, null);
+                schedulerService, achievementTriggerService, submissionService,
+                contestScoringService, contestProjection);
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
@@ -151,16 +141,6 @@ class ContestServiceImplMutatorTest {
         when(contestMapper.selectById("c-5")).thenReturn(c);
 
         assertThatThrownBy(() -> service.startContest("c-5", "9f6bc78a-..."))
-                .isInstanceOf(BusinessException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.CONTEST_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("缺陷 #5: getAdminContestRanking 不存在 contest 返 404 而非 200+空")
-    void getAdminContestRanking_nonExistentContest_throwsNotFound() {
-        when(contestMapper.selectById("fake-id")).thenReturn(null);
-
-        assertThatThrownBy(() -> service.getAdminContestRanking("fake-id", 1, 50))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.CONTEST_NOT_FOUND);
     }

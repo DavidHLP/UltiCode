@@ -5,6 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.contest.controller.internal.ContestControllerSupport;
+import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -45,6 +46,7 @@ import java.util.Set;
 public class ContestSubmissionBridgeController {
 
     private final ContestService contestService;
+    private final ContestProjection contestProjection;
     private final Validator validator;
 
     private static final String MSG_PROBLEM_ID_REQUIRED = "Problem id is required";
@@ -59,9 +61,9 @@ public class ContestSubmissionBridgeController {
     public Result<List<SubmissionVO>> getContestProblemSubmissions(
             @PathVariable String id,
             @PathVariable Long problemId) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestService, id);
+        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
         String userId = ContestControllerSupport.getCurrentUserIdOrThrow();
-        return Result.success(contestService.getContestProblemSubmissions(resolvedId, problemId, userId));
+        return Result.success(contestProjection.getContestProblemSubmissions(resolvedId, problemId, userId));
     }
 
     @Operation(summary = "Submit contest problem",
@@ -81,7 +83,7 @@ public class ContestSubmissionBridgeController {
             @Parameter(description = "Problem identifier (numeric id or contest_problem id)")
             @PathVariable("problemId") String problemPath,
             @RequestBody CreateSubmissionDTO createDTO) {
-        String resolvedId = ContestControllerSupport.resolveContestId(contestService, id);
+        String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
         String userId = ContestControllerSupport.getCurrentUserIdOrThrow();
         if (createDTO == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Submission payload is required");
@@ -97,7 +99,7 @@ public class ContestSubmissionBridgeController {
         if (problemPath == null || problemPath.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, MSG_PROBLEM_ID_REQUIRED);
         }
-        return contestService.resolveContestProblemId(contestId, problemPath);
+        return contestProjection.resolveContestProblemId(contestId, problemPath);
     }
 
     private void validateSubmissionPayload(CreateSubmissionDTO createDTO) {

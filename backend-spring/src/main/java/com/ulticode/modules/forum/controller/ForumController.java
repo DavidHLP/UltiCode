@@ -8,8 +8,19 @@ import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.common.validation.ForumPage;
 import com.ulticode.common.validation.ForumPageSize;
-import com.ulticode.modules.forum.dto.*;
-import com.ulticode.modules.forum.service.ForumService;
+import com.ulticode.modules.forum.dto.CreateCommentDTO;
+import com.ulticode.modules.forum.dto.CreatePostDTO;
+import com.ulticode.modules.forum.dto.ForumCommentVO;
+import com.ulticode.modules.forum.dto.ForumCommunityDetailVO;
+import com.ulticode.modules.forum.dto.ForumCommunityVO;
+import com.ulticode.modules.forum.dto.ForumPostThreadVO;
+import com.ulticode.modules.forum.dto.ForumPostVO;
+import com.ulticode.modules.forum.dto.ForumTagVO;
+import com.ulticode.modules.forum.dto.QuickFilterDTO;
+import com.ulticode.modules.forum.dto.UpdateCommentDTO;
+import com.ulticode.modules.forum.dto.UpdatePostDTO;
+import com.ulticode.modules.forum.port.ForumWritePort;
+import com.ulticode.modules.forum.projection.ForumReadProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,10 +28,23 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Forum HTTP endpoints. Binds reads to {@link ForumReadProjection} and
+ * writes to {@link ForumWritePort} — both deep modules that replaced the
+ * shallow {@code ForumService} facade.
+ */
 @Tag(name = "Forum", description = "Forum management endpoints")
 @RestController
 @RequestMapping("/forum")
@@ -28,7 +52,8 @@ import java.util.List;
 @Validated
 public class ForumController {
 
-    private final ForumService forumService;
+    private final ForumReadProjection forumReadProjection;
+    private final ForumWritePort forumWritePort;
 
     @Operation(summary = "Get all posts", description = "Get all forum posts with sorting and pagination")
     @GetMapping("/posts")
@@ -39,19 +64,14 @@ public class ForumController {
             @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
             @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
-        String userId = SecurityUtil.getCurrentUserId();
-        PageResult<ForumPostVO> result = forumService.findAllPosts(userId, sortBy, page, pageSize);
-        return Result.success(result);
+        return Result.success(forumReadProjection.findAllPosts(
+                SecurityUtil.getCurrentUserId(), sortBy, page, pageSize));
     }
 
     @Operation(summary = "Get post by ID", description = "Get a specific post by its ID")
     @GetMapping("/posts/{id}")
-    public Result<ForumPostVO> getPostById(
-            @Parameter(description = "Post ID")
-            @PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
-        ForumPostVO post = forumService.findPostById(id, userId);
-        return Result.success(post);
+    public Result<ForumPostVO> getPostById(@Parameter(description = "Post ID") @PathVariable String id) {
+        return Result.success(forumReadProjection.findPostById(id, SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Get my posts", description = "Get the current user's posts")
@@ -62,9 +82,7 @@ public class ForumController {
             @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
             @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
-        String userId = getCurrentUserIdOrThrow();
-        PageResult<ForumPostVO> result = forumService.findMyPosts(userId, page, pageSize);
-        return Result.success(result);
+        return Result.success(forumReadProjection.findMyPosts(getCurrentUserIdOrThrow(), page, pageSize));
     }
 
     @Operation(summary = "Create post", description = "Create a new forum post")
@@ -72,9 +90,7 @@ public class ForumController {
     @RateLimit(key = "forum:create-post", limit = 20, period = 60)
     @PostMapping("/posts")
     public Result<ForumPostVO> createPost(@Valid @RequestBody CreatePostDTO dto) {
-        String userId = getCurrentUserIdOrThrow();
-        ForumPostVO post = forumService.createPost(dto, userId);
-        return Result.success(post);
+        return Result.success(forumWritePort.createPost(dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Update post", description = "Update an existing post")
@@ -84,9 +100,7 @@ public class ForumController {
     public Result<ForumPostVO> updatePost(
             @Parameter(description = "Post ID") @PathVariable String id,
             @Valid @RequestBody UpdatePostDTO dto) {
-        String userId = getCurrentUserIdOrThrow();
-        ForumPostVO post = forumService.updatePost(id, dto, userId);
-        return Result.success(post);
+        return Result.success(forumWritePort.updatePost(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Delete post", description = "Delete a post")
@@ -94,24 +108,22 @@ public class ForumController {
     @RateLimit(key = "forum:delete-post", limit = 20, period = 60)
     @DeleteMapping("/posts/{id}")
     public Result<Void> deletePost(@Parameter(description = "Post ID") @PathVariable String id) {
-        String userId = getCurrentUserIdOrThrow();
-        forumService.deletePost(id, userId);
+        forumWritePort.deletePost(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
     @Operation(summary = "Get post thread", description = "Get a post with its comment thread")
     @GetMapping("/posts/{id}/thread")
-    public Result<ForumPostThreadVO> getPostThread(@Parameter(description = "Post ID") @PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
-        ForumPostThreadVO thread = forumService.getPostThread(id, userId);
-        return Result.success(thread);
+    public Result<ForumPostThreadVO> getPostThread(
+            @Parameter(description = "Post ID") @PathVariable String id) {
+        return Result.success(forumReadProjection.getPostThread(id, SecurityUtil.getCurrentUserId()));
     }
 
     @Operation(summary = "Record share", description = "Record a share action for a post")
     @RateLimit(key = "forum:share", limit = 20, period = 60)
     @PostMapping("/posts/{id}/share")
     public Result<Void> recordShare(@Parameter(description = "Post ID") @PathVariable String id) {
-        forumService.recordShare(id);
+        forumWritePort.recordShare(id);
         return Result.success();
     }
 
@@ -119,7 +131,7 @@ public class ForumController {
     @RateLimit(key = "forum:view", limit = 20, period = 60)
     @PostMapping("/posts/{id}/view")
     public Result<Void> recordView(@Parameter(description = "Post ID") @PathVariable String id) {
-        forumService.recordView(id);
+        forumWritePort.recordView(id);
         return Result.success();
     }
 
@@ -130,9 +142,7 @@ public class ForumController {
     public Result<ForumCommentVO> createComment(
             @Parameter(description = "Post ID") @PathVariable String id,
             @Valid @RequestBody CreateCommentDTO dto) {
-        String userId = getCurrentUserIdOrThrow();
-        ForumCommentVO comment = forumService.createComment(id, dto, userId);
-        return Result.success(comment);
+        return Result.success(forumWritePort.createComment(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Update comment", description = "Update an existing comment")
@@ -142,9 +152,7 @@ public class ForumController {
     public Result<ForumCommentVO> updateComment(
             @Parameter(description = "Comment ID") @PathVariable String id,
             @Valid @RequestBody UpdateCommentDTO dto) {
-        String userId = getCurrentUserIdOrThrow();
-        ForumCommentVO comment = forumService.updateComment(id, dto, userId);
-        return Result.success(comment);
+        return Result.success(forumWritePort.updateComment(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Delete comment", description = "Delete a comment")
@@ -152,8 +160,7 @@ public class ForumController {
     @RateLimit(key = "forum:delete-comment", limit = 20, period = 60)
     @DeleteMapping("/comments/{id}")
     public Result<Void> deleteComment(@Parameter(description = "Comment ID") @PathVariable String id) {
-        String userId = getCurrentUserIdOrThrow();
-        forumService.deleteComment(id, userId);
+        forumWritePort.deleteComment(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
@@ -162,16 +169,14 @@ public class ForumController {
     public Result<List<ForumCommunityVO>> getAllCommunities(
             @Parameter(description = "Filter for featured communities only")
             @RequestParam(required = false, defaultValue = "false") Boolean featured) {
-        List<ForumCommunityVO> communities = forumService.findAllCommunities(featured);
-        return Result.success(communities);
+        return Result.success(forumReadProjection.findAllCommunities(Boolean.TRUE.equals(featured)));
     }
 
     @Operation(summary = "Get community", description = "Get a community by slug or ID")
     @GetMapping("/communities/{slugOrId}")
     public Result<ForumCommunityDetailVO> getCommunity(
             @Parameter(description = "Community slug or ID") @PathVariable String slugOrId) {
-        ForumCommunityDetailVO community = forumService.findCommunityBySlugOrId(slugOrId);
-        return Result.success(community);
+        return Result.success(forumReadProjection.findCommunityBySlugOrId(slugOrId));
     }
 
     @Operation(summary = "Get community posts", description = "Get posts for a specific community")
@@ -184,9 +189,8 @@ public class ForumController {
             @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
             @Parameter(description = "Items per page")
             @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
-        String userId = SecurityUtil.getCurrentUserId();
-        PageResult<ForumPostVO> result = forumService.findPostsByCommunity(slug, sortBy, userId, page, pageSize);
-        return Result.success(result);
+        return Result.success(forumReadProjection.findPostsByCommunity(
+                slug, sortBy, SecurityUtil.getCurrentUserId(), page, pageSize));
     }
 
     @Operation(summary = "Join community", description = "Join a community")
@@ -194,8 +198,7 @@ public class ForumController {
     @RateLimit(key = "forum:join-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/join")
     public Result<Void> joinCommunity(@Parameter(description = "Community ID") @PathVariable String id) {
-        String userId = getCurrentUserIdOrThrow();
-        forumService.joinCommunity(id, userId);
+        forumWritePort.joinCommunity(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
@@ -204,30 +207,25 @@ public class ForumController {
     @RateLimit(key = "forum:leave-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/leave")
     public Result<Void> leaveCommunity(@Parameter(description = "Community ID") @PathVariable String id) {
-        String userId = getCurrentUserIdOrThrow();
-        forumService.leaveCommunity(id, userId);
+        forumWritePort.leaveCommunity(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
     @Operation(summary = "Get all tags", description = "Get all forum tags")
     @GetMapping("/tags")
     public Result<List<ForumTagVO>> getAllTags() {
-        List<ForumTagVO> tags = forumService.findAllTags();
-        return Result.success(tags);
+        return Result.success(forumReadProjection.findAllTags());
     }
 
     @Operation(summary = "Get quick filters", description = "Get available quick filter options for forum posts")
     @GetMapping("/quick-filters")
     public Result<List<QuickFilterDTO>> getQuickFilters() {
-        List<QuickFilterDTO> filters = forumService.getQuickFilters();
-        return Result.success(filters);
+        return Result.success(forumReadProjection.getQuickFilters());
     }
 
     private String getCurrentUserIdOrThrow() {
         String userId = SecurityUtil.getCurrentUserId();
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
+        if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         return userId;
     }
 }

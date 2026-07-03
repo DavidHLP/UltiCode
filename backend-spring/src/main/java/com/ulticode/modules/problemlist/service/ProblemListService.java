@@ -1,39 +1,30 @@
 package com.ulticode.modules.problemlist.service;
 
-import com.ulticode.modules.problemlist.dto.*;
+import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
+import com.ulticode.modules.problemlist.dto.CreateCategoryDTO;
+import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
+import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
+import com.ulticode.modules.problemlist.dto.UpdateCategoryDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 
 import java.util.List;
 
 /**
- * Service interface for problem list operations.
+ * Write-side facade for the problem-list domain — the list state machine plus
+ * the bookmark / category mutations.
+ *
+ * <p>Read paths (overview lists, list detail, user-lists-for-problem) were
+ * lifted into
+ * {@link com.ulticode.modules.problemlist.projection.ProblemListProjection};
+ * the controller depends on that projection directly for reads and on this
+ * service for writes. Write paths shape their return values through
+ * {@link com.ulticode.modules.problemlist.projection.ProblemListProjection#toSummaryVO}
+ * / {@code toSummaryVOWithSavedStatus} / {@code toCategorySummaryVO}.
  */
 public interface ProblemListService {
-
-    /**
-     * Find all public problem lists.
-     *
-     * @param locale the locale for i18n
-     * @return user problem lists overview
-     */
-    UserProblemListsVO findAll(String locale);
-
-    /**
-     * Get a user's problem lists overview.
-     *
-     * @param userId the user ID
-     * @return user problem lists overview
-     */
-    UserProblemListsVO getUserProblemLists(String userId);
-
-    /**
-     * Get a problem list overview by ID.
-     *
-     * @param id     the list ID
-     * @param userId the current user ID (optional)
-     * @param locale the locale for i18n
-     * @return the problem list detail
-     */
-    ProblemListDetailVO getListOverview(String id, String userId, String locale);
 
     /**
      * Create a new problem list.
@@ -45,7 +36,7 @@ public interface ProblemListService {
     ProblemListSummaryVO createList(String userId, CreateProblemListDTO dto);
 
     /**
-     * Update a problem list.
+     * Update a problem list (full/partial).
      *
      * @param id     the list ID
      * @param userId the user ID
@@ -105,15 +96,6 @@ public interface ProblemListService {
      * @param listId the list ID
      */
     void unsaveList(String userId, String listId);
-
-    /**
-     * Get user's lists for a specific problem.
-     *
-     * @param userId    the user ID
-     * @param problemId the problem ID
-     * @return user lists for problem
-     */
-    UserListsForProblemVO getUserListsForProblem(String userId, Long problemId);
 
     /**
      * Batch add a problem to multiple lists.

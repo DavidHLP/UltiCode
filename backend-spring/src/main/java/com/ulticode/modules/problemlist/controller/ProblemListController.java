@@ -6,6 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problemlist.dto.*;
+import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProblemListController {
 
     private final ProblemListService problemListService;
+    private final ProblemListProjection problemListProjection;
 
     @Operation(summary = "Get problem lists overview")
     @GetMapping("/overview")
@@ -31,9 +33,9 @@ public class ProblemListController {
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
         String userId = SecurityUtil.getCurrentUserId();
         if (userId != null) {
-            return Result.success(problemListService.getUserProblemLists(userId));
+            return Result.success(problemListProjection.getUserProblemLists(userId));
         }
-        return Result.success(problemListService.findAll(locale));
+        return Result.success(problemListProjection.findAll(locale));
     }
 
     @Operation(summary = "Get problem list detail")
@@ -42,7 +44,7 @@ public class ProblemListController {
             @PathVariable String id,
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(problemListService.getListOverview(id, userId, locale));
+        return Result.success(problemListProjection.getListOverview(id, userId, locale));
     }
 
     @Operation(summary = "Create a problem list")
@@ -137,7 +139,7 @@ public class ProblemListController {
     public Result<UserListsForProblemVO> getUserListsForProblem(
             @PathVariable Long problemId) {
         String userId = requireAuthenticatedUserId();
-        return Result.success(problemListService.getUserListsForProblem(userId, problemId));
+        return Result.success(problemListProjection.getUserListsForProblem(userId, problemId));
     }
 
     @Operation(summary = "Batch add a problem to multiple lists")

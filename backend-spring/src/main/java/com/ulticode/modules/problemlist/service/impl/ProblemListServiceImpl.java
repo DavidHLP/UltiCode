@@ -1,8 +1,18 @@
 package com.ulticode.modules.problemlist.service.impl;
 
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.problemlist.dto.*;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.modules.problemlist.dto.CreateCategoryDTO;
+import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
+import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
+import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
+import com.ulticode.modules.problemlist.dto.UpdateCategoryDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListBookmark;
 import com.ulticode.modules.problemlist.entity.ProblemListCategory;
@@ -11,22 +21,29 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
+import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 /**
- * Implementation of ProblemListService.
+ * Write-side facade for problem-list operations. Owns the list state machine
+ * (create / update / delete / fork / addProblem / removeProblem / save /
+ * batch / move / category CRUD).
+ *
+ * <p>All read paths — overview lists, list detail, user-lists-for-problem, and
+ * the entity-to-VO projection helpers — live in {@link ProblemListProjection}.
+ * Write paths shape their return values through
+ * {@link ProblemListProjection#toSummaryVO} /
+ * {@link ProblemListProjection#toSummaryVOWithSavedStatus} /
+ * {@link ProblemListProjection#toCategorySummaryVO}.
  */
 @Slf4j
 @Service
@@ -38,220 +55,7 @@ public class ProblemListServiceImpl implements ProblemListService {
     private final ProblemListCategoryMapper problemListCategoryMapper;
     private final ProblemListBookmarkMapper problemListBookmarkMapper;
     private final ProblemMapper problemMapper;
-    private final UserMapper userMapper;
-
-    @Override
-    public UserProblemListsVO findAll(String locale) {
-        UserProblemListsVO result = new UserProblemListsVO();
-
-        // Get featured lists
-        List<ProblemList> featured = problemListMapper.findFeatured();
-        result.setFeaturedLists(featured.stream()
-                .map(this::toSummaryVO)
-                .collect(Collectors.toList()));
-
-        // Get all public lists
-        List<ProblemList> publicLists = problemListMapper.findAllPublic();
-        result.setOwnLists(publicLists.stream()
-                .map(this::toSummaryVO)
-                .collect(Collectors.toList()));
-
-        result.setSavedLists(Collections.emptyList());
-        result.setCategories(Collections.emptyList());
-
-        return result;
-    }
-
-    @Override
-    public UserProblemListsVO getUserProblemLists(String userId) {
-        UserProblemListsVO result = new UserProblemListsVO();
-
-        // Get user's own lists
-        List<ProblemList> ownLists = problemListMapper.findByAuthorId(userId);
-        result.setOwnLists(ownLists.stream()
-                .map(list -> toSummaryVOWithSavedStatus(list, userId))
-                .collect(Collectors.toList()));
-
-        // Get saved lists
-        List<ProblemListBookmark> bookmarks = problemListBookmarkMapper.findByUserId(userId);
-        List<ProblemListSummaryVO> savedLists = bookmarks.stream()
-                .map(bookmark -> {
-                    ProblemList list = problemListMapper.findById(bookmark.getListId()).orElse(null);
-                    if (list != null && (list.getIsPublic() || list.getAuthorId().equals(userId))) {
-                        ProblemListSummaryVO vo = toSummaryVO(list);
-                        vo.setIsSaved(true);
-                        return vo;
-                    }
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        result.setSavedLists(savedLists);
-
-        // Get featured lists
-        List<ProblemList> featured = problemListMapper.findFeatured();
-        result.setFeaturedLists(featured.stream()
-                .map(list -> toSummaryVOWithSavedStatus(list, userId))
-                .collect(Collectors.toList()));
-
-        // Get categories - NOTE: Requires database migration
-        try {
-            List<ProblemListCategory> categories = problemListCategoryMapper.findByUserId(userId);
-            result.setCategories(categories.stream()
-                    .map(this::toCategorySummaryVO)
-                    .collect(Collectors.toList()));
-        // broad catch: table may not exist in all deployments
-        } catch (Exception e) {
-            log.warn("Categories table may not exist: {}", e.getMessage());
-            result.setCategories(Collections.emptyList());
-        }
-
-        return result;
-    }
-
-    @Override
-    public ProblemListDetailVO getListOverview(String id, String userId, String locale) {
-        ProblemList list = problemListMapper.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
-
-        // Check access
-        if (!list.getIsPublic() && (userId == null || !list.getAuthorId().equals(userId))) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_PRIVATE);
-        }
-
-        ProblemListDetailVO vo = new ProblemListDetailVO();
-        vo.setId(list.getId());
-        vo.setName(list.getName());
-        vo.setDescription(list.getDescription());
-        vo.setAuthorId(list.getAuthorId());
-        vo.setIsPublic(list.getIsPublic());
-        vo.setIsFeatured(list.getIsFeatured());
-        vo.setBannerTag(list.getBannerTag());
-        vo.setBannerIcon(list.getBannerIcon());
-        vo.setBannerTheme(list.getBannerTheme());
-        vo.setBannerOrder(list.getBannerOrder());
-        vo.setCreatedAt(list.getCreatedAt());
-        vo.setUpdatedAt(list.getUpdatedAt());
-
-        // Check if user owns the list
-        vo.setIsOwner(userId != null && userId.equals(list.getAuthorId()));
-
-        // Check if user has saved the list — reuse bookmark for viewer state below
-        ProblemListBookmark userBookmark = null;
-        if (userId != null) {
-            userBookmark = problemListBookmarkMapper.findByUserIdAndListId(userId, id).orElse(null);
-            vo.setIsSaved(userBookmark != null);
-        } else {
-            vo.setIsSaved(false);
-        }
-
-        // Get author info
-        User author = userMapper.selectById(list.getAuthorId());
-        if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
-        }
-
-        // Get problems in the list
-        List<ProblemListProblemRelation> relations = problemListProblemMapper.findByListId(id);
-        if (!relations.isEmpty()) {
-            Set<Long> problemIds = relations.stream()
-                    .map(ProblemListProblemRelation::getProblemId)
-                    .collect(Collectors.toSet());
-            List<Problem> problems = problemMapper.selectBatchIds(problemIds);
-            Map<Long, Problem> problemMap = problems.stream()
-                    .collect(Collectors.toMap(Problem::getId, p -> p));
-
-            // Batch-fetch tags for problems in the list
-            List<ProblemMapper.ProblemTagDTO> tagDTOs = problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
-            Map<Long, List<com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
-                    .collect(Collectors.groupingBy(
-                            ProblemMapper.ProblemTagDTO::problemId,
-                            Collectors.mapping(dto -> {
-                                com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO tagVO = new com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO();
-                                tagVO.setId(dto.tagId());
-                                tagVO.setLabel(dto.tagName());
-                                return tagVO;
-                            }, Collectors.toList())
-                    ));
-
-            List<ProblemListDetailVO.ProblemInListVO> problemVOs = relations.stream()
-                    .map(rel -> {
-                        Problem problem = problemMap.get(rel.getProblemId());
-                        if (problem == null) return null;
-
-                        ProblemListDetailVO.ProblemInListVO pvo = new ProblemListDetailVO.ProblemInListVO();
-                        pvo.setId(problem.getId());
-                        pvo.setSlug(problem.getSlug());
-                        pvo.setTitle(problem.getTitle());
-                        pvo.setDifficulty(problem.getDifficulty());
-                        pvo.setStatus(problem.getStatus());
-                        pvo.setSortOrder(rel.getSortOrder());
-                        pvo.setAddedAt(rel.getAddedAt());
-                        pvo.setAcceptanceRate(problem.getAcceptanceRate());
-                        pvo.setIsPremium(problem.getIsPremium());
-                        pvo.setHasSolution(problem.getHasSolution());
-                        pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
-                        return pvo;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-            vo.setProblems(problemVOs);
-        } else {
-            vo.setProblems(Collections.emptyList());
-        }
-
-        // Build stats
-        ProblemListDetailVO.ProblemListStatsVO statsVO = new ProblemListDetailVO.ProblemListStatsVO();
-        statsVO.setListId(id);
-        List<ProblemListDetailVO.ProblemInListVO> problems = vo.getProblems();
-        int totalCount = problems.size();
-        int solvedCount = 0;
-        int attemptedCount = 0;
-        for (ProblemListDetailVO.ProblemInListVO p : problems) {
-            String status = p.getStatus();
-            if ("solved".equalsIgnoreCase(status)) {
-                solvedCount++;
-            } else if ("attempted".equalsIgnoreCase(status)) {
-                attemptedCount++;
-            }
-        }
-        int todoCount = totalCount - solvedCount - attemptedCount;
-        double progress = totalCount == 0 ? 0.0 : ((double) solvedCount / totalCount) * 100.0;
-        statsVO.setTotalCount(totalCount);
-        statsVO.setSolvedCount(solvedCount);
-        statsVO.setAttemptedCount(attemptedCount);
-        statsVO.setTodoCount(todoCount);
-        statsVO.setProgress(progress);
-        vo.setStats(statsVO);
-
-        // Build viewer state — reuse bookmark fetched above
-        if (userId != null) {
-            ProblemListDetailVO.ViewerStateVO viewerVO = new ProblemListDetailVO.ViewerStateVO();
-            viewerVO.setIsSaved(vo.getIsSaved());
-            viewerVO.setCategoryId(userBookmark != null ? userBookmark.getCategoryId() : null);
-            vo.setViewer(viewerVO);
-        }
-
-        // Build category options for the viewer
-        if (userId != null) {
-            try {
-                List<ProblemListCategory> cats = problemListCategoryMapper.findByUserId(userId);
-                vo.setCategories(cats.stream().map(cat -> {
-                    ProblemListDetailVO.CategoryOptionVO opt = new ProblemListDetailVO.CategoryOptionVO();
-                    opt.setId(cat.getId());
-                    opt.setName(cat.getName());
-                    opt.setSortOrder(cat.getSortOrder());
-                    return opt;
-                }).collect(Collectors.toList()));
-            } catch (Exception e) {
-                log.warn("Categories table may not exist: {}", e.getMessage());
-                vo.setCategories(Collections.emptyList());
-            }
-        }
-
-        return vo;
-    }
+    private final ProblemListProjection problemListProjection;
 
     @Override
     @Transactional
@@ -269,7 +73,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListMapper.insert(list);
 
-        ProblemListSummaryVO vo = toSummaryVO(list);
+        ProblemListSummaryVO vo = problemListProjection.toSummaryVO(list);
         vo.setProblemCount(0);
         vo.setIsSaved(false);
         return vo;
@@ -290,7 +94,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListMapper.updateById(list);
 
-        return toSummaryVOWithSavedStatus(list, userId);
+        return problemListProjection.toSummaryVOWithSavedStatus(list, userId);
     }
 
     @Override
@@ -312,7 +116,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListMapper.updateById(list);
 
-        return toSummaryVOWithSavedStatus(list, userId);
+        return problemListProjection.toSummaryVOWithSavedStatus(list, userId);
     }
 
     @Override
@@ -337,7 +141,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListMapper.updateById(list);
 
-        return toSummaryVOWithSavedStatus(list, userId);
+        return problemListProjection.toSummaryVOWithSavedStatus(list, userId);
     }
 
     @Override
@@ -377,14 +181,14 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListMapper.updateById(list);
 
-        return toSummaryVOWithSavedStatus(list, userId);
+        return problemListProjection.toSummaryVOWithSavedStatus(list, userId);
     }
 
     @Override
     @Transactional
-    @com.ulticode.common.annotation.Audited(
-            action = com.ulticode.common.util.AuditActionUtil.DELETE_PROBLEM_LIST,
-            entityType = com.ulticode.common.util.AuditActionUtil.ENTITY_PROBLEM_LIST,
+    @Audited(
+            action = AuditActionUtil.DELETE_PROBLEM_LIST,
+            entityType = AuditActionUtil.ENTITY_PROBLEM_LIST,
             userIdFrom = "userId", entityIdFrom = "id")
     public void deleteList(String id, String userId) {
         ProblemList list = problemListMapper.findById(id)
@@ -432,7 +236,7 @@ public class ProblemListServiceImpl implements ProblemListService {
         }
 
         // Return full VO aligned with createList() contract (was: id-only String).
-        return toSummaryVO(newList);
+        return problemListProjection.toSummaryVO(newList);
     }
 
     @Override
@@ -529,42 +333,6 @@ public class ProblemListServiceImpl implements ProblemListService {
     }
 
     @Override
-    public UserListsForProblemVO getUserListsForProblem(String userId, Long problemId) {
-        UserListsForProblemVO result = new UserListsForProblemVO();
-        result.setProblemId(problemId);
-
-        List<ProblemList> userLists = problemListMapper.findByAuthorId(userId);
-        if (userLists.isEmpty()) {
-            result.setLists(Collections.emptyList());
-            return result;
-        }
-
-        // Batch-load hasProblem + problemCount in 2 queries instead of 2*N (avoids N+1).
-        List<String> listIds = userLists.stream().map(ProblemList::getId).collect(Collectors.toList());
-        Set<String> listsContainingProblem = new HashSet<>(
-                problemListProblemMapper.findListIdsContainingProblem(listIds, problemId));
-        Map<String, Long> countByList = problemListProblemMapper.countByListIds(listIds).stream()
-                .collect(Collectors.toMap(
-                        row -> String.valueOf(row.get("list_id")),
-                        row -> ((Number) row.get("cnt")).longValue()));
-
-        List<UserListsForProblemVO.ListStatusVO> listStatuses = userLists.stream()
-                .map(list -> {
-                    UserListsForProblemVO.ListStatusVO status = new UserListsForProblemVO.ListStatusVO();
-                    status.setId(list.getId());
-                    status.setName(list.getName());
-                    status.setHasProblem(listsContainingProblem.contains(list.getId()));
-                    status.setProblemCount(countByList.getOrDefault(list.getId(), 0L).intValue());
-                    status.setCanEdit(true);
-                    return status;
-                })
-                .collect(Collectors.toList());
-
-        result.setLists(listStatuses);
-        return result;
-    }
-
-    @Override
     @Transactional
     public void batchAddProblemToLists(String userId, Long problemId, List<String> listIds) {
         for (String listId : listIds) {
@@ -619,7 +387,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListCategoryMapper.insert(category);
 
-        return toCategorySummaryVO(category);
+        return problemListProjection.toCategorySummaryVO(category);
     }
 
     @Override
@@ -651,7 +419,7 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         problemListCategoryMapper.updateById(category);
 
-        return toCategorySummaryVO(category);
+        return problemListProjection.toCategorySummaryVO(category);
     }
 
     @Override
@@ -674,63 +442,5 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         // Delete category
         problemListCategoryMapper.deleteById(categoryId);
-    }
-
-    // ==================== Helper Methods ====================
-
-    private ProblemListSummaryVO toSummaryVO(ProblemList list) {
-        ProblemListSummaryVO vo = new ProblemListSummaryVO();
-        vo.setId(list.getId());
-        vo.setName(list.getName());
-        vo.setDescription(list.getDescription());
-        vo.setAuthorId(list.getAuthorId());
-        vo.setIsPublic(list.getIsPublic());
-        vo.setIsFeatured(list.getIsFeatured());
-        vo.setBannerTag(list.getBannerTag());
-        vo.setBannerIcon(list.getBannerIcon());
-        vo.setBannerTheme(list.getBannerTheme());
-        vo.setBannerOrder(list.getBannerOrder());
-        vo.setCreatedAt(list.getCreatedAt());
-        vo.setUpdatedAt(list.getUpdatedAt());
-
-        // Get problem count
-        vo.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
-
-        // Get author info
-        User author = userMapper.selectById(list.getAuthorId());
-        if (author != null) {
-            vo.setAuthorName(author.getName());
-            vo.setAuthorUsername(author.getUsername());
-        }
-
-        return vo;
-    }
-
-    private ProblemListSummaryVO toSummaryVOWithSavedStatus(ProblemList list, String userId) {
-        ProblemListSummaryVO vo = toSummaryVO(list);
-        if (userId != null) {
-            vo.setIsSaved(problemListBookmarkMapper.existsByUserIdAndListId(userId, list.getId()));
-        } else {
-            vo.setIsSaved(false);
-        }
-        return vo;
-    }
-
-    private CategorySummaryVO toCategorySummaryVO(ProblemListCategory category) {
-        CategorySummaryVO vo = new CategorySummaryVO();
-        vo.setId(category.getId());
-        vo.setUserId(category.getUserId());
-        vo.setName(category.getName());
-        vo.setDescription(category.getDescription());
-        vo.setIcon(category.getIcon());
-        vo.setColor(category.getColor());
-        vo.setSortOrder(category.getSortOrder());
-        vo.setCreatedAt(category.getCreatedAt());
-        vo.setUpdatedAt(category.getUpdatedAt());
-
-        // Get list count
-        vo.setListCount((int) problemListBookmarkMapper.findByCategoryId(category.getId()).size());
-
-        return vo;
     }
 }

@@ -1,18 +1,13 @@
 package com.ulticode.modules.solution.service;
 
-import com.ulticode.modules.achievement.mapper.AchievementMapper;
-import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.impl.SolutionServiceImpl;
-import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,19 +36,9 @@ class SolutionServiceTest {
     @Mock
     private SolutionCommentMapper solutionCommentMapper;
     @Mock
-    private UserMapper userMapper;
-    @Mock
     private ProblemMapper problemMapper;
     @Mock
-    private EdgeOperationMapper edgeOperationMapper;
-    @Mock
-    private ProblemTagRelationMapper problemTagRelationMapper;
-    @Mock
-    private ProblemTagMapper problemTagMapper;
-    @Mock
-    private UserAchievementMapper userAchievementMapper;
-    @Mock
-    private AchievementMapper achievementMapper;
+    private SolutionProjection solutionProjection;
 
     @InjectMocks
     private SolutionServiceImpl solutionService;
@@ -122,7 +107,6 @@ class SolutionServiceTest {
         problem.setHasSolution(false);
         when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
         when(solutionMapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(null);
-        when(userMapper.selectById(any())).thenReturn(null);
 
         CreateSolutionDTO dto = new CreateSolutionDTO();
         dto.setTitle("title");
@@ -145,7 +129,6 @@ class SolutionServiceTest {
         problem.setHasSolution(false);
         when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
         when(solutionMapper.selectOne(any(com.baomidou.mybatisplus.core.conditions.Wrapper.class))).thenReturn(null);
-        when(userMapper.selectById(any())).thenReturn(null);
 
         CreateSolutionDTO dto = new CreateSolutionDTO();
         dto.setTitle("t");

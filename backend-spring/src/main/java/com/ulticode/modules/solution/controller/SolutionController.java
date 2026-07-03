@@ -14,6 +14,7 @@ import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
+import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.SolutionService;
 
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 public class SolutionController {
 
     private final SolutionService solutionService;
+    private final SolutionProjection solutionProjection;
 
     /**
      * List solutions for a specific problem.
@@ -54,7 +56,7 @@ public class SolutionController {
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false) Integer pageSize) {
 
-        PageResult<SolutionListItemVO> result = solutionService.findByProblemId(problemId, page, pageSize);
+        PageResult<SolutionListItemVO> result = solutionProjection.findByProblemId(problemId, page, pageSize);
         return Result.success(result);
     }
 
@@ -166,7 +168,7 @@ public class SolutionController {
             @Parameter(description = "Problem ID (optional)")
             @RequestParam(required = false) Long problemId) {
 
-        List<SolutionVO> solutions = solutionService.findByUserId(userId, problemId);
+        List<SolutionVO> solutions = solutionProjection.findByUserId(userId, problemId);
         return Result.success(solutions);
     }
 
@@ -203,7 +205,7 @@ public class SolutionController {
             @Parameter(description = "Solution ID")
             @PathVariable String solutionId) {
 
-        List<SolutionCommentVO> comments = solutionService.getComments(solutionId);
+        List<SolutionCommentVO> comments = solutionProjection.getComments(solutionId);
         return Result.success(comments);
     }
 

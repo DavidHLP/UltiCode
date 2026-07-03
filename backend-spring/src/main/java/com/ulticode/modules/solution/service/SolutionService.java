@@ -1,20 +1,22 @@
 package com.ulticode.modules.solution.service;
 
-import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
-import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
  * Service interface for solution operations.
+ *
+ * <p>Owns the solution and comment write state machine (create / update / delete / recordView and
+ * comment mutations) plus the detail read that also records a view. All pure entity-to-VO
+ * projection and read-side aggregation lives in
+ * {@link com.ulticode.modules.solution.projection.SolutionProjection}.
  */
 public interface SolutionService {
 
@@ -35,14 +37,6 @@ public interface SolutionService {
     void recordView(String solutionId, String userId);
 
     /**
-     * Get comments for a solution.
-     *
-     * @param solutionId the solution ID
-     * @return list of comments
-     */
-    List<SolutionCommentVO> getComments(String solutionId);
-
-    /**
      * Create a comment on a solution.
      */
     SolutionCommentVO createComment(String solutionId, String userId, CreateSolutionCommentDTO dto);
@@ -56,16 +50,6 @@ public interface SolutionService {
      * Soft-delete a comment.
      */
     void deleteComment(String commentId, String userId);
-
-    /**
-     * Find all solutions for a specific problem.
-     *
-     * @param problemId the problem ID
-     * @param page      the page number (1-based)
-     * @param pageSize  the number of items per page
-     * @return paginated list of solution list items (lightweight, no content)
-     */
-    PageResult<SolutionListItemVO> findByProblemId(Long problemId, Integer page, Integer pageSize);
 
     /**
      * Get a solution by ID as VO.
@@ -111,30 +95,4 @@ public interface SolutionService {
      * @param userId the user ID
      */
     void delete(String id, String userId);
-
-    /**
-     * Convert entity to VO.
-     *
-     * @param solution the entity
-     * @return the VO
-     */
-    SolutionVO toVO(Solution solution);
-
-    /**
-     * Convert entity to VO with current user's vote state.
-     *
-     * @param solution the entity
-     * @param currentUserId the current user ID (optional, can be null)
-     * @return the VO
-     */
-    SolutionVO toVO(Solution solution, String currentUserId);
-
-    /**
-     * Find all solutions for a specific user.
-     *
-     * @param userId the user ID
-     * @param problemId optional problem ID to filter by
-     * @return list of solution VOs
-     */
-    List<SolutionVO> findByUserId(String userId, Long problemId);
 }

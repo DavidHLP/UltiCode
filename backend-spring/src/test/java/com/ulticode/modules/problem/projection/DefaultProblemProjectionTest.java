@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
+import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
@@ -77,7 +77,7 @@ class DefaultProblemProjectionTest {
     @Mock
     private SolutionMapper solutionMapper;
     @Mock
-    private EdgeOperationsService edgeOperationsService;
+    private EdgeOperationInspector edgeOperationsService;
     @Mock
     private EdgeOperationMapper edgeOperationMapper;
 

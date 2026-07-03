@@ -9,7 +9,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
+import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
@@ -69,7 +69,7 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final SubmissionMapper submissionMapper;
     private final SolutionMapper solutionMapper;
-    private final EdgeOperationsService edgeOperationsService;
+    private final EdgeOperationInspector edgeOperationInspector;
     private final EdgeOperationMapper edgeOperationMapper;
     private final ObjectMapper objectMapper;
 
@@ -437,7 +437,7 @@ public class DefaultProblemProjection implements ProblemProjection {
 
         // Query edge-operations for real favorites count
         try {
-            var edgeOps = edgeOperationsService.getInteractions(null, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM);
+            var edgeOps = edgeOperationInspector.getInteractions(null, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM);
             interactions.setFavorites((int) edgeOps.getFavorites());
         } catch (Exception e) {
             log.warn("Failed to query edge-operations favorites for problem {}", problemId);

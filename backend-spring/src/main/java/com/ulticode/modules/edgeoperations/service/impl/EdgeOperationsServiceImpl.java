@@ -1,11 +1,8 @@
 package com.ulticode.modules.edgeoperations.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.modules.bookmark.entity.Bookmark;
-import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
-import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
+import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
@@ -22,8 +19,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Implementation of EdgeOperationsService.
- * Handles edge operations like voting, analyzing, viewing content.
+ * Implementation of {@link EdgeOperationsService}. Owns the write
+ * path of edge operations: voting, analyzing, viewing, favoriting,
+ * and the denormalized vote-count projection onto the
+ * {@code solution} table.
+ *
+ * <p>Pure-read concerns (aggregated interaction stats, favorites
+ * count) have been extracted into
+ * {@link EdgeOperationInspector}; this class injects the inspector
+ * so {@code performOperation} can return the same response shape as
+ * the read endpoints after a mutation. The {@code BookmarkMapper} is
+ * no longer wired into the service — the inspector is the single
+ * collaborator that knows how to count favorites.
  */
 @Slf4j
 @Service
@@ -32,8 +39,8 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
 
     private final VoteService voteService;
     private final EdgeOperationMapper edgeOperationMapper;
-    private final BookmarkMapper bookmarkMapper;
     private final SolutionMapper solutionMapper;
+    private final EdgeOperationInspector edgeOperationInspector;
 
     @Override
     @Transactional
@@ -54,27 +61,9 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
         // For other operations (ANALYZE, VIEW, etc.), use toggle logic
         toggleOperation(userId, targetId, targetType, operationType);
 
-        // Return interaction stats
-        return getInteractions(userId, targetId, targetType);
-    }
-
-    @Override
-    public EdgeOperationResponseVO getInteractions(String userId, String targetId, EdgeOperationTargetType targetType) {
-        // Get vote status from VoteService
-        VoteResultVO voteStatus = voteService.getVoteStatus(userId, targetId, targetType);
-
-        // Get favorites count
-        long favorites = getFavoritesCount(targetId, targetType);
-
-        // Build response
-        return EdgeOperationResponseVO.builder()
-                .likes(voteStatus.getLikes())
-                .dislikes(voteStatus.getDislikes())
-                .favorites(favorites)
-                .viewer(EdgeOperationResponseVO.ViewerState.builder()
-                        .vote(voteStatus.getUserVote())
-                        .build())
-                .build();
+        // Return interaction stats via the read seam so the response shape
+        // matches the GET /interactions endpoint.
+        return edgeOperationInspector.getInteractions(userId, targetId, targetType);
     }
 
     // ==================== Private Helper Methods ====================
@@ -94,8 +83,9 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
         // Update denormalized vote counts on solution entity
         updateSolutionVoteCounts(targetId, targetType);
 
-        // Get favorites count
-        long favorites = getFavoritesCount(targetId, targetType);
+        // Read favorites count via the inspector seam (BookmarkMapper
+        // lives only on EdgeOperationInspector now).
+        long favorites = edgeOperationInspector.getFavoritesCount(targetId, targetType);
 
         return EdgeOperationResponseVO.builder()
                 .likes(voteResult.getLikes())
@@ -139,33 +129,6 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
             edgeOperationMapper.insert(operation);
             log.debug("Added {} for {}:{} by user {}", operationType, targetType, targetId, userId);
         }
-    }
-
-    /**
-     * Get the count of users who favorited/bookmarked a target.
-     *
-     * <p>Aggregates rows in the {@code bookmarks} table where
-     * {@code target_type} matches the given target. The set of
-     * bookmarkable target types is sourced from
-     * {@link BookmarkType#leafTypes()}; non-leaf types (e.g. {@code POST},
-     * {@code COMMENT}, {@code PROBLEM_LIST}) return 0 because the bookmark
-     * module does not store rows for them. When the bookmark module adds a
-     * new leaf type, this method picks it up automatically — no change
-     * required here.
-     *
-     * <p>NOTE: the {@link EdgeOperationType#FAVORITE} toggle path does NOT
-     * contribute to this counter; FAVORITE in edge_operations is a "viewer
-     * has marked this item" boolean stored separately. Aggregation here is
-     * the folder-based bookmark only.
-     */
-    private long getFavoritesCount(String targetId, EdgeOperationTargetType targetType) {
-        if (!BookmarkType.leafTypeNames().contains(targetType.getValue())) {
-            return 0L;
-        }
-        QueryWrapper<Bookmark> wrapper = new QueryWrapper<>();
-        wrapper.eq("target_id", targetId)
-               .eq("target_type", targetType.getValue());
-        return bookmarkMapper.selectCount(wrapper);
     }
 
     /**

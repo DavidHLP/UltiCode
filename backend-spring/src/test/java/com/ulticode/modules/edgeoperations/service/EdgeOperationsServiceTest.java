@@ -1,11 +1,10 @@
 package com.ulticode.modules.edgeoperations.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ulticode.modules.bookmark.entity.Bookmark;
-import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
+import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.impl.EdgeOperationsServiceImpl;
+import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.EdgeOperation;
@@ -21,18 +20,31 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for EdgeOperationsService.
+ * Unit tests for the write path of {@link EdgeOperationsService}.
+ *
+ * <p>Pure-read paths (interaction stats, favorites count) used to
+ * live on this class as {@code getInteractions}; they have been
+ * extracted into {@link EdgeOperationInspector} and are now
+ * exercised by
+ * {@code DefaultEdgeOperationInspectorTest}. The service tests here
+ * stub the inspector so the post-mutation read returns a real
+ * response VO without dragging the bookmark mapper back into the
+ * service's bean graph.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayName("EdgeOperationsService — write path")
 class EdgeOperationsServiceTest {
 
     @Mock
@@ -42,7 +54,11 @@ class EdgeOperationsServiceTest {
     private EdgeOperationMapper edgeOperationMapper;
 
     @Mock
-    private BookmarkMapper bookmarkMapper;
+    private SolutionMapper solutionMapper;
+
+    @Spy
+    private EdgeOperationInspector edgeOperationInspector =
+            org.mockito.Mockito.mock(EdgeOperationInspector.class);
 
     @InjectMocks
     private EdgeOperationsServiceImpl edgeOperationsService;
@@ -60,389 +76,282 @@ class EdgeOperationsServiceTest {
         operationDTO.setTargetType(TARGET_TYPE);
     }
 
+    /**
+     * Build a stock "after-mutation" response that the inspector will
+     * return. Centralised so the vote/toggle tests can focus on the
+     * write path; the inspector's own tests cover the read shape.
+     */
+    private EdgeOperationResponseVO stubbedInteractionResponse(long likes, long dislikes,
+                                                                long favorites, int vote) {
+        return EdgeOperationResponseVO.builder()
+                .likes(likes)
+                .dislikes(dislikes)
+                .favorites(favorites)
+                .viewer(EdgeOperationResponseVO.ViewerState.builder().vote(vote).build())
+                .build();
+    }
+
+    // ------------------------------------------------------------------
+    // performOperation - Vote Up
+    // ------------------------------------------------------------------
+
     @Nested
-    @DisplayName("performOperation - Vote Up Tests")
+    @DisplayName("performOperation - Vote Up")
     class VoteUpTests {
 
         @Test
-        @DisplayName("should delegate to VoteService for VOTE_UP operation")
-        void shouldDelegateToVoteServiceForVoteUp() {
-            // Arrange
+        @DisplayName("delegates to VoteService for VOTE_UP and reuses the inspector's response")
+        void voteUp_delegatesToVoteServiceAndReturnsInspectorResponse() {
             operationDTO.setOperationType(EdgeOperationType.VOTE_UP);
 
             VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 10L, 2L, 1);
             when(voteService.vote(eq(USER_ID), any(VoteDTO.class))).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(5L);
+            when(edgeOperationInspector.getFavoritesCount(TARGET_ID, TARGET_TYPE)).thenReturn(5L);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(10L, 2L, 5L, 1));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(10L, result.getLikes());
-            assertEquals(2L, result.getDislikes());
-            assertEquals(5L, result.getFavorites());
-            assertEquals(1, result.getViewer().getVote());
+            assertThat(result).isNotNull();
+            assertThat(result.getLikes()).isEqualTo(10L);
+            assertThat(result.getDislikes()).isEqualTo(2L);
+            assertThat(result.getFavorites()).isEqualTo(5L);
+            assertThat(result.getViewer().getVote()).isEqualTo(1);
 
-            // Verify VoteService was called with correct parameters
-            ArgumentCaptor<VoteDTO> voteDTOCaptor = ArgumentCaptor.forClass(VoteDTO.class);
-            verify(voteService).vote(eq(USER_ID), voteDTOCaptor.capture());
-            VoteDTO capturedVoteDTO = voteDTOCaptor.getValue();
-            assertEquals(TARGET_ID, capturedVoteDTO.getTargetId());
-            assertEquals(TARGET_TYPE, capturedVoteDTO.getTargetType());
-            assertEquals(1, capturedVoteDTO.getValue());
+            ArgumentCaptor<VoteDTO> captor = ArgumentCaptor.forClass(VoteDTO.class);
+            verify(voteService).vote(eq(USER_ID), captor.capture());
+            VoteDTO captured = captor.getValue();
+            assertThat(captured.getTargetId()).isEqualTo(TARGET_ID);
+            assertThat(captured.getTargetType()).isEqualTo(TARGET_TYPE);
+            assertThat(captured.getValue()).isEqualTo(1);
 
-            // Verify EdgeOperationMapper was NOT called directly (vote is handled by VoteService)
             verify(edgeOperationMapper, never()).insert(any(EdgeOperation.class));
-            verify(edgeOperationMapper, never()).deleteByOperatorAndTarget(anyString(), anyString(), anyString(), anyString());
+            verify(edgeOperationMapper, never()).deleteByOperatorAndTarget(
+                    anyString(), anyString(), anyString(), anyString());
         }
     }
 
+    // ------------------------------------------------------------------
+    // performOperation - Vote Down
+    // ------------------------------------------------------------------
+
     @Nested
-    @DisplayName("performOperation - Vote Down Tests")
+    @DisplayName("performOperation - Vote Down")
     class VoteDownTests {
 
         @Test
-        @DisplayName("should delegate to VoteService for VOTE_DOWN operation")
-        void shouldDelegateToVoteServiceForVoteDown() {
-            // Arrange
+        @DisplayName("delegates to VoteService for VOTE_DOWN with -1 value")
+        void voteDown_delegatesToVoteService() {
             operationDTO.setOperationType(EdgeOperationType.VOTE_DOWN);
 
             VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 8L, 5L, -1);
             when(voteService.vote(eq(USER_ID), any(VoteDTO.class))).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(3L);
+            when(edgeOperationInspector.getFavoritesCount(TARGET_ID, TARGET_TYPE)).thenReturn(3L);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(8L, 5L, 3L, -1));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(8L, result.getLikes());
-            assertEquals(5L, result.getDislikes());
-            assertEquals(3L, result.getFavorites());
-            assertEquals(-1, result.getViewer().getVote());
+            assertThat(result.getLikes()).isEqualTo(8L);
+            assertThat(result.getDislikes()).isEqualTo(5L);
+            assertThat(result.getFavorites()).isEqualTo(3L);
+            assertThat(result.getViewer().getVote()).isEqualTo(-1);
 
-            // Verify VoteService was called with correct parameters
-            ArgumentCaptor<VoteDTO> voteDTOCaptor = ArgumentCaptor.forClass(VoteDTO.class);
-            verify(voteService).vote(eq(USER_ID), voteDTOCaptor.capture());
-            VoteDTO capturedVoteDTO = voteDTOCaptor.getValue();
-            assertEquals(-1, capturedVoteDTO.getValue());
+            ArgumentCaptor<VoteDTO> captor = ArgumentCaptor.forClass(VoteDTO.class);
+            verify(voteService).vote(eq(USER_ID), captor.capture());
+            assertThat(captor.getValue().getValue()).isEqualTo(-1);
         }
     }
 
+    // ------------------------------------------------------------------
+    // performOperation - Analyze
+    // ------------------------------------------------------------------
+
     @Nested
-    @DisplayName("performOperation - Analyze Tests")
+    @DisplayName("performOperation - Analyze")
     class AnalyzeTests {
 
         @Test
-        @DisplayName("should add ANALYZE operation when not exists")
-        void shouldAddAnalyzeOperationWhenNotExists() {
-            // Arrange
+        @DisplayName("adds ANALYZE operation when not exists")
+        void analyze_addWhenNotExists() {
             operationDTO.setOperationType(EdgeOperationType.ANALYZE);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
                     .thenReturn(0);
-
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 10L, 2L, 0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
             when(edgeOperationMapper.insert(any(EdgeOperation.class))).thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(10L, 2L, 0L, 0));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(10L, result.getLikes());
-            assertEquals(2L, result.getDislikes());
-            assertEquals(0L, result.getFavorites());
-            assertEquals(0, result.getViewer().getVote());
-
+            assertThat(result).isNotNull();
+            assertThat(result.getLikes()).isEqualTo(10L);
+            assertThat(result.getFavorites()).isZero();
             verify(edgeOperationMapper).insert(any(EdgeOperation.class));
-            verify(edgeOperationMapper, never()).deleteByOperatorAndTarget(anyString(), anyString(), anyString(), anyString());
+            verify(edgeOperationMapper, never()).deleteByOperatorAndTarget(
+                    anyString(), anyString(), anyString(), anyString());
         }
 
         @Test
-        @DisplayName("should remove ANALYZE operation when already exists (toggle)")
-        void shouldRemoveAnalyzeOperationWhenAlreadyExists() {
-            // Arrange
+        @DisplayName("removes ANALYZE operation when already exists (toggle)")
+        void analyze_removeWhenExists() {
             operationDTO.setOperationType(EdgeOperationType.ANALYZE);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
                     .thenReturn(1);
-
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 10L, 2L, 0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
-            when(edgeOperationMapper.deleteByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
+            when(edgeOperationMapper.deleteByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
                     .thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(10L, 2L, 0L, 0));
 
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
+            edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-
-            verify(edgeOperationMapper).deleteByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue());
+            verify(edgeOperationMapper).deleteByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue());
             verify(edgeOperationMapper, never()).insert(any(EdgeOperation.class));
         }
 
         @Test
-        @DisplayName("should create EdgeOperation with correct fields for ANALYZE")
-        void shouldCreateEdgeOperationWithCorrectFieldsForAnalyze() {
-            // Arrange
+        @DisplayName("creates EdgeOperation with correct fields for ANALYZE")
+        void analyze_createsCorrectEdgeOperation() {
             operationDTO.setOperationType(EdgeOperationType.ANALYZE);
             ArgumentCaptor<EdgeOperation> captor = ArgumentCaptor.forClass(EdgeOperation.class);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.ANALYZE.getValue()))
                     .thenReturn(0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE))
-                    .thenReturn(new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 0L, 0L, 0));
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
             when(edgeOperationMapper.insert(captor.capture())).thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(0L, 0L, 0L, 0));
 
-            // Act
             edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            EdgeOperation savedOperation = captor.getValue();
-            assertEquals(TARGET_ID, savedOperation.getTargetId());
-            assertEquals(TARGET_TYPE, savedOperation.getTargetType());
-            assertEquals(USER_ID, savedOperation.getOperatorId());
-            assertEquals(EdgeOperationType.ANALYZE, savedOperation.getOperationType());
+            EdgeOperation saved = captor.getValue();
+            assertThat(saved.getTargetId()).isEqualTo(TARGET_ID);
+            assertThat(saved.getTargetType()).isEqualTo(TARGET_TYPE);
+            assertThat(saved.getOperatorId()).isEqualTo(USER_ID);
+            assertThat(saved.getOperationType()).isEqualTo(EdgeOperationType.ANALYZE);
         }
     }
 
+    // ------------------------------------------------------------------
+    // performOperation - View
+    // ------------------------------------------------------------------
+
     @Nested
-    @DisplayName("performOperation - View Tests")
+    @DisplayName("performOperation - View")
     class ViewTests {
 
         @Test
-        @DisplayName("should add VIEW operation when not exists")
-        void shouldAddViewOperationWhenNotExists() {
-            // Arrange
+        @DisplayName("adds VIEW operation when not exists")
+        void view_addWhenNotExists() {
             operationDTO.setOperationType(EdgeOperationType.VIEW);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
                     .thenReturn(0);
-
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 15L, 3L, 1);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(2L);
             when(edgeOperationMapper.insert(any(EdgeOperation.class))).thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(15L, 3L, 2L, 1));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(15L, result.getLikes());
-            assertEquals(3L, result.getDislikes());
-            assertEquals(2L, result.getFavorites());
-            assertEquals(1, result.getViewer().getVote());
-
+            assertThat(result).isNotNull();
+            assertThat(result.getFavorites()).isEqualTo(2L);
             verify(edgeOperationMapper).insert(any(EdgeOperation.class));
         }
 
         @Test
-        @DisplayName("should remove VIEW operation when already exists (toggle)")
-        void shouldRemoveViewOperationWhenAlreadyExists() {
-            // Arrange
+        @DisplayName("removes VIEW operation when already exists (toggle)")
+        void view_removeWhenExists() {
             operationDTO.setOperationType(EdgeOperationType.VIEW);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
                     .thenReturn(1);
-
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 15L, 3L, 0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
-            when(edgeOperationMapper.deleteByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
+            when(edgeOperationMapper.deleteByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue()))
                     .thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE))
+                    .thenReturn(stubbedInteractionResponse(15L, 3L, 0L, 0));
 
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
+            edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-
-            verify(edgeOperationMapper).deleteByOperatorAndTarget(USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue());
+            verify(edgeOperationMapper).deleteByOperatorAndTarget(
+                    USER_ID, TARGET_ID, TARGET_TYPE.getValue(), EdgeOperationType.VIEW.getValue());
         }
     }
 
-    @Nested
-    @DisplayName("getInteractions Tests")
-    class GetInteractionsTests {
-
-        @Test
-        @DisplayName("should return correct interaction stats for PROBLEM")
-        void shouldReturnCorrectInteractionStatsForProblem() {
-            // Arrange
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 1);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(8L);
-
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(20L, result.getLikes());
-            assertEquals(5L, result.getDislikes());
-            assertEquals(8L, result.getFavorites());
-            assertEquals(1, result.getViewer().getVote());
-
-            // Verify bookmark query was made for PROBLEM type
-            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
-        }
-
-        @Test
-        @DisplayName("should return zero favorites for non-leaf target types")
-        void shouldReturnZeroFavoritesForNonLeafTargetTypes() {
-            // Arrange — POST is NOT in BookmarkType.leafTypes(), so the bookmark
-            // mapper is never queried and favorites is hard-coded to 0.
-            EdgeOperationTargetType postType = EdgeOperationTargetType.POST;
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, postType.getValue(), 10L, 2L, -1);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, postType)).thenReturn(voteResult);
-
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, postType);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(10L, result.getLikes());
-            assertEquals(2L, result.getDislikes());
-            assertEquals(0L, result.getFavorites()); // POST has no bookmark coverage → 0
-            assertEquals(-1, result.getViewer().getVote());
-
-            // Verify bookmark query was NOT made for non-leaf type
-            verify(bookmarkMapper, never()).selectCount(any(QueryWrapper.class));
-        }
-
-        @Test
-        @DisplayName("should query bookmark for leaf target types like FORUM_POST")
-        void shouldQueryBookmarkForLeafTargetTypes() {
-            // Arrange — FORUM_POST IS in BookmarkType.leafTypes() (new behavior since
-            // the L1 refactor). Mock the bookmark mapper to return a non-zero count
-            // and verify the count is propagated.
-            EdgeOperationTargetType forumPostType = EdgeOperationTargetType.FORUM_POST;
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, forumPostType.getValue(), 3L, 0L, 0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, forumPostType)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(7L);
-
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, forumPostType);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(3L, result.getLikes());
-            assertEquals(0L, result.getDislikes());
-            assertEquals(7L, result.getFavorites()); // FORUM_POST is a leaf type — count propagated
-            assertEquals(0, result.getViewer().getVote());
-
-            // Verify bookmark query WAS made for leaf type
-            verify(bookmarkMapper).selectCount(any(QueryWrapper.class));
-        }
-
-        @Test
-        @DisplayName("should work for anonymous users (null userId)")
-        void shouldWorkForAnonymousUsers() {
-            // Arrange
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 0);
-            when(voteService.getVoteStatus(null, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(3L);
-
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(null, TARGET_ID, TARGET_TYPE);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(20L, result.getLikes());
-            assertEquals(5L, result.getDislikes());
-            assertEquals(3L, result.getFavorites());
-            assertEquals(0, result.getViewer().getVote()); // Anonymous users have no vote
-        }
-
-        @Test
-        @DisplayName("should return zero user vote when user has not voted")
-        void shouldReturnZeroUserVoteWhenUserHasNotVoted() {
-            // Arrange
-            VoteResultVO voteResult = new VoteResultVO(TARGET_ID, TARGET_TYPE.getValue(), 20L, 5L, 0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, TARGET_TYPE)).thenReturn(voteResult);
-            when(bookmarkMapper.selectCount(any(QueryWrapper.class))).thenReturn(0L);
-
-            // Act
-            EdgeOperationResponseVO result = edgeOperationsService.getInteractions(USER_ID, TARGET_ID, TARGET_TYPE);
-
-            // Assert
-            assertEquals(0, result.getViewer().getVote());
-        }
-    }
+    // ------------------------------------------------------------------
+    // Different Target Types
+    // ------------------------------------------------------------------
 
     @Nested
-    @DisplayName("Different Target Types Tests")
+    @DisplayName("performOperation - Different Target Types")
     class DifferentTargetTypesTests {
 
         @Test
-        @DisplayName("should handle SOLUTION target type")
-        void shouldHandleSolutionTargetType() {
-            // Arrange
+        @DisplayName("handles SOLUTION target type for ANALYZE")
+        void solutionTarget_analyze() {
             operationDTO.setTargetType(EdgeOperationTargetType.SOLUTION);
             operationDTO.setOperationType(EdgeOperationType.ANALYZE);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(anyString(), anyString(),
-                    eq(EdgeOperationTargetType.SOLUTION.getValue()), anyString())).thenReturn(0);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, EdgeOperationTargetType.SOLUTION))
-                    .thenReturn(new VoteResultVO(TARGET_ID, EdgeOperationTargetType.SOLUTION.getValue(), 5L, 1L, 0));
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    anyString(), anyString(),
+                    eq(EdgeOperationTargetType.SOLUTION.getValue()), anyString()))
+                    .thenReturn(0);
             when(edgeOperationMapper.insert(any(EdgeOperation.class))).thenReturn(1);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, EdgeOperationTargetType.SOLUTION))
+                    .thenReturn(stubbedInteractionResponse(5L, 1L, 0L, 0));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(0L, result.getFavorites()); // Non-PROBLEM types return 0 favorites
+            assertThat(result).isNotNull();
+            assertThat(result.getFavorites()).isZero();
         }
 
         @Test
-        @DisplayName("should handle POST target type")
-        void shouldHandlePostTargetType() {
-            // Arrange
+        @DisplayName("handles POST target type for VIEW")
+        void postTarget_view() {
             operationDTO.setTargetType(EdgeOperationTargetType.POST);
             operationDTO.setOperationType(EdgeOperationType.VIEW);
 
-            when(edgeOperationMapper.existsByOperatorAndTarget(USER_ID, TARGET_ID,
-                    EdgeOperationTargetType.POST.getValue(), EdgeOperationType.VIEW.getValue())).thenReturn(0);
+            when(edgeOperationMapper.existsByOperatorAndTarget(
+                    USER_ID, TARGET_ID,
+                    EdgeOperationTargetType.POST.getValue(), EdgeOperationType.VIEW.getValue()))
+                    .thenReturn(0);
             when(edgeOperationMapper.insert(any(EdgeOperation.class))).thenReturn(1);
-            when(voteService.getVoteStatus(USER_ID, TARGET_ID, EdgeOperationTargetType.POST))
-                    .thenReturn(new VoteResultVO(TARGET_ID, EdgeOperationTargetType.POST.getValue(), 8L, 0L, 0));
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, EdgeOperationTargetType.POST))
+                    .thenReturn(stubbedInteractionResponse(8L, 0L, 0L, 0));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(8L, result.getLikes());
-            assertEquals(0L, result.getFavorites()); // POST has no BookmarkType coverage → 0
+            assertThat(result.getLikes()).isEqualTo(8L);
+            assertThat(result.getFavorites()).isZero();
         }
 
         @Test
-        @DisplayName("should handle COMMENT target type")
-        void shouldHandleCommentTargetType() {
-            // Arrange
+        @DisplayName("handles COMMENT target type for VOTE_DOWN")
+        void commentTarget_voteDown() {
             operationDTO.setTargetType(EdgeOperationTargetType.COMMENT);
             operationDTO.setOperationType(EdgeOperationType.VOTE_DOWN);
 
             when(voteService.vote(eq(USER_ID), any(VoteDTO.class)))
-                    .thenReturn(new VoteResultVO(TARGET_ID, EdgeOperationTargetType.COMMENT.getValue(), 2L, 3L, -1));
+                    .thenReturn(new VoteResultVO(
+                            TARGET_ID, EdgeOperationTargetType.COMMENT.getValue(), 2L, 3L, -1));
+            when(edgeOperationInspector.getFavoritesCount(TARGET_ID, EdgeOperationTargetType.COMMENT))
+                    .thenReturn(0L);
+            when(edgeOperationInspector.getInteractions(USER_ID, TARGET_ID, EdgeOperationTargetType.COMMENT))
+                    .thenReturn(stubbedInteractionResponse(2L, 3L, 0L, -1));
 
-            // Act
             EdgeOperationResponseVO result = edgeOperationsService.performOperation(USER_ID, operationDTO);
 
-            // Assert
-            assertNotNull(result);
-            assertEquals(2L, result.getLikes());
-            assertEquals(3L, result.getDislikes());
-            assertEquals(-1, result.getViewer().getVote());
+            assertThat(result.getLikes()).isEqualTo(2L);
+            assertThat(result.getDislikes()).isEqualTo(3L);
+            assertThat(result.getViewer().getVote()).isEqualTo(-1);
         }
     }
 }

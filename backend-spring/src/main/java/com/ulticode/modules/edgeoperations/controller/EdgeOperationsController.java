@@ -6,6 +6,7 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.dto.GetInteractionsQueryDTO;
+import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class EdgeOperationsController {
 
     private final EdgeOperationsService edgeOperationsService;
+    private final EdgeOperationInspector edgeOperationInspector;
 
     @Operation(summary = "Perform an edge operation",
             description = "Perform an edge operation (vote, analyze, view, etc.) on a target. " +
@@ -48,7 +50,7 @@ public class EdgeOperationsController {
             @Parameter(description = "Target ID") @RequestParam String targetId,
             @Parameter(description = "Target type") @RequestParam EdgeOperationTargetType targetType) {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
+        return Result.success(edgeOperationInspector.getInteractions(userId, targetId, targetType));
     }
 
     @Operation(summary = "Get interaction stats for a target by path",
@@ -59,6 +61,6 @@ public class EdgeOperationsController {
             @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,
             @Parameter(description = "Target ID") @PathVariable String targetId) {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
+        return Result.success(edgeOperationInspector.getInteractions(userId, targetId, targetType));
     }
 }

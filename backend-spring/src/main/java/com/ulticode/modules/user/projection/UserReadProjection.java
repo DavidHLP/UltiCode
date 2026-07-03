@@ -1,41 +1,30 @@
-package com.ulticode.modules.user.service;
+package com.ulticode.modules.user.projection;
 
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
-import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
- * Backwards-compatible facade for user-related operations.
+ * Read surface for the user domain.
  *
- * <p><b>Deprecated:</b> new callers should depend on
- * {@code UserReadProjection} (reads) and {@code UserWritePort} (writes)
- * directly. This facade is preserved because several cross-module
- * callers (auth, admin, forum, websocket) still inject
- * {@code UserService}; every method is a one-line delegate to the new
- * deep modules, so the complexity is concentrated in
- * {@code DefaultUserReadProjection} / {@code DefaultUserWritePort}
- * rather than here.
+ * <p>Extracted from the deleted {@code UserService} facade. Owns every
+ * read-side operation on user records — including the cross-table joins
+ * the facade used to scatter across {@code UserServiceImpl} (user +
+ * submissions + problems + problem-tag-relations + follow). The
+ * dependency category is in-process; the seam is real because
+ * {@code UserController} is the only caller and the default adapter is
+ * the only provider today (tests can substitute a fake).
  *
  * @author ulticode
- * @deprecated use {@code UserReadProjection} and {@code UserWritePort}
- *             instead. This facade will be removed once all cross-module
- *             callers migrate.
  */
-@Deprecated
-public interface UserService {
+public interface UserReadProjection {
 
     /**
      * Find a user by their unique ID.
@@ -51,13 +40,7 @@ public interface UserService {
      * @param ids the user IDs
      * @return map of user ID to User entity
      */
-    default Map<String, User> findAllById(Collection<String> ids) {
-        return ids.stream()
-                .map(this::findById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toMap(User::getId, Function.identity()));
-    }
+    Map<String, User> findAllById(Collection<String> ids);
 
     /**
      * Find a user by their username.
@@ -81,14 +64,6 @@ public interface UserService {
      * @return the user view object
      */
     UserVO getCurrentUser();
-
-    /**
-     * Update the current authenticated user's profile.
-     *
-     * @param updateDTO the update data
-     * @return the updated user view object
-     */
-    UserVO updateCurrentUser(UpdateUserDTO updateDTO);
 
     /**
      * List users with pagination.
@@ -115,13 +90,6 @@ public interface UserService {
      * @return the user statistics
      */
     UserStatsDTO getUserStatsById(String id);
-
-    /**
-     * Update the last login timestamp for a user.
-     *
-     * @param userId the user ID
-     */
-    void updateLastLoginAt(String userId);
 
     /**
      * Get user skills (tag statistics) for a user.
@@ -154,19 +122,4 @@ public interface UserService {
      * @return the user profile view object
      */
     ProfileVO getUserProfileByUsername(String username);
-
-    /**
-     * Upload and update the current user's avatar.
-     *
-     * @param file the avatar image file
-     * @return the URL of the uploaded avatar
-     */
-    String uploadAvatar(MultipartFile file);
-
-    /**
-     * Change the current authenticated user's password.
-     *
-     * @param changePasswordDTO the change password data
-     */
-    void changePassword(ChangePasswordDTO changePasswordDTO);
 }

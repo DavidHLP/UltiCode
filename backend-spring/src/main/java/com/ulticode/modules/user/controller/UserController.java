@@ -11,7 +11,8 @@ import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.port.UserWritePort;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,7 +35,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
+    private final UserWritePort userWritePort;
     private final AchievementService achievementService;
 
     /**
@@ -47,7 +49,7 @@ public class UserController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/me")
     public Result<UserVO> getCurrentUser() {
-        UserVO user = userService.getCurrentUser();
+        UserVO user = userReadProjection.getCurrentUser();
         return Result.success(user);
     }
 
@@ -64,7 +66,7 @@ public class UserController {
     @RateLimit(key = "user:update", limit = 20, period = 60)
     @PatchMapping("/me")
     public Result<UserVO> updateCurrentUser(@Valid @RequestBody UpdateUserDTO updateDTO) {
-        UserVO user = userService.updateCurrentUser(updateDTO);
+        UserVO user = userWritePort.updateCurrentUser(updateDTO);
         return Result.success(user);
     }
 
@@ -81,7 +83,7 @@ public class UserController {
     @RateLimit(key = "user:password", limit = 5, period = 60)
     @PatchMapping("/me/password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
-        userService.changePassword(changePasswordDTO);
+        userWritePort.changePassword(changePasswordDTO);
         return Result.success();
     }
 
@@ -100,7 +102,7 @@ public class UserController {
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
-        PageResult<UserVO> result = userService.listUsers(page, pageSize);
+        PageResult<UserVO> result = userReadProjection.listUsers(page, pageSize);
         return Result.success(result);
     }
 
@@ -117,7 +119,7 @@ public class UserController {
     public Result<UserVO> getUserById(
             @Parameter(description = "User ID")
             @PathVariable String id) {
-        UserVO user = userService.getUserById(id);
+        UserVO user = userReadProjection.getUserById(id);
         return Result.success(user);
     }
 
@@ -135,7 +137,7 @@ public class UserController {
     public Result<UserStatsDTO> getUserStats(
             @Parameter(description = "User ID")
             @PathVariable String id) {
-        UserStatsDTO stats = userService.getUserStatsById(id);
+        UserStatsDTO stats = userReadProjection.getUserStatsById(id);
         return Result.success(stats);
     }
 
@@ -152,7 +154,7 @@ public class UserController {
     public Result<UserSkillsDTO> getUserSkills(
             @Parameter(description = "User ID")
             @PathVariable String id) {
-        UserSkillsDTO skills = userService.getUserSkillsById(id);
+        UserSkillsDTO skills = userReadProjection.getUserSkillsById(id);
         return Result.success(skills);
     }
 
@@ -169,7 +171,7 @@ public class UserController {
     public Result<ProfileVO> getUserProfile(
             @Parameter(description = "User ID")
             @PathVariable String id) {
-        ProfileVO profile = userService.getUserProfile(id);
+        ProfileVO profile = userReadProjection.getUserProfile(id);
         return Result.success(profile);
     }
 
@@ -186,7 +188,7 @@ public class UserController {
     public Result<ProfileVO> getUserProfileByUsername(
             @Parameter(description = "Username")
             @PathVariable String username) {
-        ProfileVO profile = userService.getUserProfileByUsername(username);
+        ProfileVO profile = userReadProjection.getUserProfileByUsername(username);
         return Result.success(profile);
     }
 
@@ -204,7 +206,7 @@ public class UserController {
     public Result<String> uploadAvatar(
             @Parameter(description = "Avatar image file")
             @RequestParam("file") MultipartFile file) {
-        String avatarUrl = userService.uploadAvatar(file);
+        String avatarUrl = userWritePort.uploadAvatar(file);
         return Result.success(avatarUrl);
     }
 
@@ -218,7 +220,7 @@ public class UserController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/me/achievements/progress")
     public Result<List<AchievementProgressVO>> getAchievementProgress() {
-        String userId = userService.getCurrentUser().getId();
+        String userId = userReadProjection.getCurrentUser().getId();
         List<AchievementProgressVO> progress = achievementService.getUserProgress(userId);
         return Result.success(progress);
     }

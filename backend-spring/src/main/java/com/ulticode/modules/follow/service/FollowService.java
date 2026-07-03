@@ -1,11 +1,19 @@
 package com.ulticode.modules.follow.service;
 
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
-import com.ulticode.modules.follow.dto.UserSummaryDTO;
-import com.ulticode.common.response.PageResult;
 
 /**
- * Service interface for follow operations.
+ * Write-path service for the follow graph.
+ *
+ * <p>Holds the two mutations — follow and unfollow — and nothing else.
+ * Every read (paginated follower / following lists, aggregate counts,
+ * per-viewer follow-status) lives on the matching deep module
+ * {@link com.ulticode.modules.follow.inspector.FollowInspector}; this
+ * service injects the inspector to fetch the post-mutation counts it
+ * returns, so the read logic has a single owner.
+ *
+ * @see com.ulticode.modules.follow.inspector.FollowInspector
+ *      the read-side deep module that owns every follow-graph read
  */
 public interface FollowService {
 
@@ -26,41 +34,4 @@ public interface FollowService {
      * @return updated follow stats
      */
     FollowStatsDTO unfollow(String currentUserId, String targetUserId);
-
-    /**
-     * Get paginated followers of a user.
-     *
-     * @param userId the user whose followers to retrieve
-     * @param page the page number (1-based)
-     * @param pageSize the page size
-     * @return paginated follower list
-     */
-    PageResult<UserSummaryDTO> getFollowers(String userId, int page, int pageSize);
-
-    /**
-     * Get paginated following list of a user.
-     *
-     * @param userId the user whose following list to retrieve
-     * @param page the page number (1-based)
-     * @param pageSize the page size
-     * @return paginated following list
-     */
-    PageResult<UserSummaryDTO> getFollowing(String userId, int page, int pageSize);
-
-    /**
-     * Get follow stats for a user.
-     *
-     * @param userId the user ID
-     * @return follow stats
-     */
-    FollowStatsDTO getFollowStats(String userId);
-
-    /**
-     * Check if the current user follows a target user.
-     *
-     * @param currentUserId the current user's ID
-     * @param targetUserId the target user's ID
-     * @return true if the current user follows the target user
-     */
-    boolean isFollowing(String currentUserId, String targetUserId);
 }

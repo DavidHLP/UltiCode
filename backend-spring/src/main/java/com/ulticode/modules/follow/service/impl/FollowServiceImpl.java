@@ -2,13 +2,10 @@ package com.ulticode.modules.follow.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
-import com.ulticode.modules.follow.dto.UserSummaryDTO;
-import com.ulticode.modules.follow.entity.UserFollow;
+import com.ulticode.modules.follow.inspector.FollowInspector;
 import com.ulticode.modules.follow.mapper.FollowMapper;
-import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
 import com.ulticode.modules.follow.service.FollowService;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
@@ -19,13 +16,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
- * Implementation of FollowService.
+ * Write-path implementation of {@link FollowService}.
+ *
+ * <p>Owns the two mutations (follow / unfollow): idempotent insert /
+ * delete against {@code user_follow}, follow-notification dispatch, and
+ * the post-mutation follower-count achievement trigger. Every read —
+ * including the post-mutation stats this service returns — is delegated
+ * to {@link FollowInspector} so the pagination, batch-count enrichment,
+ * and count-query logic have a single owner instead of leaking across
+ * the write path's bean graph.
  */
 @Slf4j
 @Service
@@ -43,6 +43,11 @@ public class FollowServiceImpl implements FollowService {
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    /**
+     * Read-side deep module. Injected so the post-mutation stats return
+     * value can be served without re-implementing the count read here.
+     */
+    private final FollowInspector followInspector;
 
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
@@ -88,7 +93,7 @@ public class FollowServiceImpl implements FollowService {
             }
         }
 
-        FollowStatsDTO stats = getFollowStats(targetUserId);
+        FollowStatsDTO stats = followInspector.getFollowStats(targetUserId);
 
         triggerFollowerAchievement(currentUserId, stats.getFollowingCount());
         triggerFollowerAchievement(targetUserId, stats.getFollowerCount());
@@ -113,132 +118,12 @@ public class FollowServiceImpl implements FollowService {
             log.debug("User {} already not following {}, skip", currentUserId, targetUserId);
         }
 
-        FollowStatsDTO stats = getFollowStats(targetUserId);
+        FollowStatsDTO stats = followInspector.getFollowStats(targetUserId);
 
         triggerFollowerAchievement(currentUserId, stats.getFollowingCount());
         triggerFollowerAchievement(targetUserId, stats.getFollowerCount());
 
         return stats;
-    }
-
-    @Override
-    public PageResult<UserSummaryDTO> getFollowers(String userId, int page, int pageSize) {
-        int currentPage = Math.max(1, page);
-        int currentPageSize = Math.min(Math.max(1, pageSize), 100);
-        long offset = (long) (currentPage - 1) * currentPageSize;
-
-        List<UserFollow> follows = followMapper.selectByFollowingIdPaged(userId, offset, currentPageSize);
-        long total = followMapper.countByFollowingId(userId);
-
-        if (follows.isEmpty()) {
-            return PageResult.of(List.of(), total, currentPage, currentPageSize);
-        }
-
-        List<String> userIds = follows.stream().map(UserFollow::getFollowerId).toList();
-        Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
-
-        // Batch fetch follower/following counts for all users in 2 queries total
-        Map<String, FollowCountDTO> countMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
-            List<FollowCountDTO> followingCounts = followMapper.batchFollowingCounts(userIds);
-            for (FollowCountDTO fc : followerCounts) {
-                countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), fc.followerCount(), 0));
-            }
-            for (FollowCountDTO fc : followingCounts) {
-                FollowCountDTO existing = countMap.get(fc.userId());
-                if (existing != null) {
-                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), existing.followerCount(), fc.followingCount()));
-                } else {
-                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), 0, fc.followingCount()));
-                }
-            }
-        }
-
-        List<UserSummaryDTO> summaries = follows.stream()
-                .map(f -> toUserSummary(userMap.get(f.getFollowerId()), countMap))
-                .toList();
-
-        return PageResult.of(summaries, total, currentPage, currentPageSize);
-    }
-
-    @Override
-    public PageResult<UserSummaryDTO> getFollowing(String userId, int page, int pageSize) {
-        int currentPage = Math.max(1, page);
-        int currentPageSize = Math.min(Math.max(1, pageSize), 100);
-        long offset = (long) (currentPage - 1) * currentPageSize;
-
-        List<UserFollow> follows = followMapper.selectByFollowerIdPaged(userId, offset, currentPageSize);
-        long total = followMapper.countByFollowerId(userId);
-
-        if (follows.isEmpty()) {
-            return PageResult.of(List.of(), total, currentPage, currentPageSize);
-        }
-
-        List<String> userIds = follows.stream().map(UserFollow::getFollowingId).toList();
-        Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
-
-        // Batch fetch follower/following counts for all users in 2 queries total
-        Map<String, FollowCountDTO> countMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
-            List<FollowCountDTO> followingCounts = followMapper.batchFollowingCounts(userIds);
-            for (FollowCountDTO fc : followerCounts) {
-                countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), fc.followerCount(), 0));
-            }
-            for (FollowCountDTO fc : followingCounts) {
-                FollowCountDTO existing = countMap.get(fc.userId());
-                if (existing != null) {
-                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), existing.followerCount(), fc.followingCount()));
-                } else {
-                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), 0, fc.followingCount()));
-                }
-            }
-        }
-
-        List<UserSummaryDTO> summaries = follows.stream()
-                .map(f -> toUserSummary(userMap.get(f.getFollowingId()), countMap))
-                .toList();
-
-        return PageResult.of(summaries, total, currentPage, currentPageSize);
-    }
-
-    @Override
-    public FollowStatsDTO getFollowStats(String userId) {
-        FollowStatsDTO stats = new FollowStatsDTO();
-        stats.setFollowerCount(followMapper.countByFollowingId(userId));
-        stats.setFollowingCount(followMapper.countByFollowerId(userId));
-        return stats;
-    }
-
-    private UserSummaryDTO toUserSummary(User user, Map<String, FollowCountDTO> countMap) {
-        if (user == null) {
-            return null;
-        }
-        UserSummaryDTO dto = new UserSummaryDTO();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setAvatar(user.getAvatar());
-        String bio = user.getBio();
-        dto.setBio(bio != null && bio.length() > 100 ? bio.substring(0, 100) : bio);
-
-        FollowCountDTO counts = countMap.get(user.getId());
-        dto.setFollowerCount(counts != null ? counts.followerCount() : 0);
-        dto.setFollowingCount(counts != null ? counts.followingCount() : 0);
-        return dto;
-    }
-
-    @Override
-    public boolean isFollowing(String currentUserId, String targetUserId) {
-        if (currentUserId.equals(targetUserId)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot query follow status of yourself");
-        }
-        if (userMapper.selectById(targetUserId) == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-        return followMapper.exists(currentUserId, targetUserId);
     }
 
     @Async

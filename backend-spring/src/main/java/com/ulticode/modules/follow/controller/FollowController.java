@@ -6,12 +6,19 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.follow.dto.FollowStatusDTO;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
+import com.ulticode.modules.follow.inspector.FollowInspector;
 import com.ulticode.modules.follow.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for follow operations.
+ *
+ * <p>Splits across the two follow deep modules: writes (follow /
+ * unfollow) go through {@link FollowService}, reads (followers /
+ * following / follow-status) go through {@link FollowInspector} so the
+ * read paths never pull in the write module's notification /
+ * achievement collaborators.
  */
 @RestController
 @RequestMapping("/users")
@@ -19,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class FollowController {
 
     private final FollowService followService;
+    private final FollowInspector followInspector;
 
     /**
      * Follow a user.
@@ -48,7 +56,7 @@ public class FollowController {
             @PathVariable("id") String userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
-        PageResult<UserSummaryDTO> result = followService.getFollowers(userId, page, pageSize);
+        PageResult<UserSummaryDTO> result = followInspector.getFollowers(userId, page, pageSize);
         return Result.success(result);
     }
 
@@ -60,7 +68,7 @@ public class FollowController {
             @PathVariable("id") String userId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
-        PageResult<UserSummaryDTO> result = followService.getFollowing(userId, page, pageSize);
+        PageResult<UserSummaryDTO> result = followInspector.getFollowing(userId, page, pageSize);
         return Result.success(result);
     }
 
@@ -70,7 +78,7 @@ public class FollowController {
     @GetMapping("/{id}/follow/status")
     public Result<FollowStatusDTO> getFollowStatus(@PathVariable("id") String userId) {
         String currentUserId = SecurityUtil.getCurrentUserId();
-        boolean isFollowing = followService.isFollowing(currentUserId, userId);
+        boolean isFollowing = followInspector.isFollowing(currentUserId, userId);
         FollowStatusDTO dto = new FollowStatusDTO();
         dto.setFollowing(isFollowing);
         return Result.success(dto);

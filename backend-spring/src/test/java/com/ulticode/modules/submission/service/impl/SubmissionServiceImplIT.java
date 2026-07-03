@@ -252,13 +252,20 @@ class SubmissionServiceImplIT {
                 new com.ulticode.common.config.FeatureFlagsProperties();
         com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
                 new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
+        // Write surface now lives behind SubmissionWritePort. Wire the real
+        // DefaultSubmissionWritePort adapter so the existing submit IT
+        // assertions exercise the extracted write logic end-to-end through
+        // the facade delegate against Testcontainers MySQL.
+        com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
+                new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
+                        submissionMapper, userMapper, problemMapper, objectMapper,
+                        submissionProjection, performanceStats,
+                        queueService, contestSubmissionPort,
+                        achievementTriggerService, notificationDispatchService,
+                        notificationDispatcher,
+                        null, flags, null, null);
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, objectMapper,
-                submissionProjection, performanceStats,
-                queueService, contestSubmissionPort,
-                achievementTriggerService, notificationService, notificationDispatchService,
-                notificationDispatcher,
-                null, flags, null, null);
+                submissionMapper, submissionProjection, performanceStats, writePort);
     }
 
     @AfterEach

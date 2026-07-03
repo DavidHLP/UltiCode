@@ -79,14 +79,23 @@ class SubmissionServiceImplTest {
         // end-to-end (no behaviour change vs. pre-deepening).
         com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
                 new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
+        // Write surface now lives behind SubmissionWritePort. Wire the real
+        // DefaultSubmissionWritePort adapter so the existing submit /
+        // updateSubmissionResult assertions exercise the extracted write
+        // logic end-to-end through the facade delegate (zero behaviour
+        // change vs. pre-deepening). Read-side tests (findById /
+        // findByProblemId) keep using the same submissionService reference.
+        com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
+                new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
+                        submissionMapper, userMapper, problemMapper, objectMapper,
+                        submissionProjection, performanceStats,
+                        queueService,
+                        contestSubmissionPort,
+                        achievementTriggerService,
+                        notificationDispatchService, notificationDispatcher,
+                        null, flags, null, null);
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, objectMapper,
-                submissionProjection, performanceStats,
-                queueService,
-                contestSubmissionPort,
-                achievementTriggerService,
-                notificationService, notificationDispatchService, notificationDispatcher,
-                null, flags, null, null);
+                submissionMapper, submissionProjection, performanceStats, writePort);
         // Default projection stubs: the service delegates to SubmissionProjection
         // for the toVO / toListItemVO / toDetailVO paths. Default lenient stubs
         // return non-null VOs so tests asserting on return values keep working;

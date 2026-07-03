@@ -1,4 +1,4 @@
-package com.ulticode.modules.monitoring.service;
+package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
@@ -7,7 +7,6 @@ import com.ulticode.modules.monitoring.dto.RedisStatsVO;
 import com.ulticode.modules.monitoring.dto.ResourceUsageVO;
 import com.ulticode.modules.monitoring.dto.SystemHealthVO;
 import com.ulticode.modules.monitoring.dto.SystemInfoVO;
-import com.ulticode.modules.monitoring.service.impl.MonitoringServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,17 +30,31 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for MonitoringService.
+ * Unit tests for {@link DefaultMonitoringInspector}. The inspector
+ * is the new home for system info, resource usage, database stats,
+ * queue stats, Redis stats, and aggregate health probe; tests here
+ * mirror what {@code MonitoringServiceTest} used to cover so the
+ * existing behavioural surface is preserved at the inspector seam.
+ *
+ * <p>Cache annotations on the implementation are intentionally not
+ * exercised here — the unit under test is the read module, not the
+ * Spring caching layer.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class MonitoringServiceTest {
+class DefaultMonitoringInspectorTest {
 
     @Mock
     private DataSource dataSource;
@@ -59,13 +72,13 @@ class MonitoringServiceTest {
     private MetricsCollector metricsCollector;
 
     @InjectMocks
-    private MonitoringServiceImpl monitoringService;
+    private DefaultMonitoringInspector monitoringInspector;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(monitoringService, "applicationName", "UltiCode");
-        ReflectionTestUtils.setField(monitoringService, "applicationVersion", "1.0.0");
-        ReflectionTestUtils.setField(monitoringService, "activeProfile", "test");
+        ReflectionTestUtils.setField(monitoringInspector, "applicationName", "UltiCode");
+        ReflectionTestUtils.setField(monitoringInspector, "applicationVersion", "1.0.0");
+        ReflectionTestUtils.setField(monitoringInspector, "activeProfile", "test");
     }
 
     @Nested
@@ -76,7 +89,7 @@ class MonitoringServiceTest {
         @DisplayName("should return system info with correct fields")
         void shouldReturnSystemInfoWithCorrectFields() {
             // Act
-            SystemInfoVO result = monitoringService.getSystemInfo();
+            SystemInfoVO result = monitoringInspector.getSystemInfo();
 
             // Assert
             assertNotNull(result);
@@ -91,7 +104,7 @@ class MonitoringServiceTest {
         @DisplayName("should return non-null hostname")
         void shouldReturnNonNullHostname() {
             // Act
-            SystemInfoVO result = monitoringService.getSystemInfo();
+            SystemInfoVO result = monitoringInspector.getSystemInfo();
 
             // Assert
             assertNotNull(result.getHostname());
@@ -101,7 +114,7 @@ class MonitoringServiceTest {
         @DisplayName("should return valid process ID")
         void shouldReturnValidProcessId() {
             // Act
-            SystemInfoVO result = monitoringService.getSystemInfo();
+            SystemInfoVO result = monitoringInspector.getSystemInfo();
 
             // Assert
             assertNotNull(result.getPid());
@@ -117,7 +130,7 @@ class MonitoringServiceTest {
         @DisplayName("should return resource usage with memory info")
         void shouldReturnResourceUsageWithMemoryInfo() {
             // Act
-            ResourceUsageVO result = monitoringService.getResourceUsage();
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
 
             // Assert
             assertNotNull(result);
@@ -131,7 +144,7 @@ class MonitoringServiceTest {
         @DisplayName("should return resource usage with CPU info")
         void shouldReturnResourceUsageWithCpuInfo() {
             // Act
-            ResourceUsageVO result = monitoringService.getResourceUsage();
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
 
             // Assert
             assertNotNull(result.getCpu());
@@ -143,7 +156,7 @@ class MonitoringServiceTest {
         @DisplayName("should return thread count")
         void shouldReturnThreadCount() {
             // Act
-            ResourceUsageVO result = monitoringService.getResourceUsage();
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
 
             // Assert
             assertNotNull(result.getThreadCount());
@@ -177,7 +190,7 @@ class MonitoringServiceTest {
             when(mockMaxResultSet.getInt("Value")).thenReturn(100);
 
             // Act
-            DatabaseStatsVO result = monitoringService.getDatabaseStats();
+            DatabaseStatsVO result = monitoringInspector.getDatabaseStats();
 
             // Assert
             assertNotNull(result);
@@ -192,11 +205,34 @@ class MonitoringServiceTest {
             when(dataSource.getConnection()).thenThrow(new RuntimeException("Connection failed"));
 
             // Act
-            DatabaseStatsVO result = monitoringService.getDatabaseStats();
+            DatabaseStatsVO result = monitoringInspector.getDatabaseStats();
 
             // Assert
             assertNotNull(result);
             assertEquals("unhealthy", result.getStatus());
+        }
+
+        @Test
+        @DisplayName("should fold MetricsCollector query counts into database stats")
+        void shouldFoldMetricsCollectorQueryCountsIntoDatabaseStats() throws Exception {
+            // Arrange: interceptor side has counted 42 / 7 slow queries.
+            when(metricsCollector.getQueryCount()).thenReturn(42L);
+            when(metricsCollector.getSlowQueryCount()).thenReturn(7L);
+            // JDBC stubs to keep the connection branch alive.
+            Connection conn = mock(Connection.class);
+            Statement stmt = mock(Statement.class);
+            ResultSet rs = mock(ResultSet.class);
+            when(dataSource.getConnection()).thenReturn(conn);
+            when(conn.createStatement()).thenReturn(stmt);
+            when(stmt.executeQuery(anyString())).thenReturn(rs);
+            when(rs.next()).thenReturn(false);
+
+            // Act
+            DatabaseStatsVO result = monitoringInspector.getDatabaseStats();
+
+            // Assert
+            assertEquals(42L, result.getQueryCount());
+            assertEquals(7, result.getSlowQueries());
         }
     }
 
@@ -205,14 +241,14 @@ class MonitoringServiceTest {
     class GetQueueStatsTests {
 
         @Test
-        @DisplayName("should return queue stats for all queues")
-        void shouldReturnQueueStatsForAllQueues() {
+        @DisplayName("should return queue stats for all known queues")
+        void shouldReturnQueueStatsForAllKnownQueues() {
             // Arrange
             when(redisTemplate.execute(any(RedisCallback.class)))
                     .thenReturn(0L);
 
             // Act
-            List<QueueStatsVO> result = monitoringService.getQueueStats();
+            List<QueueStatsVO> result = monitoringInspector.getQueueStats();
 
             // Assert
             assertNotNull(result);
@@ -228,7 +264,7 @@ class MonitoringServiceTest {
                     .thenThrow(new RuntimeException("Redis unavailable"));
 
             // Act
-            List<QueueStatsVO> result = monitoringService.getQueueStats();
+            List<QueueStatsVO> result = monitoringInspector.getQueueStats();
 
             // Assert
             assertNotNull(result);
@@ -260,7 +296,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(redisInfo);
 
             // Act
-            RedisStatsVO result = monitoringService.getRedisStats();
+            RedisStatsVO result = monitoringInspector.getRedisStats();
 
             // Assert
             assertNotNull(result);
@@ -279,7 +315,7 @@ class MonitoringServiceTest {
                     .thenThrow(new RuntimeException("Redis connection refused"));
 
             // Act
-            RedisStatsVO result = monitoringService.getRedisStats();
+            RedisStatsVO result = monitoringInspector.getRedisStats();
 
             // Assert
             assertNotNull(result);
@@ -296,7 +332,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(null);
 
             // Act
-            RedisStatsVO result = monitoringService.getRedisStats();
+            RedisStatsVO result = monitoringInspector.getRedisStats();
 
             // Assert
             assertNotNull(result);
@@ -326,7 +362,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
-            SystemHealthVO result = monitoringService.getHealthCheck();
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
 
             // Assert
             assertNotNull(result);
@@ -348,7 +384,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
-            SystemHealthVO result = monitoringService.getHealthCheck();
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
 
             // Assert
             assertNotNull(result);
@@ -379,7 +415,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
-            SystemHealthVO result = monitoringService.getHealthCheck();
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
 
             // Assert
             List<String> serviceNames = result.getChecks().stream()
@@ -407,7 +443,7 @@ class MonitoringServiceTest {
             when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
-            SystemHealthVO result = monitoringService.getHealthCheck();
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
 
             // Assert
             assertEquals("degraded", result.getStatus());
@@ -418,58 +454,6 @@ class MonitoringServiceTest {
                     .orElse(null);
             assertNotNull(redisCheck);
             assertEquals("degraded", redisCheck.getStatus());
-        }
-    }
-
-    @Nested
-    @DisplayName("incrementQueryCount Tests")
-    class IncrementQueryCountTests {
-
-        @Test
-        @DisplayName("should increment query count without throwing")
-        void shouldIncrementQueryCountWithoutThrowing() {
-            // Act & Assert - just verify no exception is thrown
-            assertDoesNotThrow(() -> {
-                monitoringService.incrementQueryCount();
-                monitoringService.incrementQueryCount();
-                monitoringService.incrementQueryCount();
-            });
-        }
-
-        @Test
-        @DisplayName("deprecated incrementQueryCount delegates to MetricsCollector")
-        void deprecatedIncrementDelegatesToMetricsCollector() {
-            monitoringService.incrementQueryCount();
-            monitoringService.incrementQueryCount();
-            verify(metricsCollector, times(2)).incrementQuery();
-        }
-    }
-
-    @Nested
-    @DisplayName("MetricsCollector Integration Tests")
-    class MetricsCollectorIntegrationTests {
-
-        @Test
-        @DisplayName("getDatabaseStats reports the current MetricsCollector query count")
-        void getDatabaseStatsReportsQueryCountFromCollector() throws Exception {
-            // Arrange: simulate the interceptor having counted 42 queries
-            when(metricsCollector.getQueryCount()).thenReturn(42L);
-            when(metricsCollector.getSlowQueryCount()).thenReturn(7L);
-            // Stub the JDBC connection used for SHOW STATUS / SHOW VARIABLES
-            Connection conn = mock(Connection.class);
-            Statement stmt = mock(Statement.class);
-            ResultSet rs = mock(ResultSet.class);
-            when(dataSource.getConnection()).thenReturn(conn);
-            when(conn.createStatement()).thenReturn(stmt);
-            when(stmt.executeQuery(anyString())).thenReturn(rs);
-            when(rs.next()).thenReturn(false);
-
-            // Act
-            DatabaseStatsVO result = monitoringService.getDatabaseStats();
-
-            // Assert
-            assertEquals(42L, result.getQueryCount());
-            assertEquals(7, result.getSlowQueries());
         }
     }
 }

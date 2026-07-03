@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Process-wide metrics counters shared between MyBatis interceptors
- * (producers) and {@code MonitoringService} (reader).
+ * (producers) and {@code MonitoringInspector} (reader).
  *
  * <p>Decouples the SQL execution chain from the monitoring service to
  * avoid circular dependencies and keep each side independently testable.

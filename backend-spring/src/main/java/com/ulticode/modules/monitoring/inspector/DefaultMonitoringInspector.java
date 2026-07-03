@@ -1,4 +1,4 @@
-package com.ulticode.modules.monitoring.service.impl;
+package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
@@ -7,7 +7,6 @@ import com.ulticode.modules.monitoring.dto.RedisStatsVO;
 import com.ulticode.modules.monitoring.dto.ResourceUsageVO;
 import com.ulticode.modules.monitoring.dto.SystemHealthVO;
 import com.ulticode.modules.monitoring.dto.SystemInfoVO;
-import com.ulticode.modules.monitoring.service.MonitoringService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +26,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -37,12 +35,49 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Implementation of the MonitoringService interface.
+ * Default adapter for {@link MonitoringInspector}. Side-effect free:
+ * reads from the JVM MXBeans, the {@code DataSource}, and the
+ * {@code RedisTemplate} only.
+ *
+ * <p>Owns its own copy of the inspection logic — no inheritance from
+ * any prior {@code MonitoringServiceImpl} class — so this read module
+ * is independent of any write-path bean graph (none exists for the
+ * monitoring subsystem; reads are the entire contract).
+ *
+ * <p>Public {@code @Value} fields ({@code applicationName},
+ * {@code applicationVersion}, {@code activeProfile}) participate in
+ * read operations only; their defaults keep the inspector usable
+ * even when {@code application.yml} or Nacos configuration is absent.
+ *
+ * <p>Cache strategy: methods that touch external systems
+ * ({@link #getSystemInfo}, {@link #getResourceUsage},
+ * {@link #getDatabaseStats}, {@link #getQueueStats},
+ * {@link #getRedisStats}) are wrapped in
+ * {@link Cacheable @Cacheable(cacheNames = "monitoring", key = ...)}
+ * so the admin dashboard does not hammer the datasource or Redis
+ * between manual reloads. The health probe
+ * {@link #getHealthCheck} is intentionally not cached — its purpose
+ * is to surface live failure.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MonitoringServiceImpl implements MonitoringService {
+public class DefaultMonitoringInspector implements MonitoringInspector {
+
+    /** Static configuration: the BullMQ-style queue buckets this app runs. */
+    private static final List<String> KNOWN_QUEUE_NAMES =
+            List.of("judge_queue", "notification_queue", "email_queue");
+
+    /** BullMQ key suffix: a Set holding the IDs of waiting jobs. */
+    private static final String BULL_WAITING_SUFFIX = ":waiting";
+    /** BullMQ key suffix: a Set holding the IDs of currently-active jobs. */
+    private static final String BULL_ACTIVE_SUFFIX = ":active";
+    /** BullMQ key suffix: a List holding completed-job metadata. */
+    private static final String BULL_COMPLETED_SUFFIX = ":completed";
+    /** BullMQ key suffix: a List holding failed-job metadata. */
+    private static final String BULL_FAILED_SUFFIX = ":failed";
+    /** BullMQ key suffix: a Set holding the IDs of delayed jobs. */
+    private static final String BULL_DELAYED_SUFFIX = ":delayed";
 
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
@@ -68,6 +103,7 @@ public class MonitoringServiceImpl implements MonitoringService {
         try {
             hostname = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
+            // broad catch: hostname resolution can fail in restricted containers; default keeps the response well-formed.
             log.warn("Could not determine hostname", e);
         }
 
@@ -96,6 +132,7 @@ public class MonitoringServiceImpl implements MonitoringService {
         try {
             osMXBean = ManagementFactory.getOperatingSystemMXBean();
         } catch (Exception e) {
+            // broad catch: a container may deny the OS MXBean; absence is non-fatal for the inspector.
             log.warn("Unable to retrieve OperatingSystemMXBean in container environment", e);
         }
 
@@ -139,7 +176,8 @@ public class MonitoringServiceImpl implements MonitoringService {
              Statement stmt = conn.createStatement()) {
 
             // Get connection pool info
-            ResultSet rs = stmt.executeQuery("SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Max_used_connections')");
+            ResultSet rs = stmt.executeQuery(
+                    "SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Max_used_connections')");
             Map<String, Integer> stats = new HashMap<>();
             while (rs.next()) {
                 stats.put(rs.getString("Variable_name"), rs.getInt("Value"));
@@ -154,6 +192,7 @@ public class MonitoringServiceImpl implements MonitoringService {
 
             status = "healthy";
         } catch (Exception e) {
+            // broad catch: any JDBC failure surfaces as "unhealthy" without propagating.
             log.error("Failed to get database stats", e);
             status = "unhealthy";
         }
@@ -172,15 +211,11 @@ public class MonitoringServiceImpl implements MonitoringService {
     public List<QueueStatsVO> getQueueStats() {
         List<QueueStatsVO> queues = new ArrayList<>();
 
-        // Define known queue names for the application
-        String[] queueNames = {"judge_queue", "notification_queue", "email_queue"};
-
-        for (String queueName : queueNames) {
+        for (String queueName : KNOWN_QUEUE_NAMES) {
             try {
-                QueueStatsVO queueStats = getQueueStats(queueName);
-                queues.add(queueStats);
-            // broad catch: any failure means service is unhealthy
+                queues.add(inspectQueueBucket(queueName));
             } catch (Exception e) {
+                // broad catch: any single failure must not blank the dashboard; preserve the rest of the fleet.
                 log.warn("Could not get stats for queue: {}", queueName, e);
                 queues.add(QueueStatsVO.builder()
                         .name(queueName)
@@ -200,9 +235,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Cacheable(value = "monitoring", key = "'redis'")
     public RedisStatsVO getRedisStats() {
         try {
-            Properties info = redisTemplate.execute((RedisCallback<Properties>) connection -> {
-                return connection.info();
-            });
+            Properties info = redisTemplate.execute((RedisCallback<Properties>) connection -> connection.info());
 
             if (info == null) {
                 return RedisStatsVO.builder()
@@ -231,8 +264,8 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .totalKeys(totalKeys)
                     .uptimeInSeconds(uptime)
                     .build();
-        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
+            // broad catch: any Redis handshake failure becomes a "not connected" snapshot.
             log.error("Failed to get Redis stats", e);
             return RedisStatsVO.builder()
                     .connected(false)
@@ -268,6 +301,9 @@ public class MonitoringServiceImpl implements MonitoringService {
                 .build();
     }
 
+    /**
+     * Probe MySQL with {@code SELECT 1} and report latency.
+     */
     private SystemHealthVO.HealthCheck checkDatabase() {
         long start = System.currentTimeMillis();
         try (Connection conn = dataSource.getConnection();
@@ -280,8 +316,8 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .latency(latency)
                     .message("Database responding normally")
                     .build();
-        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
+            // broad catch: any JDBC failure surfaces as an unhealthy sub-check.
             long latency = System.currentTimeMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
                     .service("database")
@@ -292,6 +328,9 @@ public class MonitoringServiceImpl implements MonitoringService {
         }
     }
 
+    /**
+     * Probe Redis with {@code PING} and report latency / response class.
+     */
     private SystemHealthVO.HealthCheck checkRedis() {
         long start = System.currentTimeMillis();
         try {
@@ -314,8 +353,8 @@ public class MonitoringServiceImpl implements MonitoringService {
                         .message("Redis returned unexpected response: " + pong)
                         .build();
             }
-        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
+            // broad catch: any Redis handshake failure is unhealthy.
             long latency = System.currentTimeMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
                     .service("redis")
@@ -326,6 +365,9 @@ public class MonitoringServiceImpl implements MonitoringService {
         }
     }
 
+    /**
+     * Read queue pressure and classify the fleet.
+     */
     private SystemHealthVO.HealthCheck checkQueues() {
         try {
             List<QueueStatsVO> queues = getQueueStats();
@@ -347,8 +389,8 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .latency(0L)
                     .message("Queues operating normally")
                     .build();
-        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
+            // broad catch: any inspection failure is unhealthy.
             return SystemHealthVO.HealthCheck.builder()
                     .service("queues")
                     .status("unhealthy")
@@ -358,6 +400,9 @@ public class MonitoringServiceImpl implements MonitoringService {
         }
     }
 
+    /**
+     * Reduce three sub-checks to a single overall status word.
+     */
     private String determineOverallStatus(List<SystemHealthVO.HealthCheck> checks) {
         boolean hasUnhealthy = checks.stream()
                 .anyMatch(c -> "unhealthy".equals(c.getStatus()));
@@ -372,28 +417,43 @@ public class MonitoringServiceImpl implements MonitoringService {
         return "healthy";
     }
 
+    /**
+     * Best-effort PID extraction from the JVM name ({@code "pid@host"}).
+     *
+     * @return the PID or {@code -1L} when the runtime name is not in
+     *         the expected format
+     */
     private Long getProcessId() {
         try {
             RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
             String jvmName = runtimeMXBean.getName();
             return Long.parseLong(jvmName.split("@")[0]);
-        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
+            // broad catch: PID is a diagnostic nicety; -1L preserves the response shape.
             return -1L;
         }
     }
 
+    /**
+     * Read the process CPU load from the {@code com.sun.management}
+     * extension interface; returns {@code -1.0} when the extension
+     * is unavailable in the host JVM.
+     */
     private double getProcessCpuLoad() {
         try {
             com.sun.management.OperatingSystemMXBean osBean =
                     (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
             return osBean.getProcessCpuLoad();
-        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
+            // broad catch: load metric is best-effort; -1.0 tells the dashboard to omit it.
             return -1.0;
         }
     }
 
+    /**
+     * Read the system CPU load; fall back to load-average per
+     * processor when the extension interface is unavailable.
+     */
     private double getSystemCpuLoad(OperatingSystemMXBean osMXBean) {
         if (osMXBean == null) {
             return -1.0;
@@ -402,7 +462,6 @@ public class MonitoringServiceImpl implements MonitoringService {
             com.sun.management.OperatingSystemMXBean osBean =
                     (com.sun.management.OperatingSystemMXBean) osMXBean;
             return osBean.getCpuLoad();
-        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
             // Fallback to system load average
             double loadAverage = osMXBean.getSystemLoadAverage();
@@ -419,6 +478,10 @@ public class MonitoringServiceImpl implements MonitoringService {
         }
     }
 
+    /**
+     * Parse a Redis INFO memory cell into a long, returning zero on
+     * malformed input.
+     */
     private long parseMemory(String memoryStr) {
         try {
             return Long.parseLong(memoryStr);
@@ -427,19 +490,18 @@ public class MonitoringServiceImpl implements MonitoringService {
         }
     }
 
-    private QueueStatsVO getQueueStats(String queueName) {
-        // Check BullMQ-style queue data in Redis
-        String waitingKey = "bull:" + queueName + ":waiting";
-        String activeKey = "bull:" + queueName + ":active";
-        String completedKey = "bull:" + queueName + ":completed";
-        String failedKey = "bull:" + queueName + ":failed";
-        String delayedKey = "bull:" + queueName + ":delayed";
+    /**
+     * Read the five BullMQ-style bucket sizes for one queue and
+     * fold them into a single {@link QueueStatsVO}.
+     */
+    private QueueStatsVO inspectQueueBucket(String queueName) {
+        String bullPrefix = "bull:" + queueName;
 
-        Long waiting = getKeyCount(waitingKey);
-        Long active = getKeyCount(activeKey);
-        Long completed = getListLength(completedKey);
-        Long failed = getListLength(failedKey);
-        Long delayed = getKeyCount(delayedKey);
+        Long waiting = getKeyCount(bullPrefix + BULL_WAITING_SUFFIX);
+        Long active = getKeyCount(bullPrefix + BULL_ACTIVE_SUFFIX);
+        Long completed = getListLength(bullPrefix + BULL_COMPLETED_SUFFIX);
+        Long failed = getListLength(bullPrefix + BULL_FAILED_SUFFIX);
+        Long delayed = getKeyCount(bullPrefix + BULL_DELAYED_SUFFIX);
 
         return QueueStatsVO.builder()
                 .name(queueName)
@@ -451,38 +513,38 @@ public class MonitoringServiceImpl implements MonitoringService {
                 .build();
     }
 
+    /**
+     * Read a Set cardinality via {@code SCARD} on the given key.
+     *
+     * @return the cardinality or {@code 0L} when the key is missing,
+     *         the command throws, or the connection is down.
+     */
     private Long getKeyCount(String key) {
         try {
             return redisTemplate.execute((RedisCallback<Long>) connection -> {
                 Long size = connection.setCommands().sCard(key.getBytes());
                 return size != null ? size : 0L;
             });
-        // broad catch: Redis operation failure returns default
         } catch (Exception e) {
-            return 0L;
-        }
-    }
-
-    private Long getListLength(String key) {
-        try {
-            Long length = redisTemplate.execute((RedisCallback<Long>) connection -> {
-                return connection.listCommands().lLen(key.getBytes());
-            });
-            return length != null ? length : 0L;
-        // broad catch: Redis operation failure returns default
-        } catch (Exception e) {
+            // broad catch: a Redis probe failure should not blank the queue stats.
             return 0L;
         }
     }
 
     /**
-     * Increment query count (kept for backward compatibility; new code
-     * should use {@link MetricsCollector#incrementQuery()} directly).
+     * Read a List length via {@code LLEN} on the given key.
      *
-     * @deprecated use {@code MetricsCollector.incrementQuery()} instead
+     * @return the length or {@code 0L} when the key is missing, the
+     *         command throws, or the connection is down.
      */
-    @Deprecated(since = "1.0.1", forRemoval = true)
-    public void incrementQueryCount() {
-        metricsCollector.incrementQuery();
+    private Long getListLength(String key) {
+        try {
+            Long length = redisTemplate.execute((RedisCallback<Long>) connection ->
+                    connection.listCommands().lLen(key.getBytes()));
+            return length != null ? length : 0L;
+        } catch (Exception e) {
+            // broad catch: same defensive posture as getKeyCount.
+            return 0L;
+        }
     }
 }

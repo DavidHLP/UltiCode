@@ -2,6 +2,7 @@ package com.ulticode.modules.moderation.service.impl;
 
 import com.ulticode.modules.moderation.entity.ModerationQueue;
 import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
+import com.ulticode.modules.moderation.port.ModerationWritePort;
 
 import java.time.LocalDateTime;
 
@@ -28,20 +29,20 @@ public sealed interface ModerationActionHandler
     }
 
     record ActionContext(
-        ModerationServiceImpl service,
+        ModerationWritePort writePort,
         String queueId,
         String actionId
     ) {
         void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
-            service.updateContentFlagStatus(entityType, entityId, isFlagged, reason);
+            writePort.updateContentFlagStatus(entityType, entityId, isFlagged, reason);
         }
 
         void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
-            service.createUserWarning(userId, queueId, reason, category, actionId);
+            writePort.createUserWarning(userId, queueId, reason, category, actionId);
         }
 
         void createUserBan(String userId, String queueId, String reason, String category, String bannedById, String actionId, Integer durationDays, boolean isPermanent) {
-            service.createUserBan(userId, queueId, reason, category, bannedById, actionId, durationDays, isPermanent);
+            writePort.createUserBan(userId, queueId, reason, category, bannedById, actionId, durationDays, isPermanent);
         }
     }
 }

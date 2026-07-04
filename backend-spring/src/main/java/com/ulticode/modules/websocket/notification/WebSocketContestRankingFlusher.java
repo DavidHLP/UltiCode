@@ -1,6 +1,6 @@
 package com.ulticode.modules.websocket.notification;
 
-import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.websocket.config.WebSocketProperties;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;
@@ -34,6 +34,11 @@ import java.util.stream.Collectors;
  * exists only to protect the WebSocket transport, not the contest
  * domain.
  *
+ * <p>The live-ranking read itself is obtained through the contest
+ * module's {@link ContestLiveRankingReadPort} (ADR-0010) rather than
+ * the old {@code RankingService} facade, so the websocket module does
+ * not depend on the contest module's broader ranking API.
+ *
  * @author ulticode
  */
 @Component
@@ -44,9 +49,12 @@ public class WebSocketContestRankingFlusher {
     /** Throttle interval for ranking updates (1 second). */
     private static final long RANKING_THROTTLE_MS = 1000;
 
+    /** Live-ranking cap passed to the read port each flush tick. */
+    private static final int LIVE_RANKING_FETCH_LIMIT = 200;
+
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketProperties properties;
-    private final RankingService rankingService;
+    private final ContestLiveRankingReadPort liveRankingReadPort;
 
     /** Track last push time per contest for throttling. */
     private final Map<String, Long> lastRankingPushTime = new ConcurrentHashMap<>();
@@ -56,10 +64,10 @@ public class WebSocketContestRankingFlusher {
 
     public WebSocketContestRankingFlusher(SimpMessagingTemplate messagingTemplate,
                                           WebSocketProperties properties,
-                                          RankingService rankingService) {
+                                          ContestLiveRankingReadPort liveRankingReadPort) {
         this.messagingTemplate = messagingTemplate;
         this.properties = properties;
-        this.rankingService = rankingService;
+        this.liveRankingReadPort = liveRankingReadPort;
     }
 
     /**
@@ -87,7 +95,7 @@ public class WebSocketContestRankingFlusher {
             long elapsed = System.currentTimeMillis() - (lastPush != null ? lastPush : 0);
 
             if (elapsed >= RANKING_THROTTLE_MS) {
-                List<RankingItem> rankings = rankingService.getLiveRanking(contestId, 200).stream()
+                List<RankingItem> rankings = liveRankingReadPort.readLiveRanking(contestId, LIVE_RANKING_FETCH_LIMIT).stream()
                         .map(vo -> new RankingItem(
                                 vo.getRank() != null ? vo.getRank() : 0,
                                 vo.getUserId() != null ? vo.getUserId().toString() : "",

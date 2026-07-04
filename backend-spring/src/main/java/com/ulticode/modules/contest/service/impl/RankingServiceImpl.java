@@ -10,6 +10,7 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -23,12 +24,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of RankingService.
+ * Default implementation of {@link RankingService}. The live-ranking
+ * read is exposed via the {@link ContestLiveRankingReadPort} port through
+ * {@code DefaultContestLiveRankingReadAdapter} so external modules
+ * (websocket, admin) and the contest module's own controllers depend on
+ * a narrow intent surface rather than the full {@code RankingService}
+ * API. See ADR-0010.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RankingServiceImpl implements RankingService {
+
+    private static final int DEFAULT_LIVE_LIMIT = 100;
+    private static final int MAX_LIVE_LIMIT = 200;
 
     private final ContestParticipantMapper participantMapper;
     private final ContestMapper contestMapper;
@@ -57,13 +66,17 @@ public class RankingServiceImpl implements RankingService {
         return PageResult.of(rankingList, total, currentPage, currentLimit);
     }
 
-    @Override
-    public List<LiveRankingEntryVO> getLiveRanking(String contestId, Integer limit) {
+    /**
+     * Read the current live ranking for a contest. Public so the
+     * {@code DefaultContestLiveRankingReadAdapter} can delegate without
+     * the impl having to expose the port interface itself.
+     */
+    public List<LiveRankingEntryVO> readLiveRanking(String contestId, int limit) {
         if (contestId == null || contestId.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "contestId is required");
         }
-        int currentLimit = (limit != null && limit > 0) ? limit : 100;
-        currentLimit = Math.min(currentLimit, 200);
+        int currentLimit = (limit > 0) ? limit : DEFAULT_LIVE_LIMIT;
+        currentLimit = Math.min(currentLimit, MAX_LIVE_LIMIT);
 
         // Fetch participants with user data joined
         List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =

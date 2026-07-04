@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
@@ -60,6 +61,9 @@ class ContestPublicControllerTest {
 
     @MockBean
     private RankingService rankingService;
+
+    @MockBean
+    private ContestLiveRankingReadPort liveRankingReadPort;
 
     @MockBean
     private JwtTokenProvider jwtTokenProvider;

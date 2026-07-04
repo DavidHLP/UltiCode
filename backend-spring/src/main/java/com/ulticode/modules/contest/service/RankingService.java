@@ -2,13 +2,22 @@ package com.ulticode.modules.contest.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
-import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
 import com.ulticode.modules.contest.dto.UserContestHistoryVO;
 
 import java.util.List;
 
 /**
- * Service interface for ranking-related operations.
+ * Service interface for ranking-related operations that stay inside the
+ * contest module (paginated snapshots and user history).
+ *
+ * <p><b>Note:</b> live-ranking reads are exposed to external modules
+ * (websocket, admin) through
+ * {@link com.ulticode.modules.contest.port.ContestLiveRankingReadPort}
+ * rather than this service, so that no cross-module caller needs to
+ * import the contest module's internal ranking API. See ADR-0010 for
+ * the seam-inversion rationale.
+ *
+ * @author ulticode
  */
 public interface RankingService {
 
@@ -21,15 +30,6 @@ public interface RankingService {
      * @return paginated list of rankings
      */
     PageResult<ContestRankingVO> getContestRanking(String contestId, Integer page, Integer limit);
-
-    /**
-     * Get live ranking for a contest.
-     *
-     * @param contestId the contest ID
-     * @param limit     the maximum number of rankings to return
-     * @return list of live rankings
-     */
-    List<LiveRankingEntryVO> getLiveRanking(String contestId, Integer limit);
 
     /**
      * Get user contest history.

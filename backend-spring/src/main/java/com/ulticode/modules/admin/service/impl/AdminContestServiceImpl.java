@@ -22,7 +22,7 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
-import com.ulticode.modules.contest.service.RankingService;
+import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +50,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestProblemMapper contestProblemMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final ContestAnnouncementPushPort contestAnnouncementPushPort;
-    private final RankingService rankingService;
+    private final ContestLiveRankingReadPort liveRankingReadPort;
     private final AuditHelper auditHelper;
 
     @Override
@@ -406,7 +406,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         if (contest == null) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
-        return rankingService.getLiveRanking(contestId, 100);
+        return liveRankingReadPort.readLiveRanking(contestId, 100);
     }
 
     @Override

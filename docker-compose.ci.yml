@@ -16,7 +16,7 @@ services:
     ports:
       - "127.0.0.1:${CONSOLE_PORT:-9002}:80"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
 
   management:
     image: ulticode-management:latest
@@ -26,4 +26,4 @@ services:
     ports:
       - "127.0.0.1:${MANAGEMENT_PORT:-9003}:80"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]

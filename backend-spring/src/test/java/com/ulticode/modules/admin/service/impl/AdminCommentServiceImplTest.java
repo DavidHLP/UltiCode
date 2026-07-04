@@ -1,13 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.forum.entity.ForumComment;
+import com.ulticode.modules.admin.port.AdminCommentReadPort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,16 +34,17 @@ import static org.mockito.Mockito.when;
  *
  * <p>This class intentionally contains only smoke tests that don't invoke the
  * lambda-wrapper path, so the suite compiles and runs in CI without
- * requiring a full Spring context.
+ * requiring a full Spring context. The cross-module enrichment mappers
+ * (User / ForumPost / Solution) were extracted to {@link AdminCommentReadPort};
+ * this test now stubs that single port instead of standing up three mapper
+ * mocks, mirroring the {@code AdminUserServiceImplTest} reshaping from ADR-0007.
  */
 @ExtendWith(MockitoExtension.class)
 class AdminCommentServiceImplTest {
 
     @Mock private ForumCommentMapper forumCommentMapper;
     @Mock private SolutionCommentMapper solutionCommentMapper;
-    @Mock private UserMapper userMapper;
-    @Mock private ForumPostMapper forumPostMapper;
-    @Mock private SolutionMapper solutionMapper;
+    @Mock private AdminCommentReadPort commentReadPort;
 
     private AdminCommentServiceImpl service;
 
@@ -61,8 +56,7 @@ class AdminCommentServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("admin-id", null, Collections.emptyList()));
         service = new AdminCommentServiceImpl(
-                forumCommentMapper, solutionCommentMapper, userMapper,
-                forumPostMapper, solutionMapper);
+                forumCommentMapper, solutionCommentMapper, commentReadPort);
     }
 
     @AfterEach
@@ -71,7 +65,7 @@ class AdminCommentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Service bean is constructible with all required mappers")
+    @DisplayName("Service bean is constructible with comment mappers + read port")
     void service_constructs() {
         assertNotNull(service, "Service should be constructible via @InjectMocks-style wiring");
     }

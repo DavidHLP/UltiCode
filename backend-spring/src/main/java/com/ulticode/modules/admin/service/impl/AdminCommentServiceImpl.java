@@ -13,17 +13,12 @@ import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.dto.BulkCommentActionRequest;
+import com.ulticode.modules.admin.port.AdminCommentReadPort;
 import com.ulticode.modules.admin.service.AdminCommentService;
 import com.ulticode.modules.forum.entity.ForumComment;
-import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +27,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,9 +41,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
 
     private final ForumCommentMapper forumCommentMapper;
     private final SolutionCommentMapper solutionCommentMapper;
-    private final UserMapper userMapper;
-    private final ForumPostMapper forumPostMapper;
-    private final SolutionMapper solutionMapper;
+    private final AdminCommentReadPort commentReadPort;
 
     @Override
     public PageResult<AdminCommentVO> getComments(AdminCommentQueryDTO query) {
@@ -82,11 +74,12 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         Set<String> postIds = records.stream()
                 .map(ForumComment::getPostId).collect(Collectors.toSet());
 
-        Map<String, User> userMap = batchLoadUsers(authorIds);
-        Map<String, ForumPost> postMap = batchLoadPosts(postIds);
+        Map<String, AdminCommentReadPort.AuthorSummary> authorMap =
+                commentReadPort.findAuthorSummariesByIds(authorIds);
+        Map<String, String> postTitleMap = commentReadPort.findForumPostTitlesByIds(postIds);
 
         List<AdminCommentVO> vos = records.stream()
-                .map(c -> forumToAdminVO(c, userMap.get(c.getAuthorId()), postMap.get(c.getPostId())))
+                .map(c -> forumToAdminVO(c, authorMap.get(c.getAuthorId()), postTitleMap.get(c.getPostId())))
                 .collect(Collectors.toList());
 
         return PageResult.of(vos, pageResult.getTotal(), page, limit);
@@ -104,11 +97,12 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         Set<String> solutionIds = records.stream()
                 .map(SolutionComment::getSolutionId).collect(Collectors.toSet());
 
-        Map<String, User> userMap = batchLoadUsers(authorIds);
-        Map<String, Solution> solutionMap = batchLoadSolutions(solutionIds);
+        Map<String, AdminCommentReadPort.AuthorSummary> authorMap =
+                commentReadPort.findAuthorSummariesByIds(authorIds);
+        Map<String, String> solutionTitleMap = commentReadPort.findSolutionTitlesByIds(solutionIds);
 
         List<AdminCommentVO> vos = records.stream()
-                .map(c -> solutionToAdminVO(c, userMap.get(c.getUserId()), solutionMap.get(c.getSolutionId())))
+                .map(c -> solutionToAdminVO(c, authorMap.get(c.getUserId()), solutionTitleMap.get(c.getSolutionId())))
                 .collect(Collectors.toList());
 
         return PageResult.of(vos, pageResult.getTotal(), page, limit);
@@ -133,13 +127,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         Set<String> postIds = forumRecords.stream().map(ForumComment::getPostId).collect(Collectors.toSet());
         Set<String> solutionIds = solutionRecords.stream().map(SolutionComment::getSolutionId).collect(Collectors.toSet());
 
-        Map<String, User> userMap = batchLoadUsers(authorIds);
-        Map<String, ForumPost> postMap = batchLoadPosts(postIds);
-        Map<String, Solution> solutionMap = batchLoadSolutions(solutionIds);
+        Map<String, AdminCommentReadPort.AuthorSummary> authorMap =
+                commentReadPort.findAuthorSummariesByIds(authorIds);
+        Map<String, String> postTitleMap = commentReadPort.findForumPostTitlesByIds(postIds);
+        Map<String, String> solutionTitleMap = commentReadPort.findSolutionTitlesByIds(solutionIds);
 
         List<AdminCommentVO> all = new ArrayList<>();
-        forumRecords.forEach(c -> all.add(forumToAdminVO(c, userMap.get(c.getAuthorId()), postMap.get(c.getPostId()))));
-        solutionRecords.forEach(c -> all.add(solutionToAdminVO(c, userMap.get(c.getUserId()), solutionMap.get(c.getSolutionId()))));
+        forumRecords.forEach(c -> all.add(forumToAdminVO(c, authorMap.get(c.getAuthorId()), postTitleMap.get(c.getPostId()))));
+        solutionRecords.forEach(c -> all.add(solutionToAdminVO(c, authorMap.get(c.getUserId()), solutionTitleMap.get(c.getSolutionId()))));
         all.sort((a, b) -> b.createdAt().compareTo(a.createdAt()));
 
         long total = all.size();
@@ -158,17 +153,25 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             if (comment == null) {
                 throw new BusinessException(ErrorCode.NOT_FOUND);
             }
-            User user = userMapper.selectById(comment.getAuthorId());
-            ForumPost post = forumPostMapper.selectById(comment.getPostId());
-            return forumToAdminVO(comment, user, post);
+            AdminCommentReadPort.AuthorSummary author = commentReadPort
+                    .findAuthorSummariesByIds(Set.of(comment.getAuthorId()))
+                    .get(comment.getAuthorId());
+            String postTitle = commentReadPort
+                    .findForumPostTitlesByIds(Set.of(comment.getPostId()))
+                    .get(comment.getPostId());
+            return forumToAdminVO(comment, author, postTitle);
         } else {
             SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(id);
             if (comment == null) {
                 throw new BusinessException(ErrorCode.NOT_FOUND);
             }
-            User user = userMapper.selectById(comment.getUserId());
-            Solution solution = solutionMapper.selectById(comment.getSolutionId());
-            return solutionToAdminVO(comment, user, solution);
+            AdminCommentReadPort.AuthorSummary author = commentReadPort
+                    .findAuthorSummariesByIds(Set.of(comment.getUserId()))
+                    .get(comment.getUserId());
+            String solutionTitle = commentReadPort
+                    .findSolutionTitlesByIds(Set.of(comment.getSolutionId()))
+                    .get(comment.getSolutionId());
+            return solutionToAdminVO(comment, author, solutionTitle);
         }
     }
 
@@ -335,7 +338,9 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         return comment;
     }
 
-    private AdminCommentVO forumToAdminVO(ForumComment comment, User user, ForumPost post) {
+    private AdminCommentVO forumToAdminVO(ForumComment comment,
+                                           AdminCommentReadPort.AuthorSummary author,
+                                           String postTitle) {
         return new AdminCommentVO(
             comment.getId(),
             comment.getBody(),
@@ -345,8 +350,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             comment.getParentId(),
             "forum",
             comment.getPostId(),
-            post != null ? post.getTitle() : null,
-            user != null ? new AdminCommentVO.AuthorInfo(user.getId(), user.getUsername(), user.getAvatar()) : null,
+            postTitle,
+            author != null ? new AdminCommentVO.AuthorInfo(author.id(), author.username(), author.avatar()) : null,
             comment.getIsFlagged(),
             comment.getFlaggedReason(),
             comment.getFlaggedAt(),
@@ -356,7 +361,9 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         );
     }
 
-    private AdminCommentVO solutionToAdminVO(SolutionComment comment, User user, Solution solution) {
+    private AdminCommentVO solutionToAdminVO(SolutionComment comment,
+                                              AdminCommentReadPort.AuthorSummary author,
+                                              String solutionTitle) {
         return new AdminCommentVO(
             comment.getId(),
             comment.getContent(),
@@ -366,8 +373,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             comment.getParentId(),
             "solution",
             comment.getSolutionId(),
-            solution != null ? solution.getTitle() : null,
-            user != null ? new AdminCommentVO.AuthorInfo(user.getId(), user.getUsername(), user.getAvatar()) : null,
+            solutionTitle,
+            author != null ? new AdminCommentVO.AuthorInfo(author.id(), author.username(), author.avatar()) : null,
             comment.getIsFlagged(),
             comment.getFlaggedReason(),
             comment.getFlaggedAt(),
@@ -375,30 +382,6 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             comment.getDeletedAt(),
             comment.getDeletedBy()
         );
-    }
-
-    private Map<String, User> batchLoadUsers(Set<String> ids) {
-        if (ids.isEmpty()) {
-            return new HashMap<>();
-        }
-        return userMapper.selectBatchIds(ids).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
-    }
-
-    private Map<String, ForumPost> batchLoadPosts(Set<String> ids) {
-        if (ids.isEmpty()) {
-            return new HashMap<>();
-        }
-        return forumPostMapper.selectBatchIds(ids).stream()
-                .collect(Collectors.toMap(ForumPost::getId, p -> p));
-    }
-
-    private Map<String, Solution> batchLoadSolutions(Set<String> ids) {
-        if (ids.isEmpty()) {
-            return new HashMap<>();
-        }
-        return solutionMapper.selectBatchIds(ids).stream()
-                .collect(Collectors.toMap(Solution::getId, s -> s));
     }
 
     private void validateType(String type) {

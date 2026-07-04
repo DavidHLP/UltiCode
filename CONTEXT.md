@@ -43,8 +43,14 @@
 - **Port** — an interface owned by the consuming module describing a
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
-  `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`, `AuthSessionPort`,
+  `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`,
+  `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
   `ProblemDetailPort`.
+- **AdminReadModel seam** — the running series of typed read ports the
+  admin module owns to stop reaching across into submission / user /
+  forum / solution mappers: `AdminSubmissionReadPort` (dashboard global),
+  `AdminUserStatsReadPort` (per-user stats), `AdminCommentReadPort`
+  (comment-view enrichment). Future phases: contest.
 - **ContestSubmissionPort** — the port through which submission asks contest
   to record synchronous same-transaction contest effects. See ADR-0001.
 - **SubmissionPerformanceStats** — deep module owning the runtime/memory
@@ -73,4 +79,5 @@
 
 - See `docs/adr/` — ADR-0001 (submission-contest decoupling), ADR-0004
   (moderation projection extraction), ADR-0005 (achievement projection
-  extraction), ADR-0006 (problem detail port extraction).
+  extraction), ADR-0006 (problem detail port extraction), ADR-0007
+  (admin user stats read port), ADR-0008 (admin comment read port).

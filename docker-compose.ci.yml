@@ -13,9 +13,13 @@ services:
     build:
       context: .
       dockerfile: console/Dockerfile
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]
 
   management:
     image: ulticode-management:latest
     build:
       context: .
       dockerfile: management/Dockerfile
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/"]

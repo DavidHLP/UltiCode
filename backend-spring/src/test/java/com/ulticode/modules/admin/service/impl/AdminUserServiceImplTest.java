@@ -6,12 +6,11 @@ import com.ulticode.common.util.AuditHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.service.PermissionService;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -48,10 +47,7 @@ class AdminUserServiceImplTest {
     private AuditHelper auditHelper;
 
     @Mock
-    private SubmissionMapper submissionMapper;
-
-    @Mock
-    private SolutionMapper solutionMapper;
+    private AdminUserStatsReadPort userStatsReadPort;
 
     @Mock
     private PermissionService permissionService;
@@ -65,7 +61,7 @@ class AdminUserServiceImplTest {
     void setUp() {
         adminUserService = new AdminUserServiceImpl(
                 userMapper, passwordEncoder, auditHelper,
-                submissionMapper, solutionMapper, permissionService, rolePermissionMapper);
+                userStatsReadPort, permissionService, rolePermissionMapper);
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
         // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
         Authentication auth = new UsernamePasswordAuthenticationToken(
@@ -91,6 +87,13 @@ class AdminUserServiceImplTest {
         return user;
     }
 
+    private void stubStats(String userId, long sub, long accepted, long solutions, int streak) {
+        when(userStatsReadPort.countSubmissionsByUserId(userId)).thenReturn(sub);
+        when(userStatsReadPort.countAcceptedProblemsByUserId(userId)).thenReturn(accepted);
+        when(userStatsReadPort.countSolutionsByUserId(userId)).thenReturn(solutions);
+        when(userStatsReadPort.calculateSubmissionStreak(userId)).thenReturn(streak);
+    }
+
     @Nested
     @DisplayName("getUsers()")
     class GetUsers {
@@ -106,7 +109,7 @@ class AdminUserServiceImplTest {
 
             adminUserService.getUsers(new AdminUserQueryDTO());
 
-            verifyNoInteractions(submissionMapper, solutionMapper, rolePermissionMapper, permissionService);
+            verifyNoInteractions(userStatsReadPort, rolePermissionMapper, permissionService);
         }
     }
 
@@ -115,14 +118,11 @@ class AdminUserServiceImplTest {
     class GetUserById {
 
         @Test
-        @DisplayName("populates stats correctly when mapper returns values")
+        @DisplayName("populates stats correctly when port returns values")
         void populatesStatsCorrectly() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(10L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(5L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(3L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(7);
+            stubStats("user-123", 10L, 5L, 3L, 7);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
@@ -137,14 +137,13 @@ class AdminUserServiceImplTest {
         }
 
         @Test
-        @DisplayName("defaults stats to zero when mappers return null")
-        void nullMapperReturns_defaultsToZero() {
+        @DisplayName("defaults stats to zero when port returns zero")
+        void portZero_defaultsToZero() {
+            // null→0 降级由 AdminUserStatsReadAdapter 拥有 (adapter 测试覆盖);
+            // ServiceImpl 只看到非 null 基本类型,这里验证 port 返回 0 时 VO 也为 0。
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(null);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(null);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(null);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(null);
+            stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
@@ -163,10 +162,7 @@ class AdminUserServiceImplTest {
         void populatesPermissionsCorrectly() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            stubStats("user-123", 0L, 0L, 0L, 0);
 
             RolePermission rolePerm = new RolePermission();
             rolePerm.setAction("read");
@@ -193,10 +189,7 @@ class AdminUserServiceImplTest {
         void filtersExpiredPermissions() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
 
             UserPermission expired = new UserPermission();
@@ -260,10 +253,7 @@ class AdminUserServiceImplTest {
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
             when(permissionService.assignPermission(eq("user-123"), eq("MANAGE_PERMISSIONS"),
                     eq("SYSTEM"), any())).thenReturn(new UserPermission());
-            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
 
             AdminUserVO vo = adminUserService.assignUserPermission(
@@ -302,10 +292,7 @@ class AdminUserServiceImplTest {
             when(userMapper.selectById("user-123")).thenReturn(user);
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
             when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(true);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
 
             AdminUserVO vo = adminUserService.revokeUserPermission(
@@ -323,10 +310,7 @@ class AdminUserServiceImplTest {
             when(userMapper.selectById("user-123")).thenReturn(user);
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
             when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(false);
-            when(submissionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(0L);
-            when(solutionMapper.countByUserId("user-123")).thenReturn(0L);
-            when(submissionMapper.calculateStreak("user-123")).thenReturn(0);
+            stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
 
             AdminUserVO vo = adminUserService.revokeUserPermission(

@@ -14,13 +14,12 @@ import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.admin.service.AdminUserService;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.service.PermissionService;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -53,8 +52,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuditHelper auditHelper;
-    private final SubmissionMapper submissionMapper;
-    private final SolutionMapper solutionMapper;
+    private final AdminUserStatsReadPort userStatsReadPort;
     private final PermissionService permissionService;
     private final RolePermissionMapper rolePermissionMapper;
 
@@ -557,14 +555,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private void populateStats(AdminUserVO vo, String userId) {
         AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
-        Long totalSubmissions = submissionMapper.countByUserId(userId);
-        Long acceptedSubmissions = submissionMapper.countAcceptedProblemsByUserId(userId);
-        Long totalSolutions = solutionMapper.countByUserId(userId);
-        Integer streak = submissionMapper.calculateStreak(userId);
-        stats.setTotalSubmissions(totalSubmissions != null ? totalSubmissions.intValue() : 0);
-        stats.setAcceptedSubmissions(acceptedSubmissions != null ? acceptedSubmissions.intValue() : 0);
-        stats.setTotalSolutions(totalSolutions != null ? totalSolutions.intValue() : 0);
-        stats.setStreak(streak != null ? streak : 0);
+        stats.setTotalSubmissions((int) userStatsReadPort.countSubmissionsByUserId(userId));
+        stats.setAcceptedSubmissions((int) userStatsReadPort.countAcceptedProblemsByUserId(userId));
+        stats.setTotalSolutions((int) userStatsReadPort.countSolutionsByUserId(userId));
+        stats.setStreak(userStatsReadPort.calculateSubmissionStreak(userId));
         vo.setStats(stats);
     }
 

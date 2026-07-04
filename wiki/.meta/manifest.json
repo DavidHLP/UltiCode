@@ -1,10 +1,10 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "8001531a30368c53f0e55776f6cb1e7fd6400bf7",
+  "generated_with_head": "32caa67ac34eb91e608b5629375749d335cdee04",
   "stats": {
-    "pages": 57,
+    "pages": 58,
     "by_type": {
-      "concept": 16,
+      "concept": 17,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -21,8 +21,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -36,13 +36,28 @@
       "status": "living",
       "frontmatter_updated": "2026-06-23",
       "last_commit": {
-        "sha": "b390d5b239da2983ada9bb007d6827b7e241356e",
-        "short": "b390d5b23",
+        "sha": "4c41d8144ed362fa4b1deb2f44a5cde3a3633362",
+        "short": "4c41d8144",
         "committed_at": "2026-06-23T23:53:56+08:00",
         "author": "DavidHLP",
         "subject": "feat(wiki): add per-page git provenance manifest"
       },
       "body_sha256": "308ef8ed682969fc14049cb9db0b8fa52aeab143fbe8a7ad33ec1c0c7244776f"
+    },
+    {
+      "path": "wiki/concepts/achievement-projection.md",
+      "type": "concept",
+      "title": "Achievement Projection",
+      "status": "living",
+      "frontmatter_updated": "2026-07-04",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "f69df363d1de692b57ac87470e236418e24a186769ed48ea77a6a6270fa2a913"
     },
     {
       "path": "wiki/concepts/arthas-diagnostics.md",
@@ -51,11 +66,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "9ae3c99647a6fe4add5d5b00b590c05c81c7c57a1c62b42032178872052fe6fa"
     },
@@ -66,8 +81,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -81,8 +96,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -96,8 +111,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -111,8 +126,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -126,8 +141,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "cc3448f41d90746b487e2384e2a01762e6e4a361",
-        "short": "cc3448f41",
+        "sha": "1d61a621bda190742f5f8f547b43a3d2efe9eed2",
+        "short": "1d61a621b",
         "committed_at": "2026-06-24T00:31:11+08:00",
         "author": "DavidHLP",
         "subject": "fix(notification): honor preference opt-out in admin broadcast"
@@ -141,11 +156,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "56ab9e1d447025bf3ade71712c1e4eb60a700bb1badb61ac686f697b15f7d690"
     },
@@ -156,8 +171,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-22",
       "last_commit": {
-        "sha": "33cbb906595416c1b21df684cfc396bb146a455d",
-        "short": "33cbb9065",
+        "sha": "cf85ae67b67e200a6fb762c90f90fa63463ca70e",
+        "short": "cf85ae67b",
         "committed_at": "2026-06-22T19:02:54+08:00",
         "author": "DavidHLP",
         "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
@@ -171,8 +186,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -186,8 +201,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -201,8 +216,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -216,8 +231,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -231,8 +246,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "8001531a30368c53f0e55776f6cb1e7fd6400bf7",
-        "short": "8001531a3",
+        "sha": "750f1515642ada3a1447c0c1100b78aef56fa36d",
+        "short": "750f15156",
         "committed_at": "2026-06-24T21:26:49+08:00",
         "author": "DavidHLP",
         "subject": "docs(wiki): record sidebar-menu CR fixes in concept/log/daily"
@@ -246,11 +261,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "1231e42664695bd03bded9644e8b8a3310dfce67fafb488d30c969b31ff39a7f"
     },
@@ -261,8 +276,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -276,8 +291,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -291,8 +306,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "8001531a30368c53f0e55776f6cb1e7fd6400bf7",
-        "short": "8001531a3",
+        "sha": "750f1515642ada3a1447c0c1100b78aef56fa36d",
+        "short": "750f15156",
         "committed_at": "2026-06-24T21:26:49+08:00",
         "author": "DavidHLP",
         "subject": "docs(wiki): record sidebar-menu CR fixes in concept/log/daily"
@@ -306,8 +321,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -321,11 +336,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "9b6c0dc7d159b365d4e6b35bcc7e1816e5fc6b72a12ee48e27cf59b3a297b532"
     },
@@ -336,8 +351,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -351,8 +366,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -366,8 +381,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -381,8 +396,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -396,8 +411,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -411,8 +426,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -426,8 +441,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -441,11 +456,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "b576ad75289c716d1f30d8c062a5fe72b92a308a4efc6d2a0ca17f2f0d63e52e"
     },
@@ -456,8 +471,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -471,8 +486,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -486,8 +501,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -501,11 +516,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "e9f3213cbe0693aeb4c7b104a90cfaa230eb9c90284d94d9d0f4242a2feb42d8"
     },
@@ -516,8 +531,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -531,11 +546,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "a3f4d7c4bec0634dcdff033040f45e90c8b353411ea35d2c7f3ea1d3f0d97b5a"
     },
@@ -546,8 +561,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -561,8 +576,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -576,8 +591,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -591,8 +606,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -606,8 +621,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -621,8 +636,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -636,8 +651,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -651,11 +666,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "d45b9f5b11c1a411615c9acdde7cd3289acf91314ec8220d34134d8dc2a5cf65"
     },
@@ -666,8 +681,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -681,8 +696,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "fc266ce10754796d440da1cedab007bfc0fc6a91",
-        "short": "fc266ce10",
+        "sha": "bd73d787b838b65b502d3c3d4b52a74a0ac40ea3",
+        "short": "bd73d787b",
         "committed_at": "2026-06-24T18:01:20+08:00",
         "author": "DavidHLP",
         "subject": "fix(sidebar-menu): drop SidebarParentItem open prop (controlled-closed regression)"
@@ -696,11 +711,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "8001531a30368c53f0e55776f6cb1e7fd6400bf7",
-        "short": "8001531a3",
-        "committed_at": "2026-06-24T21:26:49+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): record sidebar-menu CR fixes in concept/log/daily"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "16d998b24d5fc5d41c0cdeb801d548fc1573353fec0635a3faa77c8dbe30b692"
     },
@@ -711,8 +726,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -726,8 +741,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -741,8 +756,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -756,8 +771,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -771,8 +786,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "33cbb906595416c1b21df684cfc396bb146a455d",
-        "short": "33cbb9065",
+        "sha": "cf85ae67b67e200a6fb762c90f90fa63463ca70e",
+        "short": "cf85ae67b",
         "committed_at": "2026-06-22T19:02:54+08:00",
         "author": "DavidHLP",
         "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
@@ -786,11 +801,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
+        "short": "d54284dd1",
+        "committed_at": "2026-06-24T23:06:19+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "d2ed828d81a97d61829c4bc7526bfaa31620df8f4fdff3fd61f7d06886334284"
     },
@@ -801,8 +816,8 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -816,8 +831,8 @@
       "status": "stub",
       "frontmatter_updated": "{{date:YYYY-MM-DD}}",
       "last_commit": {
-        "sha": "2ae14d628c8cf0594ee33ff5b380e12af4747e4f",
-        "short": "2ae14d628",
+        "sha": "f916f0532226202f404690a85fd260379c413940",
+        "short": "f916f0532",
         "committed_at": "2026-06-21T16:32:26+08:00",
         "author": "DavidHLP",
         "subject": "docs: rename docs/ to wiki/ and promote 9 low-density modules"
@@ -831,8 +846,8 @@
       "status": "living",
       "frontmatter_updated": "{{date:YYYY-MM-DD}}",
       "last_commit": {
-        "sha": "0dc3c0e2dcfa102cf805f09c5389af0f27ba7da4",
-        "short": "0dc3c0e2d",
+        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
+        "short": "d224d662b",
         "committed_at": "2026-06-21T17:47:08+08:00",
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
@@ -846,8 +861,8 @@
       "status": "stub",
       "frontmatter_updated": "{{date:YYYY-MM-DD}}",
       "last_commit": {
-        "sha": "2ae14d628c8cf0594ee33ff5b380e12af4747e4f",
-        "short": "2ae14d628",
+        "sha": "f916f0532226202f404690a85fd260379c413940",
+        "short": "f916f0532",
         "committed_at": "2026-06-21T16:32:26+08:00",
         "author": "DavidHLP",
         "subject": "docs: rename docs/ to wiki/ and promote 9 low-density modules"
@@ -861,8 +876,8 @@
       "status": "stub",
       "frontmatter_updated": "{{date:YYYY-MM-DD}}",
       "last_commit": {
-        "sha": "2ae14d628c8cf0594ee33ff5b380e12af4747e4f",
-        "short": "2ae14d628",
+        "sha": "f916f0532226202f404690a85fd260379c413940",
+        "short": "f916f0532",
         "committed_at": "2026-06-21T16:32:26+08:00",
         "author": "DavidHLP",
         "subject": "docs: rename docs/ to wiki/ and promote 9 low-density modules"

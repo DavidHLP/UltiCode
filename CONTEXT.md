@@ -34,7 +34,7 @@
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
   `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`,
-  `SearchReadProjection`.
+  `SearchReadProjection`, `SolutionProjection`, `AchievementProjection`.
 - **Search / SearchReadProjection** — the cross-domain read module that
   fans a query across the problems / users / posts / solutions indices
   (MeiliSearch when configured, database LIKE fallback) and aggregates the
@@ -71,4 +71,5 @@
 ## Decisions
 
 - See `docs/adr/` — ADR-0001 (submission-contest decoupling), ADR-0004
-  (moderation projection extraction).
+  (moderation projection extraction), ADR-0005 (achievement projection
+  extraction).

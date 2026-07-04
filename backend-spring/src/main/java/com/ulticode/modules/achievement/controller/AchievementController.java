@@ -5,6 +5,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.achievement.dto.*;
+import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.achievement.service.AchievementService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,6 +19,10 @@ import java.util.List;
 
 /**
  * Controller for achievement operations.
+ *
+ * <p>Read endpoints delegate to {@link AchievementProjection}; write endpoints
+ * (create / update / delete) delegate to {@link AchievementService}. See
+ * ADR-0005.</p>
  */
 @Tag(name = "Achievement", description = "Achievement management API")
 @RestController
@@ -26,32 +31,33 @@ import java.util.List;
 @SecurityRequirement(name = "Bearer")
 public class AchievementController {
 
+    private final AchievementProjection achievementProjection;
     private final AchievementService achievementService;
 
     @Operation(summary = "Get all achievements")
     @GetMapping
     public Result<PageResult<AchievementVO>> list(AchievementQueryDTO query) {
-        return Result.success(achievementService.list(query));
+        return Result.success(achievementProjection.list(query));
     }
 
     @Operation(summary = "Get achievement by ID")
     @GetMapping("/{id}")
     public Result<AchievementVO> getById(@PathVariable String id) {
-        return Result.success(achievementService.getById(id));
+        return Result.success(achievementProjection.getById(id));
     }
 
     @Operation(summary = "Get current user's achievement progress")
     @GetMapping("/user/me")
     public Result<List<AchievementProgressDTO>> getCurrentUserAchievements() {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(achievementService.getUserAchievements(userId));
+        return Result.success(achievementProjection.getUserAchievements(userId));
     }
 
     @Operation(summary = "Get current user's achievement points")
     @GetMapping("/user/me/points")
     public Result<UserPointsVO> getCurrentUserPoints() {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(achievementService.getUserPoints(userId));
+        return Result.success(achievementProjection.getUserPoints(userId));
     }
 
     // ========== Path Aliases for Frontend ==========
@@ -71,7 +77,7 @@ public class AchievementController {
     @Operation(summary = "Get a user's achievements by user ID", description = "Get achievement progress for any user by their ID")
     @GetMapping("/user/{id}")
     public Result<List<AchievementProgressDTO>> getUserAchievementsById(@PathVariable String id) {
-        return Result.success(achievementService.getUserAchievements(id));
+        return Result.success(achievementProjection.getUserAchievements(id));
     }
 
     @Operation(summary = "Create achievement (admin only)")

@@ -4,7 +4,7 @@ import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.achievement.dto.AchievementProgressVO;
-import com.ulticode.modules.achievement.service.AchievementService;
+import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -37,7 +37,7 @@ public class UserController {
 
     private final UserReadProjection userReadProjection;
     private final UserWritePort userWritePort;
-    private final AchievementService achievementService;
+    private final AchievementProjection achievementProjection;
 
     /**
      * Get the current authenticated user's profile.
@@ -221,7 +221,7 @@ public class UserController {
     @GetMapping("/me/achievements/progress")
     public Result<List<AchievementProgressVO>> getAchievementProgress() {
         String userId = userReadProjection.getCurrentUser().getId();
-        List<AchievementProgressVO> progress = achievementService.getUserProgress(userId);
+        List<AchievementProgressVO> progress = achievementProjection.getUserProgress(userId);
         return Result.success(progress);
     }
 }

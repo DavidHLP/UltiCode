@@ -1,34 +1,30 @@
 package com.ulticode.modules.achievement.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.achievement.constants.AchievementType;
-import com.ulticode.modules.achievement.dto.*;
+import com.ulticode.modules.achievement.dto.AchievementDTO;
+import com.ulticode.modules.achievement.dto.AchievementVO;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.achievement.service.impl.AchievementServiceImpl;
 import com.ulticode.modules.achievement.service.impl.AchievementTriggerServiceImpl;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,7 +32,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for Achievement services.
+ * Unit tests for the achievement write paths ({@link AchievementServiceImpl})
+ * and the trigger service ({@link AchievementTriggerServiceImpl}).
+ *
+ * <p>Read-path tests (list / getById / getUserAchievements / getUserPoints)
+ * were migrated to {@code AchievementProjectionTest} when those methods moved
+ * to {@link AchievementProjection} (ADR-0005). The write paths here delegate
+ * the post-action view shape to {@code AchievementProjection#toVO}, which is
+ * stubbed with a passthrough answer so the assertions still verify the
+ * service's own mutation logic.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class AchievementServiceTest {
@@ -48,10 +52,7 @@ class AchievementServiceTest {
     private UserAchievementMapper userAchievementMapper;
 
     @Mock
-    private SubmissionMapper submissionMapper;
-
-    @Mock
-    private ContestParticipantMapper contestParticipantMapper;
+    private AchievementProjection achievementProjection;
 
     @Mock
     private RealtimeService realtimeService;
@@ -104,24 +105,28 @@ class AchievementServiceTest {
         return dto;
     }
 
-    private Achievement createAchievementWithCriteria(String key, String type, int target) {
-        Achievement a = new Achievement();
-        a.setId("ach-" + key);
-        a.setKey(key);
-        a.setName("Name " + key);
-        a.setDescription("Desc " + key);
-        a.setCategory("problems");
-        a.setTier(1);
-        a.setPoints(10);
-        a.setIsActive(true);
-        Map<String, Object> criteria = new HashMap<>();
-        criteria.put("type", type);
-        criteria.put("target", target);
-        a.setCriteria(criteria);
-        return a;
+    /**
+     * Passthrough stub so write-path tests verify the service's own mutation
+     * logic (the entity fields set by create/update) rather than the
+     * projection's VO mapping, which has its own dedicated tests.
+     */
+    private void stubToVOPassthrough() {
+        when(achievementProjection.toVO(any(Achievement.class))).thenAnswer(invocation -> {
+            Achievement a = invocation.getArgument(0);
+            AchievementVO vo = new AchievementVO();
+            vo.setId(a.getId());
+            vo.setKey(a.getKey());
+            vo.setName(a.getName());
+            vo.setDescription(a.getDescription());
+            vo.setIcon(a.getIcon());
+            vo.setCategory(a.getCategory());
+            vo.setTier(a.getTier());
+            vo.setCriteria(a.getCriteria());
+            vo.setPoints(a.getPoints());
+            vo.setIsActive(a.getIsActive());
+            return vo;
+        });
     }
-
-    // ==================== AchievementServiceImpl Tests ====================
 
     @Nested
     @DisplayName("Achievement CRUD Tests")
@@ -130,7 +135,6 @@ class AchievementServiceTest {
         @Test
         @DisplayName("should create achievement successfully")
         void shouldCreateAchievementSuccessfully() {
-            // Arrange
             AchievementDTO dto = createTestAchievementDTO();
             when(achievementMapper.findByKey(dto.getKey())).thenReturn(null);
             when(achievementMapper.insert(any(Achievement.class))).thenAnswer(invocation -> {
@@ -138,177 +142,33 @@ class AchievementServiceTest {
                 a.setId("new-id");
                 return 1;
             });
+            stubToVOPassthrough();
 
-            // Act
             AchievementVO result = achievementServiceImpl.create(dto);
 
-            // Assert
             assertNotNull(result);
             assertEquals(dto.getKey(), result.getKey());
             assertEquals(dto.getName(), result.getName());
             verify(achievementMapper).insert(any(Achievement.class));
+            verify(achievementProjection).toVO(any(Achievement.class));
         }
 
         @Test
         @DisplayName("should throw exception when creating achievement with duplicate key")
         void shouldThrowExceptionWhenCreatingWithDuplicateKey() {
-            // Arrange
             AchievementDTO dto = createTestAchievementDTO();
             Achievement existing = createTestAchievement();
             existing.setKey(dto.getKey());
             when(achievementMapper.findByKey(dto.getKey())).thenReturn(existing);
 
-            // Act & Assert
             BusinessException exception = assertThrows(BusinessException.class,
                     () -> achievementServiceImpl.create(dto));
             assertEquals(ErrorCode.CONFLICT.getCode(), exception.getCode());
         }
 
-        // ==================== getUserAchievements progress (LOW #5) ====================
-        // Achievement criteria.type → SubmissionMapper counter, replacing the
-        // previously hard-coded dto.setProgress(0). See Task 4 in
-        // docs/.claude/PRPs/plans/achievement-api-fixes.plan.md.
-    }
-
-    @Nested
-    @DisplayName("AchievementServiceImpl#getUserAchievements progress tests")
-    class GetUserAchievementsProgressTests {
-
-        @Test
-        @DisplayName("problems_solved criteria → progress = countAcceptedProblemsByUserId")
-        void progress_fromProblemsSolved() {
-            Achievement a = createAchievementWithCriteria("ps", "problems_solved", 10);
-            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(7L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(20L);
-
-            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
-
-            assertEquals(1, result.size());
-            assertEquals(7, result.get(0).getProgress(),
-                    "progress must equal countAcceptedProblemsByUserId for problems_solved criteria");
-            assertEquals(10, result.get(0).getTarget());
-            assertFalse(result.get(0).getEarned());
-            verify(submissionMapper).countAcceptedProblemsByUserId(USER_ID);
-        }
-
-        @Test
-        @DisplayName("submissions_made criteria → progress = countByUserId")
-        void progress_fromSubmissionsMade() {
-            Achievement a = createAchievementWithCriteria("sm", "submissions_made", 100);
-            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(3L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(42L);
-
-            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
-
-            assertEquals(1, result.size());
-            assertEquals(42, result.get(0).getProgress(),
-                    "progress must equal countByUserId for submissions_made criteria");
-            assertEquals(100, result.get(0).getTarget());
-        }
-
-        @Test
-        @DisplayName("null criteria → progress=0, target=0 (does not throw)")
-        void progress_nullCriteria_zero() {
-            Achievement a = new Achievement();
-            a.setId("ach-null");
-            a.setKey("no_criteria");
-            a.setName("No criteria");
-            a.setIsActive(true);
-            a.setCriteria(null);
-            when(achievementMapper.findAllActive()).thenReturn(List.of(a));
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(0L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(0L);
-
-            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
-
-            assertEquals(1, result.size());
-            assertEquals(0, result.get(0).getProgress());
-            assertEquals(0, result.get(0).getTarget());
-        }
-
-        @Test
-        @DisplayName("should return paginated achievements")
-        void shouldReturnPaginatedAchievements() {
-            // Arrange
-            AchievementQueryDTO query = new AchievementQueryDTO();
-            query.setPage(1);
-            query.setLimit(10);
-
-            Page<Achievement> mockPage = new Page<>(1, 10);
-            Achievement achievement = createTestAchievement();
-            mockPage.setRecords(List.of(achievement));
-            mockPage.setTotal(1L);
-
-            when(achievementMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
-                    .thenReturn(mockPage);
-
-            // Act
-            var result = achievementServiceImpl.list(query);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(1, result.getTotal());
-            assertEquals(1, result.getItems().size());
-        }
-
-        @Test
-        @DisplayName("should filter achievements by category")
-        void shouldFilterAchievementsByCategory() {
-            // Arrange
-            AchievementQueryDTO query = new AchievementQueryDTO();
-            query.setCategory("problems");
-
-            Page<Achievement> mockPage = new Page<>(1, 20);
-            mockPage.setRecords(Collections.emptyList());
-            mockPage.setTotal(0L);
-
-            when(achievementMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class)))
-                    .thenReturn(mockPage);
-
-            // Act
-            achievementServiceImpl.list(query);
-
-            // Assert
-            verify(achievementMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
-        }
-
-        @Test
-        @DisplayName("should return achievement by ID")
-        void shouldReturnAchievementById() {
-            // Arrange
-            Achievement achievement = createTestAchievement();
-            when(achievementMapper.selectById(ACHIEVEMENT_ID)).thenReturn(achievement);
-
-            // Act
-            AchievementVO result = achievementServiceImpl.getById(ACHIEVEMENT_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(ACHIEVEMENT_ID, result.getId());
-            assertEquals("First Steps", result.getName());
-        }
-
-        @Test
-        @DisplayName("should throw exception when achievement not found")
-        void shouldThrowExceptionWhenAchievementNotFound() {
-            // Arrange
-            when(achievementMapper.selectById(ACHIEVEMENT_ID)).thenReturn(null);
-
-            // Act & Assert
-            BusinessException exception = assertThrows(BusinessException.class,
-                    () -> achievementServiceImpl.getById(ACHIEVEMENT_ID));
-            assertEquals(ErrorCode.ACHIEVEMENT_NOT_FOUND.getCode(), exception.getCode());
-        }
-
         @Test
         @DisplayName("should update achievement successfully")
         void shouldUpdateAchievementSuccessfully() {
-            // Arrange
             Achievement existing = createTestAchievement();
             AchievementDTO dto = new AchievementDTO();
             dto.setName("Updated Name");
@@ -320,117 +180,29 @@ class AchievementServiceTest {
 
             when(achievementMapper.selectById(ACHIEVEMENT_ID)).thenReturn(existing);
             when(achievementMapper.updateById(any(Achievement.class))).thenReturn(1);
+            stubToVOPassthrough();
 
-            // Act
             AchievementVO result = achievementServiceImpl.update(ACHIEVEMENT_ID, dto);
 
-            // Assert
             assertNotNull(result);
             assertEquals("Updated Name", result.getName());
+            verify(achievementProjection).toVO(any(Achievement.class));
         }
 
         @Test
         @DisplayName("should delete achievement and associated user achievements")
         void shouldDeleteAchievementAndUserAchievements() {
-            // Arrange
             Achievement achievement = createTestAchievement();
             when(achievementMapper.selectById(ACHIEVEMENT_ID)).thenReturn(achievement);
             when(userAchievementMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(0);
             when(achievementMapper.deleteById(ACHIEVEMENT_ID)).thenReturn(1);
 
-            // Act
             achievementServiceImpl.delete(ACHIEVEMENT_ID);
 
-            // Assert
             verify(userAchievementMapper).delete(any(LambdaQueryWrapper.class));
             verify(achievementMapper).deleteById(ACHIEVEMENT_ID);
         }
     }
-
-    @Nested
-    @DisplayName("User Achievement Tests")
-    class UserAchievementTests {
-
-        @Test
-        @DisplayName("should return user achievement progress")
-        void shouldReturnUserAchievementProgress() {
-            // Arrange
-            Achievement achievement = createTestAchievement();
-            when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
-
-            // Act
-            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            assertFalse(result.get(0).getEarned());
-            assertEquals(1, result.get(0).getTarget());
-        }
-
-        @Test
-        @DisplayName("should show earned achievement for user")
-        void shouldShowEarnedAchievementForUser() {
-            // Arrange
-            Achievement achievement = createTestAchievement();
-            UserAchievement userAchievement = new UserAchievement();
-            userAchievement.setAchievementId(ACHIEVEMENT_ID);
-            userAchievement.setUserId(USER_ID);
-            userAchievement.setEarnedAt(LocalDateTime.now());
-
-            when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of(userAchievement));
-
-            // Act
-            List<AchievementProgressDTO> result = achievementServiceImpl.getUserAchievements(USER_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            assertTrue(result.get(0).getEarned());
-            assertNotNull(result.get(0).getEarnedAt());
-        }
-
-        @Test
-        @DisplayName("should return user points correctly")
-        void shouldReturnUserPointsCorrectly() {
-            // Arrange
-            Achievement achievement = createTestAchievement();
-            UserAchievement userAchievement = new UserAchievement();
-            userAchievement.setAchievementId(ACHIEVEMENT_ID);
-            userAchievement.setUserId(USER_ID);
-            userAchievement.setEarnedAt(LocalDateTime.now());
-
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of(userAchievement));
-            when(achievementMapper.selectBatchIds(List.of(ACHIEVEMENT_ID))).thenReturn(List.of(achievement));
-
-            // Act
-            UserPointsVO result = achievementServiceImpl.getUserPoints(USER_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(10, result.getTotalPoints());
-            assertEquals(1, result.getAchievementsEarned());
-        }
-
-        @Test
-        @DisplayName("should return zero points when no achievements earned")
-        void shouldReturnZeroPointsWhenNoAchievementsEarned() {
-            // Arrange
-            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
-
-            // Act
-            UserPointsVO result = achievementServiceImpl.getUserPoints(USER_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(0, result.getTotalPoints());
-            assertEquals(0, result.getAchievementsEarned());
-        }
-    }
-
-    // ==================== AchievementTriggerServiceImpl Tests ====================
 
     @Nested
     @DisplayName("Achievement Trigger Tests")
@@ -439,16 +211,13 @@ class AchievementServiceTest {
         @Test
         @DisplayName("should award achievement when target is met")
         void shouldAwardAchievementWhenTargetMet() {
-            // Arrange
             Achievement achievement = createTestAchievement();
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act — trigger methods are now void + async; call checkAndAwardAchievements directly in tests
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
 
-            // Assert
             assertEquals(1, awarded.size());
             assertEquals(ACHIEVEMENT_ID, awarded.get(0));
             verify(userAchievementMapper).insert(any(UserAchievement.class));
@@ -459,14 +228,11 @@ class AchievementServiceTest {
         @Test
         @DisplayName("should not award achievement when target not met")
         void shouldNotAwardAchievementWhenTargetNotMet() {
-            // Arrange
             Achievement achievement = createTestAchievement();
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 0);
 
-            // Assert
             assertTrue(awarded.isEmpty());
             verify(userAchievementMapper, never()).insert(any(UserAchievement.class));
         }
@@ -474,7 +240,6 @@ class AchievementServiceTest {
         @Test
         @DisplayName("should not award achievement when already earned")
         void shouldNotAwardAchievementWhenAlreadyEarned() {
-            // Arrange
             Achievement achievement = createTestAchievement();
             UserAchievement existing = new UserAchievement();
             existing.setAchievementId(ACHIEVEMENT_ID);
@@ -483,10 +248,8 @@ class AchievementServiceTest {
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of(existing));
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
 
-            // Assert
             assertTrue(awarded.isEmpty());
             verify(userAchievementMapper, never()).insert(any(UserAchievement.class));
         }
@@ -494,7 +257,6 @@ class AchievementServiceTest {
         @Test
         @DisplayName("should check contest participation achievement")
         void shouldCheckContestParticipationAchievement() {
-            // Arrange
             Achievement achievement = new Achievement();
             achievement.setId("contest-achievement");
             achievement.setKey("first_contest");
@@ -513,17 +275,14 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.CONTEST_PARTICIPATION, 1);
 
-            // Assert
             assertEquals(1, awarded.size());
         }
 
         @Test
         @DisplayName("should check solution written achievement")
         void shouldCheckSolutionWrittenAchievement() {
-            // Arrange
             Achievement achievement = new Achievement();
             achievement.setId("solution-achievement");
             achievement.setKey("first_solution");
@@ -542,17 +301,14 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.SOLUTIONS_WRITTEN, 1);
 
-            // Assert
             assertEquals(1, awarded.size());
         }
 
         @Test
         @DisplayName("should check streak achievement")
         void shouldCheckStreakAchievement() {
-            // Arrange
             Achievement achievement = new Achievement();
             achievement.setId("streak-achievement");
             achievement.setKey("streak_7");
@@ -571,17 +327,14 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.STREAK_DAYS, 7);
 
-            // Assert
             assertEquals(1, awarded.size());
         }
 
         @Test
         @DisplayName("should check generic achievement type")
         void shouldCheckGenericAchievementType() {
-            // Arrange
             Achievement achievement = new Achievement();
             achievement.setId("rating-achievement");
             achievement.setKey("rating_1500");
@@ -600,11 +353,9 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(
                     USER_ID, AchievementType.RATING_MILESTONE, 1500);
 
-            // Assert
             assertEquals(1, awarded.size());
         }
     }

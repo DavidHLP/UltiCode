@@ -36,7 +36,22 @@ fi
 : "${DB_NAME:?DB_NAME is required}"
 
 cd "$ROOT_DIR/init-db"
-mvn "flyway:$COMMAND" \
-  -Dflyway.configFiles=flyway.conf \
-  --no-transfer-progress \
-  -B
+
+run_flyway() {
+  mvn "flyway:$1" \
+    -Dflyway.configFiles=flyway.conf \
+    --no-transfer-progress \
+    -B
+}
+
+# 自愈: migrate 失败(checksum 漂移 / failed migration 记录残留 / 历史遗留 baseline-增量冲突)时,
+# repair 清理 flyway_schema_history 中的失败记录后重试一次。根因(如迁移文件本身冲突)仍需人工修。
+if [[ "$COMMAND" == "migrate" ]]; then
+  if ! run_flyway migrate; then
+    echo "Flyway migrate failed; running repair then retrying..." >&2
+    run_flyway repair
+    run_flyway migrate
+  fi
+else
+  run_flyway "$COMMAND"
+fi

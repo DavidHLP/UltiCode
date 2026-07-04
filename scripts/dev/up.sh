@@ -160,7 +160,9 @@ wait_for_health() {
 # ===== 步骤 1: Docker 基础设施 =====
 if [[ "$SKIP_INFRA" != true ]]; then
   echo "Starting MySQL, Redis, and Nacos..."
-  "${compose[@]}" up -d
+  # --force-recreate: 用当前 .env 重建容器, 避免沿用过期 env
+  # (否则 REDIS_PASSWORD 等 env 漂移后容器仍持旧值 → Spring 启动报 RedisWrongPasswordException)
+  "${compose[@]}" up -d --force-recreate
   wait_for_health ulticode-mysql
   wait_for_health ulticode-redis
   wait_for_health ulticode-nacos
@@ -222,8 +224,14 @@ fi
 # ===== 步骤 5: pnpm install =====
 if [[ "$SKIP_INSTALL" != true ]]; then
   echo "Installing frontend and shared dependencies..."
+  # node_modules 缺失时跳过 --frozen-lockfile (该 flag 在全新/残缺环境会因 lockfile 未解析而失败)
   for package in console management shared/auth-core; do
-    (cd "$ROOT_DIR/$package" && pnpm install --frozen-lockfile)
+    if [[ ! -d "$ROOT_DIR/$package/node_modules" ]]; then
+      echo "  $package: node_modules missing, running pnpm install..."
+      (cd "$ROOT_DIR/$package" && pnpm install)
+    else
+      (cd "$ROOT_DIR/$package" && pnpm install --frozen-lockfile)
+    fi
   done
 else
   echo "Skipping dependency install (--skip-install / --quick / --frontend-only)."

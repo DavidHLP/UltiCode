@@ -52,8 +52,8 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 COPY management/nginx.conf /etc/nginx/templates/default.conf.template
 ENV API_ORIGIN="http://localhost:9001"
 
-# Grant write access to nginx runtime directories
-RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx && \
+# Grant write access to nginx runtime directories and conf.d (for envsubst)
+RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx /etc/nginx/conf.d && \
     touch /var/run/nginx.pid && \
     chown appuser:appgroup /var/run/nginx.pid
 

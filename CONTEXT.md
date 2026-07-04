@@ -60,6 +60,15 @@
 - **SubmissionJudgedEvent** — domain event published after the verdict-write
   transaction commits; consumed by `ContestScoringListener` (AFTER_COMMIT)
   for post-commit scoring, and by achievement listeners.
+- **Realtime push seam** — the six consumer-owned ports that invert the
+  WebSocket push path: `NotificationPushPort`, `BadgePushPort`,
+  `SubmissionResultPushPort`, `ContestRankingMarkDirtyPort`,
+  `ContestStatusPushPort`, `ContestAnnouncementPushPort`. Adapters live
+  in `websocket/port/adapter/`. The only producer-side component left is
+  `WebSocketContestRankingFlusher` (ranking throttle + flush + cleanup),
+  which exists to protect the STOMP transport from leaderboard-flood
+  bursts. The old `RealtimeService` god service is deleted. See
+  ADR-0009.
 
 ## Design invariants
 
@@ -80,4 +89,6 @@
 - See `docs/adr/` — ADR-0001 (submission-contest decoupling), ADR-0004
   (moderation projection extraction), ADR-0005 (achievement projection
   extraction), ADR-0006 (problem detail port extraction), ADR-0007
-  (admin user stats read port), ADR-0008 (admin comment read port).
+  (admin user stats read port), ADR-0008 (admin comment read port),
+  ADR-0009 (realtime push seam inversion — six consumer-owned ports +
+  `RealtimeService` collapse).

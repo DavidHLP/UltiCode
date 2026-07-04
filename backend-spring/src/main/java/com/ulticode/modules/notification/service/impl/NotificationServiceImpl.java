@@ -10,9 +10,9 @@ import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.NotificationPreference;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
+import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,7 +53,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
-    private final RealtimeService realtimeService;
+    private final NotificationPushPort notificationPushPort;
 
     @Override
     public PageResult<NotificationVO> list(String userId, NotificationQueryDTO query) {
@@ -201,9 +201,11 @@ public class NotificationServiceImpl implements NotificationService {
         // via WebSocketNotificationChannel so failure isolation works per-channel.
         NotificationVO vo = createNotificationRowOnly(userId, type, category, title, body, link, metadata);
 
-        // WebSocket push (fire-and-forget per D-11)
+        // WebSocket push (fire-and-forget per D-11). The port swallows
+        // exceptions per its contract; the defensive try/catch guards against
+        // a future adapter that does not.
         try {
-            realtimeService.sendNotification(userId,
+            notificationPushPort.pushToUser(userId,
                 NotificationPayload.of(
                     vo.getId(),
                     vo.getType(),

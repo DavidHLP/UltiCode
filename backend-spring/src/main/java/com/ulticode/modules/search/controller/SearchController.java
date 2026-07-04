@@ -3,7 +3,7 @@ package com.ulticode.modules.search.controller;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
-import com.ulticode.modules.search.service.SearchService;
+import com.ulticode.modules.search.projection.SearchReadProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,13 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SearchController {
 
-    private final SearchService searchService;
+    private final SearchReadProjection searchProjection;
 
     @Operation(summary = "Search content",
             description = "Full-text search across problems, users, posts, and solutions. " +
                     "Supports filtering by index type and pagination.")
     @GetMapping
     public Result<SearchResponseVO> search(@Valid SearchQueryDTO queryDTO) {
-        return Result.success(searchService.search(queryDTO));
+        return Result.success(searchProjection.search(queryDTO));
     }
 }

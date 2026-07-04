@@ -33,7 +33,13 @@
   ContestSubmission (`SubmissionServiceImpl.submit`).
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
-  `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`.
+  `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`,
+  `SearchReadProjection`.
+- **Search / SearchReadProjection** — the cross-domain read module that
+  fans a query across the problems / users / posts / solutions indices
+  (MeiliSearch when configured, database LIKE fallback) and aggregates the
+  hits into one `SearchResponseVO`. Replaces the shallow `SearchService`
+  facade; only `SearchController` calls it.
 - **Port** — an interface owned by the consuming module describing a
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],

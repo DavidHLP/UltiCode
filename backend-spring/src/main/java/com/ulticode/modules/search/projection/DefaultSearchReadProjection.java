@@ -1,4 +1,4 @@
-package com.ulticode.modules.search.service.impl;
+package com.ulticode.modules.search.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meilisearch.sdk.Client;
@@ -12,7 +12,6 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
-import com.ulticode.modules.search.service.SearchService;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
@@ -28,13 +27,25 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Implementation of SearchService.
- * Uses MeiliSearch for full-text search when available, falls back to database queries otherwise.
+ * Default (and only) adapter for {@link SearchReadProjection}. Owns every
+ * search read in one deep module &mdash; see the interface javadoc for why
+ * the search read surface is a deep module rather than a thin service.
+ *
+ * <p>Logic moved verbatim from the deprecated {@code SearchServiceImpl}
+ * facade. The facade is deleted (not retained as a delegate) because the
+ * controller is the only caller, so the indirection was pure shallowness.
+ * Every guard the facade used to inline is preserved here: the
+ * MeiliSearch-optional setter injection (the {@link Client} bean is created
+ * only when {@code meilisearch.enabled=true}), the per-index fan-out with
+ * {@code perIndexLimit}, the broad-catch fallback to database LIKE queries
+ * on any MeiliSearch failure, and the per-type URL / metadata templating.
+ *
+ * @author ulticode
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SearchServiceImpl implements SearchService {
+public class DefaultSearchReadProjection implements SearchReadProjection {
 
     private final ProblemMapper problemMapper;
     private final UserMapper userMapper;

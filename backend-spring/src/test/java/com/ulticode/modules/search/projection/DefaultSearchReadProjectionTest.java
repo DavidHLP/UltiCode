@@ -1,4 +1,4 @@
-package com.ulticode.modules.search.service;
+package com.ulticode.modules.search.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.meilisearch.sdk.Client;
@@ -11,7 +11,6 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
-import com.ulticode.modules.search.service.impl.SearchServiceImpl;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
@@ -36,10 +35,16 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for SearchService.
+ * Unit tests for {@link DefaultSearchReadProjection}.
+ *
+ * <p>Migrated verbatim from the deprecated {@code SearchServiceTest}: the
+ * assertion surface is unchanged because the projection preserves the
+ * facade's behaviour. The {@code meiliSearchClient} field is still injected
+ * via {@link ReflectionTestUtils} because the {@link Client} bean is optional
+ * (only created when {@code meilisearch.enabled=true}).
  */
 @ExtendWith(MockitoExtension.class)
-class SearchServiceTest {
+class DefaultSearchReadProjectionTest {
 
     @Mock
     private ProblemMapper problemMapper;
@@ -60,7 +65,7 @@ class SearchServiceTest {
     private Index index;
 
     @InjectMocks
-    private SearchServiceImpl searchService;
+    private DefaultSearchReadProjection searchProjection;
 
     private SearchQueryDTO queryDTO;
 
@@ -80,7 +85,7 @@ class SearchServiceTest {
         @DisplayName("should search problems when MeiliSearch is not available")
         void shouldSearchProblemsWhenMeiliSearchNotAvailable() {
             // Arrange - MeiliSearch client is not set
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
 
             List<Problem> problems = new ArrayList<>();
             Problem problem = new Problem();
@@ -98,7 +103,7 @@ class SearchServiceTest {
             when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertNotNull(response);
@@ -119,7 +124,7 @@ class SearchServiceTest {
         @DisplayName("should search users when index type is USERS")
         void shouldSearchUsersWhenIndexTypeIsUsers() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
 
             List<User> users = new ArrayList<>();
@@ -136,7 +141,7 @@ class SearchServiceTest {
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertNotNull(response);
@@ -154,7 +159,7 @@ class SearchServiceTest {
         @DisplayName("should search posts when index type is POSTS")
         void shouldSearchPostsWhenIndexTypeIsPosts() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.POSTS);
 
             List<ForumPost> posts = new ArrayList<>();
@@ -168,7 +173,7 @@ class SearchServiceTest {
             when(forumPostMapper.searchPosts("test", 20)).thenReturn(posts);
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertNotNull(response);
@@ -186,7 +191,7 @@ class SearchServiceTest {
         @DisplayName("should search solutions when index type is SOLUTIONS")
         void shouldSearchSolutionsWhenIndexTypeIsSolutions() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.SOLUTIONS);
 
             List<Solution> solutions = new ArrayList<>();
@@ -202,7 +207,7 @@ class SearchServiceTest {
             when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(solutions);
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertNotNull(response);
@@ -220,7 +225,7 @@ class SearchServiceTest {
         @DisplayName("should search all indices when index type is not specified")
         void shouldSearchAllIndicesWhenIndexTypeNotSpecified() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             // index is null by default
 
             List<Problem> problems = new ArrayList<>();
@@ -248,7 +253,7 @@ class SearchServiceTest {
             when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertNotNull(response);
@@ -264,7 +269,7 @@ class SearchServiceTest {
         @DisplayName("should limit results to the specified limit")
         void shouldLimitResultsToSpecifiedLimit() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setLimit(2);
 
             List<Problem> problems = new ArrayList<>();
@@ -296,7 +301,7 @@ class SearchServiceTest {
             when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             assertEquals(2, response.getResults().size());
@@ -311,10 +316,10 @@ class SearchServiceTest {
         @DisplayName("should return true when MeiliSearch client is available")
         void shouldReturnTrueWhenMeiliSearchAvailable() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", meiliSearchClient);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
 
             // Act
-            boolean available = searchService.isMeiliSearchAvailable();
+            boolean available = searchProjection.isMeiliSearchAvailable();
 
             // Assert
             assertTrue(available);
@@ -324,10 +329,10 @@ class SearchServiceTest {
         @DisplayName("should return false when MeiliSearch client is not available")
         void shouldReturnFalseWhenMeiliSearchNotAvailable() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
 
             // Act
-            boolean available = searchService.isMeiliSearchAvailable();
+            boolean available = searchProjection.isMeiliSearchAvailable();
 
             // Assert
             assertFalse(available);
@@ -337,12 +342,12 @@ class SearchServiceTest {
         @DisplayName("should return empty results when MeiliSearch returns errors for all indices")
         void shouldReturnEmptyResultsWhenMeiliSearchReturnsErrorsForAllIndices() throws Exception {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", meiliSearchClient);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", meiliSearchClient);
             when(meiliSearchClient.index(anyString())).thenReturn(index);
             when(index.search(any(SearchRequest.class))).thenThrow(new RuntimeException("MeiliSearch error"));
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert - MeiliSearch errors are caught per index, so total is 0
             assertNotNull(response);
@@ -398,7 +403,7 @@ class SearchServiceTest {
         @DisplayName("should include problem metadata")
         void shouldIncludeProblemMetadata() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
 
             List<Problem> problems = new ArrayList<>();
             Problem problem = new Problem();
@@ -416,7 +421,7 @@ class SearchServiceTest {
             when(solutionMapper.selectList(any(QueryWrapper.class))).thenReturn(new ArrayList<>());
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             SearchResponseVO.SearchResultItem item = response.getResults().get(0);
@@ -429,7 +434,7 @@ class SearchServiceTest {
         @DisplayName("should include user avatar in metadata")
         void shouldIncludeUserAvatarInMetadata() {
             // Arrange
-            ReflectionTestUtils.setField(searchService, "meiliSearchClient", null);
+            ReflectionTestUtils.setField(searchProjection, "meiliSearchClient", null);
             queryDTO.setIndex(SearchIndexType.USERS);
 
             List<User> users = new ArrayList<>();
@@ -446,7 +451,7 @@ class SearchServiceTest {
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
 
             // Act
-            SearchResponseVO response = searchService.search(queryDTO);
+            SearchResponseVO response = searchProjection.search(queryDTO);
 
             // Assert
             SearchResponseVO.SearchResultItem item = response.getResults().get(0);

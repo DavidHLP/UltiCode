@@ -5,17 +5,17 @@ services:
   backend:
     image: ulticode-backend:latest
     build:
-      context: ./backend-spring
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend-spring/Dockerfile
 
   console:
     image: ulticode-console:latest
     build:
-      context: ./console
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: console/Dockerfile
 
   management:
     image: ulticode-management:latest
     build:
-      context: ./management
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: management/Dockerfile

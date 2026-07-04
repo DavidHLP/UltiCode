@@ -22,6 +22,7 @@ import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
+import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -52,6 +53,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
+    private final ProblemListProjection problemListProjection;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
 
@@ -95,7 +97,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         Page<ProblemList> result = problemListMapper.selectPage(pageResult, wrapper);
 
         List<ProblemListSummaryVO> voList = result.getRecords().stream()
-                .map(this::toSummaryVO)
+                .map(problemListProjection::toSummaryVO)
                 .collect(Collectors.toList());
 
         return PageResult.of(voList, result.getTotal(), page, limit);
@@ -395,23 +397,8 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {
-        ProblemListSummaryVO vo = new ProblemListSummaryVO();
-        vo.setId(list.getId());
-        vo.setName(list.getName());
-        vo.setDescription(list.getDescription());
-        vo.setAuthorId(list.getAuthorId());
-        vo.setIsPublic(list.getIsPublic());
-        vo.setIsFeatured(list.getIsFeatured());
-        vo.setBannerTag(list.getBannerTag());
-        vo.setBannerIcon(list.getBannerIcon());
-        vo.setBannerTheme(list.getBannerTheme());
-        vo.setBannerOrder(list.getBannerOrder());
-        vo.setCreatedAt(list.getCreatedAt());
-        vo.setUpdatedAt(list.getUpdatedAt());
-
-        // Count problems
-        vo.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
-
-        return vo;
+        // Delegate to the projection — entity→VO rules + author enrichment live there now.
+        // Kept as a private helper so the four write-path returns stay short.
+        return problemListProjection.toSummaryVO(list);
     }
 }

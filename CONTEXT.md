@@ -69,6 +69,11 @@
   which exists to protect the STOMP transport from leaderboard-flood
   bursts. The old `RealtimeService` god service is deleted. See
   ADR-0009.
+- **Admin projection** — module-owned deep modules holding admin's own
+  `AdminXxxVO` projection rules and read-side aggregation
+  (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
+  the [[AdminReadModel seam]] ports: ports are for cross-module reads,
+  projections are for admin's own VO shape. See ADR-0011.
 
 ## Design invariants
 

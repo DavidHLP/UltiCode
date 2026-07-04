@@ -1,0 +1,21 @@
+# CI override: build images locally instead of pulling from GHCR
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d --build
+
+services:
+  backend:
+    image: ulticode-backend:latest
+    build:
+      context: ./backend-spring
+      dockerfile: Dockerfile
+
+  console:
+    image: ulticode-console:latest
+    build:
+      context: ./console
+      dockerfile: Dockerfile
+
+  management:
+    image: ulticode-management:latest
+    build:
+      context: ./management
+      dockerfile: Dockerfile

@@ -1,9 +1,10 @@
 package com.ulticode.modules.notification.channel;
 
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.notification.intent.NotificationIntent;
+import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,8 +16,15 @@ import org.springframework.stereotype.Component;
  * <p>Per ADR-004 §2.5 the WebSocket is best-effort: if the user is offline
  * the push is lost (this is the current contract across the codebase). The
  * dispatcher's ledger row is marked {@code DELIVERED} regardless because
- * the call to {@code RealtimeService.sendNotification} returns void and
+ * the call to {@link NotificationPushPort#pushToUser} returns void and
  * does not throw on a missing session.
+ *
+ * <p>Post-Candidate-4: this channel now depends on the consumer-owned
+ * {@link NotificationPushPort} (defined in the notification module) rather
+ * than reaching across into {@code com.ulticode.modules.websocket.*}. The
+ * dependency direction is fully inverted; the notification module is
+ * self-contained except for the wire-format DTOs which are the shared
+ * language.
  *
  * <p>Two payload shapes are used:
  * <ul>
@@ -38,7 +46,8 @@ public class WebSocketNotificationChannel implements NotificationChannel {
 
     public static final String CHANNEL_ID = "websocket";
 
-    private final RealtimeService realtimeService;
+    private final NotificationPushPort notificationPushPort;
+    private final BadgePushPort badgePushPort;
 
     @Override
     public String channelId() {
@@ -56,9 +65,11 @@ public class WebSocketNotificationChannel implements NotificationChannel {
     @Override
     public void send(NotificationIntent intent) {
         if (intent instanceof com.ulticode.modules.notification.intent.AchievementEarnedIntent a) {
-            // Reuse the existing BadgeEarnedPayload DTO so consumers in
-            // management/console do not need to change.
-            realtimeService.sendNotification(intent.userId(),
+            // Achievement intents push the typed BadgeEarnedPayload via the
+            // achievement module's BadgePushPort. The notification module
+            // no longer reaches across to decide which typed DTO is right
+            // for which domain — the consumer of the domain owns the seam.
+            badgePushPort.pushBadgeEarned(intent.userId(),
                     BadgeEarnedPayload.of(
                             a.achievementKey(),
                             a.achievementName(),
@@ -67,7 +78,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                             tierSlug(a.achievementTier()),
                             a.userId()));
         } else if (intent instanceof com.ulticode.modules.notification.intent.SubmissionCompletedIntent s) {
-            realtimeService.sendNotification(intent.userId(),
+            notificationPushPort.pushToUser(intent.userId(),
                     NotificationPayload.of(
                             s.intentId(),
                             "SUBMISSION",
@@ -82,7 +93,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                                     "elapsedMs", s.elapsedMs(),
                                     "memoryBytes", s.memoryBytes())));
         } else if (intent instanceof com.ulticode.modules.notification.intent.ContestStartingIntent c) {
-            realtimeService.sendNotification(intent.userId(),
+            notificationPushPort.pushToUser(intent.userId(),
                     NotificationPayload.of(
                             c.intentId(),
                             "CONTEST_REMINDER",
@@ -93,7 +104,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                                     "reminderType", c.reminderType(),
                                     "startTime", c.startTime() == null ? "" : c.startTime().toString())));
         } else if (intent instanceof com.ulticode.modules.notification.intent.FollowReceivedIntent f) {
-            realtimeService.sendNotification(intent.userId(),
+            notificationPushPort.pushToUser(intent.userId(),
                     NotificationPayload.of(
                             f.intentId(),
                             "FOLLOW",
@@ -103,7 +114,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                                     "followerUserId", f.followerUserId(),
                                     "followerUsername", f.followerUsername())));
         } else if (intent instanceof com.ulticode.modules.notification.intent.CommentReplyIntent r) {
-            realtimeService.sendNotification(intent.userId(),
+            notificationPushPort.pushToUser(intent.userId(),
                     NotificationPayload.of(
                             r.intentId(),
                             "REPLY",
@@ -113,7 +124,7 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                                     "commentId", r.commentId(),
                                     "replierUserId", r.replierUserId())));
         } else if (intent instanceof com.ulticode.modules.notification.intent.SystemAlertIntent sy) {
-            realtimeService.sendNotification(intent.userId(),
+            notificationPushPort.pushToUser(intent.userId(),
                     NotificationPayload.of(
                             sy.intentId(),
                             "SYSTEM",

@@ -15,8 +15,8 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
+import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -49,7 +49,7 @@ class JudgeWorkerProcessorTest {
     private SubmissionService submissionService;
 
     @Mock
-    private RealtimeService realtimeService;
+    private SubmissionResultPushPort submissionResultPushPort;
 
     @Mock
     private ProblemExampleMapper problemExampleMapper;
@@ -182,7 +182,7 @@ class JudgeWorkerProcessorTest {
 
             verify(submissionService).updateSubmissionResult(eq("sub-1"), eq("Accepted"),
                     anyInt(), any(), any());
-            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
         }
 
@@ -238,7 +238,7 @@ class JudgeWorkerProcessorTest {
 
             verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
-            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
 
@@ -263,10 +263,10 @@ class JudgeWorkerProcessorTest {
 
             processor.processJob(sampleJob);
 
-            var inOrder = inOrder(submissionService, realtimeService);
+            var inOrder = inOrder(submissionService, submissionResultPushPort);
             inOrder.verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("Wrong Answer"), anyInt(), any(), any());
-            inOrder.verify(realtimeService).emitSubmissionResult(eq("user-1"), any());
+            inOrder.verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), any());
         }
 
         @Test
@@ -285,7 +285,7 @@ class JudgeWorkerProcessorTest {
                     eq("sub-1"), eq("Accepted"), anyInt(), any(), any());
             verify(submissionService, never()).updateSubmissionResult(
                     eq("sub-1"), eq("System Error"), anyInt(), any(), any());
-            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
         }
 
@@ -302,7 +302,7 @@ class JudgeWorkerProcessorTest {
                     eq("sub-1"), eq("Judging"), eq(0), isNull(), isNull());
             statusOrder.verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
-            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
     }
@@ -444,7 +444,7 @@ class JudgeWorkerProcessorTest {
 
             verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
-            verify(realtimeService).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
 

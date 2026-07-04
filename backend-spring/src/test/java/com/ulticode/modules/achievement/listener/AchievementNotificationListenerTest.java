@@ -4,7 +4,7 @@ import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.notification.dto.NotificationVO;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +30,7 @@ class AchievementNotificationListenerTest {
     private NotificationDispatchService notificationDispatchService;
 
     @Mock
-    private RealtimeService realtimeService;
+    private BadgePushPort badgePushPort;
 
     @Mock
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
@@ -48,7 +48,7 @@ class AchievementNotificationListenerTest {
         // that do not exercise the flag.
         lenient().when(featureFlags.isUseNotificationIntent()).thenReturn(false);
         listener = new AchievementNotificationListener(
-                notificationService, notificationDispatchService, realtimeService,
+                notificationService, notificationDispatchService, badgePushPort,
                 notificationDispatcher, featureFlags);
     }
 
@@ -77,7 +77,7 @@ class AchievementNotificationListenerTest {
         verifyNoInteractions(notificationService);
 
         ArgumentCaptor<BadgeEarnedPayload> payloadCaptor = ArgumentCaptor.forClass(BadgeEarnedPayload.class);
-        verify(realtimeService).sendNotification(eq("user-123"), payloadCaptor.capture());
+        verify(badgePushPort).pushBadgeEarned(eq("user-123"), payloadCaptor.capture());
 
         BadgeEarnedPayload payload = payloadCaptor.getValue();
         assertThat(payload.event()).isEqualTo("badge_earned");
@@ -99,11 +99,11 @@ class AchievementNotificationListenerTest {
         mockVO.setId("notif-def");
         when(notificationDispatchService.dispatch(any(), any(), any(), any(), any(), any(), isNull(), anyBoolean()))
             .thenReturn(Optional.of(mockVO));
-        doThrow(new RuntimeException("WS unavailable")).when(realtimeService).sendNotification(any(), any());
+        doThrow(new RuntimeException("WS unavailable")).when(badgePushPort).pushBadgeEarned(any(), any());
 
         listener.onAchievementEarned(event);
 
         verify(notificationDispatchService).dispatch(any(), any(), any(), any(), any(), any(), isNull(), anyBoolean());
-        verify(realtimeService).sendNotification(any(), any());
+        verify(badgePushPort).pushBadgeEarned(any(), any());
     }
 }

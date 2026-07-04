@@ -3,7 +3,7 @@ package com.ulticode.modules.notification.service.impl;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import com.ulticode.modules.notification.entity.Notification;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,13 +29,13 @@ class NotificationServiceImplTest {
     private NotificationPreferenceMapper preferenceMapper;
 
     @Mock
-    private RealtimeService realtimeService;
+    private NotificationPushPort notificationPushPort;
 
     private NotificationServiceImpl notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationServiceImpl(notificationMapper, preferenceMapper, realtimeService);
+        notificationService = new NotificationServiceImpl(notificationMapper, preferenceMapper, notificationPushPort);
     }
 
     @Test
@@ -60,7 +60,7 @@ class NotificationServiceImplTest {
         verify(notificationMapper).insert(any(Notification.class));
 
         ArgumentCaptor<NotificationPayload> payloadCaptor = ArgumentCaptor.forClass(NotificationPayload.class);
-        verify(realtimeService).sendNotification(eq(userId), payloadCaptor.capture());
+        verify(notificationPushPort).pushToUser(eq(userId), payloadCaptor.capture());
 
         NotificationPayload payload = payloadCaptor.getValue();
         assertThat(payload.id()).isEqualTo("notif-456");
@@ -80,7 +80,7 @@ class NotificationServiceImplTest {
             n.setId("notif-789");
             return 1;
         });
-        doThrow(new RuntimeException("WebSocket unavailable")).when(realtimeService).sendNotification(any(), any());
+        doThrow(new RuntimeException("WebSocket unavailable")).when(notificationPushPort).pushToUser(any(), any());
 
         var result = notificationService.createNotification(userId, "test", "test", "title", "body", null, Map.of());
 

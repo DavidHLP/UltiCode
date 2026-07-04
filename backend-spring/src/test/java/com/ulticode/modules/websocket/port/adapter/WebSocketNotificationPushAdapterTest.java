@@ -1,47 +1,40 @@
 package com.ulticode.modules.websocket.port.adapter;
 
 import com.ulticode.modules.notification.port.NotificationPushPort;
+import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
- * Unit tests for {@link WebSocketNotificationPushAdapter}.
- *
- * <p>The adapter's only contract is to delegate {@code pushToUser} to
- * {@code RealtimeService.sendNotification} with the same arguments. After
- * extraction the notification module depends on this single method and on
- * no other producer-side machinery — this test pins that one-hop delegation
- * so a future swap to a non-STOMP transport (SSE / FCM) cannot silently
- * widen the surface.
+ * Post-Candidate-4: the adapter now owns a direct {@link SimpMessagingTemplate}
+ * call. Test pins the user destination + payload + best-effort contract.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("WebSocketNotificationPushAdapter")
 class WebSocketNotificationPushAdapterTest {
 
     @Mock
-    private RealtimeService realtimeService;
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private WebSocketNotificationPushAdapter adapter;
 
     @Test
-    @DisplayName("pushToUser delegates to RealtimeService.sendNotification with same userId + payload")
-    void pushToUser_delegatesToRealtimeService() {
+    @DisplayName("pushToUser sends to /queue/notification with the given userId and payload")
+    void pushToUser_sendsToUserQueueNotification() {
         NotificationPayload payload = NotificationPayload.system("n-1", "Title", "Body");
-        String userId = "u-1";
-
-        adapter.pushToUser(userId, payload);
-
-        verify(realtimeService).sendNotification(userId, payload);
-        verifyNoMoreInteractions(realtimeService);
+        adapter.pushToUser("u-1", payload);
+        verify(messagingTemplate).convertAndSendToUser(
+                "u-1", WebSocketConstants.USER_QUEUE_NOTIFICATION, payload);
+        verifyNoMoreInteractions(messagingTemplate);
     }
 }

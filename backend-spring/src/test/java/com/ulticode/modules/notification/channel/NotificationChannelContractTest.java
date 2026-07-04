@@ -11,8 +11,9 @@ import com.ulticode.modules.notification.intent.SystemAlertIntent;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.email.service.EmailService;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.notification.port.NotificationPushPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class NotificationChannelContractTest {
 
     @Mock private EmailService emailService;
-    @Mock private RealtimeService realtimeService;
+    @Mock private NotificationPushPort notificationPushPort;
+    @Mock private BadgePushPort badgePushPort;
     @Mock private UserMapper userMapper;
 
     private InAppNotificationChannel inAppChannel;
@@ -53,7 +55,7 @@ class NotificationChannelContractTest {
         inAppChannel = new InAppNotificationChannel(null); // not used in supports()
         emailChannel = new EmailNotificationChannel(emailService);
         emailChannel.userMapper = userMapper; // nullable: tests don't exercise send()
-        wsChannel = new WebSocketNotificationChannel(realtimeService);
+        wsChannel = new WebSocketNotificationChannel(notificationPushPort, badgePushPort);
     }
 
     @Test

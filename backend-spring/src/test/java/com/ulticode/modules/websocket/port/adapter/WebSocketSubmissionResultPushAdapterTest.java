@@ -1,13 +1,15 @@
 package com.ulticode.modules.websocket.port.adapter;
 
+import com.ulticode.modules.queue.port.SubmissionResultPushPort;
+import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -17,18 +19,19 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class WebSocketSubmissionResultPushAdapterTest {
 
     @Mock
-    private RealtimeService realtimeService;
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private WebSocketSubmissionResultPushAdapter adapter;
 
     @Test
-    @DisplayName("emitSubmissionResult delegates to RealtimeService.emitSubmissionResult with same args")
-    void emitSubmissionResult_delegates() {
+    @DisplayName("emitSubmissionResult sends to /queue/submission with the userId + payload")
+    void emitSubmissionResult_sendsToUserQueueSubmission() {
         SubmissionResultPayload payload = SubmissionResultPayload.of(
-                "s-1", null, "p-1", "u-1", "ACCEPTED", 0, 100, 1024);
+                "s-1", null, "p-1", "u-1", "ACCEPTED", 0, 100, 1024L);
         adapter.emitSubmissionResult("u-1", payload);
-        verify(realtimeService).emitSubmissionResult("u-1", payload);
-        verifyNoMoreInteractions(realtimeService);
+        verify(messagingTemplate).convertAndSendToUser(
+                "u-1", WebSocketConstants.USER_QUEUE_SUBMISSION, payload);
+        verifyNoMoreInteractions(messagingTemplate);
     }
 }

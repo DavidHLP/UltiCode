@@ -2,9 +2,11 @@ package com.ulticode.modules.websocket.port.adapter;
 
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.port.ContestStatusPushPort;
-import com.ulticode.modules.websocket.service.RealtimeService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.ulticode.modules.websocket.event.ContestStatusEvent;
+import com.ulticode.modules.websocket.util.WebSocketUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -12,49 +14,44 @@ import java.time.Instant;
 /**
  * STOMP adapter of {@link ContestStatusPushPort}.
  *
- * <p>Maps the contest module's own {@link ContestStatus} enum to the
- * websocket wire-format
- * {@code com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus}:
- * <ul>
- *   <li>{@code RUNNING} → wire {@code RUNNING}</li>
- *   <li>{@code FINISHED} → wire {@code ENDED}</li>
- *   <li>other states ({@code DRAFT}, {@code UPCOMING}, {@code CANCELLED}) are
- *       ignored — no wire push</li>
- * </ul>
- *
- * <p>This translation is the only place that knows about both enums. A
- * future wire-format change touches this one file; a future contest
- * lifecycle change (e.g. add {@code PAUSED}) touches this one file.
+ * <p>Post-Candidate-4: owns the {@code SimpMessagingTemplate} call
+ * directly. Also owns the contest→wire enum translation
+ * (RUNNING→RUNNING, FINISHED→ENDED; other states are silently skipped).
  *
  * @author ulticode
  */
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class WebSocketContestStatusPushAdapter implements ContestStatusPushPort {
 
-    private final RealtimeService realtimeService;
+    private static final Logger log = LoggerFactory.getLogger(WebSocketContestStatusPushAdapter.class);
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public WebSocketContestStatusPushAdapter(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @Override
     public void emitStatus(String contestId, ContestStatus status,
                            Instant startedAt, Instant endsAt, String message) {
-        com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus wire = toWireStatus(status);
+        ContestStatusEvent.ContestStatus wire = toWireStatus(status);
         if (wire == null) {
-            // DRAFT, UPCOMING, CANCELLED never produce a wire push. Silent
-            // skip — matches the legacy RealtimeService.emitContestStatus
-            // contract (no exception for unhandled states).
+            // DRAFT, UPCOMING, CANCELLED never produce a wire push.
             return;
         }
-        realtimeService.emitContestStatus(contestId, wire, startedAt, endsAt, message);
+        ContestStatusEvent event = new ContestStatusEvent(contestId, wire, startedAt, endsAt, message);
+        String destination = WebSocketUtils.getContestRoomName(contestId) + "/status";
+        messagingTemplate.convertAndSend(destination, event);
+        log.info("Contest {} status changed to: {}", contestId, wire);
     }
 
-    private static com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus toWireStatus(ContestStatus status) {
+    private static ContestStatusEvent.ContestStatus toWireStatus(ContestStatus status) {
         if (status == null) {
             return null;
         }
         return switch (status) {
-            case RUNNING -> com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus.RUNNING;
-            case FINISHED -> com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus.ENDED;
+            case RUNNING -> ContestStatusEvent.ContestStatus.RUNNING;
+            case FINISHED -> ContestStatusEvent.ContestStatus.ENDED;
             default -> null;
         };
     }

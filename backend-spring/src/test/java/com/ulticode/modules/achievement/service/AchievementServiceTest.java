@@ -14,8 +14,8 @@ import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.achievement.service.impl.AchievementServiceImpl;
 import com.ulticode.modules.achievement.service.impl.AchievementTriggerServiceImpl;
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class AchievementServiceTest {
     private AchievementProjection achievementProjection;
 
     @Mock
-    private RealtimeService realtimeService;
+    private BadgePushPort badgePushPort;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -221,7 +221,7 @@ class AchievementServiceTest {
             assertEquals(1, awarded.size());
             assertEquals(ACHIEVEMENT_ID, awarded.get(0));
             verify(userAchievementMapper).insert(any(UserAchievement.class));
-            verify(realtimeService).sendNotification(eq(USER_ID), any(BadgeEarnedPayload.class));
+            verify(badgePushPort).pushBadgeEarned(eq(USER_ID), any(BadgeEarnedPayload.class));
             verify(eventPublisher).publishEvent(any(AchievementEarnedEvent.class));
         }
 

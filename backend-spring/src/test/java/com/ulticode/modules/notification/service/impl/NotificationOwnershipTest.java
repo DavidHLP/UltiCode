@@ -9,7 +9,7 @@ import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.NotificationPreference;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.notification.port.NotificationPushPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,13 +42,13 @@ class NotificationOwnershipTest {
     @Mock
     private NotificationPreferenceMapper preferenceMapper;
     @Mock
-    private RealtimeService realtimeService;
+    private NotificationPushPort notificationPushPort;
 
     private NotificationServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new NotificationServiceImpl(notificationMapper, preferenceMapper, realtimeService);
+        service = new NotificationServiceImpl(notificationMapper, preferenceMapper, notificationPushPort);
     }
 
     private Notification seedNotification(String ownerId) {

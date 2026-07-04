@@ -19,7 +19,7 @@ import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
@@ -54,7 +54,7 @@ class JudgeWorkerTestCasesSourceIT {
     @Mock private QueueService queueService;
     @Mock private CodeExecutionService codeExecutionService;
     @Mock private SubmissionService submissionService;
-    @Mock private RealtimeService realtimeService;
+    @Mock private SubmissionResultPushPort submissionResultPushPort;
     @Mock private ContestSubmissionMapper contestSubmissionMapper;
     @Mock private ProblemExampleMapper problemExampleMapper;
     @Mock private TestCaseMapper testCaseMapper;
@@ -70,7 +70,7 @@ class JudgeWorkerTestCasesSourceIT {
         JudgeSourceProperties props = new JudgeSourceProperties();
         props.setUseTestCases(useTestCases);
         return new JudgeWorkerProcessor(
-                queueService, codeExecutionService, submissionService, realtimeService,
+                queueService, codeExecutionService, submissionService, submissionResultPushPort,
                 contestSubmissionMapper, problemExampleMapper, testCaseMapper,
                 props, queueConfig, objectMapper, verdictResolver,
                 submissionMapper, featureFlags, meterRegistry, judgeQueueProvider);

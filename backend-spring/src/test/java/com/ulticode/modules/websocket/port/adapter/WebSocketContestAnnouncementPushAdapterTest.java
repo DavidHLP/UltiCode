@@ -1,14 +1,17 @@
 package com.ulticode.modules.websocket.port.adapter;
 
+import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -17,17 +20,19 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 class WebSocketContestAnnouncementPushAdapterTest {
 
     @Mock
-    private RealtimeService realtimeService;
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private WebSocketContestAnnouncementPushAdapter adapter;
 
     @Test
-    @DisplayName("emitAnnouncement delegates to RealtimeService.emitAnnouncement with payload")
-    void emitAnnouncement_delegates() {
+    @DisplayName("emitAnnouncement sends to /topic/contest/{id}/announcement with the payload")
+    void emitAnnouncement_sendsToContestRoomAnnouncement() {
         AnnouncementPayload payload = AnnouncementPayload.of("a-1", "c-1", "Title", "Body");
         adapter.emitAnnouncement("c-1", payload);
-        verify(realtimeService).emitAnnouncement(payload);
-        verifyNoMoreInteractions(realtimeService);
+        verify(messagingTemplate).convertAndSend(
+                eq(WebSocketUtils.getContestRoomName("c-1") + "/announcement"),
+                eq(payload));
+        verifyNoMoreInteractions(messagingTemplate);
     }
 }

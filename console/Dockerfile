@@ -49,7 +49,8 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
 
 # Copy nginx config (listen on 8080 since non-root cannot bind port 80)
-COPY console/nginx.conf /etc/nginx/conf.d/default.conf
+RUN rm -f /etc/nginx/conf.d/default.conf
+COPY console/nginx.conf /etc/nginx/templates/default.conf.template
 ENV API_ORIGIN="http://localhost:9001"
 
 # Grant write access to nginx runtime directories

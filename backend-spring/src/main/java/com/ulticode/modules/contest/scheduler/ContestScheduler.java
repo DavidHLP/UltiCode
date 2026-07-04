@@ -7,8 +7,9 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
-import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
+import com.ulticode.modules.contest.port.ContestStatusPushPort;
+import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -31,7 +32,8 @@ import java.util.Map;
 public class ContestScheduler {
 
     private final ContestMapper contestMapper;
-    private final RealtimeService realtimeService;
+    private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
+    private final ContestStatusPushPort contestStatusPushPort;
     private final RatingCalculationService ratingService;
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
@@ -228,8 +230,9 @@ public class ContestScheduler {
                     contest.getId(), e.getMessage());
         }
 
-        // Emit WebSocket status
-        realtimeService.emitContestStatus(
+        // Emit WebSocket status (via ContestStatusPushPort; the adapter maps
+        // contest.entity.enums.ContestStatus.RUNNING to the wire-format enum)
+        contestStatusPushPort.emitStatus(
                 contest.getId(),
                 ContestStatus.RUNNING,
                 contest.getActualStartTime() != null ? contest.getActualStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant() : null,
@@ -238,7 +241,7 @@ public class ContestScheduler {
         );
 
         // Mark dirty so initial ranking appears on leaderboard
-        realtimeService.markDirty(contest.getId());
+        contestRankingMarkDirtyPort.markDirty(contest.getId());
 
         log.info("Contest {} transitioned to RUNNING", contest.getId());
     }
@@ -272,10 +275,10 @@ public class ContestScheduler {
                     contest.getId(), e.getMessage());
         }
 
-        // Emit WebSocket status
-        realtimeService.emitContestStatus(
+        // Emit WebSocket status (adapter maps contest.FINISHED to wire.ENDED)
+        contestStatusPushPort.emitStatus(
                 contest.getId(),
-                ContestStatus.ENDED,
+                ContestStatus.FINISHED,
                 null,
                 contest.getActualEndTime() != null ? contest.getActualEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant() : null,
                 null

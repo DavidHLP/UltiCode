@@ -11,7 +11,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.submission.port.ContestSubmissionPort;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -48,7 +48,7 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
-    private final RealtimeService realtimeService;
+    private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
 
     @Override
     public void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId) {
@@ -93,7 +93,7 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
             cs.setIsAccepted(false); // Will be updated when judge completes
             cs.setSubmittedAt(LocalDateTime.now());
             contestSubmissionMapper.insert(cs);
-            realtimeService.markDirty(contest.getId());
+            contestRankingMarkDirtyPort.markDirty(contest.getId());
 
             // Only record for the first matching active contest
             break;

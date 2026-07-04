@@ -30,7 +30,7 @@ import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.contest.entity.ContestSubmission;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Judge worker that polls the Redis judge queue and processes submissions.
  *
  * <p>Wires together QueueService, CodeExecutionService, SubmissionService,
- * and RealtimeService to form the complete judging pipeline:
+ * and SubmissionResultPushPort to form the complete judging pipeline:
  *
  * <ol>
  *   <li>Poll job from Redis queue
@@ -85,7 +85,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final QueueService queueService;
     private final CodeExecutionService codeExecutionService;
     private final SubmissionService submissionService;
-    private final RealtimeService realtimeService;
+    private final SubmissionResultPushPort submissionResultPushPort;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ProblemExampleMapper problemExampleMapper;
     private final TestCaseMapper testCaseMapper;
@@ -908,7 +908,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                             String status, int timeUsed, long memoryUsed, String contestId) {
         SubmissionResultPayload payload = SubmissionResultPayload.of(
                 submissionId, contestId, problemId, userId, status, 0, timeUsed, memoryUsed);
-        realtimeService.emitSubmissionResult(userId, payload);
+        submissionResultPushPort.emitSubmissionResult(userId, payload);
     }
 
     private String findContestIdBySubmissionId(String submissionId) {

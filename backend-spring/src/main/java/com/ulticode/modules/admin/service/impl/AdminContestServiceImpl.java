@@ -23,7 +23,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.service.RankingService;
-import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
-    private final RealtimeService realtimeService;
+    private final ContestAnnouncementPushPort contestAnnouncementPushPort;
     private final RankingService rankingService;
     private final AuditHelper auditHelper;
 
@@ -337,8 +337,9 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contestAnnouncementMapper.insert(announcement);
 
-        // WebSocket push (D-12)
-        realtimeService.emitAnnouncement(AnnouncementPayload.of(announcement.getId(), contestId, title, content));
+        // WebSocket push (D-12) via ContestAnnouncementPushPort
+        contestAnnouncementPushPort.emitAnnouncement(contestId,
+                AnnouncementPayload.of(announcement.getId(), contestId, title, content));
 
         AuditContext.setNewValues(Map.of("title", title, "contestId", contestId));
 

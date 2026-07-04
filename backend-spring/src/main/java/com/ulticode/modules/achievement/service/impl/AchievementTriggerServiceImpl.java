@@ -7,10 +7,10 @@ import com.ulticode.modules.achievement.event.AchievementCheckEvent;
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.achievement.service.AchievementService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -39,7 +39,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     private final AchievementMapper achievementMapper;
     private final UserAchievementMapper userAchievementMapper;
     private final AchievementService achievementService;
-    private final RealtimeService realtimeService;
+    private final BadgePushPort badgePushPort;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -178,7 +178,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
                 tierStr,
                 userId);
 
-        realtimeService.sendNotification(userId, payload);
+        badgePushPort.pushBadgeEarned(userId, payload);
     }
 
     private void publishAchievementEarnedEvent(String userId, Achievement achievement) {

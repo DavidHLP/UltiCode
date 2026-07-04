@@ -1,10 +1,10 @@
 package com.ulticode.modules.achievement.listener;
 
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
+import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
-import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -24,7 +24,7 @@ public class AchievementNotificationListener {
 
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
-    private final RealtimeService realtimeService;
+    private final BadgePushPort badgePushPort;
     /**
      * ADR-004 M4c: typed intent dispatcher. Active when
      * {@code app.features.use-notification-intent=true}.
@@ -73,8 +73,8 @@ public class AchievementNotificationListener {
                         false
                 );
 
-                // Also push via WebSocket (per D-05)
-                realtimeService.sendNotification(event.userId(),
+                // Also push via WebSocket (per D-05) — best-effort, fire-and-forget.
+                badgePushPort.pushBadgeEarned(event.userId(),
                     BadgeEarnedPayload.of(
                         event.achievementKey(),
                         event.achievementName(),

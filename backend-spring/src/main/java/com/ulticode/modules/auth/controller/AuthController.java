@@ -177,8 +177,8 @@ public class AuthController {
     @Operation(summary = "GitHub callback", description = "Handle GitHub OAuth callback")
     @GetMapping("/github/callback")
     public void githubCallback(@RequestParam String code, @RequestParam String state,
-                               HttpServletRequest request, HttpServletResponse response) throws IOException {
-        oauthService.handleGithubCallback(code, state, request, response);
+                               HttpServletResponse response) throws IOException {
+        oauthService.handleGithubCallback(code, state, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
@@ -192,8 +192,8 @@ public class AuthController {
     @Operation(summary = "Google callback", description = "Handle Google OAuth callback")
     @GetMapping("/google/callback")
     public void googleCallback(@RequestParam String code, @RequestParam String state,
-                               HttpServletRequest request, HttpServletResponse response) throws IOException {
-        oauthService.handleGoogleCallback(code, state, request, response);
+                               HttpServletResponse response) throws IOException {
+        oauthService.handleGoogleCallback(code, state, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 

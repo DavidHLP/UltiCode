@@ -11,23 +11,18 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.auth.session.AuthSessionPort;
+import com.ulticode.modules.auth.session.OAuthStatePort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.security.csrf.CsrfService;
-import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.oauth.OAuthProperties;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
@@ -35,9 +30,11 @@ import java.util.Base64;
  * OAuth service for handling third-party authentication (GitHub and Google).
  *
  * <p>Provider-specific concerns (URL build, token exchange, user-info fetch,
- * upsert) live here. The post-auth tail (cookies, CSRF, JWT, LoginResponse)
- * is delegated to the deep {@link AuthSessionPort} so it does not drift from
- * the local-credentials path.
+ * upsert) live here. The OAuth state lifecycle (security invariant #5) is
+ * delegated to the deep {@link OAuthStatePort}, and the post-auth tail
+ * (cookies, CSRF, JWT, LoginResponse) is delegated to the deep
+ * {@link AuthSessionPort} — so neither the state contract nor the session
+ * contract can drift back into the provider-specific paths.
  */
 @Slf4j
 @Service
@@ -46,22 +43,15 @@ public class OAuthService {
 
     private final OAuthProperties oauthProperties;
     private final UserMapper userMapper;
-    private final JwtProperties jwtProperties;
-    private final CsrfService csrfService;
     private final ObjectMapper objectMapper;
     private final AuthSessionPort authSessionPort;
-    private final StringRedisTemplate redisTemplate;
-
-    private static final String OAUTH_STATE_PREFIX = "oauth:state:";
-    private static final Duration OAUTH_STATE_TTL = Duration.ofMinutes(5);
+    private final OAuthStatePort oauthStatePort;
 
     // ==================== GitHub OAuth ====================
 
     public String getGithubAuthUrl(HttpServletResponse response) {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
-        String state = IdUtil.simpleUUID();
-        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "github:" + state, "1", OAUTH_STATE_TTL);
-        setOAuthStateCookie("github", state, response);
+        String state = oauthStatePort.issueState("github", response);
 
         return UriComponentsBuilder.fromUriString(github.getAuthorizeUrl())
             .queryParam("client_id", github.getClientId())
@@ -71,9 +61,8 @@ public class OAuthService {
             .toUriString();
     }
 
-    public LoginResponse handleGithubCallback(String code, String state, HttpServletRequest request,
-                                              HttpServletResponse response) {
-        validateOAuthState("github", state, request, response);
+    public LoginResponse handleGithubCallback(String code, String state, HttpServletResponse response) {
+        oauthStatePort.validateAndConsume("github", state, response);
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
 
         // Use RFC 6749 Basic Auth instead of plaintext body
@@ -126,9 +115,7 @@ public class OAuthService {
 
     public String getGoogleAuthUrl(HttpServletResponse response) {
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
-        String state = IdUtil.simpleUUID();
-        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "google:" + state, "1", OAUTH_STATE_TTL);
-        setOAuthStateCookie("google", state, response);
+        String state = oauthStatePort.issueState("google", response);
 
         return UriComponentsBuilder.fromUriString(google.getAuthorizeUrl())
             .queryParam("client_id", google.getClientId())
@@ -139,9 +126,8 @@ public class OAuthService {
             .toUriString();
     }
 
-    public LoginResponse handleGoogleCallback(String code, String state, HttpServletRequest request,
-                                              HttpServletResponse response) {
-        validateOAuthState("google", state, request, response);
+    public LoginResponse handleGoogleCallback(String code, String state, HttpServletResponse response) {
+        oauthStatePort.validateAndConsume("google", state, response);
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
 
         // Use RFC 6749 Basic Auth instead of plaintext body
@@ -192,21 +178,6 @@ public class OAuthService {
         }
     }
 
-    // ==================== State validation ====================
-
-    private void validateOAuthState(String provider, String state, HttpServletRequest request,
-                                    HttpServletResponse response) {
-        if (state == null || state.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "OAuth state parameter is missing");
-        }
-        String key = OAUTH_STATE_PREFIX + provider + ":" + state;
-        String consumed = redisTemplate.opsForValue().getAndDelete(key);
-        clearOAuthStateCookie(provider, response);
-        if (consumed == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid or expired OAuth state parameter");
-        }
-    }
-
     /**
      * Create or update a user from OAuth provider data.
      *
@@ -244,38 +215,5 @@ public class OAuthService {
         }
 
         return authSessionPort.completeLogin(user, response);
-    }
-
-    // ==================== State cookie helpers ====================
-
-    private void setOAuthStateCookie(String provider, String state, HttpServletResponse response) {
-        response.addHeader("Set-Cookie", String.format(
-            "%s=%s; Path=/auth; Max-Age=%d; HttpOnly%s; SameSite=Lax",
-            oauthStateCookieName(provider), state, OAUTH_STATE_TTL.toSeconds(),
-            jwtProperties.getCookie().getAccessToken().isSecure() ? "; Secure" : ""));
-    }
-
-    private void clearOAuthStateCookie(String provider, HttpServletResponse response) {
-        response.addHeader("Set-Cookie", String.format(
-            "%s=; Path=/auth; Max-Age=0; HttpOnly%s; SameSite=Lax",
-            oauthStateCookieName(provider),
-            jwtProperties.getCookie().getAccessToken().isSecure() ? "; Secure" : ""));
-    }
-
-    private String oauthStateCookieName(String provider) {
-        return "oauth_state_" + provider;
-    }
-
-    private String getCookie(HttpServletRequest request, String name) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-        for (Cookie cookie : cookies) {
-            if (name.equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
     }
 }

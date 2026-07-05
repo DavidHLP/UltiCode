@@ -8,3 +8,6 @@ packages:
   - "shared/*"
   - "console"
   - "management"
+allowBuilds:
+  maplibre-gl: true
+  vue-demi: true

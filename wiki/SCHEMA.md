@@ -3,7 +3,7 @@ title: SCHEMA — Wiki Convention
 type: schema
 tags: [meta, convention, type/schema]
 status: living
-updated: 2026-06-23
+updated: 2026-07-05
 sources:
   - AGENTS.md
   - CLAUDE.md
@@ -219,94 +219,18 @@ A daily note is **not** a wiki page — it carries `type: daily` and
 **Why both?** `log.md` is greppable and survives compaction; the daily note
 preserves *why* a decision was made, not just *what* changed.
 
-## 11. Graph view coloring — manual UI setup (REQUIRED ONCE PER MACHINE)
+## 11. Graph view coloring
 
-### Why this section exists
+Graph node colors key off the `type/<x>` frontmatter tag from § 5 (entity →
+violet `#7c3aed`, concept → blue `#0ea5e9`, overview → green `#10b981`). The
+tag is the single source of truth — Bases, Dataview, tag-pane, and graph
+coloring all read it.
 
-Graph node colors come from Obsidian's `.obsidian/graph.json` →
-`colorGroups[]`. **Each Obsidian instance owns its own copy of that file** —
-the app rewrites it on open, normalizing anything an external tool wrote.
-A LLM (or any non-Obsidian editor) can write the perfect 3 rules into
-`graph.json`, and the next time the user opens Obsidian the file is reverted
-to whatever the local UI last had (often empty). This is why this section
-is **a procedure, not a snippet to paste**.
-
-### Palette (canonical)
-
-Three color groups keyed off the `type/<x>` tag from § 5:
-
-| Tag | Hex | Visual | Meaning |
-|-----|-----|--------|---------|
-| `tag:#type/entity` | `#7c3aed` | violet | a single module / domain object |
-| `tag:#type/concept` | `#0ea5e9` | blue | a decision, pattern, or invariant |
-| `tag:#type/overview` | `#10b981` | green | a whole-system synthesis |
-
-Pages without a `type/<x>` tag render in Obsidian's default gray — that's
-the **lint signal** that a page was added without following the template.
-
-### One-time setup (per machine that opens this vault)
-
-The first time you open this vault on a new machine, the Graph view's
-**Color groups** (颜色组) panel will show **only** a **新建颜色组**
-(Create color group) button — no existing rules. That is **expected**.
-The button is the only entry point; there is no JSON to copy, no plugin
-to install, no CLI command. You add the rules one at a time:
-
-1. Open the vault in Obsidian.
-2. Click the **Graph view** icon in the left ribbon.
-3. Click the ⚙️ gear in the top-right of the graph panel.
-4. Scroll to **Color groups** (颜色组) → click the **新建颜色组**
-   (Create color group) button. A row appears with a search box + a
-   color swatch.
-5. In the row, type `tag:#type/entity` in the search box and press Enter.
-   Then click the color swatch → paste `7c3aed` → press Enter.
-6. Click **新建颜色组** again for the second rule:
-   `tag:#type/concept` → color `0ea5e9`.
-7. Click **新建颜色组** once more for the third rule:
-   `tag:#type/overview` → color `10b981`.
-8. Close the settings panel. Obsidian writes the rules to
-   `.obsidian/graph.json` automatically. **Do not edit that file
-   externally**; Obsidian will normalize it on next open.
-
-Summary of the three rules to enter:
-
-| Query (type into the search box) | Color (paste into swatch) |
-|---|---|
-| `tag:#type/entity` | `7c3aed` (violet) |
-| `tag:#type/concept` | `0ea5e9` (blue) |
-| `tag:#type/overview` | `10b981` (green) |
-
-### Verification
-
-After setup, the graph should show:
-- **25 violet nodes** (entity modules)
-- **12 blue nodes** (concepts)
-- **7 green nodes** (overviews)
-- **4 gray meta nodes** (README, SCHEMA, index, log — intentionally untagged
-  for the wiki core, see § 5)
-- **1 blue-gray daily node** (`daily-notes/2026-06-21.md`, tagged
-  `type/daily` but not in the 3 color groups — falls through to gray)
-
-If colors don't appear: Settings → Community plugins → make sure the
-**Graph** core plugin is enabled, then repeat the setup. The
-**Dataview** community plugin (already installed) does not affect graph
-coloring.
-
-### Alternative: programmatic coloring without `graph.json`
-
-If a fully scriptable pipeline is preferred (e.g., for CI / headless
-generation), use one of:
-
-- **Obsidian Bases** — create a `.base` file filtering by `type-tag` and
-  render with the Graph view's "open in Bases" action (Obsidian 1.7+).
-- **Juggl** community plugin — replaces Graph view with a Cytoscape-based
-  renderer that supports node shapes per type and per-property color
-  mapping via CSS-like rules.
-- **Excalibrain** community plugin — tree-style hierarchical view colored
-  by frontmatter property.
-
-All three read the same `#type/<x>` tag convention from § 5, so adopting
-this section now keeps the door open for any of them later.
+Obsidian's `.obsidian/graph.json` (where `colorGroups[]` live) is rewritten by
+the app on open, so coloring is a **one-time manual UI setup per machine**, not
+a file edit. The full palette, setup steps, verification, and programmatic
+alternatives (Bases / Juggl / Excalibrain) live in
+[[concepts/obsidian-graph-coloring]].
 
 ## 12. Page versioning & manifest (`wiki/.meta/manifest.json`)
 

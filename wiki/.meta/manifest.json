@@ -1,10 +1,10 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "f175a170722a0317a5a829f459d25cb816ee4581",
+  "generated_with_head": "8dcb8641a0dfbc497baf047ab1a6aa4fa9780997",
   "stats": {
-    "pages": 58,
+    "pages": 59,
     "by_type": {
-      "concept": 17,
+      "concept": 18,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -19,7 +19,7 @@
       "type": "index",
       "title": "UltiCode Wiki",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-05",
       "last_commit": {
         "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
         "short": "d224d662b",
@@ -27,14 +27,14 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "2864f279d9b9574dab3358e62b5eb0424768b90d30852ed3779eba78ee5f5cbf"
+      "body_sha256": "dab884cc21795d2cc0329aa277b84b88803f1069b9e81258280db90d9388a3ac"
     },
     {
       "path": "wiki/SCHEMA.md",
       "type": "schema",
       "title": "SCHEMA — Wiki Convention",
       "status": "living",
-      "frontmatter_updated": "2026-06-23",
+      "frontmatter_updated": "2026-07-05",
       "last_commit": {
         "sha": "4c41d8144ed362fa4b1deb2f44a5cde3a3633362",
         "short": "4c41d8144",
@@ -42,7 +42,7 @@
         "author": "DavidHLP",
         "subject": "feat(wiki): add per-page git provenance manifest"
       },
-      "body_sha256": "308ef8ed682969fc14049cb9db0b8fa52aeab143fbe8a7ad33ec1c0c7244776f"
+      "body_sha256": "03b47ac2ea9c1ed819a9d1fa0fe766430c7b41a0256aa850ee62f8e715c909f9"
     },
     {
       "path": "wiki/concepts/achievement-projection.md",
@@ -163,6 +163,21 @@
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "56ab9e1d447025bf3ade71712c1e4eb60a700bb1badb61ac686f697b15f7d690"
+    },
+    {
+      "path": "wiki/concepts/obsidian-graph-coloring.md",
+      "type": "concept",
+      "title": "Obsidian Graph View Coloring",
+      "status": "living",
+      "frontmatter_updated": "2026-07-05",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "0e9ba5e7a80a7971aea26306dcb0a7276782fc6ea3c260f36a7e518e72381741"
     },
     {
       "path": "wiki/concepts/process-management.md",
@@ -694,7 +709,7 @@
       "type": "index",
       "title": "Index",
       "status": "living",
-      "frontmatter_updated": "2026-06-24",
+      "frontmatter_updated": "2026-07-05",
       "last_commit": {
         "sha": "bd73d787b838b65b502d3c3d4b52a74a0ac40ea3",
         "short": "bd73d787b",
@@ -702,22 +717,22 @@
         "author": "DavidHLP",
         "subject": "fix(sidebar-menu): drop SidebarParentItem open prop (controlled-closed regression)"
       },
-      "body_sha256": "ac3208287b22162cbba55207430c7ec48e6ca56b6719074b1ecd1f0ded115e09"
+      "body_sha256": "9b1efd1e23d357fe00853f375b64edb4d4e3dc629dd3571660fe95a5342cfc9f"
     },
     {
       "path": "wiki/log.md",
       "type": "log",
       "title": "Maintenance Log",
       "status": "living",
-      "frontmatter_updated": "2026-06-24",
+      "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "97cdb2973904d190c35bf611287a33462f4d8ae2",
-        "short": "97cdb2973",
-        "committed_at": "2026-07-05T14:47:54+08:00",
+        "sha": "d2ec1d1987655e43fd671bbcbbb6a9bfb4e89e94",
+        "short": "d2ec1d198",
+        "committed_at": "2026-07-05T20:41:38+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): document WSL2+Docker Desktop cold-start pitfalls"
+        "subject": "docs(wiki): sync cold-start section to dev-profile metrics"
       },
-      "body_sha256": "96807f679379221aa2066ba3fa3391cdc1ee689bccbad8bd7f010fa637700b69"
+      "body_sha256": "64ed155af2b65cef8b133351dff498a9aea3904f15e08b2a5dbee466b72c7839"
     },
     {
       "path": "wiki/overview/architecture-overview.md",
@@ -786,11 +801,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "97cdb2973904d190c35bf611287a33462f4d8ae2",
-        "short": "97cdb2973",
-        "committed_at": "2026-07-05T14:47:54+08:00",
+        "sha": "d2ec1d1987655e43fd671bbcbbb6a9bfb4e89e94",
+        "short": "d2ec1d198",
+        "committed_at": "2026-07-05T20:41:38+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): document WSL2+Docker Desktop cold-start pitfalls"
+        "subject": "docs(wiki): sync cold-start section to dev-profile metrics"
       },
       "body_sha256": "e5ab618a37b9aa9bf4044b0941495b7e887abe6a7e57197d79af0fc23ceeb60f"
     },

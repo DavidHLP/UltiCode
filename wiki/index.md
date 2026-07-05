@@ -3,7 +3,7 @@ title: Index
 type: index
 tags: [meta, type/index]
 status: living
-updated: 2026-06-24
+updated: 2026-07-05
 sources: []
 ---
 
@@ -12,8 +12,8 @@ sources: []
 > [!info] How to maintain
 > Catalog of every page in the wiki, grouped by type. One line per page. When you
 > ingest a new source, add its line here and append to [`log.md`](log.md). See
-> [`SCHEMA.md`](SCHEMA.md) for the conventions, and [`SCHEMA.md § 9`](SCHEMA.md)
-> for the Obsidian callout (color-group) palette used across all content pages.
+> [`SCHEMA.md`](SCHEMA.md) for the conventions; graph-view coloring keys off the
+> `type/<x>` tag and is set up via [`concepts/obsidian-graph-coloring`](concepts/obsidian-graph-coloring.md).
 
 ## Meta
 
@@ -63,6 +63,7 @@ sources: []
 
 ## Concepts — decisions, patterns, invariants
 
+- [Achievement Projection](concepts/achievement-projection.md) — ADR-0005: read-model projection for achievement queries
 - [Exactly-Once Judging](concepts/exactly-once-judging.md) — outbox + generation fence + lease
 - [Notification Idempotency](concepts/notification-idempotency.md) — intent + delivery ledger dedup
 - [Notification Dispatch & Preferences](concepts/notification-dispatch-and-preferences.md) — ADR-004: typed dispatcher, preference gate, 4 categories, migration flag
@@ -78,7 +79,9 @@ sources: []
 - [Arthas Diagnostics](concepts/arthas-diagnostics.md) — STATELESS MCP + degrade path
 - [Process Management](concepts/process-management.md) — PM2 vs Preview modes, port mutex, doctor.sh
 - [Sidebar Menu Visual Contract](concepts/sidebar-menu.md) — ADR-005: `.uc-sidebar-*` shared CSS contract, two-tier naming, icon-neutral
+- [Obsidian Graph Coloring](concepts/obsidian-graph-coloring.md) — `type/<x>` tag → graph colors, one-time per-machine UI setup
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 25 entities · 15 concepts = **51 pages**.
+**Counts**: 4 meta · 7 overviews · 25 entities · 17 concepts = **53 pages**
+(authoritative per-type counts: `wiki/.meta/manifest.json` → `stats.by_type`, SCHEMA §12).

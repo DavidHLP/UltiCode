@@ -1,16 +1,29 @@
+# GitLab CI/CD — same-server deployment via shell runner.
+#
+# Deploys to $DEPLOY_DIR (default /opt/ulticode), a dedicated checkout kept
+# separate from any developer working tree. Production deployments trigger
+# only on main; CI pipeline experimentation MUST use MR `rules` instead of
+# pushing extra branches into `only:` — never wire a test branch to prod.
+#
+# Required: .env (with all ${VAR:?...} secrets) must exist under $DEPLOY_DIR
+# before the deploy job runs. The job refuses to deploy if .env is missing.
 stages:
   - deploy
+
+variables:
+  DEPLOY_DIR: ${DEPLOY_DIR:-/opt/ulticode}
 
 deploy:
   stage: deploy
   tags:
     - shell
   script:
-    - cd /home/yw/UltiCode
-    - git fetch origin
-    - git reset --hard origin/$CI_COMMIT_BRANCH
+    - test -d "$DEPLOY_DIR" || { echo "FATAL: DEPLOY_DIR '$DEPLOY_DIR' not found"; exit 1; }
+    - cd "$DEPLOY_DIR"
+    - test -f .env || { echo "FATAL: .env missing under $DEPLOY_DIR — refusing to deploy"; exit 1; }
+    - git fetch --prune --tags origin
+    - git checkout -B "$CI_COMMIT_BRANCH" "origin/$CI_COMMIT_BRANCH"
     - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml build
-    - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d
+    - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ci.yml up -d --wait
   only:
     - main
-    - feat/gitlab-cicd

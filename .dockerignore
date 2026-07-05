@@ -1,0 +1,58 @@
+# === .dockerignore for UltiCode monorepo ===
+# Build contexts: console/, management/, backend-spring/ (each COPYs shared/).
+# Keep those dirs and their build inputs; exclude everything else so the
+# context sent to the daemon stays small and free of local secrets.
+
+# VCS & CI metadata
+.git
+.gitignore
+.github
+.gitlab
+
+# IDE / agent tooling
+.claude
+.cursor
+.codex
+.agents
+.vscode
+.idea
+
+# Docs & knowledge base (not needed by image builds)
+wiki
+docs
+*.md
+!README.md
+
+# Build artifacts & caches (regenerated inside the image)
+**/node_modules
+**/dist
+**/.vitest
+**/coverage
+**/target
+**/.turbo
+
+# Logs & runtime ephemera
+**/*.log
+logs
+**/logs
+**/.pids
+
+# Local dev secrets & runtime (NEVER bake into images)
+.env
+.env.*
+!.env.example
+
+# Tooling not used by app images
+infrastructure
+tools
+scripts
+tmp
+.tests
+
+# Deploy orchestration (not part of any image)
+docker-compose*.yml
+ecosystem.config.cjs
+
+# Standalone images with their own build contexts
+init-db
+docker/sandbox

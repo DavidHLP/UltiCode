@@ -332,3 +332,15 @@ ci≥2 (follow/monitoring=3, rest=2); dead links unchanged at 4 placeholders;
 resolve-rate 98.9% (345/349); `git diff --check` clean. sidebar-menu's
 annotated list-style `## Related` left as-is (its refactor-archive note is
 load-bearing; SCHEMA format treated as guideline). Manifest regenerated.
+
+## [2026-07-05] ingest | Dev Environment — WSL2+Docker Desktop cold-start pitfalls
+
+New H2 section in `wiki/overview/dev-environment-overview.md` documenting the
+three traps hit during 2026-07-05 cold-start: (1) openssl missing on Fedora
+44 WSL with /usr/sbin off PATH, (2) MySQL 9.1 IPv6-only binding colliding
+with Docker Desktop's broken IPv4→IPv6 port forwarding (fix: container
+fixed IPs + JDBC to docker bridge IPs), (3) JDK 17.0.2 + WSL2 cgroup v2
+NPE in actuator metric binders (fix: autoconfig exclude three metric
+auto-configs). All three fixes are committed in the same session; the wiki
+section is the re-debug-suppression note for the next session. Frontmatter
+`updated:` bumped to 2026-07-05; `sources:` adds `application.yml`.

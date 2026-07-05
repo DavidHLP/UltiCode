@@ -3,7 +3,7 @@ title: Development Environment Overview
 type: overview
 tags: [ops, dev, map, type/overview]
 status: living
-updated: 2026-06-21
+updated: 2026-07-05
 sources:
   - ecosystem.config.cjs
   - docker-compose.yml
@@ -11,6 +11,7 @@ sources:
   - scripts/dev/
   - infrastructure/arthas/
   - CLAUDE.md
+  - backend-spring/src/main/resources/application.yml
 ---
 
 # Development Environment Overview
@@ -124,6 +125,137 @@ dashboard/thread/watch/trace/ognl directly.
 > - Dev login `admin`/`admin123` is dev-profile-only bootstrap, off in prod.
 >
 > Invariants: [[concepts/security-invariants]]. Operational commands: `AGENTS.md`.
+
+## WSL2 + Docker Desktop cold-start pitfalls
+
+> [!warning] Scope
+> Three traps that bite **only** when running UltiCode on **WSL2 with Docker
+> Desktop** as the backend (the Fedora/Ubuntu WSL distro, Docker Desktop
+> managing containers). Native Linux + `docker compose` directly, or macOS
+> Docker Desktop, are unaffected. All three fixes are already committed to
+> `main`; this section exists so the next session does not re-debug them.
+
+### 1. `openssl` missing on Fedora 44 WSL, and `/usr/sbin` not on `PATH`
+
+**Symptom.** `./scripts/dev/up.sh` exits 0 in <1s with a single line:
+`Required command not found: openssl`. The script never reaches `docker compose up`.
+
+**Root cause.** Two separate things stacked:
+- Fresh Fedora 44 WSL installs ship without `openssl` (only `openssl-libs`).
+  `scripts/dev/init-env.sh` calls `openssl rand -hex` / `openssl rand -base64`
+  to generate DB / Redis / Nacos credentials into `.env`.
+- Even after installing `openssl` (`sudo dnf install -y openssl`), the binary
+  lands at `/usr/sbin/openssl`. Fedora's default `~/.bashrc` does **not** add
+  `/usr/sbin` to `PATH` for non-root users, and `up.sh`'s subshells inherit
+  the empty path → `command -v openssl` fails.
+
+**Fix (one-shot, host-level).**
+```bash
+sudo dnf install -y openssl
+sudo ln -sf /usr/sbin/openssl /usr/local/bin/openssl
+```
+The symlink is intentional: `/usr/local/bin` is on every shell's default `PATH`,
+so `up.sh` and `init-env.sh` find it without modifying their `require_command`
+checks.
+
+### 2. MySQL 9.1 in-container IPv6-only binding + Docker Desktop port-mapping handshake loss
+
+**Symptom.** `up.sh` reaches the Flyway step; `mvn flyway:migrate` hangs for
+minutes with no progress. `jstack <pid>` on the mvn JVM shows the main thread
+blocked in `com.mysql.cj.protocol.a.NativeProtocol.beforeHandshake →
+readServerCapabilities` (a `tryRead` in a SocketInputStream). `flyway_schema_history`
+never gets created; `mysql -h 127.0.0.1 -P 23306` from the host times out on
+the first byte of the server handshake, even though `docker exec ulticode-mysql
+mysql …` (over the unix socket) returns `SELECT 1` instantly. Same shape
+reappears for Redis (`AUTH` timeout) and Nacos (gRPC handshake drop) when
+upstream services run on the host.
+
+**Root cause.** Two compounding bugs:
+- MySQL 9.1 in this Docker image binds **IPv6 only** by default
+  (`/proc/net/tcp6` shows `[::]:3306` LISTEN, `/proc/net/tcp` is empty). No
+  IPv4 listener means Docker Desktop's userland-proxy has nothing on the IPv4
+  side to forward into.
+- Docker Desktop's IPv4 → container IPv6 port forwarding on WSL2 drops the
+  MySQL handshake packet (verified: `python3` raw `socket.create_connection
+  ('127.0.0.1', 23306)` receives zero bytes; same code against
+  `172.18.0.2:3306` — the container's docker-network IP — gets the 77-byte
+  handshake immediately).
+
+**Fix (committed in `docker-compose.yml` and `.env`).**
+- `docker-compose.yml` mysql service: add `command: ["--bind-address=0.0.0.0"]`
+  so MySQL also listens on IPv4. Plus explicit `ipv4_address: 172.18.0.2/3/4`
+  on mysql / redis / nacos with a `subnet: 172.18.0.0/24` ipam block, so the
+  IPs are stable across `docker compose down && up`.
+- `.env`: point `DB_HOST=172.18.0.2`, `DB_PORT=3306` (container-internal port,
+  not 23306), `REDIS_HOST=172.18.0.3`, `REDIS_PORT=6379`,
+  `NACOS_SERVER_ADDR=172.18.0.4:8848`. Hosts connect directly to the docker
+  bridge IPs, bypassing the broken userland-proxy path entirely.
+- The 23306 / 26379 / 28848 `127.0.0.1`-bound mappings in
+  `docker-compose.dev.yml` are kept for `docker exec` debugging only — JDBC
+  and Spring Boot no longer go through them.
+
+> [!note] Why not "just use `localhost`?"
+> Because the localhost → container hop is exactly what loses the handshake.
+> Direct container-IP routing sidesteps Docker Desktop's broken IPv6
+> forwarder entirely. Other backends (macOS Docker Desktop, native Linux
+> dockerd) do not have this bug — the `.env` IPs work there too, but the
+> original `localhost:23306` would also work. The fixed IPs are a
+> WSL2-compatible superset.
+
+### 3. JDK 17.0.2 + WSL2 cgroup v2 NPE on first Spring Boot boot
+
+**Symptom.** Backend `BUILD SUCCESS` for `clean install`, then `mvn
+spring-boot:run` logs `Tomcat started on port 9001` **followed immediately by**
+`Application run failed`. The NPE is
+`Cannot invoke "jdk.internal.platform.CgroupInfo.getMountPoint()" because
+"anyController" is null`, thrown from
+`jdk.internal.platform.cgroupv2.CgroupV2Subsystem.getInstance`, called via
+`Container.metrics → Metrics.systemMetrics → CgroupSubsystemFactory.create`,
+reached through one of:
+- `SystemMetricsAutoConfiguration#processorMetrics` (micrometer ProcessorMetrics)
+- `TomcatMetricsBinder#onApplicationEvent` (micrometer Tomcat metrics,
+  triggered by `SpringApplicationRunListeners.started` after `Tomcat started`)
+
+**Root cause.** [JDK-8286157](https://bugs.openjdk.org/browse/JDK-8286157):
+on WSL2, `/sys/fs/cgroup` is mounted as `cgroup2fs`, but
+`CgroupV2Subsystem.getInstance` reads `cgroup.controllers` and finds no
+controller entry (because the WSL2 kernel exposes an empty controllers list
+for non-root contexts). The NPE is thrown before the cgroup-v1 fallback
+runs. Fixed upstream in **JDK 17.0.5+** and JDK 21 LTS.
+
+**Fix (committed in `application.yml` and `ecosystem.config.cjs`).**
+- `backend-spring/src/main/resources/application.yml`:
+  ```yaml
+  spring:
+    autoconfigure:
+      exclude:
+        - org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration
+        - org.springframework.boot.actuate.autoconfigure.metrics.web.tomcat.TomcatMetricsAutoConfiguration
+        - org.springframework.boot.actuate.autoconfigure.metrics.JvmMetricsAutoConfiguration
+  ```
+  Excluding the three auto-configs prevents the
+  `ProcessorMetrics` / `TomcatMetrics` / `JvmMemoryMetrics` binders from being
+  instantiated. The `management.metrics.enable.processor: false` /
+  `tomcat: false` / `all: false` **does not** work — the bean is created
+  before the enable flag is consulted, so the NPE fires regardless. Only
+  autoconfig `exclude:` actually skips the constructor call. Actuator's
+  health endpoints are unaffected by these excludes.
+- `ecosystem.config.cjs` ulticode-9001 env: pre-set
+  `JAVA_TOOL_OPTIONS: "-Djdk.management.operatingSystemProvider=Standard"`.
+  This flag **silently no-ops on JDK 17.0.2** (the bug it works around was
+  fixed in 17.0.5+), so it is a defensive no-op today. When the project
+  bumps to JDK 17.0.5+ or 21 LTS the same env block will silently start
+  working and the autoconfig excludes can be revisited.
+
+> [!danger] Avoid the "fix" of swapping to JDK 21 globally
+> `JAVA_HOME` symlink in vfox is JDK 17.0.2 by project convention
+> (`backend-spring/pom.xml` `<java.version>17</java.version>`). The cached
+> `v-21.0.2+13` in `~/.vfox/cache/java/` is a partial JRE (missing
+> `libjava.so`, so `java -version` errors with "could not find libjava.so"),
+> and the corresponding `openjdk-21*.tar.gz` archives in the cache are
+> truncated ("gzip: stdin: unexpected end of file"). Don't try to swap the
+> vfox symlink to 21 — it won't compile `backend-spring`. The autoconfig
+> exclude is the clean fix on the current JDK.
 
 ## Links out
 

@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "32caa67ac34eb91e608b5629375749d335cdee04",
+  "generated_with_head": "45dc63c633cc7f7ab25658609a49d6bf9f93381a",
   "stats": {
     "pages": 58,
     "by_type": {
@@ -51,11 +51,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-04",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "6ddc1d048ab25b73260d6a700cb01b218c91b66b",
+        "short": "6ddc1d048",
+        "committed_at": "2026-07-04T20:23:31+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(achievement): extract AchievementProjection deep module"
       },
       "body_sha256": "f69df363d1de692b57ac87470e236418e24a186769ed48ea77a6a6270fa2a913"
     },
@@ -717,7 +717,7 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
-      "body_sha256": "16d998b24d5fc5d41c0cdeb801d548fc1573353fec0635a3faa77c8dbe30b692"
+      "body_sha256": "11c5dbad35b488f867f2dedff1bbd2ad81c1fe037e49d23bbb8632c20c790e5f"
     },
     {
       "path": "wiki/overview/architecture-overview.md",
@@ -784,7 +784,7 @@
       "type": "overview",
       "title": "Development Environment Overview",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-05",
       "last_commit": {
         "sha": "cf85ae67b67e200a6fb762c90f90fa63463ca70e",
         "short": "cf85ae67b",
@@ -792,7 +792,7 @@
         "author": "DavidHLP",
         "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
       },
-      "body_sha256": "3f0211533d3c96667c6c9e93d5324086bcb64d0abb1ddadb2ff7828fd8807052"
+      "body_sha256": "724c89d8c1f6cdfef4ff7751cf68932dacc9202c786193b23f3b0e8418110819"
     },
     {
       "path": "wiki/overview/frontend-apps-overview.md",

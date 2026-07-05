@@ -369,7 +369,7 @@ D-form 沙箱在 `docker/sandbox/`，源 → staging → 镜像三层：
 
 - **Java 17** for backend
 - **Node.js `^20.19.0 || >=22.12.0`** — 版本不匹配会导致 Vite/pnpm 工具链异常
-- **pnpm 10** for frontend and shared packages
+- **pnpm 11** for frontend and shared packages
 - 每个包用**自己的 lockfile**；**禁止用根目录 install 替代** `console/`、`management/`、`shared/auth-core/` 各自的 install
 - MySQL 9.1 / Redis 7 / Nacos 2.3.2 通过 Docker Compose 提供
 - PM2 管理三个开发进程

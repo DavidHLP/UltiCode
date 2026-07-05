@@ -14,6 +14,17 @@ server:
       force-response: true
 
 spring:
+  # Spring Boot profile list-replace semantics: a profile-specific `exclude` list
+  # REPLACES the base list (not merge), so we restate ErrorMvcAutoConfiguration here.
+  # The three metric autoconfigs MUST be excluded (not just `metrics.enable.all=false`)
+  # — ProcessorMetrics bean instantiation itself triggers the cgroup NPE, before any
+  # binder wiring. See JDK-8286157.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.web.tomcat.TomcatMetricsAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.JvmMetricsAutoConfiguration
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${DB_USER:ulticode}
@@ -56,3 +67,12 @@ logging:
     com.ulticode: DEBUG
     com.baomidou.mybatisplus: DEBUG
     org.springframework.web: DEBUG
+
+# Dev-only: disable micrometer binders that trigger the WSL2 + JDK 17.0.2 cgroup NPE
+# (JDK-8286157). Prod does NOT load this profile → prod keeps full system/jvm/tomcat metrics.
+management:
+  metrics:
+    enable:
+      processor: false
+      tomcat: false
+      all: false

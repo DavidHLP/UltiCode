@@ -14,7 +14,7 @@ concurrency:
 env:
   JAVA_VERSION: '17'
   NODE_VERSION: '22.x'
-  PNPM_VERSION: '10'
+  PNPM_VERSION: '11'
 
 jobs:
   # --- Changes detection ---

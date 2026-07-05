@@ -33,7 +33,7 @@ architecture for a narrow change.
 
 - Java 17 for the backend.
 - Node.js `^20.19.0 || >=22.12.0`.
-- pnpm 10 for frontend and shared packages.
+- pnpm 11 for frontend and shared packages.
 - MySQL 9.1, Redis 7, and Nacos 2.3.2 through Docker Compose.
 - PM2 manages the three development application processes.
 

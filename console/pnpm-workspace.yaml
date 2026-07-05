@@ -6,10 +6,15 @@ overrides:
   protocol-buffers-schema: 3.6.1
   vite: ^8.0.16
   form-data: ^4.0.6
-onlyBuiltDependencies:
+# pnpm 11: onlyBuiltDependencies is replaced by allowBuilds (ignoredBuiltDependencies
+# stays as the explicit-ignore list; allowBuilds:true is the per-package approval).
+ignoredBuiltDependencies:
   - esbuild
   - maplibre-gl
   - msw
   - vue-demi
-ignoredBuiltDependencies:
-  - vue-demi
+allowBuilds:
+  esbuild: true
+  maplibre-gl: true
+  msw: true
+  vue-demi: true

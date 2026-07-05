@@ -84,6 +84,11 @@ module.exports = {
         SPRING_PROFILES_ACTIVE: "dev",
         // CORS
         CORS_ALLOWED_ORIGINS: "http://localhost:9002,http://localhost:9003",
+        // JDK 17.0.2 on WSL2: cgroup v2 detection NPEs in OperatingSystemImpl.<init>
+        // (called via TomcatMetricsBinder → ManagementFactory.getPlatformMBeanServer).
+        // Force the Standard OperatingSystemMXBean provider to skip Container/cgroup probing.
+        // Fix tracked at JDK-8286157 (fixed in 17.0.5+; harmless no-op on newer JDKs).
+        JAVA_TOOL_OPTIONS: "-Djdk.management.operatingSystemProvider=Standard",
       },
     },
     {

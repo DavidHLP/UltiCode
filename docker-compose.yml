@@ -2,6 +2,10 @@ services:
   mysql:
     image: mysql:9.1
     container_name: ulticode-mysql
+    # Bind to all interfaces so IPv4 port-mapped connections (localhost:23306) reach the
+    # MySQL handshake. Without this, MySQL 9.1 listens on IPv6 [::]:3306 only, and Docker
+    # Desktop on WSL2 fails to forward the IPv4→IPv6 handshake to the container.
+    command: ["--bind-address=0.0.0.0"]
     expose:
       - "3306"
     environment:
@@ -20,7 +24,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - infrastructure
+      infrastructure:
+        ipv4_address: 172.18.0.2
 
   redis:
     image: redis:7-alpine
@@ -38,7 +43,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - infrastructure
+      infrastructure:
+        ipv4_address: 172.18.0.3
 
   nacos:
     image: nacos/nacos-server:v2.3.2
@@ -72,11 +78,15 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      - infrastructure
+      infrastructure:
+        ipv4_address: 172.18.0.4
 
 networks:
   infrastructure:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.18.0.0/24
 
 volumes:
   mysql_data:

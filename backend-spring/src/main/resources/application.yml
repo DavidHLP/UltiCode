@@ -19,6 +19,13 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+      # WSL2 + JDK 17.0.2: cgroup v2 detection NPEs in OperatingSystemImpl.<init>
+      # via TomcatMetricsBinder → ManagementFactory.getPlatformMBeanServer.
+      # Disable both System (ProcessorMetrics) and Tomcat metrics auto-configs.
+      # Fix tracked at JDK-8286157 (fixed in 17.0.5+; harmless no-op on newer JDKs).
+      - org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.web.tomcat.TomcatMetricsAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.metrics.JvmMetricsAutoConfiguration
 
   # Redisson Configuration (distributed locks, queues)
   redis:
@@ -282,6 +289,14 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    enable:
+      # Disable ProcessorMetrics: Java 17.0.2 on WSL2 throws NPE reading cgroup v2.
+      # See: https://bugs.openjdk.org/browse/JDK-8286157
+      processor: false
+      # Disable TomcatMetricsBinder: same NPE chain via ManagementFactory.getPlatformMBeanServer
+      tomcat: false
+      # Wipe remaining actuator binders (jvm/uptime/files) — same JDK 17.0.2 cgroup NPE risk.
+      all: false
 
 # OAuth Configuration
 oauth:

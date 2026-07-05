@@ -344,3 +344,20 @@ NPE in actuator metric binders (fix: autoconfig exclude three metric
 auto-configs). All three fixes are committed in the same session; the wiki
 section is the re-debug-suppression note for the next session. Frontmatter
 `updated:` bumped to 2026-07-05; `sources:` adds `application.yml`.
+
+## [2026-07-05] ingest | Dev Environment — code-review generalization follow-up
+
+Code review of the 4 unpushed cold-start commits found the section above's
+"fix in `application.yml`" advice had become a prod-metrics hazard: the three
+metric autoconfig excludes lived in base `application.yml` (loaded by every
+profile), so prod silently lost all system/jvm/tomcat micrometer binders. The
+"harmless no-op on newer JDKs" comment was factually wrong (a real disable on
+every JDK). Commit `f175a17` moved the excludes + `management.metrics.enable.*`
+into `application-dev.yml` (dev profile only — restating `ErrorMvcAutoConfiguration`
+because Spring Boot profile list-replace drops the base list), so prod keeps
+full metrics. Same commit also aligned the pnpm toolchain (CI pnpm 10→11;
+`console`/`management` `pnpm-workspace.yaml` unified on the `allowBuilds` map;
+management补 `msw:true` lost in the original migration), and corrected the
+`ecosystem.config.cjs` `JAVA_TOOL_OPTIONS` comment. This wiki section's "Fix"
+subsection rewritten to point at `application-dev.yml` and explain the dev-only
+rationale. Frontmatter `updated:` stays 2026-07-05 (same-day revision).

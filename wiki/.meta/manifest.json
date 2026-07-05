@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "45dc63c633cc7f7ab25658609a49d6bf9f93381a",
+  "generated_with_head": "f175a170722a0317a5a829f459d25cb816ee4581",
   "stats": {
     "pages": 58,
     "by_type": {
@@ -711,13 +711,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-24",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "97cdb2973904d190c35bf611287a33462f4d8ae2",
+        "short": "97cdb2973",
+        "committed_at": "2026-07-05T14:47:54+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "docs(wiki): document WSL2+Docker Desktop cold-start pitfalls"
       },
-      "body_sha256": "11c5dbad35b488f867f2dedff1bbd2ad81c1fe037e49d23bbb8632c20c790e5f"
+      "body_sha256": "96807f679379221aa2066ba3fa3391cdc1ee689bccbad8bd7f010fa637700b69"
     },
     {
       "path": "wiki/overview/architecture-overview.md",
@@ -786,13 +786,13 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "cf85ae67b67e200a6fb762c90f90fa63463ca70e",
-        "short": "cf85ae67b",
-        "committed_at": "2026-06-22T19:02:54+08:00",
+        "sha": "97cdb2973904d190c35bf611287a33462f4d8ae2",
+        "short": "97cdb2973",
+        "committed_at": "2026-07-05T14:47:54+08:00",
         "author": "DavidHLP",
-        "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
+        "subject": "docs(wiki): document WSL2+Docker Desktop cold-start pitfalls"
       },
-      "body_sha256": "724c89d8c1f6cdfef4ff7751cf68932dacc9202c786193b23f3b0e8418110819"
+      "body_sha256": "e5ab618a37b9aa9bf4044b0941495b7e887abe6a7e57197d79af0fc23ceeb60f"
     },
     {
       "path": "wiki/overview/frontend-apps-overview.md",

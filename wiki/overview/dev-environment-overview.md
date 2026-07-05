@@ -223,29 +223,49 @@ controller entry (because the WSL2 kernel exposes an empty controllers list
 for non-root contexts). The NPE is thrown before the cgroup-v1 fallback
 runs. Fixed upstream in **JDK 17.0.5+** and JDK 21 LTS.
 
-**Fix (committed in `application.yml` and `ecosystem.config.cjs`).**
-- `backend-spring/src/main/resources/application.yml`:
+**Fix (committed in `application-dev.yml` and `ecosystem.config.cjs` — dev profile only).**
+
+> [!warning] Why dev-profile, not base `application.yml`?
+> The original cold-start commit put these excludes in base `application.yml`,
+> which loads in **every** profile including prod — silently disabling
+> system/jvm/tomcat micrometer binders in production. The follow-up fix
+> (commit `f175a17`) moved them into `application-dev.yml` so prod keeps full
+> metrics; dev still gets the NPE suppression.
+
+- `backend-spring/src/main/resources/application-dev.yml` (dev profile only):
   ```yaml
   spring:
     autoconfigure:
       exclude:
+        # Spring Boot profile list-replace: restate base excludes here
+        - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
         - org.springframework.boot.actuate.autoconfigure.metrics.SystemMetricsAutoConfiguration
         - org.springframework.boot.actuate.autoconfigure.metrics.web.tomcat.TomcatMetricsAutoConfiguration
         - org.springframework.boot.actuate.autoconfigure.metrics.JvmMetricsAutoConfiguration
+  management:
+    metrics:
+      enable:
+        processor: false
+        tomcat: false
+        all: false
   ```
   Excluding the three auto-configs prevents the
   `ProcessorMetrics` / `TomcatMetrics` / `JvmMemoryMetrics` binders from being
   instantiated. The `management.metrics.enable.processor: false` /
-  `tomcat: false` / `all: false` **does not** work — the bean is created
+  `tomcat: false` / `all: false` **does not** work alone — the bean is created
   before the enable flag is consulted, so the NPE fires regardless. Only
-  autoconfig `exclude:` actually skips the constructor call. Actuator's
-  health endpoints are unaffected by these excludes.
+  autoconfig `exclude:` actually skips the constructor call. Both are kept as
+  belts-and-braces. Actuator's health endpoints are unaffected. Base
+  `application.yml` keeps only `ErrorMvcAutoConfiguration` in its exclude list;
+  prod loads base only → prod keeps all metrics.
 - `ecosystem.config.cjs` ulticode-9001 env: pre-set
   `JAVA_TOOL_OPTIONS: "-Djdk.management.operatingSystemProvider=Standard"`.
-  This flag **silently no-ops on JDK 17.0.2** (the bug it works around was
-  fixed in 17.0.5+), so it is a defensive no-op today. When the project
-  bumps to JDK 17.0.5+ or 21 LTS the same env block will silently start
-  working and the autoconfig excludes can be revisited.
+  This forces the Standard OperatingSystemMXBean provider (skipping cgroup
+  probing) at the JVM level — a belt-and-braces guard alongside the dev-profile
+  metric excludes, covering any non-micrometer code path that touches
+  `ManagementFactory.getPlatformMBeanServer`. Required on WSL2 + JDK <17.0.5;
+  redundant but harmless on newer JDKs / other OS. **dev-only** (PM2 host JVM,
+  not containerized) — does not affect prod.
 
 > [!danger] Avoid the "fix" of swapping to JDK 21 globally
 > `JAVA_HOME` symlink in vfox is JDK 17.0.2 by project convention

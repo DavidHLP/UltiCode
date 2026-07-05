@@ -148,5 +148,11 @@ export default defineConfig({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
+    // Disable Vite's modulePreload polyfill: it is the only inline <script>
+    // Vite injects at build time. Disabling it keeps the production bundle
+    // free of inline scripts so CSP `script-src 'self'` (nginx.conf) applies
+    // with zero violations. Modern browsers support modulepreload natively
+    // (Chrome 66+, FF 78+, Safari 16+); UltiCode targets only those.
+    modulePreload: { polyfill: false },
   },
 })

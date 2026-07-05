@@ -145,12 +145,28 @@ redis-cli GET "csrf:{userId}:{tokenId}"
 
 ### Sandbox Harness(D-form 代码执行沙箱)
 
-D-form 沙箱在 `docker/sandbox/`,**源 → staging → 镜像**三层:
+D-form 沙箱在 `docker/sandbox/`,**源 → staging → 镜像**三层。**镜像 `ulticode-sandbox:latest` 不随仓库分发,必须本地构建**;缺失或损坏时所有判题返回笼统 `Runtime Error`。完整诊断与重建手册见 wiki [[wiki/concepts/sandbox-rebuild]]。
 
 - 源 `docker/sandbox/harness/{python,c,cpp,java}/` → `build.sh` 预编译到 `docker/sandbox/harness-staging/` → Dockerfile COPY staging 到镜像 `/opt/harness/{lang}/`(**镜像打的是 staging,不是源**)
-- 改 harness 源后必须重建:`./docker/sandbox/harness/build.sh python`(刷新 staging + 重建 `ulticode-sandbox-dform:phase2` + tag `:latest`);`--no-docker` 只刷 staging。线上 `SANDBOX_IMAGE=ulticode-sandbox:latest`,重建后**新提交即时生效**(历史提交记录不变)
+- **【诊断指纹】镜像缺失/启动失败的判题症状**:`verdict=Runtime Error` + `memory=0.0MB` + `detail="Runtime error"`(笼统,无具体异常/堆栈)。机理:`SandboxExecutorImpl` 把"非 0 退出 + 非编译错误"映射为 `RUNTIME_ERROR`,且 `CodeExecutionHelperImpl.sanitizeSandboxOutput` 会**过滤含 `docker`/`OCI runtime` 的行**,空结果回退为 "Runtime error" —— docker 层错误被完全掩盖。看到此指纹 → 先 `docker images | grep ulticode-sandbox` 确认镜像存在,再看下一条 seccomp 路径。
+- **【seccomp 路径相对后端 cwd】**:`SANDBOX_SECCOMP_PROFILE` 由后端 JVM 解析,**后端 cwd = `backend-spring/`**(PM2 ecosystem 设定)。故 `.env` 必须用 `../docker/sandbox/seccomp-profile.json`(相对 backend-spring),**不能**用 `docker/sandbox/...`(相对 repo root)。后者使 `docker run --security-opt seccomp=<不存在>` 启动失败 → 走上面"笼统 RE"路径。**镜像建好后仍报笼统 RE → 99% 是此路径错**。`init-env.sh` 与 `.env.example` 已默认带 `../` 前缀,手改 `.env` 时勿删。
+- **【假开关】`SANDBOX_ENABLED=false` 不影响判题**:执行器激活条件是 `@ConditionalOnProperty("sandbox.executor")`(默认 `docker`),与 `code-execution.sandbox.enabled` 无关。判题始终走 docker 沙箱;该 flag 是历史占位,保留 false 即可。
+- 改 harness 源后必须重建:`./docker/sandbox/harness/build.sh`(刷新 staging + 重建 `ulticode-sandbox-dform:phase2` + tag `:latest`);`--no-docker` 只刷 staging;`build.sh <lang>` 只构建指定语言。线上 `SANDBOX_IMAGE=ulticode-sandbox:latest`,重建后**新提交即时生效**(历史提交记录不变)。
+- **【base-17 前置 + alpine/musl/代理坑】** `Dockerfile` FROM `ulticode-sandbox:base-17`(本地一次构建,极少变;`build.sh` 启动前检查)。两个高频陷阱(完整复现见 wiki sandbox-rebuild):
+  1. **base 是 alpine 3.19(musl),非 Debian**:host(Red Hat/Fedora glibc)直接编译的 `c-sandbox`/`cpp-sandbox` 在镜像里跑不了(`ld-linux` vs `ld-musl` 不兼容);且 `build.sh` 的 cpp `-static` 会因 host 缺 `libstdc++-static`/`glibc-static` 直接失败。**正确做法:用 base-17 容器编译 c/cpp harness**(产物即 musl 二进制):
+     ```
+     docker run --rm -u "$(id -u):$(id -g)" \
+       -v "$PWD/docker/sandbox/harness/c:/src:ro" \
+       -v "$PWD/docker/sandbox/harness-staging/c:/out" \
+       ulticode-sandbox:base-17 gcc -O2 -Wall -Wextra -o /out/c-sandbox /src/main.c
+     # cpp 同理:g++ -std=c++17 -O2 -Wall -Wextra -static -o /out/cpp-sandbox \
+     #   /src/main.cpp /src/json.cpp /src/serializer.cpp /src/solution_parser.cpp \
+     #   && cp /src/*.hpp /src/*.cpp /out/
+     ```
+     java(class 字节码)/python(`.py` 源码)跨平台,host 编译无碍(主机 3.14 编译的 `.pyc` 在镜像 3.11 因 magic number 失效会回退 `.py`,正常)。
+  2. **代理环境**:host 若配 HTTP 代理(`~/.docker/config.json` 的 `proxies` 段会注入所有 build/run 容器),bridge 模式容器内 `127.0.0.1` 指向容器自己 → 代理连不上 → apk 拉取失败。解法:`docker build --network=host` 让代理可达;若代理对 `dl-cdn.alpinelinux.org` 返 502(而对 `mirrors.aliyun.com`/`mirrors.tuna.tsinghua.edu.cn` 返 200),临时把 Dockerfile 的 apk 源换为 aliyun。
 - `build.sh` 用**固定文件清单** copy:新增 harness 模块(如 `_case_runner.py`)必须同时加进 `build_<lang>()` 的 cp 清单 + .pyc 循环,否则镜像缺文件 → 每个用例 RE
-- **Python 版本陷阱**:镜像 base(Debian bookworm)= Python 3.11,类型注解**即时求值**;主机可能是 3.14(PEP 649 惰性求值),本地 `pytest` 可能"假通过"。改注解/preamble 后必须用 `docker run` 在镜像(3.11)里端到端验证:`docker run --rm -e SOLUTION_DIR=/job -v "$TMP":/job ulticode-sandbox:latest python3 /opt/harness/python/main.py /job/input.json`
+- **Python 版本陷阱**:镜像 base(alpine 3.19)= Python **3.11.14**,类型注解**即时求值**;主机可能是 3.14(PEP 649 惰性求值),本地 `pytest` 可能"假通过"。改注解/preamble 后必须用 `docker run` 在镜像(3.11)里端到端验证:`docker run --rm -e SOLUTION_DIR=/job -v "$TMP":/job ulticode-sandbox:latest python3 /opt/harness/python/main.py /job/input.json`(用户代码文件名是小写 `solution.py`,harness `import solution` 大小写敏感)
 - **Python preamble 契约**:用户代码**零 import**。`build_solution_preamble()` 预注入 `typing.__all__` + 纯计算标准库 + collections 高频符号 + `ListNode`/`TreeNode`。**绝不注入** `os`/`sys`/`subprocess`/`socket`/`shutil`/`ctypes`/`multiprocessing`(exit guard 只拦 `_exit`/`sys.exit`,放行这些会破坏沙箱隔离)
 - 链表/树问题返回 `None`(空输入)会被 `normalize_return_value()` 规范化为 `[]`(LeetCode 约定),比较时不要当 `'null'` 处理
 

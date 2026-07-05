@@ -1,10 +1,10 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "8dcb8641a0dfbc497baf047ab1a6aa4fa9780997",
+  "generated_with_head": "89c664a07eefadd57f58ec907125defd6008836c",
   "stats": {
-    "pages": 59,
+    "pages": 60,
     "by_type": {
-      "concept": 18,
+      "concept": 19,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -21,11 +21,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
+        "short": "89c664a07",
+        "committed_at": "2026-07-05T23:22:52+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
       "body_sha256": "dab884cc21795d2cc0329aa277b84b88803f1069b9e81258280db90d9388a3ac"
     },
@@ -36,11 +36,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "4c41d8144ed362fa4b1deb2f44a5cde3a3633362",
-        "short": "4c41d8144",
-        "committed_at": "2026-06-23T23:53:56+08:00",
+        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
+        "short": "89c664a07",
+        "committed_at": "2026-07-05T23:22:52+08:00",
         "author": "DavidHLP",
-        "subject": "feat(wiki): add per-page git provenance manifest"
+        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
       "body_sha256": "03b47ac2ea9c1ed819a9d1fa0fe766430c7b41a0256aa850ee62f8e715c909f9"
     },
@@ -171,11 +171,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
+        "short": "89c664a07",
+        "committed_at": "2026-07-05T23:22:52+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
       "body_sha256": "0e9ba5e7a80a7971aea26306dcb0a7276782fc6ea3c260f36a7e518e72381741"
     },
@@ -223,6 +223,21 @@
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
       "body_sha256": "39b85e60ca4cf3e4bb96282df7ad0341c8938c95fae4435aa27d1daf6a182391"
+    },
+    {
+      "path": "wiki/concepts/sandbox-rebuild.md",
+      "type": "concept",
+      "title": "Sandbox Rebuild Runbook",
+      "status": "living",
+      "frontmatter_updated": "2026-07-06",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "2a308818c9df64b263b1d7b73e35ae2551e4b8c92ecb0c5c31bc14f2bc685ae5"
     },
     {
       "path": "wiki/concepts/sandbox-security-contract.md",
@@ -604,7 +619,7 @@
       "type": "entity",
       "title": "Sandbox (D-form)",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-06",
       "last_commit": {
         "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
         "short": "d224d662b",
@@ -612,7 +627,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "935424adb97e7f42b5450de199437b02c83e4710c2ee96039c9fb544add16f55"
+      "body_sha256": "415aec654d359e4cd0cb2263c50fb44c5879589ac6a7cae23573989bd058c328"
     },
     {
       "path": "wiki/entities/search.md",
@@ -709,30 +724,30 @@
       "type": "index",
       "title": "Index",
       "status": "living",
-      "frontmatter_updated": "2026-07-05",
+      "frontmatter_updated": "2026-07-06",
       "last_commit": {
-        "sha": "bd73d787b838b65b502d3c3d4b52a74a0ac40ea3",
-        "short": "bd73d787b",
-        "committed_at": "2026-06-24T18:01:20+08:00",
+        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
+        "short": "89c664a07",
+        "committed_at": "2026-07-05T23:22:52+08:00",
         "author": "DavidHLP",
-        "subject": "fix(sidebar-menu): drop SidebarParentItem open prop (controlled-closed regression)"
+        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
-      "body_sha256": "9b1efd1e23d357fe00853f375b64edb4d4e3dc629dd3571660fe95a5342cfc9f"
+      "body_sha256": "7075538b2dadd41f966ba0fef2450061e2a85084e792f62e6fc593a94b17ca8c"
     },
     {
       "path": "wiki/log.md",
       "type": "log",
       "title": "Maintenance Log",
       "status": "living",
-      "frontmatter_updated": "2026-07-05",
+      "frontmatter_updated": "2026-07-06",
       "last_commit": {
-        "sha": "d2ec1d1987655e43fd671bbcbbb6a9bfb4e89e94",
-        "short": "d2ec1d198",
-        "committed_at": "2026-07-05T20:41:38+08:00",
+        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
+        "short": "89c664a07",
+        "committed_at": "2026-07-05T23:22:52+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): sync cold-start section to dev-profile metrics"
+        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
-      "body_sha256": "64ed155af2b65cef8b133351dff498a9aea3904f15e08b2a5dbee466b72c7839"
+      "body_sha256": "90b2c9b57bf4f178998832fcda5a9650fa27138f0f847e8f661f029c9faeb364"
     },
     {
       "path": "wiki/overview/architecture-overview.md",

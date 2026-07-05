@@ -9,8 +9,8 @@ LeetCode/HackerRank-style execution harness compiled into the sandbox image
 |---|---|---|
 | `java/` | ✅ complete | Production-ready: 31 unit + 8 E2E tests, full ListNode/TreeNode support, reflective Solution invocation, per-case worker thread with soft TLE, stdout capture |
 | `python/` | ✅ complete | Mirrors Java contract; uses `inspect.signature` annotations for ListNode/TreeNode adaptation |
-| `cpp/` | 🚧 skeleton only | Phase 1: smoke binary that prints empty envelope. Phase 3+ adds full ListNode/TreeNode/JSON-parse + reflective dispatch (likely template-based) |
-| `c/` | 🚧 skeleton only | Same as cpp/. The C path will likely require explicit registration since C has no reflection |
+| `cpp/` | ✅ complete | `cpp-sandbox` orchestrator: statically extracts the Solution signature, generates a typed runner, g++-compiles it in-container, emits the D-form envelope. ListNode/TreeNode + JSON parse/serialize |
+| `c/` | ✅ complete | `c-sandbox` orchestrator: reads `/job/input.json`, runs the user solution, emits the envelope |
 
 ## Envelope contract (stdout JSON)
 
@@ -68,16 +68,40 @@ cd docker/sandbox/harness/cpp
 g++ -O2 -std=c++17 -o /tmp/cpp-smoke main.cpp && /tmp/cpp-smoke
 ```
 
-## Image installation (Phase 2)
+## Image installation
 
-The sandbox Dockerfile (Phase 2) uses a multi-stage build:
-1. Builder stage: jdk + gcc + g++ compiles all four harness flavors
-2. Runtime stage: `debian:bookworm-slim` + runtime-only packages, with
-   `/opt/harness/{java,python,cpp,c}/` populated from the builder stage
+The sandbox image is **not distributed with the repo** — it is built locally.
+Contract: source → `harness-staging/` (host-precompiled) → image. See
+`CLAUDE.md` § Sandbox Harness for the operating contract and
+`wiki/concepts/sandbox-rebuild.md` for the full diagnostic + rebuild runbook.
 
-The backend `SandboxServiceImpl.executeV2` mounts the user's `Solution.*`
-file + `input.json` at `/job/` (read-only) and invokes the appropriate
-language harness, which produces the envelope JSON on stdout.
+The runtime base is `ulticode-sandbox:base-17` (`alpine:3.19` + openjdk17 +
+python3 + gcc + g++ + musl libc), **not** Debian. The Dockerfile COPYs the
+precompiled `harness-staging/{java,python,c,cpp}/` into `/opt/harness/{lang}/`.
+
+The backend `SandboxExecutorImpl` (the hexagonal port; replaces the pre-M2a
+`SandboxServiceImpl`) spawns one `docker run --rm` per submission, mounts the
+user's `solution.*` + `input.json` at `/job/` (read-only), and parses the
+envelope JSON from stdout.
+
+### Build notes (host vs image)
+
+- **alpine = musl, not glibc.** `c-sandbox` / `cpp-sandbox` run **inside the
+  image**, so they must be linked against musl. A host build (Red Hat/Fedora
+  glibc) produces binaries the image cannot execute (`interpreter
+  /lib64/ld-linux-x86-64.so.2` vs `/lib/ld-musl-x86_64.so.1`), and `g++
+  -static` additionally fails if the host lacks `libstdc++-static` /
+  `glibc-static`. **Build c/cpp inside the base-17 container** (recipe in
+  `CLAUDE.md` § Sandbox Harness); java (class bytecode) and python (`.py`
+  source) are portable, host-build is fine.
+- **Proxy environments.** `~/.docker/config.json` proxies are injected into
+  every build/run container. In bridge mode the container's `127.0.0.1` is
+  itself, so the proxy is unreachable and `apk add` fails. Use
+  `docker build --network=host`; if the proxy returns 502 for
+  `dl-cdn.alpinelinux.org`, swap the apk repo to `mirrors.aliyun.com`.
+- **`build.sh` uses a fixed cp list.** A new harness module must be added to
+  `build_<lang>()`'s cp list (+ `.pyc` loop) or the image silently misses it
+  and every case resolves to Runtime Error.
 
 ## Safety properties (per language)
 

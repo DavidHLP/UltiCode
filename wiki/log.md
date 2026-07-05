@@ -3,7 +3,7 @@ title: Maintenance Log
 type: log
 tags: [meta, type/log]
 status: living
-updated: 2026-07-05
+updated: 2026-07-06
 sources: []
 ---
 
@@ -17,6 +17,28 @@ sources: []
 > Format: `## [YYYY-MM-DD] <type> | <summary>`
 
 ---
+
+## [2026-07-06] ingest | Sandbox rebuild runbook — masked-RE fingerprint, alpine base, seccomp cwd trap
+
+New concept page [`concepts/sandbox-rebuild.md`](concepts/sandbox-rebuild.md)
+distilling the 2026-07-05/06 session that traced every-judge-returns-Runtime-Error
+to two stacked layers: a missing `ulticode-sandbox:latest` image, and a
+`SANDBOX_SECCOMP_PROFILE` path that must resolve from the backend cwd
+(`backend-spring/`, hence the `../` prefix). Documents the masked-RE fingerprint
+(`memory=0.0MB` + `detail="Runtime error"`, caused by `sanitizeSandboxOutput`
+dropping any line containing `docker`/`OCI runtime`), the alpine/musl vs
+host-glibc c/cpp compile trap (host `g++ -static` also needs absent
+`libstdc++-static`), and the HTTP-proxy + `--network=host` + aliyun apk
+fallback. Command layer updated in lockstep: `CLAUDE.md` § Sandbox Harness
+(diagnostic fingerprint, seccomp cwd trap, base-17 + container-compile recipe,
+proxy fallback), `AGENTS.md` Development Startup (image-not-distributed callout
++ missing-image symptom), `scripts/dev/up.sh` (startup WARN if image absent),
+`scripts/dev/init-env.sh` + `.env.example` (`SANDBOX_SECCOMP_PROFILE` →
+`../docker/sandbox/...` + `SANDBOX_ENABLED` placeholder comment),
+`docker/sandbox/harness/README.md` (debian→alpine, SandboxServiceImpl→
+SandboxExecutorImpl, C/C++ skeleton→complete, host-vs-image build notes), and
+`entities/sandbox.md` (alpine base correction + expanded Gotchas). Counts
+53→54.
 
 ## [2026-07-05] refactor | Skeleton slim-down — MOC decoupling & dedup
 

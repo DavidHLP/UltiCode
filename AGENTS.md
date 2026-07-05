@@ -1,6 +1,6 @@
 # UltiCode Repository Guide
 
-Last updated: 2026-06-06
+Last updated: 2026-07-06
 
 This file applies to the entire repository. A nested `AGENTS.md` takes precedence
 inside its directory. In particular, read `management/AGENTS.md` before changing
@@ -82,6 +82,14 @@ docker compose --env-file .env \
 
 The disposable `dev` database login is `admin` / `admin123`. It is initialized by
 the dev-profile-only bootstrap runner and must never be reused in production.
+
+The judge sandbox image (`ulticode-sandbox:latest`) is **not distributed with the
+repo** — build it locally before any code-execution feature (problem run/submit).
+`./scripts/dev/up.sh` warns at startup if the image is missing. The full build
+runbook (base image, alpine/musl quirks, proxy fallbacks) lives in
+`wiki/concepts/sandbox-rebuild.md`; the operating contract is in `CLAUDE.md` §
+Sandbox Harness. Symptom of a missing/broken sandbox: every judge call returns a
+masked `Runtime Error` with `memory=0.0MB`.
 
 ## Verification
 

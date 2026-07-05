@@ -3,7 +3,7 @@ title: Sandbox (D-form)
 type: entity
 tags: [judging, sandbox, security, core, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-06
 sources:
   - docker/sandbox/
   - backend-spring/src/main/java/com/ulticode/modules/submission/sandbox/
@@ -43,9 +43,13 @@ image ulticode-sandbox:{phase2,latest}        ← what actually runs
 ## Per-language harness
 
 C, C++, Java, Python. Each compiles then runs against the supplied cases under
-resource limits (time/memory from [[entities/problem]]). Python base is Debian
-bookworm = **Python 3.11** (type hints evaluated eagerly) — a host on 3.14
-(PEP 649 lazy) can pass `pytest` falsely; always verify end-to-end in the image.
+resource limits (time/memory from [[entities/problem]]). Image base is
+**alpine 3.19** = Python **3.11.14** / openjdk **17.0.14** / gcc+g++ 13.2.1
+(**musl libc**, not glibc). Python type hints evaluate eagerly on 3.11; a host
+on 3.14 (PEP 649 lazy) can pass `pytest` falsely — always verify end-to-end in
+the image. Because the base is musl, the C/C++ orchestrators must be compiled
+inside the base-17 container (a host-glibc build won't run); see
+[[concepts/sandbox-rebuild]].
 
 ## Security posture
 
@@ -78,7 +82,22 @@ bookworm = **Python 3.11** (type hints evaluated eagerly) — a host on 3.14
 
 ## Gotchas
 
-- New harness file not in `build.sh` list → silent missing-file → mass RE.
+- **Missing/broken image → masked Runtime Error.** `SandboxExecutorImpl` maps
+  any non-zero exit (that isn't a compile error) to `RUNTIME_ERROR`, and
+  `sanitizeSandboxOutput` drops lines containing `docker`/`OCI runtime`. So an
+  absent image, a missing seccomp file, or any docker-level failure surfaces as
+  `verdict=Runtime Error` + `memory=0.0MB` + `detail="Runtime error"` with no
+  real trace. See [[concepts/sandbox-rebuild]] for the diagnostic + rebuild.
+- **`SANDBOX_SECCOMP_PROFILE` resolves against the backend cwd
+  (`backend-spring/`), not the repo root.** `.env` must use
+  `../docker/sandbox/seccomp-profile.json`; a bare `docker/sandbox/...` makes
+  `docker run` fail on a missing seccomp file → the masked-RE fingerprint above.
+- **`SANDBOX_ENABLED` is a no-op placeholder.** Execution activates on
+  `sandbox.executor` (default `docker`), not `code-execution.sandbox.enabled`.
+- **alpine = musl.** Host-glibc `c-sandbox`/`cpp-sandbox` won't run in the
+  image; compile them inside the base-17 container. `build.sh`'s cpp `-static`
+  step also needs host `libstdc++-static`/`glibc-static` which Red Hat lacks.
+- New harness file not in `build.sh` cp list → silent missing-file → mass RE.
 - Python 3.11 vs host-version annotation drift → false local green; always
   `docker run` the image to validate.
 - Never relax the import blocklist — it's the core of sandbox isolation.

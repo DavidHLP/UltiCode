@@ -3,7 +3,7 @@ title: Index
 type: index
 tags: [meta, type/index]
 status: living
-updated: 2026-07-05
+updated: 2026-07-06
 sources: []
 ---
 
@@ -72,6 +72,7 @@ sources: []
 - [Security Invariants](concepts/security-invariants.md) — the non-negotiable rules
 - [CSRF Mechanism](concepts/csrf-mechanism.md) — Redis double-submit token
 - [Sandbox Security Contract](concepts/sandbox-security-contract.md) — seccomp + zero-import preamble
+- [Sandbox Rebuild Runbook](concepts/sandbox-rebuild.md) — masked-RE diagnostic + alpine/musl/proxy rebuild flow
 - [Theme System](concepts/theme-system.md) — 4-layer, LXGW WenKai, FOUC killer
 - [Result Envelope & Case Mapping](concepts/result-envelope-and-case-mapping.md) — Result&lt;T&gt; + snake↔camel
 - [Module Layering](concepts/module-layering.md) — controller→service→mapper→entity
@@ -83,5 +84,5 @@ sources: []
 
 ---
 
-**Counts**: 4 meta · 7 overviews · 25 entities · 17 concepts = **53 pages**
+**Counts**: 4 meta · 8 overviews · 26 entities · 19 concepts = **57 content pages**
 (authoritative per-type counts: `wiki/.meta/manifest.json` → `stats.by_type`, SCHEMA §12).

@@ -9,8 +9,11 @@ import com.ulticode.modules.email.constants.EmailStatus;
 import com.ulticode.modules.email.dto.*;
 import com.ulticode.modules.email.entity.EmailLog;
 import com.ulticode.modules.email.entity.EmailTemplate;
+import com.ulticode.modules.email.intake.EmailIntake;
 import com.ulticode.modules.email.mapper.EmailLogMapper;
 import com.ulticode.modules.email.mapper.EmailTemplateMapper;
+import com.ulticode.modules.email.port.EmailRenderPort;
+import com.ulticode.modules.email.port.SmtpSenderPort;
 import com.ulticode.modules.email.service.impl.EmailServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,9 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.util.ReflectionTestUtils;
 
+import jakarta.mail.MessagingException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,7 +37,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for EmailService.
+ * Unit tests for {@link EmailServiceImpl} (admin facade) and the
+ * {@link EmailIntake} send pipeline.
+ *
+ * <p>After the deepening, the SMTP transport lives behind
+ * {@link SmtpSenderPort} and template rendering behind {@link EmailRenderPort}.
+ * Tests inject mocks for both ports so the intake's behaviour is exercised
+ * end-to-end without a real JavaMail session.
  */
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -47,7 +55,12 @@ class EmailServiceTest {
     private EmailLogMapper logMapper;
 
     @Mock
-    private JavaMailSender mailSender;
+    private EmailRenderPort emailRenderPort;
+
+    @Mock
+    private SmtpSenderPort smtpSenderPort;
+
+    private EmailIntake emailIntake;
 
     @InjectMocks
     private EmailServiceImpl emailService;
@@ -81,8 +94,15 @@ class EmailServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Disable email for testing
-        ReflectionTestUtils.setField(emailService, "emailEnabled", false);
+        // Wire the intake against the mocked ports. In production wiring,
+        // Spring injects StringReplaceEmailRenderAdapter + (JavaMail or
+        // Logging) SmtpSenderAdapter.
+        emailIntake = new EmailIntake(templateMapper, logMapper, emailRenderPort, smtpSenderPort);
+        // Re-wire the service facade's intake field via reflection because
+        // @InjectMocks cannot reach the new collaborator (it was injected
+        // post-construction when @RequiredArgsConstructor ran). For tests
+        // we set it explicitly so the facade delegates to our intake.
+        org.springframework.test.util.ReflectionTestUtils.setField(emailService, "emailIntake", emailIntake);
     }
 
     // ==================== sendEmail Tests ====================
@@ -93,7 +113,7 @@ class EmailServiceTest {
 
         @Test
         @DisplayName("should send email with template successfully")
-        void shouldSendEmailWithTemplateSuccessfully() {
+        void shouldSendEmailWithTemplateSuccessfully() throws MessagingException {
             // Arrange
             SendEmailDTO dto = new SendEmailDTO();
             dto.setTo(RECIPIENT);
@@ -106,6 +126,9 @@ class EmailServiceTest {
             EmailTemplate template = createTestTemplate();
 
             when(templateMapper.selectById(TEMPLATE_ID)).thenReturn(template);
+            when(emailRenderPort.render(eq("Hello {{name}}"), any())).thenReturn("Hello John");
+            when(emailRenderPort.render(eq("<p>Hello {{name}}, welcome to {{app}}!</p>"), any()))
+                    .thenReturn("<p>Hello John, welcome to UltiCode!</p>");
             when(logMapper.insert(any(EmailLog.class))).thenAnswer(invocation -> {
                 EmailLog log = invocation.getArgument(0);
                 log.setId(LOG_ID);
@@ -120,11 +143,13 @@ class EmailServiceTest {
             assertNotNull(result);
             assertEquals(RECIPIENT, result.getRecipient());
             verify(logMapper).insert(any(EmailLog.class));
+            verify(smtpSenderPort).send(eq(RECIPIENT), eq("Hello John"),
+                    eq("<p>Hello John, welcome to UltiCode!</p>"), isNull());
         }
 
         @Test
         @DisplayName("should send email without template successfully")
-        void shouldSendEmailWithoutTemplateSuccessfully() {
+        void shouldSendEmailWithoutTemplateSuccessfully() throws MessagingException {
             // Arrange
             SendEmailDTO dto = new SendEmailDTO();
             dto.setTo(RECIPIENT);
@@ -146,6 +171,7 @@ class EmailServiceTest {
             assertNotNull(result);
             assertEquals(RECIPIENT, result.getRecipient());
             assertEquals("Custom Subject", result.getSubject());
+            verify(smtpSenderPort).send(RECIPIENT, "Custom Subject", "<p>Custom body</p>", "Custom text");
         }
 
         @Test
@@ -181,6 +207,7 @@ class EmailServiceTest {
             EmailTemplate template = createTestTemplate();
 
             when(templateMapper.selectById(TEMPLATE_ID)).thenReturn(template);
+            when(emailRenderPort.render(eq("Hello {{name}}"), any())).thenReturn("Hello Alice");
             when(logMapper.insert(any(EmailLog.class))).thenAnswer(invocation -> {
                 EmailLog log = invocation.getArgument(0);
                 log.setId(LOG_ID);
@@ -194,6 +221,30 @@ class EmailServiceTest {
             // Assert
             assertNotNull(result);
             assertEquals("Hello Alice", result.getSubject());
+        }
+
+        @Test
+        @DisplayName("should mark log FAILED when SMTP transport throws")
+        void shouldMarkLogFailedWhenSmtpThrows() throws MessagingException {
+            SendEmailDTO dto = new SendEmailDTO();
+            dto.setTo(RECIPIENT);
+            dto.setSubject("Subject");
+            dto.setHtml("<p>body</p>");
+
+            when(logMapper.insert(any(EmailLog.class))).thenAnswer(invocation -> {
+                EmailLog log = invocation.getArgument(0);
+                log.setId(LOG_ID);
+                return 1;
+            });
+            when(logMapper.updateById(any(EmailLog.class))).thenReturn(1);
+            doThrow(new RuntimeException("SMTP server unreachable"))
+                    .when(smtpSenderPort).send(any(), any(), any(), any());
+
+            EmailLogDTO result = emailService.sendEmail(dto);
+
+            assertNotNull(result);
+            assertEquals(EmailStatus.FAILED, result.getStatus());
+            assertNotNull(result.getError());
         }
     }
 
@@ -415,70 +466,52 @@ class EmailServiceTest {
     // ==================== Template Rendering Tests ====================
 
     @Nested
-    @DisplayName("Template Rendering")
+    @DisplayName("Template Rendering (port adapter)")
     class TemplateRenderingTests {
 
         @Test
-        @DisplayName("should render template with variables")
-        void shouldRenderTemplateWithVariables() {
-            // Arrange
+        @DisplayName("StringReplaceEmailRenderAdapter substitutes {{var}} placeholders")
+        void stringReplaceAdapter_substitutesPlaceholders() {
+            EmailRenderPort adapter = new com.ulticode.modules.email.port.adapter.StringReplaceEmailRenderAdapter();
             String template = "Hello {{name}}, welcome to {{app}}!";
             Map<String, Object> variables = new HashMap<>();
             variables.put("name", "John");
             variables.put("app", "UltiCode");
 
-            // Act - using reflection to test private method
-            String result = (String) ReflectionTestUtils.invokeMethod(
-                    emailService, "renderTemplate", template, variables);
+            String result = adapter.render(template, variables);
 
-            // Assert
             assertEquals("Hello John, welcome to UltiCode!", result);
         }
 
         @Test
-        @DisplayName("should handle missing variables gracefully")
-        void shouldHandleMissingVariablesGracefully() {
-            // Arrange
+        @DisplayName("StringReplaceEmailRenderAdapter leaves unknown placeholders untouched")
+        void stringReplaceAdapter_leavesUnknownPlaceholders() {
+            EmailRenderPort adapter = new com.ulticode.modules.email.port.adapter.StringReplaceEmailRenderAdapter();
             String template = "Hello {{name}}, your code is {{code}}";
             Map<String, Object> variables = new HashMap<>();
             variables.put("name", "John");
-            // Note: "code" variable is missing
+            // Note: "code" variable is missing — placeholder stays as-is.
 
-            // Act
-            String result = (String) ReflectionTestUtils.invokeMethod(
-                    emailService, "renderTemplate", template, variables);
+            String result = adapter.render(template, variables);
 
-            // Assert
             assertEquals("Hello John, your code is {{code}}", result);
         }
 
         @Test
-        @DisplayName("should handle empty variables")
-        void shouldHandleEmptyVariables() {
-            // Arrange
-            String template = "Hello World!";
-            Map<String, Object> variables = Collections.emptyMap();
-
-            // Act
-            String result = (String) ReflectionTestUtils.invokeMethod(
-                    emailService, "renderTemplate", template, variables);
-
-            // Assert
+        @DisplayName("StringReplaceEmailRenderAdapter returns template verbatim for empty variables")
+        void stringReplaceAdapter_emptyVariables() {
+            EmailRenderPort adapter = new com.ulticode.modules.email.port.adapter.StringReplaceEmailRenderAdapter();
+            String result = adapter.render("Hello World!", Collections.emptyMap());
             assertEquals("Hello World!", result);
         }
 
         @Test
-        @DisplayName("should handle null template")
-        void shouldHandleNullTemplate() {
-            // Arrange
+        @DisplayName("StringReplaceEmailRenderAdapter returns null for null template")
+        void stringReplaceAdapter_nullTemplate() {
+            EmailRenderPort adapter = new com.ulticode.modules.email.port.adapter.StringReplaceEmailRenderAdapter();
             Map<String, Object> variables = new HashMap<>();
             variables.put("name", "John");
-
-            // Act
-            String result = (String) ReflectionTestUtils.invokeMethod(
-                    emailService, "renderTemplate", null, variables);
-
-            // Assert
+            String result = adapter.render(null, variables);
             assertNull(result);
         }
     }

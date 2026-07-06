@@ -18,6 +18,7 @@ import com.ulticode.modules.queue.job.JobProcessor;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
+import com.ulticode.modules.queue.port.VerdictMetricsParser;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
@@ -93,6 +94,14 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final QueueConfig queueConfig;
     private final ObjectMapper objectMapper;
     private final VerdictResolver verdictResolver;
+    /**
+     * Wire-string → typed-primitive parser for sandbox runtime / memory fields.
+     * Extracted out of this class because the parser has nothing to do with
+     * sandbox dispatch — the wire format is decided by the sandbox adapter,
+     * and the worker should not carry the parser logic in its hot path.
+     * Tests for the parser do not need the worker's 18 collaborators.
+     */
+    private final VerdictMetricsParser verdictMetricsParser;
     /**
      * ADR-003 M3b: mapper for the lease CAS (acquire/renew/fenced verdict).
      * Nullable so existing unit tests that mock SubmissionService still work.
@@ -746,30 +755,24 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
     /**
      * Parse runtime string like "123ms" to milliseconds.
+     * @deprecated delegate to {@link VerdictMetricsParser} — kept temporarily
+     *             so existing tests that call {@code processor.parseRuntimeMs(...)}
+     *             still resolve; new code should inject the parser instead.
      */
+    @Deprecated
     long parseRuntimeMs(String runtime) {
-        if (runtime == null || runtime.isBlank()) {
-            return 0L;
-        }
-        try {
-            return Long.parseLong(runtime.replace("ms", "").trim());
-        } catch (NumberFormatException e) {
-            return 0L;
-        }
+        return verdictMetricsParser.parseRuntimeMs(runtime);
     }
 
     /**
      * Parse memory string like "4.2MB" to megabytes.
+     * @deprecated delegate to {@link VerdictMetricsParser} — kept temporarily
+     *             so existing tests that call {@code processor.parseMemoryMb(...)}
+     *             still resolve; new code should inject the parser instead.
      */
+    @Deprecated
     double parseMemoryMb(String memory) {
-        if (memory == null || memory.isBlank()) {
-            return 0.0;
-        }
-        try {
-            return Double.parseDouble(memory.replace("MB", "").trim());
-        } catch (NumberFormatException e) {
-            return 0.0;
-        }
+        return verdictMetricsParser.parseMemoryMb(memory);
     }
 
     private RunSubmissionDTO buildRunSubmissionDTO(JudgeJob job, List<ProblemExample> examples) {

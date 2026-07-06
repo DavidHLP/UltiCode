@@ -103,6 +103,16 @@ class JudgeWorkerProcessorTest {
     private VerdictResolver verdictResolver = new VerdictResolver();
 
     /**
+     * VerdictMetricsParser is a pure function extracted from the worker
+     * (Candidate 3 deepening); the worker delegates to it for
+     * {@code parseRuntimeMs} / {@code parseMemoryMb}. Real instance wrapped
+     * as a {@link Spy} so {@link InjectMocks} injects it via the constructor.
+     */
+    @Spy
+    private com.ulticode.modules.queue.port.VerdictMetricsParser verdictMetricsParser =
+            new com.ulticode.modules.queue.port.VerdictMetricsParser();
+
+    /**
      * P0-1: judge source properties. These pre-P0-1 tests exercise the
      * legacy {@code problem_examples} path (no flag concept existed), so we
      * force {@code useTestCases=false} here to preserve byte-for-byte

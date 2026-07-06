@@ -73,6 +73,7 @@ class JudgeWorkerTestCasesSourceIT {
                 queueService, codeExecutionService, submissionService, submissionResultPushPort,
                 contestSubmissionMapper, problemExampleMapper, testCaseMapper,
                 props, queueConfig, objectMapper, verdictResolver,
+                new com.ulticode.modules.queue.port.VerdictMetricsParser(),
                 submissionMapper, featureFlags, meterRegistry, judgeQueueProvider);
     }
 

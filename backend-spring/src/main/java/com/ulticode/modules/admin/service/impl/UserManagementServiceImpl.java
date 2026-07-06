@@ -15,7 +15,7 @@ import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
-import com.ulticode.modules.admin.service.AdminUserService;
+import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
@@ -24,9 +24,6 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,19 +32,25 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of AdminUserService
+ * 用户管理服务实现：CRUD、封禁、批量操作。
+ *
+ * <p>从原 {@code AdminUserServiceImpl}（611 行）拆分而来（架构评审 Candidate 1）。
+ * 权限授予 / 撤销逻辑移至 {@link UserPermissionServiceImpl}，避免两类不相关的方法共享同一接口。
+ *
+ * <p>{@link #getUserById(String)} 同时被 {@link UserPermissionServiceImpl} 在授权变更后调用，
+ * 以返回最新的 {@link AdminUserVO}（含 stats 与 permissions 快照）。
+ * 该方法被声明为公共协作点，不属于任何私有实现细节。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AdminUserServiceImpl implements AdminUserService {
+public class UserManagementServiceImpl implements UserManagementService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -63,7 +66,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 
-        // Search filter
+        // 搜索过滤
         if (StringUtils.hasText(query.getSearch())) {
             String search = "%" + query.getSearch() + "%";
             wrapper.and(w -> w
@@ -72,22 +75,22 @@ public class AdminUserServiceImpl implements AdminUserService {
                     .or().like(User::getName, search));
         }
 
-        // Role filter
+        // 角色过滤
         if (StringUtils.hasText(query.getRole())) {
             wrapper.eq(User::getRole, query.getRole());
         }
 
-        // Active status filter
+        // 启用状态过滤
         if (query.getIsActive() != null) {
             wrapper.eq(User::getIsActive, query.getIsActive());
         }
 
-        // Banned status filter
+        // 封禁状态过滤
         if (query.getIsBanned() != null) {
             wrapper.eq(User::getIsBanned, query.getIsBanned());
         }
 
-        // Sorting
+        // 排序
         boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
         String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "joinedAt";
         switch (sortBy) {
@@ -121,83 +124,16 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.BAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
-    public AdminUserVO banUser(String id, String reason, String until) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        AuditContext.setOldValues(Map.of(
-            "isBanned", user.getIsBanned(),
-            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
-        ));
-
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getIsBanned, true)
-                .set(User::getBannedReason, reason);
-
-        if (StringUtils.hasText(until)) {
-            try {
-                wrapper.set(User::getBannedUntil, LocalDateTime.parse(until));
-            } catch (DateTimeParseException e) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                    "Invalid banned_until date format: " + until);
-            }
-        }
-
-        userMapper.update(null, wrapper);
-
-        AuditContext.setNewValues(Map.of(
-            "isBanned", true,
-            "bannedReason", reason != null ? reason : ""
-        ));
-
-        log.info("User banned: {} - reason: {}", id, reason);
-        return getUserById(id);
-    }
-
-    @Override
-    @Transactional
-    @Audited(action = AuditActionUtil.UNBAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
-    public AdminUserVO unbanUser(String id) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        AuditContext.setOldValues(Map.of(
-            "isBanned", user.getIsBanned(),
-            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
-        ));
-
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getIsBanned, false)
-                .set(User::getBannedReason, null)
-                .set(User::getBannedUntil, null);
-
-        userMapper.update(null, wrapper);
-
-        AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
-
-        log.info("User unbanned: {}", id);
-        return getUserById(id);
-    }
-
-    @Override
-    @Transactional
     @Audited(action = AuditActionUtil.CREATE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "#result.id")
     public AdminUserVO createUser(AdminCreateUserDTO dto) {
-        // Check username uniqueness
+        // 用户名唯一性校验
         User existing = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
         if (existing != null) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
         }
 
-        // Check email uniqueness
+        // 邮箱唯一性校验
         if (StringUtils.hasText(dto.getEmail())) {
             User existingEmail = userMapper.selectOne(
                     new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
@@ -234,7 +170,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // Check username uniqueness (excluding current user)
+        // 用户名唯一性校验（排除当前用户）
         if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(user.getUsername())) {
             User existingUsername = userMapper.selectOne(
                     new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
@@ -243,7 +179,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
         }
 
-        // Check email uniqueness (excluding current user)
+        // 邮箱唯一性校验（排除当前用户）
         if (StringUtils.hasText(dto.getEmail()) && !dto.getEmail().equals(user.getEmail())) {
             User existingEmail = userMapper.selectOne(
                     new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
@@ -336,6 +272,73 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.BAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    public AdminUserVO banUser(String id, String reason, String until) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(Map.of(
+            "isBanned", user.getIsBanned(),
+            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+        ));
+
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id)
+                .set(User::getIsBanned, true)
+                .set(User::getBannedReason, reason);
+
+        if (StringUtils.hasText(until)) {
+            try {
+                wrapper.set(User::getBannedUntil, LocalDateTime.parse(until));
+            } catch (DateTimeParseException e) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Invalid banned_until date format: " + until);
+            }
+        }
+
+        userMapper.update(null, wrapper);
+
+        AuditContext.setNewValues(Map.of(
+            "isBanned", true,
+            "bannedReason", reason != null ? reason : ""
+        ));
+
+        log.info("User banned: {} - reason: {}", id, reason);
+        return getUserById(id);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.UNBAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    public AdminUserVO unbanUser(String id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(Map.of(
+            "isBanned", user.getIsBanned(),
+            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+        ));
+
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id)
+                .set(User::getIsBanned, false)
+                .set(User::getBannedReason, null)
+                .set(User::getBannedUntil, null);
+
+        userMapper.update(null, wrapper);
+
+        AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
+
+        log.info("User unbanned: {}", id);
+        return getUserById(id);
+    }
+
+    @Override
+    @Transactional
     @Audited(action = AuditActionUtil.RESET_PASSWORD, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
     public void resetPassword(String id, String newPassword) {
         User user = userMapper.selectById(id);
@@ -423,113 +426,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         return results;
     }
 
-    @Override
-    @Transactional
-    @Audited(action = AuditActionUtil.GRANT_PERMISSION,
-             entityType = AuditActionUtil.ENTITY_PERMISSION,
-             userIdFrom = "id")
-    public AdminUserVO assignUserPermission(String id, String action, String resource,
-                                            LocalDateTime expiresAt) {
-        // HIGH-1 守卫:授予 MANAGE_PERMISSIONS:SYSTEM 必须 SUPER_ADMIN,
-        // 避免普通 ADMIN 通过授权他人权限间接放大自己的权限。
-        requireSuperAdminForManagePermissionsSystem(action, resource);
-
-        return performPermissionChange(id, action, resource, expiresAt, false);
-    }
-
-    @Override
-    @Transactional
-    @Audited(action = AuditActionUtil.REVOKE_PERMISSION,
-             entityType = AuditActionUtil.ENTITY_PERMISSION,
-             userIdFrom = "id")
-    public AdminUserVO revokeUserPermission(String id, String action, String resource) {
-        // 撤销 MANAGE_PERMISSIONS:SYSTEM 同样限制为 SUPER_ADMIN,
-        // 防止 ADMIN 撤销他人 SUPER_ADMIN 权限导致锁死。
-        requireSuperAdminForManagePermissionsSystem(action, resource);
-
-        return performPermissionChange(id, action, resource, null, true);
-    }
-
     /**
-     * MEDIUM-5 抽取:assign / revoke 公共逻辑(user 存在性 + before snapshot +
-     * AuditContext + 委托底层 + 返回最新 VO)。isRevoke 决定调哪个底层方法
-     * 以及 newValues 中写 removed 还是 grantedAt。
-     */
-    private AdminUserVO performPermissionChange(String id, String action, String resource,
-                                                 LocalDateTime expiresAt, boolean isRevoke) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        // 抓 before 状态供审计 (expiresAt 可为 null,Map.of 禁用,改用 HashMap)
-        UserPermission before = permissionService.getUserPermissions(id).stream()
-            .filter(p -> action.equals(p.getAction()) && resource.equals(p.getResource()))
-            .findFirst()
-            .orElse(null);
-
-        Map<String, Object> oldValues = new HashMap<>();
-        oldValues.put("action", action);
-        oldValues.put("resource", resource);
-        oldValues.put("expiresAt", before != null && before.getExpiresAt() != null
-            ? before.getExpiresAt() : "");
-        oldValues.put("grantedAt", before != null && before.getGrantedAt() != null
-            ? before.getGrantedAt() : "");
-        AuditContext.setOldValues(oldValues);
-
-        boolean removed;
-        if (isRevoke) {
-            removed = permissionService.revokePermission(id, action, resource);
-        } else {
-            permissionService.assignPermission(id, action, resource, expiresAt);
-            removed = false;
-        }
-
-        Map<String, Object> newValues = new HashMap<>();
-        newValues.put("action", action);
-        newValues.put("resource", resource);
-        if (isRevoke) {
-            newValues.put("removed", removed);
-        } else {
-            newValues.put("expiresAt", expiresAt != null ? expiresAt : "");
-            newValues.put("grantedAt", LocalDateTime.now());
-        }
-        AuditContext.setNewValues(newValues);
-
-        if (isRevoke && !removed) {
-            log.info("Revoke no-op (permission not present): user={} {}:{}",
-                id, action, resource);
-        } else if (!isRevoke) {
-            log.info("Permission assigned: user={} {}:{} expiresAt={}",
-                id, action, resource, expiresAt);
-        }
-        return getUserById(id);
-    }
-
-    /**
-     * HIGH-1:MANAGE_PERMISSIONS:SYSTEM 是「管理他人权限」能力,属于特权操作,
-     * 与 deleteUser / bulkDelete 一致仅 SUPER_ADMIN 可执行。
-     * 当前 actor 不是 SUPER_ADMIN 时直接抛 FORBIDDEN。
-     */
-    private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {
-        boolean isManagePermissionsSystem =
-            "MANAGE_PERMISSIONS".equals(action) && "SYSTEM".equals(resource);
-        if (!isManagePermissionsSystem) {
-            return;
-        }
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isSuperAdmin = auth != null
-            && auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_SUPER_ADMIN"::equals);
-        if (!isSuperAdmin) {
-            throw new BusinessException(ErrorCode.FORBIDDEN,
-                "Granting/revoking MANAGE_PERMISSIONS:SYSTEM requires SUPER_ADMIN role");
-        }
-    }
-
-    /**
-     * Convert User entity to AdminUserVO (basic fields only)
+     * 将 User 实体转为基础 AdminUserVO（不含 stats / permissions）。
      */
     private AdminUserVO toVO(User user) {
         if (user == null) {
@@ -572,7 +470,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     /**
-     * LOW-3:从 populatePermissions 拆出,处理 role 权限。role 权限不带过期时间。
+     * 处理 role 权限。role 权限不带过期时间。
      */
     private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
         List<RolePermission> rolePerms = rolePermissionMapper.selectList(
@@ -589,13 +487,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     /**
-     * LOW-3:从 populatePermissions 拆出,处理 user 直接权限。过滤已过期项,避免 UI 显示无效授权。
+     * 处理 user 直接权限。过滤已过期项，避免 UI 显示无效授权。
      */
     private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
         List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
         LocalDateTime now = LocalDateTime.now();
         for (UserPermission up : userPerms) {
-            // 过滤已过期的直接权限,避免 UI 显示无效授权
             if (up.getExpiresAt() != null && !up.getExpiresAt().isAfter(now)) {
                 continue;
             }
@@ -603,7 +500,6 @@ public class AdminUserServiceImpl implements AdminUserService {
             info.setAction(up.getAction());
             info.setResource(up.getResource());
             info.setSource("direct");
-            // 修复: 之前硬编码 null 导致 VO 始终看不到 expiresAt
             info.setExpiresAt(up.getExpiresAt());
             sink.add(info);
         }

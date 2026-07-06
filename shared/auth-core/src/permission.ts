@@ -108,6 +108,11 @@ export const WILDCARD_PERMISSION: Permission = { action: '*', resource: '*' };
 
 /**
  * Pre-defined permission constants for common operations.
+ *
+ * Single source of truth for permission strings consumed by both `console` and
+ * `management` frontends. Each value follows the `ACTION:RESOURCE` contract used
+ * by the backend `user_permissions` / `role_permissions` tables.
+ *
  * Use these constants instead of raw strings to avoid typos and enable refactoring.
  *
  * Example usage in management router guards:
@@ -119,6 +124,10 @@ export const WILDCARD_PERMISSION: Permission = { action: '*', resource: '*' };
  *   return false;
  * }
  * ```
+ *
+ * When the management frontend needs the structured `{ action, resource }` form
+ * (e.g. for `meta: { permission: { action, resource } }` route metadata), it
+ * derives that from this constant — see `management/src/constants/permissions.ts`.
  */
 export const Permissions = {
   USER_READ: 'READ:USER',
@@ -134,12 +143,21 @@ export const Permissions = {
   MODERATE_FORUM_POST: 'MODERATE:FORUM_POST',
   MODERATE_FORUM_COMMENT: 'MODERATE:FORUM_COMMENT',
   MODERATE_SOLUTION_COMMENT: 'MODERATE:SOLUTION_COMMENT',
+  DELETE_FORUM_COMMENT: 'DELETE:FORUM_COMMENT',
+  DELETE_SOLUTION_COMMENT: 'DELETE:SOLUTION_COMMENT',
   PROBLEM_LIST_READ: 'READ:PROBLEM_LIST',
   PROBLEM_LIST_CREATE: 'CREATE:PROBLEM_LIST',
   PROBLEM_LIST_UPDATE: 'UPDATE:PROBLEM_LIST',
+  PROBLEM_LIST_DELETE: 'DELETE:PROBLEM_LIST',
+  PROBLEM_LIST_MANAGE_PROBLEMS: 'MANAGE_PROBLEMS:PROBLEM_LIST',
   CONTEST_READ: 'READ:CONTEST',
   TAG_READ: 'READ:TAG',
   TAG_UPDATE: 'UPDATE:TAG',
   SYSTEM_READ: 'READ:SYSTEM',
   SYSTEM_UPDATE: 'UPDATE:SYSTEM',
 } as const;
+
+/**
+ * Type union of all permission keys. Useful for typed route-meta / form schemas.
+ */
+export type PermissionKey = keyof typeof Permissions;

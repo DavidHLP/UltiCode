@@ -12,7 +12,8 @@ import com.ulticode.modules.admin.dto.BulkUserActionRequest;
 import com.ulticode.modules.admin.dto.GrantPermissionRequest;
 import com.ulticode.modules.admin.dto.ResetPasswordRequest;
 import com.ulticode.modules.admin.dto.RevokePermissionRequest;
-import com.ulticode.modules.admin.service.AdminUserService;
+import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.modules.admin.service.UserPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,20 +31,21 @@ import java.util.List;
 @SecurityRequirement(name = "Bearer")
 public class AdminUserController {
 
-    private final AdminUserService adminUserService;
+    private final UserManagementService userManagementService;
+    private final UserPermissionService userPermissionService;
 
     @Operation(summary = "Get users list", description = "Get paginated list of users with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminUserVO>> getUsers(AdminUserQueryDTO query) {
-        return Result.success(adminUserService.getUsers(query));
+        return Result.success(userManagementService.getUsers(query));
     }
 
     @Operation(summary = "Get user by ID", description = "Get detailed user information")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> getUserById(@PathVariable String id) {
-        return Result.success(adminUserService.getUserById(id));
+        return Result.success(userManagementService.getUserById(id));
     }
 
     @Operation(summary = "Create user", description = "Create a new user account")
@@ -51,7 +53,7 @@ public class AdminUserController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> createUser(@Valid @RequestBody AdminCreateUserDTO dto) {
-        return Result.success(adminUserService.createUser(dto));
+        return Result.success(userManagementService.createUser(dto));
     }
 
     @Operation(summary = "Update user", description = "Update user information")
@@ -61,7 +63,7 @@ public class AdminUserController {
     public Result<AdminUserVO> updateUser(
             @PathVariable String id,
             @Valid @RequestBody AdminUpdateUserDTO dto) {
-        return Result.success(adminUserService.updateUser(id, dto));
+        return Result.success(userManagementService.updateUser(id, dto));
     }
 
     @Operation(summary = "Delete user", description = "Delete a user account")
@@ -69,7 +71,7 @@ public class AdminUserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public Result<Void> deleteUser(@PathVariable String id) {
-        adminUserService.deleteUser(id);
+        userManagementService.deleteUser(id);
         return Result.success();
     }
 
@@ -82,7 +84,7 @@ public class AdminUserController {
             @RequestBody(required = false) BanUserRequest request) {
         String reason = request != null ? request.getReason() : null;
         String until = request != null ? request.getUntil() : null;
-        return Result.success(adminUserService.banUser(id, reason, until));
+        return Result.success(userManagementService.banUser(id, reason, until));
     }
 
     @Operation(summary = "Unban user", description = "Remove ban from a user")
@@ -90,7 +92,7 @@ public class AdminUserController {
     @PostMapping("/{id}/unban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> unbanUser(@PathVariable String id) {
-        return Result.success(adminUserService.unbanUser(id));
+        return Result.success(userManagementService.unbanUser(id));
     }
 
     @Operation(summary = "Reset user password", description = "Reset a user's password")
@@ -100,7 +102,7 @@ public class AdminUserController {
     public Result<Void> resetPassword(
             @PathVariable String id,
             @Valid @RequestBody ResetPasswordRequest request) {
-        adminUserService.resetPassword(id, request.getPassword());
+        userManagementService.resetPassword(id, request.getPassword());
         return Result.success();
     }
 
@@ -113,7 +115,7 @@ public class AdminUserController {
     public Result<AdminUserVO> grantUserPermission(
             @PathVariable String id,
             @Valid @RequestBody GrantPermissionRequest request) {
-        return Result.success(adminUserService.assignUserPermission(
+        return Result.success(userPermissionService.assignUserPermission(
             id, request.getAction(), request.getResource(), request.getExpiresAt()));
     }
 
@@ -148,30 +150,30 @@ public class AdminUserController {
                 com.ulticode.common.exception.ErrorCode.VALIDATION_FAILED,
                 "action and resource are required (via query string or request body)");
         }
-        return Result.success(adminUserService.revokeUserPermission(id, act, res));
+        return Result.success(userPermissionService.revokeUserPermission(id, act, res));
     }
 
     @Operation(summary = "Bulk ban users", description = "Ban multiple users at once")
     @RateLimit(key = "admin:user-bulk-ban", limit = 30, period = 60)
     @PostMapping("/bulk-ban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<AdminUserService.BanResult>> bulkBan(@Valid @RequestBody BulkUserActionRequest request) {
-        return Result.success(adminUserService.bulkBan(request.getIds(), request.getReason()));
+    public Result<List<UserManagementService.BanResult>> bulkBan(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(userManagementService.bulkBan(request.getIds(), request.getReason()));
     }
 
     @Operation(summary = "Bulk unban users", description = "Unban multiple users at once")
     @RateLimit(key = "admin:user-bulk-unban", limit = 30, period = 60)
     @PostMapping("/bulk-unban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<AdminUserService.BanResult>> bulkUnban(@Valid @RequestBody BulkUserActionRequest request) {
-        return Result.success(adminUserService.bulkUnban(request.getIds()));
+    public Result<List<UserManagementService.BanResult>> bulkUnban(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(userManagementService.bulkUnban(request.getIds()));
     }
 
     @Operation(summary = "Bulk delete users", description = "Delete multiple users at once")
     @RateLimit(key = "admin:user-bulk-delete", limit = 30, period = 60)
     @DeleteMapping("/bulk-delete")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
-    public Result<List<AdminUserService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {
-        return Result.success(adminUserService.bulkDelete(request.getIds()));
+    public Result<List<UserManagementService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(userManagementService.bulkDelete(request.getIds()));
     }
 }

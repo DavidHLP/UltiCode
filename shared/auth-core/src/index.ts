@@ -43,6 +43,7 @@ export {
 // Permission checker
 export {
   type PermissionMatchMode,
+  type PermissionKey,
   parsePermissionString,
   hasPermission,
   WILDCARD_PERMISSION,

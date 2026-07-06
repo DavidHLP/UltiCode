@@ -13,18 +13,12 @@ import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -33,9 +27,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
+/**
+ * {@link UserManagementServiceImpl} 单元测试。
+ *
+ * <p>从原 {@code AdminUserServiceImplTest} 拆分而来（架构评审 Candidate 1）：
+ * 用户档案 / 封禁 / 批量操作相关用例归属本测试；
+ * 授权 / 撤销相关用例移至 {@link UserPermissionServiceImplTest}。
+ *
+ * <p>Tests use manual constructor injection (mirrors {@code AdminUserServiceImplTest} reshaping
+ * from ADR-0007) so each test remains independent of Spring context loading.
+ */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AdminUserServiceImpl")
-class AdminUserServiceImplTest {
+@DisplayName("UserManagementServiceImpl")
+class UserManagementServiceImplTest {
 
     @Mock
     private UserMapper userMapper;
@@ -55,25 +59,7 @@ class AdminUserServiceImplTest {
     @Mock
     private RolePermissionMapper rolePermissionMapper;
 
-    private AdminUserServiceImpl adminUserService;
-
-    @BeforeEach
-    void setUp() {
-        adminUserService = new AdminUserServiceImpl(
-                userMapper, passwordEncoder, auditHelper,
-                userStatsReadPort, permissionService, rolePermissionMapper);
-        // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
-        // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            "test-super-admin", "n/a",
-            List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
-    }
+    private UserManagementServiceImpl userManagementService;
 
     private User createValidUser() {
         User user = new User();
@@ -94,6 +80,13 @@ class AdminUserServiceImplTest {
         when(userStatsReadPort.calculateSubmissionStreak(userId)).thenReturn(streak);
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        userManagementService = new UserManagementServiceImpl(
+                userMapper, passwordEncoder, auditHelper,
+                userStatsReadPort, permissionService, rolePermissionMapper);
+    }
+
     @Nested
     @DisplayName("getUsers()")
     class GetUsers {
@@ -107,7 +100,7 @@ class AdminUserServiceImplTest {
             page.setTotal(1);
             when(userMapper.selectPage(any(Page.class), any())).thenReturn(page);
 
-            adminUserService.getUsers(new AdminUserQueryDTO());
+            userManagementService.getUsers(new AdminUserQueryDTO());
 
             verifyNoInteractions(userStatsReadPort, rolePermissionMapper, permissionService);
         }
@@ -126,7 +119,7 @@ class AdminUserServiceImplTest {
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
-            AdminUserVO result = adminUserService.getUserById("user-123");
+            AdminUserVO result = userManagementService.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getStats()).isNotNull();
@@ -147,7 +140,7 @@ class AdminUserServiceImplTest {
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
-            AdminUserVO result = adminUserService.getUserById("user-123");
+            AdminUserVO result = userManagementService.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getStats()).isNotNull();
@@ -174,7 +167,7 @@ class AdminUserServiceImplTest {
             directPerm.setResource("problems");
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of(directPerm));
 
-            AdminUserVO result = adminUserService.getUserById("user-123");
+            AdminUserVO result = userManagementService.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
@@ -210,7 +203,7 @@ class AdminUserServiceImplTest {
             when(permissionService.getUserPermissions("user-123"))
                 .thenReturn(List.of(expired, active, permanent));
 
-            AdminUserVO result = adminUserService.getUserById("user-123");
+            AdminUserVO result = userManagementService.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
@@ -230,107 +223,12 @@ class AdminUserServiceImplTest {
         void userNotFound_throwsBusinessException() {
             when(userMapper.selectById("nonexistent")).thenReturn(null);
 
-            assertThatThrownBy(() -> adminUserService.getUserById("nonexistent"))
+            assertThatThrownBy(() -> userManagementService.getUserById("nonexistent"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> {
                         BusinessException be = (BusinessException) ex;
                         assertThat(be.getErrorCode()).isEqualTo(ErrorCode.USER_NOT_FOUND);
                     });
-        }
-    }
-
-    @Nested
-    @DisplayName("assignUserPermission()")
-    class AssignUserPermission {
-
-        @Test
-        @DisplayName("delegates to PermissionService and returns VO with permissions populated")
-        void grantNew_delegatesAndReturnsVO() {
-            User user = createValidUser();
-            user.setRole("USER");
-            when(userMapper.selectById("user-123")).thenReturn(user);
-            // before-snapshot: empty
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.assignPermission(eq("user-123"), eq("MANAGE_PERMISSIONS"),
-                    eq("SYSTEM"), any())).thenReturn(new UserPermission());
-            stubStats("user-123", 0L, 0L, 0L, 0);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
-
-            AdminUserVO vo = adminUserService.assignUserPermission(
-                    "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null);
-
-            assertThat(vo).isNotNull();
-            assertThat(vo.getId()).isEqualTo("user-123");
-            verify(permissionService).assignPermission("user-123",
-                    "MANAGE_PERMISSIONS", "SYSTEM", null);
-        }
-
-        @Test
-        @DisplayName("throws USER_NOT_FOUND when user does not exist")
-        void userMissing_throws() {
-            when(userMapper.selectById("nope")).thenReturn(null);
-
-            assertThatThrownBy(() -> adminUserService.assignUserPermission(
-                    "nope", "READ", "USER", null))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.USER_NOT_FOUND));
-
-            verify(permissionService, never()).assignPermission(any(), any(), any(), any());
-        }
-    }
-
-    @Nested
-    @DisplayName("revokeUserPermission()")
-    class RevokeUserPermission {
-
-        @Test
-        @DisplayName("delegates and returns VO when permission exists")
-        void revokeExisting_delegates() {
-            User user = createValidUser();
-            user.setRole("USER");
-            when(userMapper.selectById("user-123")).thenReturn(user);
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(true);
-            stubStats("user-123", 0L, 0L, 0L, 0);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
-
-            AdminUserVO vo = adminUserService.revokeUserPermission(
-                    "user-123", "READ", "USER");
-
-            assertThat(vo).isNotNull();
-            verify(permissionService).revokePermission("user-123", "READ", "USER");
-        }
-
-        @Test
-        @DisplayName("returns VO without throwing when permission did not exist (REST idempotent)")
-        void revokeMissing_doesNotThrow() {
-            User user = createValidUser();
-            user.setRole("USER");
-            when(userMapper.selectById("user-123")).thenReturn(user);
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(false);
-            stubStats("user-123", 0L, 0L, 0L, 0);
-            when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
-
-            AdminUserVO vo = adminUserService.revokeUserPermission(
-                    "user-123", "READ", "USER");
-
-            assertThat(vo).isNotNull();
-        }
-
-        @Test
-        @DisplayName("throws USER_NOT_FOUND when user does not exist")
-        void userMissing_throws() {
-            when(userMapper.selectById("nope")).thenReturn(null);
-
-            assertThatThrownBy(() -> adminUserService.revokeUserPermission(
-                    "nope", "READ", "USER"))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.USER_NOT_FOUND));
-
-            verify(permissionService, never()).revokePermission(any(), any(), any());
         }
     }
 }

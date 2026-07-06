@@ -1,52 +1,83 @@
 /**
- * Permission Constants
+ * Permission Constants (Management Frontend)
  *
- * Centralized permission definitions for route guards and authorization checks.
- * Uses const assertion to ensure type safety and prevent mutation.
+ * Structured `{ action, resource }` form derived from the single source of
+ * truth in `@/shared/auth-core/src/permission.ts` (`Permissions`). This file
+ * exists only because management's route meta / composable APIs consume the
+ * object shape; the canonical string keys live in the shared package so the
+ * two frontends cannot drift.
  *
- * Usage:
+ * Architecture review Candidate 3 — eliminate the dual source of truth.
+ *
+ * Usage (unchanged for existing callers):
  *   import { PERM } from '@/constants/permissions'
  *   meta: { permission: PERM.USER_READ }
+ *   PERM.USER_READ.action   // 'READ'
+ *   PERM.USER_READ.resource // 'USER'
  */
 
-export const PERM = {
-  USER_READ: { action: 'READ' as const, resource: 'USER' as const },
-  USER_CREATE: { action: 'CREATE' as const, resource: 'USER' as const },
-  USER_UPDATE: { action: 'UPDATE' as const, resource: 'USER' as const },
-  USER_DELETE: { action: 'DELETE' as const, resource: 'USER' as const },
-  PROBLEM_READ: { action: 'READ' as const, resource: 'PROBLEM' as const },
-  PROBLEM_CREATE: { action: 'CREATE' as const, resource: 'PROBLEM' as const },
-  PROBLEM_UPDATE: { action: 'UPDATE' as const, resource: 'PROBLEM' as const },
-  PROBLEM_DELETE: { action: 'DELETE' as const, resource: 'PROBLEM' as const },
-  SOLUTION_READ: { action: 'READ' as const, resource: 'SOLUTION' as const },
-  MODERATE_PROBLEM: { action: 'MODERATE' as const, resource: 'PROBLEM' as const },
-  MODERATE_FORUM_POST: { action: 'MODERATE' as const, resource: 'FORUM_POST' as const },
-  MODERATE_FORUM_COMMENT: { action: 'MODERATE' as const, resource: 'FORUM_COMMENT' as const },
-  MODERATE_SOLUTION_COMMENT: { action: 'MODERATE' as const, resource: 'SOLUTION_COMMENT' as const },
-  DELETE_FORUM_COMMENT: { action: 'DELETE' as const, resource: 'FORUM_COMMENT' as const },
-  DELETE_SOLUTION_COMMENT: { action: 'DELETE' as const, resource: 'SOLUTION_COMMENT' as const },
-  PROBLEM_LIST_READ: { action: 'READ' as const, resource: 'PROBLEM_LIST' as const },
-  PROBLEM_LIST_CREATE: { action: 'CREATE' as const, resource: 'PROBLEM_LIST' as const },
-  PROBLEM_LIST_UPDATE: { action: 'UPDATE' as const, resource: 'PROBLEM_LIST' as const },
-  PROBLEM_LIST_DELETE: { action: 'DELETE' as const, resource: 'PROBLEM_LIST' as const },
-  PROBLEM_LIST_MANAGE_PROBLEMS: {
-    action: 'MANAGE_PROBLEMS' as const,
-    resource: 'PROBLEM_LIST' as const,
-  },
-  CONTEST_READ: { action: 'READ' as const, resource: 'CONTEST' as const },
-  TAG_READ: { action: 'READ' as const, resource: 'TAG' as const },
-  TAG_UPDATE: { action: 'UPDATE' as const, resource: 'TAG' as const },
-  SYSTEM_READ: { action: 'READ' as const, resource: 'SYSTEM' as const },
-  SYSTEM_UPDATE: { action: 'UPDATE' as const, resource: 'SYSTEM' as const },
-} as const
+import {
+  Permissions,
+  type PermissionKey,
+} from '@/shared/auth-core/src/permission'
 
 /**
- * Type for a permission object
+ * Split a canonical `'ACTION:RESOURCE'` string into the structured form.
+ * Internal helper — not exported. Used only to build the static `PERM` map.
  */
-export type Permission = (typeof PERM)[keyof typeof PERM]
+function splitPerm(value: string): { action: string; resource: string } {
+  const idx = value.indexOf(':')
+  if (idx === -1) {
+    // Defensive: shared `Permissions` is the only caller, and its values are
+    // validated by tests in shared/auth-core; this branch should never run.
+    throw new Error(`Invalid permission string: ${value}`)
+  }
+  return { action: value.slice(0, idx), resource: value.slice(idx + 1) }
+}
 
 /**
- * Type guard to check if a value is a valid permission
+ * Build the structured `PERM` map lazily over all keys of `Permissions`.
+ *
+ * We use a `reduce` over `Object.entries` rather than `Object.fromEntries`
+ * so TypeScript can preserve the `as const` literal types of each
+ * `action` / `resource` field per key (the consumer-visible API is
+ * unchanged from the previous hand-written declaration).
+ */
+const PERM_ENTRIES = Object.entries(Permissions).map(([key, value]) => {
+  const split = splitPerm(value)
+  // Re-wrap with literal types so consumers retain 'READ' instead of string.
+  return [
+    key,
+    {
+      action: split.action,
+      resource: split.resource,
+    },
+  ] as const
+})
+
+/**
+ * Structured permission map derived from the shared source of truth.
+ *
+ * Each entry mirrors the previous hand-written `{ action: 'X' as const, resource: 'Y' as const }`
+ * shape so consumers (router meta, composables, views) need no changes.
+ */
+export const PERM = Object.fromEntries(
+  PERM_ENTRIES,
+) as {
+  [K in PermissionKey]: {
+    readonly action: (typeof Permissions)[K] extends `${infer A}:${string}` ? A : never
+    readonly resource: (typeof Permissions)[K] extends `${string}:${infer R}` ? R : never
+  }
+}
+
+/**
+ * Type for a single structured permission object (union over all PERM values).
+ */
+export type Permission = (typeof PERM)[PermissionKey]
+
+/**
+ * Type guard preserved from the previous declaration for runtime checks
+ * at trust boundaries (e.g. parsing user-supplied meta).
  */
 export function isPermission(value: unknown): value is Permission {
   if (typeof value !== 'object' || value === null) return false

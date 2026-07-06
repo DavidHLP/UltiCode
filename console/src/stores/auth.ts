@@ -331,10 +331,13 @@ export const useAuthStore = defineStore("auth", () => {
    * @returns true if user has permission
    */
   function hasPermission(action: string, resource: string): boolean {
-    // Wildcard permission has access to everything
+    // 与 management/src/stores/auth.ts 对齐:
+    // 支持 `*:*`、`action:*`、`*:resource`、精确匹配四种通配。
+    // 之前缺少 `*:resource`,导致仅有「全部 resource」通配权限的用户被错误判负。
     if (permissions.value.has("*:*")) return true;
     if (permissions.value.has(`${action}:${resource}`)) return true;
     if (permissions.value.has(`${action}:*`)) return true;
+    if (permissions.value.has(`*:${resource}`)) return true;
     return false;
   }
 
@@ -347,6 +350,20 @@ export const useAuthStore = defineStore("auth", () => {
     const userRoleValue = user.value?.role?.toUpperCase();
     const requiredRole = role.toUpperCase();
     return userRoleValue === requiredRole;
+  }
+
+  /**
+   * Check if user has any of the provided roles.
+   * 与 management 端的 hasAnyRole 对齐 (架构评审 Candidate 3 次要发现)。
+   * @param roles - Roles to test; comparison is case-insensitive
+   * @returns true if user holds at least one of the roles
+   */
+  function hasAnyRole(roles: string[]): boolean {
+    const userRoleValue = user.value?.role?.toUpperCase();
+    if (!userRoleValue) {
+      return false;
+    }
+    return roles.some((r) => r.toUpperCase() === userRoleValue);
   }
 
   return {
@@ -376,5 +393,6 @@ export const useAuthStore = defineStore("auth", () => {
     loadPermissions,
     hasPermission,
     hasRole,
+    hasAnyRole,
   };
 });

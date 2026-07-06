@@ -6,6 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
+import com.ulticode.modules.permission.service.impl.PermissionServiceImpl;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -51,7 +52,7 @@ class PermissionServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        permissionService = new PermissionService(
+        permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate);
     }
 

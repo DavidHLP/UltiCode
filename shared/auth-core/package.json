@@ -9,6 +9,22 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./src/csrf": {
+      "import": "./src/csrf.ts",
+      "types": "./src/csrf.ts"
+    },
+    "./src/types": {
+      "import": "./src/types.ts",
+      "types": "./src/types.ts"
+    },
+    "./src/axiosCsrfInterceptor": {
+      "import": "./src/axiosCsrfInterceptor.ts",
+      "types": "./src/axiosCsrfInterceptor.ts"
+    },
+    "./src/refreshCoordinator": {
+      "import": "./src/refreshCoordinator.ts",
+      "types": "./src/refreshCoordinator.ts"
     }
   },
   "scripts": {

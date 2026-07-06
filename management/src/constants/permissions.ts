@@ -16,10 +16,7 @@
  *   PERM.USER_READ.resource // 'USER'
  */
 
-import {
-  Permissions,
-  type PermissionKey,
-} from '@/shared/auth-core/src/permission'
+import { Permissions, type PermissionKey } from '@/shared/auth-core/src/permission'
 
 /**
  * Split a canonical `'ACTION:RESOURCE'` string into the structured form.
@@ -61,9 +58,7 @@ const PERM_ENTRIES = Object.entries(Permissions).map(([key, value]) => {
  * Each entry mirrors the previous hand-written `{ action: 'X' as const, resource: 'Y' as const }`
  * shape so consumers (router meta, composables, views) need no changes.
  */
-export const PERM = Object.fromEntries(
-  PERM_ENTRIES,
-) as {
+export const PERM = Object.fromEntries(PERM_ENTRIES) as {
   [K in PermissionKey]: {
     readonly action: (typeof Permissions)[K] extends `${infer A}:${string}` ? A : never
     readonly resource: (typeof Permissions)[K] extends `${string}:${infer R}` ? R : never

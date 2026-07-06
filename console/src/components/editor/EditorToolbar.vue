@@ -31,7 +31,7 @@ import {
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal.vue";
 import CodeTemplatesModal from "./CodeTemplatesModal.vue";
 import AccessibilitySettings from "./AccessibilitySettings.vue";
-import type { CodeTemplate } from "@/composables/useCodeTemplates";
+import type { CodeTemplate } from "@/constants/codeTemplates";
 
 const { t } = useI18n();
 

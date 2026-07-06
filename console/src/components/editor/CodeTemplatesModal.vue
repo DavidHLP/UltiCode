@@ -11,9 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  useCodeTemplates,
+  getTemplatesForLanguage,
+  getTemplateCategories,
   type CodeTemplate,
-} from "@/composables/useCodeTemplates";
+} from "@/constants/codeTemplates";
 import { FileCode, Plus } from "lucide-vue-next";
 
 const { t } = useI18n();
@@ -28,8 +29,6 @@ const emit = defineEmits<{
   (e: "insert", template: CodeTemplate): void;
 }>();
 
-const { getTemplatesForLanguage, categories } = useCodeTemplates();
-
 const isOpen = computed({
   get: () => props.open,
   set: (value) => emit("update:open", value),
@@ -39,6 +38,8 @@ const selectedTemplate = ref<CodeTemplate | null>(null);
 const searchQuery = ref("");
 
 const templates = computed(() => getTemplatesForLanguage(props.language));
+
+const categories = getTemplateCategories();
 
 const filteredTemplates = computed(() => {
   if (!searchQuery.value) return templates.value;
@@ -64,7 +65,7 @@ const groupedTemplates = computed(() => {
 
   return Object.entries(groups).map(([category, items]) => ({
     category,
-    label: categories.value.find((c) => c.id === category)?.label ?? category,
+    label: categories.find((c) => c.id === category)?.label ?? category,
     items,
   }));
 });

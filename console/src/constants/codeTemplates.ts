@@ -1,4 +1,12 @@
-import { computed } from "vue";
+/**
+ * Code templates constants — static data and pure accessors.
+ *
+ * Extracted from the former `useCodeTemplates` composable, which wrapped
+ * immutable static data in pointless `computed()` calls. The data is
+ * module-scope and never changes; callers import functions directly.
+ *
+ * Architecture review candidate #4 — move static data out of composable.
+ */
 
 export type SupportedLanguage =
   | "javascript"
@@ -7,25 +15,34 @@ export type SupportedLanguage =
   | "java"
   | "cpp"
   | "go"
-  | "c";
+  | "c"
 
 export interface CodeTemplate {
-  id: string;
-  name: string;
-  description: string;
-  language: SupportedLanguage;
-  code: string;
-  category: "basic" | "algorithm" | "data-structure";
+  id: string
+  name: string
+  description: string
+  language: SupportedLanguage
+  code: string
+  category: "basic" | "algorithm" | "data-structure"
 }
 
 export interface TemplateCategory {
-  id: string;
-  label: string;
-  templates: CodeTemplate[];
+  id: string
+  label: string
+  templates: CodeTemplate[]
 }
 
-// Language-specific templates
-const TEMPLATES: CodeTemplate[] = [
+export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
+  "javascript",
+  "typescript",
+  "python",
+  "java",
+  "cpp",
+  "go",
+  "c",
+]
+
+export const CODE_TEMPLATES: CodeTemplate[] = [
   // JavaScript Templates
   {
     id: "js-main",
@@ -421,107 +438,71 @@ int main() {
 }
 `,
   },
-];
+]
 
-/**
- * Composable for managing code templates
- *
- * Features:
- * - Templates organized by language and category
- * - Template preview and insertion
- * - Search/filter templates
- */
-export function useCodeTemplates() {
-  const allTemplates = computed(() => TEMPLATES);
-
-  const getTemplatesByLanguage = (language: SupportedLanguage) => {
-    return computed(() => TEMPLATES.filter((t) => t.language === language))
-      .value;
-  };
-
-  const getTemplatesByCategory = (category: CodeTemplate["category"]) => {
-    return computed(() => TEMPLATES.filter((t) => t.category === category))
-      .value;
-  };
-
-  const getTemplateById = (id: string) => {
-    return TEMPLATES.find((t) => t.id === id);
-  };
-
-  const categories = computed<TemplateCategory[]>(() => [
+/** Group templates into labeled categories for UI rendering. */
+export function getTemplateCategories(): TemplateCategory[] {
+  return [
     {
       id: "basic",
       label: "Basic",
-      templates: TEMPLATES.filter((t) => t.category === "basic"),
+      templates: CODE_TEMPLATES.filter((t) => t.category === "basic"),
     },
     {
       id: "algorithm",
       label: "Algorithms",
-      templates: TEMPLATES.filter((t) => t.category === "algorithm"),
+      templates: CODE_TEMPLATES.filter((t) => t.category === "algorithm"),
     },
     {
       id: "data-structure",
       label: "Data Structures",
-      templates: TEMPLATES.filter((t) => t.category === "data-structure"),
+      templates: CODE_TEMPLATES.filter((t) => t.category === "data-structure"),
     },
-  ]);
+  ]
+}
 
-  const supportedLanguages: SupportedLanguage[] = [
-    "javascript",
-    "typescript",
-    "python",
-    "java",
-    "cpp",
-    "go",
-    "c",
-  ];
+export function getTemplatesByLanguage(
+  language: SupportedLanguage,
+): CodeTemplate[] {
+  return CODE_TEMPLATES.filter((t) => t.language === language)
+}
 
-  /**
-   * Map language codes from backend to template language
-   */
-  const normalizeLanguage = (lang: string): SupportedLanguage => {
-    const langMap: Record<string, SupportedLanguage> = {
-      js: "javascript",
-      ts: "typescript",
-      typescript: "typescript",
-      javascript: "javascript",
-      python: "python",
-      py: "python",
-      java: "java",
-      cpp: "cpp",
-      "c++": "cpp",
-      go: "go",
-      golang: "go",
-      c: "c",
-    };
+export function getTemplatesByCategory(
+  category: CodeTemplate["category"],
+): CodeTemplate[] {
+  return CODE_TEMPLATES.filter((t) => t.category === category)
+}
 
-    return langMap[lang.toLowerCase()] ?? "javascript";
-  };
+export function getTemplateById(id: string): CodeTemplate | undefined {
+  return CODE_TEMPLATES.find((t) => t.id === id)
+}
 
-  /**
-   * Get templates for a specific language (normalized)
-   */
-  const getTemplatesForLanguage = (lang: string) => {
-    const normalized = normalizeLanguage(lang);
-    return getTemplatesByLanguage(normalized);
-  };
+const LANG_MAP: Record<string, SupportedLanguage> = {
+  js: "javascript",
+  ts: "typescript",
+  typescript: "typescript",
+  javascript: "javascript",
+  python: "python",
+  py: "python",
+  java: "java",
+  cpp: "cpp",
+  "c++": "cpp",
+  go: "go",
+  golang: "go",
+  c: "c",
+}
 
-  /**
-   * Check if a language has templates available
-   */
-  const hasTemplatesForLanguage = (lang: string) => {
-    return getTemplatesForLanguage(lang).length > 0;
-  };
+/** Normalize a backend language code to a `SupportedLanguage`. */
+export function normalizeLanguage(lang: string): SupportedLanguage {
+  return LANG_MAP[lang.toLowerCase()] ?? "javascript"
+}
 
-  return {
-    allTemplates,
-    categories,
-    supportedLanguages,
-    getTemplatesByLanguage,
-    getTemplatesByCategory,
-    getTemplateById,
-    getTemplatesForLanguage,
-    hasTemplatesForLanguage,
-    normalizeLanguage,
-  };
+/** Get templates for a language code (normalized). */
+export function getTemplatesForLanguage(lang: string): CodeTemplate[] {
+  return getTemplatesByLanguage(normalizeLanguage(lang))
+}
+
+/** Check if any templates exist for a language code. */
+export function hasTemplatesForLanguage(lang: string): boolean {
+  return getTemplatesForLanguage(lang).length > 0
 }

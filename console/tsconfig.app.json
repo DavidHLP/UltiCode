@@ -7,7 +7,8 @@
     "../shared/auth-ui/src/**/*",
     "../shared/auth-ui/src/**/*.vue",
     "../shared/sidebar-menu/src/**/*",
-    "../shared/sidebar-menu/src/**/*.vue"
+    "../shared/sidebar-menu/src/**/*.vue",
+    "../shared/markdown-utils/src/**/*"
   ],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {

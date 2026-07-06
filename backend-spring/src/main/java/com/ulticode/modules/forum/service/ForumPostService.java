@@ -3,11 +3,25 @@ package com.ulticode.modules.forum.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.user.entity.User;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Write-side service for forum posts. Owns the transactional create / update /
+ * delete paths and the SQL + paging for the read paths.
+ *
+ * <p><b>Deepened.</b> All entity-to-VO projection rules and the batch-load
+ * helpers live behind {@code ForumReadProjection}; this service delegates to it
+ * for any VO it returns. The seam inversion keeps the projection rules with
+ * the data they describe.
+ *
+ * <p>Reads that return VOs ({@link #findAllPosts}, {@link #findMyPosts},
+ * {@link #findPostById}) are kept on this interface because callers
+ * (e.g. {@code ForumReadProjection}) cross this seam to reach the SQL; the
+ * projection then re-projects entities to VOs through its own rules. This is
+ * the same {@code ModerationProjection} / {@code ForumPostService} pattern
+ * used elsewhere — see ADR-0011.
+ */
 public interface ForumPostService {
 
     List<ForumPostVO> findAllPosts(String userId);
@@ -37,12 +51,4 @@ public interface ForumPostService {
     long countByCommunityId(String communityId);
 
     List<ForumPost> findByCommunityId(String communityId, int limit, int offset);
-
-    Map<String, User> batchLoadAuthors(List<ForumPost> posts);
-
-    ForumPostVO convertToPostVO(ForumPost post, String userId, User author);
-
-    ForumCommunityVO toCommunityVO(com.ulticode.modules.forum.entity.ForumCommunity community);
-
-    ForumTagVO toTagVO(com.ulticode.modules.forum.entity.ForumTag tag);
 }

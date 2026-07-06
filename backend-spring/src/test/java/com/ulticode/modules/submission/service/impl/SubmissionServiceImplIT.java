@@ -261,8 +261,9 @@ class SubmissionServiceImplIT {
                         submissionMapper, userMapper, problemMapper, objectMapper,
                         submissionProjection, performanceStats,
                         queueService, contestSubmissionPort,
-                        achievementTriggerService, notificationDispatchService,
-                        notificationDispatcher,
+                        achievementTriggerService,
+                        new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
+                                flags, notificationDispatcher, notificationDispatchService, problemMapper),
                         null, flags, null, null);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);

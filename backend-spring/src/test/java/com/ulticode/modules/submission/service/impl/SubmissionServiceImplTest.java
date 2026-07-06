@@ -92,7 +92,8 @@ class SubmissionServiceImplTest {
                         queueService,
                         contestSubmissionPort,
                         achievementTriggerService,
-                        notificationDispatchService, notificationDispatcher,
+                        new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
+                                flags, notificationDispatcher, notificationDispatchService, problemMapper),
                         null, flags, null, null);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);

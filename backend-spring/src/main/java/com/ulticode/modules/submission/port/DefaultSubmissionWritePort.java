@@ -4,13 +4,12 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.config.FeatureFlagsProperties;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
-import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -66,15 +65,14 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private final QueueService queueService;
     private final ContestSubmissionPort contestSubmissionPort;
     private final AchievementTriggerService achievementTriggerService;
-    private final NotificationDispatchService notificationDispatchService;
     /**
-     * ADR-004 M4c: typed intent dispatcher. Active when
-     * {@link FeatureFlagsProperties#isUseNotificationIntent()} is true.
-     * Injected here so the new path is wired; the legacy
-     * {@code NotificationDispatchService} stays injected for the rollback
-     * path.
+     * Deep module owning the post-verdict notification dispatch (the legacy +
+     * fenced paths that used to be 95% duplicated inside this port).
+     * Owns its own collaborators (notification dispatcher / dispatch service /
+     * problem mapper + flag check) so this port's constructor drops three
+     * notification collaborators.
      */
-    private final NotificationDispatcher notificationDispatcher;
+    private final JudgedNotificationDispatcher judgedNotificationDispatcher;
     /**
      * ADR-003 M3a outbox mapper. Null-safe in tests that do not exercise the
      * outbox path; production wiring is via constructor injection.
@@ -250,7 +248,8 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         // ADR-004 M4c: when useNotificationIntent flag is on, fan out via
         // the typed SubmissionCompletedIntent (InApp + Email + WebSocket,
         // failure-isolated). Otherwise the legacy path stays active.
-        dispatchJudgedNotificationLegacyPath(submission, status, runtime, memory);
+        // Both converge on JudgedNotificationDispatcher — single source of truth.
+        judgedNotificationDispatcher.dispatch(submission, status, runtime, memory);
 
         // P0-1: fire a SubmissionJudgedEvent so the contest scoring listener can
         // apply the verdict to contest_submissions + contest_participants aggregates.
@@ -478,109 +477,13 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             triggerAchievements(submission);
         }
 
-        // Notification
-        // ADR-004 M4c: route through the typed dispatcher when the flag is on.
+        // Notification — single seam: JudgedNotificationDispatcher. Both the
+        // legacy and fenced paths converge on it; values come from the
+        // canonical row re-read after the CAS landed.
         Integer runtimeVal = submission.getRuntime();
         Double memMb = submission.getMemory();
-        dispatchJudgedNotificationFencedPath(submission, status, runtimeVal, memMb);
-    }
-
-    /**
-     * Submission-result notification for the <em>unfenced</em> flag-off path.
-     * Values come from the verdict-write parameters (the row has just been
-     * written with them).
-     */
-    private void dispatchJudgedNotificationLegacyPath(Submission submission, String status,
-                                                     int runtime, Double memory) {
-        try {
-            if (featureFlags.isUseNotificationIntent()) {
-                Problem problem = problemMapper.selectById(submission.getProblemId());
-                com.ulticode.modules.submission.enums.SubmissionStatus statusEnum =
-                        com.ulticode.modules.submission.enums.SubmissionStatus.fromDbName(status);
-                long elapsedMs = Math.max(0L, (long) runtime);
-                long memBytes = memory == null ? 0L : (long) (memory * 1024 * 1024);
-                notificationDispatcher.dispatch(
-                        com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
-                                submission,
-                                statusEnum != null
-                                        ? statusEnum
-                                        : com.ulticode.modules.submission.enums.SubmissionStatus.SYSTEM_ERROR,
-                                problem != null ? problem.getTitle() : "",
-                                elapsedMs,
-                                memBytes,
-                                null,
-                                null));
-            } else {
-                notificationDispatchService.dispatch(
-                        submission.getUserId(),
-                        "SUBMISSION",
-                        "SYSTEM",
-                        "Submission judged: " + status,
-                        "",
-                        "/submissions/" + submission.getId(),
-                        java.util.Map.of(
-                                "submissionId", submission.getId(),
-                                "problemId", submission.getProblemId(),
-                                "problemTitle", problemMapper.selectById(submission.getProblemId()) != null
-                                        ? problemMapper.selectById(submission.getProblemId()).getTitle()
-                                        : "",
-                                "status", status,
-                                "isAccepted", "Accepted".equals(status)
-                        ),
-                        false);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to create submission notification for submission {}: {}",
-                    submission.getId(), e.getMessage());
-        }
-    }
-
-    /**
-     * Submission-result notification for the <em>fenced</em> path. Values
-     * come from the re-read entity (the canonical row after the CAS landed).
-     */
-    private void dispatchJudgedNotificationFencedPath(Submission submission, String status,
-                                                     Integer runtimeVal, Double memMb) {
-        try {
-            if (featureFlags.isUseNotificationIntent()) {
-                Problem problem = problemMapper.selectById(submission.getProblemId());
-                com.ulticode.modules.submission.enums.SubmissionStatus statusEnum =
-                        com.ulticode.modules.submission.enums.SubmissionStatus.fromDbName(status);
-                long elapsedMs = runtimeVal == null ? 0L : Math.max(0L, runtimeVal.longValue());
-                long memBytes = memMb == null ? 0L : (long) (memMb * 1024 * 1024);
-                notificationDispatcher.dispatch(
-                        com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
-                                submission,
-                                statusEnum != null
-                                        ? statusEnum
-                                        : com.ulticode.modules.submission.enums.SubmissionStatus.SYSTEM_ERROR,
-                                problem != null ? problem.getTitle() : "",
-                                elapsedMs,
-                                memBytes,
-                                null,
-                                null));
-            } else {
-                Problem problem = problemMapper.selectById(submission.getProblemId());
-                notificationDispatchService.dispatch(
-                        submission.getUserId(),
-                        "SUBMISSION",
-                        "SYSTEM",
-                        "Submission judged: " + status,
-                        "",
-                        "/submissions/" + submission.getId(),
-                        java.util.Map.of(
-                                "submissionId", submission.getId(),
-                                "problemId", submission.getProblemId(),
-                                "problemTitle", problem != null ? problem.getTitle() : "",
-                                "status", status,
-                                "isAccepted", "Accepted".equals(status)
-                        ),
-                        false);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to create submission notification for submission {}: {}",
-                    submission.getId(), e.getMessage());
-        }
+        long elapsed = runtimeVal == null ? 0L : runtimeVal.longValue();
+        judgedNotificationDispatcher.dispatch(submission, status, elapsed, memMb);
     }
 
     /**

@@ -10,10 +10,13 @@ import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
+import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.enums.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -23,6 +26,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -342,6 +346,27 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         history.setAcceptanceRate(totalSubmissions > 0 ? (double) totalAccepted / totalSubmissions : 0);
 
         return history;
+    }
+
+    @Override
+    public List<SubmissionStatusMeta> getStatusCatalog() {
+        return Arrays.stream(SubmissionStatus.values())
+                .map(s -> toStatusMeta(s, SubmissionStatusCatalog.forStatus(s)))
+                .toList();
+    }
+
+    private SubmissionStatusMeta toStatusMeta(SubmissionStatus status, SubmissionStatusCatalog.Entry entry) {
+        SubmissionStatusMeta meta = new SubmissionStatusMeta();
+        meta.setKey(status.getDisplayName());
+        meta.setCode(status.name());
+        meta.setLabel(status.getDisplayName());
+        meta.setDescription(entry.description());
+        meta.setSuggestion(entry.suggestion());
+        meta.setCategory(status.getCategory());
+        meta.setSeverity(entry.severity());
+        meta.setIsTerminal(status.isTerminal());
+        meta.setSortOrder(entry.sortOrder());
+        return meta;
     }
 
     /**

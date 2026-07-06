@@ -228,7 +228,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "200", description = "Statuses retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/statuses")
     public Result<List<SubmissionStatusMeta>> getSubmissionStatuses() {
-        List<SubmissionStatusMeta> statuses = submissionService.getStatuses();
+        List<SubmissionStatusMeta> statuses = submissionProjection.getStatusCatalog();
         return Result.success(statuses);
     }
 }

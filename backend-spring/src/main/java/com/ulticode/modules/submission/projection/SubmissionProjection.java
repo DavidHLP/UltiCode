@@ -5,6 +5,7 @@ import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
+import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -121,4 +122,21 @@ public interface SubmissionProjection {
      * @return the history DTO; never {@code null}
      */
     SubmissionHistoryDTO aggregateHistory(String userId);
+
+    /**
+     * Project the canonical status catalog for the public
+     * {@code /submissions/statuses} endpoint.
+     *
+     * <p>One {@link SubmissionStatusMeta} entry per {@link
+     * com.ulticode.modules.submission.enums.SubmissionStatus} value. The enum
+     * owns the durable contract (displayName, category, terminal, kind); the
+     * user-facing strings (description, suggestion) and the display sort order
+     * live in {@link com.ulticode.modules.submission.enums.SubmissionStatusCatalog}.
+     * Returns all 12 statuses (including transient {@code PENDING}/{@code JUDGING}
+     * and infrastructure {@code SANDBOX_ERROR}); callers that want only terminal
+     * verdicts can filter on {@code meta.isTerminal}.
+     *
+     * @return ordered list of status metadata; never {@code null}, never empty
+     */
+    List<SubmissionStatusMeta> getStatusCatalog();
 }

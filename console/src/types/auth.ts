@@ -1,87 +1,51 @@
 /**
- * Authentication types aligned with backend API
+ * Re-export seam — `User`, `LoginCredentials`, `LoginResponse`,
+ * `RegisterRequest`, `Permission` and friends are owned by
+ * `shared/auth-core/src/types.ts` as the single source of truth for both
+ * frontends (see ADR note at the top of that file).
  *
- * Backend reference:
- * - LoginDTO, RegisterDTO, LoginResponse, UserVO, UserWithCsrfVO
- * - in backend-spring/src/main/java/com/ulticode/modules/auth/
+ * Previously this file defined a parallel `User` shape with camelCase
+ * fields (`isActive`, `joinedAt`, …) that no caller actually read at
+ * runtime, and a parallel `LoginResponse`/`RegisterRequest` that drifted
+ * from management's identical shapes. Both apps now consume the same
+ * snake_case types from auth-core, removing the documented debt flagged in
+ * the file's previous header comment.
  *
- * NOTE: This file is console-specific. The User shape uses camelCase to
- * match how console wires the response into Pinia stores / Vue templates.
- * Management uses `shared/auth-core`'s snake_case User (see
- * `shared/auth-core/src/types.ts`); the two are intentionally NOT
- * unified in this refactor to avoid a wide blast radius. If a future
- * PR aligns them, deprecate this file in favor of shared re-exports.
+ * See `/tmp/architecture-review-1783341079.html` Card 3.
  */
+export type {
+  LoginCredentials,
+  RegisterRequest,
+  LoginResponse,
+  User,
+  Permission,
+  AuthStatus,
+} from '@/shared/auth-core/src/types'
 
 /**
- * User information (matches backend UserVO)
- */
-export interface User {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  bio?: string;
-  company?: string;
-  github?: string;
-  location?: string;
-  twitter?: string;
-  website?: string;
-  preferredLanguage?: string;
-  role: string;
-  isActive: boolean;
-  joinedAt: string; // ISO 8601 format from LocalDateTime
-  lastLoginAt?: string; // ISO 8601 format from LocalDateTime
-}
-
-/**
- * Login request (matches backend LoginDTO)
- */
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-/**
- * Registration request (matches backend RegisterDTO)
- */
-export interface RegisterRequest {
-  username: string;
-  password: string;
-  email?: string;
-  name?: string;
-}
-
-/**
- * Login/Registration response (matches backend LoginResponse)
- * Note: This is the inner data field from Result<LoginResponse>
- */
-export interface LoginResponse {
-  csrfToken: string;
-  user: User;
-}
-
-/**
- * /auth/me response (matches backend UserWithCsrfVO)
- * Note: This is the inner data field from Result<UserWithCsrfVO>
+ * `/auth/me` returns `{ user, csrfToken }` — re-exported locally so the
+ * `apiGet<UserWithCsrfResponse>` call site reads the same way it always has.
  */
 export interface UserWithCsrfResponse {
-  user: User;
-  csrfToken: string;
+  user: import('@/shared/auth-core/src/types').User
+  csrfToken: string
 }
 
 /**
- * Forgot password request
+ * Console-only DTOs (not part of auth-core because they are not shared
+ * with management) — kept here so callers that previously imported them
+ * from `@/types/auth` continue to work.
  */
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
 export interface ForgotPasswordRequest {
-  email: string;
+  email: string
 }
 
-/**
- * Reset password request
- */
 export interface ResetPasswordRequest {
-  token: string;
-  newPassword: string;
+  token: string
+  newPassword: string
 }

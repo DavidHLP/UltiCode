@@ -9,6 +9,7 @@ import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
+import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.admin.service.AdminProblemService;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
 import com.ulticode.modules.admin.service.AuditService;
@@ -42,8 +43,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final AdminProblemMapper mapper;
-    private final com.ulticode.modules.problem.service.ProblemService problemService;
-    private final com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+    private final AdminProblemPort problemPort;
     private final AuditService auditService;
 
     @Override
@@ -99,9 +99,9 @@ public class AdminProblemServiceImpl implements AdminProblemService {
             try {
                 Long id = Long.parseLong(idStr);
                 switch (request.getAction()) {
-                    case publish -> problemService.publishProblem(id);
-                    case unpublish -> problemService.unpublishProblem(id);
-                    case delete -> problemService.deleteProblem(id);
+                    case publish -> problemPort.publishProblem(id);
+                    case unpublish -> problemPort.unpublishProblem(id);
+                    case delete -> problemPort.deleteProblem(id);
                     case restore -> {
                         int restored = problemMapper.restoreDeletedByIds(List.of(id));
                         if (restored > 0) {
@@ -139,7 +139,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         String reportedBy = SecurityUtil.getCurrentUserId();
         problemMapper.flagProblem(id, reason, reportedBy);
         problem = findProblemById(id);
-        return problemService.toVO(problem);
+        return problemPort.toVO(problem);
     }
 
     @Override
@@ -149,7 +149,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         String reviewedBy = SecurityUtil.getCurrentUserId();
         problemMapper.moderateProblem(id, status, notes, reviewedBy);
         problem = findProblemById(id);
-        return problemService.toVO(problem);
+        return problemPort.toVO(problem);
     }
 
     @Override
@@ -159,7 +159,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         long total = problemMapper.countFlaggedProblems(status);
 
         List<ProblemVO> voList = problems.stream()
-                .map(problemService::toVO)
+                .map(problemPort::toVO)
                 .collect(Collectors.toList());
 
         return PageResult.of(voList, total, page, limit);
@@ -186,17 +186,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Override
     public PageResult<Submission> getProblemSubmissions(Long id, int page, int limit) {
         findProblemById(id);
-        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Submission::getProblemId, id)
-                .orderByDesc(Submission::getCreatedAt);
-
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Submission> submissionPage =
-                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, limit);
-
-        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Submission> result =
-                submissionMapper.selectPage(submissionPage, wrapper);
-
-        return PageResult.of(result.getRecords(), result.getTotal(), page, limit);
+        return problemPort.findSubmissionsByProblemId(id, page, limit);
     }
 
     @Override
@@ -207,7 +197,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
 
         for (ImportProblemItemDTO item : request.getProblems()) {
             try {
-                Problem existing = problemService.findBySlug(item.getSlug()).orElse(null);
+                Problem existing = problemPort.findBySlug(item.getSlug()).orElse(null);
                 if (existing != null) {
                     switch (request.getOnConflict()) {
                         case "skip" -> {

@@ -3,6 +3,9 @@ package com.ulticode.modules.notification.intent;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
+
+import java.util.Map;
 
 /**
  * Intent emitted when a submission transitions to a terminal status.
@@ -38,6 +41,22 @@ public record SubmissionCompletedIntent(
     @Override
     public String intentId() {
         return "submission:" + submissionId + ":g" + generation;
+    }
+
+    @Override
+    public NotificationPayload toPushPayload() {
+        return NotificationPayload.of(
+                intentId(),
+                "SUBMISSION",
+                "Submission judged: " + status.wireValue(),
+                problemTitle == null ? "" : problemTitle,
+                Map.of(
+                        "submissionId", submissionId,
+                        "problemId", problemId == null ? "" : problemId,
+                        "status", status.wireValue(),
+                        "isAccepted", status == SubmissionStatus.ACCEPTED,
+                        "elapsedMs", elapsedMs,
+                        "memoryBytes", memoryBytes));
     }
 
     /**

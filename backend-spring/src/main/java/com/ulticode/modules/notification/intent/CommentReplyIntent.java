@@ -1,6 +1,9 @@
 package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
+
+import java.util.Map;
 
 /**
  * Intent emitted when a user receives a reply to one of their comments.
@@ -26,5 +29,17 @@ public record CommentReplyIntent(
     @Override
     public String intentId() {
         return "comment-reply:" + userId + ":" + commentId + ":" + replierUserId;
+    }
+
+    @Override
+    public NotificationPayload toPushPayload() {
+        return NotificationPayload.of(
+                intentId(),
+                "REPLY",
+                replierUsername + " replied to your comment",
+                preview == null ? "" : preview,
+                Map.of(
+                        "commentId", commentId,
+                        "replierUserId", replierUserId));
     }
 }

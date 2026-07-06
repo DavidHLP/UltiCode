@@ -1,6 +1,9 @@
 package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
+
+import java.util.Map;
 
 /**
  * Intent for security / system-critical alerts (e.g. password changed,
@@ -33,5 +36,15 @@ public record SystemAlertIntent(
     @Override
     public String intentId() {
         return "system-alert:" + userId + ":" + alertKey;
+    }
+
+    @Override
+    public NotificationPayload toPushPayload() {
+        return NotificationPayload.of(
+                intentId(),
+                "SYSTEM",
+                title,
+                body == null ? "" : body,
+                Map.of("alertKey", alertKey));
     }
 }

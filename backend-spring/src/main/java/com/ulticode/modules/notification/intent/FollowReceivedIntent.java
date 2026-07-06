@@ -2,6 +2,9 @@ package com.ulticode.modules.notification.intent;
 
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
+
+import java.util.Map;
 
 /**
  * Intent emitted when {@code currentUserId} follows {@code targetUserId}.
@@ -27,6 +30,18 @@ public record FollowReceivedIntent(
     @Override
     public String intentId() {
         return "follow:" + userId + ":" + followerUserId;
+    }
+
+    @Override
+    public NotificationPayload toPushPayload() {
+        return NotificationPayload.of(
+                intentId(),
+                "FOLLOW",
+                followerUsername + " followed you",
+                "",
+                Map.of(
+                        "followerUserId", followerUserId,
+                        "followerUsername", followerUsername));
     }
 
     /**

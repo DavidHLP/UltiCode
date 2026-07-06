@@ -3,8 +3,10 @@ package com.ulticode.modules.notification.intent;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.notification.entity.enums.NotificationCategory;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Intent for reminding a participant that a contest is starting soon.
@@ -34,6 +36,19 @@ public record ContestStartingIntent(
     @Override
     public String intentId() {
         return "contest:" + userId + ":" + contestId + ":" + reminderType;
+    }
+
+    @Override
+    public NotificationPayload toPushPayload() {
+        return NotificationPayload.of(
+                intentId(),
+                "CONTEST_REMINDER",
+                "Contest '" + contestTitle + "' starts in " + reminderType,
+                "",
+                Map.of(
+                        "contestId", contestId,
+                        "reminderType", reminderType,
+                        "startTime", startTime == null ? "" : startTime.toString()));
     }
 
     /**

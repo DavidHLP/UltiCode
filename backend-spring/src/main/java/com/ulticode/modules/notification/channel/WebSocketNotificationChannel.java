@@ -1,6 +1,7 @@
 package com.ulticode.modules.notification.channel;
 
 import com.ulticode.modules.achievement.port.BadgePushPort;
+import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.NotificationIntent;
 import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
@@ -26,11 +27,28 @@ import org.springframework.stereotype.Component;
  * self-contained except for the wire-format DTOs which are the shared
  * language.
  *
+ * <p><b>Visitor dispatch.</b> For all intents except
+ * {@link AchievementEarnedIntent} the channel delegates wire-format
+ * construction to {@link NotificationIntent#toPushPayload()} — the projection
+ * rules live with the data they describe (each intent subtype implements its
+ * own). The channel becomes a one-line dispatch:
+ *
+ * <pre>{@code
+ *   notificationPushPort.pushToUser(intent.userId(), intent.toPushPayload());
+ * }</pre>
+ *
+ * <p>{@link AchievementEarnedIntent} remains a special case because the
+ * frontend binds on the typed {@link BadgeEarnedPayload}, pushed via the
+ * achievement module's {@link BadgePushPort}. The two-channel split
+ * (typed achievement payload vs generic everything-else) is the one seam
+ * the visitor pattern does not flatten, and the right judgement call —
+ * the achievement payload is a genuinely different DTO consumed by a
+ * different frontend handler.
+ *
  * <p>Two payload shapes are used:
  * <ul>
- *   <li>{@link NotificationPayload} — generic envelope (used by 5 of 6
- *       intents). The {@code event} field is set per intent so the client
- *       can dispatch on it.</li>
+ *   <li>{@link NotificationPayload} — generic envelope; produced by
+ *       {@link NotificationIntent#toPushPayload()}.</li>
  *   <li>{@link BadgeEarnedPayload} — the existing typed achievement event
  *       consumed by the frontend; reused as-is for backward compatibility
  *       with {@code BadgeEarnedPayload.of(...)} consumers in
@@ -64,12 +82,15 @@ public class WebSocketNotificationChannel implements NotificationChannel {
 
     @Override
     public void send(NotificationIntent intent) {
-        if (intent instanceof com.ulticode.modules.notification.intent.AchievementEarnedIntent a) {
+        if (intent instanceof AchievementEarnedIntent a) {
             // Achievement intents push the typed BadgeEarnedPayload via the
             // achievement module's BadgePushPort. The notification module
-            // no longer reaches across to decide which typed DTO is right
-            // for which domain — the consumer of the domain owns the seam.
-            badgePushPort.pushBadgeEarned(intent.userId(),
+            // does not decide which typed DTO is right for which domain —
+            // the consumer of the domain owns the seam. The
+            // tierSlug helper lives here because BadgeEarnedPayload's
+            // expected slug enum is a websocket wire concern, not a
+            // notification domain concern.
+            badgePushPort.pushBadgeEarned(a.userId(),
                     BadgeEarnedPayload.of(
                             a.achievementKey(),
                             a.achievementName(),
@@ -77,63 +98,12 @@ public class WebSocketNotificationChannel implements NotificationChannel {
                             a.achievementIconUrl(),
                             tierSlug(a.achievementTier()),
                             a.userId()));
-        } else if (intent instanceof com.ulticode.modules.notification.intent.SubmissionCompletedIntent s) {
-            notificationPushPort.pushToUser(intent.userId(),
-                    NotificationPayload.of(
-                            s.intentId(),
-                            "SUBMISSION",
-                            "Submission judged: " + s.status().wireValue(),
-                            s.problemTitle() == null ? "" : s.problemTitle(),
-                            java.util.Map.of(
-                                    "submissionId", s.submissionId(),
-                                    "problemId", s.problemId() == null ? "" : s.problemId(),
-                                    "status", s.status().wireValue(),
-                                    "isAccepted", s.status()
-                                            == com.ulticode.modules.submission.enums.SubmissionStatus.ACCEPTED,
-                                    "elapsedMs", s.elapsedMs(),
-                                    "memoryBytes", s.memoryBytes())));
-        } else if (intent instanceof com.ulticode.modules.notification.intent.ContestStartingIntent c) {
-            notificationPushPort.pushToUser(intent.userId(),
-                    NotificationPayload.of(
-                            c.intentId(),
-                            "CONTEST_REMINDER",
-                            "Contest '" + c.contestTitle() + "' starts in " + c.reminderType(),
-                            "",
-                            java.util.Map.of(
-                                    "contestId", c.contestId(),
-                                    "reminderType", c.reminderType(),
-                                    "startTime", c.startTime() == null ? "" : c.startTime().toString())));
-        } else if (intent instanceof com.ulticode.modules.notification.intent.FollowReceivedIntent f) {
-            notificationPushPort.pushToUser(intent.userId(),
-                    NotificationPayload.of(
-                            f.intentId(),
-                            "FOLLOW",
-                            f.followerUsername() + " followed you",
-                            "",
-                            java.util.Map.of(
-                                    "followerUserId", f.followerUserId(),
-                                    "followerUsername", f.followerUsername())));
-        } else if (intent instanceof com.ulticode.modules.notification.intent.CommentReplyIntent r) {
-            notificationPushPort.pushToUser(intent.userId(),
-                    NotificationPayload.of(
-                            r.intentId(),
-                            "REPLY",
-                            r.replierUsername() + " replied to your comment",
-                            r.preview() == null ? "" : r.preview(),
-                            java.util.Map.of(
-                                    "commentId", r.commentId(),
-                                    "replierUserId", r.replierUserId())));
-        } else if (intent instanceof com.ulticode.modules.notification.intent.SystemAlertIntent sy) {
-            notificationPushPort.pushToUser(intent.userId(),
-                    NotificationPayload.of(
-                            sy.intentId(),
-                            "SYSTEM",
-                            sy.title(),
-                            sy.body() == null ? "" : sy.body(),
-                            java.util.Map.of("alertKey", sy.alertKey())));
-        } else {
-            throw new IllegalStateException("Unhandled intent: " + intent.getClass().getName());
+            return;
         }
+        // All other intents — visitor-style dispatch. The intent owns the
+        // projection; the channel just pushes.
+        NotificationPayload payload = intent.toPushPayload();
+        notificationPushPort.pushToUser(intent.userId(), payload);
     }
 
     /**

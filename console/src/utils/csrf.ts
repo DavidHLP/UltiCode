@@ -1,46 +1,40 @@
 /**
- * CSRF Token Management Utility
+ * Re-export seam — the typed CSRF token manager lives in
+ * `shared/auth-core/src/csrf.ts`. This file exists so console consumers can
+ * keep their existing `@/utils/csrf` import paths while the underlying
+ * implementation converges with management's identical import.
  *
- * This utility handles the storage and retrieval of CSRF tokens
- * returned by the backend after successful authentication.
+ * The previous bespoke console implementation added an extra `cookie`
+ * fallback inside `getToken()`; the canonical path stores the token in
+ * memory and refreshes it via `refreshFromResponse()` on every successful
+ * login / refresh response (see `console/src/stores/auth.ts` line 207).
+ * That is the same shape management uses, so a future change to CSRF token
+ * storage semantics (cookie path, refresh trigger) lands in auth-core and
+ * reaches both apps.
  *
- * CSRF tokens are stored in memory (not localStorage) to prevent
- * XSS attacks from stealing them. On page refresh, falls back to
- * reading from the csrf_token cookie set by the backend.
+ * See `/tmp/architecture-review-1783341079.html` Card 4.
  */
-
-let csrfToken: string | null = null;
-
-function readCsrfFromCookie(): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; csrf_token=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-}
+export {
+  createCsrfTokenManager,
+  type CsrfTokenManager,
+} from '@/shared/auth-core/src/csrf'
 
 /**
- * Retrieve the current CSRF token.
- * Falls back to reading from cookie (e.g. after page refresh).
- * @returns The CSRF token or null if not set
+ * Singleton CSRF manager instance — kept as a module-level constant so the
+ * existing `import { csrfManager } from '@/utils/csrf'` call sites in console
+ * keep working byte-for-byte. The instance comes from auth-core.
  */
+import { createCsrfTokenManager } from '@/shared/auth-core/src/csrf'
+export const csrfManager = createCsrfTokenManager()
+
 export function getCsrfToken(): string | null {
-  return csrfToken || readCsrfFromCookie();
+  return csrfManager.getToken()
 }
 
-/**
- * CSRF Manager object for compatibility with auth store
- */
-export const csrfManager = {
-  getToken: () => csrfToken || readCsrfFromCookie(),
-  setToken: (token: string) => {
-    csrfToken = token;
-  },
-  clearToken: () => {
-    csrfToken = null;
-  },
-  refreshFromResponse: (response: { csrfToken?: string }) => {
-    if (response.csrfToken) {
-      csrfToken = response.csrfToken;
-    }
-  },
-};
+export function setCsrfToken(token: string): void {
+  csrfManager.setToken(token)
+}
+
+export function clearCsrfToken(): void {
+  csrfManager.clearToken()
+}

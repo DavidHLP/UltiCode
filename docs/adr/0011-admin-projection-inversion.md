@@ -160,6 +160,28 @@ test/.../admin/projection/AdminSubmissionProjectionTest.java  (shape unit test)
 Three batches to keep reviewable: (a) Submission + User (highest debt),
 (b) Solution + Forum + Contest, (c) Comment + Tag + Notification.
 
+### Stage 2 template (reference: `DefaultProblemListProjection`)
+
+For every Stage 2 service the projection follows the same shape:
+
+1. **Interface** in `admin/projection/<Name>Projection.java` declares the
+   read-side methods that return typed `Admin*VO` shapes. Never returns
+   entities or `null`-bearing wrappers — same rule ADR-0007/0008 enforce
+   for ports.
+2. **`Default<Name>Projection`** is `@Component`, depends on the
+   mappers whose `selectBatchIds` / `selectById` / `selectPage` calls
+   it needs (admin's own + any cross-module mapper the read shape
+   needs), and concentrates every `entity → Admin*VO` projection rule.
+   Batch-loads cross-module enrichment via `selectBatchIds` like
+   `DefaultProblemListProjection` does — avoids the per-row N+1 the
+   inline `toAdminVO` blocks currently incur.
+3. **Service** keeps write paths only (rejudge, ban/lift, audit,
+   flag/unflag). Read endpoints delegate to the projection. Cross-module
+   entity imports leave the service — admin only depends on typed
+   views + their mappers inside the projection.
+4. **Controller** depends on the projection for reads, the service
+   for writes.
+
 ### Stage 3 — after Stage 2 lands
 
 `AdminAnalyticsProjection` + three read ports
@@ -167,6 +189,33 @@ Three batches to keep reviewable: (a) Submission + User (highest debt),
 `AdminSubscriptionStatsReadPort`). This is the multi-domain aggregator
 where both patterns apply at once — read ports for cross-module
 read shape, projection for the aggregation rules + VO shape.
+
+### 2026-07-06 architecture review updates
+
+In addition to the admin projection inversion work, the
+2026-07-06 review (`/tmp/architecture-review-1783341079.html`) surfaced
+six new candidates that landed in this commit range:
+
+- **Card 1 (security)** — `shared/markdown-utils/` package consolidates
+  console + management markdown plumbing and closes the management
+  XSS gap (sanitization now baked into `renderMarkdown`).
+- **Card 2 (leverage)** — `shared/http-client/` package replaces the
+  byte-for-byte duplicate `request.ts` (411 + 440 LoC) with a single
+  `createHttpClient(config)` factory.
+- **Card 3 (debt)** — `User` type unified to `shared/auth-core/src/types.ts`
+  as the single source of truth; both apps re-export.
+- **Card 4 (security-adjacent)** — console's bespoke CSRF manager
+  replaced with `createCsrfTokenManager()` from auth-core.
+- **Card 5 (correctness)** — `EdgeOperationsServiceImpl` no longer
+  re-queries `EdgeOperationMapper.countByTargetAndOperation` for vote
+  counts; uses the counts `VoteService.vote()` already produced.
+- **Card 6 (compliance)** — `common.audit.AuditPolicy` catalog answers
+  "what does the system audit / ban-check?" in one file; coverage test
+  fails CI when the catalog drifts from `@Audited` / `@CheckBan`
+  annotations.
+
+Stages 2/3 of this ADR remain next-commit deliverables following the
+template above.
 
 ## See also
 

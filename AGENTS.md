@@ -1,6 +1,6 @@
 # UltiCode Repository Guide
 
-Last updated: 2026-07-06
+Last updated: 2026-07-06 (architecture review sweep — Cards 1, 2, 3, 4, 5, 6 + ADR-0011 update)
 
 This file applies to the entire repository. A nested `AGENTS.md` takes precedence
 inside its directory. In particular, read `management/AGENTS.md` before changing
@@ -14,6 +14,15 @@ the management frontend.
 | `console/` | Vue 3 user application on port 9002 |
 | `management/` | Vue 3 administrator application on port 9003 |
 | `shared/auth-core/` | Shared cookie, CSRF, auth-state, and permission code |
+| `shared/auth-ui/` | Shared login / register / password-reset Vue components |
+| `shared/badge-config/` | Achievement badge configuration |
+| `shared/design-system/` | Design tokens and component primitives |
+| `shared/http-client/` | Shared axios factory + dedup/retry/401-handler seam |
+| `shared/markdown-utils/` | Shared MarkdownIt + DOMPurify (sanitization baked in) |
+| `shared/sandbox-types/` | OJ sandbox contract types (cross-language with `docker/sandbox/`) |
+| `shared/sidebar-menu/` | Shared sidebar / navigation components |
+| `shared/submission-status/` | Submission verdict ↔ color contract |
+| `shared/theme/` | Theme system: state / tokens / primitives / bootstrap |
 | `init-db/migrations/` | Canonical Flyway SQL migrations |
 | `docker/` | Database, Nacos, and judge initialization assets |
 | `docs/` | Architecture, operations, and security documentation |
@@ -28,6 +37,23 @@ controller -> service -> mapper (MyBatis-Plus) -> entity
 Prefer the existing module boundary under
 `backend-spring/src/main/java/com/ulticode/modules/`. Do not introduce a parallel
 architecture for a narrow change.
+
+### Shared-package deep-module pattern
+
+Shared packages under `shared/*` follow a "deep module" rule established by
+ADR-0004 / ADR-0005 / ADR-0011: each one owns a single seam (auth state, HTTP
+factory, markdown rendering, …) and is consumed via `@ulticode/<name>` or the
+`@/shared/<name>/src` path alias. New shared packages are auto-discovered by
+`pnpm-workspace.yaml`'s `shared/*` glob — drop the package in, add the glob is
+already there. `shared/auth-core` also exposes subpath exports
+(`@ulticode/auth-core/src/csrf`, `…/axiosCsrfInterceptor`, `…/refreshCoordinator`)
+so sibling shared packages can reach specific internals without re-exporting the
+full index.
+
+When the same logic was duplicated between `console/` and `management/` (Cards 1,
+2, 3, 4 of the 2026-07-06 architecture review), the chosen fix was always
+"extract a shared deep module, leave each app as a thin re-export seam". Prefer
+that shape over per-app adapters.
 
 ## Toolchain
 
@@ -144,6 +170,27 @@ pnpm type-check
 Console excludes the symlinked shared auth tests. Run the shared package commands
 whenever `shared/auth-core/` changes.
 
+### Other Shared Packages
+
+The same `pnpm test && pnpm type-check` pair applies to every package under
+`shared/*` — most recently `shared/markdown-utils` and `shared/http-client`.
+Run the corresponding commands whenever you touch one of them. Console and
+management both consume these via the `@/shared/<name>/src` path alias declared
+in each app's `tsconfig.app.json`; new shared packages must be added to that
+`include` array to be type-checked with the app.
+
+### Backend Deep Modules Worth Knowing
+
+- `com.ulticode.common.audit.AuditPolicy` — single source of truth for every
+  `@Audited` / `@CheckBan` annotation site across the backend. Backed by
+  `AuditPolicyCoverageTest` which scans the classpath and fails CI if the
+  catalog drifts from the actual annotations. Update the catalog when adding
+  new audited methods.
+- `com.ulticode.modules.<x>.projection.<X>Projection` — read-side deep
+  modules (mirror of `ModerationProjection` / `AchievementProjection`) that
+  own entity→VO shaping + cross-mapper enrichment. ADR-0011 lists which
+  admin services are scheduled to land one next.
+
 ### Migrations and Configuration
 
 ```bash
@@ -190,7 +237,9 @@ Use the `ulticode-db-migration` skill for schema work.
   `127.0.0.1`.
 - Nacos authentication stays enabled and the default `nacos/nacos` account stays
   disabled.
-- Keep Markdown/KaTeX output sanitized before `v-html`.
+- Keep Markdown/KaTeX output sanitized before `v-html`. Sanitization lives
+  in `shared/markdown-utils/`; use `renderMarkdown()` from there rather than
+  calling `markdown-it` directly or bypassing DOMPurify.
 
 Read `docs/SECURITY_REVIEW_2026-06-06.md` and
 `docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md` before changing authentication,
@@ -223,6 +272,10 @@ Use `ulticode-api-patterns` for API integration and
   `java-map-of-null-safety` guidance.
 - When adding constructor dependencies to Lombok services, update every Mockito
   `@InjectMocks` test with matching mocks.
+- Vote counts are owned by `com.ulticode.modules.vote.service.VoteService` and
+  returned via `VoteResultVO`. Persist denormalized counters on the target entity
+  using the values `voteService.vote()` already produced — do not re-query
+  `EdgeOperationMapper.countByTargetAndOperation` from a different service.
 
 ## Git and External Actions
 

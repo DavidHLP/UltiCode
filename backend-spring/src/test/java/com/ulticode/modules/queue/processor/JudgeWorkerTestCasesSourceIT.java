@@ -1,96 +1,69 @@
 package com.ulticode.modules.queue.processor;
 
-import com.ulticode.common.config.FeatureFlagsProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.config.JudgeSourceProperties;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.problem.entity.ProblemExample;
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
-import com.ulticode.modules.queue.config.QueueConfig;
-import com.ulticode.modules.queue.job.JudgeJob;
-import com.ulticode.modules.queue.port.JudgeQueue;
-import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;
+import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
+import com.ulticode.modules.queue.port.VerdictMetricsParser;
 import com.ulticode.modules.submission.dto.RunResultDTO;
-import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.CodeExecutionService;
-import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
-import com.ulticode.modules.queue.port.SubmissionResultPushPort;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * P0-1: confirms {@code JudgeWorkerProcessor} picks the right source based on
- * the {@code app.features.judge-source.use-test-cases} flag, and that the
+ * P0-1: confirms the pipeline picks the right source based on
+ * {@code app.features.judge-source.use-test-cases}, and that the
  * {@code test_cases} path actually stamps {@code caseId} + {@code caseScope}
- * onto the resulting {@code TestCaseDetail} list passed to
- * {@code updateSubmissionResult}.
+ * onto the resulting {@link Submission.TestCaseDetail} list.
  *
- * <p>Mockito unit (no Testcontainers): we capture the details written back
- * and assert scope metadata — the actual database query shape is exercised
- * in {@code TestCaseSoftDeleteFilterIT}.
+ * <p>The pipeline (now the SUT after the arch-review deepening) is the
+ * surface that owns source routing; the worker just consumes the
+ * {@link JudgeExecutionResult}. The test asserts that
+ * {@code flag=true} ⇒ SAMPLE / HIDDEN scopes are stamped, and {@code flag=false}
+ * ⇒ scopes stay null (legacy rollback path).
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("P0-1 JudgeWorker source routing")
+@DisplayName("P0-1 JudgeExecutionPipeline source routing")
 class JudgeWorkerTestCasesSourceIT {
 
-    @Mock private QueueService queueService;
-    @Mock private CodeExecutionService codeExecutionService;
-    @Mock private SubmissionService submissionService;
-    @Mock private SubmissionResultPushPort submissionResultPushPort;
-    @Mock private ContestSubmissionMapper contestSubmissionMapper;
-    @Mock private ProblemExampleMapper problemExampleMapper;
     @Mock private TestCaseMapper testCaseMapper;
-    @Mock private QueueConfig queueConfig;
-    @Mock private ObjectMapper objectMapper;
-    @Mock private VerdictResolver verdictResolver;
-    @Mock private SubmissionMapper submissionMapper;
-    @Mock private FeatureFlagsProperties featureFlags;
-    @Mock private MeterRegistry meterRegistry;
-    @Mock private ObjectProvider<JudgeQueue> judgeQueueProvider;
+    @Mock private ProblemExampleMapper problemExampleMapper;
+    @Mock private CodeExecutionService codeExecutionService;
 
-    private JudgeWorkerProcessor buildWorker(boolean useTestCases) {
-        JudgeSourceProperties props = new JudgeSourceProperties();
-        props.setUseTestCases(useTestCases);
-        return new JudgeWorkerProcessor(
-                queueService, codeExecutionService, submissionService, submissionResultPushPort,
-                contestSubmissionMapper, problemExampleMapper, testCaseMapper,
-                props, queueConfig, objectMapper, verdictResolver,
-                new com.ulticode.modules.queue.port.VerdictMetricsParser(),
-                submissionMapper, featureFlags, meterRegistry, judgeQueueProvider);
-    }
+    @Spy private JudgeSourceProperties judgeSourceProperties = new JudgeSourceProperties();
+    @Spy private ObjectMapper objectMapper = new ObjectMapper();
+    @Spy private VerdictResolver verdictResolver = new VerdictResolver();
+    @Spy private VerdictMetricsParser verdictMetricsParser = new VerdictMetricsParser();
 
-    private JudgeJob job(String problemId) {
-        JudgeJob j = new JudgeJob();
-        j.setSubmissionId("sub-" + problemId);
-        j.setProblemId(problemId);
-        j.setUserId("u-1");
-        j.setLanguage("java");
-        j.setCode("class Solution {}");
-        return j;
-    }
+    @InjectMocks
+    private DefaultJudgeExecutionPipeline pipeline;
 
     private TestCase tc(String id, boolean sample, boolean hidden, int order) {
         TestCase t = new TestCase();
         t.setId(id);
-        t.setProblemId(Long.parseLong("100"));
+        t.setProblemId(100L);
         t.setIsSample(sample);
         t.setIsHidden(hidden);
         t.setTestOrder(order);
@@ -112,10 +85,9 @@ class JudgeWorkerTestCasesSourceIT {
     }
 
     @Test
-    @DisplayName("flag=true: worker reads test_cases, writes caseId/caseScope per detail")
-    void flagTrueReadsTestCasesAndWritesScope() {
-        JudgeWorkerProcessor worker = buildWorker(true);
-        JudgeJob j = job("100");
+    @DisplayName("flag=true: pipeline reads test_cases, writes caseId/caseScope per detail")
+    void flagTrueReadsTestCasesAndWritesScope() throws Exception {
+        judgeSourceProperties.setUseTestCases(true);
 
         List<TestCase> cases = List.of(
                 tc("tc-s-1", true, false, 1),
@@ -126,20 +98,12 @@ class JudgeWorkerTestCasesSourceIT {
                 .cases(List.of(cr("tc-s-1", "Accepted"), cr("tc-h-1", "Accepted")))
                 .passedCases(2).totalCases(2).errorMessage(null)
                 .build();
-        when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("u-1")))
-                .thenReturn(result);
-        when(verdictResolver.reduceWire(anyList())).thenReturn(
-                com.ulticode.modules.submission.enums.SubmissionStatus.ACCEPTED);
+        when(codeExecutionService.execute(any(), eq(100L), eq("u-1"))).thenReturn(result);
 
-        when(featureFlags.isUseGenerationFence()).thenReturn(false);
-        worker.processJob(j);
+        JudgeExecutionResult executionResult =
+                pipeline.execute("java", "class Solution {}", 100L, "u-1", "sub-100");
 
-        ArgumentCaptor<List<Submission.TestCaseDetail>> detailsCaptor =
-                ArgumentCaptor.forClass(List.class);
-        verify(submissionService).updateSubmissionResult(eq("sub-100"), anyString(),
-                anyInt(), anyDouble(), detailsCaptor.capture());
-
-        List<Submission.TestCaseDetail> written = detailsCaptor.getValue();
+        List<Submission.TestCaseDetail> written = executionResult.testCaseDetails();
         assertThat(written).hasSize(2);
         Submission.TestCaseDetail sampleDetail = written.stream()
                 .filter(d -> "tc-s-1".equals(d.getCaseId())).findFirst().orElseThrow();
@@ -153,10 +117,9 @@ class JudgeWorkerTestCasesSourceIT {
     }
 
     @Test
-    @DisplayName("flag=false: worker reads problem_examples, caseScope stays null (legacy)")
-    void flagFalseReadsProblemExamplesAndLeavesScopeNull() {
-        JudgeWorkerProcessor worker = buildWorker(false);
-        JudgeJob j = job("100");
+    @DisplayName("flag=false: pipeline reads problem_examples, caseScope stays null (legacy)")
+    void flagFalseReadsProblemExamplesAndLeavesScopeNull() throws Exception {
+        judgeSourceProperties.setUseTestCases(false);
 
         ProblemExample ex = new ProblemExample();
         ex.setId("1");
@@ -170,22 +133,14 @@ class JudgeWorkerTestCasesSourceIT {
                 .cases(List.of(cr(null, "Accepted")))
                 .passedCases(1).totalCases(1).errorMessage(null)
                 .build();
-        when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("u-1")))
-                .thenReturn(result);
-        when(verdictResolver.reduceWire(anyList())).thenReturn(
-                com.ulticode.modules.submission.enums.SubmissionStatus.ACCEPTED);
+        when(codeExecutionService.execute(any(), eq(100L), eq("u-1"))).thenReturn(result);
 
-        when(featureFlags.isUseGenerationFence()).thenReturn(false);
-        worker.processJob(j);
-
-        ArgumentCaptor<List<Submission.TestCaseDetail>> detailsCaptor =
-                ArgumentCaptor.forClass(List.class);
-        verify(submissionService).updateSubmissionResult(eq("sub-100"), anyString(),
-                anyInt(), anyDouble(), detailsCaptor.capture());
+        JudgeExecutionResult executionResult =
+                pipeline.execute("java", "class Solution {}", 100L, "u-1", "sub-100");
 
         // Legacy path: no scope metadata. Projection layer will treat null as
         // legacy sample, so legacy rows stay user-visible.
-        List<Submission.TestCaseDetail> written = detailsCaptor.getValue();
+        List<Submission.TestCaseDetail> written = executionResult.testCaseDetails();
         assertThat(written).hasSize(1);
         assertThat(written.get(0).getCaseScope()).isNull();
         assertThat(written.get(0).getCaseId()).isNull();

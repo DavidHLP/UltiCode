@@ -3,18 +3,15 @@ package com.ulticode.modules.queue.processor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.ulticode.modules.problem.entity.ProblemExample;
-import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
 import com.ulticode.modules.queue.job.JudgeJob;
+import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
+import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
+import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.service.QueueService;
-import com.ulticode.modules.submission.dto.RunResultDTO;
-import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
-import com.ulticode.modules.submission.service.VerdictResolver;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +25,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
 
@@ -35,6 +33,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Worker-level tests after the arch-review deepening.
+ *
+ * <p>The execution path (load test cases → sandbox dispatch → verdict resolution
+ * → DTO building) now lives in {@link JudgeExecutionPipeline}. This test
+ * therefore mocks the pipeline rather than the individual execution
+ * collaborators; pipeline-internal coverage lives in
+ * {@code DefaultJudgeExecutionPipelineTest}.
+ *
+ * <p>Tests cover the worker contract only:
+ * <ul>
+ *   <li>Polling + dispatching the pipeline</li>
+ *   <li>Persisting results via {@link SubmissionService}</li>
+ *   <li>Pushing {@link SubmissionResultPayload} via the push port</li>
+ *   <li>The fenced path (lease acquire / renew / heartbeat)</li>
+ *   <li>Exception handling (pipeline exception → System Error)</li>
+ * </ul>
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("JudgeWorkerProcessor")
 class JudgeWorkerProcessorTest {
@@ -43,19 +59,24 @@ class JudgeWorkerProcessorTest {
     private QueueService queueService;
 
     @Mock
-    private CodeExecutionService codeExecutionService;
-
-    @Mock
     private SubmissionService submissionService;
 
     @Mock
     private SubmissionResultPushPort submissionResultPushPort;
 
     @Mock
-    private ProblemExampleMapper problemExampleMapper;
-
-    @Mock
     private ContestSubmissionMapper contestSubmissionMapper;
+
+    /**
+     * Arch-review deepening seam: the worker delegates all execution
+     * (test-case loading, sandbox dispatch, verdict resolution, DTO
+     * building) here. Pipeline-internal behaviour is covered by
+     * {@code DefaultJudgeExecutionPipelineTest}; this test stubs the
+     * pipeline's return value and asserts the worker correctly
+     * persists + pushes the result.
+     */
+    @Mock
+    private JudgeExecutionPipeline executionPipeline;
 
     @Mock
     private QueueConfig queueConfig;
@@ -85,56 +106,12 @@ class JudgeWorkerProcessorTest {
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     /**
-     * ObjectMapper used by {@code buildRunSubmissionDTO}. Real instance wrapped
-     * as a {@link Spy} so {@link InjectMocks} injects it via the constructor.
-     */
-    @Spy
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper =
-            new com.fasterxml.jackson.databind.ObjectMapper();
-
-    /**
-     * VerdictResolver is a pure function; use a real spy so the existing
-     * determineVerdict tests exercise the real reduction logic without
-     * needing per-test stubbing. {@link InjectMocks} picks up spies the
-     * same way it picks up mocks for constructor injection (see project
-     * rule mockito5-lombok-constructor-injection).
-     */
-    @Spy
-    private VerdictResolver verdictResolver = new VerdictResolver();
-
-    /**
-     * VerdictMetricsParser is a pure function extracted from the worker
-     * (Candidate 3 deepening); the worker delegates to it for
-     * {@code parseRuntimeMs} / {@code parseMemoryMb}. Real instance wrapped
-     * as a {@link Spy} so {@link InjectMocks} injects it via the constructor.
-     */
-    @Spy
-    private com.ulticode.modules.queue.port.VerdictMetricsParser verdictMetricsParser =
-            new com.ulticode.modules.queue.port.VerdictMetricsParser();
-
-    /**
-     * P0-1: judge source properties. These pre-P0-1 tests exercise the
-     * legacy {@code problem_examples} path (no flag concept existed), so we
-     * force {@code useTestCases=false} here to preserve byte-for-byte
-     * legacy behaviour. New P0-1 tests in {@code JudgeWorkerTestCasesSourceIT}
-     * / {@code JudgeWorkerFailClosedIT} cover the flag-on paths.
-     */
-    @Spy
-    private com.ulticode.common.config.JudgeSourceProperties judgeSourceProperties =
-            buildLegacyJudgeSource();
-
-    /**
-     * P0-1: TestCaseMapper mock — never invoked on the flag-off legacy path.
+     * ADR-003 M3c-3a: provider for the {@link JudgeQueue} port. M3a/M3b
+     * resolves to null; tests in this class don't exercise the port path,
+     * so we don't stub the provider to return anything.
      */
     @Mock
-    private com.ulticode.modules.problem.mapper.TestCaseMapper testCaseMapper;
-
-    private static com.ulticode.common.config.JudgeSourceProperties buildLegacyJudgeSource() {
-        com.ulticode.common.config.JudgeSourceProperties p =
-                new com.ulticode.common.config.JudgeSourceProperties();
-        p.setUseTestCases(false);
-        return p;
-    }
+    private ObjectProvider<JudgeQueue> judgeQueueProvider;
 
     @InjectMocks
     private JudgeWorkerProcessor processor;
@@ -170,26 +147,29 @@ class JudgeWorkerProcessorTest {
 
         @Test
         @DisplayName("does nothing when queue is empty")
-        void emptyQueue_doesNothing() {
+        void emptyQueue_doesNothing() throws Exception {
             when(queueService.pollJob("judge_queue")).thenReturn(null);
 
             processor.pollAndProcess();
 
             verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
                     anyInt(), any(), any());
+            verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
+                    anyString(), anyString());
         }
 
         @Test
-        @DisplayName("processes JudgeJob and decrements activeJobs")
-        void withJudgeJob_processesAndDecrementsActiveJobs() {
+        @DisplayName("processes JudgeJob: delegates to pipeline, persists, pushes")
+        void withJudgeJob_processesAndDecrementsActiveJobs() throws Exception {
             when(queueService.pollJob("judge_queue")).thenReturn(sampleJob);
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildProblemExamples(2));
-            when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
+            when(executionPipeline.execute(eq("javascript"), eq("console.log('hello');"),
+                    eq(100L), eq("user-1"), eq("sub-1")))
                     .thenReturn(buildAcceptedResult(2));
 
             processor.pollAndProcess();
 
+            verify(executionPipeline).execute(eq("javascript"), eq("console.log('hello');"),
+                    eq(100L), eq("user-1"), eq("sub-1"));
             verify(submissionService).updateSubmissionResult(eq("sub-1"), eq("Accepted"),
                     anyInt(), any(), any());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
@@ -198,12 +178,14 @@ class JudgeWorkerProcessorTest {
 
         @Test
         @DisplayName("returns early when max concurrent jobs reached")
-        void maxConcurrentJobs_returnsEarly() {
+        void maxConcurrentJobs_returnsEarly() throws Exception {
             when(queueConfig.getMaxConcurrentJobs()).thenReturn(0);
 
             processor.pollAndProcess();
 
             verify(queueService, never()).pollJob(anyString());
+            verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
+                    anyString(), anyString());
         }
 
         @Test
@@ -223,26 +205,29 @@ class JudgeWorkerProcessorTest {
     class ProcessJob {
 
         @Test
-        @DisplayName("sets status to Judging, executes, writes verdict")
-        void setsJudgingThenWritesVerdict() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildProblemExamples(1));
-            when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
+        @DisplayName("sets status to Judging, calls pipeline, writes verdict")
+        void setsJudgingThenWritesVerdict() throws Exception {
+            when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
+                    eq("sub-1")))
                     .thenReturn(buildAcceptedResult(1));
 
             processor.processJob(sampleJob);
 
-            var statusOrder = inOrder(submissionService);
+            var statusOrder = inOrder(executionPipeline, submissionService);
             statusOrder.verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("Judging"), eq(0), isNull(), isNull());
+            statusOrder.verify(executionPipeline).execute(eq("javascript"),
+                    eq("console.log('hello');"), eq(100L), eq("user-1"), eq("sub-1"));
             statusOrder.verify(submissionService).updateSubmissionResult(
                     eq("sub-1"), eq("Accepted"), anyInt(), any(), any());
         }
 
         @Test
-        @DisplayName("null test cases marks as System Error")
-        void nullTestCases_marksSystemError() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(null);
+        @DisplayName("pipeline returns null → marks as System Error (no test cases)")
+        void pipelineReturnsNull_marksSystemError() throws Exception {
+            when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
+                    anyString()))
+                    .thenReturn(null);
 
             processor.processJob(sampleJob);
 
@@ -253,22 +238,10 @@ class JudgeWorkerProcessorTest {
         }
 
         @Test
-        @DisplayName("empty test cases marks as System Error")
-        void emptyTestCases_marksSystemError() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(List.of());
-
-            processor.processJob(sampleJob);
-
-            verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
-        }
-
-        @Test
         @DisplayName("pushes WebSocket result after writing verdict")
-        void pushesWebSocketAfterVerdict() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildProblemExamples(1));
-            when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
+        void pushesWebSocketAfterVerdict() throws Exception {
+            when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
+                    anyString()))
                     .thenReturn(buildWrongAnswerResult(1));
 
             processor.processJob(sampleJob);
@@ -281,10 +254,9 @@ class JudgeWorkerProcessorTest {
 
         @Test
         @DisplayName("contest lookup failure does not overwrite successful verdict")
-        void contestLookupFailure_keepsVerdict() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(buildProblemExamples(1));
-            when(codeExecutionService.execute(any(RunSubmissionDTO.class), eq(100L), eq("user-1")))
+        void contestLookupFailure_keepsVerdict() throws Exception {
+            when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
+                    anyString()))
                     .thenReturn(buildAcceptedResult(1));
             when(contestSubmissionMapper.selectOne(any()))
                     .thenThrow(new RuntimeException("contest schema mismatch"));
@@ -300,10 +272,11 @@ class JudgeWorkerProcessorTest {
         }
 
         @Test
-        @DisplayName("load failure marks submission as System Error instead of leaving Judging")
-        void testCaseLoadFailure_marksSystemError() {
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenThrow(new RuntimeException("problem_examples unavailable"));
+        @DisplayName("pipeline exception marks submission as System Error instead of leaving Judging")
+        void pipelineException_marksSystemError() throws Exception {
+            when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
+                    anyString()))
+                    .thenThrow(new RuntimeException("sandbox down"));
 
             processor.processJob(sampleJob);
 
@@ -317,78 +290,149 @@ class JudgeWorkerProcessorTest {
         }
     }
 
-    // === determineVerdict ===
+    // === processJobFenced ===
 
     @Nested
-    @DisplayName("determineVerdict")
-    class DetermineVerdict {
+    @DisplayName("processJobFenced (fenced path: lease acquire / renew / heartbeat)")
+    class ProcessJobFenced {
 
         @Test
-        @DisplayName("returns Runtime Error when any case has RE (highest priority)")
-        void runtimeError_hasHighestPriority() {
-            var cases = List.of(
-                    buildCaseResult("Accepted", "50ms", "4.0MB"),
-                    buildCaseResult("Runtime Error", "100ms", "8.0MB"),
-                    buildCaseResult("Accepted", "30ms", "3.0MB")
-            );
+        @DisplayName("happy path: acquires lease, executes pipeline, writes verdict via fenced CAS")
+        void fencedHappyPath_acquireExecuteWrite() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            Submission current = new Submission();
+            current.setId("sub-1");
+            current.setGeneration(1L);
+            when(submissionMapper.selectById("sub-1")).thenReturn(current);
+            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(1);
+            when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
+                    eq("sub-1")))
+                    .thenReturn(buildAcceptedResult(1));
+            when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
+                    eq("Accepted"), anyInt(), anyDouble(), any()))
+                    .thenReturn(true);
 
-            String verdict = processor.determineVerdict(cases);
+            processor.processJob(sampleJob);
 
-            assertThat(verdict).isEqualTo("Runtime Error");
+            verify(submissionMapper).acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong());
+            verify(executionPipeline).execute(eq("javascript"), eq("console.log('hello');"),
+                    eq(100L), eq("user-1"), eq("sub-1"));
+            verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
+                    eq("Accepted"), anyInt(), anyDouble(), any());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
         }
 
         @Test
-        @DisplayName("returns Accepted when all cases pass")
-        void allAccepted_returnsAccepted() {
-            var cases = List.of(
-                    buildCaseResult("Accepted", "50ms", "4.0MB"),
-                    buildCaseResult("Accepted", "30ms", "3.0MB")
-            );
+        @DisplayName("submission not found → silently abandons (no pipeline call, no write)")
+        void fencedSubmissionNotFound_abandons() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            when(submissionMapper.selectById("sub-1")).thenReturn(null);
 
-            String verdict = processor.determineVerdict(cases);
+            processor.processJob(sampleJob);
 
-            assertThat(verdict).isEqualTo("Accepted");
+            verify(submissionMapper, never()).acquireLease(anyString(), anyString(), anyLong(),
+                    anyLong());
+            verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
+                    anyString(), anyString());
+            verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
+                    anyInt(), any(), any());
         }
 
         @Test
-        @DisplayName("returns Wrong Answer when any case fails with WA")
-        void wrongAnswer_whenPresent() {
-            var cases = List.of(
-                    buildCaseResult("Accepted", "50ms", "4.0MB"),
-                    buildCaseResult("Wrong Answer", "30ms", "3.0MB")
-            );
+        @DisplayName("lease not acquired (affected=0) → silently abandons (no pipeline call)")
+        void fencedLeaseLost_abandons() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            Submission current = new Submission();
+            current.setId("sub-1");
+            current.setGeneration(1L);
+            when(submissionMapper.selectById("sub-1")).thenReturn(current);
+            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(0);
 
-            String verdict = processor.determineVerdict(cases);
+            processor.processJob(sampleJob);
 
-            assertThat(verdict).isEqualTo("Wrong Answer");
+            verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
+                    anyString(), anyString());
+            verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
+                    anyInt(), any(), any());
+            verify(submissionResultPushPort, never()).emitSubmissionResult(anyString(), any());
         }
 
         @Test
-        @DisplayName("returns TLE when any case times out")
-        void timeLimitExceeded_whenPresent() {
-            var cases = List.of(
-                    buildCaseResult("Accepted", "50ms", "4.0MB"),
-                    buildCaseResult("Time Limit Exceeded", "2000ms", "4.0MB")
-            );
+        @DisplayName("pipeline returns null on fenced path → writes System Error via fenced CAS")
+        void fencedPipelineReturnsNull_writesSystemError() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            Submission current = new Submission();
+            current.setId("sub-1");
+            current.setGeneration(1L);
+            when(submissionMapper.selectById("sub-1")).thenReturn(current);
+            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(1);
+            when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
+                    eq("sub-1")))
+                    .thenReturn(null);
+            when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
+                    eq("System Error"), eq(0), eq(0.0), isNull()))
+                    .thenReturn(true);
 
-            String verdict = processor.determineVerdict(cases);
+            processor.processJob(sampleJob);
 
-            assertThat(verdict).isEqualTo("Time Limit Exceeded");
+            verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
+                    anyString(), eq("System Error"), eq(0), eq(0.0), isNull());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
 
         @Test
-        @DisplayName("priority order: RE > MLE > TLE > WA > PE > Accepted")
-        void fullPriorityOrder() {
-            var cases = List.of(
-                    buildCaseResult("Accepted", "10ms", "1.0MB"),
-                    buildCaseResult("Presentation Error", "10ms", "1.0MB"),
-                    buildCaseResult("Wrong Answer", "10ms", "1.0MB"),
-                    buildCaseResult("Time Limit Exceeded", "2000ms", "1.0MB"),
-                    buildCaseResult("Memory Limit Exceeded", "10ms", "256.0MB"),
-                    buildCaseResult("Runtime Error", "10ms", "1.0MB")
-            );
+        @DisplayName("fenced write rejected (fence CAS mismatch) → drops result, no push")
+        void fencedWriteRejected_dropsResult() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            Submission current = new Submission();
+            current.setId("sub-1");
+            current.setGeneration(1L);
+            when(submissionMapper.selectById("sub-1")).thenReturn(current);
+            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(1);
+            when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
+                    eq("sub-1")))
+                    .thenReturn(buildAcceptedResult(1));
+            // Simulate fence CAS rejecting the write (gen was bumped during judging)
+            when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
+                    eq("Accepted"), anyInt(), anyDouble(), any()))
+                    .thenReturn(false);
 
-            assertThat(processor.determineVerdict(cases)).isEqualTo("Runtime Error");
+            processor.processJob(sampleJob);
+
+            verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
+                    anyString(), eq("Accepted"), anyInt(), anyDouble(), any());
+            verify(submissionResultPushPort, never()).emitSubmissionResult(anyString(), any());
+        }
+
+        @Test
+        @DisplayName("pipeline throws on fenced path → fenced System Error write attempted")
+        void fencedPipelineException_writesSystemError() throws Exception {
+            when(featureFlags.isUseGenerationFence()).thenReturn(true);
+            Submission current = new Submission();
+            current.setId("sub-1");
+            current.setGeneration(1L);
+            when(submissionMapper.selectById("sub-1")).thenReturn(current);
+            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(1);
+            when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
+                    eq("sub-1")))
+                    .thenThrow(new RuntimeException("sandbox crash"));
+            when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
+                    eq("System Error"), eq(0), eq(0.0), isNull()))
+                    .thenReturn(true);
+
+            processor.processJob(sampleJob);
+
+            verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
+                    anyString(), eq("System Error"), eq(0), eq(0.0), isNull());
+            verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
+            assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
     }
 
@@ -469,114 +513,45 @@ class JudgeWorkerProcessorTest {
         }
     }
 
-    // === parseMemoryMb ===
+    // === process (JobProcessor interface) ===
 
-    @Nested
-    @DisplayName("parseMemoryMb")
-    class ParseMemoryMb {
+    @Test
+    @DisplayName("process returns COMPLETED JobStatusDTO after processJob")
+    void process_returnsCompletedStatus() throws Exception {
+        JobStatusDTO status = processor.process(sampleJob);
 
-        @Test
-        @DisplayName("parses standard MB format")
-        void standardFormat() {
-            assertThat(processor.parseMemoryMb("4.2MB")).isEqualTo(4.2);
-        }
-
-        @Test
-        @DisplayName("handles zero")
-        void zeroValue() {
-            assertThat(processor.parseMemoryMb("0.0MB")).isEqualTo(0.0);
-        }
-
-        @Test
-        @DisplayName("returns 0.0 for null input")
-        void nullInput() {
-            assertThat(processor.parseMemoryMb(null)).isEqualTo(0.0);
-        }
-
-        @Test
-        @DisplayName("returns 0.0 for malformed input")
-        void malformedInput() {
-            assertThat(processor.parseMemoryMb("invalid")).isEqualTo(0.0);
-        }
-    }
-
-    // === parseRuntimeMs ===
-
-    @Nested
-    @DisplayName("parseRuntimeMs")
-    class ParseRuntimeMs {
-
-        @Test
-        @DisplayName("parses standard ms format")
-        void standardFormat() {
-            assertThat(processor.parseRuntimeMs("123ms")).isEqualTo(123L);
-        }
-
-        @Test
-        @DisplayName("returns 0 for null input")
-        void nullInput() {
-            assertThat(processor.parseRuntimeMs(null)).isEqualTo(0L);
-        }
-
-        @Test
-        @DisplayName("returns 0 for malformed input")
-        void malformedInput() {
-            assertThat(processor.parseRuntimeMs("invalid")).isEqualTo(0L);
-        }
+        assertThat(status.getJobType()).isEqualTo("judge_queue");
+        assertThat(status.getStatus().name()).isEqualTo("COMPLETED");
     }
 
     // === Helper methods ===
 
-    private List<ProblemExample> buildProblemExamples(int count) {
-        java.util.ArrayList<ProblemExample> cases = new java.util.ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            ProblemExample tc = new ProblemExample();
-            tc.setId(String.valueOf(1000 + i));
-            tc.setProblemId(100L);
-            tc.setExampleOrder(i + 1);
-            tc.setInputText(String.valueOf(i));
-            tc.setOutputText(String.valueOf(i));
-            cases.add(tc);
-        }
-        return cases;
-    }
-
-    private RunResultDTO buildAcceptedResult(int caseCount) {
-        var caseResults = new java.util.ArrayList<RunResultDTO.RunCaseResult>();
+    private JudgeExecutionResult buildAcceptedResult(int caseCount) {
+        var details = new java.util.ArrayList<Submission.TestCaseDetail>();
         for (int i = 0; i < caseCount; i++) {
-            caseResults.add(buildCaseResult("Accepted", (50 + i * 10) + "ms", (4.0 + i) + "MB"));
+            Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
+            detail.setStatus("Accepted");
+            detail.setTime(50 + i * 10);
+            detail.setMemory(4.0 + i);
+            details.add(detail);
         }
-        return RunResultDTO.builder()
-                .verdict("Accepted")
-                .runtime((50 + (caseCount - 1) * 10) + "ms")
-                .memory((4.0 + (caseCount - 1)) + "MB")
-                .cases(caseResults)
-                .passedCases(caseCount)
-                .totalCases(caseCount)
-                .build();
+        return new JudgeExecutionResult(
+                "Accepted",
+                50 + (caseCount - 1) * 10,
+                4.0 + (caseCount - 1),
+                details);
     }
 
-    private RunResultDTO buildWrongAnswerResult(int caseCount) {
-        var caseResults = new java.util.ArrayList<RunResultDTO.RunCaseResult>();
+    private JudgeExecutionResult buildWrongAnswerResult(int caseCount) {
+        var details = new java.util.ArrayList<Submission.TestCaseDetail>();
         for (int i = 0; i < caseCount; i++) {
             String status = (i == caseCount - 1) ? "Wrong Answer" : "Accepted";
-            caseResults.add(buildCaseResult(status, "50ms", "4.0MB"));
+            Submission.TestCaseDetail detail = new Submission.TestCaseDetail();
+            detail.setStatus(status);
+            detail.setTime(50);
+            detail.setMemory(4.0);
+            details.add(detail);
         }
-        return RunResultDTO.builder()
-                .verdict("Wrong Answer")
-                .runtime("50ms")
-                .memory("4.0MB")
-                .cases(caseResults)
-                .passedCases(caseCount - 1)
-                .totalCases(caseCount)
-                .build();
-    }
-
-    private RunResultDTO.RunCaseResult buildCaseResult(String status, String runtime, String memory) {
-        return RunResultDTO.RunCaseResult.builder()
-                .status(status)
-                .runtime(runtime)
-                .memory(memory)
-                .build();
+        return new JudgeExecutionResult("Wrong Answer", 50, 4.0, details);
     }
 }

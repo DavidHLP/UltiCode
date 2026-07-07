@@ -44,12 +44,6 @@ describe('createHttpClient', () => {
     expect(typeof client.apiDownload).toBe('function')
   })
 
-  it('exposes the underlying axios instance', () => {
-    const client = makeClient()
-    expect(client.axiosInstance).toBeDefined()
-    expect(typeof client.axiosInstance.get).toBe('function')
-  })
-
   it('createAbortController returns a usable AbortController', () => {
     const client = makeClient()
     const ac = client.createAbortController()
@@ -72,9 +66,8 @@ describe('ApiResponse unwrap', () => {
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     const result = await client.apiGet<{ id: string }>('/users/me')
     expect(result).toEqual({ id: 'u-1' })
@@ -93,9 +86,8 @@ describe('ApiResponse unwrap', () => {
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await expect(client.apiGet('/users/me')).rejects.toMatchObject({
       name: 'ApiError',
@@ -114,9 +106,8 @@ describe('Auth failure strategy', () => {
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
       onAuthFailure: { kind: 'clear-and-run', onAuthFailure },
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await client.apiGet('/admin/foo').catch(() => {})
     expect(onAuthFailure).toHaveBeenCalled()
@@ -131,9 +122,8 @@ describe('Auth failure strategy', () => {
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
       onAuthFailure: { kind: 'redirect-login', onAuthFailure: redirect },
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await client.apiGet('/admin/foo').catch(() => {})
     expect(redirect).not.toHaveBeenCalled()
@@ -148,9 +138,8 @@ describe('Auth failure strategy', () => {
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
       onAuthFailure: { kind: 'redirect-login', onAuthFailure: redirect },
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await client.apiGet('/admin/foo').catch(() => {})
     expect(redirect).toHaveBeenCalledWith('/login')
@@ -173,9 +162,8 @@ describe('Dedup policy', () => {
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'all-non-auth',
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     const p1 = client.apiGet('/foo').catch(() => {})
     const p2 = client.apiGet('/foo').catch(() => {})
@@ -207,9 +195,8 @@ describe('Dedup policy', () => {
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'non-auth-readonly',
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await Promise.all([
       client.apiPatch('/foo/1', {}).catch(() => {}),
@@ -227,9 +214,8 @@ describe('Retry / backoff', () => {
       baseURL: 'http://test.local',
       getLocale: () => 'en-US',
       dedupPolicy: 'none',
+      __testAdapter: adapter,
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(client.axiosInstance.defaults as any).adapter = adapter
 
     await client.apiGet('/foo', { retry: 0 }).catch(() => {})
     expect(adapter).toHaveBeenCalledTimes(1)

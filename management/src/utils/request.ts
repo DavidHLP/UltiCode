@@ -51,7 +51,6 @@ export const {
   apiUpload,
   apiDownload,
   createAbortController,
-  axiosInstance,
 } = createHttpClient({
   csrfManager,
   getLocale: () => {
@@ -66,4 +65,3 @@ export const {
 
 export type { ApiResponse, RequestConfig }
 export { ApiError } from '@/shared/http-client/src'
-export default axiosInstance

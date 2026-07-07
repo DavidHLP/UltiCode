@@ -23,6 +23,7 @@
  * <p>See `/tmp/architecture-review-1783341079.html` Card 2.
  */
 import axios, {
+  type AxiosAdapter,
   type AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
@@ -152,6 +153,15 @@ export interface HttpClientConfig {
   dedupPolicy?: DedupPolicy
   /** Translation key / message used when a request is canceled. Default: `'Request canceled'`. */
   canceledMessage?: string
+  /**
+   * Test-only axios adapter injection — wires a mock adapter into the
+   * underlying axios instance before any interceptors fire, so tests can
+   * exercise the wrapper (dedup, retry, CSRF, 401 handling) without
+   * network or MSW. Replaces the previous `client.axiosInstance.defaults.adapter`
+   * escape hatch that exposed the raw axios instance through the public
+   * interface. Production code MUST NOT set this.
+   */
+  __testAdapter?: AxiosAdapter
 }
 
 // ---------------------------------------------------------------------------
@@ -197,8 +207,6 @@ function shouldDeduplicate(config: InternalAxiosRequestConfig, policy: DedupPoli
 
 /** Public HTTP method bundle returned by {@link createHttpClient}. */
 export interface HttpClient {
-  /** The underlying Axios instance (escape hatch — exposed for download endpoints and tests). */
-  axiosInstance: AxiosInstance
   /** `GET /path` returning the unwrapped `data` field of the `Result<T>` envelope. */
   apiGet: <T = unknown>(path: string, init?: RequestConfig & { signal?: AbortSignal }) => Promise<T>
   /** `POST /path`. */
@@ -257,6 +265,10 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' },
   })
+
+  if (config.__testAdapter) {
+    service.defaults.adapter = config.__testAdapter
+  }
 
   const refreshAccessToken = createRefreshAccessToken(config.csrfManager)
   const csrfInterceptors = createCsrfAxiosInterceptor(
@@ -429,7 +441,6 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   )
 
   return {
-    axiosInstance: service,
     apiGet: <T>(path: string, init?: RequestConfig & { signal?: AbortSignal }) => {
       const { signal, ...axiosConfig } = (init || {}) as RequestConfig & {
         signal?: AbortSignal

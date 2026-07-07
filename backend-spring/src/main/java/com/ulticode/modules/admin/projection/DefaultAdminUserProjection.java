@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
@@ -63,8 +64,7 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
 
     @Override
     public PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query) {
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 
@@ -102,7 +102,7 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
             default -> wrapper.orderBy(true, isAsc, User::getJoinedAt);
         }
 
-        Page<User> userPage = new Page<>(page, limit);
+        Page<User> userPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<User> result = userMapper.selectPage(userPage, wrapper);
 
         // List path: entity->VO mapping only — NO stats / permissions enrichment
@@ -112,7 +112,7 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
                 .map(this::toVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), page, limit);
+        return PageResult.of(voList, result.getTotal(), pageRequest);
     }
 
     // ------------------------------------------------------------------

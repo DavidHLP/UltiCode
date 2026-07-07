@@ -145,7 +145,7 @@ import { useDebounceFn } from "@vueuse/core";
 import { SendHorizonal, Tag, X, ArrowLeft, Check } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
+import { ApiError } from "@/utils/request";
 import { toast } from "vue-sonner";
 import { fetchSolutionTopics } from "@/api/topic";
 import {
@@ -442,8 +442,8 @@ const handlePublish = async () => {
   } catch (error: unknown) {
     console.error("Failed to publish/update solution", error);
     let message = t("solution.messages.publishFailed");
-    if (axios.isAxiosError(error)) {
-      message = error.response?.data?.message || message;
+    if (error instanceof ApiError) {
+      message = error.message || message;
     }
     if (
       !isEditMode.value &&

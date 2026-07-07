@@ -63,18 +63,8 @@ sources: []
 
 ## Concepts — decisions, patterns, invariants
 
-- [Achievement Projection](concepts/achievement-projection.md) — ADR-0005: read-model projection for achievement queries
-- [Admin Comment-Read Port](concepts/admin-comment-read-port.md) — ADR-0008: AdminReadModel forum phase, typed-view cross-module reads
-- [Admin Projection Inversion](concepts/admin-projection-inversion.md) — ADR-0011: phased `AdminXxxProjection` rollout (Stage 1 ProblemList, Stage 2 Submission/User, Stage 3 Analytics)
-- [Admin User-Stats Read Port](concepts/admin-user-stats-read-port.md) — ADR-0007: AdminReadModel user phase, per-user stats via primitives
-- [Contest Live-Ranking Read Port](concepts/contest-live-ranking-read-port.md) — ADR-0010: `RankingService.getLiveRanking` → narrow port, real seam
-- [Moderation Projection](concepts/moderation-projection.md) — ADR-0004: 10 pure-read methods + 3 projections extracted from 760-LOC service
-- [Problem Detail Port](concepts/problem-detail-port.md) — ADR-0006: 137-LOC write-side satellite orchestration extracted from `ProblemServiceImpl.updateProblem`
-- [Realtime Push Port Series](concepts/realtime-push-port-series.md) — ADR-0009: `RealtimeService` god service collapsed into 6 per-consumer ports
-- [Submission-Contest Port](concepts/submission-contest-port.md) — ADR-0001: dependency inversion, 4 contest mappers → 1 port
 - [Exactly-Once Judging](concepts/exactly-once-judging.md) — outbox + generation fence + lease
 - [Notification Idempotency](concepts/notification-idempotency.md) — intent + delivery ledger dedup
-- [Notification Dispatch & Preferences](concepts/notification-dispatch-and-preferences.md) — ADR-004: typed dispatcher, preference gate, 4 categories, migration flag
 - [Refresh Token Hash-Only Storage](concepts/refresh-token-hash-only-storage.md) — irrecoverable refresh tokens
 - [Virtual Contest](concepts/virtual-contest.md) — isolated replay sessions
 - [Security Invariants](concepts/security-invariants.md) — the non-negotiable rules
@@ -87,10 +77,25 @@ sources: []
 - [Flyway Migration Discipline](concepts/flyway-migration-discipline.md) — append-only, no credential seeds
 - [Arthas Diagnostics](concepts/arthas-diagnostics.md) — STATELESS MCP + degrade path
 - [Process Management](concepts/process-management.md) — PM2 vs Preview modes, port mutex, doctor.sh
-- [Sidebar Menu Visual Contract](concepts/sidebar-menu.md) — ADR-005: `.uc-sidebar-*` shared CSS contract, two-tier naming, icon-neutral
 - [Obsidian Graph Coloring](concepts/obsidian-graph-coloring.md) — `type/<x>` tag → graph colors, one-time per-machine UI setup
+
+## Archived Concepts
+
+Decisions that have landed and been incorporated into the codebase. Kept for traceability; the codebase is the source of truth now.
+
+- [Achievement Projection](archive/concepts/achievement-projection.md) — ADR-0005: read-model projection for achievement queries
+- [Admin Comment-Read Port](archive/concepts/admin-comment-read-port.md) — ADR-0008: AdminReadModel forum phase, typed-view cross-module reads
+- [Admin Projection Inversion](archive/concepts/admin-projection-inversion.md) — ADR-0011: phased `AdminXxxProjection` rollout (Stage 1 ProblemList, Stage 2 Submission/User, Stage 3 Analytics)
+- [Admin User-Stats Read Port](archive/concepts/admin-user-stats-read-port.md) — ADR-0007: AdminReadModel user phase, per-user stats via primitives
+- [Contest Live-Ranking Read Port](archive/concepts/contest-live-ranking-read-port.md) — ADR-0010: `RankingService.getLiveRanking` → narrow port, real seam
+- [Moderation Projection](archive/concepts/moderation-projection.md) — ADR-0004: 10 pure-read methods + 3 projections extracted from 760-LOC service
+- [Problem Detail Port](archive/concepts/problem-detail-port.md) — ADR-0006: 137-LOC write-side satellite orchestration extracted from `ProblemServiceImpl.updateProblem`
+- [Realtime Push Port Series](archive/concepts/realtime-push-port-series.md) — ADR-0009: `RealtimeService` god service collapsed into 6 per-consumer ports
+- [Submission-Contest Port](archive/concepts/submission-contest-port.md) — ADR-0001: dependency inversion, 4 contest mappers → 1 port
+- [Notification Dispatch & Preferences](archive/concepts/notification-dispatch-and-preferences.md) — ADR-004: typed dispatcher, preference gate, 4 categories, migration flag
+- [Sidebar Menu Visual Contract](archive/concepts/sidebar-menu.md) — ADR-005: `.uc-sidebar-*` shared CSS contract, two-tier naming, icon-neutral
 
 ---
 
-**Counts**: 4 meta · 8 overviews · 26 entities · 27 concepts = **65 content pages**
+**Counts**: 4 meta · 8 overviews · 26 entities · 27 concepts (15 active + 11 archived + 1 template) = **65 content pages**
 (authoritative per-type counts: `wiki/.meta/manifest.json` → `stats.by_type`, SCHEMA §12).

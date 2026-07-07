@@ -197,25 +197,25 @@ have one, in the established format (frontmatter + note callout + The
 problem / The decision / Where it lives / Consequences / Rejected /
 Related):
 
-- ADR-0001 → [[concepts/submission-contest-port]] (port inversion, 4 contest
+- ADR-0001 → [[archive/concepts/submission-contest-port]] (port inversion, 4 contest
   mappers → 1 port; 4 R6 cross-module concerns concentrated)
-- ADR-0004 → [[concepts/moderation-projection]] (10 pure-read methods +
+- ADR-0004 → [[archive/concepts/moderation-projection]] (10 pure-read methods +
   3 projections extracted from 760-LOC service)
-- ADR-0006 → [[concepts/problem-detail-port]] (137-LOC write-side
+- ADR-0006 → [[archive/concepts/problem-detail-port]] (137-LOC write-side
   satellite orchestration extracted from `ProblemServiceImpl.updateProblem`)
-- ADR-0007 → [[concepts/admin-user-stats-read-port]] (AdminReadModel user
+- ADR-0007 → [[archive/concepts/admin-user-stats-read-port]] (AdminReadModel user
   phase, primitive-typed return)
-- ADR-0008 → [[concepts/admin-comment-read-port]] (AdminReadModel forum
+- ADR-0008 → [[archive/concepts/admin-comment-read-port]] (AdminReadModel forum
   phase, typed-view cross-module reads)
-- ADR-0009 → [[concepts/realtime-push-port-series]] (six per-consumer
+- ADR-0009 → [[archive/concepts/realtime-push-port-series]] (six per-consumer
   ports collapse the 230-LoC `RealtimeService` god service)
-- ADR-0010 → [[concepts/contest-live-ranking-read-port]]
+- ADR-0010 → [[archive/concepts/contest-live-ranking-read-port]]
   (`RankingService.getLiveRanking` → narrow port, real seam)
-- ADR-0011 → [[concepts/admin-projection-inversion]] (phased
+- ADR-0011 → [[archive/concepts/admin-projection-inversion]] (phased
   `AdminXxxProjection` rollout, Stage 1 ProblemList + Stage 2 Submission
   already landed; User + Solution + Forum + Contest + Comment next)
 
-[[concepts/achievement-projection]] (ADR-0005) was already a concept page;
+[[archive/concepts/achievement-projection]] (ADR-0005) was already a concept page;
 absorbed the full ADR-0005 source content (Consequences / Rejected /
 Verification sections that the wiki entry didn't have), dropped the
 `docs/adr/0005-...` source path. 8 new pages added to [[index]]; counts
@@ -298,3 +298,45 @@ project-specific. The pre-existing dangling `docs/CONTRIBUTING.md` /
 `docs/RUNBOOK.md` / `docs/CODEMAPS/` / `docs/ENV.md` / `docs/theme/`
 references in `README.md` are pre-existing tech debt (the files never
 existed) and unrelated to this merge.
+
+## [2026-07-07] refactor | Archive 11 ADR-numbered concept pages — `wiki/concepts/` → `wiki/archive/concepts/`
+
+The `wiki/concepts/` folder had drifted to 27 pages; 11 of them are
+landed ADR records (every page whose `aliases:` contains an `ADR-XXXX`
+token: ADR-0001, 0004, 0005, 0006, 0007, 0008, 0009, 0010, 0011 plus the
+non-padded ADR-004 and ADR-005). All 11 are `status: living`, all are
+referenced by the relevant backend commit, and none of their `sources:`
+paths have drifted — by the user-stated intermediate-product criterion
+(superseded / stale sources / status ≠ living-accepted) **none qualify
+for deletion**, so all 11 were moved wholesale to `wiki/archive/concepts/`
+with `git mv` to preserve history. The 16 remaining pages in
+`wiki/concepts/` are concepts that are still referenced as living
+material by the codebase (CSRF, security invariants, sandbox contract,
+exactly-once judging, etc.) and stay put.
+
+**Wikilink rewires.** Every `[[concepts/<archived-name>]]` reference
+across the wiki was rewritten to `[[archive/concepts/<archived-name>]]`
+so the archive stays fully reachable from the active content. Files
+touched: the 10 archived docs that link to each other,
+`wiki/concepts/theme-system.md`, `wiki/concepts/notification-idempotency.md`,
+`wiki/entities/notification.md`, `wiki/overview/frontend-apps-overview.md`,
+`wiki/log.md` (historical ADR-landing entries from 2026-06-24), and
+`wiki/index.md`. Total of 30+ rewires across 17 files.
+
+**Index reshuffle.** `wiki/index.md` now has an "Archived Concepts"
+section listing the 11 moved pages with the same one-line summaries
+as before, and the counts line updated to `16 concepts + 11 archived`.
+The active `## Concepts` section keeps the 16 living concept pages
+in their original order (the originally listed order matched the
+type-by-domain grouping rather than alphabetical).
+
+**Manifest regenerated.** `scripts/dev/wiki-manifest.sh` was rerun
+to update `wiki/.meta/manifest.json` for the 11 new paths; the
+`stats.by_type.concept` count drops 27→16 and the `pages` list now
+includes 11 archive/concepts/* entries with their last-commit SHA
+unchanged (git history preserved by `git mv`).
+
+**Out of scope.** `wiki/daily-notes/` and historical log entries
+that *narratively* mention the old `wiki/concepts/<adr>` paths in
+prose (not as wikilinks) were not rewritten — they're historical
+records and the path they describe was true at the time of writing.

@@ -147,11 +147,11 @@ existing module structure.
 
 ## Related
 
-- [[concepts/realtime-push-port-series]] &mdash; ADR-0009, the
+- [[archive/concepts/realtime-push-port-series]] &mdash; ADR-0009, the
   producer-side collapse whose Javadoc named this seam
-- [[concepts/submission-contest-port]] &mdash; ADR-0001, the
+- [[archive/concepts/submission-contest-port]] &mdash; ADR-0001, the
   port-pattern precedent
-- [[concepts/admin-user-stats-read-port]] / [[concepts/admin-comment-read-port]]
+- [[archive/concepts/admin-user-stats-read-port]] / [[archive/concepts/admin-comment-read-port]]
   &mdash; sibling read ports on the admin side
 - [[entities/judge-queue]] &mdash; the read-side counterpart of the
   judging-pipeline module

@@ -135,9 +135,9 @@ strictly better and costs the same number of classes.
 
 - [[concepts/module-layering]] &mdash; Projection / Port / Inspector
   pattern
-- [[concepts/notification-dispatch-and-preferences]] &mdash; ADR-004,
+- [[archive/concepts/notification-dispatch-and-preferences]] &mdash; ADR-004,
   the consumer-owns-port convention this ADR established
-- [[concepts/admin-user-stats-read-port]] &mdash; ADR-0007 (same
+- [[archive/concepts/admin-user-stats-read-port]] &mdash; ADR-0007 (same
   consumer-owns-port pattern in admin)
-- [[concepts/realtime-push-port-series]] &mdash; ADR-0009 (six-port
+- [[archive/concepts/realtime-push-port-series]] &mdash; ADR-0009 (six-port
   series mirroring the per-consumer seam rationale)

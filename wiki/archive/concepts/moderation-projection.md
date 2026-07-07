@@ -157,9 +157,9 @@ projection's user-name lookups.
 
 - [[concepts/module-layering]] &mdash; Projection / Port / Inspector
   pattern
-- [[concepts/achievement-projection]] &mdash; ADR-0005, the same
+- [[archive/concepts/achievement-projection]] &mdash; ADR-0005, the same
   pattern applied to the achievement domain
-- [[concepts/admin-projection-inversion]] &mdash; ADR-0011, the
+- [[archive/concepts/admin-projection-inversion]] &mdash; ADR-0011, the
   admin module following the same template
-- [[concepts/notification-dispatch-and-preferences]] &mdash; ADR-004
+- [[archive/concepts/notification-dispatch-and-preferences]] &mdash; ADR-004
   (the original notification-system landing record)

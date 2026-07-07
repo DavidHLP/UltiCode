@@ -215,9 +215,9 @@ Test responsibility re-divide:
 - `admin/port/AdminSubmissionReadPort.java` &mdash; AdminReadModel
   seam phase 1
 - `admin/port/AdminUserStatsReadPort.java` &mdash; phase 2
-  (per-user stats, see [[concepts/admin-user-stats-read-port]])
-- [[concepts/admin-user-stats-read-port]] &mdash; ADR-0007, the
+  (per-user stats, see [[archive/concepts/admin-user-stats-read-port]])
+- [[archive/concepts/admin-user-stats-read-port]] &mdash; ADR-0007, the
   per-user-dimension sibling
-- [[concepts/achievement-projection]] / [[concepts/moderation-projection]] /
-  [[concepts/problem-detail-port]] &mdash; sibling port / projection
+- [[archive/concepts/achievement-projection]] / [[archive/concepts/moderation-projection]] /
+  [[archive/concepts/problem-detail-port]] &mdash; sibling port / projection
   extractions

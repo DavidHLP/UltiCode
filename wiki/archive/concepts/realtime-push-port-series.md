@@ -224,13 +224,13 @@ Four atomic commits in the established `refactor(...)` convention:
 
 ## Related
 
-- [[concepts/submission-contest-port]] &mdash; ADR-0001, the
+- [[archive/concepts/submission-contest-port]] &mdash; ADR-0001, the
   port-pattern precedent
-- [[concepts/moderation-projection]] &mdash; ADR-0004, the
+- [[archive/concepts/moderation-projection]] &mdash; ADR-0004, the
   per-domain projection pattern this ADR mirrors for the
   realtime-push side
-- [[concepts/problem-detail-port]] / [[concepts/admin-user-stats-read-port]] /
-  [[concepts/admin-comment-read-port]] &mdash; recent port extractions
+- [[archive/concepts/problem-detail-port]] / [[archive/concepts/admin-user-stats-read-port]] /
+  [[archive/concepts/admin-comment-read-port]] &mdash; recent port extractions
   establishing the consumer-owns-interface convention
 - [[entities/websocket]] &mdash; entity page covering the WebSocket
   transport &amp; auth model

@@ -3,7 +3,7 @@ title: Sidebar Menu Visual Contract
 type: concept
 tags: [sidebar, frontend, design-system, type/concept]
 status: living
-updated: 2026-06-24
+updated: 2026-07-07
 sources:
   - shared/sidebar-menu/src/
   - shared/sidebar-menu/src/styles/sidebar-menu.css

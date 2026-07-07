@@ -308,13 +308,13 @@ the template above.
 
 ## Related
 
-- [[concepts/moderation-projection]] &mdash; ADR-0004, the
+- [[archive/concepts/moderation-projection]] &mdash; ADR-0004, the
   `ModerationProjection` template
-- [[concepts/achievement-projection]] &mdash; ADR-0005, the
+- [[archive/concepts/achievement-projection]] &mdash; ADR-0005, the
   `AchievementProjection` template
-- [[concepts/admin-user-stats-read-port]] &mdash; ADR-0007, the
+- [[archive/concepts/admin-user-stats-read-port]] &mdash; ADR-0007, the
   AdminReadModel seam user phase
-- [[concepts/admin-comment-read-port]] &mdash; ADR-0008
+- [[archive/concepts/admin-comment-read-port]] &mdash; ADR-0008
 - `/tmp/architecture-review-1783160099.html` &mdash; the
   architecture review report that triggered the inversion
 - `/tmp/architecture-review-1783341079.html` &mdash; the 2026-07-06

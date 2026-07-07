@@ -3,7 +3,7 @@ title: Notification Dispatch & Preferences
 type: concept
 tags: [notification, type/concept]
 status: living
-updated: 2026-06-24
+updated: 2026-07-07
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/notification/
   - init-db/migrations/V20260602_120000__Create_All_Tables.sql

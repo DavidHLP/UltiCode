@@ -3,7 +3,7 @@ title: Notification
 type: entity
 tags: [notification, core, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-07
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/notification/
   - init-db/migrations/V20260613120000__Create_Notification_Delivery_Ledger.sql
@@ -69,7 +69,7 @@ exactly-once user-visible delivery. See [[concepts/notification-idempotency]].
 ## Cross-links
 
 - [[entities/websocket]] · [[entities/email]] · [[entities/submission]]
-- [[concepts/notification-idempotency]] · [[concepts/notification-dispatch-and-preferences]]
+- [[concepts/notification-idempotency]] · [[archive/concepts/notification-dispatch-and-preferences]]
 - [[overview/judging-pipeline-overview]] (notify stage)
 
 ## Gotchas

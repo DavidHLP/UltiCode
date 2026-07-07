@@ -171,8 +171,8 @@ Test responsibility re-divide:
 - `submission/port/SubmissionAnalyticsPort.java` &mdash; dashboard
   global stats port (this ADR deliberately does **not** pollute its
   semantics)
-- [[concepts/admin-comment-read-port]] &mdash; ADR-0008, the
+- [[archive/concepts/admin-comment-read-port]] &mdash; ADR-0008, the
   forum-dimension sibling
-- [[concepts/achievement-projection]] / [[concepts/moderation-projection]] /
-  [[concepts/problem-detail-port]] &mdash; sibling port / projection
+- [[archive/concepts/achievement-projection]] / [[archive/concepts/moderation-projection]] /
+  [[archive/concepts/problem-detail-port]] &mdash; sibling port / projection
   extractions

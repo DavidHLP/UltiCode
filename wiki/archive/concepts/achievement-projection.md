@@ -218,11 +218,11 @@ projection.
 
 ## Related
 
-- [[concepts/moderation-projection]] &mdash; ADR-0004, the same
+- [[archive/concepts/moderation-projection]] &mdash; ADR-0004, the same
   deepening pattern
 - [[concepts/module-layering]] &mdash; Projection / Port / Inspector
   pattern
-- [[concepts/admin-projection-inversion]] &mdash; ADR-0011, the
+- [[archive/concepts/admin-projection-inversion]] &mdash; ADR-0011, the
   admin module following the same template
 - Prior art in repo: `ModerationProjection`, `ProblemProjection`,
   `SubmissionProjection`, `SearchReadProjection`,

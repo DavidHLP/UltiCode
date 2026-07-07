@@ -147,5 +147,5 @@ void applyDetailUpdate(Long problemId, Problem problem, UpdateProblemDTO updateD
   argument precedent
 - `problem/projection/ProblemProjection.java` &mdash; the symmetric
   read-side module
-- [[concepts/achievement-projection]] &mdash; ADR-0005, ADR-0004, the
+- [[archive/concepts/achievement-projection]] &mdash; ADR-0005, ADR-0004, the
   same Projection extraction shape

@@ -3,7 +3,7 @@ title: Theme System
 type: concept
 tags: [frontend, theme, design-system, type/concept]
 status: living
-updated: 2026-06-21
+updated: 2026-07-07
 sources:
   - shared/theme/
   - console/public/theme-bootstrap.js
@@ -45,4 +45,4 @@ A **4-layer** system, owned by `shared/theme`:
   needs a nonce/hash, and `index.html` updated to match.
 
 ## Related
-[[overview/frontend-apps-overview]] · [[overview/architecture-overview]] · [[concepts/sidebar-menu]]
+[[overview/frontend-apps-overview]] · [[overview/architecture-overview]] · [[archive/concepts/sidebar-menu]]

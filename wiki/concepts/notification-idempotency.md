@@ -3,7 +3,7 @@ title: Notification Idempotency
 type: concept
 tags: [notification, idempotency, type/concept]
 status: living
-updated: 2026-06-21
+updated: 2026-07-07
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/notification/ledger/
   - init-db/migrations/V20260613120000__Create_Notification_Delivery_Ledger.sql
@@ -38,4 +38,4 @@ authorities.
 ## Related
 [[entities/notification]] · [[entities/websocket]] ·
 [[concepts/exactly-once-judging]] (sibling idempotency pattern) ·
-[[overview/judging-pipeline-overview]] · [[concepts/notification-dispatch-and-preferences]]
+[[overview/judging-pipeline-overview]] · [[archive/concepts/notification-dispatch-and-preferences]]

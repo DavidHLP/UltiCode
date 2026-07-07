@@ -3,7 +3,7 @@ title: Frontend Apps Overview
 type: overview
 tags: [frontend, map, type/overview]
 status: living
-updated: 2026-06-21
+updated: 2026-07-07
 sources:
   - console/src/
   - management/src/
@@ -98,4 +98,4 @@ Verification commands live in `AGENTS.md` § Verification Matrix.
 > [!link] Related pages
 > - [[overview/architecture-overview]]
 > - [[concepts/result-envelope-and-case-mapping]] · [[concepts/theme-system]]
-> - [[concepts/sidebar-menu]]
+> - [[archive/concepts/sidebar-menu]]

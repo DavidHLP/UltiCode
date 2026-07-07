@@ -1,34 +1,27 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
-import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 
 import java.util.List;
 
 /**
- * 用户管理服务：负责管理后台的用户 CRUD、封禁、批量操作。
+ * 用户管理服务：负责管理后台的用户写操作 &mdash; CRUD、封禁、批量操作。
  *
  * <p>从原 {@code AdminUserService} 拆分而来（架构评审 Candidate 1）。
  * 权限授予 / 撤销逻辑移至 {@link UserPermissionService}，使两个模块各自深化、独立演进。
  *
  * <p>该接口仅承担「用户档案与状态」语义；
  * 不持有任何权限授予 / 撤销相关方法，避免与 {@link UserPermissionService} 产生交叉依赖。
+ *
+ * <p><b>ADR-0011 Stage 2 更新</b>：所有读路径（列表 / 单条详情 + stats + permissions
+ * 快照）已迁移至 {@link com.ulticode.modules.admin.projection.AdminUserProjection}。
+ * 本接口现在只暴露写操作；写方法的返回 VO 通过委托
+ * {@link com.ulticode.modules.admin.projection.AdminUserProjection#getUserById(String)}
+ * 组合而成，避免在两处复制 entity&rarr;VO 规则。
  */
 public interface UserManagementService {
-
-    /**
-     * 分页查询用户列表，支持搜索 / 角色过滤 / 状态过滤 / 排序。
-     */
-    PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query);
-
-    /**
-     * 按 ID 获取用户详情，含 stats 与 permissions 快照。
-     * 该方法同时被 {@link UserPermissionService} 在授权变更后调用以返回最新 VO。
-     */
-    AdminUserVO getUserById(String id);
 
     /**
      * 创建用户。

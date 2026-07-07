@@ -141,7 +141,7 @@ re-couple the projection to the port's external surface.
 Diff: ~30 lines changed; behaviour preserved for reads, writes
 unchanged.
 
-### Stage 2 &mdash; landed 2026-07-06 (Submission, then User)
+### Stage 2 &mdash; landed 2026-07-06 (Submission), 2026-07-07 (User)
 
 > **2026-07-06 update**: Stage 2 Submission (debt 10/10, highest
 > priority) has landed. `AdminSubmissionProjection` +
@@ -150,12 +150,27 @@ unchanged.
 > cross-module entity imports (`User`, `Problem`) and their mappers
 > left the service; `AdminSubmissionServiceImplTest` +
 > `AdminSubmissionControllerTest` updated;
-> `AdminSubmissionProjectionTest` added. The remaining five
+> `AdminSubmissionProjectionTest` added.
+
+> **2026-07-07 update**: Stage 2 User (debt 9/10) has landed.
+> `AdminUserProjection` + `DefaultAdminUserProjection` extracted;
+> `UserManagementServiceImpl` slimmed from 507 to 380 LoC (writes
+> only); cross-module entity imports (`RolePermission`,
+> `UserPermission`) and the `AdminUserStatsReadPort` /
+> `RolePermissionMapper` / `PermissionService` deps left the service;
+> `AdminUserController` updated to depend on the projection for reads
+> and the service for writes (mirrors `AdminSubmissionController`);
+> `UserPermissionServiceImpl` switched from
+> `UserManagementService.getUserById` to
+> `AdminUserProjection.getUserById` for the post-grant / post-revoke
+> VO composition; `UserManagementServiceImplTest` deleted (all 6 read
+> tests migrated verbatim to `AdminUserProjectionTest`);
+> `UserPermissionServiceImplTest` mock updated. The remaining four
 > services below are still next-commit deliverables.
 
-For each of `AdminUserServiceImpl`, `AdminSolutionServiceImpl`,
-`AdminForumServiceImpl`, `AdminContestServiceImpl`,
-`AdminCommentServiceImpl`, each landing as its own commit:
+For each of `AdminSolutionServiceImpl`, `AdminForumServiceImpl`,
+`AdminContestServiceImpl`, `AdminCommentServiceImpl`, each landing as
+its own commit:
 
 ```
 admin/projection/AdminSubmissionProjection.java          (interface)

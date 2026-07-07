@@ -6,7 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.service.PermissionService;
@@ -38,8 +38,8 @@ import java.util.Map;
  *       由其负责底层幂等、过期与 Redis 失效。</li>
  * </ul>
  *
- * <p>与 {@link UserManagementService} 的协作：
- * 授权 / 撤销完成后调用 {@link UserManagementService#getUserById(String)}
+ * <p>与 {@link AdminUserProjection} 的协作：
+ * 授权 / 撤销完成后调用 {@link AdminUserProjection#getUserById(String)}
  * 返回含最新 permissions 列表的 {@link AdminUserVO}。
  */
 @Slf4j
@@ -49,7 +49,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     private final UserMapper userMapper;
     private final PermissionService permissionService;
-    private final UserManagementService userManagementService;
+    private final AdminUserProjection adminUserProjection;
 
     @Override
     @Transactional
@@ -130,7 +130,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             log.info("Permission assigned: user={} {}:{} expiresAt={}",
                 id, action, resource, expiresAt);
         }
-        return userManagementService.getUserById(id);
+        return adminUserProjection.getUserById(id);
     }
 
     /**

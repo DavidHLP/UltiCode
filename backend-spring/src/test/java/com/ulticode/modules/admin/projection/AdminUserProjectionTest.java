@@ -1,9 +1,7 @@
-package com.ulticode.modules.admin.service.impl;
+package com.ulticode.modules.admin.projection;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditHelper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
@@ -13,53 +11,43 @@ import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * {@link UserManagementServiceImpl} 单元测试。
+ * Unit tests for {@link DefaultAdminUserProjection} &mdash; the read-side deep
+ * module lifted out of UserManagementServiceImpl per ADR-0011 Stage 2.
  *
- * <p>从原 {@code AdminUserServiceImplTest} 拆分而来（架构评审 Candidate 1）：
- * 用户档案 / 封禁 / 批量操作相关用例归属本测试；
- * 授权 / 撤销相关用例移至 {@link UserPermissionServiceImplTest}。
- *
- * <p>Tests use manual constructor injection (mirrors {@code AdminUserServiceImplTest} reshaping
- * from ADR-0007) so each test remains independent of Spring context loading.
+ * <p>Covers the read paths that previously lived on
+ * {@code UserManagementServiceImplTest}: {@code getUsers} (list path skips
+ * stats / permissions enrichment to stay N+1-safe), {@code getUserById}
+ * (stats + permissions enrichment, expired-permission filtering, USER_NOT_FOUND
+ * contract). These cases were migrated verbatim when the read cluster moved
+ * behind the projection seam.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserManagementServiceImpl")
-class UserManagementServiceImplTest {
+@DisplayName("DefaultAdminUserProjection")
+class AdminUserProjectionTest {
 
-    @Mock
-    private UserMapper userMapper;
+    @Mock private UserMapper userMapper;
+    @Mock private AdminUserStatsReadPort userStatsReadPort;
+    @Mock private PermissionService permissionService;
+    @Mock private RolePermissionMapper rolePermissionMapper;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private AuditHelper auditHelper;
-
-    @Mock
-    private AdminUserStatsReadPort userStatsReadPort;
-
-    @Mock
-    private PermissionService permissionService;
-
-    @Mock
-    private RolePermissionMapper rolePermissionMapper;
-
-    private UserManagementServiceImpl userManagementService;
+    private DefaultAdminUserProjection projection;
 
     private User createValidUser() {
         User user = new User();
@@ -80,15 +68,14 @@ class UserManagementServiceImplTest {
         when(userStatsReadPort.calculateSubmissionStreak(userId)).thenReturn(streak);
     }
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     void setUp() {
-        userManagementService = new UserManagementServiceImpl(
-                userMapper, passwordEncoder, auditHelper,
-                userStatsReadPort, permissionService, rolePermissionMapper);
+        projection = new DefaultAdminUserProjection(
+                userMapper, userStatsReadPort, permissionService, rolePermissionMapper);
     }
 
     @Nested
-    @DisplayName("getUsers()")
+    @DisplayName("getUsers() — list path skips stats / permissions enrichment")
     class GetUsers {
 
         @Test
@@ -100,14 +87,14 @@ class UserManagementServiceImplTest {
             page.setTotal(1);
             when(userMapper.selectPage(any(Page.class), any())).thenReturn(page);
 
-            userManagementService.getUsers(new AdminUserQueryDTO());
+            projection.getUsers(new AdminUserQueryDTO());
 
             verifyNoInteractions(userStatsReadPort, rolePermissionMapper, permissionService);
         }
     }
 
     @Nested
-    @DisplayName("getUserById()")
+    @DisplayName("getUserById() — detail path enriches stats + permissions")
     class GetUserById {
 
         @Test
@@ -119,7 +106,7 @@ class UserManagementServiceImplTest {
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
-            AdminUserVO result = userManagementService.getUserById("user-123");
+            AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getStats()).isNotNull();
@@ -133,14 +120,14 @@ class UserManagementServiceImplTest {
         @DisplayName("defaults stats to zero when port returns zero")
         void portZero_defaultsToZero() {
             // null→0 降级由 AdminUserStatsReadAdapter 拥有 (adapter 测试覆盖);
-            // ServiceImpl 只看到非 null 基本类型,这里验证 port 返回 0 时 VO 也为 0。
+            // Projection 只看到非 null 基本类型,这里验证 port 返回 0 时 VO 也为 0。
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
             stubStats("user-123", 0L, 0L, 0L, 0);
             when(rolePermissionMapper.selectList(any())).thenReturn(List.of());
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
 
-            AdminUserVO result = userManagementService.getUserById("user-123");
+            AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getStats()).isNotNull();
@@ -167,7 +154,7 @@ class UserManagementServiceImplTest {
             directPerm.setResource("problems");
             when(permissionService.getUserPermissions("user-123")).thenReturn(List.of(directPerm));
 
-            AdminUserVO result = userManagementService.getUserById("user-123");
+            AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
@@ -203,7 +190,7 @@ class UserManagementServiceImplTest {
             when(permissionService.getUserPermissions("user-123"))
                 .thenReturn(List.of(expired, active, permanent));
 
-            AdminUserVO result = userManagementService.getUserById("user-123");
+            AdminUserVO result = projection.getUserById("user-123");
 
             assertThat(result).isNotNull();
             assertThat(result.getPermissions()).hasSize(2);
@@ -223,7 +210,7 @@ class UserManagementServiceImplTest {
         void userNotFound_throwsBusinessException() {
             when(userMapper.selectById("nonexistent")).thenReturn(null);
 
-            assertThatThrownBy(() -> userManagementService.getUserById("nonexistent"))
+            assertThatThrownBy(() -> projection.getUserById("nonexistent"))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> {
                         BusinessException be = (BusinessException) ex;

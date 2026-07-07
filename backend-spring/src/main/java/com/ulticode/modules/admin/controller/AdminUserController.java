@@ -12,6 +12,7 @@ import com.ulticode.modules.admin.dto.BulkUserActionRequest;
 import com.ulticode.modules.admin.dto.GrantPermissionRequest;
 import com.ulticode.modules.admin.dto.ResetPasswordRequest;
 import com.ulticode.modules.admin.dto.RevokePermissionRequest;
+import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,19 +34,20 @@ public class AdminUserController {
 
     private final UserManagementService userManagementService;
     private final UserPermissionService userPermissionService;
+    private final AdminUserProjection adminUserProjection;
 
     @Operation(summary = "Get users list", description = "Get paginated list of users with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminUserVO>> getUsers(AdminUserQueryDTO query) {
-        return Result.success(userManagementService.getUsers(query));
+        return Result.success(adminUserProjection.getUsers(query));
     }
 
     @Operation(summary = "Get user by ID", description = "Get detailed user information")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> getUserById(@PathVariable String id) {
-        return Result.success(userManagementService.getUserById(id));
+        return Result.success(adminUserProjection.getUserById(id));
     }
 
     @Operation(summary = "Create user", description = "Create a new user account")

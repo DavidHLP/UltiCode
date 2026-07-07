@@ -2,24 +2,17 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
-import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
+import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
-import com.ulticode.modules.permission.entity.RolePermission;
-import com.ulticode.modules.permission.entity.UserPermission;
-import com.ulticode.modules.permission.mapper.RolePermissionMapper;
-import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +28,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
- * 用户管理服务实现：CRUD、封禁、批量操作。
+ * 用户写操作服务实现：CRUD、封禁、批量操作。
  *
  * <p>从原 {@code AdminUserServiceImpl}（611 行）拆分而来（架构评审 Candidate 1）。
  * 权限授予 / 撤销逻辑移至 {@link UserPermissionServiceImpl}，避免两类不相关的方法共享同一接口。
  *
- * <p>{@link #getUserById(String)} 同时被 {@link UserPermissionServiceImpl} 在授权变更后调用，
- * 以返回最新的 {@link AdminUserVO}（含 stats 与 permissions 快照）。
- * 该方法被声明为公共协作点，不属于任何私有实现细节。
+ * <p><b>ADR-0011 Stage 2 更新</b>：所有读路径（{@code getUsers} 列表读、
+ * {@code getUserById} 详情读 + stats + permissions enrichment）已迁移至
+ * {@link AdminUserProjection}。本服务现在只承担写状态机：
+ * <ul>
+ *   <li>createUser / updateUser / deleteUser</li>
+ *   <li>banUser / unbanUser / resetPassword</li>
+ *   <li>bulkBan / bulkUnban / bulkDelete</li>
+ * </ul>
+ * 写方法返回的 {@link AdminUserVO} 通过委托
+ * {@link AdminUserProjection#getUserById(String)} 组合而成 &mdash; 避免在两处
+ * 复制 entity&rarr;VO 规则，并保留写后立即看到最新 stats + permissions 快照的契约。
+ *
+ * <p>跨模块依赖（{@code AdminUserStatsReadPort}、{@code RolePermissionMapper}、
+ * {@code PermissionService}、{@code RolePermission} / {@code UserPermission} 实体）
+ * 已迁出至 projection；本类不再导入它们。
+ *
+ * <p>{@link AdminUserProjection#getUserById(String)} 同时被
+ * {@link UserPermissionServiceImpl} 在授权变更后调用，以返回最新的
+ * {@link AdminUserVO}（含 stats 与 permissions 快照）。该读路径是写后 / 授权后
+ * 的公共协作点，由 projection 单一拥有。
  */
 @Slf4j
 @Service
@@ -55,72 +64,12 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuditHelper auditHelper;
-    private final AdminUserStatsReadPort userStatsReadPort;
-    private final PermissionService permissionService;
-    private final RolePermissionMapper rolePermissionMapper;
-
-    @Override
-    public PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query) {
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
-
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-
-        // 搜索过滤
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(User::getUsername, search)
-                    .or().like(User::getEmail, search)
-                    .or().like(User::getName, search));
-        }
-
-        // 角色过滤
-        if (StringUtils.hasText(query.getRole())) {
-            wrapper.eq(User::getRole, query.getRole());
-        }
-
-        // 启用状态过滤
-        if (query.getIsActive() != null) {
-            wrapper.eq(User::getIsActive, query.getIsActive());
-        }
-
-        // 封禁状态过滤
-        if (query.getIsBanned() != null) {
-            wrapper.eq(User::getIsBanned, query.getIsBanned());
-        }
-
-        // 排序
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "joinedAt";
-        switch (sortBy) {
-            case "username" -> wrapper.orderBy(true, isAsc, User::getUsername);
-            case "email" -> wrapper.orderBy(true, isAsc, User::getEmail);
-            case "lastLoginAt" -> wrapper.orderBy(true, isAsc, User::getLastLoginAt);
-            default -> wrapper.orderBy(true, isAsc, User::getJoinedAt);
-        }
-
-        Page<User> userPage = new Page<>(page, limit);
-        Page<User> result = userMapper.selectPage(userPage, wrapper);
-
-        List<AdminUserVO> voList = result.getRecords().stream()
-                .map(this::toVO)
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), page, limit);
-    }
-
-    @Override
-    public AdminUserVO getUserById(String id) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-        AdminUserVO vo = toVO(user);
-        populateStats(vo, user.getId());
-        populatePermissions(vo, user.getId(), user.getRole());
-        return vo;
-    }
+    /**
+     * Read-side deep module used to compose the post-write VO. After ADR-0011
+     * Stage 2 the entity&rarr;VO shaping + stats / permissions enrichment
+     * lives behind this seam; this service keeps writes only.
+     */
+    private final AdminUserProjection adminUserProjection;
 
     @Override
     @Transactional
@@ -158,7 +107,10 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         userMapper.insert(user);
         log.info("User created: {} by admin", user.getId());
-        return toVO(user);
+        // ADR-0011 Stage 2: post-write VO composed via the projection so the
+        // admin UI sees the freshly created user's role permission snapshot
+        // (consistent with update / ban / unban write paths).
+        return adminUserProjection.getUserById(user.getId());
     }
 
     @Override
@@ -250,7 +202,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         ));
 
         log.info("User updated: {}", id);
-        return getUserById(id);
+        return adminUserProjection.getUserById(id);
     }
 
     @Override
@@ -306,7 +258,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         ));
 
         log.info("User banned: {} - reason: {}", id, reason);
-        return getUserById(id);
+        return adminUserProjection.getUserById(id);
     }
 
     @Override
@@ -334,7 +286,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
 
         log.info("User unbanned: {}", id);
-        return getUserById(id);
+        return adminUserProjection.getUserById(id);
     }
 
     @Override
@@ -424,84 +376,5 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         return results;
-    }
-
-    /**
-     * 将 User 实体转为基础 AdminUserVO（不含 stats / permissions）。
-     */
-    private AdminUserVO toVO(User user) {
-        if (user == null) {
-            return null;
-        }
-
-        AdminUserVO vo = new AdminUserVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setName(user.getName());
-        vo.setEmail(user.getEmail());
-        vo.setAvatar(user.getAvatar());
-        vo.setRole(user.getRole());
-        vo.setIsActive(user.getIsActive());
-        vo.setIsBanned(user.getIsBanned());
-        vo.setBanReason(user.getBannedReason());
-        vo.setBannedUntil(user.getBannedUntil());
-        vo.setJoinedAt(user.getJoinedAt());
-        vo.setLastLoginAt(user.getLastLoginAt());
-
-        return vo;
-    }
-
-    private void populateStats(AdminUserVO vo, String userId) {
-        AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
-        stats.setTotalSubmissions((int) userStatsReadPort.countSubmissionsByUserId(userId));
-        stats.setAcceptedSubmissions((int) userStatsReadPort.countAcceptedProblemsByUserId(userId));
-        stats.setTotalSolutions((int) userStatsReadPort.countSolutionsByUserId(userId));
-        stats.setStreak(userStatsReadPort.calculateSubmissionStreak(userId));
-        vo.setStats(stats);
-    }
-
-    private void populatePermissions(AdminUserVO vo, String userId, String role) {
-        List<AdminUserVO.PermissionInfo> permissions = new ArrayList<>();
-        if (StringUtils.hasText(role)) {
-            populateRolePermissions(permissions, role);
-        }
-        populateDirectPermissions(permissions, userId);
-        vo.setPermissions(permissions);
-    }
-
-    /**
-     * 处理 role 权限。role 权限不带过期时间。
-     */
-    private void populateRolePermissions(List<AdminUserVO.PermissionInfo> sink, String role) {
-        List<RolePermission> rolePerms = rolePermissionMapper.selectList(
-            new LambdaQueryWrapper<RolePermission>()
-                .eq(RolePermission::getRole, role));
-        for (RolePermission rp : rolePerms) {
-            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(rp.getAction());
-            info.setResource(rp.getResource());
-            info.setSource("role");
-            info.setExpiresAt(null);
-            sink.add(info);
-        }
-    }
-
-    /**
-     * 处理 user 直接权限。过滤已过期项，避免 UI 显示无效授权。
-     */
-    private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
-        List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
-        LocalDateTime now = LocalDateTime.now();
-        for (UserPermission up : userPerms) {
-            if (up.getExpiresAt() != null && !up.getExpiresAt().isAfter(now)) {
-                continue;
-            }
-            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
-            info.setAction(up.getAction());
-            info.setResource(up.getResource());
-            info.setSource("direct");
-            info.setExpiresAt(up.getExpiresAt());
-            sink.add(info);
-        }
     }
 }

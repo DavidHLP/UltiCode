@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.dto.AdminUserVO;
-import com.ulticode.modules.admin.service.UserManagementService;
+import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
@@ -34,8 +34,9 @@ import static org.mockito.Mockito.*;
  * 授权 / 撤销相关用例归属本测试；
  * 用户档案 / 封禁 / 批量操作相关用例移至 {@link UserManagementServiceImplTest}。
  *
- * <p>{@link UserManagementService} 以 mock 注入，验证拆分后两服务通过
- * {@link UserManagementService#getUserById(String)} 协作的契约。
+ * <p>{@link AdminUserProjection} 以 mock 注入，验证授权 / 撤销后通过
+ * {@link AdminUserProjection#getUserById(String)} 组合最新 VO 的契约
+ * （ADR-0011 Stage 2：读路径从 UserManagementService 迁至 AdminUserProjection）。
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserPermissionServiceImpl")
@@ -48,14 +49,14 @@ class UserPermissionServiceImplTest {
     private PermissionService permissionService;
 
     @Mock
-    private UserManagementService userManagementService;
+    private AdminUserProjection adminUserProjection;
 
     private UserPermissionServiceImpl userPermissionService;
 
     @BeforeEach
     void setUp() {
         userPermissionService = new UserPermissionServiceImpl(
-                userMapper, permissionService, userManagementService);
+                userMapper, permissionService, adminUserProjection);
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
         // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
         Authentication auth = new UsernamePasswordAuthenticationToken(
@@ -86,7 +87,7 @@ class UserPermissionServiceImplTest {
     class AssignUserPermission {
 
         @Test
-        @DisplayName("delegates to PermissionService and returns VO via UserManagementService")
+        @DisplayName("delegates to PermissionService and returns VO via AdminUserProjection")
         void grantNew_delegatesAndReturnsVO() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
@@ -97,7 +98,7 @@ class UserPermissionServiceImplTest {
 
             AdminUserVO expectedVo = new AdminUserVO();
             expectedVo.setId("user-123");
-            when(userManagementService.getUserById("user-123")).thenReturn(expectedVo);
+            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
 
             AdminUserVO vo = userPermissionService.assignUserPermission(
                     "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null);
@@ -106,7 +107,7 @@ class UserPermissionServiceImplTest {
             assertThat(vo.getId()).isEqualTo("user-123");
             verify(permissionService).assignPermission("user-123",
                     "MANAGE_PERMISSIONS", "SYSTEM", null);
-            verify(userManagementService).getUserById("user-123");
+            verify(adminUserProjection).getUserById("user-123");
         }
 
         @Test
@@ -121,7 +122,7 @@ class UserPermissionServiceImplTest {
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
 
             verify(permissionService, never()).assignPermission(any(), any(), any(), any());
-            verify(userManagementService, never()).getUserById(any());
+            verify(adminUserProjection, never()).getUserById(any());
         }
     }
 
@@ -139,14 +140,14 @@ class UserPermissionServiceImplTest {
 
             AdminUserVO expectedVo = new AdminUserVO();
             expectedVo.setId("user-123");
-            when(userManagementService.getUserById("user-123")).thenReturn(expectedVo);
+            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
 
             AdminUserVO vo = userPermissionService.revokeUserPermission(
                     "user-123", "READ", "USER");
 
             assertThat(vo).isNotNull();
             verify(permissionService).revokePermission("user-123", "READ", "USER");
-            verify(userManagementService).getUserById("user-123");
+            verify(adminUserProjection).getUserById("user-123");
         }
 
         @Test
@@ -159,7 +160,7 @@ class UserPermissionServiceImplTest {
 
             AdminUserVO expectedVo = new AdminUserVO();
             expectedVo.setId("user-123");
-            when(userManagementService.getUserById("user-123")).thenReturn(expectedVo);
+            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
 
             AdminUserVO vo = userPermissionService.revokeUserPermission(
                     "user-123", "READ", "USER");
@@ -179,7 +180,7 @@ class UserPermissionServiceImplTest {
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
 
             verify(permissionService, never()).revokePermission(any(), any(), any());
-            verify(userManagementService, never()).getUserById(any());
+            verify(adminUserProjection, never()).getUserById(any());
         }
     }
 

@@ -28,7 +28,7 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns } from './columns'
-import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
+import { renderMarkdown } from '@/utils/markdown'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
@@ -480,7 +480,7 @@ async function handleBulkDeleteConfirm() {
           }}</span>
           <div
             class="prose dark:prose-invert max-w-none text-sm text-[var(--foreground)] leading-relaxed rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3 markdown-content"
-            v-html="renderSafeMarkdown(detailComment.content)"
+            v-html="renderMarkdown(detailComment.content)"
           >
           </div>
         </div>

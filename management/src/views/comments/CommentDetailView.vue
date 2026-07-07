@@ -22,7 +22,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
+import { renderMarkdown } from '@/utils/markdown'
 
 const router = useRouter()
 const route = useRoute()
@@ -310,7 +310,7 @@ function handleFlagSuccess() {
               <!-- Comment Body -->
               <div
                 class="prose dark:prose-invert max-w-none text-[var(--foreground)] leading-relaxed markdown-content"
-                v-html="renderSafeMarkdown(comment.content)"
+                v-html="renderMarkdown(comment.content)"
               >
               </div>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
+import { renderMarkdown } from '@/utils/markdown'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Bold, Italic, Code, Link, Image, Maximize2, Minimize2 } from 'lucide-vue-next'
@@ -24,7 +24,7 @@ const isFullscreen = ref(false)
 const editorRef = ref<HTMLTextAreaElement>()
 const previewRef = ref<HTMLDivElement>()
 
-const previewHtml = computed(() => renderSafeMarkdown(editorContent.value))
+const previewHtml = computed(() => renderMarkdown(editorContent.value))
 
 // Sync with modelValue prop
 watch(

@@ -13,7 +13,6 @@ import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
 import { renderMarkdown } from "@/utils/markdown";
-import { sanitizeHtml } from "@/utils/sanitize";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
 import { toast } from "vue-sonner";
@@ -272,7 +271,7 @@ async function handleShare() {
       <section v-if="thread.excerpt" class="markdown-view">
         <div
           class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
-          v-html="sanitizeHtml(renderMarkdown(thread.excerpt))"
+          v-html="renderMarkdown(thread.excerpt)"
         ></div>
       </section>
 
@@ -335,7 +334,7 @@ async function handleShare() {
             <div
               class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
               v-html="
-                sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))
+                renderMarkdown(media.markdown || media.body || '')
               "
             ></div>
           </div>

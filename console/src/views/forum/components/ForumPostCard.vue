@@ -11,7 +11,6 @@ import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
 import { RouterLink, useRouter } from "vue-router";
 import { renderMarkdown } from "@/utils/markdown";
-import { sanitizeHtml } from "@/utils/sanitize";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toast } from "vue-sonner";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
@@ -317,7 +316,7 @@ function handleCardClick(event: MouseEvent) {
           >
             <div
               class="text-sm leading-relaxed text-muted-foreground line-clamp-3 prose prose-sm dark:prose-invert prose-p:my-0 prose-headings:my-0 prose-ul:my-0 prose-ol:my-0 max-w-none"
-              v-html="sanitizeHtml(renderMarkdown(post.excerpt))"
+              v-html="renderMarkdown(post.excerpt)"
             ></div>
           </div>
 
@@ -388,9 +387,7 @@ function handleCardClick(event: MouseEvent) {
               <div
                 class="prose prose-sm dark:prose-invert max-w-none p-3 text-sm leading-relaxed"
                 v-html="
-                  sanitizeHtml(
-                    renderMarkdown(media.markdown || media.body || ''),
-                  )
+                  renderMarkdown(media.markdown || media.body || '')
                 "
               ></div>
             </div>

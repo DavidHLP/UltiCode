@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { renderMarkdown } from "@/utils/markdown";
-import { sanitizeHtml } from "@/utils/sanitize";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -96,7 +95,7 @@ ${props.description.followUp}
 });
 
 const htmlContent = computed(() =>
-  sanitizeHtml(renderMarkdown(markdownContent.value)),
+  renderMarkdown(markdownContent.value),
 );
 </script>
 

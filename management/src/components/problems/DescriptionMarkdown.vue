@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
+import { renderMarkdown } from '@/utils/markdown'
 import { toast } from 'vue-sonner'
 
 /**
@@ -87,7 +87,7 @@ const markdownContent = computed(() => {
   return parts.join('')
 })
 
-const htmlContent = computed(() => renderSafeMarkdown(markdownContent.value))
+const htmlContent = computed(() => renderMarkdown(markdownContent.value))
 </script>
 
 <template>

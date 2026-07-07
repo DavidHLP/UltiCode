@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
+import { renderMarkdown } from '@/utils/markdown'
 
 describe('markdown security', () => {
   it('renders KaTeX while removing executable markup', () => {
-    const html = renderSafeMarkdown(
+    const html = renderMarkdown(
       '$x^2$ <img src=x onerror=alert(1)> [x](javascript:alert(1))',
     )
 

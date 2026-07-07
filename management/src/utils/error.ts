@@ -30,9 +30,8 @@ export function extractApiErrorMessage(err: unknown, fallback: string): string {
   }
   // Defensive path for non-ApiError throws that still carry an Axios-shaped
   // response (e.g. errors that escaped the http-client interceptor).
-  const responseMessage = (
-    err as { response?: { data?: { message?: string } } }
-  )?.response?.data?.message
+  const responseMessage = (err as { response?: { data?: { message?: string } } })?.response?.data
+    ?.message
   if (responseMessage) return responseMessage
   if (err instanceof Error && err.message) return err.message
   return fallback

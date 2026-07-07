@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -58,9 +59,9 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
 
     @Override
     public VersionsResponseVO listVersions(Long problemId, Integer page, Integer limit) {
-        int currentPage = (page != null && page > 0) ? page : 1;
-        int currentLimit = (limit != null && limit > 0) ? limit : 20;
-        currentLimit = Math.min(currentLimit, 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, limit);
+        int currentPage = pageRequest.page();
+        int currentLimit = pageRequest.pageSize();
 
         Page<ProblemVersion> versionPage = new Page<>(currentPage, currentLimit);
         Page<ProblemVersion> result = problemVersionMapper.selectByProblemId(problemId, versionPage);

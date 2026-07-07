@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
 import com.ulticode.modules.contest.dto.UserContestHistoryVO;
@@ -48,12 +49,9 @@ public class RankingServiceImpl implements RankingService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "contestId is required");
         }
 
-        // Set default pagination values
-        int currentPage = (page != null && page > 0) ? page : 1;
-        int currentLimit = (limit != null && limit > 0) ? limit : 50;
-
-        // Limit page size
-        currentLimit = Math.min(currentLimit, 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, limit, 50);
+        int currentPage = pageRequest.page();
+        int currentLimit = pageRequest.pageSize();
 
         long total = participantMapper.countRankedParticipantsByContestId(contestId);
         int offset = (int) ((long) (currentPage - 1) * currentLimit);

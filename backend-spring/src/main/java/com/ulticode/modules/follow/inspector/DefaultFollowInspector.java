@@ -3,6 +3,7 @@ package com.ulticode.modules.follow.inspector;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.entity.UserFollow;
@@ -53,8 +54,9 @@ public class DefaultFollowInspector implements FollowInspector {
 
     @Override
     public PageResult<UserSummaryDTO> getFollowers(String userId, int page, int pageSize) {
-        int currentPage = Math.max(1, page);
-        int currentPageSize = Math.min(Math.max(1, pageSize), 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
+        int currentPage = pageRequest.page();
+        int currentPageSize = pageRequest.pageSize();
         long offset = (long) (currentPage - 1) * currentPageSize;
 
         List<UserFollow> follows = followMapper.selectByFollowingIdPaged(userId, offset, currentPageSize);
@@ -95,8 +97,9 @@ public class DefaultFollowInspector implements FollowInspector {
 
     @Override
     public PageResult<UserSummaryDTO> getFollowing(String userId, int page, int pageSize) {
-        int currentPage = Math.max(1, page);
-        int currentPageSize = Math.min(Math.max(1, pageSize), 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
+        int currentPage = pageRequest.page();
+        int currentPageSize = pageRequest.pageSize();
         long offset = (long) (currentPage - 1) * currentPageSize;
 
         List<UserFollow> follows = followMapper.selectByFollowerIdPaged(userId, offset, currentPageSize);

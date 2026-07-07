@@ -34,7 +34,12 @@
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
   `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`,
-  `SearchReadProjection`, `SolutionProjection`, `AchievementProjection`.
+  `SearchReadProjection`, `SolutionProjection`, `AchievementProjection`,
+  `AdminForumProjection`, `AdminSolutionProjection`,
+  `AdminSubmissionProjection`, `AdminUserProjection`,
+  `AdminContestProjection`. The `AdminXxxProjection` series is the
+  ADR-0011 deepening that lifts entity→VO shaping and pagination out of the
+  admin orchestration services.
 - **Search / SearchReadProjection** — the cross-domain read module that
   fans a query across the problems / users / posts / solutions indices
   (MeiliSearch when configured, database LIKE fallback) and aggregates the

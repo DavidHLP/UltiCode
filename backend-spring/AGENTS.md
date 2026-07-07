@@ -77,8 +77,9 @@ src/main/java/com/ulticode/
 - **`common.audit.AuditPolicy`** — single catalog of every `@Audited` / `@CheckBan` site.
   `AuditPolicyCoverageTest` scans classpath and fails CI if catalog drifts from annotations.
 - **`modules.<x>.projection.<X>Projection`** — read-side deep modules owning entity→VO shaping.
-  Existing: `ModerationProjection`, `AchievementProjection`, `ProblemListProjection`.
-  ADR-0011 lists scheduled additions.
+  Existing: `ModerationProjection`, `AchievementProjection`, `ProblemListProjection`,
+  `AdminForumProjection`, `AdminSolutionProjection`, `AdminSubmissionProjection`,
+  `AdminUserProjection`, `AdminContestProjection`. ADR-0011 lists scheduled additions.
 - **Port/Adapter seams** — consumer-owned interfaces in `port/`, inverted from the provider:
   `ContestSubmissionPort`, `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`,
   `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`, `ProblemDetailPort`.

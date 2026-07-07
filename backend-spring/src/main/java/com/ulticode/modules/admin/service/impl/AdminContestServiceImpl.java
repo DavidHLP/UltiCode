@@ -1,12 +1,9 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
@@ -14,6 +11,7 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestService;
+import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -30,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
@@ -38,10 +35,27 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * Implementation of AdminContestService.
+ * Implementation of AdminContestService &mdash; write state machine only.
+ *
+ * <p>After the Stage-3 ADR-0011 deepening, the entity-to-{@code AdminContestVO}
+ * projection rule, the paginated list read, the single-detail read and the
+ * URL-slug generator all live behind
+ * {@link AdminContestProjection}. This service keeps the write state machine
+ * (create / update / soft-delete / start / end contest, announcement CRUD,
+ * problem-add, live-ranking passthrough) and delegates every read or shape
+ * concern to the projection. Write paths that return
+ * {@code AdminContestVO} ({@code createContest}, {@code updateContest},
+ * {@code startContest}, {@code endContest}) call
+ * {@link AdminContestProjection#toAdminVO} so the controller contract is
+ * unchanged &mdash; the shape rule simply no longer lives here.
+ *
+ * <p>Cross-module read access ({@code ContestProblemMapper.countByContestId} for
+ * the {@code problemCount} field on the VO) moved to the projection. The
+ * remaining {@code ContestProblemMapper} usage here is for legitimate write
+ * paths (bulk problem insert in create / update, problem-existence checks,
+ * problem-add) &mdash; those are not projection concerns.
  */
 @Slf4j
 @Service
@@ -55,65 +69,16 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestLiveRankingReadPort liveRankingReadPort;
     private final AuditHelper auditHelper;
     private final Clock clock;
+    private final AdminContestProjection adminContestProjection;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
-        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
-        int page = pageRequest.page();
-        int limit = pageRequest.pageSize();
-
-        LambdaQueryWrapper<Contest> wrapper = new LambdaQueryWrapper<>();
-
-        // Search filter (title or slug)
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(Contest::getTitle, search)
-                    .or()
-                    .like(Contest::getSlug, search));
-        }
-
-        // Type filter
-        if (StringUtils.hasText(query.getType())) {
-            wrapper.eq(Contest::getContestType, query.getType());
-        }
-
-        // Status filter
-        if (StringUtils.hasText(query.getStatus())) {
-            wrapper.eq(Contest::getStatus, query.getStatus());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "title" -> wrapper.orderBy(true, isAsc, Contest::getTitle);
-            case "startTime" -> wrapper.orderBy(true, isAsc, Contest::getStartTime);
-            case "createdAt" -> wrapper.orderBy(true, isAsc, Contest::getCreatedAt);
-            case "updatedAt" -> wrapper.orderBy(true, isAsc, Contest::getUpdatedAt);
-            default -> wrapper.orderBy(true, isAsc, Contest::getCreatedAt);
-        }
-
-        Page<Contest> pageResult = new Page<>(page, limit);
-        Page<Contest> result = contestMapper.selectPage(pageResult, wrapper);
-
-        return PageResult.of(
-                result.getRecords().stream()
-                        .map(this::toAdminVO)
-                        .toList(),
-                result.getTotal(),
-                page,
-                limit
-        );
+        return adminContestProjection.getContests(query);
     }
 
     @Override
     public AdminContestVO getContest(String id) {
-        Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
-        return toAdminVO(contest);
+        return adminContestProjection.getContest(id);
     }
 
     @Override
@@ -135,7 +100,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setSubmissionCount(0);
         contest.setIsDeleted(false);
 
-        String slug = generateSlug(dto.getTitle());
+        String slug = adminContestProjection.generateSlug(dto.getTitle());
         contest.setSlug(slug);
 
         try {
@@ -173,7 +138,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         AuditContext.setUserId(userId);
 
         log.info("Admin created contest: {} by user {}", contest.getId(), userId);
-        return toAdminVO(contest);
+        return adminContestProjection.toAdminVO(contest);
     }
 
     @Override
@@ -247,7 +212,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         AuditContext.setNewValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
 
         log.info("Admin updated contest: {}", id);
-        return toAdminVO(contest);
+        return adminContestProjection.toAdminVO(contest);
     }
 
     @Override
@@ -299,7 +264,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
 
         log.info("Admin started contest: {}", id);
-        return toAdminVO(contest);
+        return adminContestProjection.toAdminVO(contest);
     }
 
     @Override
@@ -321,7 +286,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
 
         log.info("Admin ended contest: {}", id);
-        return toAdminVO(contest);
+        return adminContestProjection.toAdminVO(contest);
     }
 
     @Override
@@ -443,52 +408,5 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         log.info("Admin added problem {} to contest {}", problemId, contestId);
         return cp;
-    }
-
-    /**
-     * Convert Contest entity to AdminContestVO.
-     */
-    private AdminContestVO toAdminVO(Contest contest) {
-        if (contest == null) {
-            return null;
-        }
-
-        AdminContestVO vo = new AdminContestVO();
-        vo.setId(contest.getId());
-        vo.setSlug(contest.getSlug());
-        vo.setTitle(contest.getTitle());
-        vo.setDescription(contest.getDescription());
-        vo.setContestType(contest.getContestType());
-        vo.setStatus(contest.getStatus());
-        vo.setStartTime(contest.getStartTime());
-        vo.setEndTime(contest.getEndTime());
-        vo.setDurationMinutes(contest.getDurationMinutes());
-        vo.setIsVisible(contest.getIsVisible());
-        vo.setParticipantCount(contest.getParticipantCount());
-        vo.setCreatedAt(contest.getCreatedAt());
-        vo.setUpdatedAt(contest.getUpdatedAt());
-        vo.setProblemCount((int) contestProblemMapper.countByContestId(contest.getId()));
-
-        return vo;
-    }
-
-    /**
-     * Generate a URL-friendly slug from a title.
-     */
-    private String generateSlug(String title) {
-        if (title == null || title.isBlank()) {
-            return "contest-" + UUID.randomUUID().toString().substring(0, 8);
-        }
-        String slug = title.toLowerCase()
-                .replaceAll("[^a-z0-9\\s-]", "")
-                .replaceAll("\\s+", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
-
-        if (slug.length() < 3) {
-            slug = slug + "-" + UUID.randomUUID().toString().substring(0, 8);
-        }
-
-        return slug;
     }
 }

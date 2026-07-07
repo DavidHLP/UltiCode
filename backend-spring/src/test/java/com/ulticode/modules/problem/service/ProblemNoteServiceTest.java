@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.time.Clock;
+import java.time.Clock;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,7 +56,7 @@ class ProblemNoteServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProblemNoteServiceImpl(noteMapper, problemMapper);
+        service = new ProblemNoteServiceImpl(noteMapper, problemMapper, Clock.systemDefaultZone());
     }
 
     @Test

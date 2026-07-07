@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Clock;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +42,8 @@ class ForumPostServiceImplTest {
     private UserService userService;
     @Mock
     private ForumReadProjection forumReadProjection;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private ForumPostServiceImpl forumPostService;

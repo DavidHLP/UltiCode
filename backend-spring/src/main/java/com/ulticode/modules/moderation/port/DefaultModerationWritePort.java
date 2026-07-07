@@ -38,6 +38,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,6 +87,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
     private final SolutionCommentMapper solutionCommentMapper;
     private final ProblemMapper problemMapper;
     private final ModerationProjection moderationProjection;
+    private final Clock clock;
 
     // ==================== Queue Operations ====================
 
@@ -158,7 +160,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
         actionMapper.insert(moderationAction);
 
         // Update queue item based on action via strategy handler
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         item.setReviewedById(moderatorId);
         item.setReviewedAt(now);
         item.setResolution(actionType.name());
@@ -302,7 +304,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
         }
 
         String decision = dto.getDecision().toUpperCase();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         appeal.setStatus(decision);
         appeal.setReviewedById(moderatorId);
@@ -346,7 +348,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
         warning.setReason(reason != null ? reason : "No reason provided");
         warning.setCategory(category != null ? category : "OTHER");
         warning.setActionId(actionId);
-        warning.setExpiresAt(LocalDateTime.now().plusDays(90));
+        warning.setExpiresAt(LocalDateTime.now(clock).plusDays(90));
         warningMapper.insert(warning);
     }
 
@@ -360,7 +362,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
         ban.setBannedById(bannedById);
         ban.setActionId(actionId);
         ban.setIsPermanent(isPermanent);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         ban.setStartedAt(now);
         if (!isPermanent && durationDays != null) {
             ban.setEndsAt(now.plusDays(durationDays));

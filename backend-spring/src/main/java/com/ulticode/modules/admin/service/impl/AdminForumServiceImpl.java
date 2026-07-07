@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final ForumPostMapper forumPostMapper;
     private final AuditService auditService;
     private final AuditHelper auditHelper;
+    private final Clock clock;
 
     @Override
     public void pinPost(String id) {
@@ -129,7 +131,7 @@ public class AdminForumServiceImpl implements AdminForumService {
         oldValues.put("deletedAt", post.getDeletedAt());
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("isDeleted", true);
-        newValues.put("deletedAt", LocalDateTime.now());
+        newValues.put("deletedAt", LocalDateTime.now(clock));
         newValues.put("deletedBy", performerId);
         // Audit FIRST: if audit fails we roll back the soft delete (audit
         // integrity beats delete throughput).
@@ -166,7 +168,7 @@ public class AdminForumServiceImpl implements AdminForumService {
         );
         post.setIsFlagged(true);
         post.setFlaggedReason(reason);
-        post.setFlaggedAt(LocalDateTime.now());
+        post.setFlaggedAt(LocalDateTime.now(clock));
         forumPostMapper.updateById(post);
         log.info("Post flagged: {} reason: {}", id, reason);
     }

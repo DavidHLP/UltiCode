@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -59,6 +61,9 @@ class AuthServiceImplTest {
     @Mock
     private AuthSessionPort authSessionPort;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -66,6 +71,13 @@ class AuthServiceImplTest {
     private static final String USERNAME = "testuser";
     private static final String PASSWORD = "password123";
     private static final String REFRESH_TOKEN = "refresh-token-value";
+
+    @BeforeEach
+    void setUp() {
+        org.mockito.MockitoAnnotations.openMocks(this);
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+    }
 
     private User createActiveUser() {
         User user = new User();

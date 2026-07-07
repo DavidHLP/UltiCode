@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -63,6 +64,7 @@ public class ForumPostServiceImpl implements ForumPostService {
      * the projection rules live in one module.
      */
     private final ForumReadProjection forumReadProjection;
+    private final Clock clock;
 
     // =========================================================================
     // Find all posts — uses selectPage + QueryWrapper for correct TypeHandler
@@ -296,7 +298,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         nu.setUsername(user.getUsername());
         nu.setAvatar(user.getAvatar());
         nu.setKarma(0);
-        nu.setCreatedAt(LocalDateTime.now());
+        nu.setCreatedAt(LocalDateTime.now(clock));
         forumUserMapper.insert(nu);
         log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);
         return nu.getId();

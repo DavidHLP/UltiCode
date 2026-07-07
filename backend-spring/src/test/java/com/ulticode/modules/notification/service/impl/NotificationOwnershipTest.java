@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -48,7 +49,7 @@ class NotificationOwnershipTest {
 
     @BeforeEach
     void setUp() {
-        service = new NotificationServiceImpl(notificationMapper, preferenceMapper, notificationPushPort);
+        service = new NotificationServiceImpl(Clock.systemDefaultZone(), notificationMapper, preferenceMapper, notificationPushPort);
     }
 
     private Notification seedNotification(String ownerId) {

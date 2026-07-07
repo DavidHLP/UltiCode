@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  private final ProblemTagMapper problemTagMapper;
  private final ProblemTagRelationMapper problemTagRelationMapper;
  private final ForumTagMapper forumTagMapper;
+ private final Clock clock;
  /**
  * Defense-in-depth whitelist check: rejects null / unknown type values that the
  * controller @Pattern should have already filtered. Throws BAD_REQUEST so direct
@@ -145,10 +147,10 @@ public class AdminTagServiceImpl implements AdminTagService {
  tag.setName(dto.getName());
  tag.setSlug(slug);
  tag.setDescription(dto.getDescription());
- tag.setColor(dto.getColor());
- tag.setUsageCount(0);
- tag.setCreatedAt(LocalDateTime.now());
- forumTagMapper.insert(tag);
+  tag.setColor(dto.getColor());
+  tag.setUsageCount(0);
+  tag.setCreatedAt(LocalDateTime.now(clock));
+  forumTagMapper.insert(tag);
  AuditContext.setNewValues(Map.of("name", tag.getName(), "type", TagTypes.FORUM));
  return toTagVO(tag);
  }
@@ -167,11 +169,11 @@ public class AdminTagServiceImpl implements AdminTagService {
  tag.setLabel(dto.getName());
  tag.setSlug(slug);
  tag.setDescription(dto.getDescription());
- tag.setColor(dto.getColor());
- tag.setUsageCount(0);
- tag.setCreatedAt(LocalDateTime.now());
- tag.setUpdatedAt(LocalDateTime.now());
- problemTagMapper.insert(tag);
+  tag.setColor(dto.getColor());
+  tag.setUsageCount(0);
+  tag.setCreatedAt(LocalDateTime.now(clock));
+  tag.setUpdatedAt(LocalDateTime.now(clock));
+  problemTagMapper.insert(tag);
  AuditContext.setNewValues(Map.of("name", tag.getLabel(), "type", TagTypes.PROBLEM));
  return toTagVO(tag);
  }
@@ -244,10 +246,10 @@ public class AdminTagServiceImpl implements AdminTagService {
  if (dto.getColor() != null) {
  existing.setColor(dto.getColor());
  }
- existing.setUpdatedAt(LocalDateTime.now());
- problemTagMapper.updateById(existing);
- AuditContext.setOldValues(oldValues);
- AuditContext.setNewValues(Map.of("name", existing.getLabel(), "type", TagTypes.PROBLEM));
+  existing.setUpdatedAt(LocalDateTime.now(clock));
+  problemTagMapper.updateById(existing);
+  AuditContext.setOldValues(oldValues);
+  AuditContext.setNewValues(Map.of("name", existing.getLabel(), "type", TagTypes.PROBLEM));
  return toTagVO(existing);
  }
  @Override

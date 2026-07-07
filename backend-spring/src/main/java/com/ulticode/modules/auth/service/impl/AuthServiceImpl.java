@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final AuthSessionPort authSessionPort;
+    private final Clock clock;
 
     @Override
     public LoginResponse login(LoginDTO loginDTO, HttpServletResponse response) {
@@ -96,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole("USER");
         user.setIsActive(true);
         user.setIsBanned(false);
-        user.setJoinedAt(LocalDateTime.now());
+        user.setJoinedAt(LocalDateTime.now(clock));
         userMapper.insert(user);
         log.info("Registered new user: {}", user.getUsername());
 
@@ -142,7 +144,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (Boolean.TRUE.equals(user.getIsBanned())) {
-            if (user.getBannedUntil() == null || user.getBannedUntil().isAfter(LocalDateTime.now())) {
+            if (user.getBannedUntil() == null || user.getBannedUntil().isAfter(LocalDateTime.now(clock))) {
                 log.warn("Authentication on banned account: {}", user.getUsername());
                 throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
             }

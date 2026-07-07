@@ -14,7 +14,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
@@ -44,6 +48,8 @@ class AdminForumServiceImplTest {
     private AuditService auditService;
     @Mock
     private AuditHelper auditHelper;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private AdminForumServiceImpl adminForumService;
@@ -62,6 +68,10 @@ class AdminForumServiceImplTest {
         testPost.setIsLocked(false);
         testPost.setIsFlagged(false);
         testPost.setIsDeleted(false);
+
+        // Freeze clock so LocalDateTime.now(clock) is deterministic in tests
+        lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
     }
 
     @Nested

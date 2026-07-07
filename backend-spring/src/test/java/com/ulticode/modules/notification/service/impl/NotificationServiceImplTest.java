@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.Clock;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,7 +36,7 @@ class NotificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationServiceImpl(notificationMapper, preferenceMapper, notificationPushPort);
+        notificationService = new NotificationServiceImpl(Clock.systemDefaultZone(), notificationMapper, preferenceMapper, notificationPushPort);
     }
 
     @Test

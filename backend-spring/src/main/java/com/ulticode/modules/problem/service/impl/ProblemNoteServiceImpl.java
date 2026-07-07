@@ -14,6 +14,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ public class ProblemNoteServiceImpl implements ProblemNoteService {
 
     private final ProblemNoteMapper noteMapper;
     private final ProblemMapper problemMapper;
+    private final Clock clock;
 
     @Override
     public ProblemNoteVO getNote(String userId, Long problemId) {
@@ -61,7 +63,7 @@ public class ProblemNoteServiceImpl implements ProblemNoteService {
             // Refresh update_time on every write. create_time is preserved on update
             // because the column is excluded from the UPDATE statement via
             // FieldStrategy.NEVER in the entity.
-            note.setUpdateTime(LocalDateTime.now());
+            note.setUpdateTime(LocalDateTime.now(clock));
             noteMapper.updateById(note);
             log.debug("Updated note user={} problem={} contentLen={}", userId, problemId, content.length());
             return ProblemNoteVO.from(note);
@@ -71,7 +73,7 @@ public class ProblemNoteServiceImpl implements ProblemNoteService {
         //    concurrent insert race possible if two requests for the same pair
         //    arrive within the read-then-insert window. Downgrade such races
         //    to an update so the second writer does not see a 500.
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         note.setCreateTime(now);
         note.setUpdateTime(now);
         try {
@@ -85,7 +87,7 @@ public class ProblemNoteServiceImpl implements ProblemNoteService {
             ProblemNote winner = noteMapper.findByUserAndProblem(userId, problemId)
                     .orElseThrow(() -> raceLost);
             winner.setContent(content);
-            winner.setUpdateTime(LocalDateTime.now());
+            winner.setUpdateTime(LocalDateTime.now(clock));
             noteMapper.updateById(winner);
             return ProblemNoteVO.from(winner);
         }

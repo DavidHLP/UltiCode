@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -48,6 +49,8 @@ class ForumCommentServiceImplTest {
     private ForumUserMapper forumUserMapper;
     @Mock
     private UserService userService;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private ForumCommentServiceImpl service;

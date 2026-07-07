@@ -17,6 +17,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -29,6 +30,7 @@ import java.util.Optional;
 public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionMapper subscriptionMapper;
+    private final Clock clock;
 
     @Override
     public SubscriptionCheckResultDTO hasPremiumAccess(String userId, String userRole) {
@@ -52,7 +54,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         // Check if subscription has expired
-        if (subscription.getExpiresAt() != null && subscription.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (subscription.getExpiresAt() != null && subscription.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
             // Update status to expired
             subscriptionMapper.updateStatus(subscription.getId(), SubscriptionStatus.EXPIRED.getValue());
 
@@ -193,7 +195,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         // Fetch updated subscription
         subscription = findById(id).orElseThrow();
-        subscription.setCancelledAt(LocalDateTime.now());
+        subscription.setCancelledAt(LocalDateTime.now(clock));
 
         log.info("Subscription cancelled: {}", id);
 

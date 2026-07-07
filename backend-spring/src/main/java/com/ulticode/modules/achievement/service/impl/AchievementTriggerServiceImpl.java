@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AchievementTriggerServiceImpl implements AchievementTriggerService {
 
+    private final Clock clock;
     private final AchievementMapper achievementMapper;
     private final UserAchievementMapper userAchievementMapper;
     private final AchievementService achievementService;
@@ -151,7 +153,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
                     UserAchievement userAchievement = new UserAchievement();
                     userAchievement.setUserId(userId);
                     userAchievement.setAchievementId(achievement.getId());
-                    userAchievement.setEarnedAt(LocalDateTime.now());
+                    userAchievement.setEarnedAt(LocalDateTime.now(clock));
                     userAchievementMapper.insert(userAchievement);
 
                     awardedIds.add(achievement.getId());

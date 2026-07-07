@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,11 +36,12 @@ public class AdminContentAnalyticsServiceImpl implements AdminContentAnalyticsSe
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final SubmissionMapper submissionMapper;
+    private final Clock clock;
 
     @Override
     public ProblemCompletionReportVO getProblemCompletionReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now().minusDays(daysToAnalyze);
+        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
         ProblemCompletionReportVO report = new ProblemCompletionReportVO();
 

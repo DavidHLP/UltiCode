@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.regex.Pattern;
@@ -48,6 +49,8 @@ import java.util.regex.Pattern;
 @Component
 @RequiredArgsConstructor
 public class EmailIntake {
+
+    private final Clock clock;
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
@@ -118,7 +121,7 @@ public class EmailIntake {
 
     private void markSent(EmailLog emailLog) {
         emailLog.setStatus(EmailStatus.SENT);
-        emailLog.setSentAt(LocalDateTime.now());
+        emailLog.setSentAt(LocalDateTime.now(clock));
         logMapper.updateById(emailLog);
     }
 

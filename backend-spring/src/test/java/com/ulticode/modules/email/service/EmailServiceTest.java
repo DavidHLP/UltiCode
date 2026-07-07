@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import jakarta.mail.MessagingException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -97,7 +98,7 @@ class EmailServiceTest {
         // Wire the intake against the mocked ports. In production wiring,
         // Spring injects StringReplaceEmailRenderAdapter + (JavaMail or
         // Logging) SmtpSenderAdapter.
-        emailIntake = new EmailIntake(templateMapper, logMapper, emailRenderPort, smtpSenderPort);
+        emailIntake = new EmailIntake(Clock.systemDefaultZone(), templateMapper, logMapper, emailRenderPort, smtpSenderPort);
         // Re-wire the service facade's intake field via reflection because
         // @InjectMocks cannot reach the new collaborator (it was injected
         // post-construction when @RequiredArgsConstructor ran). For tests

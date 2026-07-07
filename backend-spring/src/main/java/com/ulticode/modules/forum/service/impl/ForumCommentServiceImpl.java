@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
     private final ForumPostMapper postMapper;
     private final ForumUserMapper forumUserMapper;
     private final UserService userService;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -92,7 +94,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         // Sync editedAt to in-memory object so convertToCommentVO returns the new
         // timestamp instead of the pre-existing null. markAsEdited below only
         // updates the DB; the memory copy needs the explicit set for VO mapping.
-        comment.setEditedAt(LocalDateTime.now());
+        comment.setEditedAt(LocalDateTime.now(clock));
         commentMapper.updateById(comment);
         commentMapper.markAsEdited(id);
 
@@ -197,7 +199,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         newForumUser.setUsername(user.getUsername());
         newForumUser.setAvatar(user.getAvatar());
         newForumUser.setKarma(0);
-        newForumUser.setCreatedAt(LocalDateTime.now());
+        newForumUser.setCreatedAt(LocalDateTime.now(clock));
 
         forumUserMapper.insert(newForumUser);
         log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);

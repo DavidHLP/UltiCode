@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
+
+    private final Clock clock;
 
     /** DDL defaults for {@code notification_preferences} — kept in sync with V20260602_120000. */
     private static final boolean DEFAULT_COMMUNICATION = true;
@@ -162,7 +165,7 @@ public class NotificationServiceImpl implements NotificationService {
             boolean newRead = dto.getIsRead();
             if (newRead && !notification.getIsRead()) {
                 notification.setIsRead(true);
-                notification.setReadAt(LocalDateTime.now());
+                notification.setReadAt(LocalDateTime.now(clock));
             } else if (!newRead && notification.getIsRead()) {
                 notification.setIsRead(false);
                 notification.setReadAt(null);

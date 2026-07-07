@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService {
 
+    private final Clock clock;
     private final UserMapper userMapper;
     private final SubmissionMapper submissionMapper;
     private final AuditLogMapper auditLogMapper;
@@ -32,15 +34,15 @@ public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService 
     @Override
     public UserActivityReportVO getUserActivityReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now().minusDays(daysToAnalyze);
+        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
         UserActivityReportVO report = new UserActivityReportVO();
 
         // Daily active users - based on submissions (more representative than audit_logs
         // which only records admin operations)
         List<UserActivityReportVO.DailyActiveUsers> dailyActiveUsers = new ArrayList<>();
-        LocalDateTime overallStart = LocalDateTime.now().minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
-        LocalDateTime overallEnd = LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime overallStart = LocalDateTime.now(clock).minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime overallEnd = LocalDateTime.now(clock).plusDays(1).withHour(0).withMinute(0).withSecond(0);
         List<Map<String, Object>> dailyCounts = submissionMapper.countDailyActiveUsers(overallStart, overallEnd);
         for (Map<String, Object> row : dailyCounts) {
             dailyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
@@ -71,7 +73,7 @@ public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService 
 
         // Peak active hours - single aggregation query replacing 24 individual COUNT queries
         List<UserActivityReportVO.PeakActiveHour> peakHours = new ArrayList<>();
-        List<Map<String, Object>> hourCounts = submissionMapper.countActiveUsersByHour(LocalDateTime.now().minusDays(30));
+        List<Map<String, Object>> hourCounts = submissionMapper.countActiveUsersByHour(LocalDateTime.now(clock).minusDays(30));
         for (Map<String, Object> row : hourCounts) {
             int hour = ((Number) row.get("hour")).intValue();
             int count = ((Number) row.get("count")).intValue();
@@ -115,7 +117,7 @@ public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService 
      * subquery-based approach or materialized view is needed.
      */
     private Double calculateRetentionRate(int dayN) {
-        LocalDateTime day0 = LocalDateTime.now().minusDays(dayN);
+        LocalDateTime day0 = LocalDateTime.now(clock).minusDays(dayN);
         LocalDateTime dayNDate = day0.plusDays(dayN);
 
         LocalDateTime day0Start = day0.withHour(0).withMinute(0).withSecond(0);

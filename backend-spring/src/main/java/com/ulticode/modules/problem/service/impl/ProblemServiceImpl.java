@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -55,6 +56,7 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemVersionService problemVersionService;
     private final ProblemProjection problemProjection;
     private final ProblemDetailPort problemDetailPort;
+    private final Clock clock;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -131,7 +133,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         // Set published info if publishing
         if (Boolean.TRUE.equals(problem.getIsPublished())) {
-            problem.setPublishedAt(LocalDateTime.now());
+            problem.setPublishedAt(LocalDateTime.now(clock));
             problem.setPublishedBy(SecurityUtil.getCurrentUserId());
         }
 
@@ -173,7 +175,7 @@ public class ProblemServiceImpl implements ProblemService {
             problem.setIsPublished(updateDTO.getIsPublished());
             // Set published info if publishing for the first time
             if (Boolean.TRUE.equals(updateDTO.getIsPublished()) && problem.getPublishedAt() == null) {
-                problem.setPublishedAt(LocalDateTime.now());
+            problem.setPublishedAt(LocalDateTime.now(clock));
                 problem.setPublishedBy(SecurityUtil.getCurrentUserId());
             }
         }
@@ -216,7 +218,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         problem.setIsPublished(true);
         if (problem.getPublishedAt() == null) {
-            problem.setPublishedAt(LocalDateTime.now());
+            problem.setPublishedAt(LocalDateTime.now(clock));
             problem.setPublishedBy(SecurityUtil.getCurrentUserId());
         }
 

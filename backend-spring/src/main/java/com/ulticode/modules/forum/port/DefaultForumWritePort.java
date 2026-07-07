@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -38,6 +39,7 @@ public class DefaultForumWritePort implements ForumWritePort {
     private final ForumCommentService forumCommentService;
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
+    private final Clock clock;
 
     @Override
     public ForumPostVO createPost(CreatePostDTO dto, String userId) {
@@ -90,7 +92,7 @@ public class DefaultForumWritePort implements ForumWritePort {
             m.setCommunityId(communityId);
             m.setUserId(userId);
             m.setRole("MEMBER");
-            m.setJoinedAt(LocalDateTime.now());
+            m.setJoinedAt(LocalDateTime.now(clock));
             memberMapper.insert(m);
             communityMapper.incrementMembers(communityId);
         }

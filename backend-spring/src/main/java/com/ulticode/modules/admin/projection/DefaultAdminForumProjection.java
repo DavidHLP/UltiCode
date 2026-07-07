@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
@@ -62,8 +63,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
 
     @Override
     public PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query) {
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<>();
 
@@ -115,7 +115,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
             default -> wrapper.orderBy(true, isAsc, ForumPost::getCreatedAt);
         }
 
-        Page<ForumPost> pageResult = new Page<>(page, limit);
+        Page<ForumPost> pageResult = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<ForumPost> result = forumPostMapper.selectPage(pageResult, wrapper);
 
         // Batch-load related data to avoid N+1 queries
@@ -175,8 +175,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
         return PageResult.of(
                 vos,
                 result.getTotal(),
-                page,
-                limit
+                pageRequest
         );
     }
 
@@ -199,8 +198,7 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
 
     @Override
     public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search) {
-        int safeLimit = limit > 0 ? Math.min(limit, 100) : 20;
-        int safePage = page > 0 ? page : 1;
+        PaginationRequest communitiesRequest = PaginationRequest.of(page, limit);
 
         LambdaQueryWrapper<ForumCommunity> wrapper = new LambdaQueryWrapper<ForumCommunity>()
                 .orderByDesc(ForumCommunity::getMembers);
@@ -215,14 +213,14 @@ public class DefaultAdminForumProjection implements AdminForumProjection {
                     .like(ForumCommunity::getDescription, like));
         }
 
-        Page<ForumCommunity> pageResult = new Page<>(safePage, safeLimit);
+        Page<ForumCommunity> pageResult = new Page<>(communitiesRequest.page(), communitiesRequest.pageSize());
         Page<ForumCommunity> result = forumCommunityMapper.selectPage(pageResult, wrapper);
 
         List<AdminForumCommunityVO> voList = result.getRecords().stream()
                 .map(this::toCommunityVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), safePage, safeLimit);
+        return PageResult.of(voList, result.getTotal(), communitiesRequest);
     }
 
     // ------------------------------------------------------------------

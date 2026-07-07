@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSubmissionVO;
 import com.ulticode.modules.admin.dto.LanguageOption;
@@ -64,8 +65,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
         LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
 
@@ -134,7 +134,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
             default -> wrapper.orderBy(true, isAsc, Submission::getCreatedAt);
         }
 
-        Page<Submission> pageResult = new Page<>(page, limit);
+        Page<Submission> pageResult = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<Submission> result = submissionMapper.selectPage(pageResult, wrapper);
 
         // Batch-load users and problems to avoid N+1 queries (WR-05)
@@ -169,8 +169,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         return PageResult.of(
                 vos,
                 result.getTotal(),
-                page,
-                limit
+                pageRequest
         );
     }
 

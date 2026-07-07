@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
@@ -62,14 +63,13 @@ public class DefaultAdminSolutionProjection implements AdminSolutionProjection {
 
     @Override
     public PageResult<AdminSolutionListItemVO> getSolutions(AdminSolutionQueryDTO query) {
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
         // When isDeleted=true, bypass MyBatis-Plus filtering via raw SQL
         if (Boolean.TRUE.equals(query.getIsDeleted())) {
-            return getSolutionsDeletedBranch(query, page, limit);
+            return getSolutionsDeletedBranch(query, pageRequest.page(), pageRequest.pageSize());
         }
-        return getSolutionsActiveBranch(query, page, limit);
+        return getSolutionsActiveBranch(query, pageRequest.page(), pageRequest.pageSize());
     }
 
     // ------------------------------------------------------------------

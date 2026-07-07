@@ -11,6 +11,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class ScoringRuleServiceImpl implements ScoringRuleService {
 
     private final ScoringRuleMapper scoringRuleMapper;
+    private final Clock clock;
 
     @Override
     @Transactional(readOnly = true)
@@ -68,7 +70,7 @@ public class ScoringRuleServiceImpl implements ScoringRuleService {
         rule.setId(id);
         // Force updatedAt refresh on every PUT: MyBatis-Plus strictUpdateFill only
         // fills when the field is null, but selectById has already populated it.
-        rule.setUpdatedAt(LocalDateTime.now());
+        rule.setUpdatedAt(LocalDateTime.now(clock));
         if (dto.getIsDefault() != null && dto.getIsDefault()) {
             scoringRuleMapper.clearDefault();
         }

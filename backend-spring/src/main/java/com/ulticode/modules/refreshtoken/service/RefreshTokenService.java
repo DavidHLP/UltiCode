@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
@@ -26,9 +27,10 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class RefreshTokenService {
 
-    private final RefreshTokenMapper refreshTokenMapper;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final JwtProperties jwtProperties;
+  private final RefreshTokenMapper refreshTokenMapper;
+  private final JwtTokenProvider jwtTokenProvider;
+  private final JwtProperties jwtProperties;
+  private final Clock clock;
 
     /**
      * Create a new refresh token for a user.
@@ -45,9 +47,9 @@ public class RefreshTokenService {
         refreshToken.setId(tokenId);
         refreshToken.setUserId(userId);
         refreshToken.setTokenHash(tokenHash);
-        refreshToken.setExpiresAt(LocalDateTime.now().plusNanos(
+        refreshToken.setExpiresAt(LocalDateTime.now(clock).plusNanos(
             jwtProperties.getRefreshTokenExpiration() * 1_000_000));
-        refreshToken.setCreatedAt(LocalDateTime.now());
+        refreshToken.setCreatedAt(LocalDateTime.now(clock));
         refreshToken.setIsRevoked(false);
 
         refreshTokenMapper.insert(refreshToken);
@@ -86,7 +88,7 @@ public class RefreshTokenService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
         }
 
-        if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (storedToken.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
             log.warn("Expired refresh token for user: {}", storedToken.getUserId());
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "Refresh token has expired");
         }
@@ -107,7 +109,7 @@ public class RefreshTokenService {
         refreshTokenMapper.update(null,
             new LambdaUpdateWrapper<RefreshToken>()
                 .set(RefreshToken::getIsRevoked, true)
-                .set(RefreshToken::getRotatedAt, LocalDateTime.now())
+                .set(RefreshToken::getRotatedAt, LocalDateTime.now(clock))
                 .eq(RefreshToken::getTokenHash, DigestUtil.sha256Hex(token))
                 .eq(RefreshToken::getIsRevoked, false)
         );
@@ -122,7 +124,7 @@ public class RefreshTokenService {
         refreshTokenMapper.update(null,
             new LambdaUpdateWrapper<RefreshToken>()
                 .set(RefreshToken::getIsRevoked, true)
-                .set(RefreshToken::getRotatedAt, LocalDateTime.now())
+                .set(RefreshToken::getRotatedAt, LocalDateTime.now(clock))
                 .eq(RefreshToken::getId, tokenId)
         );
     }
@@ -137,7 +139,7 @@ public class RefreshTokenService {
         int count = refreshTokenMapper.update(null,
             new LambdaUpdateWrapper<RefreshToken>()
                 .set(RefreshToken::getIsRevoked, true)
-                .set(RefreshToken::getRotatedAt, LocalDateTime.now())
+                .set(RefreshToken::getRotatedAt, LocalDateTime.now(clock))
                 .eq(RefreshToken::getUserId, userId)
                 .eq(RefreshToken::getIsRevoked, false)
         );

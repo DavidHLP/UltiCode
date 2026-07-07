@@ -27,6 +27,12 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,6 +119,9 @@ class JudgeWorkerProcessorTest {
     @Mock
     private ObjectProvider<JudgeQueue> judgeQueueProvider;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private JudgeWorkerProcessor processor;
 
@@ -126,7 +135,9 @@ class JudgeWorkerProcessorTest {
 
     @BeforeEach
     void setUp() {
-        sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');");
+        lenient().when(clock.instant()).thenReturn(Instant.now());
+        lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');", clock);
         lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
         lenient().when(contestSubmissionMapper.selectOne(any())).thenReturn(null);
     }

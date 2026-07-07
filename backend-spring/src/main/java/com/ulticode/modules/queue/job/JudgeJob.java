@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -107,10 +108,11 @@ public class JudgeJob implements Serializable {
      * @param userId       the user ID
      * @param language     the programming language
      * @param code         the source code
+     * @param clock        the clock source for timestamps
      * @return the created JudgeJob
      */
     public static JudgeJob create(String submissionId, String problemId, String userId,
-                                   String language, String code) {
+                                   String language, String code, Clock clock) {
         return JudgeJob.builder()
                 .id(UUID.randomUUID().toString())
                 .submissionId(submissionId)
@@ -119,7 +121,7 @@ public class JudgeJob implements Serializable {
                 .language(language)
                 .code(code)
                 .status(QueueConstants.JobStatus.PENDING)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(clock))
                 .build();
     }
 }

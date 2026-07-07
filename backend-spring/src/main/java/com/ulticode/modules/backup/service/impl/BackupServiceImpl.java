@@ -209,7 +209,7 @@ public class BackupServiceImpl implements BackupService {
                 if (metadata == null) {
                     metadata = new HashMap<>();
                 }
-                metadata.put("lastRestoredAt", LocalDateTime.now().toString());
+                metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
                 metadata.put("lastRestoredBy", userId);
                 backup.setMetadata(metadata);
                 backupMapper.updateById(backup);
@@ -305,7 +305,7 @@ public class BackupServiceImpl implements BackupService {
                 // Update backup record
                 backup.setSize(size);
                 backup.setStatus(BackupStatus.COMPLETED);
-                backup.setCompletedAt(LocalDateTime.now());
+                backup.setCompletedAt(LocalDateTime.now(clock));
 
                 // Add metadata
                 Map<String, Object> metadata = new HashMap<>();
@@ -318,7 +318,7 @@ public class BackupServiceImpl implements BackupService {
             } else {
                 // Backup failed
                 backup.setStatus(BackupStatus.FAILED);
-                backup.setCompletedAt(LocalDateTime.now());
+                backup.setCompletedAt(LocalDateTime.now(clock));
                 backup.setError("mysqldump failed with exit code " + exitCode + ": " + output);
                 backupMapper.updateById(backup);
                 log.error("Backup failed: {}, exit code: {}, output: {}", backupId, exitCode, output);
@@ -330,7 +330,7 @@ public class BackupServiceImpl implements BackupService {
             }
             log.error("Backup execution failed for: {}", backupId, e);
             backup.setStatus(BackupStatus.FAILED);
-            backup.setCompletedAt(LocalDateTime.now());
+            backup.setCompletedAt(LocalDateTime.now(clock));
             backup.setError(e.getMessage());
             backupMapper.updateById(backup);
         }

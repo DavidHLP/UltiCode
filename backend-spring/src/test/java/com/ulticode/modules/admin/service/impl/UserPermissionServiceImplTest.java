@@ -62,6 +62,7 @@ class UserPermissionServiceImplTest {
     @BeforeEach
     void setUp() {
         when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        when(clock.instant()).thenReturn(java.time.Instant.now());
         userPermissionService = new UserPermissionServiceImpl(
                 userMapper, permissionService, adminUserProjection, clock);
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过

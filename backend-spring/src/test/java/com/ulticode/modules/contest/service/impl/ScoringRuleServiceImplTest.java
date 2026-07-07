@@ -15,6 +15,8 @@ import com.ulticode.modules.contest.dto.ScoringRuleVO;
 import com.ulticode.modules.contest.dto.UpdateScoringRuleDTO;
 import com.ulticode.modules.contest.entity.ScoringRule;
 import com.ulticode.modules.contest.mapper.ScoringRuleMapper;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,15 +52,16 @@ class ScoringRuleServiceImplTest {
 
     @Mock
     private ScoringRuleMapper scoringRuleMapper;
+    @Mock
+    private Clock clock;
 
     private ScoringRuleServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        // Manual construction: the SUT uses @RequiredArgsConstructor, but we
-        // deliberately avoid @InjectMocks to keep the dependency graph explicit
-        // (cf. project rule: mockito5-lombok-constructor-injection).
-        service = new ScoringRuleServiceImpl(scoringRuleMapper);
+        when(clock.instant()).thenReturn(Instant.now());
+        when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+        service = new ScoringRuleServiceImpl(scoringRuleMapper, clock);
     }
 
     // ----- helpers ----------------------------------------------------------

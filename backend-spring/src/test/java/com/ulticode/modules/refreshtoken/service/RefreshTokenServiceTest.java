@@ -12,6 +12,7 @@ import com.ulticode.modules.refreshtoken.entity.RefreshToken;
 import com.ulticode.modules.refreshtoken.mapper.RefreshTokenMapper;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ class RefreshTokenServiceTest {
   @Mock private RefreshTokenMapper refreshTokenMapper;
   @Mock private JwtTokenProvider jwtTokenProvider;
   @Spy private JwtProperties jwtProperties = new JwtProperties();
+  @Mock private Clock clock;
   @InjectMocks private RefreshTokenService refreshTokenService;
 
   @Test
@@ -42,11 +44,14 @@ class RefreshTokenServiceTest {
 
   @Test
   void validateAndRotateAtomicallyRevokesAndReissues() {
+    when(clock.instant()).thenReturn(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+    when(clock.getZone()).thenReturn(java.time.ZoneId.of("UTC"));
+
     RefreshToken stored = new RefreshToken();
     stored.setId("token-1");
     stored.setUserId("user-1");
     stored.setIsRevoked(false);
-    stored.setExpiresAt(LocalDateTime.now().plusDays(1));
+    stored.setExpiresAt(LocalDateTime.parse("2026-01-02T00:00:00"));
 
     when(jwtTokenProvider.getUserIdFromRefreshToken("old-token")).thenReturn("user-1");
     when(refreshTokenMapper.selectOne(any(Wrapper.class))).thenReturn(stored);
@@ -70,11 +75,14 @@ class RefreshTokenServiceTest {
 
   @Test
   void validateAndRotateRejectsReplayWhenAtomicUpdateLosesRace() {
+    when(clock.instant()).thenReturn(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+    when(clock.getZone()).thenReturn(java.time.ZoneId.of("UTC"));
+
     RefreshToken stored = new RefreshToken();
     stored.setId("token-1");
     stored.setUserId("user-1");
     stored.setIsRevoked(false);
-    stored.setExpiresAt(LocalDateTime.now().plusDays(1));
+    stored.setExpiresAt(LocalDateTime.parse("2026-01-02T00:00:00"));
 
     when(jwtTokenProvider.getUserIdFromRefreshToken("old-token")).thenReturn("user-1");
     when(refreshTokenMapper.selectOne(any(Wrapper.class))).thenReturn(stored);

@@ -29,6 +29,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,6 +51,9 @@ class BackupServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private BackupServiceImpl backupService;
 
@@ -63,6 +69,8 @@ class BackupServiceTest {
         ReflectionTestUtils.setField(backupService, "datasourceUrl", "jdbc:mysql://localhost:3306/testdb");
         ReflectionTestUtils.setField(backupService, "datasourceUsername", "root");
         ReflectionTestUtils.setField(backupService, "datasourcePassword", "password");
+        when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }
 
     @Nested

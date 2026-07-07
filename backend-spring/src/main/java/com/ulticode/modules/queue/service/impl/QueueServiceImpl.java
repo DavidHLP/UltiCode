@@ -48,7 +48,7 @@ public class QueueServiceImpl implements QueueService {
     @Override
     public String enqueueJudgeJob(String submissionId, String problemId, String userId,
                                    String language, String code) {
-        JudgeJob job = JudgeJob.create(submissionId, problemId, userId, language, code);
+        JudgeJob job = JudgeJob.create(submissionId, problemId, userId, language, code, clock);
         return enqueueJudgeJob(job);
     }
 

@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.anyCollection;
  * 通配符拒绝、过期时间拒绝、缓存失效、insert/update 路径选择、revoke 幂等。
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("PermissionService")
 class PermissionServiceTest {
 
@@ -57,6 +58,7 @@ class PermissionServiceTest {
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        when(clock.instant()).thenReturn(java.time.Instant.now());
         permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock);
     }

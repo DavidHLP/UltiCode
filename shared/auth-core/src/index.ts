@@ -48,6 +48,9 @@ export {
   hasPermission,
   WILDCARD_PERMISSION,
   Permissions,
+  checkPermission,
+  checkRole,
+  checkAnyRole,
 } from './permission';
 
 // 401 auto-refresh coordinator

@@ -161,3 +161,47 @@ export const Permissions = {
  * Type union of all permission keys. Useful for typed route-meta / form schemas.
  */
 export type PermissionKey = keyof typeof Permissions;
+
+// ---------------------------------------------------------------------------
+// Store-level convenience: checkPermission / checkRole / checkAnyRole
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether a user's permission set grants a specific (action, resource)
+ * pair, supporting `*:*`, `action:*`, `*:resource`, and exact-match wildcards.
+ *
+ * Single source of truth for the inline `hasPermission(action, resource)`
+ * logic previously duplicated in both auth stores (arch review candidate #4).
+ */
+export function checkPermission(
+  userPermissions: Set<string>,
+  action: string,
+  resource: string,
+): boolean {
+  if (userPermissions.size === 0) return false;
+  if (userPermissions.has('*:*')) return true;
+  if (userPermissions.has(`${action}:${resource}`)) return true;
+  if (userPermissions.has(`${action}:*`)) return true;
+  if (userPermissions.has(`*:${resource}`)) return true;
+  return false;
+}
+
+/**
+ * Case-insensitive role comparison against the user's role string.
+ */
+export function checkRole(userRole: string | undefined | null, role: string): boolean {
+  if (!userRole) return false;
+  return userRole.toUpperCase() === role.toUpperCase();
+}
+
+/**
+ * Case-insensitive check: does the user hold any of the listed roles?
+ */
+export function checkAnyRole(
+  userRole: string | undefined | null,
+  roles: string[],
+): boolean {
+  if (!userRole) return false;
+  const upper = userRole.toUpperCase();
+  return roles.some((r) => r.toUpperCase() === upper);
+}

@@ -215,6 +215,12 @@ class AchievementServiceTest {
     @DisplayName("Achievement Trigger Tests")
     class AchievementTriggerTests {
 
+        @BeforeEach
+        void setUp() {
+            lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+            lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+        }
+
         @Test
         @DisplayName("should award achievement when target is met")
         void shouldAwardAchievementWhenTargetMet() {

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +48,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final Clock clock;
 
     @Override
     public UserActivityReportVO getUserActivityReport(Integer days) {
@@ -61,7 +63,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     @Override
     public ContestParticipationReportVO getContestParticipationReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now().minusDays(daysToAnalyze);
+        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
         LoadedContestData data = loadContestData(startDate);
         List<Contest> contests = data.contests();
@@ -162,7 +164,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
             List<Contest> contests, Map<String, Long> participantsByContest, int daysToAnalyze) {
         List<ContestParticipationReportVO.ParticipationTrend> trend = new ArrayList<>();
         for (int i = (daysToAnalyze / 7); i >= 0; i--) {
-            LocalDateTime weekStart = LocalDateTime.now().minusWeeks(i).withHour(0).withMinute(0).withSecond(0);
+            LocalDateTime weekStart = LocalDateTime.now(clock).minusWeeks(i).withHour(0).withMinute(0).withSecond(0);
             LocalDateTime weekEnd = weekStart.plusWeeks(1);
 
             List<Contest> weekContests = contests.stream()
@@ -185,7 +187,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     @Override
     public RevenueReportVO getRevenueReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now().minusDays(daysToAnalyze);
+        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
         RevenueReportVO report = new RevenueReportVO();
 
@@ -235,7 +237,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         // Revenue trend (simplified)
         List<RevenueReportVO.RevenueTrend> revenueTrend = new ArrayList<>();
         for (int i = Math.min(daysToAnalyze, 30) - 1; i >= 0; i--) {
-            LocalDateTime dayStart = LocalDateTime.now().minusDays(i).withHour(0).withMinute(0).withSecond(0);
+            LocalDateTime dayStart = LocalDateTime.now(clock).minusDays(i).withHour(0).withMinute(0).withSecond(0);
             revenueTrend.add(new RevenueReportVO.RevenueTrend(
                     dayStart.toLocalDate().toString(),
                     mrr / 30, // Daily revenue approximation
@@ -257,14 +259,14 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     @Override
     public Map<String, Object> getAnalyticsOverview(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
-        LocalDateTime startDate = LocalDateTime.now().minusDays(daysToAnalyze);
+        LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
         Map<String, Object> overview = new LinkedHashMap<>();
 
         // User metrics
         long totalUsers = userMapper.selectCount(null);
         long activeUsers = submissionMapper.countDistinctUsersInRange(
-                startDate, LocalDateTime.now().plusDays(1));
+                startDate, LocalDateTime.now(clock).plusDays(1));
         overview.put("totalUsers", totalUsers);
         overview.put("activeUsers", activeUsers);
 

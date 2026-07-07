@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.lang.management.ManagementFactory;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class DashboardServiceImpl implements DashboardService {
 
     private final DashboardMapper dashboardMapper;
+    private final Clock clock;
 
     @Value("${app.version:1.0.0}")
     private String appVersion;
@@ -60,7 +62,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private DashboardStatsVO.UserStats getUserStats() {
         DashboardStatsVO.UserStats stats = new DashboardStatsVO.UserStats();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         stats.setTotal(dashboardMapper.countTotalUsers());
         stats.setActive(dashboardMapper.countActiveUsers());
@@ -87,7 +89,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private DashboardStatsVO.ContestStats getContestStats() {
         DashboardStatsVO.ContestStats stats = new DashboardStatsVO.ContestStats();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         stats.setTotal(dashboardMapper.countTotalContests());
         stats.setUpcoming(dashboardMapper.countUpcomingContests(now));
@@ -99,7 +101,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private DashboardStatsVO.SubmissionStats getSubmissionStats() {
         DashboardStatsVO.SubmissionStats stats = new DashboardStatsVO.SubmissionStats();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         stats.setTotal(dashboardMapper.countTotalSubmissions());
         stats.setToday(dashboardMapper.countSubmissionsSince(now.minusDays(1)));
@@ -149,7 +151,7 @@ public class DashboardServiceImpl implements DashboardService {
         result.setMetric(metric);
         result.setPeriod(period);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime startDate;
 
         if (days != null && days > 0) {
@@ -168,7 +170,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private LocalDateTime getDefaultStartDate(String period) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         return switch (period.toLowerCase()) {
             case "hour" -> now.minusHours(24);
             case "day" -> now.minusDays(30);

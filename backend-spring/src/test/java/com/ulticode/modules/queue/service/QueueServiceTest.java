@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RQueue;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +59,9 @@ class QueueServiceTest {
     @Mock
     private QueueInspector queueInspector;
 
+    @Mock
+    private Clock clock;
+
     @Spy
     private QueueConfig queueConfig = new QueueConfig();
 
@@ -79,6 +83,9 @@ class QueueServiceTest {
         ReflectionTestUtils.setField(queueService, "queueInspector", queueInspector);
         ReflectionTestUtils.setField(queueConfig, "enableStatusTracking", true);
         ReflectionTestUtils.setField(queueConfig, "jobStatusTtlSeconds", 86400L);
+        ReflectionTestUtils.setField(queueService, "clock", clock);
+        org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
     }
 
     @Nested

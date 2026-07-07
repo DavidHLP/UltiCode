@@ -32,7 +32,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,6 +64,7 @@ class ContestServiceImplTest {
     @Mock private SubmissionService submissionService;
     @Mock private ContestScoringService contestScoringService;
     @Mock private ContestProjection contestProjection;
+    @Mock private Clock clock;
 
     private ContestServiceImpl contestService;
 
@@ -78,7 +81,10 @@ class ContestServiceImplTest {
                 achievementTriggerService,
                 submissionService,
                 contestScoringService,
-                contestProjection);
+                contestProjection,
+                clock);
+        org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(LocalDateTime.of(2024, 6, 1, 0, 0).atZone(ZoneId.systemDefault()).toInstant());
+        org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }
 
     @AfterEach
@@ -366,7 +372,7 @@ class ContestServiceImplTest {
             participant.setStatus(ContestParticipantStatus.STARTED.name());
             participant.setIsVirtual(true);
             // Started 90 min ago for a 60-min virtual contest: past hard deadline.
-            participant.setStartedAt(java.time.LocalDateTime.now().minusMinutes(90));
+            participant.setStartedAt(LocalDateTime.of(2024, 6, 1, 0, 0).minusMinutes(90));
 
             CreateSubmissionDTO dto = new CreateSubmissionDTO();
             dto.setLanguage("java");

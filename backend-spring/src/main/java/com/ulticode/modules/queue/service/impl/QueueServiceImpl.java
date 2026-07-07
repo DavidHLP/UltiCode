@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RQueue;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class QueueServiceImpl implements QueueService {
+
+    private final Clock clock;
 
     private final RQueue<Object> judgeQueue;
     private final RQueue<Object> emailQueue;
@@ -55,7 +58,7 @@ public class QueueServiceImpl implements QueueService {
             job.setId(UUID.randomUUID().toString());
         }
         if (job.getCreatedAt() == null) {
-            job.setCreatedAt(LocalDateTime.now());
+            job.setCreatedAt(LocalDateTime.now(clock));
         }
         job.setStatus(QueueConstants.JobStatus.PENDING);
 
@@ -97,7 +100,7 @@ public class QueueServiceImpl implements QueueService {
         jobData.put("payload", request.getPayload());
         jobData.put("createdBy", request.getCreatedBy());
         jobData.put("metadata", request.getMetadata());
-        jobData.put("createdAt", LocalDateTime.now());
+        jobData.put("createdAt", LocalDateTime.now(clock));
         jobData.put("status", QueueConstants.JobStatus.PENDING);
 
         RQueue<Object> queue = getQueue(queueName);
@@ -118,7 +121,7 @@ public class QueueServiceImpl implements QueueService {
                         .status(QueueConstants.JobStatus.PENDING)
                         .priority(request.getPriority())
                         .maxRetries(request.getMaxRetries())
-                        .createdAt(LocalDateTime.now())
+                        .createdAt(LocalDateTime.now(clock))
                         .createdBy(request.getCreatedBy())
                         .payload(request.getPayload())
                         .build();
@@ -147,7 +150,7 @@ public class QueueServiceImpl implements QueueService {
         }
 
         status.setStatus(QueueConstants.JobStatus.CANCELLED);
-        status.setCompletedAt(LocalDateTime.now());
+        status.setCompletedAt(LocalDateTime.now(clock));
         saveJobStatus(jobId, status);
 
         log.info("Cancelled job: {}", jobId);
@@ -206,12 +209,12 @@ public class QueueServiceImpl implements QueueService {
         jobStatus.setError(error);
 
         if (newStatus == QueueConstants.JobStatus.PROCESSING) {
-            jobStatus.setStartedAt(LocalDateTime.now());
+            jobStatus.setStartedAt(LocalDateTime.now(clock));
             jobStatus.setAttempts(jobStatus.getAttempts() + 1);
         } else if (newStatus == QueueConstants.JobStatus.COMPLETED ||
                    newStatus == QueueConstants.JobStatus.FAILED ||
                    newStatus == QueueConstants.JobStatus.CANCELLED) {
-            jobStatus.setCompletedAt(LocalDateTime.now());
+            jobStatus.setCompletedAt(LocalDateTime.now(clock));
             if (jobStatus.getStartedAt() != null) {
                 long durationMs = java.time.Duration.between(
                         jobStatus.getStartedAt(),

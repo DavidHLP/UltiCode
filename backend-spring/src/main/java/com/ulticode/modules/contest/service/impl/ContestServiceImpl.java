@@ -36,6 +36,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -65,9 +66,9 @@ public class ContestServiceImpl implements ContestService {
     private final ContestSchedulerService schedulerService;
     private final AchievementTriggerService achievementTriggerService;
     private final SubmissionService submissionService;
-    // P2-5 fix: cascade-delete helper invoked from deleteContest.
     private final ContestScoringService contestScoringService;
     private final ContestProjection contestProjection;
+    private final Clock clock;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -166,7 +167,7 @@ public class ContestServiceImpl implements ContestService {
         // LambdaUpdateWrapper is required because Contest.isDeleted carries @TableLogic;
         // mapper.updateById(entity) silently skips fields annotated with @TableLogic.
         String deletedBy = SecurityUtil.getCurrentUserId();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         contestMapper.update(null, new LambdaUpdateWrapper<Contest>()
                 .eq(Contest::getId, id)
                 .set(Contest::getIsDeleted, true)
@@ -195,7 +196,7 @@ public class ContestServiceImpl implements ContestService {
         }
         // P1-2 fix: enforce contest end time. Admin must call endContest at end_time,
         // but if they forget, submissions past end_time would otherwise slip through.
-        if (contest.getEndTime() != null && java.time.LocalDateTime.now().isAfter(contest.getEndTime())) {
+        if (contest.getEndTime() != null && LocalDateTime.now(clock).isAfter(contest.getEndTime())) {
             throw new BusinessException(ErrorCode.CONTEST_ENDED, "Contest end time has passed");
         }
 
@@ -215,9 +216,9 @@ public class ContestServiceImpl implements ContestService {
         if (Boolean.TRUE.equals(participant.getIsVirtual())
                 && participant.getStartedAt() != null
                 && contest.getDurationMinutes() != null) {
-            java.time.LocalDateTime virtualEnd =
+            LocalDateTime virtualEnd =
                     participant.getStartedAt().plusMinutes(contest.getDurationMinutes());
-            if (java.time.LocalDateTime.now().isAfter(virtualEnd)) {
+            if (LocalDateTime.now(clock).isAfter(virtualEnd)) {
                 throw new BusinessException(ErrorCode.CONTEST_ENDED,
                         "Virtual contest duration has passed");
             }
@@ -290,7 +291,7 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be started from DRAFT or UPCOMING status");
         }
         contest.setStatus(ContestStatus.RUNNING.name());
-        contest.setActualStartTime(LocalDateTime.now());
+        contest.setActualStartTime(LocalDateTime.now(clock));
         contestMapper.updateById(contest);
         AuditContext.setOldValues(Map.ofEntries(Map.entry("status", status)));
         AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
@@ -309,7 +310,7 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be ended from RUNNING status");
         }
         contest.setStatus(ContestStatus.FINISHED.name());
-        contest.setActualEndTime(LocalDateTime.now());
+        contest.setActualEndTime(LocalDateTime.now(clock));
         contestMapper.updateById(contest);
         AuditContext.setOldValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
         AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.FINISHED.name())));

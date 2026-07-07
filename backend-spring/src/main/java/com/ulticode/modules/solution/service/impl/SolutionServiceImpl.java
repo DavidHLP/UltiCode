@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +45,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final SolutionCommentMapper solutionCommentMapper;
     private final ProblemMapper problemMapper;
     private final SolutionProjection solutionProjection;
+    private final Clock clock;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -86,8 +88,8 @@ public class SolutionServiceImpl implements SolutionService {
         comment.setUserId(userId);
         comment.setContent(dto.getContent());
         comment.setParentId(dto.getParentId());
-        comment.setCreatedAt(LocalDateTime.now());
-        comment.setUpdatedAt(LocalDateTime.now());
+        comment.setCreatedAt(LocalDateTime.now(clock));
+        comment.setUpdatedAt(LocalDateTime.now(clock));
         comment.setIsFlagged(false);
         comment.setIsDeleted(false);
 
@@ -107,7 +109,7 @@ public class SolutionServiceImpl implements SolutionService {
         }
 
         comment.setContent(dto.getContent());
-        comment.setUpdatedAt(LocalDateTime.now());
+        comment.setUpdatedAt(LocalDateTime.now(clock));
         solutionCommentMapper.updateById(comment);
         return solutionProjection.toCommentVO(comment);
     }
@@ -124,7 +126,7 @@ public class SolutionServiceImpl implements SolutionService {
         }
 
         comment.setIsDeleted(true);
-        comment.setDeletedAt(LocalDateTime.now());
+        comment.setDeletedAt(LocalDateTime.now(clock));
         comment.setDeletedBy(userId);
         solutionCommentMapper.updateById(comment);
     }
@@ -183,7 +185,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setDislikes(0);
         solution.setCommentCount(0);
         solution.setIsPublished(true);
-        solution.setPublishedAt(LocalDateTime.now());
+        solution.setPublishedAt(LocalDateTime.now(clock));
         solution.setPublishedBy(userId);
         solution.setIsFlagged(false);
         solution.setIsDeleted(false);

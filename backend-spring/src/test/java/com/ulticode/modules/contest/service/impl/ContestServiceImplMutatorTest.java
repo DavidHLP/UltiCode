@@ -69,7 +69,7 @@ class ContestServiceImplMutatorTest {
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
                 schedulerService, achievementTriggerService, submissionService,
-                contestScoringService, contestProjection);
+                contestScoringService, contestProjection, java.time.Clock.systemDefaultZone());
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

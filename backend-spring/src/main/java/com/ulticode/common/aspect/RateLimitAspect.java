@@ -3,6 +3,8 @@ package com.ulticode.common.aspect;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.ratelimiter.AcquisitionVerdict;
+import com.ulticode.common.ratelimiter.RateLimiter;
 import com.ulticode.common.util.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -11,19 +13,22 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 限流切面
- * 基于 Redis 实现 API 限流
+ * <p>Owns request-context key generation (placeholder substitution +
+ * user/IP detection). The actual rate check — Redis Lua script, key
+ * prefix, counter logic — is delegated to the {@link RateLimiter} port.
+ * See {@code /tmp/architecture-review-1783420414.html} candidate 5.
+ *
+ * <p>Two adapters justify the seam: {@link com.ulticode.common.ratelimiter.RedisRateLimiter}
+ * in prod, {@link com.ulticode.common.ratelimiter.InMemoryRateLimiter} in
+ * tests. The aspect is now unit-testable without Redis.
  */
 @Slf4j
 @Aspect
@@ -31,12 +36,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RateLimitAspect {
 
-    private static final String RATE_LIMIT_SCRIPT =
-            "local count = redis.call('INCR', KEYS[1]) " +
-            "redis.call('EXPIRE', KEYS[1], ARGV[1]) " +
-            "return count";
-
-    private final StringRedisTemplate redisTemplate;
+    private final RateLimiter rateLimiter;
 
     @Around("@annotation(com.ulticode.common.annotation.RateLimit)")
     public Object enforceRateLimit(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -45,16 +45,12 @@ public class RateLimitAspect {
         RateLimit rateLimit = method.getAnnotation(RateLimit.class);
 
         String key = generateKey(rateLimit, joinPoint);
-        String redisKey = "rate-limit:" + key;
 
-        DefaultRedisScript<Long> script = new DefaultRedisScript<>(RATE_LIMIT_SCRIPT, Long.class);
-        Long count = redisTemplate.execute(script, List.of(redisKey), String.valueOf(rateLimit.period()));
-
-        if (count != null && count > rateLimit.limit()) {
-            Long ttl = redisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
-            log.warn("Rate limit exceeded for key: {}, ttl: {}s", key, ttl);
+        AcquisitionVerdict verdict = rateLimiter.tryAcquire(key, rateLimit.limit(), rateLimit.period());
+        if (!verdict.allowed()) {
+            log.warn("Rate limit exceeded for key: {}, retryAfter: {}s", key, verdict.retryAfterSeconds());
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
-                    "Rate limit exceeded. Please try again in " + (ttl != null ? ttl : rateLimit.period()) + " seconds.");
+                    "Rate limit exceeded. Please try again in " + verdict.retryAfterSeconds() + " seconds.");
         }
 
         return joinPoint.proceed();

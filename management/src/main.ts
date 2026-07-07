@@ -5,7 +5,7 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
-import { setLocale } from './i18n'
+import { setLocale, getStoredLocale } from './i18n'
 import { initTheme } from '@/composables/useTheme'
 import { applyTypographyDensity } from '@/composables/useTypographyDensity'
 
@@ -47,7 +47,7 @@ async function bootstrap() {
   // Initialize locale from stored preference on app startup
   // This ensures document.documentElement.lang is set even before any component mounts
   // and persists correctly to localStorage
-  const storedLocale = localStorage.getItem('ulticode-locale') as 'zh-CN' | 'en-US' | null
+  const storedLocale = getStoredLocale() as 'zh-CN' | 'en-US' | null
   if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
     setLocale(storedLocale)
   } else {

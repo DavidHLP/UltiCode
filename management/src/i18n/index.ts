@@ -1,6 +1,18 @@
 import { createI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import zhCN from './locales/zh-CN/'
 import enUS from './locales/en-US/'
+import {
+  getStoredLocale,
+  setStoredLocale,
+  setStorageNotifier,
+} from '@/shared/i18n-storage/src'
+
+setStorageNotifier((level, message) => {
+  if (level === 'warning') toast.warning(message)
+  else if (level === 'info') toast.info(message)
+  else if (level === 'success') toast.success(message)
+})
 
 // Re-export types and constants from types.ts (single source of truth)
 export {
@@ -13,14 +25,7 @@ export {
 
 export type { SupportedLocale, LocaleConfig, MessageSchema } from './types'
 
-// Get active locale from localStorage or return default
-function getStoredLocale(): string | null {
-  try {
-    return localStorage.getItem('ulticode-locale')
-  } catch {
-    return null
-  }
-}
+export { getStoredLocale, setStoredLocale }
 
 // Get initial locale based on storage or browser preference
 function getInitialLocale(): string {
@@ -72,17 +77,9 @@ export function getActiveLocale(): string {
   return 'zh-CN'
 }
 
-// Set locale and persist to localStorage
 export function setLocale(locale: 'zh-CN' | 'en-US'): void {
   i18n.global.locale.value = locale
-
-  try {
-    localStorage.setItem('ulticode-locale', locale)
-  } catch {
-    // Ignore localStorage errors
-  }
-
-  // Update HTML lang attribute for accessibility
+  setStoredLocale(locale)
   document.documentElement.lang = locale
 }
 

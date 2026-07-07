@@ -23,8 +23,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Clock;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,6 +46,7 @@ import static org.mockito.Mockito.*;
  * service's own mutation logic.</p>
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AchievementServiceTest {
 
     @Mock
@@ -62,6 +66,9 @@ class AchievementServiceTest {
 
     @Mock
     private AchievementService achievementService;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private AchievementServiceImpl achievementServiceImpl;

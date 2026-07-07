@@ -66,4 +66,34 @@ public class PageResult<T> {
         }
         return new PageResult<>(items, total, page, pageSize, totalPages);
     }
+
+    /**
+     * Create a PageResult from a normalized {@link PaginationRequest}.
+     *
+     * <p>Preferred over {@link #of(List, Long, Integer, Integer)} — the
+     * normalization rules (default page 1, default size 20, cap 100) live
+     * behind one seam in {@link PaginationRequest}, eliminating per-service
+     * drift. Existing callers may migrate mechanically:
+     * <pre>{@code
+     * // before
+     * int currentPage = (page != null && page > 0) ? page : 1;
+     * int currentPageSize = (pageSize != null && pageSize > 0) ? pageSize : 20;
+     * currentPageSize = Math.min(currentPageSize, 100);
+     * return PageResult.of(items, total, currentPage, currentPageSize);
+     *
+     * // after
+     * PaginationRequest req = PaginationRequest.of(page, pageSize);
+     * return PageResult.of(items, total, req);
+     * }</pre>
+     *
+     * @param items   the list of items
+     * @param total   total number of items
+     * @param request normalized pagination request
+     * @param <T>     the type of items
+     * @return PageResult instance
+     */
+    public static <T> PageResult<T> of(List<T> items, Long total, PaginationRequest request) {
+        int totalPages = (int) Math.ceil((double) total / request.pageSize());
+        return new PageResult<>(items, total, request.page(), request.pageSize(), totalPages);
+    }
 }

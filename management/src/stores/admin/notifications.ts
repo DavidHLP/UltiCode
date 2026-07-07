@@ -7,7 +7,7 @@ import {
   type SystemAnnouncement,
   type AdminNotificationQueryParams,
 } from '@/api/admin/notifications'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useNotificationsStore = defineStore('admin-notifications', () => {
   const announcements = ref<SystemAnnouncement[]>([])
   const total = ref(0)
@@ -35,8 +35,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
       currentPage.value = response.page
       pageSize.value = response.pageSize
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } }
-      error.value = err.response?.data?.message || 'Failed to fetch announcements'
+            error.value = extractApiErrorMessage(e, 'Failed to fetch announcements')
       throw e
     } finally {
       isLoading.value = false
@@ -50,8 +49,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
       await adminNotificationsApi.create(data)
       await fetchAnnouncements()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } }
-      error.value = err.response?.data?.message || 'Failed to create notification'
+            error.value = extractApiErrorMessage(e, 'Failed to create notification')
       throw e
     } finally {
       isLoading.value = false
@@ -65,8 +63,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
       await adminNotificationsApi.update(id, data)
       await fetchAnnouncements()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } }
-      error.value = err.response?.data?.message || 'Failed to update notification'
+            error.value = extractApiErrorMessage(e, 'Failed to update notification')
       throw e
     } finally {
       isLoading.value = false
@@ -80,8 +77,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
       await adminNotificationsApi.delete(id)
       await fetchAnnouncements()
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } }
-      error.value = err.response?.data?.message || 'Failed to delete announcement'
+            error.value = extractApiErrorMessage(e, 'Failed to delete announcement')
       throw e
     } finally {
       isLoading.value = false

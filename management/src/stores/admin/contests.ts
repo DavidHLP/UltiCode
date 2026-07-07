@@ -9,7 +9,7 @@ import {
   type AddContestProblemDto,
   type ContestRanking,
 } from '@/api/admin/contests'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useContestsStore = defineStore('adminContests', () => {
   const contests = ref<Contest[]>([])
   const total = ref(0)
@@ -26,9 +26,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       contests.value = response.items
       total.value = response.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch contests'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch contests')
       console.error('Failed to fetch contests:', err)
     } finally {
       loading.value = false
@@ -45,8 +43,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       return contest
     } catch (err: unknown) {
       const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch contest'
+        extractApiErrorMessage(err, 'Failed to fetch contest')
       error.value = errorMessage
       console.error('Failed to fetch contest:', err)
       return null
@@ -62,9 +59,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       const contest = await contestsApi.createContest(data)
       return contest
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to create contest'
+      error.value = extractApiErrorMessage(err, 'Failed to create contest')
       console.error('Failed to create contest:', err)
       throw err
     } finally {
@@ -88,9 +83,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       }
       return contest
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update contest'
+      error.value = extractApiErrorMessage(err, 'Failed to update contest')
       console.error('Failed to update contest:', err)
       throw err
     } finally {
@@ -114,9 +107,7 @@ export const useContestsStore = defineStore('adminContests', () => {
         currentContest.value = null
       }
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete contest'
+      error.value = extractApiErrorMessage(err, 'Failed to delete contest')
       console.error('Failed to delete contest:', err)
       throw err
     } finally {
@@ -134,9 +125,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       if (currentContest.value?.id === id) currentContest.value = contest
       return contest
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to start contest'
+      error.value = extractApiErrorMessage(err, 'Failed to start contest')
       throw err
     } finally {
       loading.value = false
@@ -153,9 +142,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       if (currentContest.value?.id === id) currentContest.value = contest
       return contest
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to end contest'
+      error.value = extractApiErrorMessage(err, 'Failed to end contest')
       throw err
     } finally {
       loading.value = false
@@ -169,9 +156,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       await contestsApi.addProblem(id, data)
       await fetchContest(id) // Refresh to get updated problems list
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to add problem'
+      error.value = extractApiErrorMessage(err, 'Failed to add problem')
       throw err
     } finally {
       loading.value = false
@@ -189,9 +174,7 @@ export const useContestsStore = defineStore('adminContests', () => {
         }
       }
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to remove problem'
+      error.value = extractApiErrorMessage(err, 'Failed to remove problem')
       throw err
     } finally {
       loading.value = false

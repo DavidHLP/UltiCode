@@ -8,7 +8,7 @@ import {
   type FlagSolutionDto,
   type BulkSolutionActionDto,
 } from '@/api/admin/solutions'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useSolutionsStore = defineStore('adminSolutions', () => {
   const solutions = ref<SolutionListItem[]>([])
   const total = ref(0)
@@ -29,9 +29,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       solutions.value = response.items
       total.value = response.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch solutions'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch solutions')
       console.error('Failed to fetch solutions:', err)
     } finally {
       loading.value = false
@@ -46,9 +44,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       solutions.value = response.items
       total.value = response.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch flagged solutions'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch flagged solutions')
       console.error('Failed to fetch flagged solutions:', err)
     } finally {
       loading.value = false
@@ -65,8 +61,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       return solution
     } catch (err: unknown) {
       const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch solution'
+        extractApiErrorMessage(err, 'Failed to fetch solution')
       error.value = errorMessage
       console.error('Failed to fetch solution:', err)
       return null
@@ -91,9 +86,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       }
       return solution
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to flag solution'
+      error.value = extractApiErrorMessage(err, 'Failed to flag solution')
       console.error('Failed to flag solution:', err)
       throw err
     } finally {
@@ -117,9 +110,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       }
       return solution
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to unflag solution'
+      error.value = extractApiErrorMessage(err, 'Failed to unflag solution')
       console.error('Failed to unflag solution:', err)
       throw err
     } finally {
@@ -140,9 +131,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
         currentSolution.value = null
       }
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete solution'
+      error.value = extractApiErrorMessage(err, 'Failed to delete solution')
       console.error('Failed to delete solution:', err)
       throw err
     } finally {
@@ -158,9 +147,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       // Refresh list after bulk action
       await fetchSolutions()
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to perform bulk action'
+      error.value = extractApiErrorMessage(err, 'Failed to perform bulk action')
       console.error('Failed to perform bulk action:', err)
       throw err
     } finally {

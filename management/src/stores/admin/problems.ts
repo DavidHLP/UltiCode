@@ -12,6 +12,7 @@ import {
   type CodeData,
   type CasesData,
 } from '@/api/admin/problems'
+import { extractApiErrorMessage } from '@/utils/error'
 import { tagsApi, TagType } from '@/api/admin/tags'
 import { ApiError } from '@/utils/request'
 
@@ -94,11 +95,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   function extractErrorMessage(err: unknown): string {
-    return (
-      (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-      (err as Error)?.message ||
-      'An error occurred'
-    )
+    return extractApiErrorMessage(err, 'An error occurred')
   }
 
   async function fetchTab<T>(

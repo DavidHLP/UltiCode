@@ -6,7 +6,7 @@ import {
   type ChartStatsResponse,
   type ChartQueryParams,
 } from '@/api/admin/dashboard'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useDashboardStore = defineStore('adminDashboard', () => {
   // Note: API returns unwrapped data (request.ts interceptor handles Result<T>)
   const stats = ref<DashboardStats | null>(null)
@@ -22,9 +22,7 @@ export const useDashboardStore = defineStore('adminDashboard', () => {
       stats.value = data
       return data
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch dashboard stats'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch dashboard stats')
       console.error('Failed to fetch dashboard stats:', err)
       throw err
     } finally {
@@ -40,9 +38,7 @@ export const useDashboardStore = defineStore('adminDashboard', () => {
       chartData.value = data
       return data
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch chart data'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch chart data')
       console.error('Failed to fetch chart data:', err)
       throw err
     } finally {

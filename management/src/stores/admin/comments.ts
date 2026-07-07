@@ -7,7 +7,7 @@ import {
   type CommentType,
   type BulkCommentActionDto,
 } from '@/api/admin/comments'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useCommentsStore = defineStore('adminComments', () => {
   const comments = ref<Comment[]>([])
   const total = ref(0)
@@ -25,9 +25,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       comments.value = response.items.filter((c): c is Comment => c !== null)
       total.value = response.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch comments'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch comments')
     } finally {
       loading.value = false
     }
@@ -41,9 +39,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       currentComment.value = comment
       return comment
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch comment'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch comment')
       throw err
     } finally {
       loading.value = false
@@ -61,9 +57,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       }
       return updatedComment
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to flag comment'
+      error.value = extractApiErrorMessage(err, 'Failed to flag comment')
       throw err
     } finally {
       loading.value = false
@@ -81,9 +75,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       }
       return updatedComment
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to unflag comment'
+      error.value = extractApiErrorMessage(err, 'Failed to unflag comment')
       throw err
     } finally {
       loading.value = false
@@ -104,9 +96,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
         ]
       }
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete comment'
+      error.value = extractApiErrorMessage(err, 'Failed to delete comment')
       throw err
     } finally {
       loading.value = false
@@ -120,9 +110,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       await commentsApi.bulkAction(data)
       await fetchComments(lastParams.value)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to perform bulk action'
+      error.value = extractApiErrorMessage(err, 'Failed to perform bulk action')
       throw err
     } finally {
       loading.value = false

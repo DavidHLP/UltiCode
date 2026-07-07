@@ -20,6 +20,7 @@ import {
   type ModerationStatus,
   type ReportCategory,
 } from '@/api/admin/moderation'
+import { extractApiErrorMessage } from '@/utils/error'
 
 export const useModerationStore = defineStore('adminModeration', () => {
   // ============================================================================
@@ -107,8 +108,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   // Error Helpers
   // ============================================================================
   function extractErrorMessage(err: unknown): string {
-    const errorObj = err as { response?: { data?: { message?: string } }; message?: string }
-    return errorObj?.response?.data?.message || errorObj?.message || 'An error occurred'
+    return extractApiErrorMessage(err, 'An error occurred')
   }
 
   // ============================================================================

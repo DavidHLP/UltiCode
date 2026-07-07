@@ -8,6 +8,7 @@ import {
   type BulkForumActionType,
   type ForumPostDetail,
 } from '@/api/admin/forum'
+import { extractApiErrorMessage } from '@/utils/error'
 import type { AuditLog } from '@/api/admin/audit'
 
 export const useForumStore = defineStore('adminForum', () => {
@@ -37,8 +38,7 @@ export const useForumStore = defineStore('adminForum', () => {
       totalPosts.value = response.total
     } catch (err: unknown) {
       postsError.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch forum posts'
+        extractApiErrorMessage(err, 'Failed to fetch forum posts')
       console.error('Failed to fetch forum posts:', err)
     } finally {
       postsLoading.value = false
@@ -67,8 +67,7 @@ export const useForumStore = defineStore('adminForum', () => {
       await fetchPosts() // Refreshing is safer for pagination
     } catch (err: unknown) {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete post'
+        extractApiErrorMessage(err, 'Failed to delete post')
       postsError.value = msg
       throw err
     } finally {
@@ -143,8 +142,7 @@ export const useForumStore = defineStore('adminForum', () => {
       currentPost.value = await forumApi.getPostDetail(id)
     } catch (err: unknown) {
       postError.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch post details'
+        extractApiErrorMessage(err, 'Failed to fetch post details')
       console.error('Failed to fetch post details:', err)
       throw err
     } finally {

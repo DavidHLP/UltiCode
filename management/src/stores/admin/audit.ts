@@ -7,7 +7,7 @@ import {
   type AuditStats,
   type AuditExportParams,
 } from '@/api/admin/audit'
-
+import { extractApiErrorMessage } from '@/utils/error'
 export const useAuditStore = defineStore('adminAudit', () => {
   const logs = ref<AuditLog[]>([])
   const total = ref(0)
@@ -24,9 +24,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
       total.value = data.total
       return data
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch audit logs'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch audit logs')
       console.error('Failed to fetch audit logs:', err)
       throw err
     } finally {
@@ -42,9 +40,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
       stats.value = data
       return data
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch audit stats'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch audit stats')
       console.error('Failed to fetch audit stats:', err)
       throw err
     } finally {
@@ -58,9 +54,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     try {
       await auditApi.exportAuditLogs(params)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to export audit logs'
+      error.value = extractApiErrorMessage(err, 'Failed to export audit logs')
       console.error('Failed to export audit logs:', err)
       throw err
     } finally {

@@ -7,6 +7,7 @@ import {
   type CreateUserDto,
   type UpdateUserDto,
 } from '@/api/admin/users'
+import { extractApiErrorMessage } from '@/utils/error'
 
 export const useUsersStore = defineStore('adminUsers', () => {
   const users = ref<User[]>([])
@@ -24,9 +25,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       users.value = pageResult.items
       total.value = pageResult.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch users'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch users')
       console.error('Failed to fetch users:', err)
     } finally {
       loading.value = false
@@ -41,9 +40,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       currentUser.value = user
       return user
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch user'
+      error.value = extractApiErrorMessage(err, 'Failed to fetch user')
       console.error('Failed to fetch user:', err)
       return null
     } finally {
@@ -58,9 +55,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       const user = await usersApi.createUser(data)
       return user
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to create user'
+      error.value = extractApiErrorMessage(err, 'Failed to create user')
       console.error('Failed to create user:', err)
       throw err
     } finally {
@@ -80,9 +75,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       }
       return user
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update user'
+      error.value = extractApiErrorMessage(err, 'Failed to update user')
       console.error('Failed to update user:', err)
       throw err
     } finally {
@@ -101,9 +94,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       }
       return user
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to ban user'
+      error.value = extractApiErrorMessage(err, 'Failed to ban user')
       console.error('Failed to ban user:', err)
       throw err
     } finally {
@@ -122,9 +113,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
       }
       return user
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to unban user'
+      error.value = extractApiErrorMessage(err, 'Failed to unban user')
       console.error('Failed to unban user:', err)
       throw err
     } finally {
@@ -138,9 +127,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
     try {
       await usersApi.bulkBan(ids, reason)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to bulk ban users'
+      error.value = extractApiErrorMessage(err, 'Failed to bulk ban users')
       console.error('Failed to bulk ban users:', err)
       throw err
     } finally {
@@ -154,9 +141,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
     try {
       await usersApi.bulkUnban(ids)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to bulk unban users'
+      error.value = extractApiErrorMessage(err, 'Failed to bulk unban users')
       console.error('Failed to bulk unban users:', err)
       throw err
     } finally {
@@ -170,9 +155,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
     try {
       await usersApi.bulkDelete(ids)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to bulk delete users'
+      error.value = extractApiErrorMessage(err, 'Failed to bulk delete users')
       console.error('Failed to bulk delete users:', err)
       throw err
     } finally {
@@ -186,9 +169,7 @@ export const useUsersStore = defineStore('adminUsers', () => {
     try {
       await usersApi.resetPassword(id, password)
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to reset password'
+      error.value = extractApiErrorMessage(err, 'Failed to reset password')
       console.error('Failed to reset password:', err)
       throw err
     } finally {

@@ -72,13 +72,19 @@ class BackupServiceTest {
         ReflectionTestUtils.setField(backupService, "datasourceUrl", "jdbc:mysql://localhost:3306/testdb");
         ReflectionTestUtils.setField(backupService, "datasourceUsername", "root");
         ReflectionTestUtils.setField(backupService, "datasourcePassword", "password");
-        when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
-        when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }
 
     @Nested
     @DisplayName("createBackup Tests")
     class CreateBackupTests {
+
+        @BeforeEach
+        void setUp() {
+            lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+            lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        }
 
         @Test
         @DisplayName("should create backup with PENDING status")
@@ -146,6 +152,12 @@ class BackupServiceTest {
     @Nested
     @DisplayName("getBackups Tests")
     class GetBackupsTests {
+
+        @BeforeEach
+        void setUp() {
+            lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+            lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        }
 
         @Test
         @DisplayName("should return paginated backups")

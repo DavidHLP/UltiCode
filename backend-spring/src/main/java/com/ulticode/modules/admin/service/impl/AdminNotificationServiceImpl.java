@@ -2,20 +2,18 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
+import com.ulticode.modules.admin.projection.AdminNotificationProjection;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.NotificationPreference;
@@ -30,10 +28,42 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Write state machine for admin system-notification management &mdash;
+ * ADR-0011 Stage 4 deepening.
+ *
+ * <p>Every read-side concern (paginated list read with sort-field whitelist,
+ * batch creator User enrichment, three {@code toAdminVO} overloads, the
+ * {@code buildAnnouncementVo} helper) moved behind
+ * {@link AdminNotificationProjection}. This service keeps the write state
+ * machine only: create / update / soft-delete system announcements, plus the
+ * preference-gated recipient resolution for the broadcast path
+ * (ADR-004 &sect;2.3). Write paths that return {@code AdminNotificationVO}
+ * ({@code createSystemNotification}, {@code updateSystemNotification}) call
+ * {@link AdminNotificationProjection#toAdminVO} so the controller contract
+ * is unchanged &mdash; the shape rule simply no longer lives here.
+ *
+ * <p>Cross-module read access ({@code UserMapper} for the {@code creator}
+ * field on the VO) moved to the projection. The remaining {@code UserMapper}
+ * usage here is for legitimate write-path concerns (target-user resolution
+ * for the broadcast, current-admin resolution for the audit anchor) &mdash;
+ * those are not projection concerns.
+ *
+ * <p>Mirrors the {@code AdminContestServiceImpl} (Stage 3) shape: the
+ * service keeps its {@code listXxx} read method as a thin delegator to the
+ * projection, and write methods that need a VO call the projection's
+ * {@code toXxxVO} helper to avoid duplicating the shape rule.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -45,44 +75,21 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     /**
      * Categories whose delivery must respect per-user opt-out preferences
-     * (ADR-004 §2.3). {@code SECURITY} and {@code SYSTEM} announcements are
-     * force-delivered and bypass this filter.
+     * (ADR-004 &sect;2.3). {@code SECURITY} and {@code SYSTEM} announcements
+     * are force-delivered and bypass this filter.
      */
     private static final Set<String> PREFERENCE_GATED_CATEGORIES =
             Set.of(MARKETING_CATEGORY, COMMUNICATION_CATEGORY);
-
-    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "createdAt", "title", "type", "category", "announcementId"
-    );
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
     private final UserMapper userMapper;
     private final Clock clock;
+    private final AdminNotificationProjection adminNotificationProjection;
 
     @Override
     public PageResult<AdminNotificationVO> listSystemNotifications(AdminNotificationQueryDTO queryDTO) {
-        int page = queryDTO.getPage() != null ? queryDTO.getPage() : 1;
-        int limit = queryDTO.getLimit() != null ? queryDTO.getLimit() : 10;
-
-        String sortBy = queryDTO.getSortBy();
-        if (sortBy != null && !ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            sortBy = null;
-        }
-        String sortOrder = queryDTO.getSortOrder();
-
-        Page<Notification> pageParam = new Page<>(page, limit);
-        IPage<Notification> result = notificationMapper.selectDedupedAnnouncements(
-                pageParam,
-                SYSTEM_CATEGORY,
-                queryDTO.getKeyword(),
-                queryDTO.getType(),
-                queryDTO.getAnnouncementId(),
-                sortBy,
-                sortOrder);
-
-        List<AdminNotificationVO> vos = toAdminVOList(result.getRecords());
-        return PageResult.of(vos, result.getTotal(), page, limit);
+        return adminNotificationProjection.getSystemNotifications(queryDTO);
     }
 
     @Override
@@ -158,11 +165,11 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             // Every recipient opted out — record the announcement intent without
             // persisting any user-facing notification row.
             AuditContext.setEntityId(announcementId);
-            return buildAnnouncementVo(request, category, announcementId);
+            return adminNotificationProjection.buildAnnouncementVO(request, category, announcementId);
         }
         Notification representative = notificationsToCreate.get(0);
         AuditContext.setEntityId(representative.getId());
-        return toAdminVOForSingle(representative);
+        return adminNotificationProjection.toAdminVO(representative);
     }
 
     @Override
@@ -254,10 +261,10 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         log.info("Updated system notification '{}' and {} related records", id, updatedCount);
 
         Notification updated = notificationMapper.selectById(id);
-        return toAdminVOForSingle(updated);
+        return adminNotificationProjection.toAdminVO(updated);
     }
 
-    // ==================== Private Helper Methods ====================
+    // ==================== Private Write-Path Helpers ====================
 
     private List<String> getTargetUserIds(String target, List<String> userIds) {
         if ("ALL".equals(target)) {
@@ -288,8 +295,8 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
      * <p>{@code SECURITY} and {@code SYSTEM} announcements bypass this filter
      * (always delivered). For {@code MARKETING} / {@code COMMUNICATION}, users
      * who have explicitly opted out are removed. Users without a preference row
-     * are resolved against the DDL defaults — marketing=false (opt-out),
-     * communication=true (opt-in) — matching {@code NotificationDispatcher} and
+     * are resolved against the DDL defaults &mdash; marketing=false (opt-out),
+     * communication=true (opt-in) &mdash; matching {@code NotificationDispatcher} and
      * the legacy {@code NotificationDispatchServiceImpl} so admin broadcast and
      * event-driven dispatch apply identical preference semantics.
      */
@@ -315,74 +322,5 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                             : Boolean.TRUE.equals(pref.getCommunication());
                 })
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Build a lightweight VO for an announcement that produced zero deliveries
-     * (every recipient opted out). No row is persisted; this only gives the
-     * admin a response payload and an audit anchor.
-     */
-    private AdminNotificationVO buildAnnouncementVo(CreateSystemNotificationRequest request,
-                                                    String category, String announcementId) {
-        AdminNotificationVO vo = new AdminNotificationVO();
-        vo.setAnnouncementId(announcementId);
-        vo.setTitle(request.getTitle());
-        vo.setContent(request.getContent());
-        vo.setType(request.getType());
-        vo.setCategory(category);
-        return vo;
-    }
-
-    private List<AdminNotificationVO> toAdminVOList(List<Notification> notifications) {
-        if (notifications == null || notifications.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Set<String> creatorIds = notifications.stream()
-                .filter(n -> n.getMetadata() != null && n.getMetadata().get("createdBy") != null)
-                .map(n -> (String) n.getMetadata().get("createdBy"))
-                .collect(Collectors.toSet());
-
-        Map<String, User> userMap = creatorIds.isEmpty()
-                ? Collections.emptyMap()
-                : userMapper.selectBatchIds(creatorIds).stream()
-                    .collect(Collectors.toMap(User::getId, Function.identity()));
-
-        return notifications.stream()
-                .map(n -> toAdminVO(n, userMap))
-                .collect(Collectors.toList());
-    }
-
-    private AdminNotificationVO toAdminVOForSingle(Notification notification) {
-        if (notification == null) return null;
-        return toAdminVOList(Collections.singletonList(notification)).stream()
-                .findFirst().orElse(null);
-    }
-
-    private AdminNotificationVO toAdminVO(Notification notification, Map<String, User> userMap) {
-        if (notification == null) return null;
-
-        AdminNotificationVO vo = new AdminNotificationVO();
-        vo.setId(notification.getId());
-        vo.setAnnouncementId(notification.getAnnouncementId());
-        vo.setTitle(notification.getTitle());
-        vo.setContent(notification.getBody());
-        vo.setType(notification.getType());
-        vo.setCategory(notification.getCategory());
-        vo.setCreatedAt(notification.getCreatedAt());
-
-        if (notification.getMetadata() != null) {
-            String creatorId = (String) notification.getMetadata().get("createdBy");
-            if (creatorId != null && userMap.containsKey(creatorId)) {
-                User creator = userMap.get(creatorId);
-                AdminNotificationVO.CreatorInfo creatorInfo = new AdminNotificationVO.CreatorInfo();
-                creatorInfo.setId(creator.getId());
-                creatorInfo.setUsername(creator.getUsername());
-                creatorInfo.setAvatar(creator.getAvatar());
-                vo.setCreator(creatorInfo);
-            }
-        }
-
-        return vo;
     }
 }

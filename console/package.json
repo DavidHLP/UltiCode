@@ -17,6 +17,8 @@
     "test": "vitest --run --passWithNoTests --exclude '**/auth-core/**' --exclude '**/shared/theme/**'",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
+    "check:i18n": "node --import jiti/register src/i18n/check.ts",
+    "validate:i18n-keys": "node --import jiti/register src/i18n/check.ts --json",
     "validate:mocks": "node scripts/validate-mock-data.mjs",
     "validate:mocks:verbose": "node scripts/validate-mock-data.mjs --verbose",
     "validate:mocks:strict": "node scripts/validate-mock-data.mjs --strict",

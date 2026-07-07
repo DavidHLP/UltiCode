@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -111,26 +112,21 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     @Override
     public PageResult<UserVO> listUsers(Integer page, Integer pageSize) {
-        // Set default pagination values
-        int currentPage = (page != null && page > 0) ? page : 1;
-        int currentPageSize = (pageSize != null && pageSize > 0) ? pageSize : 20;
-
-        // Limit page size to prevent large queries
-        currentPageSize = Math.min(currentPageSize, 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
 
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(User::getIsActive, true)
                 .eq(User::getIsBanned, false)
                 .orderByDesc(User::getJoinedAt);
 
-        Page<User> userPage = new Page<>(currentPage, currentPageSize);
+        Page<User> userPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<User> result = userMapper.selectPage(userPage, queryWrapper);
 
         List<UserVO> userVOList = result.getRecords().stream()
                 .map(this::toPublicVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(userVOList, result.getTotal(), currentPage, currentPageSize);
+        return PageResult.of(userVOList, result.getTotal(), pageRequest);
     }
 
     @Override

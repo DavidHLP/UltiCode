@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
@@ -111,12 +112,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
     @Override
     public PageResult<SolutionListItemVO> findByProblemId(Long problemId, Integer page, Integer pageSize) {
-        // Set default pagination values
-        int currentPage = (page != null && page > 0) ? page : 1;
-        int currentPageSize = (pageSize != null && pageSize > 0) ? pageSize : 20;
-
-        // Limit page size to prevent large queries
-        currentPageSize = Math.min(currentPageSize, 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
 
         // Build query wrapper
         LambdaQueryWrapper<Solution> queryWrapper = new LambdaQueryWrapper<>();
@@ -125,12 +121,12 @@ public class DefaultSolutionProjection implements SolutionProjection {
                 .orderByDesc(Solution::getCreatedAt);
 
         // Execute paginated query
-        Page<Solution> solutionPage = new Page<>(currentPage, currentPageSize);
+        Page<Solution> solutionPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<Solution> result = solutionMapper.selectPage(solutionPage, queryWrapper);
 
         List<Solution> records = result.getRecords();
         if (records.isEmpty()) {
-            return PageResult.of(Collections.emptyList(), result.getTotal(), currentPage, currentPageSize);
+            return PageResult.of(Collections.emptyList(), result.getTotal(), pageRequest);
         }
 
         // Batch-fetch all related data to eliminate N+1 queries
@@ -195,7 +191,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
                 .map(s -> toListItemVO(s, userMap, likesMap, dislikesMap, commentCounts, viewerVoteMap))
                 .collect(Collectors.toList());
 
-        return PageResult.of(voList, result.getTotal(), currentPage, currentPageSize);
+        return PageResult.of(voList, result.getTotal(), pageRequest);
     }
 
     @Override

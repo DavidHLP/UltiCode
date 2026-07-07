@@ -1,40 +1,25 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
-import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 
 import java.util.List;
 
 /**
  * Service interface for admin solution operations.
+ *
+ * <p><strong>Writes only</strong> after ADR-0011 Stage 2 extraction. Every
+ * read-side concern (paginated list, flagged-list derivation, single-detail
+ * enrichment) lives on
+ * {@link com.ulticode.modules.admin.projection.AdminSolutionProjection}.
+ * Write methods that return an {@link AdminSolutionVO} compose it by
+ * delegating to {@code AdminSolutionProjection.getSolution(id)} for the
+ * post-write VO shape (mirrors the AdminSubmission / AdminUser pattern).
+ *
+ * <p>All write methods are {@code @Audited}; entries are catalogued in
+ * {@code common/audit/AuditPolicy} under
+ * {@code com.ulticode.modules.admin.service.impl.AdminSolutionServiceImpl}.
  */
 public interface AdminSolutionService {
-
-    /**
-     * Get paginated list of solutions with filters.
-     *
-     * @param query the query parameters
-     * @return paginated list of solutions
-     */
-    PageResult<AdminSolutionListItemVO> getSolutions(AdminSolutionQueryDTO query);
-
-    /**
-     * Get paginated list of flagged solutions.
-     *
-     * @param query the query parameters
-     * @return paginated list of flagged solutions
-     */
-    PageResult<AdminSolutionListItemVO> getFlaggedSolutions(AdminSolutionQueryDTO query);
-
-    /**
-     * Get a solution by ID.
-     *
-     * @param id the solution ID
-     * @return the solution VO
-     */
-    AdminSolutionVO getSolution(String id);
 
     /**
      * Flag a solution for review.

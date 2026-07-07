@@ -8,6 +8,7 @@ import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.dto.BulkSolutionActionDto;
 import com.ulticode.modules.admin.dto.FlagSolutionDto;
+import com.ulticode.modules.admin.projection.AdminSolutionProjection;
 import com.ulticode.modules.admin.service.AdminSolutionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -36,12 +37,13 @@ import java.util.List;
 public class AdminSolutionController {
 
     private final AdminSolutionService adminSolutionService;
+    private final AdminSolutionProjection adminSolutionProjection;
 
     @Operation(summary = "Get solutions", description = "Get paginated list of solutions with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminSolutionListItemVO>> getSolutions(AdminSolutionQueryDTO query) {
-        return Result.success(adminSolutionService.getSolutions(query));
+        return Result.success(adminSolutionProjection.getSolutions(query));
     }
 
     @Operation(summary = "Get flagged solutions",
@@ -49,14 +51,14 @@ public class AdminSolutionController {
     @GetMapping("/flagged")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminSolutionListItemVO>> getFlaggedSolutions(AdminSolutionQueryDTO query) {
-        return Result.success(adminSolutionService.getFlaggedSolutions(query));
+        return Result.success(adminSolutionProjection.getFlaggedSolutions(query));
     }
 
     @Operation(summary = "Get solution by ID", description = "Get detailed solution information")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminSolutionVO> getSolution(@PathVariable String id) {
-        return Result.success(adminSolutionService.getSolution(id));
+        return Result.success(adminSolutionProjection.getSolution(id));
     }
 
     @Operation(summary = "Flag solution", description = "Flag a solution for review; requires a non-blank reason")

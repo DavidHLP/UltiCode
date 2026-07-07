@@ -2,9 +2,9 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.modules.admin.projection.AdminSolutionProjection;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,8 +54,8 @@ import static org.mockito.Mockito.when;
 class AdminSolutionServiceImplTest {
 
     @Mock private SolutionMapper solutionMapper;
-    @Mock private UserMapper userMapper;
     @Mock private ProblemMapper problemMapper;
+    @Mock private AdminSolutionProjection solutionProjection;
 
     private AdminSolutionServiceImpl service;
 
@@ -64,7 +64,7 @@ class AdminSolutionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new AdminSolutionServiceImpl(solutionMapper, userMapper, problemMapper);
+        service = new AdminSolutionServiceImpl(solutionMapper, problemMapper, solutionProjection);
     }
 
     @AfterEach

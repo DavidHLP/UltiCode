@@ -165,8 +165,31 @@ unchanged.
 > `AdminUserProjection.getUserById` for the post-grant / post-revoke
 > VO composition; `UserManagementServiceImplTest` deleted (all 6 read
 > tests migrated verbatim to `AdminUserProjectionTest`);
-> `UserPermissionServiceImplTest` mock updated. The remaining four
+> `UserPermissionServiceImplTest` mock updated. The remaining three
 > services below are still next-commit deliverables.
+
+> **2026-07-07 update (Stage 2 Solution)**: Stage 2 Solution (debt
+> 9/10) has landed. `AdminSolutionProjection` +
+> `DefaultAdminSolutionProjection` extracted;
+> `AdminSolutionServiceImpl` slimmed from 472 to ~245 LoC (writes
+> only); cross-module entity imports (`User`, `UserMapper`) and the
+> `batchLoadUsers` / `batchLoadProblems` / `toListItemVO` /
+> `toAdminVO(Solution, Map, Map)` / `toAdminVO(Solution)` helpers left
+> the service; `AdminSolutionController` updated to depend on the
+> projection for reads and the service for writes (mirrors
+> `AdminSubmissionController`); `AdminSolutionServiceImpl` flag /
+> unflag write paths now delegate to
+> `AdminSolutionProjection.getSolution(id)` for post-write VO
+> composition (same pattern `UserPermissionServiceImpl` uses against
+> `AdminUserProjection`); `AdminSolutionServiceImplTest` constructor
+> updated to `(solutionMapper, problemMapper, solutionProjection)`
+> (UserMapper mock dropped, projection mock added; existing 5 write
+> tests cover unchanged writes); `AdminSolutionProjectionTest` added
+> pinning the read cluster (single-detail `getSolution` happy + throw
+> + orphan-enrichment, `getFlaggedSolutions` BUG-Q9 isDeleted=false
+> invariant, `getSolutions` isDeleted branch routing both ways,
+> empty-page batch-load skip). `Forum`, `Contest`, `Comment` remain
+> next-commit deliverables.
 
 For each of `AdminSolutionServiceImpl`, `AdminForumServiceImpl`,
 `AdminContestServiceImpl`, `AdminCommentServiceImpl`, each landing as

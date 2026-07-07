@@ -98,7 +98,7 @@ ${STATUS_BLOCK}
 
 ## 参考
 - ${PARENT}
-- ADR-005 (Playbook): docs/adr/ADR-005-rolling-deploy-playbook.md
+- ADR-005 (Playbook): see [wiki/.meta/PROJECT_STATUS_REPORT.md](../../wiki/.meta/PROJECT_STATUS_REPORT.md) for the original 10-milestone plan (now archived).
 - docs/RUNBOOK.md §10 (Feature Flag 切换手册)
 EOF
 )"

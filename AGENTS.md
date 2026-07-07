@@ -28,8 +28,9 @@ inside its directory. Read the relevant nested guide before changing that area:
 | `shared/submission-status/` | Submission verdict ↔ color contract |
 | `shared/theme/` | Theme system: state / tokens / primitives / bootstrap |
 | `init-db/migrations/` | Canonical Flyway SQL migrations |
+| `assets/` | README 截图等二进制资源 |
 | `docker/` | Database init SQL, Nacos bootstrap, and D-form judge sandbox |
-| `docs/` | ADRs, screenshots, project status, rtk reference |
+| `wiki/concepts/` | ADRs (折叠页) |
 | `wiki/` | Obsidian vault: domain entities, concepts, daily notes, overview docs |
 | `infrastructure/` | Project-level Arthas config (`arthas.properties`) |
 | `tools/` | Java agent jars (`arthas-boot.jar`) |
@@ -249,15 +250,17 @@ Use the `ulticode-db-migration` skill for schema work.
   in `shared/markdown-utils/`; use `renderMarkdown()` from there rather than
   calling `markdown-it` directly or bypassing DOMPurify.
 
-Read `docs/SECURITY_REVIEW_2026-06-06.md` and
-`docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md` before changing authentication,
-deployment secrets, seed accounts, or network exposure. Use the `security-review`
-skill for security-sensitive work.
+Read the security concept pages in `wiki/concepts/` (especially
+`csrf-mechanism`, `refresh-token-hash-only-storage`, `security-invariants`)
+before changing authentication, deployment secrets, seed accounts, or
+network exposure. Use the `security-review` skill for security-sensitive
+work.
 
-> **Note**: If those two docs are not yet present in `docs/`, consult `wiki/`
-> concept pages (`csrf-mechanism`, `refresh-token-hash-only-storage`) and the
-> ADRs under `docs/adr/` for the equivalent security decisions. The
-> `security-review` skill remains the authoritative workflow regardless.
+> The `security-review` skill is the authoritative workflow. The wiki
+> concept pages are the reference reading; the security review record
+> The security review record (`docs/SECURITY_REVIEW_2026-06-06.md` and
+> the remediation runbook) is preserved in the git history &mdash; see
+> `git log -- docs/` for the original location before the docs-merge.
 
 ## Frontend Conventions
 

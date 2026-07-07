@@ -14,7 +14,7 @@ aliases: [ADR-005, Sidebar Menu Unification, uc-sidebar]
 
 # Sidebar Menu Visual Contract
 
-> [!note] Landed record of the sidebar-menu unification (`docs/architecture/sidebar-menu-unification.md`). The two frontends used to hand-write the same activation bar in four+ places; it now lives once in `shared/sidebar-menu`.
+> [!note] Landed record of the sidebar-menu unification (retired spec at `docs/architecture/sidebar-menu-unification.md`, recoverable via `git show 66cd1be64`). The two frontends used to hand-write the same activation bar in four+ places; it now lives once in `shared/sidebar-menu`.
 
 ## The problem
 
@@ -53,4 +53,4 @@ A token or spacing tweak should land in one file, not four. The shared package a
 
 - [[theme-system]] — owns the `.uc-` token family this builds on.
 - [[module-layering]] — the `shared/` split (`auth-core`, `auth-ui`, `sidebar-menu`, `theme`).
-- The refactor's spec + six code reviews (3 plan-level, 3 code-level) were retired from `docs/architecture/` once this page absorbed them; recoverable via `git show 66cd1be64` if ever needed.
+- The refactor's spec + six code reviews (3 plan-level, 3 code-level) were retired from `docs/architecture/` (the dir was already gone before this docs-merge; its content lives in this wiki page and in `git show 66cd1be64`).

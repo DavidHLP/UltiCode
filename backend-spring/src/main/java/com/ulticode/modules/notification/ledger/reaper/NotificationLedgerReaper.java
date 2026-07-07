@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component;
  * {@code (intent_id, channel_id)}; the existing row's state is
  * informational).
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.7 + M4d-1
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.7 + M4d-1
  * finding #4.
  */
 @Slf4j

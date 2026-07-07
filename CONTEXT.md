@@ -91,7 +91,7 @@
 
 ## Decisions
 
-- See `docs/adr/` — ADR-0001 (submission-contest decoupling), ADR-0004
+- See `wiki/concepts/` — ADR-0001 ([Submission-Contest Port](wiki/concepts/submission-contest-port.md)), ADR-0004
   (moderation projection extraction), ADR-0005 (achievement projection
   extraction), ADR-0006 (problem detail port extraction), ADR-0007
   (admin user stats read port), ADR-0008 (admin comment read port),

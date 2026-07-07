@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 /**
  * Ledger row for a single (intent_id, channel_id) delivery attempt.
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.7 (F9 修订).
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.7 (F9 修订).
  *
  * <p>The {@code id} is auto-increment for fast paging; the natural key is
  * {@code (intent_id, channel_id)} and is enforced by a UNIQUE index. {@code @Data}

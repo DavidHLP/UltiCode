@@ -287,7 +287,7 @@ pm2 logs
 1. **启动项目**: 运行 `./scripts/dev/up.sh` 启动完整开发环境
 2. **了解竞赛系统**: 最近的开发集中在竞赛模块，建议先熟悉 `backend-spring/modules/contest/` 和 `console/src/views/contest/`
 3. **关注 ADR 迁移**: ADR-003 (判题队列) 和 ADR-004 (通知系统) 有未完成的架构迁移，Feature Flag 默认关闭
-4. **代码审查**: 项目有严格的 10 轮审查历史 (R1-R10)，建议阅读 `docs/` 下的审查文档了解上下文
+4. **代码审查**: 项目有严格的 10 轮审查历史 (R1-R10)，详细时间线见 `wiki/log.md`，决策细节见 `wiki/concepts/` 下对应 ADR 折叠页
 
 ---
 

@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **[.claude/agents/](./.claude/agents/)** | 可调用的领域子代理 | 复杂规划、代码审查、安全审查、TDD、构建修复等 |
 | **[wiki/](./wiki/)** | LLM Wiki 活知识库。顶层:`README.md`(着陆)· [`SCHEMA.md`](./wiki/SCHEMA.md)(三层/三动作/写作规范 + §10 daily-notes + §12 manifest)· `index.md`(内容目录)· `log.md`(维护时间线);子目录:`overview/`·`entities/`·`concepts/`·`templates/`·`daily-notes/` | 查架构/部署/合规走 `wiki/index.md` 的"先读这份"表;**改 wiki 内容后跑 `scripts/dev/wiki-manifest.sh` 刷新 `wiki/.meta/manifest.json`** |
 | **[shared/theme/](./shared/theme/)** | 前端主题系统。**项目字体 = LXGW WenKai 楷体,全站统一(含 Monaco 编辑器 / ECharts 默认字体)**。Wiki: [[wiki/concepts/theme-system]] | 改前端颜色/字体/密度/动效/组件样式时先读 `shared/theme/src/applyThemeToDOM.ts` |
-| **[docs/rtk-reference.md](./docs/rtk-reference.md)** | RTK (Rust Token Killer) token 优化命令完整参考 | 查 rtk 命令节省 token 的具体用法 |
+| **[wiki/.meta/rtk-reference.md](./wiki/.meta/rtk-reference.md)** | RTK (Rust Token Killer) token 优化命令完整参考 | 查 rtk 命令节省 token 的具体用法 |
 
 子代理简表(详见 `.claude/agents/<name>.md`):
 `planner` · `architect` · `code-reviewer` · `java-reviewer` · `security-reviewer` · `tdd-guide` · `build-error-resolver` · `refactor-cleaner` · `doc-updater` · `e2e-runner` · `rust-reviewer`
@@ -257,7 +257,7 @@ pm2 save / pm2 resurrect
 
 ## 工具参考
 
-- **RTK(Rust Token Killer)**:命令前缀 `rtk` 可节省 60-90% token。**完整命令参考**见 [docs/rtk-reference.md](./docs/rtk-reference.md)(Build/Test/Git/GitHub/pnpm/Files/Docker/Network 全分类速查 + 节省率表)。核心铁律:`rtk git add . && rtk git commit -m "msg"`(链式命令每段都要 `rtk` 前缀)。
+- **RTK(Rust Token Killer)**:命令前缀 `rtk` 可节省 60-90% token。**完整命令参考**见 [wiki/.meta/rtk-reference.md](./wiki/.meta/rtk-reference.md)(Build/Test/Git/GitHub/pnpm/Files/Docker/Network 全分类速查 + 节省率表)。核心铁律:`rtk git add . && rtk git commit -m "msg"`(链式命令每段都要 `rtk` 前缀)。
 - **MCP 配置(`.mcp.json`)**:HTTP 远程服务器用 `type: "http"`(官方写法;`streamableHttp` 是规范别名);项目级 `.mcp.json` 首次使用需在 `/mcp` 审批;Arthas MCP: `{"type":"http","url":"http://localhost:8563/mcp"}`。
 
 <!-- headroom:learn:start -->

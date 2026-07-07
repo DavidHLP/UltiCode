@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * {@code EmailService.sendEmail} and let the dispatcher mark the ledger row
  * {@code FAILED}. We do not block other channels.
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.2 (EmailNotificationChannel).
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.2 (EmailNotificationChannel).
  */
 @Slf4j
 @Component

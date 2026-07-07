@@ -40,11 +40,11 @@
 
 # 2. 用 IDE 内置浏览器打开对应 URL
 # 3. 在 console 中切换主题 (右上角用户菜单 → 主题 → 浅色/深色)
-# 4. 截图覆盖 docs/screenshots/<file>.png
+# 4. 截图覆盖 assets/screenshots/<file>.png
 ```
 
 > 浏览器内部截图工具：调用 `Page.captureScreenshot`（CDP），
-> base64 解码后写回 `docs/screenshots/<file>.png`。
+> base64 解码后写回 `assets/screenshots/<file>.png`。
 
 ## 命名约定
 

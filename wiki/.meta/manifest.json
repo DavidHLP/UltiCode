@@ -1,10 +1,10 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "89c664a07eefadd57f58ec907125defd6008836c",
+  "generated_with_head": "a8474c28e2c020e5682aea2d8ba65b9147f07f0a",
   "stats": {
-    "pages": 60,
+    "pages": 68,
     "by_type": {
-      "concept": 19,
+      "concept": 27,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -49,7 +49,7 @@
       "type": "concept",
       "title": "Achievement Projection",
       "status": "living",
-      "frontmatter_updated": "2026-07-04",
+      "frontmatter_updated": "2026-07-07",
       "last_commit": {
         "sha": "6ddc1d048ab25b73260d6a700cb01b218c91b66b",
         "short": "6ddc1d048",
@@ -57,7 +57,52 @@
         "author": "DavidHLP",
         "subject": "refactor(achievement): extract AchievementProjection deep module"
       },
-      "body_sha256": "f69df363d1de692b57ac87470e236418e24a186769ed48ea77a6a6270fa2a913"
+      "body_sha256": "21e8cdd613e8086fe5e3297b270694d073ad5832efb1f97e8f8bb0d8840fb933"
+    },
+    {
+      "path": "wiki/concepts/admin-comment-read-port.md",
+      "type": "concept",
+      "title": "Admin Comment-Read Port",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "9bc77b54be94e26a90dc41dc294d1beba227fc497f92756b1a88ae53a018ed19"
+    },
+    {
+      "path": "wiki/concepts/admin-projection-inversion.md",
+      "type": "concept",
+      "title": "Admin Projection Inversion",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "c95466290d5947e4ad8a3d4ac32d7dfb16a1893401e1bcd43ea746cecbbc22a1"
+    },
+    {
+      "path": "wiki/concepts/admin-user-stats-read-port.md",
+      "type": "concept",
+      "title": "Admin User-Stats Read Port",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "ada0d836ef8ff1dcc19673ae229f0e00c7235fab3e1c41b30624e3625f2f9ca4"
     },
     {
       "path": "wiki/concepts/arthas-diagnostics.md",
@@ -73,6 +118,21 @@
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "9ae3c99647a6fe4add5d5b00b590c05c81c7c57a1c62b42032178872052fe6fa"
+    },
+    {
+      "path": "wiki/concepts/contest-live-ranking-read-port.md",
+      "type": "concept",
+      "title": "Contest Live-Ranking Read Port",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "ce956457aafed91d17cbadda572cd7696dc0188585296a696c9d4f79de384b96"
     },
     {
       "path": "wiki/concepts/csrf-mechanism.md",
@@ -118,6 +178,21 @@
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
       "body_sha256": "4276fab62b9fb5039bb88b1baf916f9aa1df99def1e927b6942a6b6502b633b8"
+    },
+    {
+      "path": "wiki/concepts/moderation-projection.md",
+      "type": "concept",
+      "title": "Moderation Projection",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "e7253900936c5b775e28d2f7e94f0f55c40ce8743bf5df5fc494001a2e8f413e"
     },
     {
       "path": "wiki/concepts/module-layering.md",
@@ -180,6 +255,21 @@
       "body_sha256": "0e9ba5e7a80a7971aea26306dcb0a7276782fc6ea3c260f36a7e518e72381741"
     },
     {
+      "path": "wiki/concepts/problem-detail-port.md",
+      "type": "concept",
+      "title": "Problem Detail Port",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "dc871787e6670fc41b9f5c71c2ce05557bac09e68c6b721147e51c8c908a1e4b"
+    },
+    {
       "path": "wiki/concepts/process-management.md",
       "type": "concept",
       "title": "Process Management",
@@ -193,6 +283,21 @@
         "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
       },
       "body_sha256": "d7710ca04bd1b3ecce10312c9359c62b8bec967b5033ad6b7864003937bd68f0"
+    },
+    {
+      "path": "wiki/concepts/realtime-push-port-series.md",
+      "type": "concept",
+      "title": "Realtime Push Port Series",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "e154bb12fbb1280aae457fcfedf012265485e88933f42f6242dce7d479ce3558"
     },
     {
       "path": "wiki/concepts/refresh-token-hash-only-storage.md",
@@ -231,11 +336,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-06",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
+        "short": "7acf7c61e",
+        "committed_at": "2026-07-06T00:43:44+08:00",
+        "author": "DavidHLP",
+        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
       },
       "body_sha256": "2a308818c9df64b263b1d7b73e35ae2551e4b8c92ecb0c5c31bc14f2bc685ae5"
     },
@@ -282,7 +387,22 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): record sidebar-menu CR fixes in concept/log/daily"
       },
-      "body_sha256": "6c0476265bb0604f7a55f95d77ce3c96e85050cc432eca4b70cd339d62f311a8"
+      "body_sha256": "205d4d7859f929f1348de77145d4ec17a19cf82f9eb9cef93a47f3d86f1939b7"
+    },
+    {
+      "path": "wiki/concepts/submission-contest-port.md",
+      "type": "concept",
+      "title": "Submission-Contest Port",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "2ad219b775e10a8ec6e1221e910d29687c8e096ab1ae4a84ebcf8bb7dd1c763d"
     },
     {
       "path": "wiki/concepts/theme-system.md",
@@ -621,11 +741,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-06",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
+        "short": "7acf7c61e",
+        "committed_at": "2026-07-06T00:43:44+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
       },
       "body_sha256": "415aec654d359e4cd0cb2263c50fb44c5879589ac6a7cae23573989bd058c328"
     },
@@ -724,30 +844,30 @@
       "type": "index",
       "title": "Index",
       "status": "living",
-      "frontmatter_updated": "2026-07-06",
+      "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
-        "short": "89c664a07",
-        "committed_at": "2026-07-05T23:22:52+08:00",
+        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
+        "short": "7acf7c61e",
+        "committed_at": "2026-07-06T00:43:44+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
+        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
       },
-      "body_sha256": "7075538b2dadd41f966ba0fef2450061e2a85084e792f62e6fc593a94b17ca8c"
+      "body_sha256": "196bf5bd1962b7c616b1f507083e7be07fd584f4a81ccafef018aa047ca8e710"
     },
     {
       "path": "wiki/log.md",
       "type": "log",
       "title": "Maintenance Log",
       "status": "living",
-      "frontmatter_updated": "2026-07-06",
+      "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
-        "short": "89c664a07",
-        "committed_at": "2026-07-05T23:22:52+08:00",
+        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
+        "short": "7acf7c61e",
+        "committed_at": "2026-07-06T00:43:44+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
+        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
       },
-      "body_sha256": "90b2c9b57bf4f178998832fcda5a9650fa27138f0f847e8f661f029c9faeb364"
+      "body_sha256": "1fbed83a85475bab26aa927c45ffded9ad136b55e1e79e32a1e83befa278f0a7"
     },
     {
       "path": "wiki/overview/architecture-overview.md",

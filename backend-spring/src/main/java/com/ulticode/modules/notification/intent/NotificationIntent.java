@@ -36,7 +36,7 @@ import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
  * disappears for non-achievement events. Locality: payload rules live with the
  * data they describe. Adding a new intent — the channel doesn't change.
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.5.
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.5.
  */
 public sealed interface NotificationIntent
         permits SubmissionCompletedIntent,

@@ -14,7 +14,7 @@ import com.ulticode.modules.notification.intent.NotificationIntent;
  * treats missing templates as a delivery failure (mark FAILED in the
  * ledger, do not block other channels).
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.5.
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.5.
  */
 public final class EmailTemplates {
 

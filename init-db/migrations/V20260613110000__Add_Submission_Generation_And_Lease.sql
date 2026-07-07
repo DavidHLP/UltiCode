@@ -1,5 +1,5 @@
 -- ADR-003 M3b: Add generation fence + JUDGING lease columns to submissions.
--- Reference: docs/adr/ADR-003-queue-outbox-fencing.md §2.2-§2.3, ADR-005 §2.3.
+-- Reference: wiki/concepts/exactly-once-judging.md §2.2-§2.3 (generation fence + lease, F3).
 -- generation BIGINT NOT NULL DEFAULT 1: old code never reads this column; M3b fence CAS
 --   requires a definite value. Historical rows backfilled to 1 by the column default
 --   (no separate UPDATE needed). Deviates from strict expand-contract (nullable first),

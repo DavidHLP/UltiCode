@@ -49,7 +49,7 @@
 
 无论你是想**刷题备战**、**举办算法竞赛**、**运营编程社区**，还是搭建一个**内部刷题系统**，UltiCode 都提供开箱即用的能力。
 
-> 想看更多视图、对比 light/dark 主题或下载原图：见 [docs/screenshots/](docs/screenshots/README.md)。
+> 想看更多视图、对比 light/dark 主题或下载原图：见 [assets/screenshots/](assets/screenshots/README.md)。
 
 ---
 
@@ -87,31 +87,31 @@
 
 ## 界面预览
 
-> 视口 1496×933 桌面端。浅 / 深主题通过右上角用户菜单 → 主题 切换；以下所有截图源文件见 [docs/screenshots/](docs/screenshots/README.md)。
+> 视口 1496×933 桌面端。浅 / 深主题通过右上角用户菜单 → 主题 切换；以下所有截图源文件见 [assets/screenshots/](assets/screenshots/README.md)。
 
 ### 🖥️ 用户端 (Console · 9002)
 
 **Light**
 
-![论坛列表](docs/screenshots/forum-list-light.png)
+![论坛列表](assets/screenshots/forum-list-light.png)
 
 **Dark · 浏览与社区**
 
 | 论坛平台 | 帖子详情 | 比赛首页 | 比赛详情 |
 |:-:|:-:|:-:|:-:|
-| ![论坛平台](docs/screenshots/forum-thread-dark.png) | ![帖子详情](docs/screenshots/forum-detail-dark.png) | ![比赛首页](docs/screenshots/contests-dark.png) | ![比赛详情](docs/screenshots/contest-detail-dark.png) |
+| ![论坛平台](assets/screenshots/forum-thread-dark.png) | ![帖子详情](assets/screenshots/forum-detail-dark.png) | ![比赛首页](assets/screenshots/contests-dark.png) | ![比赛详情](assets/screenshots/contest-detail-dark.png) |
 
 **Dark · 题库与题目**
 
 | 题库专题 | 题单详情 | 题目详情 |
 |:-:|:-:|:-:|
-| ![题库专题](docs/screenshots/problem-set-dark.png) | ![题单详情](docs/screenshots/problem-list-dark.png) | ![题目详情](docs/screenshots/problem-detail-dark.png) |
+| ![题库专题](assets/screenshots/problem-set-dark.png) | ![题单详情](assets/screenshots/problem-list-dark.png) | ![题目详情](assets/screenshots/problem-detail-dark.png) |
 
 **Dark · 个人中心**
 
 | 个人 Dashboard | 提交记录 | 成就徽章 |
 |:-:|:-:|:-:|
-| ![个人 Dashboard](docs/screenshots/personal-dashboard-dark.png) | ![提交记录](docs/screenshots/submissions-list-dark.png) | ![成就徽章](docs/screenshots/achievements-dark.png) |
+| ![个人 Dashboard](assets/screenshots/personal-dashboard-dark.png) | ![提交记录](assets/screenshots/submissions-list-dark.png) | ![成就徽章](assets/screenshots/achievements-dark.png) |
 
 ### 🛡️ 管理端 (Management · 9003)
 
@@ -119,13 +119,13 @@
 
 | 数据分析 | 仪表板 |
 |:-:|:-:|
-| ![数据分析](docs/screenshots/analytics-dashboard-dark.png) | ![仪表板](docs/screenshots/admin-dashboard-dark.png) |
+| ![数据分析](assets/screenshots/analytics-dashboard-dark.png) | ![仪表板](assets/screenshots/admin-dashboard-dark.png) |
 
 **Dark · 治理与审计**
 
 | 用户管理 | 比赛管理 | 内容审核 | 提交审计 |
 |:-:|:-:|:-:|:-:|
-| ![用户管理](docs/screenshots/user-management-dark.png) | ![比赛管理](docs/screenshots/contest-management-dark.png) | ![内容审核](docs/screenshots/moderation-dark.png) | ![提交审计](docs/screenshots/submissions-audit-dark.png) |
+| ![用户管理](assets/screenshots/user-management-dark.png) | ![比赛管理](assets/screenshots/contest-management-dark.png) | ![内容审核](assets/screenshots/moderation-dark.png) | ![提交审计](assets/screenshots/submissions-audit-dark.png) |
 
 ---
 
@@ -169,7 +169,7 @@ UltiCode/
 ├── shared/           # 共享包 (auth-core · auth-ui · badge-config · design-system · sandbox-types · theme)
 ├── init-db/          # Flyway 数据库迁移
 ├── docker/           # Docker 初始化脚本 (Nacos SQL · Sandbox harness)
-├── docs/             # 工程文档 · 架构快照 · ADR · 主题系统
+├── assets/           # README 截图等二进制资源
 ├── scripts/dev/      # 开发运维脚本 (init-env · up · migrate · test)
 ├── infrastructure/   # Arthas 项目级配置
 └── ecosystem.config.cjs  # PM2 进程编排
@@ -452,7 +452,7 @@ GitHub Actions 在 push / PR 到 `main` 时触发，**基于路径变化检测**
 | CD Deploy | `workflow_dispatch` | 滚动发布到指定环境 |
 | CD Rollback | `workflow_dispatch` | 一键回滚到指定 image tag |
 
-详见 [docs/RUNBOOK.md §5 部署](docs/RUNBOOK.md) 与 [docs/adr/0005-rolling-deploy-rollback.md](docs/adr/0005-rolling-deploy-rollback.md)。
+部署 Runbook 见 [wiki/overview/dev-environment-overview.md](../wiki/overview/dev-environment-overview.md) § 启动 / 部署章节。
 
 ---
 
@@ -539,7 +539,7 @@ UltiCode 维护一份分层的工程知识库，按需查阅：
 |-------|------------|
 | 第一次提 PR | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
 | On-call 工程师 | [docs/RUNBOOK.md](docs/RUNBOOK.md) §0 速查 + §4 常见问题 |
-| 架构师 / 规划者 | [docs/CODEMAPS/architecture.md](docs/CODEMAPS/architecture.md) + [docs/adr/](docs/adr/) |
+| 架构师 / 规划者 | [wiki/](../wiki/) + [wiki/concepts/](../wiki/concepts/) (ADR 折叠页) |
 | 后端开发 | [docs/CODEMAPS/backend.md](docs/CODEMAPS/backend.md) + [.claude/rules/springboot-rules.md](.claude/rules/springboot-rules.md) |
 | 前端开发 | [docs/CODEMAPS/frontend.md](docs/CODEMAPS/frontend.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
 | 数据库 / Flyway | [docs/CODEMAPS/data.md](docs/CODEMAPS/data.md) + [.claude/rules/database/01-flyway-migrations.md](.claude/rules/database/01-flyway-migrations.md) |
@@ -547,7 +547,7 @@ UltiCode 维护一份分层的工程知识库，按需查阅：
 | 运维 / 部署 / 密钥 | [docs/ENV.md](docs/ENV.md) + [docs/RUNBOOK.md](docs/RUNBOOK.md) |
 | 安全审查 | [docs/SECURITY_REVIEW_2026-06-06.md](docs/) + [.claude/agents/security-reviewer.md](.claude/agents/) |
 | 主题 / 样式 | [docs/theme/README.md](docs/theme/README.md) + [docs/CODEMAPS/frontend.md §Theme](docs/CODEMAPS/frontend.md) |
-| 决策记录（ADR） | [docs/adr/](docs/adr/) |
+| 决策记录（ADR） | [wiki/concepts/](../wiki/concepts/) · 见 [index.md](../wiki/index.md) |
 
 ---
 

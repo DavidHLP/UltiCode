@@ -55,7 +55,7 @@ import org.springframework.stereotype.Component;
  *       {@code management/} and {@code console/}.</li>
  * </ul>
  *
- * <p>Reference: docs/adr/ADR-004-notification-intents.md §2.2 (WebSocketNotificationChannel).
+ * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.2 (WebSocketNotificationChannel).
  */
 @Slf4j
 @Component

@@ -3,7 +3,7 @@ title: Maintenance Log
 type: log
 tags: [meta, type/log]
 status: living
-updated: 2026-07-06
+updated: 2026-07-07
 sources: []
 ---
 
@@ -180,3 +180,121 @@ graph-view coloring keyed off `#type/<x>` (procedure now at
 pages (concept / entity / overview shapes). Each H2 section opens with the
 appropriate callout (`[!question]` on "The problem", `[!success]` on "The
 decision", `[!warning]` on "Gotchas", etc.).
+
+
+## [2026-07-07] ingest | docs/ → wiki/ merge + reference rewrite
+
+Folded the entire `docs/` tree into the wiki + repo, retired the directory
+itself, and rewrote every `docs/` reference in the landing layer. 8 ADRs
+landed as concept pages; the project's "the wiki has no `decisions/` /
+`codemap/` / `theme/` dir" rule (SCHEMA §3) now covers what `docs/adr/`
+held. Operational and binary assets moved to homes that match their
+lifecycle, not their previous path.
+
+**ADRs → `wiki/concepts/` (8 new pages, 1 enriched).** Per SCHEMA §3 an
+ADR folds into `concepts/`. The 8 ADRs that had no wiki landing yet now
+have one, in the established format (frontmatter + note callout + The
+problem / The decision / Where it lives / Consequences / Rejected /
+Related):
+
+- ADR-0001 → [[concepts/submission-contest-port]] (port inversion, 4 contest
+  mappers → 1 port; 4 R6 cross-module concerns concentrated)
+- ADR-0004 → [[concepts/moderation-projection]] (10 pure-read methods +
+  3 projections extracted from 760-LOC service)
+- ADR-0006 → [[concepts/problem-detail-port]] (137-LOC write-side
+  satellite orchestration extracted from `ProblemServiceImpl.updateProblem`)
+- ADR-0007 → [[concepts/admin-user-stats-read-port]] (AdminReadModel user
+  phase, primitive-typed return)
+- ADR-0008 → [[concepts/admin-comment-read-port]] (AdminReadModel forum
+  phase, typed-view cross-module reads)
+- ADR-0009 → [[concepts/realtime-push-port-series]] (six per-consumer
+  ports collapse the 230-LoC `RealtimeService` god service)
+- ADR-0010 → [[concepts/contest-live-ranking-read-port]]
+  (`RankingService.getLiveRanking` → narrow port, real seam)
+- ADR-0011 → [[concepts/admin-projection-inversion]] (phased
+  `AdminXxxProjection` rollout, Stage 1 ProblemList + Stage 2 Submission
+  already landed; User + Solution + Forum + Contest + Comment next)
+
+[[concepts/achievement-projection]] (ADR-0005) was already a concept page;
+absorbed the full ADR-0005 source content (Consequences / Rejected /
+Verification sections that the wiki entry didn't have), dropped the
+`docs/adr/0005-...` source path. 8 new pages added to [[index]]; counts
+57 → 65.
+
+**`docs/PROJECT_STATUS_REPORT.md` → `wiki/.meta/` (historical archive).**
+The 2026-06-19 progress snapshot is stale &mdash; every section it had
+(tech stack, module list, dev-environment, current run state) is
+superseded by the living wiki overviews. It lives on as a `wiki/.meta/`
+artifact (per SCHEMA §3, `.meta/` is the right home for non-content
+material), with the one `docs/` reference inside it rewired to a wiki
+pointer.
+
+**`docs/rtk-reference.md` → `wiki/.meta/rtk-reference.md` (reference
+catalog).** RTK is a tool-layer artifact (command catalog), not a
+content page; per SCHEMA §1 the wiki never duplicates
+`AGENTS.md`/`CLAUDE.md` directives. The catalog moved to
+`wiki/.meta/rtk-reference.md` (same home as the manifest); CLAUDE.md's
+two pointers (table cell + body link) updated.
+
+**`docs/screenshots/` → `assets/screenshots/` (binary assets).** README
+images referenced as `docs/screenshots/<file>.png` &mdash; 17 PNGs + a
+README. Binary assets are repo-level, not wiki-level, so they moved to
+the new top-level `assets/screenshots/` directory. All 14 image
+references + the two `[docs/screenshots/](...)` link references in
+`README.md` updated; the regenerated `assets/screenshots/README.md`
+points back at the new location.
+
+**Reference rewrite (landing + code layers).**
+
+- `AGENTS.md` &mdash; project map: `docs/` row replaced with
+  `wiki/concepts/` (ADRs) + new `assets/` row. Security-docs paragraph
+  reworded to point at `wiki/concepts/{csrf-mechanism,
+  refresh-token-hash-only-storage, security-invariants}` instead of the
+  never-existing `docs/SECURITY_REVIEW_2026-06-06.md`; the original
+  review record is preserved in git history (`git log -- docs/`).
+- `CLAUDE.md` &mdash; both RTK-reference pointers (table cell + body
+  link) updated to `wiki/.meta/rtk-reference.md`.
+- `CONTEXT.md` &mdash; the "see `docs/adr/`" line now points at
+  `wiki/concepts/` with a wikilink to ADR-0001's landing page.
+- `README.md` &mdash; 14 image references + 2 directory links to
+  `docs/screenshots/` rewritten to `assets/screenshots/`; the project
+  tree entry for `docs/` replaced with `assets/`; the documentation
+  navigation table's "决策记录 (ADR)" + "架构师 / 规划者" rows now point
+  at `wiki/` + `wiki/concepts/`; the dangling
+  `docs/adr/0005-rolling-deploy-rollback.md` (pre-existing dead ref;
+  current ADR-0005 is achievement-projection, not rolling-deploy)
+  replaced with a pointer to the dev-environment overview. The other
+  dangling refs to never-existed `docs/CONTRIBUTING.md` / `docs/RUNBOOK.md`
+  / `docs/CODEMAPS/` / `docs/ENV.md` / `docs/theme/README.md` / `docs/SECURITY_REVIEW_2026-06-06.md`
+  are pre-existing tech debt and outside this merge's scope.
+- `wiki/concepts/sidebar-menu.md` &mdash; the two `docs/architecture/`
+  references in the note callout + trade-offs reworded to
+  `git show 66cd1be64` (the dir was already gone before this merge).
+- Code layer: 6 Java Javadoc refs (`backend-spring/.../notification/{email,
+  channel, intent, ledger}/...`) that pointed at
+  `docs/adr/ADR-004-notification-intents.md` (a renamed/folded ADR)
+  rewired to `wiki/concepts/notification-dispatch-and-preferences.md`.
+  3 SQL migration comments (`init-db/migrations/V20260613{100000,110000,120000}`)
+  that pointed at the never-existed `docs/adr/ADR-003-queue-outbox-fencing.md`
+  + an old "ADR-005 §2.X" pre-merge dead ref rewired to
+  `wiki/concepts/exactly-once-judging.md` (the concept page that
+  already absorbed the outbox + generation fence + lease pattern).
+  1 shell script (`scripts/adr-005/create-milestone-issues.sh`) had a
+  dangling `docs/adr/ADR-005-rolling-deploy-playbook.md`; the line is
+  now a pointer to the archived 10-milestone plan in
+  `wiki/.meta/PROJECT_STATUS_REPORT.md`.
+
+**Manifest regenerated.** `scripts/dev/wiki-manifest.sh` re-emitted
+`wiki/.meta/manifest.json` with the 8 new pages; frontmatter `updated:`
+on the touched pages bumped to 2026-07-07.
+
+**Out of scope (left as-is).** Daily notes (`wiki/daily-notes/`) and
+the `wiki/log.md` line 128 entry both still mention `docs/architecture/`
+in historical context (what was retired on 2026-06-24). They are
+historical records &mdash; rewriting them would falsify the journal. The
+framework-level `.agents/skills/*` and `.claude/skills/*` files that say
+"ADRs go in `docs/adr/`" are generic matt-pocock-skill templates; not
+project-specific. The pre-existing dangling `docs/CONTRIBUTING.md` /
+`docs/RUNBOOK.md` / `docs/CODEMAPS/` / `docs/ENV.md` / `docs/theme/`
+references in `README.md` are pre-existing tech debt (the files never
+existed) and unrelated to this merge.

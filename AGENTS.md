@@ -292,6 +292,17 @@ Use `ulticode-api-patterns` for API integration and
   returned via `VoteResultVO`. Persist denormalized counters on the target entity
   using the values `voteService.vote()` already produced — do not re-query
   `EdgeOperationMapper.countByTargetAndOperation` from a different service.
+  Denormalization is the **caller's** responsibility, applied only to entities
+  that carry a denormalized counter column (currently `solution.likes` /
+  `solution.dislikes`). The two legitimate routes are `VoteController`
+  (`/vote` — pure vote-state mutation, no side-effects) and
+  `EdgeOperationsController` (`/edge-operations` — vote + analytics + the
+  `solution` denormalized counter projection). The asymmetry where only the
+  latter projects onto `solution.likes` is deliberate: `VoteService` must not
+  depend on `Solution`. A future `VoteResultUpdated` domain-event pattern
+  would let `solution` (and any future denormalized target) listen without
+  coupling. The dead `ForumVoteService` pass-through was deleted in the
+  architecture-review-0012 sweep — do not resurrect it.
 
 ## Git and External Actions
 

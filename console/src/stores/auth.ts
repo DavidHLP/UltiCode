@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { checkPermission, checkRole, checkAnyRole } from "@/shared/auth-core/src";
 import { ref, computed } from "vue";
 import type {
   User,
@@ -331,14 +332,7 @@ export const useAuthStore = defineStore("auth", () => {
    * @returns true if user has permission
    */
   function hasPermission(action: string, resource: string): boolean {
-    // 与 management/src/stores/auth.ts 对齐:
-    // 支持 `*:*`、`action:*`、`*:resource`、精确匹配四种通配。
-    // 之前缺少 `*:resource`,导致仅有「全部 resource」通配权限的用户被错误判负。
-    if (permissions.value.has("*:*")) return true;
-    if (permissions.value.has(`${action}:${resource}`)) return true;
-    if (permissions.value.has(`${action}:*`)) return true;
-    if (permissions.value.has(`*:${resource}`)) return true;
-    return false;
+    return checkPermission(permissions.value, action, resource);
   }
 
   /**
@@ -347,9 +341,7 @@ export const useAuthStore = defineStore("auth", () => {
    * @returns true if the user has the role
    */
   function hasRole(role: string): boolean {
-    const userRoleValue = user.value?.role?.toUpperCase();
-    const requiredRole = role.toUpperCase();
-    return userRoleValue === requiredRole;
+    return checkRole(user.value?.role, role);
   }
 
   /**
@@ -359,11 +351,7 @@ export const useAuthStore = defineStore("auth", () => {
    * @returns true if user holds at least one of the roles
    */
   function hasAnyRole(roles: string[]): boolean {
-    const userRoleValue = user.value?.role?.toUpperCase();
-    if (!userRoleValue) {
-      return false;
-    }
-    return roles.some((r) => r.toUpperCase() === userRoleValue);
+    return checkAnyRole(user.value?.role, roles);
   }
 
   return {

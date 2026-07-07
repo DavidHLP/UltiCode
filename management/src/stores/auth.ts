@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
 import { csrfManager, clearCsrfToken } from '@/utils/csrf'
+import { checkPermission, checkRole, checkAnyRole } from '@/shared/auth-core/src'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -106,27 +107,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasPermission(action: string, resource: string): boolean {
-    if (permissions.value.has('*:*')) return true
-    if (permissions.value.has(`${action}:${resource}`)) return true
-    if (permissions.value.has(`${action}:*`)) return true
-    if (permissions.value.has(`*:${resource}`)) return true
-    return false
+    return checkPermission(permissions.value, action, resource)
   }
 
   function hasRole(role: string): boolean {
-    const userRole = user.value?.role?.toUpperCase()
-    const requiredRole = role.toUpperCase()
-    return userRole === requiredRole
+    return checkRole(user.value?.role, role)
   }
 
   function hasAnyRole(roles: string[]): boolean {
-    const userRole = user.value?.role?.toUpperCase()
-    if (!userRole) {
-      return false
-    }
-
-    const normalizedRoles = roles.map((r) => r.toUpperCase())
-    return normalizedRoles.includes(userRole)
+    return checkAnyRole(user.value?.role, roles)
   }
 
   return {

@@ -4,12 +4,9 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,15 +29,6 @@ class AdminSubmissionServiceImplTest {
     private SubmissionMapper submissionMapper;
 
     @Mock
-    private com.ulticode.modules.admin.port.AdminSubmissionReadPort submissionReadPort;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private ProblemMapper problemMapper;
-
-    @Mock
     private QueueService queueService;
 
     private AdminSubmissionServiceImpl adminSubmissionService;
@@ -52,9 +40,11 @@ class AdminSubmissionServiceImplTest {
         // path, so they can be null.
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
+        // After ADR-0011 Stage 2: read paths moved to AdminSubmissionProjection.
+        // Constructor keeps only write-path deps: submissionMapper, queueService,
+        // judgeOutboxMapper, featureFlags, transactionTemplate.
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, submissionReadPort, userMapper, problemMapper, queueService,
-                null, flags, null);
+                submissionMapper, queueService, null, flags, null);
     }
 
     private Submission createValidSubmission() {
@@ -268,56 +258,6 @@ class AdminSubmissionServiceImplTest {
             RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
 
             assertThat(result.getRetryCount()).isEqualTo(6);
-        }
-    }
-
-    @Nested
-    @DisplayName("getStatuses() — derived from SubmissionStatus enum")
-    class GetStatuses {
-
-        @Test
-        @DisplayName("returns one entry per SubmissionStatus enum constant")
-        void returnsOneEntryPerEnumConstant() {
-            var options = adminSubmissionService.getStatuses();
-            assertThat(options).hasSize(SubmissionStatus.values().length);
-        }
-
-        @Test
-        @DisplayName("Compile Error key matches DB value (with space, not 'Compilation Error')")
-        void compileError_keyMatchesDb() {
-            var options = adminSubmissionService.getStatuses();
-            var compileError = options.stream()
-                .filter(o -> "COMPILE_ERROR".equals(o.getCode()))
-                .findFirst().orElseThrow();
-            assertThat(compileError.getKey()).isEqualTo("Compile Error");
-            assertThat(compileError.getCategory()).isEqualTo("error");
-        }
-
-        @Test
-        @DisplayName("Judging is included (was missing from the old hard-coded list)")
-        void judging_isIncluded() {
-            var options = adminSubmissionService.getStatuses();
-            assertThat(options).extracting(o -> o.getCode())
-                .contains("JUDGING", "OUTPUT_LIMIT_EXCEEDED",
-                          "PRESENTATION_ERROR", "SYSTEM_ERROR");
-        }
-    }
-
-    @Nested
-    @DisplayName("getLanguages() — returns LanguageOption with key + label")
-    class GetLanguages {
-
-        @Test
-        @DisplayName("humanises 'cpp' to 'C++' and 'javascript' to 'JavaScript'")
-        void humanisesLanguageCodes() {
-            when(submissionMapper.findDistinctLanguages())
-                .thenReturn(List.of("cpp", "java", "javascript", "python"));
-
-            var languages = adminSubmissionService.getLanguages();
-            assertThat(languages).extracting("key").containsExactly(
-                "cpp", "java", "javascript", "python");
-            assertThat(languages).extracting("label").containsExactly(
-                "C++", "Java", "JavaScript", "Python");
         }
     }
 }

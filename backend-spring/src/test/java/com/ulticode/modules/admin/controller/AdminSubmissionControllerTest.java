@@ -9,6 +9,7 @@ import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.LanguageOption;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.dto.StatusOption;
+import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.security.AuthenticationEntryPointImpl;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
@@ -71,6 +72,9 @@ class AdminSubmissionControllerTest {
     @MockBean
     private AdminSubmissionService adminSubmissionService;
 
+    @MockBean
+    private AdminSubmissionProjection adminSubmissionProjection;
+
     // SecurityConfig dependencies
     @MockBean
     private JwtTokenProvider jwtTokenProvider;
@@ -108,7 +112,7 @@ class AdminSubmissionControllerTest {
                 makeStatus("Compile Error", "COMPILE_ERROR", "error"),
                 makeStatus("System Error", "SYSTEM_ERROR", "system")
             );
-            when(adminSubmissionService.getStatuses()).thenReturn(options);
+            when(adminSubmissionProjection.getStatuses()).thenReturn(options);
 
             mockMvc.perform(get("/admin/submissions/statuses"))
                 .andExpect(status().isOk())
@@ -144,7 +148,7 @@ class AdminSubmissionControllerTest {
                 makeLang("javascript", "JavaScript"),
                 makeLang("python", "Python")
             );
-            when(adminSubmissionService.getLanguages()).thenReturn(languages);
+            when(adminSubmissionProjection.getLanguages()).thenReturn(languages);
 
             mockMvc.perform(get("/admin/submissions/languages"))
                 .andExpect(status().isOk())
@@ -172,7 +176,7 @@ class AdminSubmissionControllerTest {
         @Test
         @DisplayName("returns 404 with code 40001 when submission not found")
         void notFound_returns404WithCode() throws Exception {
-            when(adminSubmissionService.getSubmission("nope"))
+            when(adminSubmissionProjection.getSubmission("nope"))
                 .thenThrow(new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND));
 
             mockMvc.perform(get("/admin/submissions/nope"))

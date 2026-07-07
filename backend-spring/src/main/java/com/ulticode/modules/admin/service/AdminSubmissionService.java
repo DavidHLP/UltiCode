@@ -1,51 +1,27 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.admin.dto.*;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.RejudgeResult;
 
 import java.util.List;
 
 /**
- * Service interface for admin submission management.
+ * Write-side service for admin submission management.
+ *
+ * <p>After the ADR-0011 Stage 2 extraction, this interface owns only the
+ * submission state machine: single rejudge and batch rejudge. Every read-side
+ * concern (paginated list, single detail, statistics, filter options) moved
+ * behind {@link com.ulticode.modules.admin.projection.AdminSubmissionProjection}.
+ *
+ * <p>The split mirrors the peer deep-module pattern established by
+ * {@code ModerationProjection} / {@code AchievementProjection} /
+ * {@code ProblemListProjection}: the projection owns reads, the service owns
+ * writes, the controller depends on both.
+ *
+ * @author ulticode
+ * @see com.ulticode.modules.admin.projection.AdminSubmissionProjection
  */
 public interface AdminSubmissionService {
-
-    /**
-     * Get paginated list of submissions with filters.
-     *
-     * @param query query parameters including filters, pagination, and sorting
-     * @return paginated result of admin submission VOs
-     */
-    PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query);
-
-    /**
-     * Get submission details by ID.
-     *
-     * @param id submission ID
-     * @return admin submission VO with full details
-     */
-    AdminSubmissionVO getSubmission(String id);
-
-    /**
-     * Get submission statistics for admin dashboard.
-     *
-     * @return submission statistics
-     */
-    SubmissionStatistics getStatistics();
-
-    /**
-     * Get available status options for filtering.
-     *
-     * @return list of status options
-     */
-    List<StatusOption> getStatuses();
-
-    /**
-     * Get available programming languages for filtering.
-     *
-     * @return list of language options (key = DB code, label = humanised name)
-     */
-    List<LanguageOption> getLanguages();
 
     /**
      * Rejudge a submission.

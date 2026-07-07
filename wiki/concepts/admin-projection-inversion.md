@@ -8,6 +8,7 @@ sources:
   - backend-spring/src/main/java/com/ulticode/modules/admin/projection/
   - /tmp/architecture-review-1783160099.html
   - /tmp/architecture-review-1783341079.html
+  - /tmp/architecture-review-1751947200000.html
 aliases: [ADR-0011, AdminXxxProjection, AdminReadModel, AdminProjection]
 ---
 
@@ -190,6 +191,28 @@ unchanged.
 > invariant, `getSolutions` isDeleted branch routing both ways,
 > empty-page batch-load skip). `Forum`, `Contest`, `Comment` remain
 > next-commit deliverables.
+
+> **2026-07-07 update (Stage 2 Forum)**: Stage 2 Forum (debt 9/10)
+> has landed. `AdminForumProjection` +
+> `DefaultAdminForumProjection` extracted;
+> `AdminForumServiceImpl` slimmed from 532 to ~230 LoC (writes only);
+> cross-module entity imports (`User`, `ForumCommunity`,
+> `ForumCommentMapper`, `EdgeOperationMapper`) and the three inline
+> `toAdminVO` overloads (batch-list, single-item N+1, with-details)
+> left the service; `AdminForumController` updated to depend on the
+> projection for reads (`getPosts`, `getPost`, `getCommunities`) and
+> the service for writes (pin/unpin/lock/unlock/delete/flag/unflag/
+> bulk); `AdminForumCommunityVO` extracted from a controller inner
+> class to a top-level DTO (`admin/dto/`) so the projection can own
+> the read shape without importing a controller; write methods return
+> `void`/`BulkActionResult` so no post-write VO composition is needed
+> (unlike Solution); `AdminForumServiceImplTest` constructor slimmed
+> to `(forumPostMapper, auditService, auditHelper)` (4 mapper mocks
+> dropped, existing 10 audit + 2 bulk write tests cover unchanged
+> writes); `AdminForumProjectionTest` added pinning the read cluster
+> (batch comment/upvote/downvote enrichment happy path,
+> zero-comments fallback, empty-page enrichment skip). `Contest`,
+> `Comment` remain next-commit deliverables.
 
 For each of `AdminSolutionServiceImpl`, `AdminForumServiceImpl`,
 `AdminContestServiceImpl`, `AdminCommentServiceImpl`, each landing as

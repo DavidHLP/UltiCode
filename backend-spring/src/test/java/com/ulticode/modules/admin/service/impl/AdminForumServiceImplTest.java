@@ -1,17 +1,10 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditHelper;
-import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
-import com.ulticode.modules.admin.service.AdminForumService;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
-import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,25 +20,26 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
+ * extraction.
+ *
+ * <p>Read tests ({@code getPosts} comment count enrichment) migrated to
+ * {@link com.ulticode.modules.admin.projection.AdminForumProjectionTest}.
+ * This test class pins the write state machine only: pin / unpin / lock /
+ * unlock / soft-delete / flag / unflag audit logging, concurrent-delete
+ * guard, and bulk-action validation.
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminForumServiceImplTest {
 
     @Mock
     private ForumPostMapper forumPostMapper;
-    @Mock
-    private ForumCommentMapper forumCommentMapper;
-    @Mock
-    private EdgeOperationMapper edgeOperationMapper;
-    @Mock
-    private UserMapper userMapper;
-    @Mock
-    private ForumCommunityMapper forumCommunityMapper;
     @Mock
     private AuditService auditService;
     @Mock
@@ -68,46 +62,6 @@ class AdminForumServiceImplTest {
         testPost.setIsLocked(false);
         testPost.setIsFlagged(false);
         testPost.setIsDeleted(false);
-    }
-
-    @Test
-    @DisplayName("getPosts returns real comment count from forum_comments table")
-    void getPosts_returnsRealCommentCount() {
-        Page<ForumPost> mockPage = new Page<>();
-        mockPage.setRecords(List.of(testPost));
-        mockPage.setTotal(1L);
-        when(forumPostMapper.selectPage(any(Page.class), any())).thenReturn(mockPage);
-        when(forumCommentMapper.countByPostIds(anyList())).thenReturn(
-                List.of(Map.of("post_id", "post-test-001", "cnt", 5L)));
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_UP"))).thenReturn(
-                List.of(Map.of("target_id", "post-test-001", "cnt", 10)));
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_DOWN"))).thenReturn(
-                List.of(Map.of("target_id", "post-test-001", "cnt", 2)));
-
-        var result = adminForumService.getPosts(createDefaultQuery());
-
-        assertThat(result.getItems()).hasSize(1);
-        assertThat(result.getItems().get(0).getCommentCount()).isEqualTo(5);
-        assertThat(result.getItems().get(0).getUpvotes()).isEqualTo(10);
-        assertThat(result.getItems().get(0).getDownvotes()).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("getPosts returns zero when no comments exist")
-    void getPosts_returnsZeroCommentCountWhenNoComments() {
-        Page<ForumPost> mockPage = new Page<>();
-        mockPage.setRecords(List.of(testPost));
-        mockPage.setTotal(1L);
-        when(forumPostMapper.selectPage(any(Page.class), any())).thenReturn(mockPage);
-        when(forumCommentMapper.countByPostIds(anyList())).thenReturn(List.of());
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_UP"))).thenReturn(List.of());
-        when(edgeOperationMapper.countByTargetsAndOperation(anyList(), eq("FORUM_POST"), eq("VOTE_DOWN"))).thenReturn(List.of());
-
-        var result = adminForumService.getPosts(createDefaultQuery());
-
-        assertThat(result.getItems().get(0).getCommentCount()).isEqualTo(0);
-        assertThat(result.getItems().get(0).getUpvotes()).isEqualTo(0);
-        assertThat(result.getItems().get(0).getDownvotes()).isEqualTo(0);
     }
 
     @Nested
@@ -371,12 +325,5 @@ class AdminForumServiceImplTest {
                     anyMap()
             );
         }
-    }
-
-    private AdminForumPostQueryDTO createDefaultQuery() {
-        AdminForumPostQueryDTO dto = new AdminForumPostQueryDTO();
-        dto.setPage(1);
-        dto.setLimit(10);
-        return dto;
     }
 }

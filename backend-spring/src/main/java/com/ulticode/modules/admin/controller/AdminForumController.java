@@ -3,12 +3,14 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.AdminForumCommunityVO;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionRequest;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.dto.FlagPostRequest;
+import com.ulticode.modules.admin.projection.AdminForumProjection;
 import com.ulticode.modules.admin.service.AdminForumService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +25,14 @@ import java.util.List;
 
 /**
  * Admin controller for forum post management.
+ *
+ * <p>After the ADR-0011 Stage 2 extraction, reads (post list, post detail,
+ * community list) depend on {@link AdminForumProjection} and writes (pin /
+ * unpin / lock / unlock / delete / flag / unflag / bulk) depend on
+ * {@link AdminForumService}. Mirrors the AdminSubmission / AdminUser /
+ * AdminSolution controller split.
+ *
+ * @author ulticode
  */
 @Tag(name = "Admin - Forum", description = "Forum management endpoints for admin panel")
 @RestController
@@ -32,12 +42,13 @@ import java.util.List;
 public class AdminForumController {
 
     private final AdminForumService adminForumService;
+    private final AdminForumProjection adminForumProjection;
 
     @Operation(summary = "Get forum posts", description = "Get paginated list of forum posts with filters")
     @GetMapping("/posts")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<AdminForumPostVO>> getPosts(AdminForumPostQueryDTO query) {
-        return Result.success(adminForumService.getPosts(query));
+        return Result.success(adminForumProjection.getPosts(query));
     }
 
     @Operation(summary = "Get post by ID", description = "Get detailed forum post information")
@@ -46,7 +57,7 @@ public class AdminForumController {
     public Result<AdminForumPostVO> getPost(
             @Parameter(description = "Post ID")
             @PathVariable String id) {
-        return Result.success(adminForumService.getPost(id));
+        return Result.success(adminForumProjection.getPost(id));
     }
 
     @Operation(summary = "Get post audit history", description = "Get audit history for a forum post")
@@ -153,21 +164,6 @@ public class AdminForumController {
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") Integer limit,
             @Parameter(description = "Optional case-insensitive search across name, slug, and description")
             @RequestParam(required = false) String search) {
-        return Result.success(adminForumService.getCommunities(page, limit, search));
-    }
-
-    /**
-     * Simple VO for community list in admin panel.
-     */
-    @lombok.Data
-    @lombok.AllArgsConstructor
-    @lombok.NoArgsConstructor
-    public static class AdminForumCommunityVO {
-        private String id;
-        private String name;
-        private String slug;
-        private String description;
-        private Integer postCount;
-        private Integer memberCount;
+        return Result.success(adminForumProjection.getCommunities(page, limit, search));
     }
 }

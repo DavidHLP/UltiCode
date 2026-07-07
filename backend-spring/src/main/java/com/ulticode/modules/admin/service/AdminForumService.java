@@ -1,34 +1,24 @@
 package com.ulticode.modules.admin.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.admin.controller.AdminForumController.AdminForumCommunityVO;
-import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
-import com.ulticode.modules.admin.dto.AdminForumPostVO;
-import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 
 import java.util.List;
 
 /**
- * Service interface for admin forum post management.
+ * Write-side service interface for admin forum post management after the
+ * ADR-0011 Stage 2 extraction.
+ *
+ * <p>Read paths (paginated post list, single-detail post, community list)
+ * moved to
+ * {@link com.ulticode.modules.admin.projection.AdminForumProjection}. This
+ * interface keeps the write state machine (pin / unpin / lock / unlock /
+ * soft-delete / flag / unflag / bulk action) plus the audit-history
+ * delegation.
+ *
+ * @author ulticode
  */
 public interface AdminForumService {
-
-    /**
-     * Get paginated list of forum posts with filters.
-     *
-     * @param query query parameters including filters, pagination, and sorting
-     * @return paginated result of admin forum post VOs
-     */
-    PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query);
-
-    /**
-     * Get forum post details by ID.
-     *
-     * @param id post ID
-     * @return admin forum post VO with full details
-     */
-    AdminForumPostVO getPost(String id);
 
     /**
      * Pin a post.
@@ -73,17 +63,6 @@ public interface AdminForumService {
      * @return bulk action result
      */
     BulkActionResult bulkAction(List<String> ids, String action);
-
-    /**
-     * Get paginated list of forum communities.
-     *
-     * @param page   page number (1-based)
-     * @param limit  page size
-     * @param search optional case-insensitive search across community name and slug
-     *               (null or blank to disable)
-     * @return paginated result of admin forum community VOs
-     */
-    PageResult<AdminForumCommunityVO> getCommunities(int page, int limit, String search);
 
     /**
      * Get audit history for a forum post.

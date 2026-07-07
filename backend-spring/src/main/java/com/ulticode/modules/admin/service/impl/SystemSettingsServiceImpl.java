@@ -22,6 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +54,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
 
     private final SystemSettingMapper mapper;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     // ===== read paths =====
 
@@ -244,7 +246,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
         log.info("Clearing system settings cache (no-op, no cache configured)");
         return Map.of(
                 "clearedScopes", List.of("settings"),
-                "timestamp", LocalDateTime.now().toString()
+                "timestamp", LocalDateTime.now(clock).toString()
         );
     }
 
@@ -339,7 +341,7 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
             SystemSetting row = new SystemSetting();
             row.setKey(key);
             row.setValue(json);
-            row.setUpdatedAt(LocalDateTime.now());
+            row.setUpdatedAt(LocalDateTime.now(clock));
             mapper.insertOrUpdate(row);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize setting key={}", key, e);

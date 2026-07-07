@@ -38,7 +38,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,6 +51,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @Testcontainers
 @ExtendWith(MockitoExtension.class)
@@ -86,6 +90,8 @@ class SubmissionServiceImplIT {
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     @Mock
     private SubmissionProjection submissionProjection;
+    @Mock
+    private Clock clock;
 
     private SubmissionServiceImpl submissionService;
 
@@ -264,7 +270,7 @@ class SubmissionServiceImplIT {
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
                                 flags, notificationDispatcher, notificationDispatchService, problemMapper),
-                        null, flags, null, null);
+                        null, flags, null, null, java.time.Clock.systemDefaultZone());
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
     }

@@ -145,7 +145,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         submission.setStatus("Pending");
         submission.setRuntime(0);
         submission.setMemory(0.0);
-        submission.setCreatedAt(LocalDateTime.now());
+        submission.setCreatedAt(LocalDateTime.now(clock));
         submission.setTestDetails(new ArrayList<>());
 
         // Save submission
@@ -279,7 +279,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     status,
                     "Accepted".equals(status),
                     submission.getRuntime(),
-                    java.time.LocalDateTime.now()
+                    java.time.LocalDateTime.now(clock)
             );
             applicationEventPublisher.publishEvent(event);
         } catch (Exception e) {

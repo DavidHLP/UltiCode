@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,13 +48,15 @@ class PermissionServiceTest {
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
+    @Mock
+    private Clock clock;
 
     private PermissionService permissionService;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         permissionService = new PermissionServiceImpl(
-            userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate);
+            userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock);
     }
 
     @Nested

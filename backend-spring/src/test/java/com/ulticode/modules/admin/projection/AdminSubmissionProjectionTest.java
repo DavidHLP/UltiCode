@@ -46,7 +46,8 @@ class AdminSubmissionProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminSubmissionProjection(
-                submissionMapper, submissionReadPort, userMapper, problemMapper);
+                submissionMapper, submissionReadPort, userMapper, problemMapper,
+                java.time.Clock.systemDefaultZone());
     }
 
     @Nested

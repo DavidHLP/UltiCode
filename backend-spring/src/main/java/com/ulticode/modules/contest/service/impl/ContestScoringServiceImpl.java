@@ -24,6 +24,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +51,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     private final ContestProblemResultMapper contestProblemResultMapper;
     private final FirstSolveRecordMapper firstSolveRecordMapper;
     private final CacheManager cacheManager;
+    private final Clock clock;
 
     private static final String RANKING_CACHE = "contestRanking";
 
@@ -161,7 +163,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
                 firstSolve.setContestId(contestId);
                 firstSolve.setProblemId(contestProblem.getProblemId());
                 firstSolve.setUserId(event.getUserId());
-                firstSolve.setSolvedAt(LocalDateTime.now());
+                firstSolve.setSolvedAt(LocalDateTime.now(clock));
                 firstSolve.setTimeSpent(cs.getTimeFromStart() == null ? 0 : cs.getTimeFromStart());
                 firstSolveRecordMapper.insert(firstSolve);
                 isFirstSolver = true;
@@ -222,7 +224,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     @Override
     @Transactional
     public int batchStartParticipants(String contestId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         int updated = contestParticipantMapper.batchUpdateStatus(contestId, "REGISTERED", "STARTED", now);
         if (updated > 0) {
             log.info("P0-2: transitioned {} participants REGISTERED -> STARTED for contest {}",
@@ -234,7 +236,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     @Override
     @Transactional
     public int autoFinishVirtualParticipants() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<ContestParticipant> toFinish = contestParticipantMapper.findVirtualParticipantsToFinish(now);
         if (toFinish.isEmpty()) {
             return 0;

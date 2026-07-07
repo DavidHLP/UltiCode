@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class JudgeOutboxDispatcher {
     private final ObjectProvider<JudgeQueue> judgeQueueProvider;
     /** Nullable so unit tests without a registry still work. */
     private final MeterRegistry meterRegistry;
+    private final Clock clock;
 
     /**
      * Boot-time mirror of {@code app.features.judge-queue.use-port}; when
@@ -140,7 +142,7 @@ public class JudgeOutboxDispatcher {
                 log.debug("Outbox real-dispatched submission={} gen={} (cutover)",
                         row.getSubmissionId(), row.getGeneration());
             } catch (Exception e) {
-                LocalDateTime nextRetry = LocalDateTime.now().plusSeconds(backoffSeconds(row));
+                LocalDateTime nextRetry = LocalDateTime.now(clock).plusSeconds(backoffSeconds(row));
                 String reason = truncate(e.getMessage());
                 judgeOutboxMapper.markRetry(row.getId(), nextRetry, reason);
                 incrementRealRetried();

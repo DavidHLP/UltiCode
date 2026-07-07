@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,7 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
     private final AdminUserStatsReadPort userStatsReadPort;
     private final PermissionService permissionService;
     private final RolePermissionMapper rolePermissionMapper;
+    private final Clock clock;
 
     // ------------------------------------------------------------------
     // Paginated list read (query build + entity->VO shaping, NO enrichment)
@@ -201,7 +203,7 @@ public class DefaultAdminUserProjection implements AdminUserProjection {
      */
     private void populateDirectPermissions(List<AdminUserVO.PermissionInfo> sink, String userId) {
         List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         for (UserPermission up : userPerms) {
             if (up.getExpiresAt() != null && !up.getExpiresAt().isAfter(now)) {
                 continue;

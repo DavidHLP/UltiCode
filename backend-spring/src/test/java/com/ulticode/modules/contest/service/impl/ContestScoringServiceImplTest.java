@@ -28,6 +28,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +42,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,15 +78,18 @@ class ContestScoringServiceImplTest {
     @Mock private FirstSolveRecordMapper firstSolveRecordMapper;
     @Mock private CacheManager cacheManager;
     @Mock private Cache cache;
+    @Mock private Clock clock;
 
     private ContestScoringServiceImpl service;
 
     @BeforeEach
     void setUp() {
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.of("UTC"));
         service = new ContestScoringServiceImpl(
                 contestMapper, contestParticipantMapper, contestProblemMapper,
                 contestSubmissionMapper, contestProblemResultMapper,
-                firstSolveRecordMapper, cacheManager);
+                firstSolveRecordMapper, cacheManager, clock);
         // R4: the service now loads the parent contest for scoringMode/penalty
         // config. Provide a default ICPC contest so the existing tests (which
         // assume ICPC semantics: 20-min penalty per WA) continue to hold.

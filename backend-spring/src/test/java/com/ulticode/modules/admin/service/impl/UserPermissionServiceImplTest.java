@@ -21,6 +21,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
+import java.time.Clock;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,12 +53,15 @@ class UserPermissionServiceImplTest {
     @Mock
     private AdminUserProjection adminUserProjection;
 
+    @Mock
+    private Clock clock;
+
     private UserPermissionServiceImpl userPermissionService;
 
     @BeforeEach
     void setUp() {
         userPermissionService = new UserPermissionServiceImpl(
-                userMapper, permissionService, adminUserProjection);
+                userMapper, permissionService, adminUserProjection, clock);
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
         // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
         Authentication auth = new UsernamePasswordAuthenticationToken(

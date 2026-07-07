@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,8 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+
+    private final Clock clock;
 
     @Value("${app.frontend-url:http://localhost:9002}")
     private String frontendUrl;
@@ -57,7 +60,7 @@ public class PasswordResetService {
 
         String plainToken = IdUtil.simpleUUID();
         String hashedToken = passwordEncoder.encode(plainToken);
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(30);
+        LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(30);
 
         // D-12: Store BCrypt hash + expiry on users table
         // D-18: New request overwrites previous token
@@ -96,7 +99,7 @@ public class PasswordResetService {
         List<User> candidates = userMapper.selectList(
             new LambdaQueryWrapper<User>()
                 .isNotNull(User::getPasswordResetTokenHash)
-                .gt(User::getPasswordResetExpiresAt, LocalDateTime.now())
+                .gt(User::getPasswordResetExpiresAt, LocalDateTime.now(clock))
         );
 
         User matchedUser = null;

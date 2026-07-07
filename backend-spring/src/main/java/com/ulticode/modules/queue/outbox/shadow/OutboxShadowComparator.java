@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -64,6 +65,7 @@ public class OutboxShadowComparator {
     private final JudgeOutboxMapper judgeOutboxMapper;
     /** Nullable so unit tests without a registry still work. */
     private final MeterRegistry meterRegistry;
+    private final Clock clock;
 
     /**
      * Detect outbox rows the dispatcher has not caught up to. Runs every 5s;
@@ -77,7 +79,7 @@ public class OutboxShadowComparator {
     @Scheduled(fixedDelayString = "${judge.outbox.comparator.interval-ms:5000}",
             initialDelayString = "${judge.outbox.comparator.initial-delay-ms:20000}")
     public void compare() {
-        LocalDateTime staleBefore = LocalDateTime.now().minusSeconds(PENDING_GRACE_SECONDS);
+        LocalDateTime staleBefore = LocalDateTime.now(clock).minusSeconds(PENDING_GRACE_SECONDS);
         List<JudgeOutboxRecord> stale = judgeOutboxMapper.selectStalePending(staleBefore);
         if (stale.isEmpty()) {
             return;

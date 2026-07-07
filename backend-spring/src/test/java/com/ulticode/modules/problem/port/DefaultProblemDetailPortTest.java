@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -71,7 +72,8 @@ class DefaultProblemDetailPortTest {
                 problemLanguageMapper,
                 problemTagMapper,
                 problemTagRelationMapper,
-                new ObjectMapper());
+                new ObjectMapper(),
+                Clock.systemDefaultZone());
     }
 
     private Problem problem(Long id, String slug) {

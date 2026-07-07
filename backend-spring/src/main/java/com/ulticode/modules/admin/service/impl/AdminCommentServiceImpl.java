@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final ForumCommentMapper forumCommentMapper;
     private final SolutionCommentMapper solutionCommentMapper;
     private final AdminCommentReadPort commentReadPort;
+    private final Clock clock;
 
     @Override
     public PageResult<AdminCommentVO> getComments(AdminCommentQueryDTO query) {
@@ -193,7 +195,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "forum"));
             comment.setIsFlagged(true);
             comment.setFlaggedReason(reason);
-            comment.setFlaggedAt(LocalDateTime.now());
+            comment.setFlaggedAt(LocalDateTime.now(clock));
             forumCommentMapper.updateById(comment);
             log.info("Forum comment flagged: {}", id);
         } else if ("solution".equals(type)) {
@@ -207,7 +209,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "solution"));
             comment.setIsFlagged(true);
             comment.setFlaggedReason(reason);
-            comment.setFlaggedAt(LocalDateTime.now());
+            comment.setFlaggedAt(LocalDateTime.now(clock));
             solutionCommentMapper.updateById(comment);
             log.info("Solution comment flagged: {}", id);
         }
@@ -272,7 +274,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             forumCommentMapper.update(null, new LambdaUpdateWrapper<ForumComment>()
                 .eq(ForumComment::getId, id)
                 .set(ForumComment::getIsDeleted, true)
-                .set(ForumComment::getDeletedAt, LocalDateTime.now())
+                .set(ForumComment::getDeletedAt, LocalDateTime.now(clock))
                 .set(ForumComment::getDeletedBy, currentUserId));
             log.info("Forum comment deleted: {} by {}", id, currentUserId);
         } else if ("solution".equals(type)) {
@@ -284,7 +286,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             solutionCommentMapper.update(null, new LambdaUpdateWrapper<SolutionComment>()
                 .eq(SolutionComment::getId, id)
                 .set(SolutionComment::getIsDeleted, true)
-                .set(SolutionComment::getDeletedAt, LocalDateTime.now())
+                .set(SolutionComment::getDeletedAt, LocalDateTime.now(clock))
                 .set(SolutionComment::getDeletedBy, currentUserId));
             log.info("Solution comment deleted: {} by {}", id, currentUserId);
         }

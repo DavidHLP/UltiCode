@@ -121,7 +121,7 @@ public class DefaultUserWritePort implements UserWritePort {
 
         User user = new User();
         user.setId(userId);
-        user.setLastLoginAt(LocalDateTime.now());
+        user.setLastLoginAt(LocalDateTime.now(clock));
         userMapper.updateById(user);
 
         log.debug("Updated last login time for user: {}", userId);

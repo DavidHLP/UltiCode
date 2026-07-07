@@ -16,6 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +59,7 @@ class AdminSolutionServiceImplTest {
     @Mock private SolutionMapper solutionMapper;
     @Mock private ProblemMapper problemMapper;
     @Mock private AdminSolutionProjection solutionProjection;
+    @Mock private Clock clock;
 
     private AdminSolutionServiceImpl service;
 
@@ -64,7 +68,9 @@ class AdminSolutionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new AdminSolutionServiceImpl(solutionMapper, problemMapper, solutionProjection);
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        service = new AdminSolutionServiceImpl(solutionMapper, problemMapper, solutionProjection, clock);
     }
 
     @AfterEach

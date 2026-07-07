@@ -19,7 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +52,9 @@ class PasswordResetServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private PasswordResetService passwordResetService;
 
@@ -58,6 +66,8 @@ class PasswordResetServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9002");
+        lenient().when(clock.instant()).thenReturn(Instant.now());
+        lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }
 
     private User createUserWithResetToken() {

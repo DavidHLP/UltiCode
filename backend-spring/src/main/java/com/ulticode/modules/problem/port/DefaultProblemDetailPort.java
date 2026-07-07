@@ -121,7 +121,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
         if (updateDTO.getHints() != null) {
             detail.setHints(updateDTO.getHints());
         }
-        detail.setUpdatedAt(LocalDateTime.now());
+        detail.setUpdatedAt(LocalDateTime.now(clock));
 
         if (isNew) {
             problemDetailMapper.insert(detail);

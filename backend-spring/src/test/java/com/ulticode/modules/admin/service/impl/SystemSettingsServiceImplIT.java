@@ -16,16 +16,26 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration test for {@link SystemSettingsServiceImpl} against a real
@@ -42,6 +52,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  */
 @Testcontainers
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("SystemSettingsServiceImpl (IT)")
 class SystemSettingsServiceImplIT {
 
@@ -58,6 +70,8 @@ class SystemSettingsServiceImplIT {
     private SystemSettingMapper mapper;
     private SystemSettingsServiceImpl service;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    @Mock
+    private Clock clock;
 
     @BeforeAll
     static void startContainer() {
@@ -67,6 +81,8 @@ class SystemSettingsServiceImplIT {
 
     @BeforeEach
     void setUpSchema() throws Exception {
+        when(clock.instant()).thenReturn(Instant.EPOCH);
+        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         dataSource = new DriverManagerDataSource(
                 MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword());
 
@@ -97,7 +113,9 @@ class SystemSettingsServiceImplIT {
         assertThat(sqlSessionFactory).isNotNull();
 
         mapper = sqlSessionFactory.openSession().getMapper(SystemSettingMapper.class);
-        service = new SystemSettingsServiceImpl(mapper, objectMapper);
+        lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+        service = new SystemSettingsServiceImpl(mapper, objectMapper, clock);
     }
 
     @AfterEach
@@ -155,7 +173,7 @@ class SystemSettingsServiceImplIT {
             // A fresh read (in a new service instance) must see the same
             // values — this is the core regression for §5.1.
             SystemSettingsServiceImpl freshService =
-                    new SystemSettingsServiceImpl(mapper, objectMapper);
+                    new SystemSettingsServiceImpl(mapper, objectMapper, java.time.Clock.systemDefaultZone());
             GeneralSettingsVO reRead = freshService.getGeneralSettings();
             assertThat(reRead.getSiteName()).isEqualTo("Custom Site");
             assertThat(reRead.isEnableRegistrations()).isFalse();

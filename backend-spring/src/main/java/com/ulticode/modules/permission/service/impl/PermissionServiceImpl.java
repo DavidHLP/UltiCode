@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final RolePermissionMapper rolePermissionMapper;
     private final UserMapper userMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final Clock clock;
 
     private static final String PERM_CACHE_PREFIX = "user:perms:";
     private static final String SYSTEM_GRANTOR = "system";
@@ -116,7 +118,7 @@ public class PermissionServiceImpl implements PermissionService {
     public UserPermission assignPermission(String userId, String action, String resource,
                                             LocalDateTime expiresAt) {
         validatePermissionArgs(userId, action, resource);
-        if (expiresAt != null && !expiresAt.isAfter(LocalDateTime.now())) {
+        if (expiresAt != null && !expiresAt.isAfter(LocalDateTime.now(clock))) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                 "expiresAt must be in the future");
         }
@@ -132,7 +134,7 @@ public class PermissionServiceImpl implements PermissionService {
         record.setUserId(userId);
         record.setAction(action);
         record.setResource(resource);
-        record.setGrantedAt(LocalDateTime.now());
+        record.setGrantedAt(LocalDateTime.now(clock));
         record.setGrantedBy(currentAdminId());
         record.setExpiresAt(expiresAt);
 

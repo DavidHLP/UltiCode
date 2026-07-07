@@ -12,7 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,6 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Focused unit tests for the new behaviour added in 2026-06-11
@@ -39,6 +43,7 @@ class ContestSchedulerServiceImplVirtualSessionTest {
 
     private ContestMapper contestMapper;
     private ContestParticipantMapper participantMapper;
+    private Clock clock;
     private ContestSchedulerServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -49,7 +54,10 @@ class ContestSchedulerServiceImplVirtualSessionTest {
     void setUp() {
         contestMapper = mock(ContestMapper.class);
         participantMapper = mock(ContestParticipantMapper.class);
-        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper);
+        clock = mock(Clock.class);
+        lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {

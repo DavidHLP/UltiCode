@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import java.time.Clock;
+
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +44,9 @@ class DefaultUserWritePortTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private DefaultUserWritePort userWritePort;
 
@@ -48,6 +54,9 @@ class DefaultUserWritePortTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+
         testUser = new User();
         testUser.setId("test-user-id");
         testUser.setEmail("test@example.com");

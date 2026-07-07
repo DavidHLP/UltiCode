@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +51,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private final UserMapper userMapper;
     private final PermissionService permissionService;
     private final AdminUserProjection adminUserProjection;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -119,7 +121,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             newValues.put("removed", removed);
         } else {
             newValues.put("expiresAt", expiresAt != null ? expiresAt : "");
-            newValues.put("grantedAt", LocalDateTime.now());
+            newValues.put("grantedAt", LocalDateTime.now(clock));
         }
         AuditContext.setNewValues(newValues);
 

@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestAnnouncementPushPort contestAnnouncementPushPort;
     private final ContestLiveRankingReadPort liveRankingReadPort;
     private final AuditHelper auditHelper;
+    private final Clock clock;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -263,7 +265,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         }
 
         contest.setIsDeleted(true);
-        contest.setDeletedAt(LocalDateTime.now());
+        contest.setDeletedAt(LocalDateTime.now(clock));
         contest.setDeletedBy(SecurityUtil.getCurrentUserId());
         contestMapper.updateById(contest);
 

@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +59,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     private final AdminSubmissionReadPort submissionReadPort;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final Clock clock;
 
     // ------------------------------------------------------------------
     // Paginated list read (query build + batch enrichment)
@@ -218,7 +220,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         stats.setByLanguage(byLanguage);
 
         // Last 24 hours
-        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        LocalDateTime yesterday = LocalDateTime.now(clock).minusHours(24);
         Long last24h = submissionMapper.selectCount(
                 new LambdaQueryWrapper<Submission>().ge(Submission::getCreatedAt, yesterday)
         );

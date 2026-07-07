@@ -17,6 +17,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -44,13 +45,14 @@ public class ContestScheduler {
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    private final Clock clock;
 
     @Scheduled(fixedRate = 10_000)
     public void run() {
         // Step 1: Find UPCOMING contests and transition those past start_time
         List<Contest> upcoming = contestMapper.findByStatus(
                 com.ulticode.modules.contest.entity.enums.ContestStatus.UPCOMING.name());
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         for (Contest contest : upcoming) {
             if (contest.getStartTime() != null && !contest.getStartTime().isAfter(now)) {
                 transitionToRunning(contest);
@@ -101,7 +103,7 @@ public class ContestScheduler {
 
     @Scheduled(fixedRate = 60_000)  // Check every minute
     public void sendContestReminders() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Find UPCOMING contests starting in 24-25 hours from now (T-24h window)
         LocalDateTime window24hStart = now.plusHours(24);
@@ -214,7 +216,7 @@ public class ContestScheduler {
             return;
         }
         contest.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.RUNNING.name());
-        contest.setActualStartTime(LocalDateTime.now());
+        contest.setActualStartTime(LocalDateTime.now(clock));
         contestMapper.updateById(contest);
 
         // P0-2: batch-transition REGISTERED participants to STARTED so they can
@@ -257,7 +259,7 @@ public class ContestScheduler {
             return;
         }
         contest.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.FINISHED.name());
-        contest.setActualEndTime(LocalDateTime.now());
+        contest.setActualEndTime(LocalDateTime.now(clock));
         contestMapper.updateById(contest);
 
         // R3.1: close all real (is_virtual=0) participants so the rating
@@ -265,7 +267,7 @@ public class ContestScheduler {
         // are managed by the per-user virtual session, not the contest clock.
         try {
             int finished = participantMapper.finishStartedRealParticipants(
-                    contest.getId(), LocalDateTime.now());
+                    contest.getId(), LocalDateTime.now(clock));
             if (finished > 0) {
                 log.info("R3.1: closed {} real participants for contest {}",
                         finished, contest.getId());

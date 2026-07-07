@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ public class AdminTestCaseService {
     private final TestCaseMapper testCaseMapper;
     private final ProblemMapper problemMapper;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     public PageResult<TestCase> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
                                                Integer page, Integer limit) {
@@ -103,8 +105,8 @@ public class AdminTestCaseService {
         testCase.setExplanation(dto.getExplanation());
         testCase.setConstraints(dto.getConstraints());
         testCase.setInputs(dto.getInputs());
-        testCase.setCreatedAt(LocalDateTime.now());
-        testCase.setUpdatedAt(LocalDateTime.now());
+        testCase.setCreatedAt(LocalDateTime.now(clock));
+        testCase.setUpdatedAt(LocalDateTime.now(clock));
 
         testCaseMapper.insert(testCase);
         log.info("Test case created: {} for problem {}" , testCase.getId(), problemId);
@@ -140,7 +142,7 @@ public class AdminTestCaseService {
         if (dto.getInputs() != null) {
             existing.setInputs(dto.getInputs());
         }
-        existing.setUpdatedAt(LocalDateTime.now());
+        existing.setUpdatedAt(LocalDateTime.now(clock));
 
         testCaseMapper.updateById(existing);
         log.info("Test case updated: {} for problem {}", testCaseId, problemId);
@@ -179,7 +181,7 @@ public class AdminTestCaseService {
         for (int i = 0; i < testCaseIds.size(); i++) {
             TestCase existing = getTestCase(problemId, testCaseIds.get(i));
             existing.setTestOrder(i);
-            existing.setUpdatedAt(LocalDateTime.now());
+            existing.setUpdatedAt(LocalDateTime.now(clock));
             testCaseMapper.updateById(existing);
         }
         log.info("Reordered {} test cases for problem {}", testCaseIds.size(), problemId);

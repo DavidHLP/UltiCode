@@ -23,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
@@ -46,6 +47,7 @@ public class OAuthService {
     private final ObjectMapper objectMapper;
     private final AuthSessionPort authSessionPort;
     private final OAuthStatePort oauthStatePort;
+    private final Clock clock;
 
     // ==================== GitHub OAuth ====================
 
@@ -203,7 +205,7 @@ public class OAuthService {
             user.setRole("USER");
             user.setIsActive(true);
             user.setIsBanned(false);
-            user.setJoinedAt(LocalDateTime.now());
+            user.setJoinedAt(LocalDateTime.now(clock));
             userMapper.insert(user);
             log.info("Created new user via {} OAuth: {}", provider, email);
         } else {

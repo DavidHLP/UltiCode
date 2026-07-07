@@ -13,11 +13,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +49,7 @@ class AdminCommentServiceImplTest {
     @Mock private ForumCommentMapper forumCommentMapper;
     @Mock private SolutionCommentMapper solutionCommentMapper;
     @Mock private AdminCommentReadPort commentReadPort;
+    @Mock private Clock clock;
 
     private AdminCommentServiceImpl service;
 
@@ -55,8 +60,10 @@ class AdminCommentServiceImplTest {
     void setUp() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("admin-id", null, Collections.emptyList()));
+        lenient().when(clock.instant()).thenReturn(Instant.EPOCH);
+        lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         service = new AdminCommentServiceImpl(
-                forumCommentMapper, solutionCommentMapper, commentReadPort);
+                forumCommentMapper, solutionCommentMapper, commentReadPort, clock);
     }
 
     @AfterEach

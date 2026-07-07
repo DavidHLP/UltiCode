@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -70,6 +71,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * lives behind this seam; this service keeps writes only.
      */
     private final AdminUserProjection adminUserProjection;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -99,7 +101,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setRole(dto.getRole() != null ? dto.getRole() : "USER");
         user.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
         user.setIsBanned(false);
-        user.setJoinedAt(LocalDateTime.now());
+        user.setJoinedAt(LocalDateTime.now(clock));
 
         if (StringUtils.hasText(dto.getPassword())) {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));

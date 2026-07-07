@@ -71,7 +71,8 @@ class AdminUserProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultAdminUserProjection(
-                userMapper, userStatsReadPort, permissionService, rolePermissionMapper);
+                userMapper, userStatsReadPort, permissionService, rolePermissionMapper,
+                java.time.Clock.systemDefaultZone());
     }
 
     @Nested

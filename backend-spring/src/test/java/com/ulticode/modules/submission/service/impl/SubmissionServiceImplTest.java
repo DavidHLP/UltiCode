@@ -28,6 +28,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Clock;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +55,7 @@ class SubmissionServiceImplTest {
     @Mock private UserMapper userMapper;
     @Mock private ProblemMapper problemMapper;
     @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    @Mock private Clock clock;
     @Mock private QueueService queueService;
     @Mock private com.ulticode.modules.submission.port.ContestSubmissionPort contestSubmissionPort;
     @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
@@ -74,6 +79,8 @@ class SubmissionServiceImplTest {
         // dispatch service. Flags default to false → legacy path is active.
         com.ulticode.common.config.FeatureFlagsProperties flags =
                 new com.ulticode.common.config.FeatureFlagsProperties();
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
         // Real stats module wired with the mocked SubmissionMapper so the
         // existing percentile/bin assertions exercise the extracted math
         // end-to-end (no behaviour change vs. pre-deepening).
@@ -94,7 +101,7 @@ class SubmissionServiceImplTest {
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
                                 flags, notificationDispatcher, notificationDispatchService, problemMapper),
-                        null, flags, null, null);
+                        null, flags, null, null, clock);
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
         // Default projection stubs: the service delegates to SubmissionProjection

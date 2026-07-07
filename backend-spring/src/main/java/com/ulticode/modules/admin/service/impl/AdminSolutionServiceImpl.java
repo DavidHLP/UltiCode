@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +55,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final SolutionMapper solutionMapper;
     private final ProblemMapper problemMapper;
     private final AdminSolutionProjection solutionProjection;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -79,7 +81,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         wrapper.eq(Solution::getId, id)
                 .set(Solution::getIsFlagged, true)
                 .set(Solution::getFlaggedReason, reason)
-                .set(Solution::getFlaggedAt, LocalDateTime.now());
+                .set(Solution::getFlaggedAt, LocalDateTime.now(clock));
 
         solutionMapper.update(null, wrapper);
 
@@ -181,7 +183,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
                         LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
                         wrapper.eq(Solution::getId, id)
                                 .set(Solution::getIsPublished, true)
-                                .set(Solution::getPublishedAt, LocalDateTime.now());
+                                .set(Solution::getPublishedAt, LocalDateTime.now(clock));
                         solutionMapper.update(null, wrapper);
                         results.add(BulkActionResult.success(id));
                     }

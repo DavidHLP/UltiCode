@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -55,6 +56,7 @@ class PermissionServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
+        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock);
     }

@@ -23,6 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Clock;
 import java.time.Clock;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,6 +61,7 @@ class UserPermissionServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         userPermissionService = new UserPermissionServiceImpl(
                 userMapper, permissionService, adminUserProjection, clock);
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过

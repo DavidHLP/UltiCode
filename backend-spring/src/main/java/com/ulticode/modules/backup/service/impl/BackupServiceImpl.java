@@ -27,6 +27,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -42,6 +43,7 @@ public class BackupServiceImpl implements BackupService {
 
     private final BackupMapper backupMapper;
     private final UserMapper userMapper;
+    private final Clock clock;
 
     @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
     private String backupDir;
@@ -63,7 +65,7 @@ public class BackupServiceImpl implements BackupService {
         ensureBackupDirectoryExists();
 
         // Generate filename
-        String timestamp = LocalDateTime.now().format(FILE_DATE_FORMAT);
+        String timestamp = LocalDateTime.now(clock).format(FILE_DATE_FORMAT);
         String filename = String.format("backup_%s_%s.sql", dto.getType().name().toLowerCase(), timestamp);
 
         // Create backup record with PENDING status

@@ -1,9 +1,9 @@
 package com.ulticode.modules.i18n.controller;
 
-import com.ulticode.common.annotation.CurrentUser;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.i18n.constants.I18nConstants;
 import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
 import com.ulticode.modules.i18n.dto.ParseLocaleRequest;
@@ -82,8 +82,9 @@ public class I18nController {
     @PostMapping("/translations/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BulkUpsertDTO> bulkUpsert(
-            @Valid @RequestBody BulkUpsertDTO dto,
-            @CurrentUser String userId) {
+            @Valid @RequestBody BulkUpsertDTO dto) {
+
+        final String userId = SecurityUtil.getCurrentUserId();
 
         // Validate all translation items
         for (BulkUpsertDTO.TranslationItem item : dto.getTranslations()) {

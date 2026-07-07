@@ -86,11 +86,10 @@ See [[entities/refreshtoken]] and [[concepts/refresh-token-hash-only-storage]].
 | Mechanism | Where | Example |
 |-----------|-------|---------|
 | `@PreAuthorize` (Spring) | controller methods | privileged ops, **even with a global route rule** |
-| `@RequireRole("ADMIN")` | custom annotation | admin endpoints |
 | `@CheckBan` | custom annotation | user-action endpoints |
 | `@RateLimit` | custom annotation | sensitive ops (login, register) |
 | `@Audited` | custom annotation | material state changes |
-| `@CurrentUser` | param injection | resolve identity from principal |
+| `SecurityUtil.getCurrentUserId()` | static call in controller body | resolve identity from principal (57 call sites) |
 
 **Invariant**: `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`.
 **Audit identity comes from the authenticated principal, never from the request

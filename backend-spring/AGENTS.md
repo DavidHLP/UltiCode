@@ -11,7 +11,7 @@ Spring Boot 3.2.5 API (port 9001), Java 17, MyBatis-Plus 3.5.16, MapStruct 1.6.3
 src/main/java/com/ulticode/
 ├── UlticodeBackendApplication.java   # @SpringBootApplication + @EnableScheduling + @EnableAsync
 ├── common/
-│   ├── annotation/                    # @Audited, @CheckBan, @RequireRole, @RateLimit, @CurrentUser
+│   ├── annotation/                    # @Audited, @CheckBan, @RateLimit
 │   ├── aspect/                        # AOP implementations for annotations above
 │   ├── audit/                         # AuditPolicy — single source of truth for @Audited sites
 │   ├── config/                        # 24 beans: SecurityConfig, RedisConfig, MybatisPlusConfig…

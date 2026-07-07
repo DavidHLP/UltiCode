@@ -46,7 +46,7 @@ me      → GET /auth/me → identity + fresh CSRF
 - JWT filter (access cookie verification on every request).
 - CSRF filter (Redis `tokenId:tokenValue` verify + rotate on mutating verbs).
 - Access/refresh cookie handlers.
-- Annotations: `@RequireRole`, `@CheckBan`, `@RateLimit`, `@Audited`, `@CurrentUser`.
+- Annotations: `@CheckBan`, `@RateLimit`, `@Audited`. Role enforcement uses Spring's `@PreAuthorize`; identity is read via `SecurityUtil.getCurrentUserId()`.
 - OAuth: state bound to HttpOnly cookie, Redis atomic consume.
 
 ## CSRF

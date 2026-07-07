@@ -34,8 +34,9 @@ modules/<m>/
   (return DTO/VO).
 - No XML mappers — custom SQL is `@Select`/`@Update` annotations.
 - Paging: `Page<T>` + `selectPage`.
-- Custom security annotations: `@RequireRole`, `@CheckBan`, `@RateLimit`,
-  `@Audited`, `@CurrentUser`.
+- Custom security annotations: `@CheckBan`, `@RateLimit`,
+  `@Audited`. Role enforcement uses Spring's `@PreAuthorize`; identity is read
+  via `SecurityUtil.getCurrentUserId()`.
 
 ## Where it lives
 - Every `modules/*/`; enforced by `.claude/rules/springboot-rules.md` + `AGENTS.md`.

@@ -13,7 +13,7 @@ aliases: [权限, RBAC]
 # Permission
 
 RBAC core: roles + per-user permissions with optional expiry. Resolves whether
-the authenticated principal may do the thing. Used by `@RequireRole` and
+the authenticated principal may do the thing. Enforced by Spring
 `@PreAuthorize` across controllers.
 
 ## Key tables
@@ -24,9 +24,9 @@ the authenticated principal may do the thing. Used by `@RequireRole` and
 ## How it's used
 
 - `/admin/**` and privileged methods require `ADMIN` or `SUPER_ADMIN`.
-- `@RequireRole("ADMIN")` / Spring `@PreAuthorize` — privileged ops need it **even
+- Spring `@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")` — privileged ops need it **even
   with a global route rule**.
-- `@CheckBan` reads ban state; `@CurrentUser` injects the principal.
+- `@CheckBan` reads ban state; identity is read via `SecurityUtil.getCurrentUserId()`.
 - Audit identity = the principal, never the request body.
 
 ## Source files

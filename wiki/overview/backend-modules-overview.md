@@ -90,8 +90,8 @@ Outside `modules/`, under `com.ulticode`:
 - `common/` — `annotation`, `aspect`, `config`, `dto`, `exception`, `filter`,
   `metrics`, `response` (`Result<T>`), `service`, `util`.
 - `infrastructure/redis` — Redisson client.
-- `security/` — JWT filter chain, CSRF filter, cookie handlers, `@RequireRole` /
-  `@CheckBan` / `@RateLimit` / `@Audited` / `@CurrentUser`.
+- `security/` — JWT filter chain, CSRF filter, cookie handlers, `@CheckBan` /
+  `@RateLimit` / `@Audited` (role enforcement uses Spring `@PreAuthorize`; identity via `SecurityUtil`).
 
 ## How to pick where to look
 

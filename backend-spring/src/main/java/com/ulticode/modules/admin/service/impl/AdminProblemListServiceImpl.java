@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
@@ -90,8 +91,9 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         }
 
         // Pagination
-        int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
-        int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
+        int page = pageRequest.page();
+        int limit = pageRequest.pageSize();
 
         Page<ProblemList> pageResult = new Page<>(page, limit);
         Page<ProblemList> result = problemListMapper.selectPage(pageResult, wrapper);

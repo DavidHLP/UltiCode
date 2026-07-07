@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.problem.entity.TestCase;
@@ -50,9 +51,9 @@ public class AdminTestCaseService {
         }
         wrapper.orderByAsc(TestCase::getTestOrder);
 
-        int currentPage = (page != null && page > 0) ? page : 1;
-        int currentLimit = (limit != null && limit > 0) ? limit : 20;
-        currentLimit = Math.min(currentLimit, 100);
+        PaginationRequest pageRequest = PaginationRequest.of(page, limit);
+        int currentPage = pageRequest.page();
+        int currentLimit = pageRequest.pageSize();
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<TestCase> pageParam =
                 new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(currentPage, currentLimit);

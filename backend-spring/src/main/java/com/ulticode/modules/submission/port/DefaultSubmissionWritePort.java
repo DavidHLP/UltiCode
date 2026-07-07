@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +95,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      * logged but never propagated to the judge worker.
      */
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final Clock clock;
 
     /**
      * Supported languages for submission.

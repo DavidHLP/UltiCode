@@ -35,6 +35,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper participantMapper;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -45,7 +46,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
@@ -89,7 +90,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         // P2-7 fix: also reject unregister after registration_end. Without this
         // check a user could unregister after the registration window closed,
         // letting them dodge a no-show penalty in some scoring rules.
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
@@ -184,7 +185,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         // No active session. Optionally also check for a non-active (FINISHED)
         // virtual row so we can still report the prior session if the user
         // is replaying a previously finished virtual run; not blocking.
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
@@ -264,7 +265,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         // "auto-finish central dispatch" invariant holds — same path the
         // scheduler uses, no direct updateById bypass.
         participantMapper.bulkFinishByIds(
-                java.util.List.of(participant.getId()), LocalDateTime.now());
+                java.util.List.of(participant.getId()), LocalDateTime.now(clock));
 
         log.info("User {} finished virtual contest {} session {}", userId, contestId, effectiveSessionId);
     }

@@ -311,9 +311,9 @@ public class AdminTagServiceImpl implements AdminTagService {
  new LambdaQueryWrapper<>();
  countWrapper.eq(ProblemTagRelation::getTagId, dto.getTargetTagId());
  long count = problemTagRelationMapper.selectCount(countWrapper);
- target.setUsageCount((int) count);
- target.setUpdatedAt(LocalDateTime.now());
- problemTagMapper.updateById(target);
+  target.setUsageCount((int) count);
+  target.setUpdatedAt(LocalDateTime.now(clock));
+  problemTagMapper.updateById(target);
  }
  private TagVO toTagVO(ProblemTag tag) {
  TagVO vo = new TagVO();

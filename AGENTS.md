@@ -1,10 +1,14 @@
 # UltiCode Repository Guide
 
-Last updated: 2026-07-06 (architecture review sweep — Cards 1, 2, 3, 4, 5, 6 + ADR-0011 update)
+Last updated: 2026-07-06 (init-deep sweep — root refresh + backend-spring/console/shared AGENTS.md)
 
 This file applies to the entire repository. A nested `AGENTS.md` takes precedence
-inside its directory. In particular, read `management/AGENTS.md` before changing
-the management frontend.
+inside its directory. Read the relevant nested guide before changing that area:
+
+- [`backend-spring/AGENTS.md`](backend-spring/AGENTS.md) — module map, JaCoCo, deep modules
+- [`console/AGENTS.md`](console/AGENTS.md) — user frontend structure, API patterns, test layout
+- [`management/AGENTS.md`](management/AGENTS.md) — admin frontend, i18n conventions, permission gates
+- [`shared/AGENTS.md`](shared/AGENTS.md) — 10 shared packages, deep-module pattern, consumption
 
 ## Project Map
 
@@ -24,8 +28,12 @@ the management frontend.
 | `shared/submission-status/` | Submission verdict ↔ color contract |
 | `shared/theme/` | Theme system: state / tokens / primitives / bootstrap |
 | `init-db/migrations/` | Canonical Flyway SQL migrations |
-| `docker/` | Database, Nacos, and judge initialization assets |
-| `docs/` | Architecture, operations, and security documentation |
+| `docker/` | Database init SQL, Nacos bootstrap, and D-form judge sandbox |
+| `docs/` | ADRs, screenshots, project status, rtk reference |
+| `wiki/` | Obsidian vault: domain entities, concepts, daily notes, overview docs |
+| `infrastructure/` | Project-level Arthas config (`arthas.properties`) |
+| `tools/` | Java agent jars (`arthas-boot.jar`) |
+| `scripts/` | Dev ops: `dev/`, `security/`, `statusline/`, `test/`, `adr-005/` |
 | `.agents/skills/` | Project-specific operational and coding skills |
 
 The backend follows:
@@ -245,6 +253,11 @@ Read `docs/SECURITY_REVIEW_2026-06-06.md` and
 `docs/SECURITY_REMEDIATION_RUNBOOK_2026-06-06.md` before changing authentication,
 deployment secrets, seed accounts, or network exposure. Use the `security-review`
 skill for security-sensitive work.
+
+> **Note**: If those two docs are not yet present in `docs/`, consult `wiki/`
+> concept pages (`csrf-mechanism`, `refresh-token-hash-only-storage`) and the
+> ADRs under `docs/adr/` for the equivalent security decisions. The
+> `security-review` skill remains the authoritative workflow regardless.
 
 ## Frontend Conventions
 

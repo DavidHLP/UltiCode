@@ -154,3 +154,9 @@ docker/sandbox/harness-staging/
 
 # OhMyOpenCode local plans / state
 .omo/
+
+# Local JDK toolchain managers (vfox / asdf / sdkman) — per-developer state, not project config.
+# Project Java version is governed by AGENTS.md / backend-spring pom.xml <java.version>.
+.vfox/
+.vfox.toml
+.tool-versions

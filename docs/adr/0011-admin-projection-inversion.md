@@ -144,7 +144,15 @@ Diff: ~30 lines changed; behaviour preserved for reads, writes unchanged.
 
 ### Stage 2 — next commit(s)
 
-For each of `AdminSubmissionServiceImpl`, `AdminUserServiceImpl`,
+> **2026-07-06 update**: Stage 2 Submission (debt 10/10, highest priority) has
+> landed. `AdminSubmissionProjection` + `DefaultAdminSubmissionProjection`
+> extracted; `AdminSubmissionServiceImpl` slimmed from 727 to ~340 LoC;
+> cross-module entity imports (`User`, `Problem`) and their mappers left the
+> service; `AdminSubmissionServiceImplTest` + `AdminSubmissionControllerTest`
+> updated; `AdminSubmissionProjectionTest` added. The remaining five services
+> below are still next-commit deliverables.
+
+For each of `AdminUserServiceImpl`,
 `AdminSolutionServiceImpl`, `AdminForumServiceImpl`,
 `AdminContestServiceImpl`, `AdminCommentServiceImpl`, each landing
 as its own commit:

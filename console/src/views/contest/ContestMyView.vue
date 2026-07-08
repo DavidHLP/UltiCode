@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { Trophy } from "lucide-vue-next";
-import { useContestStore } from "@/stores/contest";
+import { useContestRankingStore } from "@/stores/contestRanking";
 import { Separator } from "@/components/ui/separator";
 import MyContests from "./components/MyContests.vue";
 import { useI18n } from "vue-i18n";
 
-const contestStore = useContestStore();
+const contestStore = useContestRankingStore();
 const { t } = useI18n();
 
 onMounted(async () => {

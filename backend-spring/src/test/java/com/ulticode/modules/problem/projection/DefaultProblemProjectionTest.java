@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultProblemProjection}, the deep module that owns
@@ -79,6 +80,8 @@ class DefaultProblemProjectionTest {
     @Mock
     private EdgeOperationInspector edgeOperationsService;
     @Mock
+    @Mock
+    private CurrentUserProvider currentUserProvider;
     private EdgeOperationMapper edgeOperationMapper;
 
     private DefaultProblemProjection projection;
@@ -90,7 +93,7 @@ class DefaultProblemProjectionTest {
                 problemMapper, problemDetailMapper, problemExampleMapper,
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
                 submissionMapper, solutionMapper, edgeOperationsService,
-                edgeOperationMapper, new ObjectMapper());
+                edgeOperationMapper, new ObjectMapper(), currentUserProvider);
     }
 
     // ------------------------------------------------------------------

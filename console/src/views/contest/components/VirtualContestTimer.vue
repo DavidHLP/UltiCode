@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useContestStore } from "@/stores/contest";
+import { useVirtualContestStore } from "@/stores/virtualContest";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import { Clock, Trophy } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import { formatPenaltyTime } from "@/utils/date";
 
-const contestStore = useContestStore();
+const contestStore = useVirtualContestStore();
 const { t } = useI18n();
 const timeRemaining = ref(0);
 let intervalId: number | null = null;

@@ -2,7 +2,7 @@ package com.ulticode.modules.subscription.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
 import com.ulticode.modules.subscription.constants.SubscriptionStatus;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
@@ -31,6 +31,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionMapper subscriptionMapper;
     private final Clock clock;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public SubscriptionCheckResultDTO hasPremiumAccess(String userId, String userRole) {
@@ -84,13 +85,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public boolean hasPremiumAccess() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             return false;
         }
 
         // Check if user is admin
-        if (SecurityUtil.hasRole("ADMIN") || SecurityUtil.hasRole("SUPER_ADMIN")) {
+        if (currentUserProvider.hasRole("ADMIN") || currentUserProvider.hasRole("SUPER_ADMIN")) {
             return true;
         }
 
@@ -108,7 +109,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public SubscriptionDTO getCurrentUserSubscription() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

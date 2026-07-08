@@ -2,7 +2,7 @@ package com.ulticode.modules.subscription.controller;
 
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserSubscriptionController {
 
     private final SubscriptionService subscriptionService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Get the current user's subscription status.
@@ -46,7 +47,7 @@ public class UserSubscriptionController {
     @RateLimit(key = "subscription:create", limit = 20, period = 60)
     @PostMapping
     public Result<SubscriptionDTO> createSubscription(@Valid @RequestBody CreateSubscriptionDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             return Result.error(40100, "Unauthorized");
         }
@@ -64,7 +65,7 @@ public class UserSubscriptionController {
     @RateLimit(key = "subscription:cancel", limit = 20, period = 60)
     @PostMapping("/{id}/cancel")
     public Result<SubscriptionDTO> cancelSubscription(@PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             return Result.error(40100, "Unauthorized");
         }
@@ -80,16 +81,16 @@ public class UserSubscriptionController {
     @Operation(summary = "Check premium access", description = "Check if the current user has active premium access")
     @GetMapping("/check-premium")
     public Result<SubscriptionCheckResultDTO> checkPremiumAccess() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             return Result.error(40100, "Unauthorized");
         }
 
         // Get user role from security context
         String role = null;
-        if (SecurityUtil.hasRole("ADMIN")) {
+        if (currentUserProvider.hasRole("ADMIN")) {
             role = "ADMIN";
-        } else if (SecurityUtil.hasRole("SUPER_ADMIN")) {
+        } else if (currentUserProvider.hasRole("SUPER_ADMIN")) {
             role = "SUPER_ADMIN";
         }
 

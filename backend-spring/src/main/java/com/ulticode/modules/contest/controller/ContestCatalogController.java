@@ -2,7 +2,7 @@ package com.ulticode.modules.contest.controller;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.contest.controller.internal.ContestControllerSupport;
 import com.ulticode.modules.contest.dto.ContestListVO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
@@ -42,6 +42,7 @@ import java.util.List;
 public class ContestCatalogController {
 
     private final ContestProjection contestProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get contest list",
             description = "Get a paginated list of contests with optional filters")
@@ -66,7 +67,7 @@ public class ContestCatalogController {
         query.setContestType(contestType);
         query.setIsRated(isRated);
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(contestProjection.findAllListVO(query, userId));
     }
 
@@ -74,14 +75,14 @@ public class ContestCatalogController {
             description = "Get a paginated list of upcoming contests")
     @GetMapping("/upcoming")
     public Result<PageResult<ContestListVO>> getUpcomingContests() {
-        return Result.success(contestProjection.findUpcoming(SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findUpcoming(currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get running contests",
             description = "Get a paginated list of currently running contests")
     @GetMapping("/running")
     public Result<PageResult<ContestListVO>> getRunningContests() {
-        return Result.success(contestProjection.findRunning(SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findRunning(currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get past contests",
@@ -90,7 +91,7 @@ public class ContestCatalogController {
     public Result<PageResult<ContestListVO>> getPastContests(
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
-        return Result.success(contestProjection.findPast(page, pageSize, SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.findPast(page, pageSize, currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get contest statistics",
@@ -108,7 +109,7 @@ public class ContestCatalogController {
     @GetMapping("/{id}")
     public Result<ContestVO> getContestById(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(contestProjection.getContestById(resolvedId, SecurityUtil.getCurrentUserId()));
+        return Result.success(contestProjection.getContestById(resolvedId, currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get contest problems",

@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
-import com.ulticode.modules.admin.service.DashboardService;
+import com.ulticode.modules.admin.projection.DashboardStatsProjection;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import org.springframework.validation.beanvalidation.MethodValidationPostProcess
 class PrivilegedControllerAuthorizationTest {
 
   @jakarta.annotation.Resource private DashboardController dashboardController;
-  @jakarta.annotation.Resource private DashboardService dashboardService;
+  @jakarta.annotation.Resource private DashboardStatsProjection dashboardService;
 
   @Test
   @WithMockUser(roles = "USER")
@@ -43,21 +43,21 @@ class PrivilegedControllerAuthorizationTest {
   @Test
   @WithMockUser(roles = "ADMIN")
   void administratorCanReadAdminDashboard() {
-    when(dashboardService.getStats()).thenReturn(new DashboardStatsVO());
+    when(dashboardService.loadStats()).thenReturn(new DashboardStatsVO());
     assertThatCode(dashboardController::getStats).doesNotThrowAnyException();
   }
 
   @Test
   @WithMockUser(roles = "SUPER_ADMIN")
   void superAdministratorCanReadAdminDashboard() {
-    when(dashboardService.getStats()).thenReturn(new DashboardStatsVO());
+    when(dashboardService.loadStats()).thenReturn(new DashboardStatsVO());
     assertThatCode(dashboardController::getStats).doesNotThrowAnyException();
   }
 
   @Test
   @WithMockUser(roles = "USER")
   void ordinaryUserCannotReadAdminChartStats() {
-    assertThatThrownBy(() -> dashboardController.getChartStats("users", "day", 30))
+    assertThatThrownBy(() -> dashboardController.loadChartStats("users", "day", 30))
         .isInstanceOf(AccessDeniedException.class);
   }
 
@@ -66,8 +66,8 @@ class PrivilegedControllerAuthorizationTest {
   @MethodSource("allAllowedMetrics")
   @WithMockUser(roles = "ADMIN")
   void administratorCanReadChartStatsWithAnyAllowedMetric(String metric) {
-    when(dashboardService.getChartStats(metric, "day", 7)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.getChartStats(metric, "day", 7))
+    when(dashboardService.loadChartStats(metric, "day", 7)).thenReturn(new ChartStatsVO());
+    assertThatCode(() -> dashboardController.loadChartStats(metric, "day", 7))
         .doesNotThrowAnyException();
   }
 
@@ -81,7 +81,7 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(strings = {"hack", "USER", "users;DROP TABLE", "<script>"})
   @WithMockUser(roles = "ADMIN")
   void invalidMetricRejected(String metric) {
-    assertThatThrownBy(() -> dashboardController.getChartStats(metric, "day", 7))
+    assertThatThrownBy(() -> dashboardController.loadChartStats(metric, "day", 7))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
@@ -89,7 +89,7 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(strings = {"", "minute", "DAY", "week;"})
   @WithMockUser(roles = "ADMIN")
   void invalidPeriodRejected(String period) {
-    assertThatThrownBy(() -> dashboardController.getChartStats("users", period, 7))
+    assertThatThrownBy(() -> dashboardController.loadChartStats("users", period, 7))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
@@ -97,26 +97,26 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(ints = {0, -1, -100, 366, 9999})
   @WithMockUser(roles = "ADMIN")
   void outOfRangeDaysRejected(int days) {
-    assertThatThrownBy(() -> dashboardController.getChartStats("users", "day", days))
+    assertThatThrownBy(() -> dashboardController.loadChartStats("users", "day", days))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
   @Test
   @WithMockUser(roles = "ADMIN")
   void daysAtBoundariesAccepted() {
-    when(dashboardService.getChartStats("users", "day", 1)).thenReturn(new ChartStatsVO());
-    when(dashboardService.getChartStats("users", "day", 365)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.getChartStats("users", "day", 1))
+    when(dashboardService.loadChartStats("users", "day", 1)).thenReturn(new ChartStatsVO());
+    when(dashboardService.loadChartStats("users", "day", 365)).thenReturn(new ChartStatsVO());
+    assertThatCode(() -> dashboardController.loadChartStats("users", "day", 1))
         .doesNotThrowAnyException();
-    assertThatCode(() -> dashboardController.getChartStats("users", "day", 365))
+    assertThatCode(() -> dashboardController.loadChartStats("users", "day", 365))
         .doesNotThrowAnyException();
   }
 
   @Test
   @WithMockUser(roles = "ADMIN")
   void nullDaysAccepted() {
-    when(dashboardService.getChartStats("users", "day", null)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.getChartStats("users", "day", null))
+    when(dashboardService.loadChartStats("users", "day", null)).thenReturn(new ChartStatsVO());
+    assertThatCode(() -> dashboardController.loadChartStats("users", "day", null))
         .doesNotThrowAnyException();
   }
 
@@ -124,12 +124,16 @@ class PrivilegedControllerAuthorizationTest {
   @EnableMethodSecurity
   static class TestConfig {
     @Bean
-    DashboardService dashboardService() {
-      return mock(DashboardService.class);
+    com.ulticode.common.auth.CurrentUserProvider currentUserProvider() {
+      return mock(com.ulticode.common.auth.CurrentUserProvider.class);
+    }
+    @Bean
+    DashboardStatsProjection dashboardService() {
+      return mock(DashboardStatsProjection.class);
     }
 
     @Bean
-    DashboardController dashboardController(DashboardService dashboardService) {
+    DashboardController dashboardController(DashboardStatsProjection dashboardService) {
       return new DashboardController(dashboardService);
     }
 

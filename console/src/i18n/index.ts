@@ -10,7 +10,6 @@ export {
   LOCALE_CONFIGS,
   DEFAULT_LOCALE,
   FALLBACK_LOCALE,
-  LOCALE_HEADER_KEY,
 } from "./types";
 
 // Re-export types separately (required when verbatimModuleSyntax is enabled)

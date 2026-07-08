@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
@@ -45,6 +45,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final AdminProblemMapper mapper;
     private final AdminProblemPort problemPort;
     private final AuditService auditService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -105,7 +106,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                     case restore -> {
                         int restored = problemMapper.restoreDeletedByIds(List.of(id));
                         if (restored > 0) {
-                            log.info("Problem id={} restored by user={}", id, SecurityUtil.getCurrentUserId());
+                            log.info("Problem id={} restored by user={}", id, currentUserProvider.getCurrentUserId());
                         }
                     }
                     case edit -> {
@@ -136,7 +137,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Transactional
     public ProblemVO flagProblem(Long id, String reason) {
         Problem problem = findProblemById(id);
-        String reportedBy = SecurityUtil.getCurrentUserId();
+        String reportedBy = currentUserProvider.getCurrentUserId();
         problemMapper.flagProblem(id, reason, reportedBy);
         problem = findProblemById(id);
         return problemPort.toVO(problem);
@@ -146,7 +147,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Transactional
     public ProblemVO moderateProblem(Long id, String status, String notes) {
         Problem problem = findProblemById(id);
-        String reviewedBy = SecurityUtil.getCurrentUserId();
+        String reviewedBy = currentUserProvider.getCurrentUserId();
         problemMapper.moderateProblem(id, status, notes, reviewedBy);
         problem = findProblemById(id);
         return problemPort.toVO(problem);
@@ -171,7 +172,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         List<Long> ids = request.getIds().stream()
                 .map(Long::parseLong)
                 .collect(Collectors.toList());
-        String reviewedBy = SecurityUtil.getCurrentUserId();
+        String reviewedBy = currentUserProvider.getCurrentUserId();
         int affected = problemMapper.batchModerateProblems(ids, request.getStatus(), request.getNotes(), reviewedBy);
 
         if (affected != ids.size()) {

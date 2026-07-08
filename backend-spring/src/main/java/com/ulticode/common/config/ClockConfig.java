@@ -61,7 +61,6 @@ import java.time.Clock;
  *   <li>AdminAnalyticsServiceImpl — 5-6 sites</li>
  *   <li>DashboardServiceImpl — 5 sites</li>
  *   <li>SolutionServiceImpl — 5 sites</li>
- *   <li>AdminUserAnalyticsServiceImpl — 4 sites</li>
  *   <li>EmailIntake — 1 site (line 121)</li>
  *   <li>NotificationServiceImpl — 1 site (line 165)</li>
  *   <li>…22 more Impl files…</li>

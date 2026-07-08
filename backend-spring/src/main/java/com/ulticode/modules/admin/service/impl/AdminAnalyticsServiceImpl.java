@@ -1,17 +1,18 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.sun.management.OperatingSystemMXBean;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.service.AdminAnalyticsService;
-import com.ulticode.modules.admin.service.AdminContentAnalyticsService;
-import com.ulticode.modules.admin.service.AdminPerformanceReportService;
-import com.ulticode.modules.admin.service.AdminUserAnalyticsService;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.problem.projection.ProblemAnalyticsProjection;
 import com.ulticode.modules.subscription.entity.Subscription;
+import com.ulticode.modules.user.projection.UserActivityAnalyticsProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -20,34 +21,41 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Facade implementation of AdminAnalyticsService.
- * Delegates to focused services for user analytics, content analytics, and performance reporting.
- * Retains contest participation and revenue logic directly.
+ * Facade implementation of {@link AdminAnalyticsService}. Delegates the
+ * user-activity and problem-completion reports to read-side projections
+ * owned by the user and problem modules respectively
+ * ({@link UserActivityAnalyticsProjection},
+ * {@link ProblemAnalyticsProjection}). Retains the contest participation
+ * and revenue logic directly, and inlines the lightweight JVM resource
+ * report (previously a separate half-stubbed service) so a single
+ * facade controls the analytics surface.
  *
  * <p>Cross-module reads (contest / participant / subscription / submission /
- * user / problem) live behind {@link AdminAnalyticsPort}. The five
- * mappers that used to be imported here are no longer dependencies.
+ * user / problem) live behind {@link AdminAnalyticsPort}; the five mappers
+ * that used to be imported here are no longer dependencies. The two
+ * projections carry the user + problem deep joins; this facade carries
+ * only the contest + subscription + revenue math and the JVM-internal
+ * resource read.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
-    private final AdminUserAnalyticsService userAnalyticsService;
-    private final AdminContentAnalyticsService contentAnalyticsService;
-    private final AdminPerformanceReportService performanceReportService;
+    private final UserActivityAnalyticsProjection userActivityAnalyticsProjection;
+    private final ProblemAnalyticsProjection problemAnalyticsProjection;
 
     private final AdminAnalyticsPort adminAnalyticsPort;
     private final Clock clock;
 
     @Override
     public UserActivityReportVO getUserActivityReport(Integer days) {
-        return userAnalyticsService.getUserActivityReport(days);
+        return userActivityAnalyticsProjection.loadUserActivityReport(days);
     }
 
     @Override
     public ProblemCompletionReportVO getProblemCompletionReport(Integer days) {
-        return contentAnalyticsService.getProblemCompletionReport(days);
+        return problemAnalyticsProjection.loadProblemCompletionReport(days);
     }
 
     @Override
@@ -227,7 +235,37 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
     @Override
     public PerformanceReportVO getPerformanceReport() {
-        return performanceReportService.getPerformanceReport();
+        PerformanceReportVO report = new PerformanceReportVO();
+
+        // System uptime (JVM uptime)
+        long uptimeMillis = ManagementFactory.getRuntimeMXBean().getUptime();
+        report.setSystemUptime(uptimeMillis / 1000);
+
+        // Resource usage
+        PerformanceReportVO.ResourceUsage resourceUsage = new PerformanceReportVO.ResourceUsage();
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heapUsage = memoryMXBean.getHeapMemoryUsage();
+        long maxMemory = heapUsage.getMax() > 0 ? heapUsage.getMax() : 1;
+        double memoryUsagePercent = (heapUsage.getUsed() * 100.0) / maxMemory;
+        resourceUsage.setCpu(readSystemCpuLoad());
+        resourceUsage.setMemory(Math.round(memoryUsagePercent * 100.0) / 100.0);
+        resourceUsage.setDisk(readRootDiskUsagePercent());
+        report.setResourceUsage(resourceUsage);
+
+        // Performance metrics - these require external monitoring (APM tool).
+        // Sentinel -1.0/-1L values were dropped in favor of null + @JsonInclude(NON_NULL).
+        report.setAverageResponseTime(null);
+        report.setErrorRate(null);
+        report.setThroughput(0L);
+        report.setCacheHitRate(null);
+
+        // Slowest endpoints - requires request timing middleware
+        report.setSlowestEndpoints(Collections.emptyList());
+
+        // Error breakdown - requires error tracking integration
+        report.setErrorBreakdown(Collections.emptyList());
+
+        return report;
     }
 
     @Override
@@ -286,5 +324,44 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
             case "PREMIUM_YEARLY" -> 79.99 / 12;
             default -> 0.0;
         };
+    }
+
+    /**
+     * Read recent system-wide CPU load (0.0–100.0).
+     * Returns {@code -1.0} if the JVM has not yet collected enough samples
+     * (the first call to {@link OperatingSystemMXBean#getSystemCpuLoad()}
+     * typically returns -1) or if the value cannot be obtained on this JVM.
+     */
+    private double readSystemCpuLoad() {
+        try {
+            OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+            double load = osBean.getSystemCpuLoad();
+            if (load < 0) {
+                return -1.0;
+            }
+            return Math.round(load * 10000.0) / 100.0;
+        } catch (Exception e) {
+            log.warn("Failed to read system CPU load", e);
+            return -1.0;
+        }
+    }
+
+    /**
+     * Read root filesystem usage as a percentage (0.0–100.0).
+     * Returns {@code -1.0} if the underlying OS does not report filesystem stats.
+     */
+    private double readRootDiskUsagePercent() {
+        try {
+            File root = new File("/");
+            long total = root.getTotalSpace();
+            if (total <= 0) {
+                return -1.0;
+            }
+            long used = total - root.getFreeSpace();
+            return Math.round(used * 10000.0 / total) / 100.0;
+        } catch (Exception e) {
+            log.warn("Failed to read root disk usage", e);
+            return -1.0;
+        }
     }
 }

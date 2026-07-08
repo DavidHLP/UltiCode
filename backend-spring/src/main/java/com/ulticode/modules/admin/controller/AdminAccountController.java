@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.service.UserService;
@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminAccountController {
 
     private final UserService userService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get current admin profile", description = "Get the profile of the currently authenticated admin user")
     @GetMapping("/profile")

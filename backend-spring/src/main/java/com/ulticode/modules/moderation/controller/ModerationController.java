@@ -3,7 +3,7 @@ package com.ulticode.modules.moderation.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
@@ -37,6 +37,7 @@ public class ModerationController {
 
     private final ModerationService moderationService;
     private final ModerationProjection moderationProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     // ==================== Queue Operations ====================
 
@@ -79,7 +80,7 @@ public class ModerationController {
     @PostMapping("/queue/{id}/claim")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> claim(@PathVariable String id) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.claimItem(id, moderatorId));
     }
 
@@ -88,7 +89,7 @@ public class ModerationController {
     @PostMapping("/queue/{id}/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> assign(@PathVariable String id, @Valid @RequestBody AssignDTO dto) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.assignItem(id, moderatorId, dto.getAssignedTo()));
     }
 
@@ -97,7 +98,7 @@ public class ModerationController {
     @PatchMapping("/queue/{id}/unassign")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> unassign(@PathVariable String id) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.unassignItem(id, moderatorId));
     }
 
@@ -108,7 +109,7 @@ public class ModerationController {
     public Result<ModerationQueueVO> performAction(
             @PathVariable String id,
             @Valid @RequestBody PerformModerationActionDTO dto) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.performAction(id, dto, moderatorId));
     }
 
@@ -126,7 +127,7 @@ public class ModerationController {
     @PostMapping("/queue/batch-action")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BatchActionResultVO> batchAction(@Valid @RequestBody BatchModerationActionDTO dto) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.batchAction(dto, moderatorId));
     }
 
@@ -137,7 +138,7 @@ public class ModerationController {
     @PostMapping("/reports")
     @PreAuthorize("isAuthenticated()")
     public Result<Void> createReport(@Valid @RequestBody CreateReportDTO dto) {
-        String reporterId = SecurityUtil.getCurrentUserId();
+        String reporterId = currentUserProvider.getCurrentUserId();
         moderationService.createReport(dto, reporterId);
         return Result.success();
     }
@@ -172,7 +173,7 @@ public class ModerationController {
     @PostMapping("/appeals")
     @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> createAppeal(@Valid @RequestBody CreateAppealDTO dto) {
-        String appellantId = SecurityUtil.getCurrentUserId();
+        String appellantId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.createAppeal(dto, appellantId));
     }
 
@@ -190,7 +191,7 @@ public class ModerationController {
     @GetMapping("/appeals/{id}")
     @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> getAppeal(@PathVariable String id) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.getAppeal(id, currentUserId));
     }
 
@@ -198,7 +199,7 @@ public class ModerationController {
     @GetMapping("/appeals/my")
     @PreAuthorize("isAuthenticated()")
     public Result<List<AppealVO>> getMyAppeals() {
-        String appellantId = SecurityUtil.getCurrentUserId();
+        String appellantId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationProjection.myAppeals(appellantId));
     }
 
@@ -221,7 +222,7 @@ public class ModerationController {
     public Result<AppealVO> reviewAppeal(
             @PathVariable String id,
             @Valid @RequestBody ReviewAppealDTO dto) {
-        String moderatorId = SecurityUtil.getCurrentUserId();
+        String moderatorId = currentUserProvider.getCurrentUserId();
         return Result.success(moderationService.reviewAppeal(id, dto, moderatorId));
     }
 }

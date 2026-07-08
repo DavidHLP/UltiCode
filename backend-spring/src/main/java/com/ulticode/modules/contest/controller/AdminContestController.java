@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
@@ -30,6 +30,7 @@ public class AdminContestController {
 
     private final ContestService contestService;
     private final ContestProjection contestProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "List all contests (admin)", description = "Get all contests including drafts and invisible ones")
     @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
@@ -53,7 +54,7 @@ public class AdminContestController {
         query.setSort(sort);
         query.setDirection(direction);
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(contestProjection.findAllAdmin(query, userId));
     }
 
@@ -65,7 +66,7 @@ public class AdminContestController {
     public Result<ContestVO> getContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(contestProjection.getContestById(id, userId));
     }
 
@@ -179,7 +180,7 @@ public class AdminContestController {
     }
 
     private String getCurrentUserIdOrThrow() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

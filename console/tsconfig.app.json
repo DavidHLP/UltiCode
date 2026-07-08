@@ -6,6 +6,7 @@
     "src/**/*.vue",
     "../shared/auth-ui/src/**/*",
     "../shared/auth-ui/src/**/*.vue",
+    "../shared/auth-core/src/**/*",
     "../shared/sidebar-menu/src/**/*",
     "../shared/sidebar-menu/src/**/*.vue",
     "../shared/markdown-utils/src/**/*",
@@ -22,6 +23,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/lib/utils": [
+        "../shared/auth-core/src/utils"
       ],
       "@/shared/*": [
         "../shared/*"

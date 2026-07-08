@@ -39,7 +39,7 @@ vi.mock("pinia", () => ({
   }),
 }));
 
-vi.mock("@/stores/contest", () => {
+vi.mock("@/stores/contestDetail", () => {
   // Create the real refs here so `storeToRefs` (above) can return
   // them. The actions also live here, mutating the same refs the
   // composable reads from.
@@ -52,7 +52,7 @@ vi.mock("@/stores/contest", () => {
   testState.contestProblemsRef = contestProblems;
 
   return {
-    useContestStore: () => ({
+    useContestDetailStore: () => ({
       currentContest,
       userParticipation,
       contestProblems,

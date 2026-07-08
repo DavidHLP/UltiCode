@@ -4,7 +4,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditHelper;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -50,6 +50,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final AuditService auditService;
     private final AuditHelper auditHelper;
     private final Clock clock;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public void pinPost(String id) {
@@ -122,7 +123,7 @@ public class AdminForumServiceImpl implements AdminForumService {
         // silently drops the field — soft-delete must go through the dedicated
         // mapper method (which uses SQL NOW() and avoids the JSR-310 round-trip
         // through JacksonTypeHandler).
-        String performerId = SecurityUtil.getCurrentUserId();
+        String performerId = currentUserProvider.getCurrentUserId();
         if (performerId == null) {
             performerId = "system";
         }

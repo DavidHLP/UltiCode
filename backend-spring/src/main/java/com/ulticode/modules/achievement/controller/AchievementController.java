@@ -3,7 +3,7 @@ package com.ulticode.modules.achievement.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.achievement.dto.*;
 import com.ulticode.modules.achievement.projection.AchievementProjection;
 import com.ulticode.modules.achievement.service.AchievementService;
@@ -33,6 +33,7 @@ public class AchievementController {
 
     private final AchievementProjection achievementProjection;
     private final AchievementService achievementService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get all achievements")
     @GetMapping
@@ -49,14 +50,14 @@ public class AchievementController {
     @Operation(summary = "Get current user's achievement progress")
     @GetMapping("/user/me")
     public Result<List<AchievementProgressDTO>> getCurrentUserAchievements() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(achievementProjection.getUserAchievements(userId));
     }
 
     @Operation(summary = "Get current user's achievement points")
     @GetMapping("/user/me/points")
     public Result<UserPointsVO> getCurrentUserPoints() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(achievementProjection.getUserPoints(userId));
     }
 

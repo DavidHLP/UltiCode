@@ -13,7 +13,7 @@
  */
 import { createCsrfTokenManager } from '@/shared/auth-core/src/csrf'
 import { createHttpClient } from '@/shared/http-client/src'
-import { LOCALE_HEADER_KEY, getActiveLocale, i18n } from '@/i18n'
+import { getActiveLocale, i18n } from '@/i18n'
 import router from '@/router'
 
 import type {
@@ -53,11 +53,7 @@ export const {
   createAbortController,
 } = createHttpClient({
   csrfManager,
-  getLocale: () => {
-    const locale = getActiveLocale()
-    void LOCALE_HEADER_KEY
-    return locale
-  },
+  getLocale: () => getActiveLocale(),
   onAuthFailure,
   dedupPolicy,
   canceledMessage: i18n.global.t('errors.apiErrorCanceled'),

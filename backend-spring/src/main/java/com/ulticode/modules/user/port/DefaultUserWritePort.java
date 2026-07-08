@@ -3,7 +3,7 @@ package com.ulticode.modules.user.port;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -50,12 +50,13 @@ public class DefaultUserWritePort implements UserWritePort {
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     @Transactional
     @CacheEvict(value = "userStats", allEntries = true)
     public UserVO updateCurrentUser(UpdateUserDTO updateDTO) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -131,7 +132,7 @@ public class DefaultUserWritePort implements UserWritePort {
     @Override
     @Transactional
     public void changePassword(ChangePasswordDTO changePasswordDTO) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -158,7 +159,7 @@ public class DefaultUserWritePort implements UserWritePort {
 
     @Override
     public String uploadAvatar(MultipartFile file) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

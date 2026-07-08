@@ -1,9 +1,5 @@
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+export { cn } from '@/shared/auth-core/src/utils'
+export type { ClassValue } from 'clsx'
 
 export type SidebarItemActiveFn = (url?: string) => boolean
 

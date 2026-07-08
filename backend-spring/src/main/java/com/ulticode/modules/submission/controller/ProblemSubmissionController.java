@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
@@ -35,6 +35,7 @@ public class ProblemSubmissionController {
     private final SubmissionService submissionService;
     private final CodeExecutionService codeExecutionService;
     private final Validator validator;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * List submissions for a specific problem.
@@ -55,7 +56,7 @@ public class ProblemSubmissionController {
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false) Integer pageSize) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -81,7 +82,7 @@ public class ProblemSubmissionController {
             @Parameter(description = "Problem ID")
             @PathVariable Long problemId) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -106,7 +107,7 @@ public class ProblemSubmissionController {
             @PathVariable Long problemId,
             @RequestBody CreateSubmissionDTO createDTO) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -153,7 +154,7 @@ public class ProblemSubmissionController {
             @PathVariable Long problemId,
             @Valid @RequestBody RunSubmissionDTO runDTO) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         RunResultDTO result = codeExecutionService.execute(runDTO, problemId, userId);
         return Result.success(result);
     }

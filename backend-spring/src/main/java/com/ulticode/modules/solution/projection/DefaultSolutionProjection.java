@@ -9,7 +9,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
@@ -62,6 +62,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
     private final ProblemTagMapper problemTagMapper;
     private final UserAchievementMapper userAchievementMapper;
     private final AchievementMapper achievementMapper;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public List<SolutionCommentVO> getComments(String solutionId) {
@@ -164,7 +165,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
                         id -> (long) solutionCommentMapper.countBySolutionId(id)));
 
         // Batch query viewer votes
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         final Map<String, Integer> viewerVoteMap;
         if (currentUserId != null) {
             List<Map<String, Object>> viewerVotes = edgeOperationMapper.findByOperatorAndTargets(

@@ -25,7 +25,7 @@ import ContestTimer from "@/views/contest/components/ContestTimer.vue";
 import ContestAnnouncementBell from "./ContestAnnouncementBell.vue";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
-import { useContestStore } from "@/stores/contest";
+import { useVirtualContestStore } from "@/stores/virtualContest";
 import { useContestProblemShellStore } from "@/stores/contestProblemShell";
 import { ContestProblemContextKey, ToggleNotesKey } from "../problem-context";
 import type { ContestProblemSummary } from "@/types/contest";
@@ -37,7 +37,7 @@ const { t } = useI18n();
 const ctx = inject(ContestProblemContextKey, null);
 const toggleNotes = inject(ToggleNotesKey, () => {});
 const authStore = useAuthStore();
-const contestStore = useContestStore();
+const contestStore = useVirtualContestStore();
 const shellStore = useContestProblemShellStore();
 
 type ProblemPill = {

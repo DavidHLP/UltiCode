@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.validation.ForumPage;
 import com.ulticode.common.validation.ForumPageSize;
 import com.ulticode.modules.forum.dto.CreateCommentDTO;
@@ -54,6 +54,7 @@ public class ForumController {
 
     private final ForumReadProjection forumReadProjection;
     private final ForumWritePort forumWritePort;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get all posts", description = "Get all forum posts with sorting and pagination")
     @GetMapping("/posts")
@@ -65,13 +66,13 @@ public class ForumController {
             @Parameter(description = "Items per page")
             @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
         return Result.success(forumReadProjection.findAllPosts(
-                SecurityUtil.getCurrentUserId(), sortBy, page, pageSize));
+                currentUserProvider.getCurrentUserId(), sortBy, page, pageSize));
     }
 
     @Operation(summary = "Get post by ID", description = "Get a specific post by its ID")
     @GetMapping("/posts/{id}")
     public Result<ForumPostVO> getPostById(@Parameter(description = "Post ID") @PathVariable String id) {
-        return Result.success(forumReadProjection.findPostById(id, SecurityUtil.getCurrentUserId()));
+        return Result.success(forumReadProjection.findPostById(id, currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Get my posts", description = "Get the current user's posts")
@@ -116,7 +117,7 @@ public class ForumController {
     @GetMapping("/posts/{id}/thread")
     public Result<ForumPostThreadVO> getPostThread(
             @Parameter(description = "Post ID") @PathVariable String id) {
-        return Result.success(forumReadProjection.getPostThread(id, SecurityUtil.getCurrentUserId()));
+        return Result.success(forumReadProjection.getPostThread(id, currentUserProvider.getCurrentUserId()));
     }
 
     @Operation(summary = "Record share", description = "Record a share action for a post")
@@ -190,7 +191,7 @@ public class ForumController {
             @Parameter(description = "Items per page")
             @RequestParam(required = false, defaultValue = "20") @ForumPageSize Integer pageSize) {
         return Result.success(forumReadProjection.findPostsByCommunity(
-                slug, sortBy, SecurityUtil.getCurrentUserId(), page, pageSize));
+                slug, sortBy, currentUserProvider.getCurrentUserId(), page, pageSize));
     }
 
     @Operation(summary = "Join community", description = "Join a community")
@@ -224,7 +225,7 @@ public class ForumController {
     }
 
     private String getCurrentUserIdOrThrow() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
         return userId;
     }

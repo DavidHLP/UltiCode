@@ -29,13 +29,6 @@ public interface DashboardMapper {
     @Select("SELECT role, COUNT(*) as count FROM users WHERE is_deleted = 0 GROUP BY role")
     List<Map<String, Object>> countUsersByRoleRaw();
 
-    default Map<String, Long> countUsersByRole() {
-        Map<String, Long> result = new java.util.HashMap<>();
-        for (Map<String, Object> row : countUsersByRoleRaw()) {
-            result.put((String) row.get("role"), ((Number) row.get("count")).longValue());
-        }
-        return result;
-    }
 
     // Problem statistics
     @Select("SELECT COUNT(*) FROM problems")
@@ -47,28 +40,10 @@ public interface DashboardMapper {
     @Select("SELECT difficulty, COUNT(*) as count FROM problems GROUP BY difficulty")
     List<Map<String, Object>> countProblemsByDifficultyRaw();
 
-    default Map<String, Long> countProblemsByDifficulty() {
-        Map<String, Long> result = new java.util.HashMap<>();
-        for (Map<String, Object> row : countProblemsByDifficultyRaw()) {
-            if (row.get("difficulty") != null) {
-                result.put((String) row.get("difficulty"), ((Number) row.get("count")).longValue());
-            }
-        }
-        return result;
-    }
 
     @Select("SELECT status, COUNT(*) as count FROM problems GROUP BY status")
     List<Map<String, Object>> countProblemsByStatusRaw();
 
-    default Map<String, Long> countProblemsByStatus() {
-        Map<String, Long> result = new java.util.HashMap<>();
-        for (Map<String, Object> row : countProblemsByStatusRaw()) {
-            if (row.get("status") != null) {
-                result.put((String) row.get("status"), ((Number) row.get("count")).longValue());
-            }
-        }
-        return result;
-    }
 
     // Contest statistics
     @Select("SELECT COUNT(*) FROM contests")

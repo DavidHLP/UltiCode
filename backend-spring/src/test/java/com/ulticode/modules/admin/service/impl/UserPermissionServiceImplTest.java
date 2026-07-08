@@ -24,7 +24,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Clock;
-import java.time.Clock;
 import java.time.ZoneId;
 import java.util.List;
 

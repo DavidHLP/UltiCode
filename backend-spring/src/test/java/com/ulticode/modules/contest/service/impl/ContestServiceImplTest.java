@@ -43,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Write-side unit tests for {@link ContestServiceImpl}. The read-cluster cases
@@ -66,6 +67,8 @@ class ContestServiceImplTest {
     @Mock private ContestScoringService contestScoringService;
     @Mock private ContestProjection contestProjection;
     @Mock private Clock clock;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private ContestServiceImpl contestService;
 
@@ -84,7 +87,7 @@ class ContestServiceImplTest {
                 contestScoringService,
                 contestProjection,
                 clock,
-                new FixedUuidGenerator());
+                new FixedUuidGenerator(), currentUserProvider);
         org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(LocalDateTime.of(2024, 6, 1, 0, 0).atZone(ZoneId.systemDefault()).toInstant());
         org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }

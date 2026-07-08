@@ -14,7 +14,6 @@
 import { createCsrfTokenManager } from '@/shared/auth-core/src/csrf'
 import { createHttpClient } from '@/shared/http-client/src'
 import { getActiveLocale } from '@/i18n/utils/locale'
-import { LOCALE_HEADER_KEY } from '@/i18n'
 
 import type {
   ApiResponse,
@@ -55,11 +54,7 @@ export const {
   createAbortController,
 } = createHttpClient({
   csrfManager,
-  getLocale: () => {
-    const locale = getActiveLocale()
-    void LOCALE_HEADER_KEY
-    return locale
-  },
+  getLocale: () => getActiveLocale(),
   onAuthFailure,
   dedupPolicy,
 })

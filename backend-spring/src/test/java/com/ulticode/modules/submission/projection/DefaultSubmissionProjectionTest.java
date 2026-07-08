@@ -8,6 +8,7 @@ import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.when;
 class DefaultSubmissionProjectionTest {
 
     @Mock private SubmissionMapper submissionMapper;
+    @Mock private SubmissionStreakCalculator submissionStreakCalculator;
     @Mock private UserMapper userMapper;
     @Mock private ProblemMapper problemMapper;
 
@@ -49,7 +51,7 @@ class DefaultSubmissionProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultSubmissionProjection(
-                submissionMapper, userMapper, problemMapper, objectMapper);
+                submissionMapper, submissionStreakCalculator, userMapper, problemMapper, objectMapper);
     }
 
     private Submission buildSubmission(Submission.TestCaseDetail... details) {
@@ -251,7 +253,7 @@ class DefaultSubmissionProjectionTest {
         @DisplayName("Empty learning progress: empty weekly, totals zero")
         void aggregateLearningProgressEmpty() {
             when(submissionMapper.findWeeklyProgress("u-1")).thenReturn(List.of());
-            when(submissionMapper.calculateStreak("u-1")).thenReturn(0);
+            when(submissionStreakCalculator.computeStreak("u-1")).thenReturn(0);
 
             var result = projection.aggregateLearningProgress("u-1");
 

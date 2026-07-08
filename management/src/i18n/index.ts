@@ -16,7 +16,6 @@ export {
   LOCALE_CONFIGS,
   DEFAULT_LOCALE,
   FALLBACK_LOCALE,
-  LOCALE_HEADER_KEY,
 } from './types'
 
 export type { SupportedLocale, LocaleConfig, MessageSchema } from './types'

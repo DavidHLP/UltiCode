@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.port.adapter;
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class AdminUserStatsReadAdapter implements AdminUserStatsReadPort {
 
     private final SubmissionMapper submissionMapper;
+    private final SubmissionStreakCalculator submissionStreakCalculator;
     private final SolutionMapper solutionMapper;
 
     @Override
@@ -44,7 +46,6 @@ public class AdminUserStatsReadAdapter implements AdminUserStatsReadPort {
 
     @Override
     public int calculateSubmissionStreak(String userId) {
-        Integer n = submissionMapper.calculateStreak(userId);
-        return n == null ? 0 : n;
+        return submissionStreakCalculator.computeStreak(userId);
     }
 }

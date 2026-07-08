@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 // 明示导入以消除 BaseMapper 重载歧义
 import static org.mockito.ArgumentMatchers.anyCollection;
 
@@ -64,8 +66,8 @@ class PermissionServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
-        when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, clock,
             new FixedUuidGenerator());

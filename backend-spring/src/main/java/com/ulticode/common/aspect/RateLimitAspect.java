@@ -6,7 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.ratelimiter.AcquisitionVerdict;
 import com.ulticode.common.ratelimiter.RateLimiter;
 import com.ulticode.common.util.ClientIpResolver;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -36,6 +36,7 @@ public class RateLimitAspect {
 
     private final RateLimiter rateLimiter;
     private final ClientIpResolver clientIpResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     @Around("@annotation(com.ulticode.common.annotation.RateLimit)")
     public Object enforceRateLimit(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -61,7 +62,7 @@ public class RateLimitAspect {
         // arguments so per-resource key templates (e.g.
         // "contest:virtual-start:{id}") resolve to per-resource buckets.
         key = substitutePlaceholders(key, joinPoint);
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
 
         if (userId != null) {
             key = key + ":user:" + userId;

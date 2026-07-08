@@ -2,7 +2,8 @@
 import { ref, onMounted, computed, watch } from "vue";
 import { Trophy } from "lucide-vue-next";
 import { useRouter, useRoute } from "vue-router";
-import { useContestStore } from "@/stores/contest";
+import { useContestBrowseStore } from "@/stores/contestBrowse";
+import { useContestRankingStore } from "@/stores/contestRanking";
 import { storeToRefs } from "pinia";
 import { Separator } from "@/components/ui/separator";
 import UpcomingContests from "./components/UpcomingContests.vue";
@@ -13,7 +14,8 @@ import { useI18n } from "vue-i18n";
 
 const router = useRouter();
 const route = useRoute();
-const contestStore = useContestStore();
+const contestStore = useContestBrowseStore();
+const rankingStore = useContestRankingStore();
 const { t } = useI18n();
 
 // Use store state
@@ -22,10 +24,9 @@ const {
   runningContests,
   pastContests,
   pastContestsTotal,
-  globalRankings,
   loadingContests,
-  loadingRankings,
 } = storeToRefs(contestStore);
+const { globalRankings, loadingRankings } = storeToRefs(rankingStore);
 
 const currentPage = ref(1);
 const pageSize = 10;
@@ -46,7 +47,7 @@ onMounted(async () => {
     await Promise.all([
       contestStore.loadContests(),
       contestStore.loadPastContests(page, pageSize),
-      contestStore.loadGlobalRankings(),
+      rankingStore.loadGlobalRankings(),
     ]);
   } catch (error) {
     console.error("Failed to load contest data:", error);

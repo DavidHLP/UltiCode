@@ -36,4 +36,3 @@ export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
 // Default and fallback locale
 export const DEFAULT_LOCALE: SupportedLocale = "zh-CN";
 export const FALLBACK_LOCALE: SupportedLocale = "zh-CN";
-export const LOCALE_HEADER_KEY = "x-locale";

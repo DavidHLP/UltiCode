@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
-import com.ulticode.modules.admin.service.DashboardService;
+import com.ulticode.modules.admin.projection.DashboardStatsProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
@@ -44,12 +44,12 @@ public class DashboardController {
   private static final String PERIODS_REGEX = "hour|day|week|month|year";
   private static final String PERIODS_HUMAN = "hour, day, week, month, year";
 
-  private final DashboardService dashboardService;
+  private final DashboardStatsProjection dashboardStatsProjection;
 
   @Operation(summary = "Get dashboard stats", description = "Get comprehensive dashboard statistics")
   @GetMapping("/stats")
   public Result<DashboardStatsVO> getStats() {
-    DashboardStatsVO stats = dashboardService.getStats();
+    DashboardStatsVO stats = dashboardStatsProjection.loadStats();
     return Result.success(stats);
   }
 
@@ -66,7 +66,7 @@ public class DashboardController {
       @Min(value = 1, message = "Days parameter must be at least 1")
       @Max(value = 365, message = "Days parameter cannot exceed 365")
       Integer days) {
-    ChartStatsVO stats = dashboardService.getChartStats(metric, period, days);
+    ChartStatsVO stats = dashboardStatsProjection.loadChartStats(metric, period, days);
     return Result.success(stats);
   }
 }

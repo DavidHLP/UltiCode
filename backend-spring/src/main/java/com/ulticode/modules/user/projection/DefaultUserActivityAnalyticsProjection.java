@@ -1,14 +1,12 @@
-package com.ulticode.modules.admin.service.impl;
+package com.ulticode.modules.user.projection;
 
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
-import com.ulticode.modules.admin.mapper.AuditLogMapper;
-import com.ulticode.modules.admin.service.AdminUserAnalyticsService;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -18,21 +16,34 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of AdminUserAnalyticsService.
- * Handles user activity, retention, and engagement analytics.
+ * Default (and only) adapter for {@link UserActivityAnalyticsProjection}.
+ * Owns the user + submission read joins that feed the admin activity report.
+ *
+ * <p>Previous N+1 issues documented on the old
+ * {@code AdminUserAnalyticsServiceImpl} are preserved as-is in the move:
+ * the daily/weekly/hourly buckets, retention window counts, and top-active-user
+ * lookup are all single aggregation queries
+ * ({@code countDailyActiveUsers}, {@code countWeeklyActiveUsers},
+ * {@code countActiveUsersByHour}, {@code findTopActiveUsers},
+ * {@code countDistinctUsersInRange}) — the N+1 paths no longer exist on the
+ * hot path. The single remaining per-row user lookup inside
+ * {@code buildTopActiveUsers} is the small inner
+ * ({@code findTopActiveUsers(startDate, 10)} already caps the outer size at 10,
+ * so the user enrichment is bounded).
+ *
+ * @author ulticode
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService {
+public class DefaultUserActivityAnalyticsProjection implements UserActivityAnalyticsProjection {
 
     private final Clock clock;
     private final UserMapper userMapper;
     private final SubmissionMapper submissionMapper;
-    private final AuditLogMapper auditLogMapper;
 
     @Override
-    public UserActivityReportVO getUserActivityReport(Integer days) {
+    public UserActivityReportVO loadUserActivityReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
         LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 
@@ -104,15 +115,13 @@ public class AdminUserAnalyticsServiceImpl implements AdminUserAnalyticsService 
         return report;
     }
 
-    // ==================== Private Helper Methods ====================
-
     /**
      * Calculate retention rate for a given day.
      * Uses COUNT(DISTINCT user_id) aggregation queries for accurate distinct user counting.
      * Previous implementation used selectCount with groupBy which returns the count of the
      * first group only, not the total distinct user count (MyBatis-Plus Pitfall 4).
      *
-     * NOTE: This is an approximation using distinct user counts rather than
+     * <p>NOTE: This is an approximation using distinct user counts rather than
      * a true set intersection. For exact retention, a dedicated
      * subquery-based approach or materialized view is needed.
      */

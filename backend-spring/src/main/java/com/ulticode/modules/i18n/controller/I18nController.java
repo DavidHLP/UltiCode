@@ -3,7 +3,7 @@ package com.ulticode.modules.i18n.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.i18n.constants.I18nConstants;
 import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
 import com.ulticode.modules.i18n.dto.ParseLocaleRequest;
@@ -29,6 +29,7 @@ import java.util.Set;
 public class I18nController {
 
     private final I18nService i18nService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Get translations for a specific entity.
@@ -84,7 +85,7 @@ public class I18nController {
     public Result<BulkUpsertDTO> bulkUpsert(
             @Valid @RequestBody BulkUpsertDTO dto) {
 
-        final String userId = SecurityUtil.getCurrentUserId();
+        final String userId = currentUserProvider.getCurrentUserId();
 
         // Validate all translation items
         for (BulkUpsertDTO.TranslationItem item : dto.getTranslations()) {

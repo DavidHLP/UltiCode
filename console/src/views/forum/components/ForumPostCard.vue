@@ -10,7 +10,7 @@ import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
 import { RouterLink, useRouter } from "vue-router";
-import { renderMarkdown } from "@/utils/markdown";
+import { renderMarkdown } from '@/shared/markdown-utils/src';
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toast } from "vue-sonner";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";

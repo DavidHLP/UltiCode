@@ -2,7 +2,7 @@ package com.ulticode.modules.problem.controller;
 
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.problem.dto.SaveProblemNoteDTO;
 import com.ulticode.modules.problem.service.ProblemNoteService;
 import com.ulticode.modules.problem.vo.ProblemNoteVO;
@@ -34,12 +34,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProblemNoteController {
 
     private final ProblemNoteService problemNoteService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get the current user's note for a problem")
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public Result<ProblemNoteVO> getNote(@PathVariable Long problemId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(problemNoteService.getNote(userId, problemId));
     }
 
@@ -50,7 +51,7 @@ public class ProblemNoteController {
     public Result<ProblemNoteVO> saveNote(
             @PathVariable Long problemId,
             @Valid @RequestBody SaveProblemNoteDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(problemNoteService.upsertNote(userId, problemId, dto.getContent()));
     }
 }

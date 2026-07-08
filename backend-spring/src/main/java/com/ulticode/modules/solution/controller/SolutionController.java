@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.RecordViewRequest;
@@ -36,6 +36,7 @@ public class SolutionController {
 
     private final SolutionService solutionService;
     private final SolutionProjection solutionProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * List solutions for a specific problem.
@@ -76,7 +77,7 @@ public class SolutionController {
             @PathVariable Long problemId,
             @Valid @RequestBody CreateSolutionDTO createDTO) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -120,7 +121,7 @@ public class SolutionController {
             @PathVariable String id,
             @Valid @RequestBody UpdateSolutionDTO updateDTO) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -143,7 +144,7 @@ public class SolutionController {
             @Parameter(description = "Solution ID")
             @PathVariable String id) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -216,10 +217,10 @@ public class SolutionController {
             @PathVariable String solutionId,
             @Valid @RequestBody CreateSolutionCommentDTO dto) {
 
-        if (!SecurityUtil.isAuthenticated()) {
+        if (!currentUserProvider.isAuthenticated()) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         SolutionCommentVO comment = solutionService.createComment(solutionId, userId, dto);
         return Result.success(comment);
     }
@@ -231,10 +232,10 @@ public class SolutionController {
             @PathVariable String commentId,
             @Valid @RequestBody UpdateSolutionCommentDTO dto) {
 
-        if (!SecurityUtil.isAuthenticated()) {
+        if (!currentUserProvider.isAuthenticated()) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         SolutionCommentVO comment = solutionService.updateComment(commentId, userId, dto);
         return Result.success(comment);
     }
@@ -245,10 +246,10 @@ public class SolutionController {
             @Parameter(description = "Comment ID")
             @PathVariable String commentId) {
 
-        if (!SecurityUtil.isAuthenticated()) {
+        if (!currentUserProvider.isAuthenticated()) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         solutionService.deleteComment(commentId, userId);
         return Result.success();
     }

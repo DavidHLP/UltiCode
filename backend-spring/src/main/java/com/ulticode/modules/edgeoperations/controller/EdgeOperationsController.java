@@ -2,7 +2,7 @@ package com.ulticode.modules.edgeoperations.controller;
 
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.dto.GetInteractionsQueryDTO;
@@ -30,6 +30,7 @@ public class EdgeOperationsController {
 
     private final EdgeOperationsService edgeOperationsService;
     private final EdgeOperationInspector edgeOperationInspector;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Perform an edge operation",
             description = "Perform an edge operation (vote, analyze, view, etc.) on a target. " +
@@ -38,7 +39,7 @@ public class EdgeOperationsController {
     @RateLimit(key = "edge-operations:perform", limit = 20, period = 60)
     @PostMapping
     public Result<EdgeOperationResponseVO> performOperation(@Valid @RequestBody EdgeOperationDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(edgeOperationsService.performOperation(userId, dto));
     }
 
@@ -49,7 +50,7 @@ public class EdgeOperationsController {
     public Result<EdgeOperationResponseVO> getInteractions(
             @Parameter(description = "Target ID") @RequestParam String targetId,
             @Parameter(description = "Target type") @RequestParam EdgeOperationTargetType targetType) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(edgeOperationInspector.getInteractions(userId, targetId, targetType));
     }
 
@@ -60,7 +61,7 @@ public class EdgeOperationsController {
     public Result<EdgeOperationResponseVO> getInteractionsByPath(
             @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,
             @Parameter(description = "Target ID") @PathVariable String targetId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(edgeOperationInspector.getInteractions(userId, targetId, targetType));
     }
 }

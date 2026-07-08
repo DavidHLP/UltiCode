@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link AdminNotificationServiceImpl} &mdash; the write-only
@@ -55,6 +56,8 @@ class AdminNotificationServiceImplTest {
     @Mock private UserMapper userMapper;
     @Mock private AdminNotificationProjection adminNotificationProjection;
     @Mock private UuidGenerator uuidGenerator;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private AdminNotificationServiceImpl adminNotificationService;
 
@@ -65,7 +68,7 @@ class AdminNotificationServiceImplTest {
         Clock clock = Clock.systemUTC();
         adminNotificationService = new AdminNotificationServiceImpl(
                 notificationMapper, preferenceMapper, userMapper, clock,
-                uuidGenerator, adminNotificationProjection);
+                uuidGenerator, adminNotificationProjection, currentUserProvider);
     }
 
     private AdminNotificationVO makeVO(String id, String announcementId) {

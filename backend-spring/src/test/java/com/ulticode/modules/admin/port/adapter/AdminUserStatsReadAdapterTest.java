@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class AdminUserStatsReadAdapterTest {
     private SubmissionMapper submissionMapper;
 
     @Mock
+    private SubmissionStreakCalculator submissionStreakCalculator;
+
+    @Mock
     private SolutionMapper solutionMapper;
 
     @InjectMocks
@@ -43,7 +47,7 @@ class AdminUserStatsReadAdapterTest {
             String userId = "user-123";
             when(submissionMapper.countByUserId(userId)).thenReturn(null);
             when(submissionMapper.countAcceptedProblemsByUserId(userId)).thenReturn(null);
-            when(submissionMapper.calculateStreak(userId)).thenReturn(null);
+            when(submissionStreakCalculator.computeStreak(userId)).thenReturn(0);
             when(solutionMapper.countByUserId(userId)).thenReturn(null);
 
             assertThat(adapter.countSubmissionsByUserId(userId)).isEqualTo(0L);
@@ -63,7 +67,7 @@ class AdminUserStatsReadAdapterTest {
             String userId = "user-456";
             when(submissionMapper.countByUserId(userId)).thenReturn(42L);
             when(submissionMapper.countAcceptedProblemsByUserId(userId)).thenReturn(17L);
-            when(submissionMapper.calculateStreak(userId)).thenReturn(9);
+            when(submissionStreakCalculator.computeStreak(userId)).thenReturn(9);
             when(solutionMapper.countByUserId(userId)).thenReturn(5L);
 
             assertThat(adapter.countSubmissionsByUserId(userId)).isEqualTo(42L);

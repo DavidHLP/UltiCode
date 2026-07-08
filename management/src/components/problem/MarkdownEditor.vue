@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { renderMarkdown } from '@/utils/markdown'
+import { renderMarkdown } from '@/shared/markdown-utils/src'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Bold, Italic, Code, Link, Image, Maximize2, Minimize2 } from 'lucide-vue-next'

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { useContestStore } from "@/stores/contest";
+import { useContestRankingStore } from "@/stores/contestRanking";
 import { useRouter } from "vue-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Trophy } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 
-const contestStore = useContestStore();
+const contestStore = useContestRankingStore();
 const router = useRouter();
 const loading = ref(true);
 const activeTab = ref("registered");

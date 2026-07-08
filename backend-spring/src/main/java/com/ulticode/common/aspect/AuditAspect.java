@@ -4,7 +4,7 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.ClientIpResolver;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +37,11 @@ public class AuditAspect {
 
     private final AuditSinkPort auditSinkPort;
     private final ClientIpResolver clientIpResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     @Around("@annotation(audited)")
     public Object auditAround(ProceedingJoinPoint joinPoint, Audited audited) throws Throwable {
-        String performerId = SecurityUtil.getCurrentUserId();
+        String performerId = currentUserProvider.getCurrentUserId();
         if (performerId == null) {
             performerId = "system";
         }

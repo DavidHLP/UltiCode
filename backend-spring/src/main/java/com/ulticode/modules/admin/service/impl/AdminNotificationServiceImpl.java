@@ -8,7 +8,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -87,6 +87,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final AdminNotificationProjection adminNotificationProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public PageResult<AdminNotificationVO> listSystemNotifications(AdminNotificationQueryDTO queryDTO) {
@@ -97,7 +98,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     @Transactional
     @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         User currentUser = userMapper.selectById(currentUserId);
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Current user not found");

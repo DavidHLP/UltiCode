@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
@@ -37,6 +37,7 @@ public class SubmissionController {
 
     private final SubmissionService submissionService;
     private final SubmissionProjection submissionProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Submit code for a problem.
@@ -53,7 +54,7 @@ public class SubmissionController {
     @RateLimit(key = "submission:create", limit = 20, period = 60)
     @PostMapping
     public Result<SubmissionVO> submit(@Valid @RequestBody CreateSubmissionDTO createDTO) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -89,7 +90,7 @@ public class SubmissionController {
     public Result<SubmissionDetailVO> getSubmission(
             @Parameter(description = "Submission ID")
             @PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -119,7 +120,7 @@ public class SubmissionController {
             @Parameter(description = "Filter by problem ID")
             @RequestParam(required = false) Long problemId) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -147,7 +148,7 @@ public class SubmissionController {
     public Result<List<String>> getSubmissionCalendar(
             @Parameter(description = "Year to filter by")
             @RequestParam(required = false) Integer year) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -171,7 +172,7 @@ public class SubmissionController {
             @Parameter(description = "Problem ID")
             @RequestParam Long problemId) {
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -191,7 +192,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/learning-progress")
     public Result<LearningProgressDTO> getLearningProgress() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -210,7 +211,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/history")
     public Result<SubmissionHistoryDTO> getSubmissionHistory() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

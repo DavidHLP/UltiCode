@@ -2,7 +2,7 @@ package com.ulticode.modules.bookmark.controller;
 
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.bookmark.dto.*;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.service.BookmarkService;
@@ -26,26 +26,27 @@ import java.util.List;
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Quick favorite/unfavorite an item")
     @RateLimit(key = "bookmark:quick", limit = 20, period = 60)
     @PostMapping("/quick")
     public Result<QuickFavoriteVO> quickFavorite(@Valid @RequestBody QuickFavoriteDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.quickFavorite(userId, dto));
     }
 
     @Operation(summary = "Get all folders for current user")
     @GetMapping("/folders")
     public Result<List<BookmarkFolderVO>> getFolders() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.getFolders(userId));
     }
 
     @Operation(summary = "Get folder with bookmarks")
     @GetMapping("/folders/{id}")
     public Result<BookmarkFolderDetailVO> getFolderDetail(@PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.getFolderDetail(userId, id));
     }
 
@@ -53,7 +54,7 @@ public class BookmarkController {
     @RateLimit(key = "bookmark:create-folder", limit = 20, period = 60)
     @PostMapping("/folders")
     public Result<BookmarkFolderVO> createFolder(@Valid @RequestBody CreateFolderDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.createFolder(userId, dto));
     }
 
@@ -63,7 +64,7 @@ public class BookmarkController {
     public Result<BookmarkFolderVO> updateFolder(
             @PathVariable String id,
             @Valid @RequestBody UpdateFolderDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.updateFolder(userId, id, dto));
     }
 
@@ -71,7 +72,7 @@ public class BookmarkController {
     @RateLimit(key = "bookmark:delete-folder", limit = 20, period = 60)
     @DeleteMapping("/folders/{id}")
     public Result<Void> deleteFolder(@PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         bookmarkService.deleteFolder(userId, id);
         return Result.success();
     }
@@ -82,7 +83,7 @@ public class BookmarkController {
     public Result<BookmarkVO> addBookmark(
             @PathVariable String folderId,
             @Valid @RequestBody AddBookmarkDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.addBookmark(userId, folderId, dto));
     }
 
@@ -92,7 +93,7 @@ public class BookmarkController {
     public Result<Void> removeBookmark(
             @PathVariable String folderId,
             @PathVariable String bookmarkId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         bookmarkService.removeBookmark(userId, folderId, bookmarkId);
         return Result.success();
     }
@@ -104,7 +105,7 @@ public class BookmarkController {
             @PathVariable String folderId,
             @PathVariable BookmarkType targetType,
             @PathVariable String targetId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         bookmarkService.removeBookmarkByTarget(userId, folderId, targetType, targetId);
         return Result.success();
     }
@@ -116,7 +117,7 @@ public class BookmarkController {
             @PathVariable String folderId,
             @PathVariable String bookmarkId,
             @Valid @RequestBody UpdateBookmarkDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.updateBookmark(userId, folderId, bookmarkId, dto));
     }
 
@@ -125,7 +126,7 @@ public class BookmarkController {
     public Result<ItemFoldersVO> getItemFolders(
             @PathVariable BookmarkType targetType,
             @PathVariable String targetId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(bookmarkService.getItemFolders(userId, targetType, targetId));
     }
 
@@ -133,7 +134,7 @@ public class BookmarkController {
     @RateLimit(key = "bookmark:reorder", limit = 20, period = 60)
     @PostMapping("/folders/reorder")
     public Result<Void> reorderFolders(@Valid @RequestBody ReorderFoldersDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         bookmarkService.reorderFolders(userId, dto.getFolderIds());
         return Result.success();
     }

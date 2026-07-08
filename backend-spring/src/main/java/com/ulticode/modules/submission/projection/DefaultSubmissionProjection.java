@@ -18,6 +18,7 @@ import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.enums.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
     private static final String[] BIN_KEYS = {"value", "bin", "min", "max", "count"};
 
     private final SubmissionMapper submissionMapper;
+    private final SubmissionStreakCalculator submissionStreakCalculator;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final ObjectMapper objectMapper;
@@ -306,8 +308,8 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
         progress.setTotalTimeHours(totalTimeHours);
         progress.setAvgTimePerProblem(totalProblems > 0 ? totalTimeHours / totalProblems : 0);
 
-        Integer streak = submissionMapper.calculateStreak(userId);
-        progress.setCurrentStreak(streak != null ? streak : 0);
+        int streak = submissionStreakCalculator.computeStreak(userId);
+        progress.setCurrentStreak(streak);
         progress.setLongestStreak(progress.getCurrentStreak());
 
         return progress;

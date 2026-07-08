@@ -1,8 +1,7 @@
-package com.ulticode.modules.admin.service.impl;
+package com.ulticode.modules.problem.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.dto.ProblemCompletionReportVO;
-import com.ulticode.modules.admin.service.AdminContentAnalyticsService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.entity.ProblemTagRelation;
@@ -13,7 +12,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -24,13 +23,25 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of AdminContentAnalyticsService.
- * Handles problem completion statistics and content engagement analytics.
+ * Default (and only) adapter for {@link ProblemAnalyticsProjection}. Owns
+ * the problem + tag + submission read joins that feed the admin completion
+ * report.
+ *
+ * <p>Previous N+1 issues documented on the old
+ * {@code AdminContentAnalyticsServiceImpl} are preserved as-is in the move:
+ * the difficulty bucket and trending-problem reads are single aggregation
+ * queries ({@code countProblemCompletionByDifficulty},
+ * {@code findTrendingProblems}). The by-tag loop and hardest-problem scan
+ * still carry the documented N+1 — the LIMIT 1000 cap on the outer tag
+ * read prevents unbounded memory growth, and the admin facade is not on
+ * a hot request path. Future batched versions belong here.
+ *
+ * @author ulticode
  */
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class AdminContentAnalyticsServiceImpl implements AdminContentAnalyticsService {
+public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjection {
 
     private final ProblemMapper problemMapper;
     private final ProblemTagMapper problemTagMapper;
@@ -39,7 +50,7 @@ public class AdminContentAnalyticsServiceImpl implements AdminContentAnalyticsSe
     private final Clock clock;
 
     @Override
-    public ProblemCompletionReportVO getProblemCompletionReport(Integer days) {
+    public ProblemCompletionReportVO loadProblemCompletionReport(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
         LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
 

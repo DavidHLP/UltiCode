@@ -28,7 +28,7 @@ import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolb
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns } from './columns'
-import { renderMarkdown } from '@/utils/markdown'
+import { renderMarkdown } from '@/shared/markdown-utils/src'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()

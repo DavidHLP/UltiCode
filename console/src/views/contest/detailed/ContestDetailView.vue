@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute } from "vue-router";
-import { useContestStore } from "@/stores/contest";
+import { useContestDetailStore } from "@/stores/contestDetail";
+import { useVirtualContestStore } from "@/stores/virtualContest";
 import { fetchContestProblemSubmissions } from "@/api/contest";
 import { useAuthStore } from "@/stores/auth";
 import type { ContestProblemSummary } from "@/types/contest";
@@ -27,7 +28,8 @@ import { useContestStatus } from "./composables/useContestStatus";
 import { useContestRankings } from "./composables/useContestRankings";
 
 const route = useRoute();
-const contestStore = useContestStore();
+const contestStore = useContestDetailStore();
+const virtualStore = useVirtualContestStore();
 const { t } = useI18n();
 const contestId = route.params.slug as string;
 
@@ -35,7 +37,7 @@ const contest = computed(() => contestStore.currentContest);
 const loading = computed(() => contestStore.loading);
 const registering = ref(false);
 const startingVirtual = ref(false);
-// `contestProblems` is hoisted into the store (see stores/contest.ts) so
+// `contestProblems` is hoisted into the store (see stores/contestDetail.ts) so
 // the problem page can read it without a parallel fetch. We mirror it
 // here as a local ref for the existing `ContestProblemList` prop
 // contract — reading from the store means the same data is reused
@@ -72,8 +74,8 @@ const isRegistered = computed(() => contestStore.isRegistered(contestId));
 // 永远挂不上，Solutions tab 在虚拟赛进行中全程可见。
 const virtualSessionActive = computed(
   () =>
-    contestStore.isInVirtualContest &&
-    contestStore.virtualSession?.contestId === contest.value?.id,
+    virtualStore.isInVirtualContest &&
+    virtualStore.virtualSession?.contestId === contest.value?.id,
 );
 
 const {
@@ -129,7 +131,7 @@ onMounted(async () => {
     const [, problemsResult] = await Promise.allSettled([
       Promise.all([
         contestStore.loadParticipationStatus(contestId),
-        contestStore.loadVirtualSession(contestId),
+        virtualStore.loadVirtualSession(contestId),
       ]),
       // loadProblems is cached inside the store (see stores/contest.ts)
       // so the problem page can read the same list without a second
@@ -176,7 +178,7 @@ async function handleUnregister() {
 async function handleStartVirtual() {
   startingVirtual.value = true;
   try {
-    await contestStore.startVirtualContest(contestId);
+    await virtualStore.startVirtualContest(contestId);
     await contestStore.loadParticipationStatus(contestId);
     toast.success(t("contest.virtual.started"));
     scrollToSection("contest-problems");

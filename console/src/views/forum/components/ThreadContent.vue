@@ -12,7 +12,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
-import { renderMarkdown } from "@/utils/markdown";
+import { renderMarkdown } from '@/shared/markdown-utils/src';
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
 import { toast } from "vue-sonner";

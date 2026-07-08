@@ -1,6 +1,7 @@
 package com.ulticode.modules.contest.controller;
 
 import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
@@ -48,6 +49,7 @@ public class ContestSubmissionBridgeController {
     private final ContestService contestService;
     private final ContestProjection contestProjection;
     private final Validator validator;
+    private final CurrentUserProvider currentUserProvider;
 
     private static final String MSG_PROBLEM_ID_REQUIRED = "Problem id is required";
 
@@ -62,7 +64,7 @@ public class ContestSubmissionBridgeController {
             @PathVariable String id,
             @PathVariable Long problemId) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        String userId = ContestControllerSupport.getCurrentUserIdOrThrow();
+        String userId = ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider);
         return Result.success(contestProjection.getContestProblemSubmissions(resolvedId, problemId, userId));
     }
 
@@ -84,7 +86,7 @@ public class ContestSubmissionBridgeController {
             @PathVariable("problemId") String problemPath,
             @RequestBody CreateSubmissionDTO createDTO) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        String userId = ContestControllerSupport.getCurrentUserIdOrThrow();
+        String userId = ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider);
         if (createDTO == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Submission payload is required");
         }

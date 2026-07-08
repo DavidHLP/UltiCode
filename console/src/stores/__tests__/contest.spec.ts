@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { useContestStore } from "@/stores/contest";
+import { useVirtualContestStore } from "@/stores/virtualContest";
 import { fetchVirtualSession } from "@/api/contest";
 import type { VirtualContestSession } from "@/types/contest";
 
@@ -34,7 +34,7 @@ function makeStartedSession(
   };
 }
 
-describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
+describe("useVirtualContestStore — loadVirtualSession (R10.1 / F-51)", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
@@ -58,7 +58,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
     // already FINISHED, so getVirtualSession returns no active session).
     vi.mocked(fetchVirtualSession).mockResolvedValue(null);
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     await store.loadVirtualSession(stale.contestId);
 
     // Server MUST be hit even when a cache exists — that's the whole
@@ -89,7 +89,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
     const server = makeStartedSession({ id: "server-id" });
     vi.mocked(fetchVirtualSession).mockResolvedValue(server);
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     await store.loadVirtualSession(cached.contestId);
 
     expect(fetchVirtualSession).toHaveBeenCalledWith(cached.contestId);
@@ -116,7 +116,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
       }),
     );
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     const loadPromise = store.loadVirtualSession(cached.contestId);
 
     // Synchronously after kicking off the load, the cache is rendered.
@@ -134,7 +134,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
     const server = makeStartedSession();
     vi.mocked(fetchVirtualSession).mockResolvedValue(server);
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     await store.loadVirtualSession(server.contestId);
 
     expect(fetchVirtualSession).toHaveBeenCalledWith(server.contestId);
@@ -154,7 +154,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
 
     vi.mocked(fetchVirtualSession).mockRejectedValue(new Error("boom"));
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     await store.loadVirtualSession(cached.contestId);
 
     // The cache is the best we have while offline — keep it so the
@@ -165,7 +165,7 @@ describe("useContestStore — loadVirtualSession (R10.1 / F-51)", () => {
   it("clears the in-memory session when the server fetch fails and no cache is present", async () => {
     vi.mocked(fetchVirtualSession).mockRejectedValue(new Error("boom"));
 
-    const store = useContestStore();
+    const store = useVirtualContestStore();
     await store.loadVirtualSession("contest-x");
 
     expect(store.virtualSession).toBeNull();

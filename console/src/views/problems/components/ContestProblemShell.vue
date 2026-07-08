@@ -32,7 +32,7 @@ import ContestTimer from "@/views/contest/components/ContestTimer.vue";
 import ContestAnnouncementBell from "./ContestAnnouncementBell.vue";
 import { ContestProblemContextKey } from "../problem-context";
 import { useContestProblemShellStore } from "@/stores/contestProblemShell";
-import { useContestStore } from "@/stores/contest";
+import { useVirtualContestStore } from "@/stores/virtualContest";
 import { useAuthStore } from "@/stores/auth";
 import { toast } from "vue-sonner";
 
@@ -40,7 +40,7 @@ const router = useRouter();
 const { t } = useI18n();
 const ctx = inject(ContestProblemContextKey, null);
 const shellStore = useContestProblemShellStore();
-const contestStore = useContestStore();
+const contestStore = useVirtualContestStore();
 const authStore = useAuthStore();
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,7 @@ import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 
 /**
  * P0-1: a hidden case's {@code input} / {@code output} / {@code expectedOutput}
@@ -52,7 +53,7 @@ class HiddenCaseLeakIT {
     @Test
     @DisplayName("User-facing SubmissionVO JSON never contains hidden case input/output/expectedOutput")
     void hiddenCaseFieldsNotLeakedInJson() throws Exception {
-        DefaultSubmissionProjection projection = new DefaultSubmissionProjection(
+        DefaultSubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, mock(com.ulticode.modules.submission.stats.SubmissionStreakCalculator.class),
                 submissionMapper, userMapper, problemMapper, jackson);
 
         Submission s = new Submission();
@@ -92,7 +93,7 @@ class HiddenCaseLeakIT {
     @Test
     @DisplayName("Multiple hidden cases and mixed legacy rows still redact user JSON")
     void multipleHiddenAndLegacyRowsRedact() throws Exception {
-        DefaultSubmissionProjection projection = new DefaultSubmissionProjection(
+        DefaultSubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, mock(com.ulticode.modules.submission.stats.SubmissionStreakCalculator.class),
                 submissionMapper, userMapper, problemMapper, jackson);
 
         Submission s = new Submission();

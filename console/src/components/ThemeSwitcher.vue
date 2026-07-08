@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useTheme } from "@/composables/useTheme";
+import { useTheme } from '@/shared/theme/src';
 import { useI18n } from "vue-i18n";
 import {
   DropdownMenuSub,

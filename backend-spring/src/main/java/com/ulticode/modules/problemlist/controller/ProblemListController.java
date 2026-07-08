@@ -4,7 +4,7 @@ import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.problemlist.dto.*;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
@@ -26,12 +26,13 @@ public class ProblemListController {
 
     private final ProblemListService problemListService;
     private final ProblemListProjection problemListProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get problem lists overview")
     @GetMapping("/overview")
     public Result<UserProblemListsVO> getOverview(
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId != null) {
             return Result.success(problemListProjection.getUserProblemLists(userId));
         }
@@ -43,7 +44,7 @@ public class ProblemListController {
     public Result<ProblemListDetailVO> getListOverview(
             @PathVariable String id,
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(problemListProjection.getListOverview(id, userId, locale));
     }
 
@@ -212,7 +213,7 @@ public class ProblemListController {
     }
 
     private String requireAuthenticatedUserId() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

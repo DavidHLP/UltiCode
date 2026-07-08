@@ -4,7 +4,7 @@ import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.audit.BanCheckPort;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
@@ -26,10 +26,11 @@ import org.springframework.stereotype.Component;
 public class BanCheckAspect {
 
     private final BanCheckPort banCheckPort;
+    private final CurrentUserProvider currentUserProvider;
 
     @Before("@annotation(com.ulticode.common.annotation.CheckBan)")
     public void checkBan(JoinPoint joinPoint) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId != null && banCheckPort.isBanned(userId)) {
             throw new BusinessException(ErrorCode.USER_BANNED);
         }

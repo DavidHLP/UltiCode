@@ -22,7 +22,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
-import { renderMarkdown } from '@/utils/markdown'
+import { renderMarkdown } from '@/shared/markdown-utils/src'
 
 const router = useRouter()
 const route = useRoute()

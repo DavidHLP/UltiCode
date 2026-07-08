@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
 import type { AllSettings } from '@/api/admin/settings'
-import { useTheme } from '@/composables/useTheme'
+import { useTheme } from '@/shared/theme/src'
 import { Sun, Moon, Laptop } from 'lucide-vue-next'
 
 const { t } = useI18n()

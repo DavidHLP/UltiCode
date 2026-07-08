@@ -36,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Smoke test for the contest admin mutator guards (see admin-contests-mutator-fixes.plan.md).
@@ -62,6 +63,8 @@ class ContestServiceImplMutatorTest {
     @Mock SubmissionService submissionService;
     @Mock ContestScoringService contestScoringService;
     @Mock ContestProjection contestProjection;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     ContestServiceImpl service;
 
@@ -71,7 +74,7 @@ class ContestServiceImplMutatorTest {
                 contestMapper, contestProblemMapper, participantMapper,
                 schedulerService, achievementTriggerService, submissionService,
                 contestScoringService, contestProjection, java.time.Clock.systemDefaultZone(),
-                new FixedUuidGenerator());
+                new FixedUuidGenerator(), currentUserProvider);
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

@@ -6,12 +6,12 @@
  * site-wide prev/next/random nav for a contest-scoped one), the
  * ContestProblemDock, and the announcement bell.
  *
- * Data sources (all from the contest store; no new endpoints):
+ * Data sources (all from the contest detail store; no new endpoints):
  *   - `currentContest`            (loaded via loadContestDetail)
  *   - `userParticipation` map     (loaded via loadParticipationStatus)
- *   - `contestProblems` map       (loaded via loadProblems — new in
- *                                  stores/contest.ts, hoisted from the
- *                                  local ref that used to live in
+ *   - `contestProblems` map       (loaded via loadProblems — hoisted
+ *                                  into stores/contestDetail.ts from
+ *                                  the local ref that used to live in
  *                                  ContestDetailView)
  *
  * URL contract: `route.query.contestId` is the DB id (backend
@@ -22,7 +22,7 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute } from "vue-router";
-import { useContestStore } from "@/stores/contest";
+import { useContestDetailStore } from "@/stores/contestDetail";
 import { useAuthStore } from "@/stores/auth";
 import type {
   ContestDetail,
@@ -60,7 +60,7 @@ export function useContestProblemContext(
   problem: Ref<ProblemDetail | null>,
 ): UseContestProblemContext {
   const route = useRoute();
-  const contestStore = useContestStore();
+  const contestStore = useContestDetailStore();
   const authStore = useAuthStore();
 
   const { currentContest, userParticipation, contestProblems } =

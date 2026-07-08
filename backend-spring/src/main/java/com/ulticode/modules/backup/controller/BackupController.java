@@ -3,7 +3,7 @@ package com.ulticode.modules.backup.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
@@ -33,13 +33,14 @@ import java.nio.charset.StandardCharsets;
 public class BackupController {
 
     private final BackupService backupService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "创建备份")
     @RateLimit(key = "admin:backup-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> createBackup(@Valid @RequestBody CreateBackupDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             userId = "anonymous";
         }
@@ -81,7 +82,7 @@ public class BackupController {
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> restoreBackup(@PathVariable String id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             userId = "anonymous";
         }

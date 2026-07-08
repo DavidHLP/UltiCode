@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import { Trophy, Globe, MapPin } from "lucide-vue-next";
-import { useContestStore } from "@/stores/contest";
+import { useContestRankingStore } from "@/stores/contestRanking";
 import { useAuthStore } from "@/stores/auth";
 import { storeToRefs } from "pinia";
 import { Separator } from "@/components/ui/separator";
@@ -12,7 +12,7 @@ import { useI18n } from "vue-i18n";
 import { useContestSocket } from "@/composables/contest/useContestSocket";
 import { toast } from "vue-sonner";
 
-const contestStore = useContestStore();
+const contestStore = useContestRankingStore();
 const authStore = useAuthStore();
 const { t } = useI18n();
 

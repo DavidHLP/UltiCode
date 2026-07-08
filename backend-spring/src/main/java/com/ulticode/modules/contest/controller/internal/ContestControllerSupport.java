@@ -2,7 +2,7 @@ package com.ulticode.modules.contest.controller.internal;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.projection.ContestProjection;
 
@@ -43,8 +43,8 @@ public final class ContestControllerSupport {
     /**
      * Get the current authenticated user's ID or throw 401.
      */
-    public static String getCurrentUserIdOrThrow() {
-        String userId = SecurityUtil.getCurrentUserId();
+    public static String getCurrentUserIdOrThrow(CurrentUserProvider currentUserProvider) {
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }

@@ -3,7 +3,7 @@ package com.ulticode.modules.problem.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -57,6 +57,7 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemProjection problemProjection;
     private final ProblemDetailPort problemDetailPort;
     private final Clock clock;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -84,7 +85,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         // Check if problem is locked (premium and user doesn't have access)
         if (Boolean.TRUE.equals(problem.getIsPremium())) {
-            if (!SecurityUtil.hasRole("ADMIN") && !SecurityUtil.hasRole("SUPER_ADMIN")) {
+            if (!currentUserProvider.hasRole("ADMIN") && !currentUserProvider.hasRole("SUPER_ADMIN")) {
                 // Return limited info for premium problems without access
                 throw new BusinessException(ErrorCode.PROBLEM_PREMIUM_REQUIRED);
             }
@@ -100,7 +101,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         // Check if problem is locked (premium and user doesn't have access)
         if (Boolean.TRUE.equals(problem.getIsPremium())) {
-            if (!SecurityUtil.hasRole("ADMIN") && !SecurityUtil.hasRole("SUPER_ADMIN")) {
+            if (!currentUserProvider.hasRole("ADMIN") && !currentUserProvider.hasRole("SUPER_ADMIN")) {
                 throw new BusinessException(ErrorCode.PROBLEM_PREMIUM_REQUIRED);
             }
         }
@@ -134,12 +135,12 @@ public class ProblemServiceImpl implements ProblemService {
         // Set published info if publishing
         if (Boolean.TRUE.equals(problem.getIsPublished())) {
             problem.setPublishedAt(LocalDateTime.now(clock));
-            problem.setPublishedBy(SecurityUtil.getCurrentUserId());
+            problem.setPublishedBy(currentUserProvider.getCurrentUserId());
         }
 
         problemMapper.insert(problem);
 
-        String operatorId = SecurityUtil.getCurrentUserId();
+        String operatorId = currentUserProvider.getCurrentUserId();
         problemVersionService.createInitialVersion(problem.getId(), operatorId);
 
         log.info("Problem created: {} by user {}", problem.getId(), operatorId);
@@ -176,7 +177,7 @@ public class ProblemServiceImpl implements ProblemService {
             // Set published info if publishing for the first time
             if (Boolean.TRUE.equals(updateDTO.getIsPublished()) && problem.getPublishedAt() == null) {
             problem.setPublishedAt(LocalDateTime.now(clock));
-                problem.setPublishedBy(SecurityUtil.getCurrentUserId());
+                problem.setPublishedBy(currentUserProvider.getCurrentUserId());
             }
         }
         if (updateDTO.getHasSolution() != null) {
@@ -190,7 +191,7 @@ public class ProblemServiceImpl implements ProblemService {
         // is a separate seam.
         problemDetailPort.applyDetailUpdate(id, problem, updateDTO);
 
-        String operatorId = SecurityUtil.getCurrentUserId();
+        String operatorId = currentUserProvider.getCurrentUserId();
         problemVersionService.createVersion(id, "UPDATE", null, operatorId);
 
         log.info("Problem updated: {} by user {}", id, operatorId);
@@ -207,7 +208,7 @@ public class ProblemServiceImpl implements ProblemService {
         // Soft delete is handled by MyBatis-Plus @TableLogic
         problemMapper.deleteById(id);
 
-        log.info("Problem deleted: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        log.info("Problem deleted: {} by user {}", id, currentUserProvider.getCurrentUserId());
     }
 
     @Override
@@ -219,12 +220,12 @@ public class ProblemServiceImpl implements ProblemService {
         problem.setIsPublished(true);
         if (problem.getPublishedAt() == null) {
             problem.setPublishedAt(LocalDateTime.now(clock));
-            problem.setPublishedBy(SecurityUtil.getCurrentUserId());
+            problem.setPublishedBy(currentUserProvider.getCurrentUserId());
         }
 
         problemMapper.updateById(problem);
 
-        log.info("Problem published: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        log.info("Problem published: {} by user {}", id, currentUserProvider.getCurrentUserId());
         return toVO(problem);
     }
 
@@ -238,7 +239,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         problemMapper.updateById(problem);
 
-        log.info("Problem unpublished: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        log.info("Problem unpublished: {} by user {}", id, currentUserProvider.getCurrentUserId());
         return toVO(problem);
     }
 

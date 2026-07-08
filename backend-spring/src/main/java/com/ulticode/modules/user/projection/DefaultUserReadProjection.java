@@ -6,12 +6,13 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
@@ -56,9 +57,11 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     private final UserMapper userMapper;
     private final SubmissionMapper submissionMapper;
+    private final SubmissionStreakCalculator submissionStreakCalculator;
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final FollowCountPort followCountPort;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public Optional<User> findById(String id) {
@@ -99,7 +102,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
     @Override
     public UserVO getCurrentUser() {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -183,8 +186,8 @@ public class DefaultUserReadProjection implements UserReadProjection {
         stats.setTotalSolved(totalSolved);
 
         // Get streak
-        Integer streak = submissionMapper.calculateStreak(id);
-        stats.setStreak(streak != null ? streak : 0);
+        int streak = submissionStreakCalculator.computeStreak(id);
+        stats.setStreak(streak);
 
         // Get heatmap data for current year
         int currentYear = Year.now().getValue();

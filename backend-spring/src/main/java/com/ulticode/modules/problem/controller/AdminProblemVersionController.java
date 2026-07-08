@@ -1,7 +1,7 @@
 package com.ulticode.modules.problem.controller;
 
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.problem.service.ProblemVersionService;
 import com.ulticode.modules.problem.vo.ProblemVersionDetailVO;
 import com.ulticode.modules.problem.vo.VersionWithDiffVO;
@@ -23,6 +23,7 @@ import java.util.Map;
 public class AdminProblemVersionController {
 
     private final ProblemVersionService problemVersionService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "List problem versions", description = "Get paginated version history for a problem")
     @GetMapping("/{id}/versions")
@@ -60,7 +61,7 @@ public class AdminProblemVersionController {
             @PathVariable Long id,
             @PathVariable String versionId,
             @RequestBody(required = false) Map<String, String> body) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         String reason = body != null ? body.get("reason") : null;
         problemVersionService.rollbackToVersion(id, versionId, reason, userId);
         return Result.success(Map.of("success", true, "message", "Rollback successful"));
@@ -70,7 +71,7 @@ public class AdminProblemVersionController {
     @PostMapping("/{id}/versions/create-initial")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Map<String, Object>> createInitialVersion(@PathVariable Long id) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         problemVersionService.createInitialVersion(id, userId);
         return Result.success(Map.of("success", true, "message", "Initial version created"));
     }

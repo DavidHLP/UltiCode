@@ -7,7 +7,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { SVGRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import { IconChartBar } from '@tabler/icons-vue'
-import { useColorTheme } from '@/composables/useTheme'
+import { useColorTheme } from '@/shared/theme/src'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   createTopUsersChartOption,

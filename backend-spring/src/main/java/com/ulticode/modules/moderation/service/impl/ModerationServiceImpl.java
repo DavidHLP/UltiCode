@@ -2,7 +2,7 @@ package com.ulticode.modules.moderation.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.moderation.dto.AppealVO;
 import com.ulticode.modules.moderation.dto.BatchActionResultVO;
 import com.ulticode.modules.moderation.dto.BatchModerationActionDTO;
@@ -49,6 +49,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final ModerationWritePort moderationWritePort;
     private final ModerationProjection moderationProjection;
     private final AppealMapper appealMapper;
+    private final CurrentUserProvider currentUserProvider;
 
     // ==================== Queue Operations ====================
 
@@ -101,9 +102,9 @@ public class ModerationServiceImpl implements ModerationService {
         // Use Objects.equals for null-safety on BOTH sides — if appellantId is null
         // (data corruption), return false (deny) rather than NPE (HTTP 500).
         boolean isOwner = Objects.equals(appeal.getAppellantId(), currentUserId);
-        boolean isModerator = SecurityUtil.hasRole("MODERATOR")
-                            || SecurityUtil.hasRole("ADMIN")
-                            || SecurityUtil.hasRole("SUPER_ADMIN");
+        boolean isModerator = currentUserProvider.hasRole("MODERATOR")
+                            || currentUserProvider.hasRole("ADMIN")
+                            || currentUserProvider.hasRole("SUPER_ADMIN");
         if (!isOwner && !isModerator) {
             log.warn("User {} attempted to read appeal {} owned by {}",
                     currentUserId, id, appeal.getAppellantId());

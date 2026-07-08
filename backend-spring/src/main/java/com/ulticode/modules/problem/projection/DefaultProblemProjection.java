@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.edgeoperations.inspector.EdgeOperationInspector;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
@@ -72,6 +72,7 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final EdgeOperationInspector edgeOperationInspector;
     private final EdgeOperationMapper edgeOperationMapper;
     private final ObjectMapper objectMapper;
+    private final CurrentUserProvider currentUserProvider;
 
     // ------------------------------------------------------------------
     // toVO projection
@@ -444,7 +445,7 @@ public class DefaultProblemProjection implements ProblemProjection {
             interactions.setFavorites(0);
         }
 
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         if (userId != null) {
             // D-10: query this user's LIKE/DISLIKE/FAVORITE on this problem from edge_operations.
             // Mapper returns the most recent reaction (ORDER BY created_at DESC) so a user

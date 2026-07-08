@@ -6,7 +6,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
@@ -71,6 +71,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestProjection contestProjection;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final CurrentUserProvider currentUserProvider;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -81,7 +82,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     @Audited(action = AuditVocabulary.CREATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, captureOldState = false)
     public ContestVO createContest(CreateContestDTO dto, String userId) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = new Contest();
         contest.setTitle(dto.getTitle());
         contest.setDescription(dto.getDescription());
@@ -123,7 +124,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO updateContest(String id, UpdateContestDTO dto) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
         if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ONLY_UPDATE_UPCOMING,
@@ -164,11 +165,11 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     @Audited(action = AuditVocabulary.DELETE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
         // LambdaUpdateWrapper is required because Contest.isDeleted carries @TableLogic;
         // mapper.updateById(entity) silently skips fields annotated with @TableLogic.
-        String deletedBy = SecurityUtil.getCurrentUserId();
+        String deletedBy = currentUserProvider.getCurrentUserId();
         LocalDateTime now = LocalDateTime.now(clock);
         contestMapper.update(null, new LambdaUpdateWrapper<Contest>()
                 .eq(Contest::getId, id)
@@ -286,7 +287,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO startContest(String id, String userId) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
         String status = contest.getStatus();
         if (!ContestStatus.DRAFT.name().equals(status) && !ContestStatus.UPCOMING.name().equals(status)) {
@@ -306,7 +307,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO endContest(String id, String userId) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
         if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be ended from RUNNING status");
@@ -325,7 +326,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = "contest", allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
         ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, dto.getProblemId());
         if (existing != null) {
@@ -356,7 +357,7 @@ public class ContestServiceImpl implements ContestService {
     @CacheEvict(value = "contest", allEntries = true)
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public void removeProblem(String contestId, Long problemId) {
-        if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
         ContestProblem cp = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (cp == null) {

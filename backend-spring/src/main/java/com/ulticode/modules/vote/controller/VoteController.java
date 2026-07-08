@@ -2,7 +2,7 @@ package com.ulticode.modules.vote.controller;
 
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class VoteController {
 
     private final VoteService voteService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Vote on a target item",
             description = "Three-state voting: 1 (upvote), -1 (downvote), 0 (neutral/remove vote). " +
@@ -34,7 +35,7 @@ public class VoteController {
     @RateLimit(key = "vote:cast", limit = 20, period = 60)
     @PostMapping
     public Result<VoteResultVO> vote(@Valid @RequestBody VoteDTO dto) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(voteService.vote(userId, dto));
     }
 
@@ -44,7 +45,7 @@ public class VoteController {
     public Result<VoteResultVO> getVoteStatus(
             @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,
             @Parameter(description = "Target ID") @PathVariable String targetId) {
-        String userId = SecurityUtil.getCurrentUserId();
+        String userId = currentUserProvider.getCurrentUserId();
         return Result.success(voteService.getVoteStatus(userId, targetId, targetType));
     }
 }

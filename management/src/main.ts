@@ -6,8 +6,8 @@ import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
 import { setLocale, getStoredLocale } from './i18n'
-import { initTheme } from '@/composables/useTheme'
-import { applyTypographyDensity } from '@/composables/useTypographyDensity'
+import { initTheme } from '@/shared/theme/src'
+import { applyTypographyDensity } from '@/shared/theme/src'
 
 /**
  * Application Bootstrap

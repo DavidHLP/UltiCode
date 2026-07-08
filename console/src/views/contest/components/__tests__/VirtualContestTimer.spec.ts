@@ -20,8 +20,8 @@ const { contestStoreMock, toastErrorMock } = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),
 }));
 
-vi.mock("@/stores/contest", () => ({
-  useContestStore: () => contestStoreMock,
+vi.mock("@/stores/virtualContest", () => ({
+  useVirtualContestStore: () => contestStoreMock,
 }));
 
 vi.mock("vue-i18n", () => ({

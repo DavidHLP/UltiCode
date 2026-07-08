@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ProblemSubmissionController")
@@ -36,6 +37,8 @@ class ProblemSubmissionControllerTest {
     private CodeExecutionService codeExecutionService;
 
     @Mock
+    @Mock
+    private CurrentUserProvider currentUserProvider;
     private Validator validator;
 
     private ProblemSubmissionController controller;
@@ -43,7 +46,7 @@ class ProblemSubmissionControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        controller = new ProblemSubmissionController(submissionService, codeExecutionService, validator);
+        controller = new ProblemSubmissionController(submissionService, codeExecutionService, validator, currentUserProvider);
     }
 
     @AfterEach

@@ -2,7 +2,7 @@ package com.ulticode.modules.follow.controller;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.follow.dto.FollowStatusDTO;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
@@ -27,13 +27,14 @@ public class FollowController {
 
     private final FollowService followService;
     private final FollowInspector followInspector;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Follow a user.
      */
     @PostMapping("/{id}/follow")
     public Result<FollowStatsDTO> follow(@PathVariable("id") String userId) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         FollowStatsDTO stats = followService.follow(currentUserId, userId);
         return Result.success(stats);
     }
@@ -43,7 +44,7 @@ public class FollowController {
      */
     @DeleteMapping("/{id}/follow")
     public Result<FollowStatsDTO> unfollow(@PathVariable("id") String userId) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         FollowStatsDTO stats = followService.unfollow(currentUserId, userId);
         return Result.success(stats);
     }
@@ -77,7 +78,7 @@ public class FollowController {
      */
     @GetMapping("/{id}/follow/status")
     public Result<FollowStatusDTO> getFollowStatus(@PathVariable("id") String userId) {
-        String currentUserId = SecurityUtil.getCurrentUserId();
+        String currentUserId = currentUserProvider.getCurrentUserId();
         boolean isFollowing = followInspector.isFollowing(currentUserId, userId);
         FollowStatusDTO dto = new FollowStatusDTO();
         dto.setFollowing(isFollowing);

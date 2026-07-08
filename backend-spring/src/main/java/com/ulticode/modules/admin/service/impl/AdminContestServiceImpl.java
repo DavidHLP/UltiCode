@@ -7,7 +7,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestService;
@@ -70,6 +70,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final AuditHelper auditHelper;
     private final Clock clock;
     private final AdminContestProjection adminContestProjection;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -231,7 +232,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contest.setIsDeleted(true);
         contest.setDeletedAt(LocalDateTime.now(clock));
-        contest.setDeletedBy(SecurityUtil.getCurrentUserId());
+        contest.setDeletedBy(currentUserProvider.getCurrentUserId());
         contestMapper.updateById(contest);
 
         AuditContext.setOldValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));

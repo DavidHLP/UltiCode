@@ -15,7 +15,7 @@ import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useI18n } from "vue-i18n";
 import { Trophy, Calendar, CheckCircle, PlayCircle } from "lucide-vue-next";
-import { useContestStore } from "@/stores/contest";
+import { useContestBrowseStore } from "@/stores/contestBrowse";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +31,7 @@ const props = defineProps<{
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
-const contestStore = useContestStore();
+const contestStore = useContestBrowseStore();
 
 // Store state
 const {

@@ -9,8 +9,8 @@ import "./assets/markdown.css";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
-import { initTheme } from "@/composables/useTheme";
-import { applyTypographyDensity } from "@/composables/useTypographyDensity";
+import { initTheme } from '@/shared/theme/src';
+import { applyTypographyDensity } from '@/shared/theme/src';
 
 /**
  * Application Bootstrap

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { renderMarkdown } from "@/utils/markdown";
+import { renderMarkdown } from '@/shared/markdown-utils/src';
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 

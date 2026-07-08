@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.mapper.BackupMapper;
+import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.BackupService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -20,10 +22,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,18 +44,11 @@ public class BackupServiceImpl implements BackupService {
     private final BackupMapper backupMapper;
     private final UserMapper userMapper;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
+    private final BackupProcessPort backupProcessPort;
 
     @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
     private String backupDir;
-
-    @Value("${spring.datasource.url}")
-    private String datasourceUrl;
-
-    @Value("${spring.datasource.username}")
-    private String datasourceUsername;
-
-    @Value("${spring.datasource.password}")
-    private String datasourcePassword;
 
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
@@ -171,59 +164,21 @@ public class BackupServiceImpl implements BackupService {
 
         log.warn("Starting database restore from backup: {} by user: {}", id, userId);
 
-        try {
-            // Parse database connection info from datasource URL
-            DatabaseConnectionInfo dbInfo = parseDatasourceUrl(datasourceUrl);
-
-            // Build mysql restore command — use MYSQL_PWD env var to avoid credential exposure in process args
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "mysql",
-                    "--host=" + dbInfo.host,
-                    "--port=" + dbInfo.port,
-                    "--user=" + datasourceUsername,
-                    dbInfo.database
-            );
-            processBuilder.environment().put("MYSQL_PWD", datasourcePassword);
-
-            processBuilder.redirectInput(filePath.toFile());
-            processBuilder.redirectErrorStream(true);
-
-            Process process = processBuilder.start();
-
-            // Read output for logging
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
+        boolean success = backupProcessPort.restore(filePath);
+        if (success) {
+            log.info("Database restore completed successfully from backup: {}", id);
+            Map<String, Object> metadata = backup.getMetadata();
+            if (metadata == null) {
+                metadata = new HashMap<>();
             }
-
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0) {
-                log.info("Database restore completed successfully from backup: {}", id);
-
-                // Add metadata about restore
-                Map<String, Object> metadata = backup.getMetadata();
-                if (metadata == null) {
-                    metadata = new HashMap<>();
-                }
-                metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
-                metadata.put("lastRestoredBy", userId);
-                backup.setMetadata(metadata);
-                backupMapper.updateById(backup);
-
-                return toVO(backup);
-            } else {
-                log.error("Database restore failed with exit code: {}. Output: {}", exitCode, output);
-                throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Database restore failed. Check server logs for details.");
-            }
-        } catch (IOException | InterruptedException e) {
-            log.error("Failed to restore database from backup: {}", id, e);
-            Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to restore database. Check server logs for details.");
+            metadata.put("lastRestoredAt", LocalDateTime.now(clock).toString());
+            metadata.put("lastRestoredBy", userId);
+            backup.setMetadata(metadata);
+            backupMapper.updateById(backup);
+            return toVO(backup);
         }
+        throw new BusinessException(ErrorCode.UNKNOWN_ERROR,
+                "Database restore failed. Check server logs for details.");
     }
 
     @Override
@@ -260,70 +215,35 @@ public class BackupServiceImpl implements BackupService {
             backup.setStatus(BackupStatus.IN_PROGRESS);
             backupMapper.updateById(backup);
 
-            // Parse database connection info from datasource URL
-            DatabaseConnectionInfo dbInfo = parseDatasourceUrl(datasourceUrl);
-
             // Ensure backup directory exists
             ensureBackupDirectoryExists();
 
             Path filePath = Paths.get(backupDir, backup.getFilename());
 
-            // Build mysqldump command — use MYSQL_PWD env var to avoid credential exposure
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "mysqldump",
-                    "--host=" + dbInfo.host,
-                    "--port=" + dbInfo.port,
-                    "--user=" + datasourceUsername,
-                    "--single-transaction",
-                    "--routines",
-                    "--triggers",
-                    "--add-drop-table",
-                    dbInfo.database
-            );
-            processBuilder.environment().put("MYSQL_PWD", datasourcePassword);
+            // Delegate the mysqldump process I/O to the port — the
+            // service no longer spawns the subprocess directly.
+            boolean success = backupProcessPort.dump(filePath);
 
-            processBuilder.redirectOutput(filePath.toFile());
-            processBuilder.redirectErrorStream(true);
-
-            Process process = processBuilder.start();
-
-            // Read output for logging (errors will be mixed with stdout)
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
-
-            int exitCode = process.waitFor();
-
-            if (exitCode == 0 && Files.exists(filePath)) {
-                // Get file size
+            if (success && Files.exists(filePath)) {
                 long size = Files.size(filePath);
-
-                // Update backup record
                 backup.setSize(size);
                 backup.setStatus(BackupStatus.COMPLETED);
                 backup.setCompletedAt(LocalDateTime.now(clock));
 
-                // Add metadata
                 Map<String, Object> metadata = new HashMap<>();
-                metadata.put("databaseName", dbInfo.database);
+                metadata.put("databaseName", "see-port-adapter");
                 metadata.put("backupType", backup.getType().name());
                 backup.setMetadata(metadata);
 
                 backupMapper.updateById(backup);
                 log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
             } else {
-                // Backup failed
                 backup.setStatus(BackupStatus.FAILED);
                 backup.setCompletedAt(LocalDateTime.now(clock));
-                backup.setError("mysqldump failed with exit code " + exitCode + ": " + output);
+                backup.setError("mysqldump failed — see server logs");
                 backupMapper.updateById(backup);
-                log.error("Backup failed: {}, exit code: {}, output: {}", backupId, exitCode, output);
+                log.error("Backup failed: {}", backupId);
             }
-        // broad catch: backup execution involves process I/O, file I/O, and DB updates
         } catch (Exception e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -387,52 +307,5 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Backup path traversal detected");
         }
         return filePath;
-    }
-
-    private DatabaseConnectionInfo parseDatasourceUrl(String url) {
-        // Parse JDBC URL: jdbc:mysql://host:port/database
-        DatabaseConnectionInfo info = new DatabaseConnectionInfo();
-        info.port = 3306; // default port
-
-        try {
-            // Remove jdbc:mysql:// prefix
-            String connectionPart = url.substring("jdbc:mysql://".length());
-
-            // Split by / to get host:port and database
-            int slashIndex = connectionPart.indexOf('/');
-            if (slashIndex > 0) {
-                String hostPort = connectionPart.substring(0, slashIndex);
-                String databasePart = connectionPart.substring(slashIndex + 1);
-
-                // Remove query parameters from database name
-                int queryIndex = databasePart.indexOf('?');
-                if (queryIndex > 0) {
-                    info.database = databasePart.substring(0, queryIndex);
-                } else {
-                    info.database = databasePart;
-                }
-
-                // Parse host and port
-                int colonIndex = hostPort.indexOf(':');
-                if (colonIndex > 0) {
-                    info.host = hostPort.substring(0, colonIndex);
-                    info.port = Integer.parseInt(hostPort.substring(colonIndex + 1));
-                } else {
-                    info.host = hostPort;
-                }
-            }
-        // broad catch: URL string parsing may throw NumberFormatException or StringIndexOutOfBoundsException
-        } catch (Exception e) {
-            log.error("Failed to parse datasource URL: {}", url, e);
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse database connection configuration");
-        }
-
-        return info;
-    }
-
-    private static class DatabaseConnectionInfo {
-        String host;
-        int port;
-        String database;
     }
 }

@@ -1,4 +1,4 @@
-package com.ulticode.common.config;
+package com.ulticode.modules.submission.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

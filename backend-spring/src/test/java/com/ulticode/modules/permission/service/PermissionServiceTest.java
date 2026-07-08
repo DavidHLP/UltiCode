@@ -17,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -35,7 +34,14 @@ import static org.mockito.ArgumentMatchers.anyCollection;
 
 /**
  * MEDIUM-4:覆盖 PermissionService 的安全敏感路径 —
- * 通配符拒绝、过期时间拒绝、缓存失效、insert/update 路径选择、revoke 幂等。
+ * 通配符拒绝、过期时间拒绝、insert/update 路径选择、revoke 幂等。
+ *
+ * <p><strong>Cache seam removed (architecture review 2026-07-08).</strong>
+ * The previous test verified three {@code redisTemplate.delete(...)} calls
+ * against a write-only cache. The cache was deleted with the seam; this
+ * test now verifies the underlying contract (insert/update/delete are
+ * called, no extra side effects) without the obsolete cache-touching
+ * assertions.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -52,8 +58,6 @@ class PermissionServiceTest {
     private UserMapper userMapper;
 
     @Mock
-    private RedisTemplate<String, Object> redisTemplate;
-    @Mock
     private Clock clock;
 
     private PermissionService permissionService;
@@ -63,7 +67,7 @@ class PermissionServiceTest {
         when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         when(clock.instant()).thenReturn(java.time.Instant.now());
         permissionService = new PermissionServiceImpl(
-            userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock,
+            userPermissionMapper, rolePermissionMapper, userMapper, clock,
             new FixedUuidGenerator());
     }
 
@@ -72,7 +76,7 @@ class PermissionServiceTest {
     class AssignPermission {
 
         @Test
-        @DisplayName("inserts new row when no existing record, and invalidates cache")
+        @DisplayName("inserts new row when no existing record")
         void insertsNewRow() {
             when(userPermissionMapper.selectOne(any(LambdaQueryWrapper.class)))
                 .thenReturn(null);
@@ -87,7 +91,6 @@ class PermissionServiceTest {
             assertThat(result.getId()).isNotBlank();
             verify(userPermissionMapper, times(1)).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
             verify(userPermissionMapper, never()).updateById(any(UserPermission.class));
-            verify(redisTemplate, times(1)).delete("user:perms:user-1");
         }
 
         @Test
@@ -111,7 +114,6 @@ class PermissionServiceTest {
             assertThat(result.getExpiresAt()).isEqualTo(future);
             verify(userPermissionMapper, times(1)).updateById(any(UserPermission.class));
             verify(userPermissionMapper, never()).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
-            verify(redisTemplate, times(1)).delete("user:perms:user-1");
         }
 
         @Test
@@ -127,7 +129,6 @@ class PermissionServiceTest {
 
             verify(userPermissionMapper, never()).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
             verify(userPermissionMapper, never()).updateById(any(UserPermission.class));
-            verify(redisTemplate, never()).delete((String) any());
         }
     }
 
@@ -207,7 +208,7 @@ class PermissionServiceTest {
                         throw new AssertionError(
                             "Whitelisted (" + act + ":" + res + ") was rejected", e);
                     }
-                    // revoke 路径默认返回 false(未匹配行)且不动 cache
+                    // revoke 路径默认返回 false(未匹配行)
                     assertThat(result).isFalse();
                 }
             }
@@ -219,25 +220,23 @@ class PermissionServiceTest {
     class RevokePermission {
 
         @Test
-        @DisplayName("returns true and invalidates cache when row exists")
-        void returnsTrueAndInvalidates() {
+        @DisplayName("returns true when row exists")
+        void returnsTrue() {
             when(userPermissionMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(1);
 
             boolean result = permissionService.revokePermission("user-1", "READ", "USER");
 
             assertThat(result).isTrue();
-            verify(redisTemplate, times(1)).delete("user:perms:user-1");
         }
 
         @Test
-        @DisplayName("returns false (no-op) when row does not exist, no cache touch")
+        @DisplayName("returns false (no-op) when row does not exist")
         void returnsFalseNoOp() {
             when(userPermissionMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(0);
 
             boolean result = permissionService.revokePermission("user-1", "READ", "USER");
 
             assertThat(result).isFalse();
-            verify(redisTemplate, never()).delete((String) any());
         }
     }
 }

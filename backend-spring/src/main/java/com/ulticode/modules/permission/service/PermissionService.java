@@ -6,18 +6,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 权限服务接口 — check, assign, revoke, cache invalidation.
+ * 权限服务接口 — check, assign, revoke.
  *
  * <p>Split from the former concrete {@code PermissionService} class (248 LOC,
  * no interface) per the project's Java convention that all {@code @Service}
  * classes must expose an interface with an {@code Impl} suffix on the
  * implementation (see {@code backend/01-java-programming.md} §(四)16).
  *
- * <p>Architecture review candidate #6 — extract interface from fused
- * concrete service. Callers depend on this interface, not on
- * {@code PermissionServiceImpl}. The deletion test passes: deleting the
- * interface forces all callers to import the impl, widening the coupling
- * surface.
+ * <p><strong>Cache seam removed (architecture review 2026-07-08).</strong>
+ * The previous interface carried an {@code invalidateCache(userId)} method
+ * backed by a write-only {@code RedisTemplate} dependency — the cache was
+ * invalidated on every write but never read on any read path
+ * ({@code getUserPermissionStrings} recomputed from the database on every
+ * call). The deletion test forced the cleanup: removing the method removes
+ * the only consumer of the cache key, which removes the Redis dependency,
+ * which removes a whole category of stale-cache bugs the stub cache would
+ * have caused if a future caller had added a cache read. The service is
+ * now pure-DB; a real cache is a future PR that adds a read path with a
+ * proper consistency story.
  *
  * @author ulticode
  */
@@ -38,11 +44,6 @@ public interface PermissionService {
      * 检查用户是否有特定权限
      */
     boolean hasPermission(String userId, String action, String resource);
-
-    /**
-     * 清除用户权限缓存
-     */
-    void invalidateCache(String userId);
 
     /**
      * 授予用户一条直接权限(幂等)。

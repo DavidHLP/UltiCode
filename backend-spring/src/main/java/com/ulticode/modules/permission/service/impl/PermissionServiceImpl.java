@@ -13,7 +13,6 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,11 +36,9 @@ public class PermissionServiceImpl implements PermissionService {
     private final UserPermissionMapper userPermissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
     private final UserMapper userMapper;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
 
-    private static final String PERM_CACHE_PREFIX = "user:perms:";
     private static final String SYSTEM_GRANTOR = "system";
 
     /**
@@ -111,11 +108,6 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     @Override
-    public void invalidateCache(String userId) {
-        redisTemplate.delete(PERM_CACHE_PREFIX + userId);
-    }
-
-    @Override
     public UserPermission assignPermission(String userId, String action, String resource,
                                             LocalDateTime expiresAt) {
         validatePermissionArgs(userId, action, resource);
@@ -150,7 +142,6 @@ public class PermissionServiceImpl implements PermissionService {
             log.info("Permission re-granted (updated): user={} {}:{} expiresAt={}",
                 userId, action, resource, expiresAt);
         }
-        invalidateCache(userId);
         return record;
     }
 
@@ -165,7 +156,6 @@ public class PermissionServiceImpl implements PermissionService {
                 .eq(UserPermission::getResource, resource)
         );
         if (rows > 0) {
-            invalidateCache(userId);
             log.info("Permission revoked: user={} {}:{}", userId, action, resource);
             return true;
         }

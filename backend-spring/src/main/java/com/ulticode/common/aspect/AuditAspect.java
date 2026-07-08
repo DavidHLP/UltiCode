@@ -1,9 +1,9 @@
 package com.ulticode.common.aspect;
 
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.admin.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +22,11 @@ import java.util.Map;
  *
  * <p>Automatically captures: performer ID, client IP, user agent, action, entity type.
  * For old/new value capture, use {@link AuditContext} inside the method body.
+ *
+ * <p><strong>Cross-cutting seam:</strong> the aspect depends only on
+ * {@link AuditSinkPort} — the admin module ships the production
+ * adapter. The aspect no longer imports {@code AuditService} directly.
+ * See {@code /tmp/architecture-review-1783485814.html} candidate 4.
  */
 @Slf4j
 @Aspect
@@ -29,7 +34,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuditAspect {
 
-    private final AuditService auditService;
+    private final AuditSinkPort auditSinkPort;
 
     @Around("@annotation(audited)")
     public Object auditAround(ProceedingJoinPoint joinPoint, Audited audited) throws Throwable {
@@ -51,7 +56,7 @@ public class AuditAspect {
             String userId = firstNonNull(targetUserId, AuditContext.getUserId());
             String entityId = firstNonNull(resolvedEntityId, AuditContext.getEntityId(), "N/A");
 
-            auditService.log(
+            auditSinkPort.log(
                 performerId,
                 userId,
                 audited.action(),
@@ -85,7 +90,7 @@ public class AuditAspect {
             newValues = captureSimpleState(result);
         }
 
-        auditService.log(
+        auditSinkPort.log(
             performerId,
             userId,
             audited.action(),

@@ -42,7 +42,7 @@ public class FollowServiceImpl implements FollowService {
      * {@code app.features.use-notification-intent=true}.
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
-    private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    private final com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags;
     /**
      * Read-side deep module. Injected so the post-mutation stats return
      * value can be served without re-implementing the count read here.

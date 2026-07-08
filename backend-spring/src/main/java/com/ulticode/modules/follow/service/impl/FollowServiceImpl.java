@@ -2,6 +2,7 @@ package com.ulticode.modules.follow.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.inspector.FollowInspector;
@@ -129,7 +130,7 @@ public class FollowServiceImpl implements FollowService {
     @Async
     public void triggerFollowerAchievement(String userId, int count) {
         try {
-            achievementTriggerService.onFollowCountUpdated(userId, count);
+            achievementTriggerService.trigger(userId, AchievementType.FOLLOWER_COUNT, count);
         } catch (Exception e) {
             log.warn("Failed to trigger follow achievement for user {}: {}", userId, e.getMessage());
         }

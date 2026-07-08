@@ -8,7 +8,6 @@ import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.achievement.port.BadgePushPort;
-import com.ulticode.modules.achievement.service.AchievementService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +26,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of AchievementTriggerService.
+ * Implementation of {@link AchievementTriggerService}.
  *
- * <p>Trigger methods publish AchievementCheckEvent for async processing.
- * checkAndAwardAchievements runs after transaction commits via AchievementCheckListener.
+ * <p>Prior to 2026-07-08 this class carried 11 near-identical
+ * <code>onXxx</code> shim methods, one per {@link AchievementType} value.
+ * Each shim was a 1-line event publish with a hard-coded enum value. The
+ * collapse to a single {@link #trigger(String, AchievementType, int)}
+ * method removed ~50 lines of pure pass-through and moved the
+ * "which type?" decision to the call site, where it belongs.
+ *
+ * <p>See ADR (to be filed) and
+ * <code>/tmp/architecture-review-1783495648.html</code> candidate 1.
  */
 @Slf4j
 @Service
@@ -40,80 +46,13 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     private final Clock clock;
     private final AchievementMapper achievementMapper;
     private final UserAchievementMapper userAchievementMapper;
-    private final AchievementService achievementService;
     private final BadgePushPort badgePushPort;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Async
-    public void onProblemSolved(String userId, int problemsSolvedCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.PROBLEMS_SOLVED, problemsSolvedCount));
-    }
-
-    @Override
-    @Async
-    public void onSubmissionMade(String userId, int submissionsCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.SUBMISSIONS_MADE, submissionsCount));
-    }
-
-    @Override
-    @Async
-    public void onContestJoined(String userId, int contestParticipationCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_PARTICIPATION, contestParticipationCount));
-    }
-
-    @Override
-    @Async
-    public void onContestWon(String userId, int contestWinsCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_WINS, contestWinsCount));
-    }
-
-    @Override
-    @Async
-    public void onContestPlaced(String userId, int contestPlacedCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_PLACED, contestPlacedCount));
-    }
-
-    @Override
-    @Async
-    public void onForumPostCreated(String userId, int forumPostsCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FORUM_POSTS, forumPostsCount));
-    }
-
-    @Override
-    @Async
-    public void onSolutionWritten(String userId, int solutionsCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.SOLUTIONS_WRITTEN, solutionsCount));
-    }
-
-    @Override
-    @Async
-    public void onStreakUpdated(String userId, int streakDays) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.STREAK_DAYS, streakDays));
-    }
-
-    @Override
-    @Async
-    public void onRatingUpdated(String userId, int rating) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.RATING_MILESTONE, rating));
-    }
-
-    @Override
-    @Async
-    public void onFollowCountUpdated(String userId, int followerCount) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FOLLOWER_COUNT, followerCount));
-    }
-
-    @Override
-    @Async
-    public void onFirstProblemSolved(String userId) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FIRST_PROBLEM, 1));
-    }
-
-    @Override
-    @Async
-    public void onLanguageMilestone(String userId, String language, int count) {
-        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.LANGUAGE_SOLVED, count));
+    public void trigger(String userId, AchievementType type, int currentValue) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, type, currentValue));
     }
 
     @Override

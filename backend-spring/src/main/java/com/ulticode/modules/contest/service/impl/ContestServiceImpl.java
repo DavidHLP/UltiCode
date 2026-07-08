@@ -23,10 +23,11 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
+import com.ulticode.modules.achievement.constants.AchievementType;
+import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestScoringService;
 import com.ulticode.modules.contest.service.ContestService;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
@@ -240,7 +241,7 @@ public class ContestServiceImpl implements ContestService {
         // Trigger contest participation achievement
         try {
             long participationCount = participantMapper.countByUserId(userId);
-            achievementTriggerService.onContestJoined(userId, (int) participationCount);
+            achievementTriggerService.trigger(userId, AchievementType.CONTEST_PARTICIPATION, (int) participationCount);
         } catch (Exception e) {
             log.warn("Failed to trigger contest achievement for user {}: {}", userId, e.getMessage());
         }

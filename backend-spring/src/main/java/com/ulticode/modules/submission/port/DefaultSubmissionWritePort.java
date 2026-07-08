@@ -4,6 +4,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -441,15 +442,18 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private void triggerAchievements(Submission submission) {
         try {
             Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
-            achievementTriggerService.onProblemSolved(submission.getUserId(),
+            achievementTriggerService.trigger(submission.getUserId(),
+                    AchievementType.PROBLEMS_SOLVED,
                     problemsSolved != null ? problemsSolved.intValue() : 0);
-            achievementTriggerService.onFirstProblemSolved(submission.getUserId());
+            achievementTriggerService.trigger(submission.getUserId(),
+                    AchievementType.FIRST_PROBLEM, 1);
 
             // Language milestone
             String language = submission.getLanguage();
             if (language != null && !language.isBlank()) {
                 Long languageCount = submissionMapper.countByUserIdAndLanguage(submission.getUserId(), language);
-                achievementTriggerService.onLanguageMilestone(submission.getUserId(), language,
+                achievementTriggerService.trigger(submission.getUserId(),
+                        AchievementType.LANGUAGE_SOLVED,
                         languageCount != null ? languageCount.intValue() : 0);
             }
         } catch (Exception e) {

@@ -13,6 +13,8 @@ import com.ulticode.modules.forum.entity.ForumTag;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
 import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
+import com.ulticode.modules.admin.service.handler.ForumTagHandler;
+import com.ulticode.modules.admin.service.handler.ProblemTagHandler;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,8 +67,10 @@ class AdminTagServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new AdminTagServiceImpl(problemTagMapper, problemTagRelationMapper, forumTagMapper, clock,
-                new FixedUuidGenerator());
+        FixedUuidGenerator uuidGenerator = new FixedUuidGenerator();
+        ProblemTagHandler problemHandler = new ProblemTagHandler(problemTagMapper, problemTagRelationMapper, clock, uuidGenerator);
+        ForumTagHandler forumHandler = new ForumTagHandler(forumTagMapper, clock, uuidGenerator);
+        service = new AdminTagServiceImpl(problemHandler, forumHandler);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
     }

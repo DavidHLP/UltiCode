@@ -6,6 +6,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +49,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
 
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
+    private final UuidGenerator uuidGenerator;
 
     // ------------------------------------------------------------------
     // Paginated list read (query build + shape)
@@ -111,7 +112,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
     @Override
     public String generateSlug(String title) {
         if (title == null || title.isBlank()) {
-            return "contest-" + UUID.randomUUID().toString().substring(0, 8);
+            return "contest-" + uuidGenerator.newId().substring(0, 8);
         }
         String slug = title.toLowerCase()
                 .replaceAll("[^a-z0-9\\s-]", "")
@@ -120,7 +121,7 @@ public class DefaultAdminContestProjection implements AdminContestProjection {
                 .replaceAll("^-|-$", "");
 
         if (slug.length() < 3) {
-            slug = slug + "-" + UUID.randomUUID().toString().substring(0, 8);
+            slug = slug + "-" + uuidGenerator.newId().substring(0, 8);
         }
 
         return slug;

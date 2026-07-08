@@ -6,9 +6,10 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
@@ -34,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -85,6 +85,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
     private final NotificationPreferenceMapper preferenceMapper;
     private final UserMapper userMapper;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
     private final AdminNotificationProjection adminNotificationProjection;
 
     @Override
@@ -94,7 +95,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.CREATE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
+    @Audited(action = AuditVocabulary.CREATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
         String currentUserId = SecurityUtil.getCurrentUserId();
         User currentUser = userMapper.selectById(currentUserId);
@@ -123,7 +124,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         metadata.put("createdByName", currentUser.getUsername());
         metadata.put("isSystemAnnouncement", true);
 
-        String announcementId = UUID.randomUUID().toString();
+        String announcementId = uuidGenerator.newId();
         // batchInsert uses a custom @Insert that bypasses MyBatis-Plus field-fill,
         // so created_at / updated_at must be set explicitly (both are NOT NULL).
         LocalDateTime now = LocalDateTime.now(clock);
@@ -174,7 +175,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
+    @Audited(action = AuditVocabulary.DELETE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
         Notification notification = notificationMapper.selectById(id);
         if (notification == null) {
@@ -207,7 +208,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UPDATE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
+    @Audited(action = AuditVocabulary.UPDATE_NOTIFICATION, entityType = AuditVocabulary.ENTITY_NOTIFICATION)
     public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
         Notification notification = notificationMapper.selectById(id);
         if (notification == null) {

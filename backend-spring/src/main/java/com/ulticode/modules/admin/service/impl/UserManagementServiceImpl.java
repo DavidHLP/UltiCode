@@ -5,9 +5,10 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
@@ -28,7 +29,6 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 用户写操作服务实现：CRUD、封禁、批量操作。
@@ -72,10 +72,11 @@ public class UserManagementServiceImpl implements UserManagementService {
      */
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.CREATE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "#result.id")
+    @Audited(action = AuditVocabulary.CREATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "#result.id")
     public AdminUserVO createUser(AdminCreateUserDTO dto) {
         // 用户名唯一性校验
         User existing = userMapper.selectOne(
@@ -94,7 +95,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         User user = new User();
-        user.setId(UUID.randomUUID().toString());
+        user.setId(uuidGenerator.newId());
         user.setUsername(dto.getUsername());
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
@@ -117,7 +118,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UPDATE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO updateUser(String id, AdminUpdateUserDTO dto) {
         User user = userMapper.selectById(id);
         if (user == null) {
@@ -209,7 +210,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.DELETE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void deleteUser(String id) {
         User user = userMapper.selectById(id);
         if (user == null) {
@@ -226,7 +227,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.BAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.BAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO banUser(String id, String reason, String until) {
         User user = userMapper.selectById(id);
         if (user == null) {
@@ -265,7 +266,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UNBAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.UNBAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO unbanUser(String id) {
         User user = userMapper.selectById(id);
         if (user == null) {
@@ -293,7 +294,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.RESET_PASSWORD, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.RESET_PASSWORD, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void resetPassword(String id, String newPassword) {
         User user = userMapper.selectById(id);
         if (user == null) {
@@ -360,8 +361,8 @@ public class UserManagementServiceImpl implements UserManagementService {
                 int deleted = userMapper.deleteById(id);
                 if (deleted > 0) {
                     auditHelper.logForUser(
-                        AuditActionUtil.DELETE_USER,
-                        AuditActionUtil.ENTITY_USER,
+                        AuditVocabulary.DELETE_USER,
+                        AuditVocabulary.ENTITY_USER,
                         id,
                         id,
                         Map.of("username", user != null ? user.getUsername() : "unknown"),

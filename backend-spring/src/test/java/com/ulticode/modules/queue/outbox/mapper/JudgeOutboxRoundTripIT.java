@@ -113,7 +113,8 @@ class JudgeOutboxRoundTripIT {
         s.setUserId("user-1");
         s.setLanguage("java");
         s.setCode("x");
-        JudgeOutboxRecord r = JudgeOutboxRecord.of(s, "1", generation, true);
+        JudgeOutboxRecord r = JudgeOutboxRecord.of(s, "1", generation, true,
+                new com.ulticode.common.uuid.FixedUuidGenerator());
         return r;
     }
 

@@ -2,6 +2,8 @@ package com.ulticode.modules.queue.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
+import com.ulticode.common.uuid.UuidGenerator;
 import org.springframework.data.redis.core.RedisTemplate;
 import java.util.concurrent.TimeUnit;
 import com.ulticode.modules.queue.config.QueueConfig;
@@ -65,6 +67,8 @@ class QueueServiceTest {
     @Spy
     private QueueConfig queueConfig = new QueueConfig();
 
+    private UuidGenerator uuidGenerator = new FixedUuidGenerator();
+
     @InjectMocks
     private QueueServiceImpl queueService;
 
@@ -84,6 +88,7 @@ class QueueServiceTest {
         ReflectionTestUtils.setField(queueConfig, "enableStatusTracking", true);
         ReflectionTestUtils.setField(queueConfig, "jobStatusTtlSeconds", 86400L);
         ReflectionTestUtils.setField(queueService, "clock", clock);
+        ReflectionTestUtils.setField(queueService, "uuidGenerator", uuidGenerator);
         org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
     }

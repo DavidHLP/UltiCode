@@ -1,5 +1,6 @@
 package com.ulticode.modules.queue.outbox.dispatcher;
 
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
@@ -19,7 +20,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Judge outbox dispatcher (ADR-003 M3a / M3c-2).
@@ -69,6 +69,7 @@ public class JudgeOutboxDispatcher {
     /** Nullable so unit tests without a registry still work. */
     private final MeterRegistry meterRegistry;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     /**
      * Boot-time mirror of {@code app.features.judge-queue.use-port}; when
@@ -159,7 +160,7 @@ public class JudgeOutboxDispatcher {
      * acquire attempt (mirroring the M3b worker contract).
      */
     private JudgeJobEnvelope toEnvelope(JudgeOutboxRecord row) {
-        String attemptId = UUID.randomUUID().toString();
+        String attemptId = uuidGenerator.newId();
         Map<String, Object> payload = row.getPayload();
         return new JudgeJobEnvelope(
                 2,

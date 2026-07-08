@@ -44,7 +44,7 @@ public class ContestScheduler {
      * {@code app.features.use-notification-intent=true}.
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
-    private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    private final com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags;
     private final Clock clock;
 
     @Scheduled(fixedRate = 10_000)

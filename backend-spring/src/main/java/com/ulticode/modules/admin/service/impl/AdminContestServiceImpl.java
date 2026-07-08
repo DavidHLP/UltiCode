@@ -4,7 +4,7 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
@@ -83,7 +83,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.CREATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, captureOldState = false)
+    @Audited(action = AuditVocabulary.CREATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, captureOldState = false)
     public AdminContestVO createContest(CreateContestDTO dto, String userId) {
         Contest contest = new Contest();
         contest.setTitle(dto.getTitle());
@@ -143,7 +143,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -216,7 +216,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.DELETE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.DELETE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -241,7 +241,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO startContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -268,7 +268,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO endContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -291,7 +291,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.CREATE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, captureOldState = false)
+    @Audited(action = AuditVocabulary.CREATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, captureOldState = false)
     public ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
@@ -317,7 +317,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
         ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -349,7 +349,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.DELETE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
+    @Audited(action = AuditVocabulary.DELETE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public void deleteAnnouncement(String contestId, String announcementId) {
         ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -380,7 +380,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblem addProblemToContest(String contestId, Long problemId, Integer score) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {

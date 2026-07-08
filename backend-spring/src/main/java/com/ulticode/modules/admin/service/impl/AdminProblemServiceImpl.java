@@ -5,7 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
@@ -306,7 +306,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Override
     public List<AuditLogVO> getProblemAuditHistory(Long id) {
         AuditLogQueryDTO query = new AuditLogQueryDTO();
-        query.setEntityType(AuditActionUtil.ENTITY_PROBLEM);
+        query.setEntityType(AuditVocabulary.ENTITY_PROBLEM);
         query.setEntityId(String.valueOf(id));
         query.setPage(1);
         query.setLimit(100);

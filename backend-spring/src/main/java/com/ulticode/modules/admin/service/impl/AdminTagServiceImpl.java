@@ -6,8 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.tag.*;
 import com.ulticode.modules.admin.dto.tag.TagTypes;
 import com.ulticode.modules.admin.service.AdminTagService;
@@ -26,7 +27,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 @Slf4j
 @Service
@@ -36,6 +36,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  private final ProblemTagRelationMapper problemTagRelationMapper;
  private final ForumTagMapper forumTagMapper;
  private final Clock clock;
+ private final UuidGenerator uuidGenerator;
  /**
  * Defense-in-depth whitelist check: rejects null / unknown type values that the
  * controller @Pattern should have already filtered. Throws BAD_REQUEST so direct
@@ -131,7 +132,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  }
  @Override
  @Transactional
- @Audited(action = AuditActionUtil.CREATE_TAG, entityType = AuditActionUtil.ENTITY_TAG, captureOldState = false)
+ @Audited(action = AuditVocabulary.CREATE_TAG, entityType = AuditVocabulary.ENTITY_TAG, captureOldState = false)
  public TagVO createTag(CreateTagDTO dto) {
  String normalized = normalizeType(dto.getType());
  String slug = StringUtils.hasText(dto.getSlug()) ? dto.getSlug() : generateSlug(dto.getName());
@@ -143,7 +144,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  throw new BusinessException(ErrorCode.FORUM_TAG_SLUG_EXISTS);
  }
  ForumTag tag = new ForumTag();
- tag.setId(UUID.randomUUID().toString());
+ tag.setId(uuidGenerator.newId());
  tag.setName(dto.getName());
  tag.setSlug(slug);
  tag.setDescription(dto.getDescription());
@@ -165,7 +166,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  throw new BusinessException(ErrorCode.PROBLEM_TAG_SLUG_EXISTS);
  }
  ProblemTag tag = new ProblemTag();
- tag.setId(UUID.randomUUID().toString());
+ tag.setId(uuidGenerator.newId());
  tag.setLabel(dto.getName());
  tag.setSlug(slug);
  tag.setDescription(dto.getDescription());
@@ -179,7 +180,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  }
  @Override
  @Transactional
- @Audited(action = AuditActionUtil.UPDATE_TAG, entityType = AuditActionUtil.ENTITY_TAG, entityIdFrom = "id")
+ @Audited(action = AuditVocabulary.UPDATE_TAG, entityType = AuditVocabulary.ENTITY_TAG, entityIdFrom = "id")
  public TagVO updateTag(String id, UpdateTagDTO dto) {
  String normalized = normalizeType(dto.getType());
  if (TagTypes.FORUM.equals(normalized)) {
@@ -254,7 +255,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  }
  @Override
  @Transactional
- @Audited(action = AuditActionUtil.DELETE_TAG, entityType = AuditActionUtil.ENTITY_TAG, entityIdFrom = "id")
+ @Audited(action = AuditVocabulary.DELETE_TAG, entityType = AuditVocabulary.ENTITY_TAG, entityIdFrom = "id")
  public void deleteTag(String id, String type) {
  String normalized = normalizeType(type);
  if (TagTypes.FORUM.equals(normalized)) {
@@ -277,7 +278,7 @@ public class AdminTagServiceImpl implements AdminTagService {
  }
  @Override
  @Transactional
- @Audited(action = AuditActionUtil.UPDATE_TAG, entityType = AuditActionUtil.ENTITY_TAG)
+ @Audited(action = AuditVocabulary.UPDATE_TAG, entityType = AuditVocabulary.ENTITY_TAG)
  public void mergeTag(MergeTagDTO dto) {
  if (dto.getSourceId().equals(dto.getTargetTagId())) {
  throw new BusinessException(ErrorCode.BAD_REQUEST, "Cannot merge tag into itself");

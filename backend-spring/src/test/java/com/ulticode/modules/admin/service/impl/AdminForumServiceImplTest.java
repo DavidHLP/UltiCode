@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -86,8 +86,8 @@ class AdminForumServiceImplTest {
             adminForumService.pinPost("post-1");
 
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.PIN_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.PIN_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     eq(Map.of("isPinned", false)),
@@ -105,8 +105,8 @@ class AdminForumServiceImplTest {
             adminForumService.unpinPost("post-1");
 
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.UNPIN_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.UNPIN_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     eq(Map.of("isPinned", true)),
@@ -122,8 +122,8 @@ class AdminForumServiceImplTest {
             adminForumService.lockPost("post-1");
 
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.LOCK_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.LOCK_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     eq(Map.of("isLocked", false)),
@@ -140,8 +140,8 @@ class AdminForumServiceImplTest {
             adminForumService.unlockPost("post-1");
 
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.UNLOCK_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.UNLOCK_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     eq(Map.of("isLocked", true)),
@@ -158,8 +158,8 @@ class AdminForumServiceImplTest {
             adminForumService.deletePost("post-1");
 
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.DELETE_FORUM_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.DELETE_FORUM_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     anyMap(),
@@ -189,8 +189,8 @@ class AdminForumServiceImplTest {
             org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.DELETE_FORUM_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.DELETE_FORUM_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     anyMap(),
@@ -216,8 +216,8 @@ class AdminForumServiceImplTest {
             org.mockito.ArgumentCaptor<Map<String, Object>> oldValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.DELETE_FORUM_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.DELETE_FORUM_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     oldValuesCaptor.capture(),
@@ -257,8 +257,8 @@ class AdminForumServiceImplTest {
             org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.FLAG_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.FLAG_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     anyMap(),
@@ -281,8 +281,8 @@ class AdminForumServiceImplTest {
             org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.UNFLAG_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.UNFLAG_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     anyMap(),
@@ -327,8 +327,8 @@ class AdminForumServiceImplTest {
             assertThat(result.getFailed()).isZero();
             assertThat(result.getResults().get(0).getSuccess()).isTrue();
             verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.PIN_POST),
-                    eq(AuditActionUtil.ENTITY_FORUM_POST),
+                    eq(AuditVocabulary.PIN_POST),
+                    eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
                     eq("user-001"),
                     anyMap(),

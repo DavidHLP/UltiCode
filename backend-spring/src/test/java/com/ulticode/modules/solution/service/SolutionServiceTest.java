@@ -1,5 +1,6 @@
 package com.ulticode.modules.solution.service;
 
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
@@ -49,6 +50,8 @@ class SolutionServiceTest {
     private SolutionProjection solutionProjection;
     @Mock
     private Clock clock;
+    @Mock
+    private UuidGenerator uuidGenerator;
 
     @InjectMocks
     private SolutionServiceImpl solutionService;

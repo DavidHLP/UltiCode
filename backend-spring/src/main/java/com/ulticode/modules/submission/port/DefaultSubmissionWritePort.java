@@ -2,7 +2,8 @@ package com.ulticode.modules.submission.port;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -34,7 +35,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Default (and only) adapter for {@link SubmissionWritePort}. Owns the
@@ -96,6 +96,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      */
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     /**
      * Supported languages for submission.
@@ -137,7 +138,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
 
         // Create submission with Pending status
         Submission submission = new Submission();
-        submission.setId(UUID.randomUUID().toString());
+        submission.setId(uuidGenerator.newId());
         submission.setUserId(userId);
         submission.setProblemId(createDTO.getProblemId());
         submission.setLanguage(language);
@@ -173,7 +174,8 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             long generation = submission.getGeneration() != null ? submission.getGeneration() : 1L;
             boolean isShadow = !portActive;
             judgeOutboxMapper.insert(JudgeOutboxRecord.of(
-                    submission, String.valueOf(createDTO.getProblemId()), generation, isShadow));
+                    submission, String.valueOf(createDTO.getProblemId()), generation, isShadow,
+                    uuidGenerator));
         }
 
         // --- Contest submission recording (D-04, D-05, D-06) ---

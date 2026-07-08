@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -91,7 +92,8 @@ class ProblemVersionServiceTest {
                 problemTagMapper,
                 problemTagRelationMapper,
                 problemVersionMapper,
-                objectMapper
+                objectMapper,
+                new FixedUuidGenerator()
         );
     }
 

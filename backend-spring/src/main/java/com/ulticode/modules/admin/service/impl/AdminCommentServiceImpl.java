@@ -7,7 +7,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
@@ -181,7 +181,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.FLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
+    @Audited(action = AuditVocabulary.FLAG_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public AdminCommentVO flagComment(String id, String type, String reason) {
         validateType(type);
         if ("forum".equals(type)) {
@@ -218,7 +218,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UNFLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
+    @Audited(action = AuditVocabulary.UNFLAG_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public AdminCommentVO unflagComment(String id, String type) {
         validateType(type);
         if ("forum".equals(type)) {
@@ -259,7 +259,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
+    @Audited(action = AuditVocabulary.DELETE_COMMENT, entityType = AuditVocabulary.ENTITY_COMMENT)
     public void deleteComment(String id, String type) {
         validateType(type);
         if ("forum".equals(type)) {

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
@@ -27,7 +28,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Implementation of SolutionService.
@@ -46,6 +46,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final ProblemMapper problemMapper;
     private final SolutionProjection solutionProjection;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -83,7 +84,7 @@ public class SolutionServiceImpl implements SolutionService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
 
         SolutionComment comment = new SolutionComment();
-        comment.setId(UUID.randomUUID().toString());
+        comment.setId(uuidGenerator.newId());
         comment.setSolutionId(solutionId);
         comment.setUserId(userId);
         comment.setContent(dto.getContent());
@@ -172,7 +173,7 @@ public class SolutionServiceImpl implements SolutionService {
 
         // Create solution
         Solution solution = new Solution();
-        solution.setId(UUID.randomUUID().toString());
+        solution.setId(uuidGenerator.newId());
         solution.setProblemId(problemId);
         solution.setUserId(userId);
         solution.setTitle(createDTO.getTitle());

@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.service.impl;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -69,7 +70,8 @@ class ContestServiceImplMutatorTest {
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
                 schedulerService, achievementTriggerService, submissionService,
-                contestScoringService, contestProjection, java.time.Clock.systemDefaultZone());
+                contestScoringService, contestProjection, java.time.Clock.systemDefaultZone(),
+                new FixedUuidGenerator());
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(

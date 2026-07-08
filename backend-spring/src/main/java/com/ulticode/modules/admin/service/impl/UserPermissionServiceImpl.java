@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
@@ -55,8 +55,8 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.GRANT_PERMISSION,
-             entityType = AuditActionUtil.ENTITY_PERMISSION,
+    @Audited(action = AuditVocabulary.GRANT_PERMISSION,
+             entityType = AuditVocabulary.ENTITY_PERMISSION,
              userIdFrom = "id")
     public AdminUserVO assignUserPermission(String id, String action, String resource,
                                              LocalDateTime expiresAt) {
@@ -68,8 +68,8 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.REVOKE_PERMISSION,
-             entityType = AuditActionUtil.ENTITY_PERMISSION,
+    @Audited(action = AuditVocabulary.REVOKE_PERMISSION,
+             entityType = AuditVocabulary.ENTITY_PERMISSION,
              userIdFrom = "id")
     public AdminUserVO revokeUserPermission(String id, String action, String resource) {
         // 撤销 MANAGE_PERMISSIONS:SYSTEM 同样限制为 SUPER_ADMIN，

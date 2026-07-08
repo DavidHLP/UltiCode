@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
@@ -24,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Default (and only) adapter for {@link UserWritePort}. Owns every
@@ -49,6 +49,7 @@ public class DefaultUserWritePort implements UserWritePort {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     @Transactional
@@ -187,7 +188,7 @@ public class DefaultUserWritePort implements UserWritePort {
             }
             ext = "." + ext;
         }
-        String filename = UUID.randomUUID().toString() + ext;
+        String filename = uuidGenerator.newId() + ext;
 
         Path uploadDir = Paths.get("uploads/avatars");
         try {

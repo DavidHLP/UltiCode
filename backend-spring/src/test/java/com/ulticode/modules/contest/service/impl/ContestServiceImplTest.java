@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -82,7 +83,8 @@ class ContestServiceImplTest {
                 submissionService,
                 contestScoringService,
                 contestProjection,
-                clock);
+                clock,
+                new FixedUuidGenerator());
         org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(LocalDateTime.of(2024, 6, 1, 0, 0).atZone(ZoneId.systemDefault()).toInstant());
         org.mockito.Mockito.lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }

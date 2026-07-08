@@ -5,6 +5,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.problem.entity.TestCase;
@@ -22,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Admin service for test case CRUD operations.
@@ -36,6 +36,7 @@ public class AdminTestCaseService {
     private final ProblemMapper problemMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     public PageResult<TestCase> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
                                                Integer page, Integer limit) {
@@ -95,7 +96,7 @@ public class AdminTestCaseService {
         validateInputsJson(dto.getInputs());
 
         TestCase testCase = new TestCase();
-        testCase.setId(UUID.randomUUID().toString().replace("-", ""));
+        testCase.setId(uuidGenerator.newId().replace("-", ""));
         testCase.setProblemId(problemId);
         testCase.setIsSample(dto.getIsSample() != null ? dto.getIsSample() : false);
         testCase.setIsHidden(dto.getIsHidden() != null ? dto.getIsHidden() : false);

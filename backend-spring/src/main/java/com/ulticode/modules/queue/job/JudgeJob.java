@@ -1,5 +1,6 @@
 package com.ulticode.modules.queue.job;
 
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +11,6 @@ import java.io.Serializable;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Judge job definition for code evaluation tasks.
@@ -109,12 +109,14 @@ public class JudgeJob implements Serializable {
      * @param language     the programming language
      * @param code         the source code
      * @param clock        the clock source for timestamps
+     * @param uuidGenerator the id generator
      * @return the created JudgeJob
      */
     public static JudgeJob create(String submissionId, String problemId, String userId,
-                                   String language, String code, Clock clock) {
+                                   String language, String code, Clock clock,
+                                   UuidGenerator uuidGenerator) {
         return JudgeJob.builder()
-                .id(UUID.randomUUID().toString())
+                .id(uuidGenerator.newId())
                 .submissionId(submissionId)
                 .problemId(problemId)
                 .userId(userId)

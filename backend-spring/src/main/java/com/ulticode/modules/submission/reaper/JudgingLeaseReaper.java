@@ -1,6 +1,7 @@
 package com.ulticode.modules.submission.reaper;
 
-import com.ulticode.common.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.service.QueueService;
@@ -58,6 +59,7 @@ public class JudgingLeaseReaper {
     private final FeatureFlagsProperties featureFlags;
     /** Nullable so unit tests without a registry still compile/run. */
     private final MeterRegistry meterRegistry;
+    private final UuidGenerator uuidGenerator;
 
     /**
      * Sweep expired JUDGING rows. Runs every 5 seconds with a single-threaded
@@ -109,7 +111,7 @@ public class JudgingLeaseReaper {
                 boolean portActive = featureFlags.getJudgeQueue().isUsePort();
                 try {
                     judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
-                            s, String.valueOf(s.getProblemId()), newGen, !portActive));
+                            s, String.valueOf(s.getProblemId()), newGen, !portActive, uuidGenerator));
                     // Canary observability (P0 #11): log every successful
                     // reaper outbox insert with is_shadow / portActive pair
                     // so post-canary grep (24h) can verify no

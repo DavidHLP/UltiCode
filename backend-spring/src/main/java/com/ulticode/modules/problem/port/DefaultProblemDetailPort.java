@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.dto.LanguageConfigDTO;
 import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -56,6 +57,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     @Transactional
@@ -97,7 +99,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
         if (detail == null) {
             detail = new ProblemDetail();
             detail.setProblemId(problemId);
-            detail.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+            detail.setId(uuidGenerator.newId().replace("-", ""));
             // problem_details.slug NOT NULL — denormalize from Problem on insert.
             // Defensive null check: problems.slug is also NOT NULL in DB, so this
             // should never be null, but assert it to fail fast with a clear message.
@@ -147,7 +149,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
             }
 
             ProblemLanguage language = new ProblemLanguage();
-            language.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+            language.setId(uuidGenerator.newId().replace("-", ""));
             language.setProblemId(problemId);
             language.setLabel(template.getLabel());
             language.setValue(template.getValue());
@@ -171,7 +173,7 @@ public class DefaultProblemDetailPort implements ProblemDetailPort {
             for (int i = 0; i < examples.size(); i++) {
                 ProblemDetailPublicVO.ExampleData ex = examples.get(i);
                 ProblemExample example = new ProblemExample();
-                example.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+                example.setId(uuidGenerator.newId().replace("-", ""));
                 example.setProblemId(problemId);
                 example.setExampleOrder(i + 1);
                 example.setInputText(ex.getInputText());

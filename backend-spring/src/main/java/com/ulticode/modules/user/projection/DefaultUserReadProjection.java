@@ -7,7 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.follow.mapper.FollowMapper;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
@@ -58,7 +58,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
     private final SubmissionMapper submissionMapper;
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
-    private final FollowMapper followMapper;
+    private final FollowCountPort followCountPort;
 
     @Override
     public Optional<User> findById(String id) {
@@ -307,12 +307,10 @@ public class DefaultUserReadProjection implements UserReadProjection {
         int followerCount = 0;
         int followingCount = 0;
         try {
-            if (followMapper != null) {
-                // countByFollowingId: how many users follow this user (follower count)
-                followerCount = followMapper.countByFollowingId(id);
-                // countByFollowerId: how many users this user follows (following count)
-                followingCount = followMapper.countByFollowerId(id);
-            }
+            // Follow counts come from the follow module via FollowCountPort —
+            // the user module no longer imports FollowMapper directly.
+            followerCount = followCountPort.countFollowers(id);
+            followingCount = followCountPort.countFollowing(id);
         } catch (Exception e) {
             log.warn("Failed to get follow counts for user {}: {}", id, e.getMessage());
         }

@@ -1,6 +1,6 @@
 package com.ulticode.modules.submission.dispatcher;
 
-import com.ulticode.common.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.problem.entity.Problem;

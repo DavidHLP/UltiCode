@@ -3,6 +3,7 @@ package com.ulticode.modules.permission.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
@@ -62,7 +63,8 @@ class PermissionServiceTest {
         when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         when(clock.instant()).thenReturn(java.time.Instant.now());
         permissionService = new PermissionServiceImpl(
-            userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock);
+            userPermissionMapper, rolePermissionMapper, userMapper, redisTemplate, clock,
+            new FixedUuidGenerator());
     }
 
     @Nested

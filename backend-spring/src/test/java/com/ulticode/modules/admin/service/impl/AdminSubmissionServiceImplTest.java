@@ -38,13 +38,13 @@ class AdminSubmissionServiceImplTest {
         // ADR-003 M3b: flag-off FeatureFlagsProperties so rejudge takes the
         // legacy path. judgeOutboxMapper + transactionTemplate unused on that
         // path, so they can be null.
-        com.ulticode.common.config.FeatureFlagsProperties flags =
-                new com.ulticode.common.config.FeatureFlagsProperties();
+        com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
+                new com.ulticode.modules.submission.config.FeatureFlagsProperties();
         // After ADR-0011 Stage 2: read paths moved to AdminSubmissionProjection.
         // Constructor keeps only write-path deps: submissionMapper, queueService,
         // judgeOutboxMapper, featureFlags, transactionTemplate.
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, queueService, null, flags, null);
+                submissionMapper, queueService, null, flags, new com.ulticode.common.uuid.FixedUuidGenerator(), null);
     }
 
     private Submission createValidSubmission() {

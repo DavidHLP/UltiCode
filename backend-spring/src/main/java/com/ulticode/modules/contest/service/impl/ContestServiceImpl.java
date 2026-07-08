@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
 import com.ulticode.modules.contest.dto.ContestVO;
@@ -39,7 +40,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Write-side facade for contest operations. Owns the contest state machine
@@ -69,6 +69,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestScoringService contestScoringService;
     private final ContestProjection contestProjection;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -77,7 +78,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditActionUtil.CREATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, captureOldState = false)
+    @Audited(action = AuditVocabulary.CREATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, captureOldState = false)
     public ContestVO createContest(CreateContestDTO dto, String userId) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = new Contest();
@@ -119,7 +120,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO updateContest(String id, UpdateContestDTO dto) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
@@ -160,7 +161,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditActionUtil.DELETE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.DELETE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
@@ -282,7 +283,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO startContest(String id, String userId) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
@@ -302,7 +303,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public ContestVO endContest(String id, String userId) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         Contest contest = getContestOrThrow(id);
@@ -321,7 +322,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = "contest", allEntries = true)
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
@@ -352,7 +353,7 @@ public class ContestServiceImpl implements ContestService {
     @Override
     @Transactional
     @CacheEvict(value = "contest", allEntries = true)
-    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
+    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public void removeProblem(String contestId, Long problemId) {
         if (!SecurityUtil.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
         getContestOrThrow(contestId);
@@ -392,8 +393,8 @@ public class ContestServiceImpl implements ContestService {
     }
 
     private String generateSlug(String title) {
-        if (title == null || title.isBlank()) return "contest-" + UUID.randomUUID().toString().substring(0, 8);
+        if (title == null || title.isBlank()) return "contest-" + uuidGenerator.newId().substring(0, 8);
         String slug = title.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").replaceAll("\\s+", "-").replaceAll("-+", "-").replaceAll("^-|-$", "");
-        return slug.length() < 3 ? slug + "-" + UUID.randomUUID().toString().substring(0, 8) : slug;
+        return slug.length() < 3 ? slug + "-" + uuidGenerator.newId().substring(0, 8) : slug;
     }
 }

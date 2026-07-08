@@ -5,6 +5,7 @@ import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -65,6 +66,7 @@ public class ForumPostServiceImpl implements ForumPostService {
      */
     private final ForumReadProjection forumReadProjection;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     // =========================================================================
     // Find all posts — uses selectPage + QueryWrapper for correct TypeHandler
@@ -305,6 +307,6 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     private String generatePermalink() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        return uuidGenerator.newId().replace("-", "").substring(0, 12);
     }
 }

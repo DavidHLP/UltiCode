@@ -30,7 +30,7 @@ public class AchievementNotificationListener {
      * {@code app.features.use-notification-intent=true}.
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
-    private final com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    private final com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags;
 
     /**
      * Handle achievement earned events asynchronously.

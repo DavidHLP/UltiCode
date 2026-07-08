@@ -3,6 +3,7 @@ package com.ulticode.modules.backup.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
@@ -10,6 +11,7 @@ import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.mapper.BackupMapper;
+import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.service.impl.BackupServiceImpl;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -57,6 +59,9 @@ class BackupServiceTest {
     @Mock
     private Clock clock;
 
+    @Mock
+    private BackupProcessPort backupProcessPort;
+
     @InjectMocks
     private BackupServiceImpl backupService;
 
@@ -69,9 +74,9 @@ class BackupServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(backupService, "backupDir", tempDir.toString());
-        ReflectionTestUtils.setField(backupService, "datasourceUrl", "jdbc:mysql://localhost:3306/testdb");
-        ReflectionTestUtils.setField(backupService, "datasourceUsername", "root");
-        ReflectionTestUtils.setField(backupService, "datasourcePassword", "password");
+        // Reflectively set UuidGenerator (it's constructor-injected via Lombok
+        // but @InjectMocks would not auto-inject a non-mock field; create one here).
+        ReflectionTestUtils.setField(backupService, "uuidGenerator", new FixedUuidGenerator());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
     }

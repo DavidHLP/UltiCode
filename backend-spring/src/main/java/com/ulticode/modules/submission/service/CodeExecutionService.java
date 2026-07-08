@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -54,6 +54,7 @@ public class CodeExecutionService {
     private final VerdictResolver verdictResolver;
     private final ProblemLanguageMapper problemLanguageMapper;
     private final ProblemMapper problemMapper;
+    private final UuidGenerator uuidGenerator;
     /**
      * M2a-round-2 fix (codex review F2): defaults were hard-coded to
      * 2s / 256 MiB which silently regressed both /run and /submit
@@ -104,7 +105,7 @@ public class CodeExecutionService {
                 .map(CodeExecutionService::toSandboxTestCase)
                 .toList();
 
-        String runId = UUID.randomUUID().toString();
+        String runId = uuidGenerator.newId();
         // Per-run job descriptor. The submissionId is synthetic for
         // /run (preview) requests because no DB row exists yet — see
         // SandboxJob.submissionId() javadoc.

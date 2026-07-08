@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
@@ -55,8 +55,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void pinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.PIN_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.PIN_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false),
@@ -71,8 +71,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void unpinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.UNPIN_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.UNPIN_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false),
@@ -87,8 +87,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void lockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.LOCK_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.LOCK_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false),
@@ -103,8 +103,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void unlockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.UNLOCK_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.UNLOCK_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false),
@@ -136,8 +136,8 @@ public class AdminForumServiceImpl implements AdminForumService {
         // Audit FIRST: if audit fails we roll back the soft delete (audit
         // integrity beats delete throughput).
         auditHelper.logForUser(
-            AuditActionUtil.DELETE_FORUM_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.DELETE_FORUM_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             oldValues,
@@ -157,8 +157,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void flagPost(String id, String reason) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.FLAG_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.FLAG_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,
@@ -177,8 +177,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     public void unflagPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         auditHelper.logForUser(
-            AuditActionUtil.UNFLAG_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
+            AuditVocabulary.UNFLAG_POST,
+            AuditVocabulary.ENTITY_FORUM_POST,
             id,
             post.getUserId(),
             Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,

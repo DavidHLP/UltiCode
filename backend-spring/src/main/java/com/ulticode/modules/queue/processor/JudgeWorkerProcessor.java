@@ -2,8 +2,9 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.config.FeatureFlagsProperties;
-import com.ulticode.common.config.JudgeSourceProperties;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.JudgeSourceProperties;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.config.QueueConfig;
@@ -39,7 +40,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -95,6 +95,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
      * adapter once the port flag is on.
      */
     private final ObjectProvider<JudgeQueue> judgeQueueProvider;
+    private final UuidGenerator uuidGenerator;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
 
@@ -217,7 +218,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         String userId = envelope.userId();
         String attemptId = envelope.attemptId() != null
                 ? envelope.attemptId()
-                : UUID.randomUUID().toString();
+                : uuidGenerator.newId();
         long generation = envelope.generation() != null ? envelope.generation() : 1L;
 
         // 1. Acquire the lease using the dispatcher's attemptId so the
@@ -319,7 +320,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
         String submissionId = job.getSubmissionId();
         String problemId = job.getProblemId();
         String userId = job.getUserId();
-        String attemptId = UUID.randomUUID().toString();
+        String attemptId = uuidGenerator.newId();
 
         Submission current = submissionMapper.selectById(submissionId);
         if (current == null) {

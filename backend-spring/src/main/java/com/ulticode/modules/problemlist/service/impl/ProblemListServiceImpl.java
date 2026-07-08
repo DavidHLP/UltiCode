@@ -3,7 +3,7 @@ package com.ulticode.modules.problemlist.service.impl;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.problemlist.dto.CreateCategoryDTO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
@@ -187,8 +187,8 @@ public class ProblemListServiceImpl implements ProblemListService {
     @Override
     @Transactional
     @Audited(
-            action = AuditActionUtil.DELETE_PROBLEM_LIST,
-            entityType = AuditActionUtil.ENTITY_PROBLEM_LIST,
+            action = AuditVocabulary.DELETE_PROBLEM_LIST,
+            entityType = AuditVocabulary.ENTITY_PROBLEM_LIST,
             userIdFrom = "userId", entityIdFrom = "id")
     public void deleteList(String id, String userId) {
         ProblemList list = problemListMapper.findById(id)

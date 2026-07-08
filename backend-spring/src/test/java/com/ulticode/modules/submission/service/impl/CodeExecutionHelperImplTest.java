@@ -1,6 +1,7 @@
 package com.ulticode.modules.submission.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import org.junit.jupiter.api.DisplayName;
@@ -13,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("CodeExecutionHelperImpl (D-form)")
 class CodeExecutionHelperImplTest {
 
-    private final CodeExecutionHelperImpl helper = new CodeExecutionHelperImpl(new ObjectMapper());
+    private final CodeExecutionHelperImpl helper = new CodeExecutionHelperImpl(new ObjectMapper(), new FixedUuidGenerator());
 
     // ── buildDInputsJson / buildDBatchInputsJson ────────────────────────────
 

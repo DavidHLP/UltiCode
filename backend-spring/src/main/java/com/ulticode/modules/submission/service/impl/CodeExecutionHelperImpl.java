@@ -2,6 +2,7 @@ package com.ulticode.modules.submission.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.service.CodeExecutionHelper;
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class CodeExecutionHelperImpl implements CodeExecutionHelper {
 
     private final ObjectMapper objectMapper;
+    private final UuidGenerator uuidGenerator;
 
     // Form A removed in Phase 5b. The D-form harness is now the
     // sole dispatch path. See CodeExecutionHelper interface javadoc.
@@ -106,7 +107,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
     @Override
     public RunResultDTO emptyResult(Long problemId, String userId) {
         return RunResultDTO.builder()
-                .id(UUID.randomUUID().toString())
+                .id(uuidGenerator.newId())
                 .problemId(problemId)
                 .userId(userId)
                 .verdict("System Error")
@@ -140,7 +141,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 ? String.format("%.2fms", elapsedUs / 1000.0)
                 : runtimeMs + "ms";
         return RunResultDTO.RunCaseResult.builder()
-                .id(UUID.randomUUID().toString()).runId(runId)
+                .id(uuidGenerator.newId()).runId(runId)
                 .submissionTestId(testCase.getId()).testCaseId(testCase.getId())
                 .caseLabel(testCase.getLabel() != null ? testCase.getLabel() : testCase.getId())
                 .status(status)

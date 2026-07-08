@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.common.config.JudgeSourceProperties;
+import com.ulticode.modules.submission.config.JudgeSourceProperties;
 import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
 import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;

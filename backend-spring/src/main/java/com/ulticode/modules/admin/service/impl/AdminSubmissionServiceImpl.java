@@ -1,9 +1,10 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.config.FeatureFlagsProperties;
+import com.ulticode.modules.submission.config.FeatureFlagsProperties;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
@@ -54,6 +55,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
      */
     private final JudgeOutboxMapper judgeOutboxMapper;
     private final FeatureFlagsProperties featureFlags;
+    private final UuidGenerator uuidGenerator;
     /**
      * Programmatic transaction boundary for the M3b fenced rejudge path. Used
      * instead of {@code @Transactional} so the flag-off branch can stay
@@ -62,7 +64,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
     @Override
-    @Audited(action = AuditActionUtil.REQUEUE_SUBMISSION, entityType = AuditActionUtil.ENTITY_SUBMISSION, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.REQUEUE_SUBMISSION, entityType = AuditVocabulary.ENTITY_SUBMISSION, userIdFrom = "id")
     public RejudgeResult rejudge(String id, boolean notifyUser) {
         Submission submission = submissionMapper.selectById(id);
         if (submission == null) {
@@ -368,7 +370,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             // mode keeps the original double-write observation behaviour.
             boolean portActive = featureFlags.getJudgeQueue().isUsePort();
             judgeOutboxMapper.insert(JudgeOutboxRecord.forResubmission(
-                    submission, String.valueOf(submission.getProblemId()), generation, !portActive));
+                    submission, String.valueOf(submission.getProblemId()), generation, !portActive, uuidGenerator));
             // Canary observability (P0 #11): log every successful admin
             // rejudge outbox insert with is_shadow / portActive pair. Logged
             // AFTER the insert call so failures (unique key conflicts) stay

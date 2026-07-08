@@ -77,8 +77,8 @@ class SubmissionServiceImplTest {
         // so the legacy submit/judge path is exercised. meterRegistry null = no-op metrics.
         // ADR-004 M4c: pass a mock NotificationDispatcher alongside the legacy
         // dispatch service. Flags default to false → legacy path is active.
-        com.ulticode.common.config.FeatureFlagsProperties flags =
-                new com.ulticode.common.config.FeatureFlagsProperties();
+        com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
+                new com.ulticode.modules.submission.config.FeatureFlagsProperties();
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
         // Real stats module wired with the mocked SubmissionMapper so the
@@ -101,7 +101,8 @@ class SubmissionServiceImplTest {
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
                                 flags, notificationDispatcher, notificationDispatchService, problemMapper),
-                        null, flags, null, null, clock);
+                        null, flags, null, null, clock,
+                        new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
         // Default projection stubs: the service delegates to SubmissionProjection

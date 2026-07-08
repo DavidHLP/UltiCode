@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
@@ -53,6 +54,7 @@ class AdminNotificationServiceImplTest {
     @Mock private NotificationPreferenceMapper preferenceMapper;
     @Mock private UserMapper userMapper;
     @Mock private AdminNotificationProjection adminNotificationProjection;
+    @Mock private UuidGenerator uuidGenerator;
 
     private AdminNotificationServiceImpl adminNotificationService;
 
@@ -63,7 +65,7 @@ class AdminNotificationServiceImplTest {
         Clock clock = Clock.systemUTC();
         adminNotificationService = new AdminNotificationServiceImpl(
                 notificationMapper, preferenceMapper, userMapper, clock,
-                adminNotificationProjection);
+                uuidGenerator, adminNotificationProjection);
     }
 
     private AdminNotificationVO makeVO(String id, String announcementId) {

@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.tag.CreateTagDTO;
 import com.ulticode.modules.admin.dto.tag.MergeTagDTO;
 import com.ulticode.modules.admin.dto.tag.TagQueryDTO;
@@ -64,7 +65,8 @@ class AdminTagServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new AdminTagServiceImpl(problemTagMapper, problemTagRelationMapper, forumTagMapper, clock);
+        service = new AdminTagServiceImpl(problemTagMapper, problemTagRelationMapper, forumTagMapper, clock,
+                new FixedUuidGenerator());
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
     }

@@ -102,8 +102,8 @@ class JudgeWorkerProcessorTest {
      * fields, per the mockito5-lombok-constructor-injection rule).
      */
     @Spy
-    private com.ulticode.common.config.FeatureFlagsProperties featureFlags =
-            new com.ulticode.common.config.FeatureFlagsProperties();
+    private com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags =
+            new com.ulticode.modules.submission.config.FeatureFlagsProperties();
 
     /**
      * ADR-003 M3b: metrics registry mock; never invoked on the flag-off path.
@@ -122,6 +122,9 @@ class JudgeWorkerProcessorTest {
     @Mock
     private Clock clock;
 
+    @Mock
+    private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
+
     @InjectMocks
     private JudgeWorkerProcessor processor;
 
@@ -137,7 +140,12 @@ class JudgeWorkerProcessorTest {
     void setUp() {
         lenient().when(clock.instant()).thenReturn(Instant.now());
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
-        sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');", clock);
+        // Inject a deterministic UuidGenerator for the @InjectMocks field
+        // (the field is @Mock which defaults to returning null).
+        org.springframework.test.util.ReflectionTestUtils.setField(processor, "uuidGenerator",
+                new com.ulticode.common.uuid.FixedUuidGenerator());
+        sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');", clock,
+                new com.ulticode.common.uuid.FixedUuidGenerator());
         lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
         lenient().when(contestSubmissionMapper.selectOne(any())).thenReturn(null);
     }

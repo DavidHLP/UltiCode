@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -21,7 +22,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +36,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper participantMapper;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     @Transactional
@@ -193,7 +194,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         participant.setRegisteredAt(now);
         participant.setStartedAt(now);
         participant.setIsVirtual(true);
-        participant.setVirtualSessionId(UUID.randomUUID().toString());
+        participant.setVirtualSessionId(uuidGenerator.newId());
         participantMapper.insert(participant);
 
         log.info("User {} started virtual contest {}", userId, contestId);

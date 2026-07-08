@@ -2,6 +2,7 @@ package com.ulticode.modules.queue.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import org.springframework.data.redis.core.RedisTemplate;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
@@ -19,7 +20,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class QueueServiceImpl implements QueueService {
 
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     private final RQueue<Object> judgeQueue;
     private final RQueue<Object> emailQueue;
@@ -48,14 +49,14 @@ public class QueueServiceImpl implements QueueService {
     @Override
     public String enqueueJudgeJob(String submissionId, String problemId, String userId,
                                    String language, String code) {
-        JudgeJob job = JudgeJob.create(submissionId, problemId, userId, language, code, clock);
+        JudgeJob job = JudgeJob.create(submissionId, problemId, userId, language, code, clock, uuidGenerator);
         return enqueueJudgeJob(job);
     }
 
     @Override
     public String enqueueJudgeJob(JudgeJob job) {
         if (job.getId() == null || job.getId().isBlank()) {
-            job.setId(UUID.randomUUID().toString());
+            job.setId(uuidGenerator.newId());
         }
         if (job.getCreatedAt() == null) {
             job.setCreatedAt(LocalDateTime.now(clock));
@@ -88,7 +89,7 @@ public class QueueServiceImpl implements QueueService {
 
     @Override
     public String enqueueJob(String queueName, JobRequestDTO request) {
-        String jobId = UUID.randomUUID().toString();
+        String jobId = uuidGenerator.newId();
 
         // Build job data
         Map<String, Object> jobData = new HashMap<>();

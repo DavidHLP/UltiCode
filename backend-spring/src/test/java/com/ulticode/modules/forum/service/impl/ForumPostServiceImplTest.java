@@ -2,6 +2,7 @@ package com.ulticode.modules.forum.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.forum.dto.ForumPostVO;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
@@ -44,6 +45,8 @@ class ForumPostServiceImplTest {
     private ForumReadProjection forumReadProjection;
     @Mock
     private Clock clock;
+    @Mock
+    private UuidGenerator uuidGenerator;
 
     @InjectMocks
     private ForumPostServiceImpl forumPostService;

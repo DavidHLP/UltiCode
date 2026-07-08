@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.projection;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -51,7 +52,7 @@ class AdminContestProjectionTest {
 
     @BeforeEach
     void setUp() {
-        projection = new DefaultAdminContestProjection(contestMapper, contestProblemMapper);
+        projection = new DefaultAdminContestProjection(contestMapper, contestProblemMapper, new FixedUuidGenerator());
     }
 
     @Nested

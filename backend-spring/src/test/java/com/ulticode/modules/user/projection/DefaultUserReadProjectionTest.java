@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.follow.mapper.FollowMapper;
+import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -59,7 +59,7 @@ class DefaultUserReadProjectionTest {
     @Mock
     private ProblemTagRelationMapper problemTagRelationMapper;
     @Mock
-    private FollowMapper followMapper;
+    private FollowCountPort followCountPort;
 
     @InjectMocks
     private DefaultUserReadProjection userReadProjection;

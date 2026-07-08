@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.submission.entity.Submission;
 import lombok.Data;
 
@@ -102,9 +103,10 @@ public class JudgeOutboxRecord {
      * @return a new, unsaved outbox record
      */
     public static JudgeOutboxRecord of(Submission submission, String problemId,
-                                       long generation, boolean isShadow) {
+                                       long generation, boolean isShadow,
+                                       UuidGenerator uuidGenerator) {
         JudgeOutboxRecord record = baseRecord(submission, problemId, generation, isShadow);
-        record.setId(java.util.UUID.randomUUID().toString());
+        record.setId(uuidGenerator.newId());
         record.setState("PENDING");
         record.setAttempts(0);
         // next_retry_at and created_at default to CURRENT_TIMESTAMP(3) in DB;
@@ -125,10 +127,11 @@ public class JudgeOutboxRecord {
      * @return a new, unsaved outbox record
      */
     public static JudgeOutboxRecord forResubmission(Submission submission, String problemId,
-                                                    long newGeneration, boolean isShadow) {
+                                                    long newGeneration, boolean isShadow,
+                                                    UuidGenerator uuidGenerator) {
         // Same shape as a fresh dispatch; the unique key (submission_id, generation)
         // guarantees only one row per generation regardless of how it was created.
-        return of(submission, problemId, newGeneration, isShadow);
+        return of(submission, problemId, newGeneration, isShadow, uuidGenerator);
     }
 
     /**

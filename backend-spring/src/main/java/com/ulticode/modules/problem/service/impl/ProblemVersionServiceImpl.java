@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
@@ -40,7 +41,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,6 +56,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ProblemVersionMapper problemVersionMapper;
     private final ObjectMapper objectMapper;
+    private final UuidGenerator uuidGenerator;
 
     @Override
     public VersionsResponseVO listVersions(Long problemId, Integer page, Integer limit) {
@@ -185,7 +186,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
                 new LambdaQueryWrapper<ProblemDetail>().eq(ProblemDetail::getProblemId, problemId));
         if (detail == null) {
             detail = new ProblemDetail();
-            detail.setId(UUID.randomUUID().toString());
+            detail.setId(uuidGenerator.newId());
             detail.setProblemId(problemId);
             // problem_details.slug NOT NULL — denormalize from Problem
             // Defensive null check: problems.slug is also NOT NULL in DB, so this
@@ -234,7 +235,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
             for (int i = 0; i < exampleSnapshots.size(); i++) {
                 Map<String, Object> exSnapshot = exampleSnapshots.get(i);
                 ProblemExample example = new ProblemExample();
-                example.setId(UUID.randomUUID().toString());
+                example.setId(uuidGenerator.newId());
                 example.setProblemId(problemId);
                 example.setExampleOrder(i + 1);
                 example.setInputText((String) (exSnapshot.get("input") != null
@@ -262,7 +263,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
         if (languageSnapshots != null) {
             for (Map<String, Object> langSnapshot : languageSnapshots) {
                 ProblemLanguage language = new ProblemLanguage();
-                language.setId(UUID.randomUUID().toString());
+                language.setId(uuidGenerator.newId());
                 language.setProblemId(problemId);
                 language.setLabel((String) langSnapshot.get("label"));
                 language.setValue((String) langSnapshot.get("value"));

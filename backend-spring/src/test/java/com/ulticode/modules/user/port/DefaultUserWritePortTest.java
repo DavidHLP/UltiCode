@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
@@ -46,6 +47,9 @@ class DefaultUserWritePortTest {
 
     @Mock
     private Clock clock;
+
+    @Mock
+    private UuidGenerator uuidGenerator;
 
     @InjectMocks
     private DefaultUserWritePort userWritePort;

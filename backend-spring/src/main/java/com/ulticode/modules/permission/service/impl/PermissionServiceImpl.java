@@ -3,6 +3,7 @@ package com.ulticode.modules.permission.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
@@ -24,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * 权限服务实现
@@ -39,6 +39,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final UserMapper userMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final Clock clock;
+    private final UuidGenerator uuidGenerator;
 
     private static final String PERM_CACHE_PREFIX = "user:perms:";
     private static final String SYSTEM_GRANTOR = "system";
@@ -139,7 +140,7 @@ public class PermissionServiceImpl implements PermissionService {
         record.setExpiresAt(expiresAt);
 
         if (existing == null) {
-            record.setId(UUID.randomUUID().toString());
+            record.setId(uuidGenerator.newId());
             userPermissionMapper.insert(record);
             log.info("Permission granted (new): user={} {}:{} expiresAt={}",
                 userId, action, resource, expiresAt);

@@ -254,8 +254,8 @@ class SubmissionServiceImplIT {
         // ADR-003 M3a/M3b: pass null outbox mapper + flag-off properties so the
         // legacy submit path is exercised (flag-off is byte-for-byte identical
         // to the pre-fence behavior). meterRegistry null = metrics no-op.
-        com.ulticode.common.config.FeatureFlagsProperties flags =
-                new com.ulticode.common.config.FeatureFlagsProperties();
+        com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
+                new com.ulticode.modules.submission.config.FeatureFlagsProperties();
         com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats performanceStats =
                 new com.ulticode.modules.submission.stats.DefaultSubmissionPerformanceStats(submissionMapper);
         // Write surface now lives behind SubmissionWritePort. Wire the real
@@ -270,7 +270,8 @@ class SubmissionServiceImplIT {
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
                                 flags, notificationDispatcher, notificationDispatchService, problemMapper),
-                        null, flags, null, null, java.time.Clock.systemDefaultZone());
+                        null, flags, null, null, java.time.Clock.systemDefaultZone(),
+                        new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
     }

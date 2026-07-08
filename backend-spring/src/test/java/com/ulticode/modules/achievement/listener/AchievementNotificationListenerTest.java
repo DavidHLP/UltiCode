@@ -36,7 +36,7 @@ class AchievementNotificationListenerTest {
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
 
     @Mock
-    private com.ulticode.common.config.FeatureFlagsProperties featureFlags;
+    private com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags;
 
     private AchievementNotificationListener listener;
 

@@ -7,7 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.annotation.Audited;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.service.AdminProblemListService;
@@ -221,7 +221,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
         ProblemList list = findByIdOrThrow(id);
 
@@ -272,7 +272,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     }
 
     @Override
-    @Audited(action = AuditActionUtil.DELETE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.DELETE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void deleteProblemList(String id) {
         ProblemList list = findByIdOrThrow(id);
         AuditContext.setOldValues(java.util.Map.of(
@@ -284,7 +284,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void updateListProblems(String id, UpdateProblemListProblemsDTO dto) {
         ProblemList list = findByIdOrThrow(id);
 
@@ -307,7 +307,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
         ProblemList list = findByIdOrThrow(id);
 
@@ -330,7 +330,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
         ProblemList list = findByIdOrThrow(id);
 
@@ -357,7 +357,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
         ProblemList list = findByIdOrThrow(id);
 

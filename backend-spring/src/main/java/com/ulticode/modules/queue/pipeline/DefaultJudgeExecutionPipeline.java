@@ -3,7 +3,7 @@ package com.ulticode.modules.queue.pipeline;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.common.config.JudgeSourceProperties;
+import com.ulticode.modules.submission.config.JudgeSourceProperties;
 import com.ulticode.modules.problem.entity.ProblemExample;
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.ProblemExampleMapper;

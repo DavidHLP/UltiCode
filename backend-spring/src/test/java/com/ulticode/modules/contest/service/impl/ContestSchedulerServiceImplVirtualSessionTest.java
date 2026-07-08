@@ -2,6 +2,7 @@ package com.ulticode.modules.contest.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -57,7 +58,7 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         clock = mock(Clock.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock);
+        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator());
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {

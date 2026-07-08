@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.projection.AdminSolutionProjection;
@@ -59,7 +59,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.FLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
+    @Audited(action = AuditVocabulary.FLAG_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public AdminSolutionVO flagSolution(String id, String reason) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
@@ -94,7 +94,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.UNFLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
+    @Audited(action = AuditVocabulary.UNFLAG_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public AdminSolutionVO unflagSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
@@ -126,7 +126,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION)
+    @Audited(action = AuditVocabulary.DELETE_SOLUTION, entityType = AuditVocabulary.ENTITY_SOLUTION)
     public void deleteSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
@@ -160,7 +160,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.BULK_SOLUTION_ACTION, entityType = AuditActionUtil.ENTITY_SOLUTION, captureNewState = false)
+    @Audited(action = AuditVocabulary.BULK_SOLUTION_ACTION, entityType = AuditVocabulary.ENTITY_SOLUTION, captureNewState = false)
     public List<BulkActionResult> bulkAction(List<String> ids, String action) {
         AuditContext.setEntityId(String.join(",", ids));
         List<BulkActionResult> results = new ArrayList<>();

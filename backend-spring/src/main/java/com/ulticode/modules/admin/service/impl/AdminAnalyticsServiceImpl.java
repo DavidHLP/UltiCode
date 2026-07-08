@@ -1,21 +1,13 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.dto.*;
+import com.ulticode.modules.admin.port.AdminAnalyticsPort;
 import com.ulticode.modules.admin.service.AdminAnalyticsService;
 import com.ulticode.modules.admin.service.AdminContentAnalyticsService;
 import com.ulticode.modules.admin.service.AdminPerformanceReportService;
 import com.ulticode.modules.admin.service.AdminUserAnalyticsService;
 import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestParticipant;
-import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.subscription.entity.Subscription;
-import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,12 +18,15 @@ import java.lang.management.MemoryUsage;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Facade implementation of AdminAnalyticsService.
  * Delegates to focused services for user analytics, content analytics, and performance reporting.
  * Retains contest participation and revenue logic directly.
+ *
+ * <p>Cross-module reads (contest / participant / subscription / submission /
+ * user / problem) live behind {@link AdminAnalyticsPort}. The five
+ * mappers that used to be imported here are no longer dependencies.
  */
 @Slf4j
 @Service
@@ -42,12 +37,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     private final AdminContentAnalyticsService contentAnalyticsService;
     private final AdminPerformanceReportService performanceReportService;
 
-    private final ContestMapper contestMapper;
-    private final ContestParticipantMapper contestParticipantMapper;
-    private final SubscriptionMapper subscriptionMapper;
-    private final SubmissionMapper submissionMapper;
-    private final UserMapper userMapper;
-    private final ProblemMapper problemMapper;
+    private final AdminAnalyticsPort adminAnalyticsPort;
     private final Clock clock;
 
     @Override
@@ -99,21 +89,8 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
      * (replaces the previous per-contest N+1 loop with one query each).
      */
     private LoadedContestData loadContestData(LocalDateTime startDate) {
-        LambdaQueryWrapper<Contest> contestWrapper = new LambdaQueryWrapper<>();
-        contestWrapper.ge(Contest::getStartTime, startDate);
-        List<Contest> contests = contestMapper.selectList(contestWrapper);
-
-        Map<String, Long> participantsByContest = new HashMap<>();
-        Set<String> uniqueParticipants = new HashSet<>();
-        if (!contests.isEmpty()) {
-            // Short-circuit avoids IN () syntax error in MySQL.
-            List<String> contestIds = contests.stream().map(Contest::getId).collect(Collectors.toList());
-            for (ContestParticipant p : contestParticipantMapper.findByContestIds(contestIds)) {
-                participantsByContest.merge(p.getContestId(), 1L, Long::sum);
-                uniqueParticipants.add(p.getUserId());
-            }
-        }
-        return new LoadedContestData(contests, participantsByContest, uniqueParticipants);
+        AdminAnalyticsPort.ContestParticipationData data = adminAnalyticsPort.loadContestData(startDate);
+        return new LoadedContestData(data.contests(), data.participantsByContest(), data.uniqueParticipants());
     }
 
     /**
@@ -150,7 +127,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                 ))
                 .sorted((a, b) -> Integer.compare(b.getParticipants(), a.getParticipants()))
                 .limit(10)
-                .collect(Collectors.toList());
+                .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -169,7 +146,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
             List<Contest> weekContests = contests.stream()
                     .filter(c -> !c.getStartTime().isBefore(weekStart) && c.getStartTime().isBefore(weekEnd))
-                    .collect(Collectors.toList());
+                    .collect(java.util.stream.Collectors.toList());
 
             long weekParticipants = weekContests.stream()
                     .mapToLong(c -> participantsByContest.getOrDefault(c.getId(), 0L))
@@ -191,11 +168,8 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
         RevenueReportVO report = new RevenueReportVO();
 
-        // Active subscriptions by plan
-        LambdaQueryWrapper<Subscription> activeWrapper = new LambdaQueryWrapper<>();
-        activeWrapper.eq(Subscription::getStatus, "ACTIVE");
-
-        List<Subscription> activeSubscriptions = subscriptionMapper.selectList(activeWrapper);
+        // Active subscriptions come from the analytics port.
+        List<Subscription> activeSubscriptions = adminAnalyticsPort.listActiveSubscriptions();
 
         Map<String, RevenueReportVO.PlanRevenue> planRevenueMap = new HashMap<>();
         for (Subscription sub : activeSubscriptions) {
@@ -264,21 +238,15 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         Map<String, Object> overview = new LinkedHashMap<>();
 
         // User metrics
-        long totalUsers = userMapper.selectCount(null);
-        long activeUsers = submissionMapper.countDistinctUsersInRange(
+        long totalUsers = adminAnalyticsPort.countAllUsers();
+        long activeUsers = adminAnalyticsPort.countDistinctSubmittersInRange(
                 startDate, LocalDateTime.now(clock).plusDays(1));
         overview.put("totalUsers", totalUsers);
         overview.put("activeUsers", activeUsers);
 
         // Submission metrics
-        LambdaQueryWrapper<Submission> subWrapper = new LambdaQueryWrapper<>();
-        subWrapper.ge(Submission::getCreatedAt, startDate);
-        long totalSubmissions = submissionMapper.selectCount(subWrapper);
-
-        LambdaQueryWrapper<Submission> acceptedWrapper = new LambdaQueryWrapper<>();
-        acceptedWrapper.ge(Submission::getCreatedAt, startDate)
-                .eq(Submission::getStatus, "Accepted");
-        long acceptedSubmissions = submissionMapper.selectCount(acceptedWrapper);
+        long totalSubmissions = adminAnalyticsPort.countSubmissionsInRange(startDate);
+        long acceptedSubmissions = adminAnalyticsPort.countAcceptedSubmissionsInRange(startDate);
 
         overview.put("totalSubmissions", totalSubmissions);
         overview.put("acceptedSubmissions", acceptedSubmissions);
@@ -286,15 +254,11 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                 ? Math.round(acceptedSubmissions * 100.0 / totalSubmissions * 100.0) / 100.0 : 0.0);
 
         // Contest metrics
-        LambdaQueryWrapper<Contest> contestWrapper = new LambdaQueryWrapper<>();
-        contestWrapper.ge(Contest::getStartTime, startDate);
-        long totalContests = contestMapper.selectCount(contestWrapper);
+        long totalContests = adminAnalyticsPort.countContestsInRange(startDate);
         overview.put("totalContests", totalContests);
 
         // Subscription metrics
-        LambdaQueryWrapper<Subscription> activeSubWrapper = new LambdaQueryWrapper<>();
-        activeSubWrapper.eq(Subscription::getStatus, "ACTIVE");
-        long activeSubscriptions = subscriptionMapper.selectCount(activeSubWrapper);
+        long activeSubscriptions = adminAnalyticsPort.countActiveSubscriptions();
         overview.put("activeSubscriptions", activeSubscriptions);
 
         // System metrics

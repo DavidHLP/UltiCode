@@ -3,6 +3,7 @@ package com.ulticode.common.aspect;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditSinkPort;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.util.ClientIpResolver;
 import com.ulticode.common.util.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ import java.util.Map;
 public class AuditAspect {
 
     private final AuditSinkPort auditSinkPort;
+    private final ClientIpResolver clientIpResolver;
 
     @Around("@annotation(audited)")
     public Object auditAround(ProceedingJoinPoint joinPoint, Audited audited) throws Throwable {
@@ -43,7 +45,7 @@ public class AuditAspect {
             performerId = "system";
         }
 
-        String ip = getClientIp();
+        String ip = clientIpResolver.resolveCurrent();
         String userAgent = getUserAgent();
 
         String targetUserId = resolveParamValue(joinPoint, audited.userIdFrom());
@@ -151,24 +153,6 @@ public class AuditAspect {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private String getClientIp() {
-        ServletRequestAttributes attributes =
-            (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return "unknown";
-        }
-
-        HttpServletRequest request = attributes.getRequest();
-
-        String ip = request.getHeader("X-Real-IP");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
-        }
-
-        ip = request.getRemoteAddr();
-        return ip != null ? ip : "unknown";
     }
 
     private String getUserAgent() {

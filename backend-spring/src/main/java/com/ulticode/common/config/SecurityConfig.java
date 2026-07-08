@@ -33,63 +33,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
     private final CorsProperties corsProperties;
-
-    /**
-     * Define public endpoints that don't require authentication.
-     */
-    private static final String[] PUBLIC_ENDPOINTS = {
-            // Auth endpoints
-            "/auth/login",
-            "/auth/register",
-            "/auth/refresh",
-            "/auth/forgot-password",
-            "/auth/reset-password",
-            "/auth/github",
-            "/auth/github/callback",
-            "/auth/google",
-            "/auth/google/callback",
-            // Contest endpoints (public read access)
-            "/contest/**",
-            // Submission status endpoints (public read access)
-            "/submissions/statuses",
-            // Solution endpoints (public read access)
-            "/api/solutions",
-            "/api/solutions/**",
-            "/api/views/solution/**",
-            // Forum endpoints (public read access)
-            "/forum/posts",
-            "/forum/posts/**",
-            "/forum/communities",
-            "/forum/communities/**",
-            "/forum/tags",
-            "/forum/quick-filters",
-            // Problem list public read access
-            "/problem-lists/overview",
-            "/problem-lists/*/overview",
-            // Swagger/OpenAPI documentation
-            "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/api-docs/**",
-            "/v3/api-docs/**",
-            // WebSocket endpoint
-            "/ws/**",
-            // Health check endpoint (for startup scripts and monitoring)
-            "/actuator/health",
-            "/actuator/health/**",
-            "/actuator/info",
-            // Prometheus scrape endpoint.
-            // ⚠ PRODUCTION DEPLOYMENT: this is publicly readable by design so
-            //   that an in-cluster scraper without JWT capability can pull
-            //   /actuator/prometheus. MUST be gated by either:
-            //     (a) a network policy that restricts 9001 to internal IPs, or
-            //     (b) an nginx `allow <scraper-IP>; deny all;` block, or
-            //     (c) a separate management server port bound to loopback
-            //         (`management.server.port=9004`, port-forwarded to
-            //         localhost only).
-            //   Without one of these, the JVM internals (heap, GC, threads,
-            //   Hikari pool, Tomcat sessions) leak to any caller reaching 9001.
-            "/actuator/prometheus"
-    };
+    private final PublicEndpointRegistry publicEndpointRegistry;
 
     /**
      * Configure the security filter chain.
@@ -119,29 +63,17 @@ public class SecurityConfig {
 
                 // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // Public problem read endpoints (GET only)
-                        .requestMatchers(HttpMethod.GET,
-                                "/problems",
-                                "/problems/*",
-                                "/problems/slug/**",
-                                "/problems/*/adjacent")
+                        // Public GET-only reads (problems, solutions, edge-operations)
+                        .requestMatchers(HttpMethod.GET, publicEndpointRegistry.publicGetEndpoints())
                         .permitAll()
-                        // Public solution list for problems (GET only)
-                        .requestMatchers(HttpMethod.GET, "/api/problems/*/solutions")
+                        // Public sample execution (POST, no submission record)
+                        .requestMatchers(HttpMethod.POST, publicEndpointRegistry.publicSampleRunPattern())
                         .permitAll()
-                        // Public sample execution. This runs supplied code against visible test cases
-                        // without creating a submission record; real submissions remain authenticated.
-                        .requestMatchers(HttpMethod.POST, "/problems/*/submissions/run")
-                        .permitAll()
-                        // Public edge-operations read endpoints (GET only)
-                        .requestMatchers(HttpMethod.GET, "/edge-operations/**")
-                        .permitAll()
-                        // Public endpoints
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Public endpoints (all methods)
+                        .requestMatchers(publicEndpointRegistry.publicEndpoints()).permitAll()
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // Default: any non-whitelisted /actuator/** path requires ADMIN
-                        // (defense-in-depth: protects against future endpoint exposure
-                        // without re-editing PUBLIC_ENDPOINTS).
+                        // (defense-in-depth: protects against future endpoint exposure).
                         .requestMatchers("/actuator/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         // All other requests require authentication
                         .anyRequest().authenticated()

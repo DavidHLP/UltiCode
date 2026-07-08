@@ -5,8 +5,8 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.ratelimiter.AcquisitionVerdict;
 import com.ulticode.common.ratelimiter.RateLimiter;
+import com.ulticode.common.util.ClientIpResolver;
 import com.ulticode.common.util.SecurityUtil;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -14,8 +14,6 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
 
@@ -37,6 +35,7 @@ import java.lang.reflect.Method;
 public class RateLimitAspect {
 
     private final RateLimiter rateLimiter;
+    private final ClientIpResolver clientIpResolver;
 
     @Around("@annotation(com.ulticode.common.annotation.RateLimit)")
     public Object enforceRateLimit(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -67,7 +66,7 @@ public class RateLimitAspect {
         if (userId != null) {
             key = key + ":user:" + userId;
         } else {
-            String ip = getClientIp();
+            String ip = clientIpResolver.resolveCurrent();
             if (key.isEmpty()) {
                 String className = joinPoint.getTarget().getClass().getSimpleName();
                 String methodName = joinPoint.getSignature().getName();
@@ -142,25 +141,5 @@ public class RateLimitAspect {
             }
         }
         return null;
-    }
-
-    private String getClientIp() {
-        ServletRequestAttributes attributes =
-            (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes == null) {
-            return "unknown";
-        }
-
-        HttpServletRequest request = attributes.getRequest();
-
-        // Prefer X-Real-IP (set by nginx, not spoofable by clients)
-        String ip = request.getHeader("X-Real-IP");
-        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
-            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
-        }
-
-        // Fallback to remote address (direct connection)
-        ip = request.getRemoteAddr();
-        return ip != null ? ip : "unknown";
     }
 }

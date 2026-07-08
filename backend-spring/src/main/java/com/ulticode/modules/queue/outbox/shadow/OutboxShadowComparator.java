@@ -36,7 +36,7 @@ import java.util.List;
  * dispatcher still claims+marks it SENT in time the comparator sees zero diff —
  * a false negative. Closing that gap requires recording a Redis seen-set key
  * {@code judge:dispatch:seen:{submissionId}:{generation}} (prefix already
- * defined in {@code CacheConstants#JUDGE_DISPATCH_SEEN_PREFIX}) at the real
+     * defined in {@code JudgeStreamKeys#JUDGE_DISPATCH_SEEN_PREFIX}) at the real
  * enqueue site, then having this comparator count stale-PENDING rows whose seen
  * key is absent. That recording cannot live in {@code QueueServiceImpl} today
  * because the v1 {@code JudgeJob} envelope carries no {@code generation}; the

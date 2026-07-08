@@ -2,7 +2,7 @@ package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.infrastructure.redis.CacheConstants;
+import com.ulticode.infrastructure.redis.JudgeStreamKeys;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
@@ -93,7 +93,7 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
         // (submissionId, generation) dedup key. TTL = visibility × 5
         // (longer than the worst-case reclaim cycle). Redisson's
         // setIfAbsent is atomic — no TOCTOU race.
-        String dedupKey = CacheConstants.JUDGE_DISPATCH_SEEN_PREFIX
+        String dedupKey = JudgeStreamKeys.JUDGE_DISPATCH_SEEN_PREFIX
                 + envelope.submissionId() + ":" + envelope.generation();
         RBucket<String> bucket = redissonClient.getBucket(dedupKey);
         long ttlSeconds = Math.max(1L, visibilityTimeoutMs * 5L / 1000L);

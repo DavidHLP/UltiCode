@@ -173,7 +173,7 @@ class AdminForumServiceImplTest {
         }
 
         @Test
-        @DisplayName("deletePost newValues contains isDeleted=true and LocalDateTime.now() — JSR-310 regression")
+        @DisplayName("deletePost newValues contains isDeleted=true and LocalDateTime.now(clock) — JSR-310 regression")
         void deletePost_newValuesContainsIsDeletedAndLocalDateTime() {
             // Regression for docs/forum-api-curl-test-report-2026-06-08.md §3:
             // JacksonTypeHandler needs JavaTimeModule to serialize LocalDateTime inside
@@ -182,9 +182,13 @@ class AdminForumServiceImplTest {
             when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
             when(forumPostMapper.softDelete(anyString(), anyString())).thenReturn(1);
 
-            LocalDateTime before = LocalDateTime.now().minusSeconds(1);
+            // The service stamps deletedAt from LocalDateTime.now(clock), where
+            // the clock is stubbed to 2026-01-01T00:00:00Z. The test asserts
+            // the exact value the clock produces (not a wall-clock range),
+            // matching the post-Clock-migration contract.
+            LocalDateTime expectedDeletedAt = LocalDateTime.ofInstant(
+                    Instant.parse("2026-01-01T00:00:00Z"), ZoneId.of("UTC"));
             adminForumService.deletePost("post-1");
-            LocalDateTime after = LocalDateTime.now().plusSeconds(1);
 
             org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
@@ -202,7 +206,7 @@ class AdminForumServiceImplTest {
             assertThat(newValues).containsKey("deletedAt");
             assertThat(newValues.get("deletedAt")).isInstanceOf(LocalDateTime.class);
             LocalDateTime deletedAt = (LocalDateTime) newValues.get("deletedAt");
-            assertThat(deletedAt).isBetween(before, after);
+            assertThat(deletedAt).isEqualTo(expectedDeletedAt);
         }
 
         @Test

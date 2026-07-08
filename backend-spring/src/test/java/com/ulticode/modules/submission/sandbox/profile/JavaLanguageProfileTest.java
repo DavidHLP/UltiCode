@@ -92,9 +92,11 @@ class JavaLanguageProfileTest {
         assertThat(cmd.get(0)).isEqualTo("ulticode-sandbox:latest");
         assertThat(cmd.get(1)).isEqualTo("sh");
         assertThat(cmd.get(2)).isEqualTo("-c");
+        // The dispatch shell uses the absolute /job/Solution.java path so javac
+        // finds the source regardless of the image WORKDIR. Matches the M3 fix.
         assertThat(cmd.get(3))
                 .contains("mkdir -p /tmp/classes")
-                .contains("javac -cp /opt/harness/java -d /tmp/classes Solution.java")
+                .contains("javac -cp /opt/harness/java -d /tmp/classes /job/Solution.java")
                 .contains("java -Djava.security.manager=allow -cp /opt/harness/java:/tmp/classes Main /job/input.json");
     }
 

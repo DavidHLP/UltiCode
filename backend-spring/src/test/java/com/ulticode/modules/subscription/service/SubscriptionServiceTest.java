@@ -37,11 +37,23 @@ class SubscriptionServiceTest {
     @Mock
     private SubscriptionMapper subscriptionMapper;
 
+    @Mock
+    private java.time.Clock clock;
+
     @InjectMocks
     private SubscriptionServiceImpl subscriptionService;
 
     private static final String USER_ID = "test-user-id";
     private static final String SUBSCRIPTION_ID = "test-subscription-id";
+
+    @BeforeEach
+    void setUp() {
+        // Stub the Clock so LocalDateTime.now(clock) inside the service doesn't
+        // NPE on a fresh @Mock — the service compares expiresAt against
+        // LocalDateTime.now(clock) and stamps cancelledAt from it.
+        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+    }
 
     private Subscription createTestSubscription() {
         Subscription subscription = new Subscription();

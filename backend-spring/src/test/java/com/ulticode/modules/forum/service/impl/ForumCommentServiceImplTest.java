@@ -7,6 +7,7 @@ import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.user.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +55,14 @@ class ForumCommentServiceImplTest {
 
     @InjectMocks
     private ForumCommentServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        // Stub the Clock so LocalDateTime.now(clock) doesn't NPE on a fresh
+        // mock — the service reads editedAt via LocalDateTime.now(clock).
+        when(clock.instant()).thenReturn(java.time.Instant.now());
+        when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+    }
 
     @Test
     @DisplayName("updateComment returns VO with non-null editedAt after PATCH (regression)")

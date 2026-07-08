@@ -26,6 +26,9 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
+import java.security.Principal;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -92,6 +95,32 @@ class AdminProblemListControllerTest {
         return vo;
     }
 
+    /**
+     * Mock principal that resolves to the given user id. The controller
+     * endpoints call {@code principal.getName()} to extract the user id
+     * before delegating to the service. With {@code addFilters = false}
+     * there is no real SecurityContext, so we attach a stub principal
+     * directly to the request.
+     */
+    private Principal stubPrincipal(String userId) {
+        return new Principal() {
+            @Override
+            public String getName() {
+                return userId;
+            }
+        };
+    }
+
+    /**
+     * Shortcut to attach a {@link Principal} to a MockMvc request builder.
+     * Spring's {@code PrincipalArgumentResolver} reads the principal from
+     * the request, not from a security context, when no security filter
+     * chain is active.
+     */
+    private MockHttpServletRequestBuilder withPrincipal(MockHttpServletRequestBuilder builder, String userId) {
+        return builder.principal(stubPrincipal(userId));
+    }
+
     @Nested
     @DisplayName("PATCH /admin/problem-lists/{id}/basic-info")
     class UpdateBasicInfoTests {
@@ -107,7 +136,8 @@ class AdminProblemListControllerTest {
             dto.setName("Updated Name");
             dto.setDescription("Updated description");
 
-            mockMvc.perform(patch("/admin/problem-lists/list-1/basic-info")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/list-1/basic-info"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
@@ -137,7 +167,8 @@ class AdminProblemListControllerTest {
             dto.setName("Updated Name");
             dto.setDescription("Updated description");
 
-            mockMvc.perform(patch("/admin/problem-lists/missing-id/basic-info")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/missing-id/basic-info"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isNotFound());
@@ -159,7 +190,8 @@ class AdminProblemListControllerTest {
             dto.setIsPublic(false);
             dto.setIsFeatured(true);
 
-            mockMvc.perform(patch("/admin/problem-lists/list-1/visibility")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/list-1/visibility"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
@@ -176,7 +208,8 @@ class AdminProblemListControllerTest {
             UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
             dto.setIsPublic(true);
 
-            mockMvc.perform(patch("/admin/problem-lists/missing-id/visibility")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/missing-id/visibility"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isNotFound());
@@ -199,7 +232,8 @@ class AdminProblemListControllerTest {
             dto.setBannerTheme("red");
             dto.setBannerOrder(2);
 
-            mockMvc.perform(patch("/admin/problem-lists/list-1/banner")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/list-1/banner"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
@@ -216,7 +250,8 @@ class AdminProblemListControllerTest {
 
             String json = "{}";
 
-            mockMvc.perform(patch("/admin/problem-lists/list-1/banner")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/list-1/banner"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json))
                     .andExpect(status().isOk())
@@ -232,7 +267,8 @@ class AdminProblemListControllerTest {
             UpdateBannerDTO dto = new UpdateBannerDTO();
             dto.setBannerTag("Hot");
 
-            mockMvc.perform(patch("/admin/problem-lists/missing-id/banner")
+            mockMvc.perform(withPrincipal(
+                    patch("/admin/problem-lists/missing-id/banner"), "admin-001")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isNotFound());

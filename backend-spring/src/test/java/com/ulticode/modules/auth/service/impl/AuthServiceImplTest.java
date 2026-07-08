@@ -77,7 +77,10 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        org.mockito.MockitoAnnotations.openMocks(this);
+        // Note: do NOT call MockitoAnnotations.openMocks(this) here — it re-creates
+        // the @Mock fields and breaks the @InjectMocks wiring (the service holds
+        // references to the original mocks; the test's stubbings would then apply
+        // to fresh mocks that the service never sees).
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
     }

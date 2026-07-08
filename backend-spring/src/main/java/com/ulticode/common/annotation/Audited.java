@@ -18,12 +18,12 @@ import java.lang.annotation.Target;
 public @interface Audited {
 
     /**
-     * Audit action constant, e.g. {@code AuditActionUtil.CREATE_USER}.
+     * Audit action constant, e.g. {@code AuditVocabulary.CREATE_USER}.
      */
     String action();
 
     /**
-     * Entity type constant, e.g. {@code AuditActionUtil.ENTITY_USER}.
+     * Entity type constant, e.g. {@code AuditVocabulary.ENTITY_USER}.
      */
     String entityType();
 

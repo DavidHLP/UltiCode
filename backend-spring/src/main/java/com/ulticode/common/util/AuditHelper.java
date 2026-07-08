@@ -28,8 +28,8 @@ public class AuditHelper {
     /**
      * Log an audit event with the current authenticated user as performer.
      *
-     * @param action     audit action constant from {@link AuditActionUtil}
-     * @param entityType entity type constant from {@link AuditActionUtil}
+     * @param action     audit action constant from {@link AuditVocabulary}
+     * @param entityType entity type constant from {@link AuditVocabulary}
      * @param entityId   identifier of the affected entity
      * @param oldValues  previous state (may be null)
      * @param newValues  new state (may be null)

@@ -124,6 +124,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .claude/PRPs/
 .claude/memory/
 .claude/reviews/
+# codebase-memory-mcp local code graph index cache (regeneratable, ties to HEAD)
+.codebase-memory/
 # .claude/settings.json is COMMITTED (team-shared statusLine config).
 # .claude/settings.local.json holds per-user MCP / hooks / permissions and is
 # covered by the user-global gitignore, but we mirror the rule here for teams

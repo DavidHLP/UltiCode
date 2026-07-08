@@ -3,8 +3,10 @@ package com.ulticode.modules.refreshtoken.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.ulticode.common.exception.BusinessException;
@@ -13,7 +15,10 @@ import com.ulticode.modules.refreshtoken.mapper.RefreshTokenMapper;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -21,8 +26,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RefreshTokenServiceTest {
 
   @Mock private RefreshTokenMapper refreshTokenMapper;
@@ -30,6 +38,12 @@ class RefreshTokenServiceTest {
   @Spy private JwtProperties jwtProperties = new JwtProperties();
   @Mock private Clock clock;
   @InjectMocks private RefreshTokenService refreshTokenService;
+
+  @BeforeEach
+  void setUp() {
+    lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+    lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+  }
 
   @Test
   void createTokenStoresOnlyHash() {

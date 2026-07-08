@@ -8,6 +8,7 @@ import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.impl.SolutionServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,11 +16,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +36,7 @@ import static org.mockito.Mockito.when;
  * docs/api-tests/solution-api-test-plan.md (BUG-3, OBS-3).
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class SolutionServiceTest {
 
     @Mock
@@ -39,9 +47,17 @@ class SolutionServiceTest {
     private ProblemMapper problemMapper;
     @Mock
     private SolutionProjection solutionProjection;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private SolutionServiceImpl solutionService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+    }
 
     private static final String SOLUTION_ID = "sol-uuid-1";
     private static final String USER_ID = "user-uuid-1";

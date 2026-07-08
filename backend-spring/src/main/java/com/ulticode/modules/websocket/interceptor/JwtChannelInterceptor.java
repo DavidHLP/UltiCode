@@ -1,11 +1,11 @@
 package com.ulticode.modules.websocket.interceptor;
 
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.service.TokenBlacklistService;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
 import com.ulticode.modules.websocket.dto.SocketClientData;
+import com.ulticode.modules.websocket.port.TokenBlacklistPort;
 import com.ulticode.modules.websocket.util.TokenExtractor;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -36,17 +36,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private static final Logger log = LoggerFactory.getLogger(JwtChannelInterceptor.class);
 
   private final JwtUtils jwtUtils;
-  private final TokenBlacklistService tokenBlacklistService;
+  private final TokenBlacklistPort tokenBlacklistPort;
   private final UserService userService;
   private final TokenExtractor tokenExtractor;
 
   public JwtChannelInterceptor(
       JwtUtils jwtUtils,
-      TokenBlacklistService tokenBlacklistService,
+      TokenBlacklistPort tokenBlacklistPort,
       UserService userService,
       TokenExtractor tokenExtractor) {
     this.jwtUtils = jwtUtils;
-    this.tokenBlacklistService = tokenBlacklistService;
+    this.tokenBlacklistPort = tokenBlacklistPort;
     this.userService = userService;
     this.tokenExtractor = tokenExtractor;
   }
@@ -172,7 +172,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     String token = tokenOpt.get();
 
     // Check if token is blacklisted
-    if (tokenBlacklistService.isTokenBlacklisted(token)) {
+    if (tokenBlacklistPort.isBlacklisted(token)) {
       log.warn("WebSocket connection rejected: Token is blacklisted");
       throw new WebSocketAuthenticationException(
           ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked");

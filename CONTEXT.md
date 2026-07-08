@@ -50,7 +50,17 @@
   (dependency inversion). See [[ContestSubmissionPort]],
   `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`,
   `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
-  `ProblemDetailPort`.
+  `ProblemDetailPort`, `TokenBlacklistPort`.
+- **TokenBlacklistPort** — read-only revocation seam consulted by the
+  WebSocket authentication path before a STOMP CONNECT is accepted. Owned
+  by the websocket module (the consumer); the Redis adapter
+  (`RedisTokenBlacklistAdapter`) hides SHA-256 fingerprinting and the
+  `blacklist:token:<sha256>` key-prefix convention. The previous
+  `com.ulticode.common.service.TokenBlacklistService` fused the read path
+  with three unused write methods (dead code &mdash; runtime revocation is
+  owned by `RefreshTokenService`); the port deliberately exposes only the
+  read side. Fail-closed: storage errors propagate so revoked tokens can
+  never slip through on a Redis outage.
 - **AdminReadModel seam** — the running series of typed read ports the
   admin module owns to stop reaching across into submission / user /
   forum / solution mappers: `AdminSubmissionReadPort` (dashboard global),

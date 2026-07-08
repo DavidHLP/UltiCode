@@ -2,6 +2,7 @@ package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.common.system.SystemProbe;
+import com.ulticode.common.time.TimeSource;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -84,6 +85,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     private final RedisTemplate<String, Object> redisTemplate;
     private final MetricsCollector metricsCollector;
     private final SystemProbe systemProbe;
+    private final TimeSource timeSource;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;
@@ -284,11 +286,11 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * Probe MySQL with {@code SELECT 1} and report latency.
      */
     private SystemHealthVO.HealthCheck checkDatabase() {
-        long start = System.currentTimeMillis();
+        long start = timeSource.wallMillis();
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("SELECT 1");
-            long latency = System.currentTimeMillis() - start;
+            long latency = timeSource.wallMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
                     .service("database")
                     .status("healthy")
@@ -297,7 +299,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
                     .build();
         } catch (Exception e) {
             // broad catch: any JDBC failure surfaces as an unhealthy sub-check.
-            long latency = System.currentTimeMillis() - start;
+            long latency = timeSource.wallMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
                     .service("database")
                     .status("unhealthy")
@@ -311,12 +313,12 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * Probe Redis with {@code PING} and report latency / response class.
      */
     private SystemHealthVO.HealthCheck checkRedis() {
-        long start = System.currentTimeMillis();
+        long start = timeSource.wallMillis();
         try {
             String pong = redisTemplate.getConnectionFactory()
                     .getConnection()
                     .ping();
-            long latency = System.currentTimeMillis() - start;
+            long latency = timeSource.wallMillis() - start;
             if ("PONG".equalsIgnoreCase(pong)) {
                 return SystemHealthVO.HealthCheck.builder()
                         .service("redis")
@@ -334,7 +336,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
             }
         } catch (Exception e) {
             // broad catch: any Redis handshake failure is unhealthy.
-            long latency = System.currentTimeMillis() - start;
+            long latency = timeSource.wallMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
                     .service("redis")
                     .status("unhealthy")

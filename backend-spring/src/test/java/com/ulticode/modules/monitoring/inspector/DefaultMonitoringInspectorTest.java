@@ -2,6 +2,7 @@ package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
 import com.ulticode.common.system.SystemProbe;
+import com.ulticode.common.time.FakeTimeSource;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -75,6 +76,8 @@ class DefaultMonitoringInspectorTest {
     @Mock
     private SystemProbe systemProbe;
 
+    private FakeTimeSource fakeTime;
+
     @InjectMocks
     private DefaultMonitoringInspector monitoringInspector;
 
@@ -90,6 +93,12 @@ class DefaultMonitoringInspectorTest {
         lenient().when(systemProbe.availableProcessors()).thenReturn(4);
         lenient().when(systemProbe.processCpuLoad()).thenReturn(0.42);
         lenient().when(systemProbe.systemCpuLoad()).thenReturn(0.55);
+
+        // Pin TimeSource to a FakeTimeSource so health-probe latency is
+        // deterministic; the inspector was migrated to read wall time
+        // through the TimeSource seam in the architecture sweep.
+        fakeTime = new FakeTimeSource(1_700_000_000_000L, 0L);
+        ReflectionTestUtils.setField(monitoringInspector, "timeSource", fakeTime);
     }
 
     @Nested
@@ -464,6 +473,70 @@ class DefaultMonitoringInspectorTest {
             assertTrue(serviceNames.contains("database"));
             assertTrue(serviceNames.contains("redis"));
             assertTrue(serviceNames.contains("queues"));
+        }
+
+        @Test
+        @DisplayName("should compute health-check latency from the TimeSource seam (database probe)")
+        void shouldComputeLatencyFromTimeSourceForDatabase() throws Exception {
+            // Arrange - database probe will run for 42ms of fake wall time
+            fakeTime.pinWall(1_700_000_000_000L);
+            Connection mockConnection = mock(Connection.class);
+            Statement mockStatement = mock(Statement.class);
+            when(dataSource.getConnection()).thenReturn(mockConnection);
+            when(mockConnection.createStatement()).thenReturn(mockStatement);
+            org.mockito.Mockito.doAnswer(inv -> {
+                fakeTime.advance(42L);
+                return true;
+            }).when(mockStatement).execute(anyString());
+
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
+            when(redisConnection.ping()).thenReturn("PONG");
+            when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
+            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
+
+            // Act
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
+
+            // Assert
+            SystemHealthVO.HealthCheck dbCheck = result.getChecks().stream()
+                    .filter(c -> "database".equals(c.getService()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(dbCheck);
+            assertEquals(42L, dbCheck.getLatency(),
+                    "database latency must come from the TimeSource seam, not the wall clock");
+        }
+
+        @Test
+        @DisplayName("should compute health-check latency from the TimeSource seam (redis probe)")
+        void shouldComputeLatencyFromTimeSourceForRedis() throws Exception {
+            // Arrange - redis probe will run for 17ms of fake wall time
+            fakeTime.pinWall(1_700_000_000_000L);
+            Connection mockConnection = mock(Connection.class);
+            Statement mockStatement = mock(Statement.class);
+            when(dataSource.getConnection()).thenReturn(mockConnection);
+            when(mockConnection.createStatement()).thenReturn(mockStatement);
+            when(mockStatement.execute(anyString())).thenReturn(true);
+
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
+            org.mockito.Mockito.doAnswer(inv -> {
+                fakeTime.advance(17L);
+                return "PONG";
+            }).when(redisConnection).ping();
+            when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
+            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
+
+            // Act
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
+
+            // Assert
+            SystemHealthVO.HealthCheck redisCheck = result.getChecks().stream()
+                    .filter(c -> "redis".equals(c.getService()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(redisCheck);
+            assertEquals(17L, redisCheck.getLatency(),
+                    "redis latency must come from the TimeSource seam, not the wall clock");
         }
 
         @Test

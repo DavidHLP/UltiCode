@@ -89,6 +89,16 @@
   (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
   projections are for admin's own VO shape. See ADR-0011.
+- **TimeSource** — the read-only port that hides `System.currentTimeMillis()`
+  and `System.nanoTime()` behind a two-method interface
+  (`wallMillis()`, `monotonicNanos()`). Two adapters:
+  `SystemTimeSource` (prod `@Component`) and `FakeTimeSource` (test,
+  not a bean). Static utility call sites (`TraceIdUtil.current()`)
+  reach it through `TimeSourceHolder`, installed at startup by
+  `TimeConfig`. Complements the [[Clock Seam]] which covers
+  `LocalDateTime.now()`; wall millis + monotonic nanos were the two
+  remaining JVM-time primitives. See
+  [TimeSource Port](wiki/concepts/timesource-port.md).
 
 ## Design invariants
 
@@ -111,4 +121,8 @@
   extraction), ADR-0006 (problem detail port extraction), ADR-0007
   (admin user stats read port), ADR-0008 (admin comment read port),
   ADR-0009 (realtime push seam inversion — six consumer-owned ports +
-  `RealtimeService` collapse).
+  `RealtimeService` collapse), the Clock seam
+  ([Clock Seam](wiki/concepts/clock-seam.md)), the RateLimiter port
+  ([RateLimiter Port](wiki/concepts/ratelimiter-port.md)), and the
+  TimeSource port
+  ([TimeSource Port](wiki/concepts/timesource-port.md)).

@@ -1,5 +1,6 @@
 package com.ulticode.modules.websocket.notification;
 
+import com.ulticode.common.time.TimeSource;
 import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.websocket.config.WebSocketProperties;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
@@ -55,6 +56,7 @@ public class WebSocketContestRankingFlusher {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketProperties properties;
     private final ContestLiveRankingReadPort liveRankingReadPort;
+    private final TimeSource timeSource;
 
     /** Track last push time per contest for throttling. */
     private final Map<String, Long> lastRankingPushTime = new ConcurrentHashMap<>();
@@ -64,10 +66,12 @@ public class WebSocketContestRankingFlusher {
 
     public WebSocketContestRankingFlusher(SimpMessagingTemplate messagingTemplate,
                                           WebSocketProperties properties,
-                                          ContestLiveRankingReadPort liveRankingReadPort) {
+                                          ContestLiveRankingReadPort liveRankingReadPort,
+                                          TimeSource timeSource) {
         this.messagingTemplate = messagingTemplate;
         this.properties = properties;
         this.liveRankingReadPort = liveRankingReadPort;
+        this.timeSource = timeSource;
     }
 
     /**
@@ -92,7 +96,7 @@ public class WebSocketContestRankingFlusher {
 
         for (String contestId : dirty) {
             Long lastPush = lastRankingPushTime.get(contestId);
-            long elapsed = System.currentTimeMillis() - (lastPush != null ? lastPush : 0);
+            long elapsed = timeSource.wallMillis() - (lastPush != null ? lastPush : 0);
 
             if (elapsed >= RANKING_THROTTLE_MS) {
                 List<RankingItem> rankings = liveRankingReadPort.readLiveRanking(contestId, LIVE_RANKING_FETCH_LIMIT).stream()
@@ -106,7 +110,7 @@ public class WebSocketContestRankingFlusher {
                         ))
                         .collect(Collectors.toList());
                 emitRankingUpdate(contestId, rankings);
-                lastRankingPushTime.put(contestId, System.currentTimeMillis());
+                lastRankingPushTime.put(contestId, timeSource.wallMillis());
             } else {
                 // Re-mark as dirty for next flush cycle
                 pendingRankingUpdates.putIfAbsent(contestId, true);
@@ -130,7 +134,7 @@ public class WebSocketContestRankingFlusher {
      */
     @Scheduled(fixedRate = 60000)
     public void cleanupThrottleTracking() {
-        long cutoff = System.currentTimeMillis() - 60000; // 1 minute ago
+        long cutoff = timeSource.wallMillis() - 60000; // 1 minute ago
         lastRankingPushTime.entrySet().removeIf(entry -> entry.getValue() < cutoff);
         pendingRankingUpdates.entrySet().removeIf(entry -> {
             String contestId = entry.getKey();

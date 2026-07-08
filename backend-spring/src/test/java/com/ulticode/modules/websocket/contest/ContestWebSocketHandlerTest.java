@@ -3,6 +3,7 @@ package com.ulticode.modules.websocket.contest;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.ulticode.common.time.FakeTimeSource;
 import com.ulticode.modules.websocket.dto.ContestRoomResponse;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import java.util.HashMap;
@@ -26,11 +27,14 @@ class ContestWebSocketHandlerTest {
 
   @Mock private SimpMessageHeaderAccessor headerAccessor;
 
+  private FakeTimeSource fakeTime;
+
   private ContestWebSocketHandler handler;
 
   @BeforeEach
   void setUp() {
-    handler = new ContestWebSocketHandler(messagingTemplate, contestRoomManager);
+    fakeTime = new FakeTimeSource(1_700_000_000_000L, 0L);
+    handler = new ContestWebSocketHandler(messagingTemplate, contestRoomManager, fakeTime);
   }
 
   @Test

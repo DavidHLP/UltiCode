@@ -1,5 +1,6 @@
 package com.ulticode.common.metrics;
 
+import com.ulticode.common.time.TimeSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.Executor;
@@ -25,6 +26,10 @@ import java.util.Properties;
  * has no afterQuery hook). Targets the {@code Executor} level so
  * every query and update is timed exactly once.
  *
+ * <p>Time source: monotonic nanoseconds come from the {@link TimeSource}
+ * seam so tests can pin a deterministic cost instead of
+ * {@code Thread.sleep(80)}.
+ *
  * @author UltiCode
  * @since 1.0.0
  */
@@ -47,17 +52,18 @@ public class SqlTimingInterceptor implements Interceptor {
     private static final long NANOS_PER_MS = 1_000_000L;
 
     private final MetricsCollector metricsCollector;
+    private final TimeSource timeSource;
 
     @Value("${app.monitoring.slow-query-ms:500}")
     private long slowQueryMs;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        long startNs = System.nanoTime();
+        long startNs = timeSource.monotonicNanos();
         try {
             return invocation.proceed();
         } finally {
-            long costMs = (System.nanoTime() - startNs) / NANOS_PER_MS;
+            long costMs = (timeSource.monotonicNanos() - startNs) / NANOS_PER_MS;
             metricsCollector.incrementQuery();
             if (costMs > slowQueryMs) {
                 metricsCollector.incrementSlowQuery();

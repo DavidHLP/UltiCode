@@ -1,5 +1,8 @@
 package com.ulticode.common.ratelimiter;
 
+import com.ulticode.common.time.TimeSource;
+import com.ulticode.common.time.TimeSourceHolder;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -18,14 +21,34 @@ import java.util.concurrent.atomic.AtomicLong;
  * Lazy eviction on access — expired buckets are replaced, never
  * actively reaped, so the map may grow in long-running tests; callers
  * that care should construct a fresh instance per test.
+ *
+ * <p>Time source: the wall clock is read through the {@link TimeSource}
+ * seam so tests can pin a deterministic {@code now} and assert on the
+ * bucket's expiry without sleeping. Defaults to
+ * {@link TimeSourceHolder#get()} when no source is injected; tests that
+ * need determinism should construct with a {@code FakeTimeSource}.
  */
 public class InMemoryRateLimiter implements RateLimiter {
 
+    private final TimeSource timeSource;
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+
+    /** Default constructor — uses the global {@link TimeSourceHolder}. */
+    public InMemoryRateLimiter() {
+        this(TimeSourceHolder.get());
+    }
+
+    /**
+     * Construct with an explicit {@link TimeSource}. Tests inject a
+     * {@code FakeTimeSource} to pin the wall clock.
+     */
+    public InMemoryRateLimiter(TimeSource timeSource) {
+        this.timeSource = timeSource;
+    }
 
     @Override
     public synchronized AcquisitionVerdict tryAcquire(String bucket, int limit, int periodSeconds) {
-        long now = System.currentTimeMillis();
+        long now = timeSource.wallMillis();
         long windowMillis = periodSeconds * 1000L;
 
         Bucket current = buckets.get(bucket);

@@ -1,10 +1,10 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "52dcbac5a97ced6dce4580db6dd13dbba2b3ee48",
+  "generated_with_head": "8fb08163d958b1ee2aa901c7d5e4ee7707952b95",
   "stats": {
-    "pages": 68,
+    "pages": 71,
     "by_type": {
-      "concept": 27,
+      "concept": 30,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -51,11 +51,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "05d3c04a0773a222a7754817c8e251b25914f95ecee37e41dd5d1140d6d954a2"
     },
@@ -66,11 +66,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "704cd35ca2cdb241fc4cbef7867aeac4adfb15c8d4ac7c67bf4f6a736001be1e"
     },
@@ -81,11 +81,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "14ab20541d9275f6273b4ce0f46fc9b08970d71aeb9418dbfcbc21abcf91631c"
     },
@@ -96,11 +96,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "e160473e27e7d77e7c5a9bade3ef125d0f258d90e1514ac332eb945e04dfad86"
     },
@@ -111,11 +111,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "183660f55c640fc2b18d58217d89f73d71f2f548285263d2081d3a6695d843ca"
     },
@@ -126,11 +126,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "694c4100c0af4162ac976d4c4ddf922c190d581d98d29f2408b56da8e7856aa0"
     },
@@ -141,11 +141,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "a52282a9a9f16620619111c8aca660e805843631073cef76b2953cdc64090ff1"
     },
@@ -156,11 +156,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "4dfbe397ad64c3e8722030a67171bff83d6a682d10524729ff1f6df451933bbd"
     },
@@ -171,11 +171,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "1063b289c082aed5c12fbd44a46ebbf53e83d73acf30353a7227629db5b8e291"
     },
@@ -186,11 +186,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "205d4d7859f929f1348de77145d4ec17a19cf82f9eb9cef93a47f3d86f1939b7"
     },
@@ -201,11 +201,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
+        "author": "DavidHLP",
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "a6a376e41b2f14e948ed8a548faadd23aac5ac4ce18dddaecfaf5e059b478570"
     },
@@ -223,6 +223,21 @@
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
       "body_sha256": "9ae3c99647a6fe4add5d5b00b590c05c81c7c57a1c62b42032178872052fe6fa"
+    },
+    {
+      "path": "wiki/concepts/clock-seam.md",
+      "type": "concept",
+      "title": "Clock Seam (Time Abstraction)",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": "261424c3e7b1385273e0a730b86dee6517c7b75c",
+        "short": "261424c3e",
+        "committed_at": "2026-07-07T21:56:55+08:00",
+        "author": "DavidHLP",
+        "subject": "docs(adr): record Clock seam + RateLimiter port architecture decisions"
+      },
+      "body_sha256": "0247bd684737a661ae42698a719209f27445037e946ee24fdd8539e84cb9f167"
     },
     {
       "path": "wiki/concepts/csrf-mechanism.md",
@@ -276,13 +291,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "02abdf145fdef245483f7b49a85b523e6032f2091c6c0e6517ed066902f52f4a"
+      "body_sha256": "d684e2d3e9c94120f65195cb6ff58461709354348e93af5f1f0a7922e0590ea3"
     },
     {
       "path": "wiki/concepts/notification-idempotency.md",
@@ -291,11 +306,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "aadbe5af63b0bfd6d1bd3beef94367798c4da8413bf56db061912f35d50ed44e"
     },
@@ -328,6 +343,21 @@
         "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
       },
       "body_sha256": "d7710ca04bd1b3ecce10312c9359c62b8bec967b5033ad6b7864003937bd68f0"
+    },
+    {
+      "path": "wiki/concepts/ratelimiter-port.md",
+      "type": "concept",
+      "title": "RateLimiter Port (Deep Module Extraction)",
+      "status": "living",
+      "frontmatter_updated": "2026-07-07",
+      "last_commit": {
+        "sha": "261424c3e7b1385273e0a730b86dee6517c7b75c",
+        "short": "261424c3e",
+        "committed_at": "2026-07-07T21:56:55+08:00",
+        "author": "DavidHLP",
+        "subject": "docs(adr): record Clock seam + RateLimiter port architecture decisions"
+      },
+      "body_sha256": "8690d4c21a4fb76a7e698f50982dc473bfde54573c522545d795c9b61bea3fee"
     },
     {
       "path": "wiki/concepts/refresh-token-hash-only-storage.md",
@@ -411,13 +441,28 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "3727f27cf904007406a0ba78c77fba15dcb45c3da2818fc2b0c991a4d9095557"
+    },
+    {
+      "path": "wiki/concepts/timesource-port.md",
+      "type": "concept",
+      "title": "TimeSource Port (Wall + Monotonic Time Seam)",
+      "status": "living",
+      "frontmatter_updated": "2026-07-08",
+      "last_commit": {
+        "sha": null,
+        "short": null,
+        "committed_at": null,
+        "author": null,
+        "subject": null
+      },
+      "body_sha256": "b07b021fc851f38a7f0f61d4336d1a6abdb827a0782a09f56dfb1044d39054f4"
     },
     {
       "path": "wiki/concepts/virtual-contest.md",
@@ -501,13 +546,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "690d246d84b39289963af12c7ef97b4a7fa3f709238e24a1bba4f825f2077b23"
+      "body_sha256": "5e4741648d1bdb060c0225ed990043ee86420a76ffec4e12a2cd957f58448ac9"
     },
     {
       "path": "wiki/entities/backup.md",
@@ -591,13 +636,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "67155430ffef408a2dcc26ced2fa0a7fa1f77b3fa5990e9c4b2def9f615eaad7"
+      "body_sha256": "2b7ce9d7957d5cd5bf7e05802dfdee998105e6bfd7e73a73727d89ea8fed7a19"
     },
     {
       "path": "wiki/entities/interactions.md",
@@ -666,11 +711,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "694ab4caffa2beeb65027611ec9d5b068168a9afc8ab967c110487d7e888d7ea"
     },
@@ -681,13 +726,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "7bdb109a3f2dffa501599a68e2af39d07e11aa74bfe273be91f4771bc0908e16"
+      "body_sha256": "cdcf78b71080b09a7b32ad07eca12e88887885423d7fa8076264518454aec337"
     },
     {
       "path": "wiki/entities/problem.md",
@@ -846,11 +891,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "b457e4ec1d2883527373a8c7ab483147fa725d13",
-        "short": "b457e4ec1",
-        "committed_at": "2026-07-07T11:57:30+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(docs): merge docs/ into wiki/, retire the directory"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "7c2720e715f8a4eac6eb67c58a451212e24e7fb6445071138f3ee28bb546dfe1"
     },
@@ -861,11 +906,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "b457e4ec1d2883527373a8c7ab483147fa725d13",
-        "short": "b457e4ec1",
-        "committed_at": "2026-07-07T11:57:30+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(docs): merge docs/ into wiki/, retire the directory"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "563d944f9661774139af637d41f88b4603a656ad80014020742d2a60ebb27bf1"
     },
@@ -891,13 +936,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "de620b39303095d6029b2ff8dd48a84ca3b8ab1a5ae545f8d966bc61ec7e1e2c"
+      "body_sha256": "ca9a78ee50752710687bec46102371ea5d7708a60e3d7522867fadf44c55cbb9"
     },
     {
       "path": "wiki/overview/backend-modules-overview.md",
@@ -906,13 +951,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
+        "short": "4cf891f7e",
+        "committed_at": "2026-07-07T18:58:43+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "bd2fefd83c2ad158ca44eb4e0d312df67c4964e1debbba72829d213aa8ddd1ce"
+      "body_sha256": "ae60d15e7c6259bb54683336615eada94dadbf1d43de79d14afbfa604b2bcb45"
     },
     {
       "path": "wiki/overview/database-schema-overview.md",
@@ -951,11 +996,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
+        "short": "41451a5da",
+        "committed_at": "2026-07-07T18:08:59+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
       "body_sha256": "ca87cae03f54222b7a922d4b51f867da3f49e0b56488a4689a62a3d272a53fe2"
     },

@@ -1,5 +1,7 @@
 package com.ulticode.common.util;
 
+import com.ulticode.common.time.TimeSourceHolder;
+
 /**
  * Generates request-scoped trace IDs in the project's standard {@code t-<epochMillis>} format.
  *
@@ -14,6 +16,12 @@ package com.ulticode.common.util;
  *
  * <p>Centralizing the format here lets us change the trace ID scheme in one place
  * if/when the project migrates to a real distributed tracing system.</p>
+ *
+ * <p>The wall-millisecond call goes through {@link TimeSourceHolder} so the
+ * production {@code SystemTimeSource} (installed at startup) is the
+ * single producer; tests that need a pinned millis can install a
+ * {@code FakeTimeSource} via {@code TimeSourceHolder.install(...)} for
+ * the rare case where a deterministic trace id matters.
  */
 public final class TraceIdUtil {
 
@@ -29,6 +37,6 @@ public final class TraceIdUtil {
      * @return a string of the form {@code t-1718000000000}
      */
     public static String current() {
-        return PREFIX + System.currentTimeMillis();
+        return PREFIX + TimeSourceHolder.get().wallMillis();
     }
 }

@@ -1,5 +1,6 @@
 package com.ulticode.common.metrics;
 
+import com.ulticode.common.time.FakeTimeSource;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.plugin.Invocation;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,13 +20,19 @@ import static org.mockito.Mockito.when;
  */
 class SqlTimingInterceptorTest {
 
+    private static final long SLOW_THRESHOLD_NANOS = 50L * 1_000_000L;
+    private static final long FAST_NANOS = 1L * 1_000_000L;
+    private static final long SLOW_NANOS = 80L * 1_000_000L;
+
     private MetricsCollector metricsCollector;
+    private FakeTimeSource fakeTime;
     private SqlTimingInterceptor interceptor;
 
     @BeforeEach
     void setUp() {
         metricsCollector = new MetricsCollector();
-        interceptor = new SqlTimingInterceptor(metricsCollector);
+        fakeTime = new FakeTimeSource();
+        interceptor = new SqlTimingInterceptor(metricsCollector, fakeTime);
         // Inject the @Value field; tests run without Spring context.
         ReflectionTestUtils.setField(interceptor, "slowQueryMs", 50L);
     }
@@ -34,7 +41,11 @@ class SqlTimingInterceptorTest {
     @DisplayName("fast query (under threshold) increments query count only")
     void fastQueryIncrementsQueryCount() throws Throwable {
         Invocation invocation = mock(Invocation.class);
-        doAnswer(inv -> "ok").when(invocation).proceed();
+        fakeTime.pinMonotonic(0L);
+        doAnswer(inv -> {
+            fakeTime.advanceNanos(FAST_NANOS);
+            return "ok";
+        }).when(invocation).proceed();
 
         Object result = interceptor.intercept(invocation);
 
@@ -47,9 +58,9 @@ class SqlTimingInterceptorTest {
     @DisplayName("slow query (over threshold) increments both counters")
     void slowQueryIncrementsBothCounters() throws Throwable {
         Invocation invocation = mock(Invocation.class);
+        fakeTime.pinMonotonic(0L);
         doAnswer(inv -> {
-            // 80ms sleep > 50ms threshold
-            Thread.sleep(80);
+            fakeTime.advanceNanos(SLOW_NANOS);
             return "ok";
         }).when(invocation).proceed();
 
@@ -63,7 +74,9 @@ class SqlTimingInterceptorTest {
     @DisplayName("failed query still increments query count (caller is informed via exception)")
     void failedQueryStillIncrementsQueryCount() throws Throwable {
         Invocation invocation = mock(Invocation.class);
+        fakeTime.pinMonotonic(0L);
         doAnswer(inv -> {
+            fakeTime.advanceNanos(FAST_NANOS);
             throw new RuntimeException("SQL boom");
         }).when(invocation).proceed();
 
@@ -84,6 +97,7 @@ class SqlTimingInterceptorTest {
     @Test
     @DisplayName("multiple intercept calls accumulate correctly")
     void multipleInterceptsAccumulate() throws Throwable {
+        fakeTime.pinMonotonic(0L);
         for (int i = 0; i < 5; i++) {
             final int captured = i;
             Invocation inv = mock(Invocation.class);

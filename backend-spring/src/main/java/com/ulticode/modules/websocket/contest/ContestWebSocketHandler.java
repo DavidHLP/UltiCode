@@ -1,5 +1,6 @@
 package com.ulticode.modules.websocket.contest;
 
+import com.ulticode.common.time.TimeSource;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.dto.ContestRoomResponse;
 import com.ulticode.modules.websocket.dto.SocketClientData;
@@ -35,12 +36,15 @@ public class ContestWebSocketHandler {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final ContestRoomManager contestRoomManager;
+  private final TimeSource timeSource;
 
   public ContestWebSocketHandler(
       SimpMessagingTemplate messagingTemplate,
-      ContestRoomManager contestRoomManager) {
+      ContestRoomManager contestRoomManager,
+      TimeSource timeSource) {
     this.messagingTemplate = messagingTemplate;
     this.contestRoomManager = contestRoomManager;
+    this.timeSource = timeSource;
   }
 
   /**
@@ -112,7 +116,7 @@ public class ContestWebSocketHandler {
   @MessageMapping(WebSocketConstants.APP_PING)
   @SendToUser(WebSocketConstants.USER_QUEUE_PONG)
   public PongResponse handlePing(SimpMessageHeaderAccessor headerAccessor) {
-    return new PongResponse(System.currentTimeMillis());
+    return new PongResponse(timeSource.wallMillis());
   }
 
   /**

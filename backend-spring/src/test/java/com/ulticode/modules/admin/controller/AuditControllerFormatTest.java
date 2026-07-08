@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AuditController.
@@ -82,6 +83,8 @@ class AuditControllerFormatTest {
     private CorsProperties corsProperties;
     @MockBean
     private StringRedisTemplate stringRedisTemplate;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     @Nested
     @DisplayName("GET /admin/audit/export with unsupported format")

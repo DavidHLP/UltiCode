@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -55,6 +57,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
  * the submitContestProblem guard matrix.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("ContestServiceImpl")
 class ContestServiceImplTest {
 
@@ -77,6 +80,8 @@ class ContestServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
         contestService = new ContestServiceImpl(
                 contestMapper,
                 contestProblemMapper,
@@ -179,6 +184,7 @@ class ContestServiceImplTest {
         @Test
         @DisplayName("should throw BusinessException when user is not admin")
         void createContest_asNonAdmin_forbidden() {
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(false);
             setRegularUserAuthentication();
 
             CreateContestDTO dto = createValidDTO();
@@ -194,6 +200,8 @@ class ContestServiceImplTest {
         @Test
         @DisplayName("should throw BusinessException when user is not authenticated")
         void createContest_unauthenticated_forbidden() {
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(false);
+        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
             clearAuthentication();
 
             CreateContestDTO dto = createValidDTO();

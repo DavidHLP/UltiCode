@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AdminProblemListController.
@@ -80,6 +81,8 @@ class AdminProblemListControllerTest {
     private CorsProperties corsProperties;
     @MockBean
     private StringRedisTemplate stringRedisTemplate;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     private ProblemListSummaryVO createSummaryVO() {
         ProblemListSummaryVO vo = new ProblemListSummaryVO();

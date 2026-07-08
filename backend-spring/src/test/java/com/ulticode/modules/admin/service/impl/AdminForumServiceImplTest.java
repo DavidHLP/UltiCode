@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -28,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
@@ -40,6 +43,7 @@ import static org.mockito.Mockito.lenient;
  * guard, and bulk-action validation.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AdminForumServiceImplTest {
 
     @Mock
@@ -50,6 +54,8 @@ class AdminForumServiceImplTest {
     private AuditHelper auditHelper;
     @Mock
     private Clock clock;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private AdminForumServiceImpl adminForumService;

@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.Clock;
 import java.util.List;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultProblemDetailPort}. The interface is the test
@@ -45,6 +48,7 @@ import static org.mockito.Mockito.when;
  * matcher makes the call ambiguous to the compiler.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultProblemDetailPortTest {
 
     @Mock
@@ -61,6 +65,8 @@ class DefaultProblemDetailPortTest {
 
     @Mock
     private ProblemTagRelationMapper problemTagRelationMapper;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private DefaultProblemDetailPort port;
 

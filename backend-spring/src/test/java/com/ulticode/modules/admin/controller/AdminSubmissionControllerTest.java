@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AdminSubmissionController.
@@ -88,6 +89,8 @@ class AdminSubmissionControllerTest {
     private CorsProperties corsProperties;
     @MockBean
     private StringRedisTemplate stringRedisTemplate;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     // ------------------------------------------------------------------
     // getStatuses — derived from SubmissionStatus enum (11 entries)

@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 @WebMvcTest(
         controllers = {ContestSubmissionBridgeController.class, ContestCatalogController.class,
@@ -46,6 +47,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("ContestController public routes")
 class ContestPublicControllerTest {
+    @org.junit.jupiter.api.BeforeEach
+    void stubCurrentUser() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("user-1");
+        when(currentUserProvider.isAuthenticated()).thenReturn(true);
+    }
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -70,6 +77,8 @@ class ContestPublicControllerTest {
 
     @MockBean
     private JwtProperties jwtProperties;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     private Contest contest() {
         Contest contest = new Contest();

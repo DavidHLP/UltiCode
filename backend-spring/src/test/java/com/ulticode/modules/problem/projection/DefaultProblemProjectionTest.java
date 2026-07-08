@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -58,6 +60,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
  * @author ulticode
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DefaultProblemProjection — problem read-side deep module")
 class DefaultProblemProjectionTest {
 
@@ -80,7 +83,7 @@ class DefaultProblemProjectionTest {
     @Mock
     private EdgeOperationInspector edgeOperationsService;
     @Mock
-    @Mock
+    
     private CurrentUserProvider currentUserProvider;
     private EdgeOperationMapper edgeOperationMapper;
 

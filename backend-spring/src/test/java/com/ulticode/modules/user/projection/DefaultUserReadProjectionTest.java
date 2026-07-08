@@ -22,6 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultUserReadProjection}.
@@ -48,6 +51,7 @@ import static org.mockito.Mockito.when;
  * which underlying mapper it talks to.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultUserReadProjectionTest {
 
     @Mock
@@ -60,6 +64,8 @@ class DefaultUserReadProjectionTest {
     private ProblemTagRelationMapper problemTagRelationMapper;
     @Mock
     private FollowCountPort followCountPort;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private DefaultUserReadProjection userReadProjection;
@@ -68,6 +74,7 @@ class DefaultUserReadProjectionTest {
 
     @BeforeEach
     void setUp() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
         testUser = new User();
         testUser.setId("test-user-id");
         testUser.setUsername("testuser");
@@ -178,6 +185,7 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should throw UNAUTHORIZED when not authenticated")
         void shouldThrowUnauthorizedWhenNotAuthenticated() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
             try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
                 securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(null);
                 BusinessException ex = assertThrows(

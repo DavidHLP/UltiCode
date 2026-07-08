@@ -1,5 +1,6 @@
 package com.ulticode.modules.notification.mapper;
 
+import org.mockito.Mock;
 import com.ulticode.modules.notification.entity.Notification;
 import org.apache.ibatis.annotations.Insert;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Compile-time + reflection regression guard for
@@ -31,6 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @DisplayName("NotificationMapper#batchInsert typeHandler guard")
 class NotificationMapperBatchInsertTest {
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
  @Test
  @DisplayName("batchInsert declares JacksonTypeHandler for #{item.metadata}")

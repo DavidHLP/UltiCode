@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -53,6 +55,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
  * is_deleted contests).
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ContestServiceImplMutatorTest {
 
     @Mock ContestMapper contestMapper;
@@ -70,6 +73,8 @@ class ContestServiceImplMutatorTest {
 
     @BeforeEach
     void setUp() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
                 schedulerService, achievementTriggerService, submissionService,

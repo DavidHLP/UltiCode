@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for ContestController.
@@ -48,6 +49,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("AdminContestController")
 class ContestControllerTest {
+    @org.junit.jupiter.api.BeforeEach
+    void stubCurrentUser() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
+        when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
+        when(currentUserProvider.hasRole("ADMIN")).thenReturn(true);
+        when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
+    }
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -69,6 +78,8 @@ class ContestControllerTest {
 
     @MockBean
     private JwtProperties jwtProperties;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     private CreateContestDTO createValidDTO() {
         CreateContestDTO dto = new CreateContestDTO();
@@ -211,6 +222,7 @@ class ContestControllerTest {
         @Test
         @DisplayName("should return 401 when not authenticated")
         void createContest_unauthenticated() throws Exception {
+            when(currentUserProvider.getCurrentUserId()).thenReturn(null);
             CreateContestDTO dto = createValidDTO();
 
             mockMvc.perform(post("/admin/contest")

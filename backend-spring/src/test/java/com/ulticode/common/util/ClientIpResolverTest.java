@@ -1,5 +1,6 @@
 package com.ulticode.common.util;
 
+import org.mockito.Mock;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * ClientIpResolver unit tests.
@@ -23,6 +25,9 @@ import static org.mockito.Mockito.when;
  */
 @DisplayName("ClientIpResolver")
 class ClientIpResolverTest {
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private ClientIpResolver resolver;
 

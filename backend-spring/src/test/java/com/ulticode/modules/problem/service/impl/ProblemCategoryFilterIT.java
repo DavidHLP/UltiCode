@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Regression guard for the problem category filter emitted by

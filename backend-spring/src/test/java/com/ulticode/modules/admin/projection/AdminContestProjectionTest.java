@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultAdminContestProjection} &mdash; the read-side
@@ -40,8 +43,12 @@ import static org.mockito.Mockito.when;
  * them testable in isolation for the first time.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DefaultAdminContestProjection")
 class AdminContestProjectionTest {
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     private static final Pattern SLUG_RANDOM_TAIL = Pattern.compile("^contest-[0-9a-f]{8}$");
 

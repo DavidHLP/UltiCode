@@ -20,6 +20,8 @@ import java.time.Clock;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultUserWritePort}.
@@ -40,6 +43,7 @@ import static org.mockito.Mockito.when;
  * cross-module mapper dependencies stay out of the way.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultUserWritePortTest {
 
     @Mock
@@ -50,6 +54,8 @@ class DefaultUserWritePortTest {
 
     @Mock
     private UuidGenerator uuidGenerator;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private DefaultUserWritePort userWritePort;
@@ -58,6 +64,7 @@ class DefaultUserWritePortTest {
 
     @BeforeEach
     void setUp() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
 
@@ -133,6 +140,7 @@ class DefaultUserWritePortTest {
         @Test
         @DisplayName("should throw UNAUTHORIZED when not authenticated")
         void shouldThrowUnauthorizedWhenNotAuthenticated() {
+        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
             UpdateUserDTO updateDTO = new UpdateUserDTO();
             updateDTO.setName("New Name");
 

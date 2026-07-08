@@ -26,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for the read-side projection lifted out of {@code SolutionServiceImpl}: entity-to-VO
@@ -44,6 +47,7 @@ import static org.mockito.Mockito.when;
  * {@link DefaultSolutionProjection#findByProblemId}.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultSolutionProjectionTest {
 
     @Mock
@@ -62,6 +66,8 @@ class DefaultSolutionProjectionTest {
     private UserAchievementMapper userAchievementMapper;
     @Mock
     private AchievementMapper achievementMapper;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private DefaultSolutionProjection projection;

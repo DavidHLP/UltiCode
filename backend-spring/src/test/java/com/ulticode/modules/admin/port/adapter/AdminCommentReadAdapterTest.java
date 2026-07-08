@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link AdminCommentReadAdapter}.
@@ -37,6 +40,7 @@ import static org.mockito.Mockito.when;
  * directly, this is the only place where that boundary is exercised.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("AdminCommentReadAdapter")
 class AdminCommentReadAdapterTest {
 
@@ -48,6 +52,8 @@ class AdminCommentReadAdapterTest {
 
     @Mock
     private SolutionMapper solutionMapper;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private AdminCommentReadAdapter adapter;

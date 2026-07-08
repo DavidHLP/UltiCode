@@ -34,6 +34,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Smoke / guard tests for {@link AdminSolutionServiceImpl}.
@@ -55,6 +56,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AdminSolutionServiceImplTest {
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @Mock private SolutionMapper solutionMapper;
     @Mock private ProblemMapper problemMapper;

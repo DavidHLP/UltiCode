@@ -57,7 +57,7 @@ class PrivilegedControllerAuthorizationTest {
   @Test
   @WithMockUser(roles = "USER")
   void ordinaryUserCannotReadAdminChartStats() {
-    assertThatThrownBy(() -> dashboardController.loadChartStats("users", "day", 30))
+    assertThatThrownBy(() -> dashboardController.getChartStats("users", "day", 30))
         .isInstanceOf(AccessDeniedException.class);
   }
 
@@ -67,7 +67,7 @@ class PrivilegedControllerAuthorizationTest {
   @WithMockUser(roles = "ADMIN")
   void administratorCanReadChartStatsWithAnyAllowedMetric(String metric) {
     when(dashboardService.loadChartStats(metric, "day", 7)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.loadChartStats(metric, "day", 7))
+    assertThatCode(() -> dashboardController.getChartStats(metric, "day", 7))
         .doesNotThrowAnyException();
   }
 
@@ -81,7 +81,7 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(strings = {"hack", "USER", "users;DROP TABLE", "<script>"})
   @WithMockUser(roles = "ADMIN")
   void invalidMetricRejected(String metric) {
-    assertThatThrownBy(() -> dashboardController.loadChartStats(metric, "day", 7))
+    assertThatThrownBy(() -> dashboardController.getChartStats(metric, "day", 7))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
@@ -89,7 +89,7 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(strings = {"", "minute", "DAY", "week;"})
   @WithMockUser(roles = "ADMIN")
   void invalidPeriodRejected(String period) {
-    assertThatThrownBy(() -> dashboardController.loadChartStats("users", period, 7))
+    assertThatThrownBy(() -> dashboardController.getChartStats("users", period, 7))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
@@ -97,7 +97,7 @@ class PrivilegedControllerAuthorizationTest {
   @ValueSource(ints = {0, -1, -100, 366, 9999})
   @WithMockUser(roles = "ADMIN")
   void outOfRangeDaysRejected(int days) {
-    assertThatThrownBy(() -> dashboardController.loadChartStats("users", "day", days))
+    assertThatThrownBy(() -> dashboardController.getChartStats("users", "day", days))
         .isInstanceOf(ConstraintViolationException.class);
   }
 
@@ -106,9 +106,9 @@ class PrivilegedControllerAuthorizationTest {
   void daysAtBoundariesAccepted() {
     when(dashboardService.loadChartStats("users", "day", 1)).thenReturn(new ChartStatsVO());
     when(dashboardService.loadChartStats("users", "day", 365)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.loadChartStats("users", "day", 1))
+    assertThatCode(() -> dashboardController.getChartStats("users", "day", 1))
         .doesNotThrowAnyException();
-    assertThatCode(() -> dashboardController.loadChartStats("users", "day", 365))
+    assertThatCode(() -> dashboardController.getChartStats("users", "day", 365))
         .doesNotThrowAnyException();
   }
 
@@ -116,7 +116,7 @@ class PrivilegedControllerAuthorizationTest {
   @WithMockUser(roles = "ADMIN")
   void nullDaysAccepted() {
     when(dashboardService.loadChartStats("users", "day", null)).thenReturn(new ChartStatsVO());
-    assertThatCode(() -> dashboardController.loadChartStats("users", "day", null))
+    assertThatCode(() -> dashboardController.getChartStats("users", "day", null))
         .doesNotThrowAnyException();
   }
 

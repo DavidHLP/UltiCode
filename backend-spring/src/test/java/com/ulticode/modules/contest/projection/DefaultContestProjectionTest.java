@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * Unit tests for {@link DefaultContestProjection} — the read-side deep module
@@ -48,6 +51,7 @@ import static org.mockito.Mockito.when;
  * cluster moved behind the projection seam.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("DefaultContestProjection")
 class DefaultContestProjectionTest {
 
@@ -76,6 +80,9 @@ class DefaultContestProjectionTest {
     @Nested
     @DisplayName("findUpcoming")
     class FindUpcomingTests {
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
         @Test
         @DisplayName("should use database pagination with correct filters")

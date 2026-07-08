@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
  * @WebMvcTest for AdminSettingsController.
@@ -68,6 +69,8 @@ class AdminSettingsControllerTest {
 
     @MockBean
     private SystemSettingsService service;
+    @MockBean
+    private CurrentUserProvider currentUserProvider;
 
     // SecurityConfig dependencies (excluded by @WebMvcTest)
     @MockBean private JwtTokenProvider jwtTokenProvider;

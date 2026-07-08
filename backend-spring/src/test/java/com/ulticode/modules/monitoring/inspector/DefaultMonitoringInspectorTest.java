@@ -1,6 +1,7 @@
 package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
+import com.ulticode.common.system.SystemProbe;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -71,6 +72,9 @@ class DefaultMonitoringInspectorTest {
     @Mock
     private MetricsCollector metricsCollector;
 
+    @Mock
+    private SystemProbe systemProbe;
+
     @InjectMocks
     private DefaultMonitoringInspector monitoringInspector;
 
@@ -79,6 +83,13 @@ class DefaultMonitoringInspectorTest {
         ReflectionTestUtils.setField(monitoringInspector, "applicationName", "UltiCode");
         ReflectionTestUtils.setField(monitoringInspector, "applicationVersion", "1.0.0");
         ReflectionTestUtils.setField(monitoringInspector, "activeProfile", "test");
+
+        // Pin SystemProbe to deterministic values so the resource-usage
+        // assertions (availableProcessors > 0) hold regardless of the
+        // host JVM the test runs on.
+        lenient().when(systemProbe.availableProcessors()).thenReturn(4);
+        lenient().when(systemProbe.processCpuLoad()).thenReturn(0.42);
+        lenient().when(systemProbe.systemCpuLoad()).thenReturn(0.55);
     }
 
     @Nested
@@ -161,6 +172,35 @@ class DefaultMonitoringInspectorTest {
             // Assert
             assertNotNull(result.getThreadCount());
             assertTrue(result.getThreadCount() > 0);
+        }
+
+        @Test
+        @DisplayName("should pull processor count from the SystemProbe seam")
+        void shouldPullProcessorCountFromSystemProbe() {
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
+
+            assertEquals(4, result.getCpu().getAvailableProcessors());
+        }
+
+        @Test
+        @DisplayName("should pull CPU loads from the SystemProbe seam")
+        void shouldPullCpuLoadsFromSystemProbe() {
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
+
+            assertEquals(0.42, result.getCpu().getProcessCpuLoad());
+            assertEquals(0.55, result.getCpu().getSystemCpuLoad());
+        }
+
+        @Test
+        @DisplayName("should render -1.0 when SystemProbe reports CPU unavailable")
+        void shouldRenderMinusOneWhenSystemProbeCpuUnavailable() {
+            when(systemProbe.processCpuLoad()).thenReturn(-1.0);
+            when(systemProbe.systemCpuLoad()).thenReturn(-1.0);
+
+            ResourceUsageVO result = monitoringInspector.getResourceUsage();
+
+            assertEquals(-1.0, result.getCpu().getProcessCpuLoad());
+            assertEquals(-1.0, result.getCpu().getSystemCpuLoad());
         }
     }
 

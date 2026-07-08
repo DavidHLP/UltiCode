@@ -1,6 +1,7 @@
 package com.ulticode.modules.monitoring.inspector;
 
 import com.ulticode.common.metrics.MetricsCollector;
+import com.ulticode.common.system.SystemProbe;
 import com.ulticode.modules.monitoring.dto.DatabaseStatsVO;
 import com.ulticode.modules.monitoring.dto.QueueStatsVO;
 import com.ulticode.modules.monitoring.dto.RedisStatsVO;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
-import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
 import java.net.InetAddress;
@@ -83,6 +83,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     private final RedisConnectionFactory redisConnectionFactory;
     private final RedisTemplate<String, Object> redisTemplate;
     private final MetricsCollector metricsCollector;
+    private final SystemProbe systemProbe;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;
@@ -128,28 +129,6 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
         long heapMax = memoryMXBean.getHeapMemoryUsage().getMax();
         long nonHeapUsed = memoryMXBean.getNonHeapMemoryUsage().getUsed();
 
-        OperatingSystemMXBean osMXBean = null;
-        try {
-            osMXBean = ManagementFactory.getOperatingSystemMXBean();
-        } catch (Exception e) {
-            // broad catch: a container may deny the OS MXBean; absence is non-fatal for the inspector.
-            log.warn("Unable to retrieve OperatingSystemMXBean in container environment", e);
-        }
-
-        double processCpuLoad = getProcessCpuLoad();
-        double systemCpuLoad = getSystemCpuLoad(osMXBean);
-
-        int availableProcessors;
-        if (osMXBean != null) {
-            try {
-                availableProcessors = osMXBean.getAvailableProcessors();
-            } catch (Exception e) {
-                availableProcessors = Runtime.getRuntime().availableProcessors();
-            }
-        } else {
-            availableProcessors = Runtime.getRuntime().availableProcessors();
-        }
-
         return ResourceUsageVO.builder()
                 .memory(ResourceUsageVO.MemoryInfo.builder()
                         .heapUsed(heapUsed)
@@ -157,9 +136,9 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
                         .nonHeapUsed(nonHeapUsed)
                         .build())
                 .cpu(ResourceUsageVO.CpuInfo.builder()
-                        .processCpuLoad(processCpuLoad)
-                        .systemCpuLoad(systemCpuLoad)
-                        .availableProcessors(availableProcessors)
+                        .processCpuLoad(systemProbe.processCpuLoad())
+                        .systemCpuLoad(systemProbe.systemCpuLoad())
+                        .availableProcessors(systemProbe.availableProcessors())
                         .build())
                 .threadCount(threadMXBean.getThreadCount())
                 .build();
@@ -431,50 +410,6 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
         } catch (Exception e) {
             // broad catch: PID is a diagnostic nicety; -1L preserves the response shape.
             return -1L;
-        }
-    }
-
-    /**
-     * Read the process CPU load from the {@code com.sun.management}
-     * extension interface; returns {@code -1.0} when the extension
-     * is unavailable in the host JVM.
-     */
-    private double getProcessCpuLoad() {
-        try {
-            com.sun.management.OperatingSystemMXBean osBean =
-                    (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
-            return osBean.getProcessCpuLoad();
-        } catch (Exception e) {
-            // broad catch: load metric is best-effort; -1.0 tells the dashboard to omit it.
-            return -1.0;
-        }
-    }
-
-    /**
-     * Read the system CPU load; fall back to load-average per
-     * processor when the extension interface is unavailable.
-     */
-    private double getSystemCpuLoad(OperatingSystemMXBean osMXBean) {
-        if (osMXBean == null) {
-            return -1.0;
-        }
-        try {
-            com.sun.management.OperatingSystemMXBean osBean =
-                    (com.sun.management.OperatingSystemMXBean) osMXBean;
-            return osBean.getCpuLoad();
-        } catch (Exception e) {
-            // Fallback to system load average
-            double loadAverage = osMXBean.getSystemLoadAverage();
-            int processors;
-            try {
-                processors = osMXBean.getAvailableProcessors();
-            } catch (Exception ex) {
-                processors = Runtime.getRuntime().availableProcessors();
-            }
-            if (loadAverage >= 0 && processors > 0) {
-                return loadAverage / processors;
-            }
-            return -1.0;
         }
     }
 

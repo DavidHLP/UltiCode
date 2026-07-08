@@ -18,6 +18,9 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.problem.mapper.ProblemVersionMapper;
+import com.ulticode.modules.problem.service.codec.ProblemSnapshotCodec;
+import com.ulticode.modules.problem.service.codec.ProblemVersionDiff;
+import com.ulticode.modules.problem.service.codec.ProblemVersionRollback;
 import com.ulticode.modules.problem.service.impl.ProblemVersionServiceImpl;
 import com.ulticode.modules.problem.vo.ProblemVersionDetailVO;
 import com.ulticode.modules.problem.vo.ProblemVersionVO;
@@ -84,16 +87,24 @@ class ProblemVersionServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        FixedUuidGenerator uuidGenerator = new FixedUuidGenerator();
+        ProblemSnapshotCodec snapshotCodec = new ProblemSnapshotCodec(objectMapper);
+        ProblemVersionDiff versionDiff = new ProblemVersionDiff(objectMapper);
+        ProblemVersionRollback versionRollback = new ProblemVersionRollback(
+                problemMapper, problemDetailMapper, problemExampleMapper,
+                problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
+                uuidGenerator, objectMapper);
         problemVersionService = new ProblemVersionServiceImpl(
                 problemMapper,
                 problemDetailMapper,
                 problemExampleMapper,
                 problemLanguageMapper,
-                problemTagMapper,
-                problemTagRelationMapper,
                 problemVersionMapper,
                 objectMapper,
-                new FixedUuidGenerator()
+                uuidGenerator,
+                snapshotCodec,
+                versionDiff,
+                versionRollback
         );
     }
 

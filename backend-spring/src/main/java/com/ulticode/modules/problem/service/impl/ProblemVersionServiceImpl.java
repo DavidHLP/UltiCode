@@ -24,6 +24,9 @@ import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.problem.mapper.ProblemVersionMapper;
 import com.ulticode.modules.problem.service.ProblemVersionService;
+import com.ulticode.modules.problem.service.codec.ProblemSnapshotCodec;
+import com.ulticode.modules.problem.service.codec.ProblemVersionDiff;
+import com.ulticode.modules.problem.service.codec.ProblemVersionRollback;
 import com.ulticode.modules.problem.vo.ProblemVersionDetailVO;
 import com.ulticode.modules.problem.vo.ProblemVersionVO;
 import com.ulticode.modules.problem.vo.VersionDiffVO;
@@ -52,11 +55,12 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
     private final ProblemDetailMapper problemDetailMapper;
     private final ProblemExampleMapper problemExampleMapper;
     private final ProblemLanguageMapper problemLanguageMapper;
-    private final ProblemTagMapper problemTagMapper;
-    private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ProblemVersionMapper problemVersionMapper;
     private final ObjectMapper objectMapper;
     private final UuidGenerator uuidGenerator;
+    private final ProblemSnapshotCodec snapshotCodec;
+    private final ProblemVersionDiff versionDiff;
+    private final ProblemVersionRollback versionRollback;
 
     @Override
     public VersionsResponseVO listVersions(Long problemId, Integer page, Integer limit) {
@@ -99,27 +103,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
         detailVO.setCreatedAt(version.getCreatedAt() != null ? version.getCreatedAt().toString() : null);
         detailVO.setCreatedBy(version.getCreatedBy());
 
-        if (version.getSnapshotJson() != null && !version.getSnapshotJson().isBlank()) {
-            try {
-                Map<String, Object> snapshot = objectMapper.readValue(
-                        version.getSnapshotJson(), new TypeReference<Map<String, Object>>() {});
-                detailVO.setTitle((String) snapshot.get("title"));
-                detailVO.setSlug((String) snapshot.get("slug"));
-                detailVO.setDifficulty((String) snapshot.get("difficulty"));
-                detailVO.setIsPremium((Boolean) snapshot.get("isPremium"));
-                detailVO.setIsPublished((Boolean) snapshot.get("isPublished"));
-                detailVO.setSummary((String) snapshot.get("summary"));
-                detailVO.setContent((String) snapshot.get("content"));
-                detailVO.setConstraints((List<String>) snapshot.get("constraints"));
-                detailVO.setHints((List<String>) snapshot.get("hints"));
-                detailVO.setExamples((List<Map<String, Object>>) snapshot.get("examples"));
-                detailVO.setLanguages((List<Map<String, Object>>) snapshot.get("languages"));
-                detailVO.setTags((List<String>) snapshot.get("tags"));
-            } catch (JsonProcessingException e) {
-                log.error("Failed to parse snapshot JSON for version {}", versionId, e);
-                throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse version snapshot");
-            }
-        }
+        snapshotCodec.populateDetail(detailVO, version.getSnapshotJson());
 
         return detailVO;
     }
@@ -139,7 +123,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "To version not found");
         }
 
-        List<VersionDiffVO> diffs = computeDiffs(fromVersion.getSnapshotJson(), toVersion.getSnapshotJson());
+        List<VersionDiffVO> diffs = versionDiff.diff(fromVersion.getSnapshotJson(), toVersion.getSnapshotJson());
 
         VersionWithDiffVO result = new VersionWithDiffVO();
         result.setFromVersion(toVO(fromVersion));
@@ -157,137 +141,14 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Version not found");
         }
 
-        Map<String, Object> snapshot;
-        try {
-            snapshot = objectMapper.readValue(
-                    targetVersion.getSnapshotJson(), new TypeReference<Map<String, Object>>() {});
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse snapshot JSON for version {}", versionId, e);
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse version snapshot");
-        }
+        Map<String, Object> snapshot = snapshotCodec.deserialize(targetVersion.getSnapshotJson());
 
         Problem problem = problemMapper.selectById(problemId);
         if (problem == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
-        problem.setTitle((String) snapshot.get("title"));
-        problem.setSlug((String) snapshot.get("slug"));
-        problem.setDifficulty((String) snapshot.get("difficulty"));
-        if (snapshot.get("isPremium") != null) {
-            problem.setIsPremium((Boolean) snapshot.get("isPremium"));
-        }
-        if (snapshot.get("isPublished") != null) {
-            problem.setIsPublished((Boolean) snapshot.get("isPublished"));
-        }
-        problemMapper.updateById(problem);
-
-        ProblemDetail detail = problemDetailMapper.selectOne(
-                new LambdaQueryWrapper<ProblemDetail>().eq(ProblemDetail::getProblemId, problemId));
-        if (detail == null) {
-            detail = new ProblemDetail();
-            detail.setId(uuidGenerator.newId());
-            detail.setProblemId(problemId);
-            // problem_details.slug NOT NULL — denormalize from Problem
-            // Defensive null check: problems.slug is also NOT NULL in DB, so this
-            // should never be null, but assert it to fail fast with a clear message.
-            java.util.Objects.requireNonNull(problem.getSlug(),
-                    "Problem.slug must not be null (DB constraint guarantees it, but assert defensively)");
-            detail.setSlug(problem.getSlug());
-            // constraints_json NOT NULL with no DB default — initialize to empty array
-            detail.setConstraintsJson(ProblemDetail.EMPTY_JSON_ARRAY);
-        }
-        detail.setSummary((String) snapshot.get("summary"));
-        detail.setFollowUp((String) snapshot.get("followUp"));
-
-        List<String> constraints = (List<String>) snapshot.get("constraints");
-        if (constraints != null) {
-            try {
-                detail.setConstraintsJson(objectMapper.writeValueAsString(constraints));
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize constraints during rollback", e);
-            }
-        } else {
-            detail.setConstraintsJson(null);
-        }
-
-        List<String> hints = (List<String>) snapshot.get("hints");
-        if (hints != null) {
-            try {
-                detail.setHints(objectMapper.writeValueAsString(hints));
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to serialize hints during rollback", e);
-            }
-        } else {
-            detail.setHints(null);
-        }
-
-        if (problemDetailMapper.selectById(detail.getId()) != null) {
-            problemDetailMapper.updateById(detail);
-        } else {
-            problemDetailMapper.insert(detail);
-        }
-
-        problemExampleMapper.delete(
-                new LambdaQueryWrapper<ProblemExample>().eq(ProblemExample::getProblemId, problemId));
-        List<Map<String, Object>> exampleSnapshots = (List<Map<String, Object>>) snapshot.get("examples");
-        if (exampleSnapshots != null) {
-            for (int i = 0; i < exampleSnapshots.size(); i++) {
-                Map<String, Object> exSnapshot = exampleSnapshots.get(i);
-                ProblemExample example = new ProblemExample();
-                example.setId(uuidGenerator.newId());
-                example.setProblemId(problemId);
-                example.setExampleOrder(i + 1);
-                example.setInputText((String) (exSnapshot.get("input") != null
-                        ? exSnapshot.get("input")
-                        : exSnapshot.get("inputText")));
-                example.setOutputText((String) (exSnapshot.get("output") != null
-                        ? exSnapshot.get("output")
-                        : exSnapshot.get("outputText")));
-                example.setExplanation((String) exSnapshot.get("explanation"));
-                Object inputs = exSnapshot.get("inputs");
-                if (inputs != null) {
-                    try {
-                        example.setInputs(objectMapper.writeValueAsString(inputs));
-                    } catch (JsonProcessingException e) {
-                        log.warn("Failed to serialize inputs during rollback", e);
-                    }
-                }
-                problemExampleMapper.insert(example);
-            }
-        }
-
-        problemLanguageMapper.delete(
-                new LambdaQueryWrapper<ProblemLanguage>().eq(ProblemLanguage::getProblemId, problemId));
-        List<Map<String, Object>> languageSnapshots = (List<Map<String, Object>>) snapshot.get("languages");
-        if (languageSnapshots != null) {
-            for (Map<String, Object> langSnapshot : languageSnapshots) {
-                ProblemLanguage language = new ProblemLanguage();
-                language.setId(uuidGenerator.newId());
-                language.setProblemId(problemId);
-                language.setLabel((String) langSnapshot.get("label"));
-                language.setValue((String) langSnapshot.get("value"));
-                language.setStyle((String) langSnapshot.get("style"));
-                language.setStarterCode((String) langSnapshot.get("starterCode"));
-                problemLanguageMapper.insert(language);
-            }
-        }
-
-        problemTagRelationMapper.delete(
-                new LambdaQueryWrapper<ProblemTagRelation>().eq(ProblemTagRelation::getProblemId, problemId));
-        List<String> tagLabels = (List<String>) snapshot.get("tags");
-        if (tagLabels != null) {
-            for (String tagLabel : tagLabels) {
-                ProblemTag tag = problemTagMapper.selectOne(
-                        new LambdaQueryWrapper<ProblemTag>().eq(ProblemTag::getLabel, tagLabel));
-                if (tag != null) {
-                    ProblemTagRelation relation = new ProblemTagRelation();
-                    relation.setProblemId(problemId);
-                    relation.setTagId(tag.getId());
-                    problemTagRelationMapper.insert(relation);
-                }
-            }
-        }
+        versionRollback.restore(problemId, snapshot);
 
         String changeSummary = reason != null ? reason : "Rollback to version " + targetVersion.getVersionNumber();
         return createVersion(problemId, "ROLLBACK", changeSummary, operatorId);
@@ -397,13 +258,7 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
 
     private ProblemVersionVO saveVersion(Long problemId, Integer versionNumber, String changeType,
                                          String changeSummary, String operatorId, Map<String, Object> snapshot) {
-        String snapshotJson;
-        try {
-            snapshotJson = objectMapper.writeValueAsString(snapshot);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize snapshot for problem {}", problemId, e);
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to serialize problem snapshot");
-        }
+        String snapshotJson = snapshotCodec.serialize(snapshot);
 
         ProblemVersion version = new ProblemVersion();
         version.setProblemId(problemId);
@@ -415,51 +270,6 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
 
         problemVersionMapper.insert(version);
         return toVO(version);
-    }
-
-    private List<VersionDiffVO> computeDiffs(String fromJson, String toJson) {
-        Map<String, Object> fromSnapshot;
-        Map<String, Object> toSnapshot;
-        try {
-            fromSnapshot = objectMapper.readValue(fromJson, new TypeReference<Map<String, Object>>() {});
-            toSnapshot = objectMapper.readValue(toJson, new TypeReference<Map<String, Object>>() {});
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse snapshot JSON for diff", e);
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse version snapshots");
-        }
-
-        List<VersionDiffVO> diffs = new ArrayList<>();
-        Set<String> allKeys = new LinkedHashSet<>();
-        allKeys.addAll(fromSnapshot.keySet());
-        allKeys.addAll(toSnapshot.keySet());
-
-        for (String key : allKeys) {
-            Object oldValue = fromSnapshot.get(key);
-            Object newValue = toSnapshot.get(key);
-            if (!isValueEqual(oldValue, newValue)) {
-                VersionDiffVO diff = new VersionDiffVO();
-                diff.setField(key);
-                diff.setOldValue(oldValue);
-                diff.setNewValue(newValue);
-                diffs.add(diff);
-            }
-        }
-
-        return diffs;
-    }
-
-    private boolean isValueEqual(Object a, Object b) {
-        if (a == null && b == null) {
-            return true;
-        }
-        if (a == null || b == null) {
-            return false;
-        }
-        try {
-            return objectMapper.writeValueAsString(a).equals(objectMapper.writeValueAsString(b));
-        } catch (JsonProcessingException e) {
-            return a.equals(b);
-        }
     }
 
     private List<String> getTagLabels(Long problemId) {

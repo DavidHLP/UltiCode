@@ -3,7 +3,7 @@
 > **Part of**: UltiCode (see [root AGENTS.md](../AGENTS.md) for project context)
 > **Last Updated**: 2026-07-06
 
-10 pnpm workspace packages consumed by `console/` and `management/` via symlinks. Each owns a single seam (deep-module pattern, ADR-0004 / ADR-0005 / ADR-0011).
+14 pnpm workspace packages consumed by `console/` and `management/` via symlinks. Each owns a single seam (deep-module pattern, ADR-0004 / ADR-0005 / ADR-0011).
 
 ## STRUCTURE
 
@@ -12,8 +12,12 @@ shared/
 ├── auth-core/          # Cookie, CSRF, auth-state machine, refresh coordinator, permissions
 ├── auth-ui/            # LoginForm, RegisterForm, AuthLayout + visual primitives
 ├── badge-config/       # Color maps: SUBMISSION_STATUS_COLOR_MAP, DIFFICULTY_COLOR_MAP
+├── datetime-utils/     # formatDate, formatDuration, relativeTime helpers
 ├── design-system/      # Design tokens (CSS-only package, no index.ts)
+├── domain-types/       # PageResult<T>, Problem, Contest, Comment, ForumPost — cross-stack DTO contract
 ├── http-client/        # createHttpClient() — CSRF/refresh/dedup/retry/401 seam
+├── i18n-storage/       # Persisted translation-key storage backend
+├── locale-composable/  # useLocale composable (builds on i18n-storage)
 ├── markdown-utils/     # renderMarkdown() + sanitizeHtml() (MarkdownIt + KaTeX + hljs + DOMPurify)
 ├── sandbox-types/      # DFormVerdict, OJDataType, DFormEnvelope (cross-language with docker/sandbox/)
 ├── sidebar-menu/       # SidebarMenuItem, SidebarGroupCollapsible types
@@ -28,12 +32,16 @@ shared/
 | `auth-core` | Cookie parse, CSRF manager, auth-state machine, `setOnAuthFailure`, permission checker, `cn` util | Both apps (via `@/shared/auth-core/src`) |
 | `auth-core` subpaths | `@ulticode/auth-core/src/csrf`, `…/axiosCsrfInterceptor`, `…/refreshCoordinator` | Sibling shared packages (subpath exports) |
 | `auth-ui` | LoginForm, RegisterForm, AuthLayout, AuthButton/Input/Card | Both apps |
+| `domain-types` | `PageResult<T>`, `Problem`, `Contest`, `ContestStatus`, `Comment`, `ForumPost`, `UserStats`, `ProblemList` | Both apps (canonical DTO contract — replaces 11× `PageResult` re-declarations) |
 | `http-client` | `createHttpClient()` | Both apps (replaces duplicated `request.ts`) |
 | `markdown-utils` | `renderMarkdown()`, `sanitizeHtml()` | Both apps (owns sanitization pipeline) |
 | `sandbox-types` | `DFormVerdict`, `OJDataType`, `DFormEnvelope` | Both apps + `docker/sandbox/` contract |
-| `badge-config` | `SUBMISSION_STATUS_COLOR_MAP`, `DIFFICULTY_COLOR_MAP`, `badge()` | Both apps |
+| `badge-config` | `SUBMISSION_STATUS_COLOR_MAP`, `DIFFICULTY_COLOR_MAP`, `badge()` | Management only (console has 0 imports — asymmetry noted, contract to align) |
 | `submission-status` | `VERDICT_TO_STATUS_KEY`, `VERDICT_COLOR_MAP`, `getVerdictColor()` | Both apps |
 | `sidebar-menu` | `SidebarMenuItem`, `SidebarMenuSubItem`, `SidebarGroupCollapsible` | Both apps |
+| `datetime-utils` | `formatDate`, `formatDuration`, `relativeTime` helpers | Both apps (thin — 1 consumer each, justifies seam for consistent date formatting) |
+| `i18n-storage` | Persisted translation-key storage backend | Both apps (infrastructure singleton for locale persistence) |
+| `locale-composable` | `useLocale` composable (builds on `i18n-storage`) | Both apps (thin — 1 consumer each, wraps i18n-storage) |
 | `theme` | `ThemeMode`, `useTheme`, `useColorTheme`, `applyTypographyDensity`, tokens | Both apps + `public/theme-bootstrap.js` |
 | `design-system` | CSS tokens via `shared/design-system/style.css` (no JS exports) | Both apps |
 

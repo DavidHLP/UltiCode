@@ -36,7 +36,7 @@ the authenticated principal may do the thing. Enforced by Spring
 ## Cross-links
 
 - [[entities/auth]] · [[entities/user]] · [[entities/moderation]]
-- [[concepts/security-invariants]] · [[overview/auth-flow-overview]]
+- [[overview/auth-flow-overview]]
 
 ## Gotchas
 

@@ -1,10 +1,9 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "8fb08163d958b1ee2aa901c7d5e4ee7707952b95",
+  "generated_with_head": "76a8b4c272bc434edd1eae1fe6ab96f4b2b22afc",
   "stats": {
-    "pages": 71,
+    "pages": 41,
     "by_type": {
-      "concept": 30,
       "daily": 3,
       "entity": 26,
       "index": 2,
@@ -19,7 +18,7 @@
       "type": "index",
       "title": "UltiCode Wiki",
       "status": "living",
-      "frontmatter_updated": "2026-07-05",
+      "frontmatter_updated": "2026-07-09",
       "last_commit": {
         "sha": "89c664a07eefadd57f58ec907125defd6008836c",
         "short": "89c664a07",
@@ -27,14 +26,14 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
-      "body_sha256": "dab884cc21795d2cc0329aa277b84b88803f1069b9e81258280db90d9388a3ac"
+      "body_sha256": "32231aebe45677505aef3af6ccad6ab21aaac590e43e904daad4025a6a148247"
     },
     {
       "path": "wiki/SCHEMA.md",
       "type": "schema",
       "title": "SCHEMA — Wiki Convention",
       "status": "living",
-      "frontmatter_updated": "2026-07-05",
+      "frontmatter_updated": "2026-07-09",
       "last_commit": {
         "sha": "89c664a07eefadd57f58ec907125defd6008836c",
         "short": "89c664a07",
@@ -42,442 +41,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
       },
-      "body_sha256": "03b47ac2ea9c1ed819a9d1fa0fe766430c7b41a0256aa850ee62f8e715c909f9"
-    },
-    {
-      "path": "wiki/archive/concepts/achievement-projection.md",
-      "type": "concept",
-      "title": "Achievement Projection",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "05d3c04a0773a222a7754817c8e251b25914f95ecee37e41dd5d1140d6d954a2"
-    },
-    {
-      "path": "wiki/archive/concepts/admin-comment-read-port.md",
-      "type": "concept",
-      "title": "Admin Comment-Read Port",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "704cd35ca2cdb241fc4cbef7867aeac4adfb15c8d4ac7c67bf4f6a736001be1e"
-    },
-    {
-      "path": "wiki/archive/concepts/admin-projection-inversion.md",
-      "type": "concept",
-      "title": "Admin Projection Inversion",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "14ab20541d9275f6273b4ce0f46fc9b08970d71aeb9418dbfcbc21abcf91631c"
-    },
-    {
-      "path": "wiki/archive/concepts/admin-user-stats-read-port.md",
-      "type": "concept",
-      "title": "Admin User-Stats Read Port",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "e160473e27e7d77e7c5a9bade3ef125d0f258d90e1514ac332eb945e04dfad86"
-    },
-    {
-      "path": "wiki/archive/concepts/contest-live-ranking-read-port.md",
-      "type": "concept",
-      "title": "Contest Live-Ranking Read Port",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "183660f55c640fc2b18d58217d89f73d71f2f548285263d2081d3a6695d843ca"
-    },
-    {
-      "path": "wiki/archive/concepts/moderation-projection.md",
-      "type": "concept",
-      "title": "Moderation Projection",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "694c4100c0af4162ac976d4c4ddf922c190d581d98d29f2408b56da8e7856aa0"
-    },
-    {
-      "path": "wiki/archive/concepts/notification-dispatch-and-preferences.md",
-      "type": "concept",
-      "title": "Notification Dispatch & Preferences",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "a52282a9a9f16620619111c8aca660e805843631073cef76b2953cdc64090ff1"
-    },
-    {
-      "path": "wiki/archive/concepts/problem-detail-port.md",
-      "type": "concept",
-      "title": "Problem Detail Port",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "4dfbe397ad64c3e8722030a67171bff83d6a682d10524729ff1f6df451933bbd"
-    },
-    {
-      "path": "wiki/archive/concepts/realtime-push-port-series.md",
-      "type": "concept",
-      "title": "Realtime Push Port Series",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "1063b289c082aed5c12fbd44a46ebbf53e83d73acf30353a7227629db5b8e291"
-    },
-    {
-      "path": "wiki/archive/concepts/sidebar-menu.md",
-      "type": "concept",
-      "title": "Sidebar Menu Visual Contract",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "205d4d7859f929f1348de77145d4ec17a19cf82f9eb9cef93a47f3d86f1939b7"
-    },
-    {
-      "path": "wiki/archive/concepts/submission-contest-port.md",
-      "type": "concept",
-      "title": "Submission-Contest Port",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "a6a376e41b2f14e948ed8a548faadd23aac5ac4ce18dddaecfaf5e059b478570"
-    },
-    {
-      "path": "wiki/concepts/arthas-diagnostics.md",
-      "type": "concept",
-      "title": "Arthas Diagnostics",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
-        "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
-      },
-      "body_sha256": "9ae3c99647a6fe4add5d5b00b590c05c81c7c57a1c62b42032178872052fe6fa"
-    },
-    {
-      "path": "wiki/concepts/clock-seam.md",
-      "type": "concept",
-      "title": "Clock Seam (Time Abstraction)",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "261424c3e7b1385273e0a730b86dee6517c7b75c",
-        "short": "261424c3e",
-        "committed_at": "2026-07-07T21:56:55+08:00",
-        "author": "DavidHLP",
-        "subject": "docs(adr): record Clock seam + RateLimiter port architecture decisions"
-      },
-      "body_sha256": "0247bd684737a661ae42698a719209f27445037e946ee24fdd8539e84cb9f167"
-    },
-    {
-      "path": "wiki/concepts/csrf-mechanism.md",
-      "type": "concept",
-      "title": "CSRF Mechanism",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "1fe782f7ccdce31b842b9856ddca97f59a507ad27949824f448703c549bdb34d"
-    },
-    {
-      "path": "wiki/concepts/exactly-once-judging.md",
-      "type": "concept",
-      "title": "Exactly-Once Judging",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "dc3db6fe59475b49eea34bb2a09863af3da178c1e133d72670c7c93549c59b04"
-    },
-    {
-      "path": "wiki/concepts/flyway-migration-discipline.md",
-      "type": "concept",
-      "title": "Flyway Migration Discipline",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "4276fab62b9fb5039bb88b1baf916f9aa1df99def1e927b6942a6b6502b633b8"
-    },
-    {
-      "path": "wiki/concepts/module-layering.md",
-      "type": "concept",
-      "title": "Module Layering",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
-        "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
-      },
-      "body_sha256": "d684e2d3e9c94120f65195cb6ff58461709354348e93af5f1f0a7922e0590ea3"
-    },
-    {
-      "path": "wiki/concepts/notification-idempotency.md",
-      "type": "concept",
-      "title": "Notification Idempotency",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "aadbe5af63b0bfd6d1bd3beef94367798c4da8413bf56db061912f35d50ed44e"
-    },
-    {
-      "path": "wiki/concepts/obsidian-graph-coloring.md",
-      "type": "concept",
-      "title": "Obsidian Graph View Coloring",
-      "status": "living",
-      "frontmatter_updated": "2026-07-05",
-      "last_commit": {
-        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
-        "short": "89c664a07",
-        "committed_at": "2026-07-05T23:22:52+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
-      },
-      "body_sha256": "0e9ba5e7a80a7971aea26306dcb0a7276782fc6ea3c260f36a7e518e72381741"
-    },
-    {
-      "path": "wiki/concepts/process-management.md",
-      "type": "concept",
-      "title": "Process Management",
-      "status": "living",
-      "frontmatter_updated": "2026-06-22",
-      "last_commit": {
-        "sha": "cf85ae67b67e200a6fb762c90f90fa63463ca70e",
-        "short": "cf85ae67b",
-        "committed_at": "2026-06-22T19:02:54+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: add Process Management concept page and trim codegraph .gitignore"
-      },
-      "body_sha256": "d7710ca04bd1b3ecce10312c9359c62b8bec967b5033ad6b7864003937bd68f0"
-    },
-    {
-      "path": "wiki/concepts/ratelimiter-port.md",
-      "type": "concept",
-      "title": "RateLimiter Port (Deep Module Extraction)",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "261424c3e7b1385273e0a730b86dee6517c7b75c",
-        "short": "261424c3e",
-        "committed_at": "2026-07-07T21:56:55+08:00",
-        "author": "DavidHLP",
-        "subject": "docs(adr): record Clock seam + RateLimiter port architecture decisions"
-      },
-      "body_sha256": "8690d4c21a4fb76a7e698f50982dc473bfde54573c522545d795c9b61bea3fee"
-    },
-    {
-      "path": "wiki/concepts/refresh-token-hash-only-storage.md",
-      "type": "concept",
-      "title": "Refresh Token Hash-Only Storage",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "091616a13be275ae288a77475ddd973cf9f870a660f13d0204ef26924812eace"
-    },
-    {
-      "path": "wiki/concepts/result-envelope-and-case-mapping.md",
-      "type": "concept",
-      "title": "Result Envelope & Case Mapping",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "39b85e60ca4cf3e4bb96282df7ad0341c8938c95fae4435aa27d1daf6a182391"
-    },
-    {
-      "path": "wiki/concepts/sandbox-rebuild.md",
-      "type": "concept",
-      "title": "Sandbox Rebuild Runbook",
-      "status": "living",
-      "frontmatter_updated": "2026-07-06",
-      "last_commit": {
-        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
-        "short": "7acf7c61e",
-        "committed_at": "2026-07-06T00:43:44+08:00",
-        "author": "DavidHLP",
-        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
-      },
-      "body_sha256": "2a308818c9df64b263b1d7b73e35ae2551e4b8c92ecb0c5c31bc14f2bc685ae5"
-    },
-    {
-      "path": "wiki/concepts/sandbox-security-contract.md",
-      "type": "concept",
-      "title": "Sandbox Security Contract",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "f958defba0eb8df45c2a04d2d90cb2da6e4acc1937fecd95d0387f130883343d"
-    },
-    {
-      "path": "wiki/concepts/security-invariants.md",
-      "type": "concept",
-      "title": "Security Invariants",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "e6a7a920af030ef5d8f020fb2b395eaa09ca3b17a1c07ab28ac16e4ca92d2348"
-    },
-    {
-      "path": "wiki/concepts/theme-system.md",
-      "type": "concept",
-      "title": "Theme System",
-      "status": "living",
-      "frontmatter_updated": "2026-07-07",
-      "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
-        "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
-      },
-      "body_sha256": "3727f27cf904007406a0ba78c77fba15dcb45c3da2818fc2b0c991a4d9095557"
-    },
-    {
-      "path": "wiki/concepts/timesource-port.md",
-      "type": "concept",
-      "title": "TimeSource Port (Wall + Monotonic Time Seam)",
-      "status": "living",
-      "frontmatter_updated": "2026-07-08",
-      "last_commit": {
-        "sha": null,
-        "short": null,
-        "committed_at": null,
-        "author": null,
-        "subject": null
-      },
-      "body_sha256": "b07b021fc851f38a7f0f61d4336d1a6abdb827a0782a09f56dfb1044d39054f4"
-    },
-    {
-      "path": "wiki/concepts/virtual-contest.md",
-      "type": "concept",
-      "title": "Virtual Contest",
-      "status": "living",
-      "frontmatter_updated": "2026-06-21",
-      "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
-      },
-      "body_sha256": "183284859365a4e00a2823406564fc3b6ec068e355e9b04434e86122ec3cc838"
+      "body_sha256": "8c4a438e58f8a323f9deb8da67e868748a760fc2191713b567c01e8eec9008fc"
     },
     {
       "path": "wiki/daily-notes/2026-06-21.md",
@@ -537,7 +101,7 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
-      "body_sha256": "9b6c0dc7d159b365d4e6b35bcc7e1816e5fc6b72a12ee48e27cf59b3a297b532"
+      "body_sha256": "c2d927d739792e8db3ac4a2a74bff753443022353e6046dc14a3bfa76cd1e883"
     },
     {
       "path": "wiki/entities/auth.md",
@@ -552,7 +116,7 @@
         "author": "DavidHLP",
         "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "5e4741648d1bdb060c0225ed990043ee86420a76ffec4e12a2cd957f58448ac9"
+      "body_sha256": "f051fd62c97a36501e285eabc09a4a00a2267932d576e49c74ecef8f4ea1b8f3"
     },
     {
       "path": "wiki/entities/backup.md",
@@ -567,7 +131,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "68b3368bedaee7213abbc82eae0cf52ea8fc2b224828a4fc1c6c6e0482f1a0b1"
+      "body_sha256": "2106d1791accc771f418514bbd4515d86fa76fa2402fa65fdc6bd03e166c4360"
     },
     {
       "path": "wiki/entities/contest.md",
@@ -582,7 +146,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "5a82105a4896b6f9803033866acb7757688ad021b818b84ceb9b65aa6afca327"
+      "body_sha256": "47e662f2d3514c9d0eedf66f64008453f1c1e2607f3c7a89e2cea9d14f4f46ff"
     },
     {
       "path": "wiki/entities/email.md",
@@ -627,7 +191,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "6051a86e35f439960bc6481842b2d206ff26f4aca3468b3195214bb24c997115"
+      "body_sha256": "f3548b50841168139d0f367b737e52efb9d8af9fd637279725f5ea298f12d0a6"
     },
     {
       "path": "wiki/entities/i18n.md",
@@ -672,7 +236,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "c5688734d653a8a51dcdb2581e93369449142e11e1edb388f2e5cd6821c00d74"
+      "body_sha256": "9b3f5e2c0616f56c93ccc6be8da4d84997a26a35142385c995f6bdb1d582e978"
     },
     {
       "path": "wiki/entities/moderation.md",
@@ -687,7 +251,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "681945ef8a079927c8ed7e5f3cfd3006d7dcf1b8ecabf7d5b80e113f432cef0f"
+      "body_sha256": "666834937705ae9cc6dfad16c8f39661a83423430883ef1e0df4ed6dc42bc416"
     },
     {
       "path": "wiki/entities/monitoring.md",
@@ -717,7 +281,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
-      "body_sha256": "694ab4caffa2beeb65027611ec9d5b068168a9afc8ab967c110487d7e888d7ea"
+      "body_sha256": "a92993950da66a353d177fe0443118a8703e3972943b16620d2143d6b9d148ea"
     },
     {
       "path": "wiki/entities/permission.md",
@@ -732,7 +296,7 @@
         "author": "DavidHLP",
         "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "cdcf78b71080b09a7b32ad07eca12e88887885423d7fa8076264518454aec337"
+      "body_sha256": "4fbccf23e5bf126906cce7fdcf5a87f62e11cabaefb2dd3ab77d1619ccdd9168"
     },
     {
       "path": "wiki/entities/problem.md",
@@ -747,7 +311,7 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
-      "body_sha256": "a3f4d7c4bec0634dcdff033040f45e90c8b353411ea35d2c7f3ea1d3f0d97b5a"
+      "body_sha256": "77ddf99da01ab93c419d0feafb83837ce04d060d37e30a90b3365d13bfce522c"
     },
     {
       "path": "wiki/entities/problemlist.md",
@@ -777,7 +341,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "c75f44bab8ac0822d773655e800ff50b3d6f407732b6be99130806ab2c034100"
+      "body_sha256": "38b09e8c0b2c3108b7da3e683789c05a39635e69f07de86d0a848d876a0ee2be"
     },
     {
       "path": "wiki/entities/sandbox.md",
@@ -792,7 +356,7 @@
         "author": "DavidHLP",
         "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
       },
-      "body_sha256": "415aec654d359e4cd0cb2263c50fb44c5879589ac6a7cae23573989bd058c328"
+      "body_sha256": "f6d3953fb6d3d472ed2f9d6db0fac0e03797c9a43d3d66eb7f2262b15da0a871"
     },
     {
       "path": "wiki/entities/search.md",
@@ -822,7 +386,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "32ec282d5c59f7c0317c35929b9e6fc70d383e0c3ed758a8bef04969f47edd67"
+      "body_sha256": "f880f95edbccf3eb31e3e63a5f07cb3c97abef3a1734f5cbed044ad632c69946"
     },
     {
       "path": "wiki/entities/submission.md",
@@ -837,7 +401,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "0d74519c3e793c7e808726085ad3a890cfb5239625fb158bcb26e0a2ea06f2ee"
+      "body_sha256": "6d46cdfe0f6e8dae91dda79b367e3e826aa90fac7ab72ce33d2a2345f73dcf75"
     },
     {
       "path": "wiki/entities/subscription.md",
@@ -867,7 +431,7 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
       },
-      "body_sha256": "d45b9f5b11c1a411615c9acdde7cd3289acf91314ec8220d34134d8dc2a5cf65"
+      "body_sha256": "be74f1cb53581936f2e1c5b55a2d76b3a0f2cd2c66c5c11e6b165bba1ea6a2ab"
     },
     {
       "path": "wiki/entities/websocket.md",
@@ -882,14 +446,14 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "00b04eab8fd2741936dc92b54fb14203c71554ca5c2e28b199d7fd577bda71df"
+      "body_sha256": "faa6dd57488bd52eae32dd08d2658d94f3cb1036425e7ae8e2536dc31b19353b"
     },
     {
       "path": "wiki/index.md",
       "type": "index",
       "title": "Index",
       "status": "living",
-      "frontmatter_updated": "2026-07-07",
+      "frontmatter_updated": "2026-07-09",
       "last_commit": {
         "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
         "short": "41451a5da",
@@ -897,14 +461,14 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
-      "body_sha256": "7c2720e715f8a4eac6eb67c58a451212e24e7fb6445071138f3ee28bb546dfe1"
+      "body_sha256": "02b948bca3306aff7f04bd7a054094cfc6c1aa2c4284dc96de8d564855b2d89e"
     },
     {
       "path": "wiki/log.md",
       "type": "log",
       "title": "Maintenance Log",
       "status": "living",
-      "frontmatter_updated": "2026-07-07",
+      "frontmatter_updated": "2026-07-09",
       "last_commit": {
         "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
         "short": "41451a5da",
@@ -912,7 +476,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
-      "body_sha256": "563d944f9661774139af637d41f88b4603a656ad80014020742d2a60ebb27bf1"
+      "body_sha256": "649a1da8a45e8d34da5118c1d744b83250a9a0fbf807b9e335272a9a1a2acf72"
     },
     {
       "path": "wiki/overview/architecture-overview.md",
@@ -927,7 +491,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "7925fdd879f5124d07d0b9f26290b00bd18c173a337da96021c4a72567d6bbe8"
+      "body_sha256": "e8128d9a0da5e1ad15500834f0d56fbfa305e363fd865577291c7668928147f6"
     },
     {
       "path": "wiki/overview/auth-flow-overview.md",
@@ -942,7 +506,7 @@
         "author": "DavidHLP",
         "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "ca9a78ee50752710687bec46102371ea5d7708a60e3d7522867fadf44c55cbb9"
+      "body_sha256": "70ccf468236efc04d1247237994455ff17e580f8fd9bd29acf1bcf1b9cdbcd4d"
     },
     {
       "path": "wiki/overview/backend-modules-overview.md",
@@ -957,7 +521,7 @@
         "author": "DavidHLP",
         "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "ae60d15e7c6259bb54683336615eada94dadbf1d43de79d14afbfa604b2bcb45"
+      "body_sha256": "57b91ae5249bee549fe3d198f7bd01020e2e39e12d0249f0c0d410940386b919"
     },
     {
       "path": "wiki/overview/database-schema-overview.md",
@@ -972,7 +536,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "66a505bfa02ab6a7b0941b85f8ff5fe10c43a4750e005e60e809afe988a3cdb4"
+      "body_sha256": "8c35de63fd96795d9929c1937b3be1cc328fea5db28f3826d14e86c954076413"
     },
     {
       "path": "wiki/overview/dev-environment-overview.md",
@@ -987,7 +551,7 @@
         "author": "DavidHLP",
         "subject": "docs(wiki): sync cold-start section to dev-profile metrics"
       },
-      "body_sha256": "e5ab618a37b9aa9bf4044b0941495b7e887abe6a7e57197d79af0fc23ceeb60f"
+      "body_sha256": "f68721ce54ce7f59f8017964b6e5ac50a59e2490fffa051076d7be92c19932b3"
     },
     {
       "path": "wiki/overview/frontend-apps-overview.md",
@@ -1002,7 +566,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
       },
-      "body_sha256": "ca87cae03f54222b7a922d4b51f867da3f49e0b56488a4689a62a3d272a53fe2"
+      "body_sha256": "560c6cc5064924ed63b8c37c22c019dcd1c87535ce85f2ecbc3f01c1e3c9aad9"
     },
     {
       "path": "wiki/overview/judging-pipeline-overview.md",
@@ -1017,22 +581,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "933d0f5853f36bece7f736e2bca11cf1641bd72fe45b080b92077987c701cc23"
-    },
-    {
-      "path": "wiki/templates/concept.md",
-      "type": "concept",
-      "title": "{{title}}",
-      "status": "stub",
-      "frontmatter_updated": "{{date:YYYY-MM-DD}}",
-      "last_commit": {
-        "sha": "f916f0532226202f404690a85fd260379c413940",
-        "short": "f916f0532",
-        "committed_at": "2026-06-21T16:32:26+08:00",
-        "author": "DavidHLP",
-        "subject": "docs: rename docs/ to wiki/ and promote 9 low-density modules"
-      },
-      "body_sha256": "6d38d497e75b19b6c6f8af0c168495daa9406240e44fc2796cacbb7ebaf1672a"
+      "body_sha256": "fc15ec3571b71380d5ae0efb920343f1cb7cfb8cf456fe97ce51c66c028de578"
     },
     {
       "path": "wiki/templates/daily-note.md",
@@ -1047,7 +596,7 @@
         "author": "DavidHLP",
         "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
       },
-      "body_sha256": "89434ef65b417e766ade55448691964a99fad34d8acec68e797a66e12b94fe38"
+      "body_sha256": "f60091d076441e6cd33d04cf2f6cf069505a1c45c09873e55ecb9e8958099131"
     },
     {
       "path": "wiki/templates/entity.md",

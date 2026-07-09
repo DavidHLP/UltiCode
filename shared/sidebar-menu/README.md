@@ -20,7 +20,7 @@ import {
 
 > The `as SharedSidebarMenuItem` alias is **required** when a local shadcn
 > `SidebarMenuItem` exists in the same file — the two same-named systems coexist
-> by aliasing (see `wiki/concepts/sidebar-menu.md`).
+> by aliasing.
 
 ## CSS import (per app)
 

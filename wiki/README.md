@@ -3,7 +3,7 @@ title: UltiCode Wiki
 type: index
 tags: [meta, type/index, type/landing]
 status: living
-updated: 2026-07-05
+updated: 2026-07-09
 sources:
   - AGENTS.md
   - CLAUDE.md
@@ -50,10 +50,13 @@ wiki/
 ├── README.md   SCHEMA.md   index.md   log.md
 ├── overview/   # synthesis — architecture, pipelines, whole-system maps
 ├── entities/   # domain objects & backend modules
-├── concepts/   # cross-cutting decisions, patterns, invariants
-├── templates/  # Obsidian templates (entity / concept / overview / daily-note)
+├── templates/  # Obsidian templates (entity / overview / daily-note)
 └── daily-notes/  # one file per day — human ingest journal (SCHEMA §10)
 ```
+
+> No `concepts/` or `decisions/` directory: the wiki keeps only "what" and
+> "how the pieces fit together". Design rationales live in `AGENTS.md` /
+> `CLAUDE.md` and source Javadoc.
 
 ## Status
 

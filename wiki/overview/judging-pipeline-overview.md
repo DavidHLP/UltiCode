@@ -17,7 +17,7 @@ sources:
 > [!quote] Essence
 > The path a submission travels from keystroke to verdict. Three correctness
 > invariants meet here: **exactly-once delivery**, **generation fencing**, and
-> **lease-protected judging**. Deep rationale in [[concepts/exactly-once-judging]].
+> **lease-protected judging**.
 
 ## End-to-end
 
@@ -77,8 +77,7 @@ sources:
 
 5. **Notify** — `notification` records an intent and delivers through the
    **delivery ledger** (at-least-once → exactly-once via ledger dedup);
-   `websocket` pushes to the user's open tab. See [[entities/notification]] and
-   [[concepts/notification-idempotency]].
+   `websocket` pushes to the user's open tab. See [[entities/notification]].
 
 ## The three invariants (and where they live)
 
@@ -102,11 +101,10 @@ The sandbox is similarly ported: `submission/sandbox/SandboxExecutor` with
 
 If the submission is inside a contest, stage 4 also triggers `contest` to record
 `contest_problem_results`, update `first_solve_records` and `global_rankings`,
-and recompute standings per the contest's `ScoringRule`. See [[entities/contest]]
-and [[concepts/virtual-contest]].
+and recompute standings per the contest's `ScoringRule`. See [[entities/contest]].
 
 ## Reading order
 
 > [!link] Suggested path
 > `entities/submission` → `entities/judge-queue` → `entities/sandbox` →
-> `concepts/exactly-once-judging` → `concepts/notification-idempotency`.
+> `entities/notification` → `entities/contest`.

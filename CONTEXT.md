@@ -131,10 +131,9 @@
   `SystemTimeSource` (prod `@Component`) and `FakeTimeSource` (test,
   not a bean). Static utility call sites (`TraceIdUtil.current()`)
   reach it through `TimeSourceHolder`, installed at startup by
-  `TimeConfig`. Complements the [[Clock Seam]] which covers
-  `LocalDateTime.now()`; wall millis + monotonic nanos were the two
-  remaining JVM-time primitives. See
-  [TimeSource Port](wiki/concepts/timesource-port.md).
+  `TimeConfig`. Complements the `Clock` seam (`backend-spring/.../common/config/ClockConfig.java`)
+  which covers `LocalDateTime.now()`; wall millis + monotonic nanos were the
+  two remaining JVM-time primitives.
 
 ## Design invariants
 
@@ -152,13 +151,9 @@
 
 ## Decisions
 
-- See `wiki/concepts/` — ADR-0001 ([Submission-Contest Port](wiki/concepts/submission-contest-port.md)), ADR-0004
-  (moderation projection extraction), ADR-0005 (achievement projection
-  extraction), ADR-0006 (problem detail port extraction), ADR-0007
-  (admin user stats read port), ADR-0008 (admin comment read port),
-  ADR-0009 (realtime push seam inversion — six consumer-owned ports +
-  `RealtimeService` collapse), the Clock seam
-  ([Clock Seam](wiki/concepts/clock-seam.md)), the RateLimiter port
-  ([RateLimiter Port](wiki/concepts/ratelimiter-port.md)), and the
-  TimeSource port
-  ([TimeSource Port](wiki/concepts/timesource-port.md)).
+- 2026-07-09: the `wiki/concepts/` ADR + concept-page layer was retired
+  (see `wiki/log.md` 2026-07-09 entry). The "why" behind the in-progress
+  refactor lives in commit messages, source Javadoc on the affected classes
+  (`backend-spring/.../common/config/ClockConfig.java`, `backend-spring/.../common/ratelimiter/RateLimiter.java`,
+  `backend-spring/.../common/time/TimeSource.java`), and the related
+  Flyway migration comments.

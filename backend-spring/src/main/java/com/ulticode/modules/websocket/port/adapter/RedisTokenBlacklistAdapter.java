@@ -21,7 +21,8 @@ import org.springframework.stereotype.Component;
  *       limits the value of a Redis dump to an attacker and keeps key length
  *       uniform. Mirrors the hash-only storage discipline already used by
  *       {@code RefreshTokenService} for refresh tokens (see
- *       {@code wiki/concepts/refresh-token-hash-only-storage.md}).</li>
+ *       modules/refreshtoken/service/RefreshTokenService.java + the migration
+ *       V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql).</li>
  *   <li><strong>Key-prefix convention.</strong> Every key is namespaced as
  *       {@code blacklist:token:<sha256>} so the keyspace is self-describing
  *       when inspected via {@code KEYS} / RedisInsight.</li>

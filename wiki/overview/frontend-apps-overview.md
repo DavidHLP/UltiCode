@@ -52,8 +52,7 @@ console/   (port 9002, users)        management/   (port 9003, admins)
 
 **API rule** (see `.claude/rules/frontend/`): all calls go through `@/utils/request`
 — never a raw Axios instance. `request.ts` owns CSRF, retry-on-network-error,
-401→login redirect, and the snake_case↔camelCase mapping. See
-[[concepts/result-envelope-and-case-mapping]].
+401→login redirect, and the snake_case↔camelCase mapping.
 
 ## Shared layer
 
@@ -64,7 +63,7 @@ console/   (port 9002, users)        management/   (port 9003, admins)
 - **`shared/theme`** — ThemeMode singleton + `applyThemeToDOM`. The
   `console/public/theme-bootstrap.js` and `management/public/theme-bootstrap.js`
   mirrors exist only to eliminate FOUC; do **not** re-initialize theme in
-  `main.ts` or component `onMounted` — see [[concepts/theme-system]].
+  `main.ts` or component `onMounted` — see `CLAUDE.md` § Theme Bootstrap.
 
 ## Conventions (both apps)
 
@@ -85,7 +84,7 @@ console/   (port 9002, users)        management/   (port 9003, admins)
 > "ghost" types with no backend endpoint yet (`UserWarning`, `CreateUserBanDto`) —
 > treat as dead code until an endpoint appears. Aligning shared DTO/enums is an
 > audited cross-stack procedure — see the `cross-stack-dto-granularity-alignment`
-> skill, and [[concepts/result-envelope-and-case-mapping]].
+> skill.
 
 ## Toolchain pins
 
@@ -97,5 +96,3 @@ Verification commands live in `AGENTS.md` § Verification Matrix.
 
 > [!link] Related pages
 > - [[overview/architecture-overview]]
-> - [[concepts/result-envelope-and-case-mapping]] · [[concepts/theme-system]]
-> - [[archive/concepts/sidebar-menu]]

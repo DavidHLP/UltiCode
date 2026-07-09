@@ -24,14 +24,14 @@ sources: []
 <!-- Mirror of log.md but at human scale: what changed in the vault -->
 
 - `entities/foo.md` (created) — one-line gist
-- `concepts/bar.md` (updated) — what changed
+- `overview/bar.md` (updated) — what changed
 - _none_
 
 ## Queries filed
 
-<!-- Reusable answers that should become a concept / overview page -->
+<!-- Reusable answers that should become a new entity or overview page -->
 
-- Q: ... → filed as `concepts/...`
+- Q: ... → filed as `entities/...` / `overview/...`
 - _none_
 
 ## Lint findings

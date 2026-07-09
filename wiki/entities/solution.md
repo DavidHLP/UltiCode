@@ -38,7 +38,6 @@ tagged by topic. Soft-delete + audit like other UGC modules.
 ## Cross-links
 
 - [[entities/problem]] · [[entities/forum]] · [[entities/moderation]]
-- [[concepts/security-invariants]]
 
 ## Gotchas
 

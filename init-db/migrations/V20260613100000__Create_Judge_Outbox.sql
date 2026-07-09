@@ -1,5 +1,5 @@
 -- ADR-003 M3a: Judge Outbox table (shadow-mode dispatch truth).
--- Reference: wiki/concepts/exactly-once-judging.md §2.1 (outbox) + §2.8 generation fence (F8/F13).
+-- Outbox + generation fence: at-least-once enqueue + exactly-once judging.
 -- Unique (submission_id, generation) makes duplicate dispatch physically impossible.
 -- is_shadow = 1 during M3a/M3b (shadow mode, not the active producer); flipped to 0 at
 -- M3c cutover (watermark: created_at > cutover_at), per F13.

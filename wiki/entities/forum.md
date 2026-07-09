@@ -39,7 +39,7 @@ taxonomy, and the forum-specific user profile row.
 - **Comment**: nested under a post.
 - **Community**: joinable groups with membership.
 - **UGC safety**: body is Markdown/KaTeX — must be sanitized before render (see
-  [[concepts/security-invariants]]); reports flow to [[entities/moderation]].
+  `AGENTS.md` § Security Invariants); reports flow to [[entities/moderation]].
 
 ## Controllers
 
@@ -58,7 +58,6 @@ taxonomy, and the forum-specific user profile row.
 ## Cross-links
 
 - [[entities/moderation]] · [[entities/user]]
-- [[concepts/security-invariants]] (UGC sanitize)
 - [[overview/backend-modules-overview]]
 
 ## Gotchas

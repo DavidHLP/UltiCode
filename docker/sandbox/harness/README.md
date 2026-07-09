@@ -72,8 +72,7 @@ g++ -O2 -std=c++17 -o /tmp/cpp-smoke main.cpp && /tmp/cpp-smoke
 
 The sandbox image is **not distributed with the repo** — it is built locally.
 Contract: source → `harness-staging/` (host-precompiled) → image. See
-`CLAUDE.md` § Sandbox Harness for the operating contract and
-`wiki/concepts/sandbox-rebuild.md` for the full diagnostic + rebuild runbook.
+`CLAUDE.md` § Sandbox Harness for the operating contract and rebuild runbook.
 
 The runtime base is `ulticode-sandbox:base-17` (`alpine:3.19` + openjdk17 +
 python3 + gcc + g++ + musl libc), **not** Debian. The Dockerfile COPYs the

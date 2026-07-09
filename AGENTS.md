@@ -30,8 +30,7 @@ inside its directory. Read the relevant nested guide before changing that area:
 | `init-db/migrations/` | Canonical Flyway SQL migrations |
 | `assets/` | README 截图等二进制资源 |
 | `docker/` | Database init SQL, Nacos bootstrap, and D-form judge sandbox |
-| `wiki/concepts/` | ADRs (折叠页) |
-| `wiki/` | Obsidian vault: domain entities, concepts, daily notes, overview docs |
+| `wiki/` | Obsidian vault: domain entities, overviews, daily notes, meta (no concept/ADR layer as of 2026-07-09) |
 | `infrastructure/` | Project-level Arthas config (`arthas.properties`) |
 | `tools/` | Java agent jars (`arthas-boot.jar`) |
 | `scripts/` | Dev ops: `dev/`, `security/`, `statusline/`, `test/`, `adr-005/` |
@@ -122,8 +121,7 @@ The judge sandbox image (`ulticode-sandbox:latest`) is **not distributed with th
 repo** — build it locally before any code-execution feature (problem run/submit).
 `./scripts/dev/up.sh` warns at startup if the image is missing. The full build
 runbook (base image, alpine/musl quirks, proxy fallbacks) lives in
-`wiki/concepts/sandbox-rebuild.md`; the operating contract is in `CLAUDE.md` §
-Sandbox Harness. Symptom of a missing/broken sandbox: every judge call returns a
+`CLAUDE.md` § Sandbox Harness. Symptom of a missing/broken sandbox: every judge call returns a
 masked `Runtime Error` with `memory=0.0MB`.
 
 ## Verification
@@ -250,10 +248,9 @@ Use the `ulticode-db-migration` skill for schema work.
   in `shared/markdown-utils/`; use `renderMarkdown()` from there rather than
   calling `markdown-it` directly or bypassing DOMPurify.
 
-Read the security concept pages in `wiki/concepts/` (especially
-`csrf-mechanism`, `refresh-token-hash-only-storage`, `security-invariants`)
-before changing authentication, deployment secrets, seed accounts, or
-network exposure. Use the `security-review` skill for security-sensitive
+Read the Security Invariants section of this file before changing
+authentication, deployment secrets, seed accounts, or network exposure.
+Use the `security-review` skill for security-sensitive
 work.
 
 > The `security-review` skill is the authoritative workflow. The wiki

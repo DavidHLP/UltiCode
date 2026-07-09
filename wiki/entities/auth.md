@@ -17,8 +17,7 @@ The login/logout and token-issuance surface. `auth` is the entry point; the
 credentials machinery (refresh token store) is [[entities/refreshtoken]], and the
 filter chain + annotations live in the `security/` package.
 
-> Full flow: [[overview/auth-flow-overview]]. Invariants:
-> [[concepts/security-invariants]].
+> Full flow: [[overview/auth-flow-overview]]. Invariants: `AGENTS.md` § Security Invariants.
 
 ## Responsibility
 
@@ -51,8 +50,8 @@ me      → GET /auth/me → identity + fresh CSRF
 
 ## CSRF
 
-Minted and rotated here; the mechanism and Redis key shape are in
-[[concepts/csrf-mechanism]]. Frontend handling shared via `shared/auth-core`.
+Minted and rotated here; the mechanism and Redis key shape are documented in
+`CLAUDE.md` § CSRF Mechanism. Frontend handling shared via `shared/auth-core`.
 
 ## Source files
 
@@ -63,13 +62,12 @@ Minted and rotated here; the mechanism and Redis key shape are in
 ## Cross-links
 
 - [[entities/refreshtoken]] · [[entities/permission]] · [[entities/websocket]]
-- [[concepts/csrf-mechanism]] · [[concepts/refresh-token-hash-only-storage]]
-- [[concepts/security-invariants]] · [[overview/auth-flow-overview]]
+- [[overview/auth-flow-overview]]
 
 ## Gotchas
 
 - The refresh endpoint **must not** accept an access token — that's the
-  refresh-token theft mitigation. See [[concepts/refresh-token-hash-only-storage]].
+  refresh-token theft mitigation. See `AGENTS.md` § Security Invariants.
 - Access tokens are stateless and short-lived; logout doesn't instantly kill them
   — the short TTL is the mitigation, not a revocation list.
 - OAuth state must be consumed atomically from Redis; replay = rejection.

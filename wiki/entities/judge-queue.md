@@ -16,8 +16,7 @@ The async backbone of judging: submissions become jobs, shipped through a
 **transactional outbox** into **Redis Streams**, consumed by workers. Hexagonal —
 a port lets tests run without Redis. Reapers reclaim lost work.
 
-> Rationale: [[concepts/exactly-once-judging]]. Pipeline:
-> [[overview/judging-pipeline-overview]].
+> Pipeline: [[overview/judging-pipeline-overview]].
 
 ## Responsibility
 
@@ -63,7 +62,6 @@ Submission tx ──► JudgeOutboxRecord (DB, same tx)
 ## Cross-links
 
 - [[entities/submission]] · [[entities/sandbox]]
-- [[concepts/exactly-once-judging]] · [[concepts/notification-idempotency]]
 - [[overview/judging-pipeline-overview]]
 
 ## Gotchas

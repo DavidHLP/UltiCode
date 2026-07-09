@@ -3,7 +3,7 @@ title: Maintenance Log
 type: log
 tags: [meta, type/log]
 status: living
-updated: 2026-07-07
+updated: 2026-07-09
 sources: []
 ---
 
@@ -17,6 +17,50 @@ sources: []
 > Format: `## [YYYY-MM-DD] <type> | <summary>`
 
 ---
+
+## [2026-07-09] refactor | Retire all `wiki/concepts/` + `wiki/archive/concepts/` — kill the ADR / decision-doc intermediate layer
+
+Deleted the entire `wiki/concepts/` (16 living concept pages) and
+`wiki/archive/concepts/` (11 archived ADR concept pages) trees, and the
+empty `wiki/archive/` directory that remained. The wiki no longer hosts a
+`concepts/` or `decisions/` layer.
+
+**Why.** These 27 pages were LLM-generated "knowledge layer" documents that
+synthesized the codebase's "why" into wikilink-rich markdown. In practice
+they were acting as an **intermediate cache** between raw sources and the
+agent: the pages drifted, repeated what the source Javadoc / `AGENTS.md` /
+`CLAUDE.md` already said authoritatively, and frequently led the agent to
+follow a stale or over-abstracted pattern when the real code had moved on.
+By the user's own criterion ("中间文档 已经影响了 agent 的判断了"), the layer
+was net-negative and had to go. The codebase (`AGENTS.md`, `CLAUDE.md`,
+source Javadoc, migrations) is now the single source of truth for "why";
+the wiki keeps only "what" and "how the pieces fit together".
+
+**Schema impact.** `wiki/SCHEMA.md` rewritten: §1 (three layers — concept
+column dropped), §2 ingest (3 steps, "concepts" path dropped), §3
+directory layout (no `concepts/` or `decisions/`), §4 page types (only
+`entity` and `overview` — concept row + "concept page shape" subsection
+removed), §5 frontmatter (`type` enum, `type/<x>` tag list, template
+references — concept removed), §11 graph coloring (palette dropped from
+3 colors to 2: entity violet + overview green). `wiki/README.md` layout
+tree + the explanatory note updated. `wiki/index.md` rewritten: the
+"Concepts" + "Archived Concepts" sections (15 + 11 lines) removed;
+counts row updated to `4 meta · 7 overviews · 25 entities · 0 concepts
+= 36 content pages`. `wiki/templates/concept.md` deleted;
+`wiki/templates/daily-note.md` example line + "Queries filed" wording
+updated. `wiki/.meta/manifest.json` **left in place** with its 71 entries
+and stale body hashes (a `--check` run will now report `[drift]` /
+`[stale-fm]` on every page that was rewritten, which is the correct
+signal — the file is a derived artifact and the next regen will replace
+it wholesale).
+
+**Out of scope (deliberately left alone).** Historical log entries from
+2026-07-07 and earlier still mention the deleted `wiki/concepts/*` paths
+in prose; per the same "historical records are not falsified" rule that
+the 2026-07-07 archive move used, they were not rewritten. The
+`.obsidian/workspace.json` workspace history still references deleted
+files; Obsidian regenerates that on next open, so manual editing is
+counterproductive.
 
 ## [2026-07-06] ingest | Sandbox rebuild runbook — masked-RE fingerprint, alpine base, seccomp cwd trap
 

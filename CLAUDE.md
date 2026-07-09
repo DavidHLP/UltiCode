@@ -15,8 +15,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | **[.claude/rules/](./.claude/rules/)** | Claude Code 按 `paths:` 触发的子规则 (backend/ frontend/ database/) | 触及对应路径时自动加载,无需手动查 |
 | **[.cursor/rules/](./.cursor/rules/)** | Cursor IDE 按 globs 触发的 `.mdc` 规则 | Cursor 环境中触及 `console/`/`management/`/`backend-spring/` 时 |
 | **[.claude/agents/](./.claude/agents/)** | 可调用的领域子代理 | 复杂规划、代码审查、安全审查、TDD、构建修复等 |
-| **[wiki/](./wiki/)** | LLM Wiki 活知识库。顶层:`README.md`(着陆)· [`SCHEMA.md`](./wiki/SCHEMA.md)(三层/三动作/写作规范 + §10 daily-notes + §12 manifest)· `index.md`(内容目录)· `log.md`(维护时间线);子目录:`overview/`·`entities/`·`concepts/`·`templates/`·`daily-notes/` | 查架构/部署/合规走 `wiki/index.md` 的"先读这份"表;**改 wiki 内容后跑 `scripts/dev/wiki-manifest.sh` 刷新 `wiki/.meta/manifest.json`** |
-| **[shared/theme/](./shared/theme/)** | 前端主题系统。**项目字体 = LXGW WenKai 楷体,全站统一(含 Monaco 编辑器 / ECharts 默认字体)**。Wiki: [[wiki/concepts/theme-system]] | 改前端颜色/字体/密度/动效/组件样式时先读 `shared/theme/src/applyThemeToDOM.ts` |
+| **[wiki/](./wiki/)** | LLM Wiki 活知识库(仅 `entities/` + `overview/` + 元数据,2026-07-09 起不再托管 ADR/概念层)。顶层:`README.md`(着陆)· [`SCHEMA.md`](./wiki/SCHEMA.md)(三层/三动作/写作规范 + §10 daily-notes + §12 manifest)· `index.md`(内容目录)· `log.md`(维护时间线);子目录:`overview/`·`entities/`·`templates/`·`daily-notes/` | 查架构/部署/合规走 `wiki/index.md` 的"先读这份"表;**改 wiki 内容后跑 `scripts/dev/wiki-manifest.sh` 刷新 `wiki/.meta/manifest.json`** |
+| **[shared/theme/](./shared/theme/)** | 前端主题系统。**项目字体 = LXGW WenKai 楷体,全站统一(含 Monaco 编辑器 / ECharts 默认字体)** | 改前端颜色/字体/密度/动效/组件样式时先读 `shared/theme/src/applyThemeToDOM.ts` |
 | **[wiki/.meta/rtk-reference.md](./wiki/.meta/rtk-reference.md)** | RTK (Rust Token Killer) token 优化命令完整参考 | 查 rtk 命令节省 token 的具体用法 |
 
 子代理简表(详见 `.claude/agents/<name>.md`):
@@ -97,7 +97,7 @@ docker exec ulticode-mysql mysql --default-character-set=utf8mb4 -u ulticode -p'
   5. 同步 MCP 阻塞时,用 `mcp__plugin_context-mode_context-mode__ctx_execute` 跑 java 反射/grep(后台子进程,无 MCP 超时)
 - **增强命令并发模式**:后台 bash `run_in_background=true` 持续 curl 触发目标端点(选没限流的 register/GET,login 是 60s/5 次窗口会被拦截),同步发 `mcp__arthas-mcp__trace/watch/stack` 配 `numberOfExecutions=1` + `timeout=12`;arthas 端 timeout 永远 ≤ 25。
 - 阻塞命令必须带 `-n N` (N ≤ 5) 限制执行次数(见 `.claude/rules/backend/09-java-runtime-diagnostics.md`)。
-- **完整实战手册**:wiki 概念页 [[wiki/concepts/arthas-diagnostics]] — STATELESS pin、三路互斥、watch/trace/tt 真实调用样本、OGNL 速查、降级路径。
+- **完整实战手册**:本文件 § Arthas MCP(本节) + `.claude/rules/backend/09-java-runtime-diagnostics.md` — STATELESS pin、三路互斥、watch/trace/tt 真实调用样本、OGNL 速查、降级路径。
 
 **Arthas 命令速查**:
 
@@ -141,11 +141,11 @@ redis-cli KEYS "csrf:*"
 redis-cli GET "csrf:{userId}:{tokenId}"
 ```
 
-**注意**:GET/HEAD/OPTIONS 不需要 CSRF;匿名用户不需要 CSRF;Token 24h TTL + 5m 宽限期。完整机制见 wiki [[wiki/concepts/csrf-mechanism]]。
+**注意**:GET/HEAD/OPTIONS 不需要 CSRF;匿名用户不需要 CSRF;Token 24h TTL + 5m 宽限期。完整机制见本节(CSRF)+ `backend-spring/src/main/java/com/ulticode/security/`。
 
 ### Sandbox Harness(D-form 代码执行沙箱)
 
-D-form 沙箱在 `docker/sandbox/`,**源 → staging → 镜像**三层。**镜像 `ulticode-sandbox:latest` 不随仓库分发,必须本地构建**;缺失或损坏时所有判题返回笼统 `Runtime Error`。完整诊断与重建手册见 wiki [[wiki/concepts/sandbox-rebuild]]。
+D-form 沙箱在 `docker/sandbox/`,**源 → staging → 镜像**三层。**镜像 `ulticode-sandbox:latest` 不随仓库分发,必须本地构建**;缺失或损坏时所有判题返回笼统 `Runtime Error`。完整诊断与重建手册见本节(下方"Sandbox Harness")。
 
 - 源 `docker/sandbox/harness/{python,c,cpp,java}/` → `build.sh` 预编译到 `docker/sandbox/harness-staging/` → Dockerfile COPY staging 到镜像 `/opt/harness/{lang}/`(**镜像打的是 staging,不是源**)
 - **【诊断指纹】镜像缺失/启动失败的判题症状**:`verdict=Runtime Error` + `memory=0.0MB` + `detail="Runtime error"`(笼统,无具体异常/堆栈)。机理:`SandboxExecutorImpl` 把"非 0 退出 + 非编译错误"映射为 `RUNTIME_ERROR`,且 `CodeExecutionHelperImpl.sanitizeSandboxOutput` 会**过滤含 `docker`/`OCI runtime` 的行**,空结果回退为 "Runtime error" —— docker 层错误被完全掩盖。看到此指纹 → 先 `docker images | grep ulticode-sandbox` 确认镜像存在,再看下一条 seccomp 路径。

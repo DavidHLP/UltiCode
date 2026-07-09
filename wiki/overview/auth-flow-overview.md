@@ -16,7 +16,7 @@ sources:
 
 > [!quote] Essence
 > JWT access + refresh in HttpOnly cookies + Redis-backed CSRF + RBAC. Security
-> invariants are non-negotiable — see [[concepts/security-invariants]].
+> invariants are non-negotiable — see `AGENTS.md` § Security Invariants.
 
 ## The tokens
 
@@ -26,7 +26,7 @@ sources:
 | Refresh | long | HttpOnly cookie **+ DB as hash only** | mints new access tokens; the plaintext is never recoverable |
 
 Both cookies are HttpOnly (no JS access). The refresh endpoint **does not accept**
-an access token — see [[concepts/refresh-token-hash-only-storage]].
+an access token — see `AGENTS.md` § Security Invariants.
 
 ## Login → authenticated request
 
@@ -59,7 +59,7 @@ console                backend /auth                  Redis
 - Token rotates per mutating request; 24h TTL + 5m grace.
 - Frontend refresh of a stale token: `GET /auth/me` returns a fresh `csrfToken`.
 
-Mechanism deep-dive: [[concepts/csrf-mechanism]]. Shared client handling lives in
+Mechanism deep-dive: `CLAUDE.md` § CSRF Mechanism. Shared client handling lives in
 `shared/auth-core`.
 
 ## Refresh rotation
@@ -70,14 +70,14 @@ POST /auth/refresh   Cookie: refresh (only)
   → rotate: invalidate old, issue new refresh (hash stored), new access JWT
 ```
 
-See [[entities/refreshtoken]] and [[concepts/refresh-token-hash-only-storage]].
+See [[entities/refreshtoken]] and `AGENTS.md` § Security Invariants.
 
 ## WebSocket auth
 
 > [!danger] Auth contract
 > - Authentication is **only** via the access-token cookie on the handshake.
 > - **Forbidden**: query-string token, URL token, client-side STOMP auth header.
-> - Rationale: keeping the credential out of URLs/logs — see [[concepts/security-invariants]].
+> - Rationale: keeping the credential out of URLs/logs — see `AGENTS.md` § Security Invariants.
 >
 > See [[entities/websocket]].
 
@@ -105,6 +105,5 @@ does not "revoke" them instantly — the short TTL is the mitigation.
 ## Reading order
 
 > [!link] Suggested path
-> `entities/auth` → `concepts/csrf-mechanism` → `entities/refreshtoken` →
-> `concepts/refresh-token-hash-only-storage` → `concepts/security-invariants` →
-> `entities/permission`.
+> `entities/auth` → `entities/refreshtoken` → `entities/permission` →
+> `entities/websocket` → `CLAUDE.md` § CSRF Mechanism.

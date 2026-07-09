@@ -243,7 +243,7 @@ fi
 # 仅告警不 exit:启动后端/前端不依赖沙箱,只有判题需要。
 if ! docker image inspect "${SANDBOX_IMAGE:-ulticode-sandbox:latest}" >/dev/null 2>&1; then
   echo "[WARN] ${SANDBOX_IMAGE:-ulticode-sandbox:latest} not found — judging will fail with a masked 'Runtime Error' (memory=0.0MB) until built." >&2
-  echo "[WARN]   Build runbook: wiki/concepts/sandbox-rebuild.md  |  Contract: CLAUDE.md § Sandbox Harness" >&2
+  echo "[WARN]   Build runbook: CLAUDE.md § Sandbox Harness  |  Code: docker/sandbox/harness/build.sh" >&2
 fi
 
 # ===== 步骤 6: PM2 服务 =====

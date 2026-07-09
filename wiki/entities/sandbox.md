@@ -18,8 +18,7 @@ D-form sandbox: source → staging → image, built once and reused per submit
 (`SANDBOX_IMAGE=ulticode-sandbox:latest`). Secured by seccomp + a hardened
 language harness.
 
-> Security model: [[concepts/sandbox-security-contract]]. Caller:
-> [[entities/submission]]. Pipeline: [[overview/judging-pipeline-overview]].
+> Caller: [[entities/submission]]. Pipeline: [[overview/judging-pipeline-overview]].
 
 ## Three-layer build
 
@@ -49,7 +48,7 @@ resource limits (time/memory from [[entities/problem]]). Image base is
 on 3.14 (PEP 649 lazy) can pass `pytest` falsely — always verify end-to-end in
 the image. Because the base is musl, the C/C++ orchestrators must be compiled
 inside the base-17 container (a host-glibc build won't run); see
-[[concepts/sandbox-rebuild]].
+`CLAUDE.md` § Sandbox Harness for the rebuild runbook.
 
 ## Security posture
 
@@ -58,7 +57,8 @@ inside the base-17 container (a host-glibc build won't run); see
   pre-injects pure-compute stdlib (`heapq`/`math`/`bisect`/`itertools`/`functools`/
   `operator`/`string`/`fractions`/`decimal`/`statistics`/`re`/`collections` +
   `ListNode`/`TreeNode`). It **never** injects `os`/`sys`/`subprocess`/`socket`/
-  `shutil`/`ctypes`/`multiprocessing` — see [[concepts/sandbox-security-contract]].
+  `shutil`/`ctypes`/`multiprocessing` — the import blocklist is what enforces
+  isolation (`AGENTS.md` § Security Invariants).
 - Exit guard only blocks `_exit`/`sys.exit`; the import blocklist is what enforces
   isolation.
 
@@ -77,7 +77,6 @@ inside the base-17 container (a host-glibc build won't run); see
 ## Cross-links
 
 - [[entities/submission]] · [[entities/judge-queue]]
-- [[concepts/sandbox-security-contract]]
 - [[overview/judging-pipeline-overview]]
 
 ## Gotchas
@@ -87,7 +86,7 @@ inside the base-17 container (a host-glibc build won't run); see
   `sanitizeSandboxOutput` drops lines containing `docker`/`OCI runtime`. So an
   absent image, a missing seccomp file, or any docker-level failure surfaces as
   `verdict=Runtime Error` + `memory=0.0MB` + `detail="Runtime error"` with no
-  real trace. See [[concepts/sandbox-rebuild]] for the diagnostic + rebuild.
+  real trace. See `CLAUDE.md` § Sandbox Harness for the diagnostic + rebuild.
 - **`SANDBOX_SECCOMP_PROFILE` resolves against the backend cwd
   (`backend-spring/`), not the repo root.** `.env` must use
   `../docker/sandbox/seccomp-profile.json`; a bare `docker/sandbox/...` makes

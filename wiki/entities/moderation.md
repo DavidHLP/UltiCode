@@ -51,8 +51,8 @@ Owns the report intake, moderation queue, action execution (warn/ban/delete/rest
 | `AppealHandler` | process `appeals` |
 
 `ModerationServiceImpl` dispatches by `ModerationActionType` (note: DTO field
-`PerformModerationActionDTO.action` is raw `String` — see
-[[concepts/result-envelope-and-case-mapping]] on the enum gap).
+`PerformModerationActionDTO.action` is raw `String` — pending backend-enum
+alignment).
 
 ## Controllers
 
@@ -66,7 +66,6 @@ Owns the report intake, moderation queue, action execution (warn/ban/delete/rest
 ## Cross-links
 
 - [[entities/user]] · [[entities/forum]] (UGC source)
-- [[concepts/security-invariants]] · [[concepts/result-envelope-and-case-mapping]]
 - [[overview/backend-modules-overview]]
 
 ## Gotchas

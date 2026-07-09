@@ -14,7 +14,9 @@ import com.ulticode.modules.notification.intent.NotificationIntent;
  * treats missing templates as a delivery failure (mark FAILED in the
  * ledger, do not block other channels).
  *
- * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.5.
+ * <p>Reference: notification/email/EmailTemplates + notification/intent/NotificationIntent;
+ * see also V20260613120000__Create_Notification_Delivery_Ledger.sql for the
+ * dispatch contract and the per-channel idempotency rule.
  */
 public final class EmailTemplates {
 

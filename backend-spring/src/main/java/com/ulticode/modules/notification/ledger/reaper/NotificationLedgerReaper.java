@@ -37,8 +37,9 @@ import org.springframework.stereotype.Component;
  * {@code (intent_id, channel_id)}; the existing row's state is
  * informational).
  *
- * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.7 + M4d-1
- * finding #4.
+ * <p>Reference: notification/ledger/reaper/NotificationLedgerReaper + the
+ * (intent_id, channel_id) UNIQUE index in
+ * V20260613120000__Create_Notification_Delivery_Ledger.sql.
  */
 @Slf4j
 @Component

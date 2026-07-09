@@ -13,8 +13,9 @@ sources:
 
 > [!quote] Essence
 > 26 backend modules under `backend-spring/src/main/java/com/ulticode/modules/`,
-> each following the [[concepts/module-layering|controller→service→mapper→entity]]
-> shape. 25 have their own entity page; `vote` + `edgeoperations` are merged into
+> each following the controller→service→mapper→entity shape (see
+> `.claude/rules/backend/springboot-rules.md` + `AGENTS.md` Backend Conventions).
+> 25 have their own entity page; `vote` + `edgeoperations` are merged into
 > [[entities/interactions]].
 
 Controllers expose these `@RequestMapping` prefixes (public unless `/admin/`):
@@ -28,7 +29,7 @@ Controllers expose these `@RequestMapping` prefixes (public unless `/admin/`):
 | `sandbox` | *(docker image, not a module)* | D-form harness, 4 languages, seccomp | [[entities/sandbox]] |
 
 End-to-end: [[overview/judging-pipeline-overview]]. Pattern:
-[[concepts/exactly-once-judging]].
+outbox + generation fence + lease.
 
 ## Core domain
 
@@ -52,8 +53,7 @@ End-to-end: [[overview/judging-pipeline-overview]]. Pattern:
 | `vote` (`edgeoperations`) | `/edge-operations` | likes/saves via `edge_operations` | [[entities/interactions]] |
 
 Auth deep-dive: [[overview/auth-flow-overview]]. Security model:
-[[concepts/security-invariants]] · [[concepts/refresh-token-hash-only-storage]] ·
-[[concepts/csrf-mechanism]].
+`AGENTS.md` § Security Invariants.
 
 ## Communication & community
 
@@ -64,7 +64,7 @@ Auth deep-dive: [[overview/auth-flow-overview]]. Security model:
 | `email` | `/email` | templates, logs, verification | [[entities/email]] |
 | `forum` | `/forum`, `/admin/forum` | posts, comments, communities, tags | [[entities/forum]] |
 
-Pattern: [[concepts/notification-idempotency]].
+Pattern: intent + delivery ledger dedup.
 
 ## Trust, safety & engagement
 
@@ -106,4 +106,4 @@ Outside `modules/`, under `com.ulticode`:
 > [!link] Related pages
 > - [[overview/architecture-overview]] · [[overview/auth-flow-overview]]
 > - [[overview/judging-pipeline-overview]] · [[overview/database-schema-overview]]
-> - [[concepts/module-layering]]
+> - (no wiki concept pages — see `AGENTS.md` + source code)

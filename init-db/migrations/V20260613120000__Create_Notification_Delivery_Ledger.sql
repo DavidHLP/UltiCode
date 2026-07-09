@@ -1,5 +1,5 @@
 -- ADR-004 M4a: Notification delivery ledger.
--- Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.2 (typed dispatcher), §2.3 (per-channel ledger), §2.7 (F9 idempotency 修订).
+-- Typed dispatcher + per-channel ledger: see backend-spring/.../modules/notification/{intent,channel,ledger}/
 -- Per (intent_id, channel_id) UNIQUE = physical idempotency even on multi-replica
 -- or pm2 reload. tryClaim() uses INSERT ... ON DUPLICATE KEY UPDATE id=id so the
 -- claim itself is atomic; subsequent markDelivered / markFailed transitions the

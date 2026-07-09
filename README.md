@@ -539,7 +539,7 @@ UltiCode 维护一份分层的工程知识库，按需查阅：
 |-------|------------|
 | 第一次提 PR | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
 | On-call 工程师 | [docs/RUNBOOK.md](docs/RUNBOOK.md) §0 速查 + §4 常见问题 |
-| 架构师 / 规划者 | [wiki/](../wiki/) + [wiki/concepts/](../wiki/concepts/) (ADR 折叠页) |
+| 架构师 / 规划者 | [wiki/](../wiki/) (`entities/` + `overview/`,无 ADR/概念层) |
 | 后端开发 | [docs/CODEMAPS/backend.md](docs/CODEMAPS/backend.md) + [.claude/rules/springboot-rules.md](.claude/rules/springboot-rules.md) |
 | 前端开发 | [docs/CODEMAPS/frontend.md](docs/CODEMAPS/frontend.md) + [.claude/rules/frontend-rules.md](.claude/rules/frontend-rules.md) |
 | 数据库 / Flyway | [docs/CODEMAPS/data.md](docs/CODEMAPS/data.md) + [.claude/rules/database/01-flyway-migrations.md](.claude/rules/database/01-flyway-migrations.md) |
@@ -547,7 +547,7 @@ UltiCode 维护一份分层的工程知识库，按需查阅：
 | 运维 / 部署 / 密钥 | [docs/ENV.md](docs/ENV.md) + [docs/RUNBOOK.md](docs/RUNBOOK.md) |
 | 安全审查 | [docs/SECURITY_REVIEW_2026-06-06.md](docs/) + [.claude/agents/security-reviewer.md](.claude/agents/) |
 | 主题 / 样式 | [docs/theme/README.md](docs/theme/README.md) + [docs/CODEMAPS/frontend.md §Theme](docs/CODEMAPS/frontend.md) |
-| 决策记录（ADR） | [wiki/concepts/](../wiki/concepts/) · 见 [index.md](../wiki/index.md) |
+| 决策记录（ADR） | 已退役 (2026-07-09)。设计决策沉淀在 `AGENTS.md` / `CLAUDE.md` / 源码 Javadoc + 迁移注释;wiki 仅保留"是什么 / 怎么拼"层 |
 
 ---
 

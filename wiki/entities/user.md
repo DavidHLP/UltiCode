@@ -53,7 +53,7 @@ computation (contest-driven).
 ## Gotchas
 
 - Audit identity on writes comes from the authenticated principal, **never** from
-  a request body field — see [[concepts/security-invariants]].
+  a request body field — see `AGENTS.md` § Security Invariants.
 - Rating is derived data; don't write it from arbitrary paths — only the contest
   finalization flow.
 - `@CheckBan` guards user-action endpoints; a banned user's profile is still

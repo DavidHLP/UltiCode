@@ -14,7 +14,9 @@ import java.time.LocalDateTime;
 /**
  * Ledger row for a single (intent_id, channel_id) delivery attempt.
  *
- * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.7 (F9 修订).
+ * <p>Reference: notification/ledger/entity/NotificationDeliveryLedger + the
+ * (intent_id, channel_id) UNIQUE index + idempotency rule in
+ * V20260613120000__Create_Notification_Delivery_Ledger.sql.
  *
  * <p>The {@code id} is auto-increment for fast paging; the natural key is
  * {@code (intent_id, channel_id)} and is enforced by a UNIQUE index. {@code @Data}

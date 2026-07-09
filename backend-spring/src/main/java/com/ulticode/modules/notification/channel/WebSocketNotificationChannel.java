@@ -55,7 +55,9 @@ import org.springframework.stereotype.Component;
  *       {@code management/} and {@code console/}.</li>
  * </ul>
  *
- * <p>Reference: wiki/concepts/notification-dispatch-and-preferences.md §2.2 (WebSocketNotificationChannel).
+ * <p>Reference: notification/channel/WebSocketNotificationChannel + the
+ * per-channel ledger key shape in
+ * V20260613120000__Create_Notification_Delivery_Ledger.sql.
  */
 @Slf4j
 @Component

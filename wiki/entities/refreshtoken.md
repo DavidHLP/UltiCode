@@ -16,7 +16,8 @@ Long-lived credential that mints new access JWTs. Stored **hash-only** in the DB
 the plaintext exists only transiently in the HttpOnly cookie; the stored row can
 never be reversed into a usable token. Introduced by the 06-06 security migration.
 
-> Rationale: [[concepts/refresh-token-hash-only-storage]]. Issuer: [[entities/auth]].
+> Issuer: [[entities/auth]]. Hash-only storage rationale lives in
+> `AGENTS.md` § Security Invariants.
 
 ## Key table
 
@@ -46,7 +47,6 @@ access token**.
 ## Cross-links
 
 - [[entities/auth]] · [[entities/user]]
-- [[concepts/refresh-token-hash-only-storage]] · [[concepts/security-invariants]]
 - [[overview/auth-flow-overview]]
 
 ## Gotchas

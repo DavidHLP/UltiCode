@@ -15,7 +15,7 @@ sources:
 > MySQL 9.1 (port 23306). Schema is owned by **Flyway migrations** in
 > `init-db/migrations/` — the only source. This page maps the major tables by
 > domain and traces the migration timeline (especially the security + idempotency
-> hardening). Discipline: [[concepts/flyway-migration-discipline]].
+> hardening). Discipline documented in `AGENTS.md` § Database Rules.
 
 ## Conventions
 
@@ -24,7 +24,7 @@ sources:
 - **Soft delete**: `is_deleted` (entity property `deleted`, MyBatis maps `is_deleted`).
 - **Booleans**: DB column `is_xxx`, entity property drops the `is_` prefix.
 - **Naming**: table/columns `snake_case`; MyBatis-Plus maps to camelCase entities
-  (`mapUnderscoreToCamelCase = true`). See [[concepts/result-envelope-and-case-mapping]].
+  (`mapUnderscoreToCamelCase = true`).
 
 ## Tables by domain
 
@@ -33,7 +33,7 @@ Derived from `@TableName` annotations. Representative, not exhaustive — grep
 
 **Judging**
 - `submissions` — the core submission row (status, generation, lease).
-- `judge_outbox` — outbox for at-least-once enqueue ([[concepts/exactly-once-judging]]).
+- `judge_outbox` — outbox for at-least-once enqueue.
 - `test_cases` — per-problem cases (`V20260610120000`).
 
 **Problems & learning**
@@ -50,7 +50,7 @@ Derived from `@TableName` annotations. Representative, not exhaustive — grep
 
 **Users & identity**
 - `users`.
-- `refresh_tokens` (hash-only — [[concepts/refresh-token-hash-only-storage]]).
+- `refresh_tokens` (hash-only — see `AGENTS.md` § Security Invariants).
 - `user_permissions`, `role_permissions`.
 - `user_follows`.
 
@@ -121,13 +121,10 @@ The three **★ inflection points** are the design backbone: 06-06 security,
 - New change → new `V{timestamp}__Description.sql`, timestamp larger than the last.
 - **Never edit an already-applied migration** — checksum mismatch aborts migrate.
 - Apply via `./scripts/dev/migrate.sh migrate` (the wrapper; raw `flyway` isn't on
-  PATH). Repair: `./scripts/dev/migrate.sh repair`. See
-  [[concepts/flyway-migration-discipline]].
+  PATH). Repair: `./scripts/dev/migrate.sh repair`.
 - Verify locally: `./scripts/dev/test.sh integration` (Testcontainers MySQL 9.1).
 
 ## Links out
 
 > [!link] Related pages
-> - [[concepts/flyway-migration-discipline]]
-> - [[concepts/refresh-token-hash-only-storage]] · [[concepts/exactly-once-judging]]
-> - [[concepts/virtual-contest]]
+> - `AGENTS.md` § Database Rules + Security Invariants

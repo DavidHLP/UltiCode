@@ -20,9 +20,7 @@ sources:
 > What runs locally, how it's orchestrated, and the ordering traps that bite.
 > This is the **knowledge layer** — the operational command reference lives in
 > `AGENTS.md` and `CLAUDE.md`. Runtime diagnostics deep-dive:
-> [[concepts/arthas-diagnostics]]. When to use the **Preview MCP panel**
-> vs PM2, and how to detect which mode you're in:
-> [[concepts/process-management]].
+> `CLAUDE.md` § Arthas MCP.
 
 ## What runs
 
@@ -54,8 +52,8 @@ in its logs). The `.env` at repo root is the single source of truth for credenti
   migrate → PM2 start. `--skip-install` reuses installed deps.
 - `migrate.sh {migrate|repair}` — Flyway wrapper (raw `flyway` not on PATH).
 - `test.sh {quick|full|integration}` — `quick` skips `*IT.java`.
-- `typography-guard.sh` — font-consistency check (LXGW WenKai, see
-  [[concepts/theme-system]]).
+- `typography-guard.sh` — font-consistency check (LXGW WenKai; see
+  `shared/theme/src/applyThemeToDOM.ts` + `CLAUDE.md` § Theme Bootstrap).
 
 ## Startup ordering contract
 
@@ -114,7 +112,7 @@ dashboard/thread/watch/trace/ognl directly.
 - **Blocking commands need `-n N` (N ≤ 5)** and a concurrent trigger to fire the
   target method; otherwise the 30s MCP timeout hits. Degrade path: app logs →
   raw logs → interactive telnet → integration test. Full playbook:
-  [[concepts/arthas-diagnostics]].
+  `CLAUDE.md` § Arthas MCP.
 
 ## Security posture (dev)
 
@@ -124,7 +122,7 @@ dashboard/thread/watch/trace/ognl directly.
 > - Nacos auth stays on; default `nacos/nacos` stays disabled.
 > - Dev login `admin`/`admin123` is dev-profile-only bootstrap, off in prod.
 >
-> Invariants: [[concepts/security-invariants]]. Operational commands: `AGENTS.md`.
+> Invariants: `AGENTS.md` § Security Invariants. Operational commands: `AGENTS.md`.
 
 ## WSL2 + Docker Desktop cold-start pitfalls
 
@@ -281,6 +279,3 @@ runs. Fixed upstream in **JDK 17.0.5+** and JDK 21 LTS.
 
 > [!link] Related pages
 > - [[overview/architecture-overview]]
-> - [[concepts/arthas-diagnostics]] · [[concepts/security-invariants]]
-> - [[concepts/theme-system]]
-> - [[concepts/process-management]]

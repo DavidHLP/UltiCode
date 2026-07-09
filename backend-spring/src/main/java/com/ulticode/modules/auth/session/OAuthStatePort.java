@@ -14,10 +14,10 @@ import jakarta.servlet.http.HttpServletResponse;
  * assert on state issuance/consumption without standing up the full provider
  * token-exchange flow.
  *
- * <p>Enforces security invariant #5 from
- * {@code wiki/concepts/security-invariants.md}: OAuth state is bound to an
- * HttpOnly browser cookie and consumed atomically in Redis, so a stale or
- * replayed state can never complete a callback.
+ * <p>Enforces Security Invariant #5 (OAuth state is bound to an HttpOnly
+ * browser cookie and consumed atomically in Redis, so a stale or replayed
+ * state can never complete a callback). The authoritative list lives in
+ * {@code AGENTS.md} § Security Invariants.
  */
 public interface OAuthStatePort {
 

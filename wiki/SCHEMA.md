@@ -3,7 +3,7 @@ title: SCHEMA — Wiki Convention
 type: schema
 tags: [meta, convention, type/schema]
 status: living
-updated: 2026-07-05
+updated: 2026-07-09
 sources:
   - AGENTS.md
   - CLAUDE.md
@@ -23,7 +23,7 @@ answers a query, or runs a lint pass, it consults this file first.
 | Layer | What it is | Who writes it |
 |-------|-----------|---------------|
 | **Raw sources** | The codebase and authoritative instruction docs — `backend-spring/`, `console/`, `management/`, `shared/`, `init-db/migrations/`, `docker/`, `scripts/`, `infrastructure/`, `.github/workflows/`, plus `AGENTS.md`, `CLAUDE.md`, `.claude/rules/`. **Immutable.** The source of truth. | Humans |
-| **The wiki** | This `wiki/` tree — LLM-generated markdown (entities, concepts, overviews, index, log). Explains, synthesizes, and cross-references the raw sources. | **LLM** (you) |
+| **The wiki** | This `wiki/` tree — LLM-generated markdown (entities, overviews, index, log). Explains, synthesizes, and cross-references the raw sources. | **LLM** (you) |
 | **The schema** | This file (`SCHEMA.md`) + [`README.md`](README.md). Tells the LLM how the wiki is structured and what workflows to follow. Co-evolved by human + LLM. | Human + LLM |
 
 The wiki **never duplicates** `AGENTS.md` / `CLAUDE.md` directives. Those are the
@@ -39,20 +39,20 @@ by repo-relative path literal (e.g. ``backend-spring/.../modules/submission/``).
 ### Ingest
 A new source arrives (a new module, a migration, an ops runbook, a design doc).
 1. Read the source and discuss key takeaways.
-2. Create or update the relevant `entities/`, `concepts/`, `overview/` pages.
+2. Create or update the relevant `entities/` and/or `overview/` pages.
 3. Add a `sources:` entry pointing at the real repo path on every page touched.
 4. Update [`index.md`](index.md) — one line per page.
 5. Append an entry to [`log.md`](log.md) with the greppable prefix.
 
-A single ingest routinely touches 10–15 pages (the new entity + every concept and
-overview that should now mention it).
+A single ingest routinely touches 2–6 pages (the new entity and the overviews
+that should now mention it).
 
 ### Query
 A question is asked against the wiki.
 1. Read [`index.md`](index.md) to locate relevant pages.
 2. Drill into those pages; follow `[[wikilinks]]` as needed.
 3. Synthesize an answer **with citations** (page name + source path).
-4. If the answer is valuable and reusable, **file it back** as a new concept or
+4. If the answer is valuable and reusable, **file it back** as a new entity or
    overview page — explorations should compound, not vanish into chat history.
 
 ### Lint
@@ -61,7 +61,7 @@ A periodic health check. Look for:
 - **Dead links** — `[[x]]` targets that resolve to no file.
 - **Stale claims** — statements a newer source has superseded.
 - **Missing cross-references** — two pages that should link but don't.
-- **Missing pages** — an important concept mentioned everywhere but with no page.
+- **Missing pages** — an important entity or overview mentioned everywhere but with no page.
 - **Source drift** — a `sources:` path that no longer exists in the repo.
 - **Stale frontmatter dates** — a page whose `updated:` predates its last real edit; run `scripts/dev/wiki-manifest.sh --check` (see §12).
 
@@ -75,22 +75,22 @@ wiki/
 ├── log.md             # append-only maintenance timeline
 ├── overview/          # synthesis — whole-system viewpoint (architecture, pipelines)
 ├── entities/          # domain objects / backend modules
-├── concepts/          # cross-cutting design ideas, decisions, patterns
-├── templates/         # Obsidian templates (entity / concept / overview / daily-note)
+├── templates/         # Obsidian templates (entity / overview / daily-note)
 ├── daily-notes/       # one-file-per-day ingest journal (auto-created by Daily Notes core plugin)
 └── .meta/             # generated provenance manifest (see §12); NOT a content layer
 ```
 
-Only three content types: `overview`, `entity`, `concept`. There is deliberately
-**no** `decisions/`, `codemap/`, `ops/`, or `theme/` directory — an ADR folds into
-`concepts/`, an architecture mirror or ops deep-dive folds into `overview/`.
+Two content types: `overview`, `entity`. The wiki deliberately does **not** host a
+`concepts/` or `decisions/` directory — design rationales and ADR-style notes
+have been retired. The codebase (`AGENTS.md`, `CLAUDE.md`, source Javadoc) is
+the single source of truth for "why" decisions; the wiki keeps only "what" and
+"how the pieces fit together".
 
 ## 4. Page types
 
 | Type | Folder | Answers | Length |
 |------|--------|---------|--------|
 | **entity** | `entities/` | "What is X and how does the X module work?" | ~80–150 lines |
-| **concept** | `concepts/` | "Why did we decide X / what pattern is X?" | ~60–120 lines |
 | **overview** | `overview/` | "How do these pieces fit together end-to-end?" | ~120–200 lines |
 
 ### entity page shape
@@ -99,29 +99,21 @@ Only three content types: `overview`, `entity`, `concept`. There is deliberately
 - **Key tables / entities** — table name → purpose (from `@TableName`).
 - **Key flows** — the main request paths, step by step.
 - **Source files** — the repo paths that define it.
-- **Cross-links** — `[[...]]` to related entities, concepts, overviews.
+- **Cross-links** — `[[...]]` to related entities, overviews.
 - **Gotchas** — non-obvious traps.
-
-### concept page shape
-- **The problem** — what tension this resolves.
-- **The decision** — what was chosen.
-- **Why** — the reasoning.
-- **Where it lives** — source paths (code + migration).
-- **Trade-offs** — what was rejected and why.
-- **Related** — entities/concepts it governs.
 
 ### overview page shape
 - **Scope map** — ASCII diagram or table of the territory.
 - **How pieces connect** — the end-to-end flow.
 - **Entry points** — where to start reading the code.
-- **Links out** — into every relevant entity/concept.
+- **Links out** — into every relevant entity/overview.
 
 ## 5. Frontmatter (every content page)
 
 ```yaml
 ---
 title: Submission              # human title
-type: entity                   # entity | concept | overview | index | log | schema | daily
+type: entity                   # entity | overview | index | log | schema | daily
 tags: [judging, core, type/entity]   # lowercase, broad→specific; FIRST slot = type-tag
 status: living                 # living | stub | deprecated
 updated: 2026-06-21            # ISO date of last material edit
@@ -132,12 +124,12 @@ aliases: []                    # alternate names or 中文别名 for search
 ---
 ```
 
-- `type` — one of `entity | concept | overview | index | log | schema | daily`.
+- `type` — one of `entity | overview | index | log | schema | daily`.
 - `tags` MUST include exactly one `type/<x>` tag mirroring `type:` —
-  `type/entity`, `type/concept`, `type/overview`, `type/daily`.
+  `type/entity`, `type/overview`, `type/daily`.
   The tag is what Obsidian Bases, Dataview, and tag-pane filters key off.
   The Templates core plugin auto-injects it for new pages that copy
-  `templates/entity.md`, `templates/concept.md`, etc.
+  `templates/entity.md`, `templates/overview.md`, etc.
 - `status: stub` = page exists as a placeholder, not yet distilled. Lint flags stubs.
 - `sources:` must point at **real** paths. Cite a directory for a module, a file
   for a specific decision/migration.
@@ -222,15 +214,13 @@ preserves *why* a decision was made, not just *what* changed.
 ## 11. Graph view coloring
 
 Graph node colors key off the `type/<x>` frontmatter tag from § 5 (entity →
-violet `#7c3aed`, concept → blue `#0ea5e9`, overview → green `#10b981`). The
-tag is the single source of truth — Bases, Dataview, tag-pane, and graph
-coloring all read it.
+violet `#7c3aed`, overview → green `#10b981`). The tag is the single source of
+truth — Bases, Dataview, tag-pane, and graph coloring all read it.
 
 Obsidian's `.obsidian/graph.json` (where `colorGroups[]` live) is rewritten by
 the app on open, so coloring is a **one-time manual UI setup per machine**, not
-a file edit. The full palette, setup steps, verification, and programmatic
-alternatives (Bases / Juggl / Excalibrain) live in
-[[concepts/obsidian-graph-coloring]].
+a file edit. Pages without a `type/<x>` tag (meta files, daily notes) fall
+through to default gray.
 
 ## 12. Page versioning & manifest (`wiki/.meta/manifest.json`)
 
@@ -247,7 +237,7 @@ can answer *"which commit last modified this page, and by whom?"*.
 {
   "$schema": "wiki-manifest-v1",
   "generated_with_head": "<full HEAD sha>",              // determinism anchor (no timestamp)
-  "stats": { "pages": 54, "by_type": { "entity": 26, "concept": 14, "overview": 8, ... } },
+  "stats": { "pages": 41, "by_type": { "entity": 26, "overview": 8, "daily": 3, "index": 2, "log": 1, "schema": 1 } },
   "pages": [
     {
       "path": "wiki/entities/submission.md",

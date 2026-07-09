@@ -75,7 +75,7 @@ will not be deserialised and the field will be `null` at read time.
   should know the keys. Don't bind `metadata` to a typed DTO at the controller.
 - `createBackup` records `userId` from `SecurityUtil.getCurrentUserId()` (falls
   back to `"anonymous"` if null); same for `restoreBackup`. This is the audit
-  anchor — see [[concepts/security-invariants]].
+  anchor — see `AGENTS.md` § Security Invariants.
 - `restore` is destructive and rate-limited (30/min); there is no dry-run. Test
   restore on a non-prod DB first.
 - The download response uses RFC 5987 (`filename*=UTF-8''...`) — never plain

@@ -16,8 +16,7 @@ The central entity of the judge: one user's code for one problem, driven through
 a state machine to a verdict. Its correctness rests on a **generation fence** and
 a **lease** so retries and crashes can't produce double judging.
 
-> Pipeline context: [[overview/judging-pipeline-overview]]. Invariant rationale:
-> [[concepts/exactly-once-judging]].
+> Pipeline context: [[overview/judging-pipeline-overview]].
 
 ## Responsibility
 
@@ -70,7 +69,6 @@ create → IN_QUEUED ──(fence: stamp generation)──► outbox enqueues �
 ## Cross-links
 
 - [[entities/judge-queue]] · [[entities/sandbox]] · [[entities/contest]]
-- [[concepts/exactly-once-judging]] · [[concepts/notification-idempotency]]
 - [[overview/judging-pipeline-overview]]
 
 ## Gotchas

@@ -16,8 +16,7 @@ How the system tells a user something happened — judged submission, reply, bad
 moderation action, contest signal. Built on an **intent + delivery ledger** so
 at-least-once delivery becomes exactly-once observation.
 
-> Mechanism: [[concepts/notification-idempotency]]. Push transport:
-> [[entities/websocket]].
+> Push transport: [[entities/websocket]].
 
 ## Responsibility
 
@@ -50,7 +49,7 @@ websocket push to open tab  +  persisted for later read
 ```
 
 The ledger turns at-least-once transport (WebSocket reconnects, retries) into
-exactly-once user-visible delivery. See [[concepts/notification-idempotency]].
+exactly-once user-visible delivery.
 
 ## Key flows (user-facing)
 
@@ -69,7 +68,6 @@ exactly-once user-visible delivery. See [[concepts/notification-idempotency]].
 ## Cross-links
 
 - [[entities/websocket]] · [[entities/email]] · [[entities/submission]]
-- [[concepts/notification-idempotency]] · [[archive/concepts/notification-dispatch-and-preferences]]
 - [[overview/judging-pipeline-overview]] (notify stage)
 
 ## Gotchas

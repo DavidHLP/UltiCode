@@ -16,8 +16,8 @@ Real-time push transport: notification delivery, contest standing ticks, online
 presence. Auth is **access-cookie-only** on the handshake — the credential never
 appears in URLs or client STOMP frames.
 
-> Invariant: [[concepts/security-invariants]]. Delivers for:
-> [[entities/notification]].
+> Delivers for: [[entities/notification]]. Cookie-only auth invariant lives in
+> `AGENTS.md` § Security Invariants.
 
 ## Responsibility
 
@@ -28,7 +28,7 @@ subscription channels for per-user notifications and contest updates.
 
 - Handshake authenticates via the **access-token cookie** only.
 - **Forbidden**: query-string token, URL token, client-side STOMP `auth` frame.
-- Rationale: keep the JWT out of logs/URLs — see [[concepts/security-invariants]].
+- Rationale: keep the JWT out of logs/URLs — see `AGENTS.md` § Security Invariants.
 
 ## Flows
 
@@ -43,7 +43,6 @@ subscription channels for per-user notifications and contest updates.
 ## Cross-links
 
 - [[entities/notification]] · [[entities/auth]]
-- [[concepts/notification-idempotency]] · [[concepts/security-invariants]]
 
 ## Gotchas
 

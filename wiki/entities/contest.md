@@ -19,8 +19,7 @@ standings, and (for virtual contests) isolated replay sessions. Heavily hardened
 in the 06-17 migrations for scoring integrity, slug uniqueness, and virtual
 fencing.
 
-> Virtual mode: [[concepts/virtual-contest]]. Where it sits:
-> [[overview/architecture-overview]].
+> Where it sits: [[overview/architecture-overview]].
 
 ## Responsibility
 
@@ -70,7 +69,7 @@ virtual: participant starts own session → isolated clock + standings
 | `V…Contest_Slug_Unique` | URL slug uniqueness |
 | `V…Contest_Real_Unique_And_Session_Length` | one live session per participant + bounded virtual session length |
 
-These are the backbone of [[concepts/virtual-contest]] fencing.
+These are the backbone of virtual-contest fencing.
 
 ## Source files
 
@@ -81,7 +80,6 @@ These are the backbone of [[concepts/virtual-contest]] fencing.
 ## Cross-links
 
 - [[entities/submission]] · [[entities/problem]]
-- [[concepts/virtual-contest]]
 - [[overview/judging-pipeline-overview]] (contest path)
 
 ## Gotchas
@@ -89,6 +87,6 @@ These are the backbone of [[concepts/virtual-contest]] fencing.
 - Standings recomputation must be idempotent against `SubmissionJudgedEvent`
   replays — derive from `contest_problem_results`, not from live aggregation.
 - Virtual sessions depend on the `real_unique + session_length` constraint; don't
-  relax it without rethinking [[concepts/virtual-contest]].
+  relax it without rethinking the virtual mode contract.
 - `first_solve_records` is write-once per problem per contest; ties resolve via
   `ContestTieBreaker`.

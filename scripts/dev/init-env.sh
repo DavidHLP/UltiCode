@@ -112,7 +112,7 @@ NACOS_AUTH_IDENTITY_VALUE="$nacos_identity_value"
 SPRINGDOC_ENABLED=true
 MEILISEARCH_ENABLED=false
 # Sandbox (D-form) — image must be built locally, see
-# wiki/concepts/sandbox-rebuild.md. SANDBOX_ENABLED has NO effect on execution
+# CLAUDE.md § Sandbox Harness. SANDBOX_ENABLED has NO effect on execution
 # (the executor keys off sandbox.executor, default docker); it is a historical
 # placeholder, keep false. SANDBOX_SECCOMP_PROFILE resolves against the backend
 # cwd (backend-spring/), hence the ../ prefix — a bare docker/sandbox/... here

@@ -86,7 +86,7 @@ Auth details: [[overview/auth-flow-overview]]. Data model:
 
 ## Module layering (backend)
 
-Every backend module follows the same shape — see [[concepts/module-layering]]:
+Every backend module follows the same shape (see `.claude/rules/backend/springboot-rules.md`):
 
 ```
 modules/<module>/
@@ -98,8 +98,8 @@ modules/<module>/
 ```
 
 Controllers never call mappers directly; services never return entities to
-controllers. Responses are wrapped in `Result<T>` — see
-[[concepts/result-envelope-and-case-mapping]].
+controllers. Responses are wrapped in `Result<T>` (see
+`backend-spring/.../common/response/Result.java`).
 
 ## Entry points for reading the code
 
@@ -132,4 +132,3 @@ Operational specifics (PM2, Arthas, the sandbox image build) live in
 > - [[overview/backend-modules-overview]] · [[overview/frontend-apps-overview]]
 > - [[overview/judging-pipeline-overview]] · [[overview/auth-flow-overview]]
 > - [[overview/database-schema-overview]] · [[overview/dev-environment-overview]]
-> - [[concepts/module-layering]] · [[concepts/result-envelope-and-case-mapping]]

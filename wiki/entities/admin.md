@@ -76,7 +76,7 @@ categories; see `AdminSettingsController.toggleMaintenance()`.
 controller boundary, never a field from the request body. Sub-controllers that
 mutate state (ban, role change, problem delete…) wire an `@Audited` aspect that
 records `oldValues`/`newValues` as JSON via `JacksonTypeHandler`. The identity
-invariant is non-negotiable — see [[concepts/security-invariants]].
+invariant is non-negotiable — see `AGENTS.md` § Security Invariants.
 
 `AuditController.export` streams CSV/JSON with the same `AuditLogQueryDTO`
 filter; the format switch is fail-closed (returns 400 + `Result.error` for
@@ -91,7 +91,6 @@ unknown formats).
 ## Cross-links
 
 - [[entities/user]] · [[entities/problem]] · [[entities/contest]] · [[entities/solution]] · [[entities/forum]] · [[entities/moderation]] · [[entities/monitoring]] · [[entities/backup]]
-- [[concepts/security-invariants]] · [[concepts/module-layering]]
 - [[overview/backend-modules-overview]]
 
 ## Gotchas

@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 export interface ProblemList {
@@ -79,13 +80,6 @@ export interface UpdateBannerDto {
 }
 
 // PageResult type for paginated responses (matches backend PageResult<T>)
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 export const adminProblemListsApi = {
   async getLists(query: ProblemListQuery): Promise<PageResult<ProblemList>> {

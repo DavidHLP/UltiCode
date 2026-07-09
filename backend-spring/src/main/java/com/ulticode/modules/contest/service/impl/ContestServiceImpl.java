@@ -14,6 +14,7 @@ import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
+import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -69,6 +70,7 @@ public class ContestServiceImpl implements ContestService {
     private final SubmissionService submissionService;
     private final ContestScoringService contestScoringService;
     private final ContestProjection contestProjection;
+    private final ContestClock contestClock;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final CurrentUserProvider currentUserProvider;
@@ -216,15 +218,12 @@ public class ContestServiceImpl implements ContestService {
         // submit well after their virtual replay should have ended; the
         // scheduler's auto-finish only kicks in on the next 10s tick, leaving
         // a window where late submissions sneak through.
+        LocalDateTime virtualEnd = contestClock.effectiveEndTime(participant, contest).orElse(null);
         if (Boolean.TRUE.equals(participant.getIsVirtual())
-                && participant.getStartedAt() != null
-                && contest.getDurationMinutes() != null) {
-            LocalDateTime virtualEnd =
-                    participant.getStartedAt().plusMinutes(contest.getDurationMinutes());
-            if (LocalDateTime.now(clock).isAfter(virtualEnd)) {
-                throw new BusinessException(ErrorCode.CONTEST_ENDED,
-                        "Virtual contest duration has passed");
-            }
+                && virtualEnd != null
+                && LocalDateTime.now(clock).isAfter(virtualEnd)) {
+            throw new BusinessException(ErrorCode.CONTEST_ENDED,
+                    "Virtual contest duration has passed");
         }
 
         createDTO.setProblemId(problemId);

@@ -12,6 +12,7 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
+import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -42,6 +43,7 @@ public class RankingServiceImpl implements RankingService {
 
     private final ContestParticipantMapper participantMapper;
     private final ContestMapper contestMapper;
+    private final ScoringStrategyResolver scoringStrategyResolver;
 
     @Override
     public PageResult<ContestRankingVO> getContestRanking(String contestId, Integer page, Integer limit) {
@@ -76,18 +78,22 @@ public class RankingServiceImpl implements RankingService {
         int currentLimit = (limit > 0) ? limit : DEFAULT_LIVE_LIMIT;
         currentLimit = Math.min(currentLimit, MAX_LIVE_LIMIT);
 
-        // Fetch participants with user data joined
         List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =
                 participantMapper.selectParticipantsWithUserByContestId(contestId);
+        Comparator<ContestParticipantMapper.ContestParticipantWithUser> comparator =
+                scoringStrategyResolver.resolveFromString(loadScoringMode(contestId)).getRankingComparator();
 
         return allParticipants.stream()
                 .filter(p -> p.totalScore() != null)
-                .sorted(Comparator
-                        .comparing(ContestParticipantMapper.ContestParticipantWithUser::totalScore, Comparator.reverseOrder())
-                        .thenComparing(ContestParticipantMapper.ContestParticipantWithUser::totalPenalty, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(comparator)
                 .limit(currentLimit)
                 .map(this::toLiveRankingEntryVO)
                 .collect(Collectors.toList());
+    }
+
+    private String loadScoringMode(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        return contest == null ? null : contest.getScoringMode();
     }
 
     @Override

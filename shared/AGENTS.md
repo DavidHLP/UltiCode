@@ -36,7 +36,7 @@ shared/
 | `http-client` | `createHttpClient()` | Both apps (replaces duplicated `request.ts`) |
 | `markdown-utils` | `renderMarkdown()`, `sanitizeHtml()` | Both apps (owns sanitization pipeline) |
 | `sandbox-types` | `DFormVerdict`, `OJDataType`, `DFormEnvelope` | Both apps + `docker/sandbox/` contract |
-| `badge-config` | `SUBMISSION_STATUS_COLOR_MAP`, `DIFFICULTY_COLOR_MAP`, `badge()` | Management only (console has 0 imports — asymmetry noted, contract to align) |
+| `badge-config` | `SUBMISSION_STATUS_COLOR_MAP`, `DIFFICULTY_COLOR_MAP`, `badge()` | Both apps (console 5 consumers, management 29 — volume asymmetry reflects app surface, not missing adoption) |
 | `submission-status` | `VERDICT_TO_STATUS_KEY`, `VERDICT_COLOR_MAP`, `getVerdictColor()` | Both apps |
 | `sidebar-menu` | `SidebarMenuItem`, `SidebarMenuSubItem`, `SidebarGroupCollapsible` | Both apps |
 | `datetime-utils` | `formatDate`, `formatDuration`, `relativeTime` helpers | Both apps (thin — 1 consumer each, justifies seam for consistent date formatting) |

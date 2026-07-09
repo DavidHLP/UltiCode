@@ -66,6 +66,7 @@ class ContestServiceImplMutatorTest {
     @Mock SubmissionService submissionService;
     @Mock ContestScoringService contestScoringService;
     @Mock ContestProjection contestProjection;
+    @Mock com.ulticode.modules.contest.clock.ContestClock contestClock;
     @Mock
     private CurrentUserProvider currentUserProvider;
 
@@ -78,7 +79,8 @@ class ContestServiceImplMutatorTest {
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
                 schedulerService, achievementTriggerService, submissionService,
-                contestScoringService, contestProjection, java.time.Clock.systemDefaultZone(),
+                contestScoringService, contestProjection, contestClock,
+                java.time.Clock.systemDefaultZone(),
                 new FixedUuidGenerator(), currentUserProvider);
         // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
         SecurityContextHolder.getContext().setAuthentication(

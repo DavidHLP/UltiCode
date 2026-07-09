@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 权限服务接口 — check, assign, revoke.
+ * 权限服务接口 — read, assign, revoke.
  *
  * <p>Split from the former concrete {@code PermissionService} class (248 LOC,
  * no interface) per the project's Java convention that all {@code @Service}
@@ -25,6 +25,13 @@ import java.util.List;
  * now pure-DB; a real cache is a future PR that adds a read path with a
  * proper consistency story.
  *
+ * <p><strong>{@code hasPermission()} removed (PermissionVocabulary extraction).</strong>
+ * The wildcard-aware checker had zero call sites in the repo and zero test
+ * coverage. Authorization paths consult Spring Security's role-based
+ * decision instead; future per-action enforcement should route through
+ * {@code @PreAuthorize} on the controller or a dedicated aspect, not
+ * revive this method.
+ *
  * @author ulticode
  */
 public interface PermissionService {
@@ -39,11 +46,6 @@ public interface PermissionService {
      * 合并角色权限和用户特定权限
      */
     List<String> getUserPermissionStrings(String userId);
-
-    /**
-     * 检查用户是否有特定权限
-     */
-    boolean hasPermission(String userId, String action, String resource);
 
     /**
      * 授予用户一条直接权限(幂等)。

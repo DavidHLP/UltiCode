@@ -1,3 +1,5 @@
+import type { PageResult } from '@/shared/domain-types/src'
+
 // ============================================================================
 // ENUMS — Aligned with backend ContestQueryDTO/ContestVO
 // ============================================================================
@@ -359,16 +361,11 @@ export interface UserContestHistory {
 }
 
 // ============================================================================
-// PAGINATED RESPONSE — Matches backend PageResult
+// PAGINATED RESPONSE — alias to canonical PageResult from shared/domain-types
 // ============================================================================
 
-export interface PaginatedResult<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
+export type PaginatedResult<T> = PageResult<T>
+
 
 // ============================================================================
 // STATS

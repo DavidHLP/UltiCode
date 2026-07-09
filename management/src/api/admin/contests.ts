@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 export enum ContestType {
@@ -80,13 +81,6 @@ export interface ContestQueryParams {
   direction?: 'asc' | 'desc'
 }
 
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 export interface CreateContestDto {
   title: string

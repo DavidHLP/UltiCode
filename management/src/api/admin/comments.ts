@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 export type CommentType = 'forum' | 'solution'
@@ -40,13 +41,6 @@ export interface CommentQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 export interface BulkCommentActionDto {
   ids: string[]

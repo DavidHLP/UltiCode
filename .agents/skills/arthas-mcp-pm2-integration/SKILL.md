@@ -1,3 +1,8 @@
+---
+name: arthas-mcp-pm2-integration
+description: Integrate Arthas MCP (Model Context Protocol) server into Spring Boot projects managed by PM2 so Codex can call Arthas diagnostic tools directly. Trigger when adding an Arthas MCP endpoint to a PM2-managed JVM, troubleshooting arthas-boot.jar parameter parsing errors (NumberFormatException / port out of range), fixing agent lifecycle mismatch with PM2 autorestart, or resolving Spring Boot health-check false negatives (302/401 on root path).
+---
+
 # Arthas MCP Server Integration with PM2
 
 **Extracted:** 2026-06-05

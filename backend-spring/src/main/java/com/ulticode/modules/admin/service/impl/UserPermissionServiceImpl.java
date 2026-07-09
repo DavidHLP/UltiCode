@@ -8,6 +8,7 @@ import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserPermissionService;
+import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
@@ -34,7 +35,9 @@ import java.util.Map;
  * <p>关键安全守卫：
  * <ul>
  *   <li>HIGH-1：{@code MANAGE_PERMISSIONS:SYSTEM} 限制为 SUPER_ADMIN，
- *       防止普通 ADMIN 通过授权他人权限间接放大自己的权限。</li>
+ *       防止普通 ADMIN 通过授权他人权限间接放大自己的权限。
+ *       Super-admin-only 的判定走 {@link PermissionVocabulary#isSuperAdminOnly(String, String)}，
+ *       本类不再持有魔术字符串。</li>
  *   <li>所有授予 / 撤销操作均通过 {@link PermissionService} 完成，
  *       由其负责底层幂等、过期与 Redis 失效。</li>
  * </ul>
@@ -52,6 +55,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private final PermissionService permissionService;
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
+    private final PermissionVocabulary vocabulary;
 
     @Override
     @Transactional
@@ -139,11 +143,12 @@ public class UserPermissionServiceImpl implements UserPermissionService {
      * HIGH-1：MANAGE_PERMISSIONS:SYSTEM 是「管理他人权限」能力，属于特权操作，
      * 与 deleteUser / bulkDelete 一致仅 SUPER_ADMIN 可执行。
      * 当前 actor 不是 SUPER_ADMIN 时直接抛 FORBIDDEN。
+     *
+     * <p>Privileged-(action, resource) 判定走 {@link PermissionVocabulary#isSuperAdminOnly(String, String)}；
+     * 添加新的 super-admin-only capability 只需修改 vocabulary，本方法保持通用。
      */
     private void requireSuperAdminForManagePermissionsSystem(String action, String resource) {
-        boolean isManagePermissionsSystem =
-            "MANAGE_PERMISSIONS".equals(action) && "SYSTEM".equals(resource);
-        if (!isManagePermissionsSystem) {
+        if (!vocabulary.isSuperAdminOnly(action, resource)) {
             return;
         }
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

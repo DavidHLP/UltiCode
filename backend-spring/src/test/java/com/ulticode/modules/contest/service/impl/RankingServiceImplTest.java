@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,12 +32,22 @@ class RankingServiceImplTest {
     private ContestParticipantMapper participantMapper;
     @Mock
     private ContestMapper contestMapper;
+    @Mock
+    private com.ulticode.modules.contest.scoring.ScoringStrategyResolver scoringStrategyResolver;
+    @Mock
+    private com.ulticode.modules.contest.scoring.ScoringStrategy scoringStrategy;
 
     private RankingService rankingService;
 
     @BeforeEach
     void setUp() {
-        rankingService = new RankingServiceImpl(participantMapper, contestMapper);
+        rankingService = new RankingServiceImpl(participantMapper, contestMapper, scoringStrategyResolver);
+        org.mockito.Mockito.lenient().when(scoringStrategyResolver.resolveFromString(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(scoringStrategy);
+        org.mockito.Mockito.lenient().when(scoringStrategy.getRankingComparator())
+                .thenReturn(Comparator.comparing(
+                        com.ulticode.modules.contest.mapper.ContestParticipantMapper.ContestParticipantWithUser::totalScore,
+                        Comparator.nullsLast(Comparator.reverseOrder())));
     }
 
     private ContestParticipantMapper.ContestParticipantWithUser createParticipant(String userId, int rank, int score) {

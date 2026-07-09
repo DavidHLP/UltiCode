@@ -1,21 +1,16 @@
 package com.ulticode.modules.backup.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
 import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
+import com.ulticode.modules.backup.projection.BackupReadProjection;
 import com.ulticode.modules.backup.service.BackupService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,22 +25,33 @@ import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
+/**
+ * Write-side service for the backup module: create, restore (delegates dump
+ * / restore to {@link BackupProcessPort}), delete and the async execute path.
+ *
+ * <p>Read paths (paginated list, detail by id) and the entity-to-VO shaping
+ * live behind {@link BackupReadProjection}. The two cross-module touch points
+ * &mdash; the {@code UserMapper.selectBatchIds(userIds)} reach-in for
+ * {@code createdByName} enrichment and the inline
+ * {@code toVO(Backup, Map<String, User>)} mapping &mdash; were lifted out as
+ * part of the ADR-0011 read-side deepening so this file no longer imports
+ * {@code User} or {@code UserMapper}. The public {@link #toVO(Backup)} stays
+ * for backwards compatibility and now delegates to the projection so write
+ * paths return the same view shape the controller's read path serves.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BackupServiceImpl implements BackupService {
 
     private final BackupMapper backupMapper;
-    private final UserMapper userMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final BackupProcessPort backupProcessPort;
+    private final BackupReadProjection backupReadProjection;
 
     @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
     private String backupDir;
@@ -75,56 +81,7 @@ public class BackupServiceImpl implements BackupService {
         // Execute backup asynchronously
         executeBackup(backup.getId());
 
-        return toVO(backup);
-    }
-
-    @Override
-    public PageResult<BackupVO> getBackups(BackupQueryDTO query) {
-        LambdaQueryWrapper<Backup> wrapper = new LambdaQueryWrapper<>();
-
-        if (query.getType() != null) {
-            wrapper.eq(Backup::getType, query.getType());
-        }
-        if (query.getStatus() != null) {
-            wrapper.eq(Backup::getStatus, query.getStatus());
-        }
-        if (query.getStartDate() != null) {
-            wrapper.ge(Backup::getCreatedAt, query.getStartDate());
-        }
-        if (query.getEndDate() != null) {
-            wrapper.le(Backup::getCreatedAt, query.getEndDate());
-        }
-
-        wrapper.orderByDesc(Backup::getCreatedAt);
-
-        Page<Backup> page = new Page<>(query.getPage(), query.getLimit());
-        Page<Backup> result = backupMapper.selectPage(page, wrapper);
-
-        // Collect user IDs to batch fetch
-        List<String> userIds = result.getRecords().stream()
-                .map(Backup::getCreatedBy)
-                .distinct()
-                .toList();
-
-        // Create user map
-        Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap() :
-                userMapper.selectBatchIds(userIds).stream()
-                        .collect(Collectors.toMap(User::getId, u -> u));
-
-        List<BackupVO> voList = result.getRecords().stream()
-                .map(backup -> toVO(backup, userMap))
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
-    }
-
-    @Override
-    public BackupVO getBackupById(String id) {
-        Backup backup = backupMapper.selectById(id);
-        if (backup == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND, "Backup not found");
-        }
-        return toVO(backup);
+        return backupReadProjection.toVO(backup);
     }
 
     @Override
@@ -175,7 +132,7 @@ public class BackupServiceImpl implements BackupService {
             metadata.put("lastRestoredBy", userId);
             backup.setMetadata(metadata);
             backupMapper.updateById(backup);
-            return toVO(backup);
+            return backupReadProjection.toVO(backup);
         }
         throw new BusinessException(ErrorCode.UNKNOWN_ERROR,
                 "Database restore failed. Check server logs for details.");
@@ -258,28 +215,7 @@ public class BackupServiceImpl implements BackupService {
 
     @Override
     public BackupVO toVO(Backup backup) {
-        return toVO(backup, Collections.emptyMap());
-    }
-
-    private BackupVO toVO(Backup backup, Map<String, User> userMap) {
-        BackupVO vo = new BackupVO();
-        vo.setId(backup.getId());
-        vo.setFilename(backup.getFilename());
-        vo.setSize(backup.getSize());
-        vo.setType(backup.getType());
-        vo.setStatus(backup.getStatus());
-        vo.setCreatedBy(backup.getCreatedBy());
-        vo.setCreatedAt(backup.getCreatedAt());
-        vo.setCompletedAt(backup.getCompletedAt());
-        vo.setError(backup.getError());
-        vo.setMetadata(backup.getMetadata());
-
-        User user = userMap.get(backup.getCreatedBy());
-        if (user != null) {
-            vo.setCreatedByName(user.getUsername());
-        }
-
-        return vo;
+        return backupReadProjection.toVO(backup);
     }
 
     private void ensureBackupDirectoryExists() {

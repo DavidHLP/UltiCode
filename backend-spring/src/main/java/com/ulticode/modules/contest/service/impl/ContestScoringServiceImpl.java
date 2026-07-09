@@ -14,6 +14,8 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
+import com.ulticode.modules.contest.scoring.ScoringStrategy;
+import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
 import com.ulticode.modules.contest.service.ContestScoringService;
 import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     private final FirstSolveRecordMapper firstSolveRecordMapper;
     private final CacheManager cacheManager;
     private final Clock clock;
+    private final ScoringStrategyResolver scoringStrategyResolver;
 
     private static final String RANKING_CACHE = "contestRanking";
 
@@ -109,7 +112,7 @@ public class ContestScoringServiceImpl implements ContestScoringService {
                     contestId, event.getSubmissionId());
             return;
         }
-        String scoringMode = contest.getScoringMode() == null ? "SCORE" : contest.getScoringMode();
+        ScoringStrategy scoringStrategy = scoringStrategyResolver.resolveFromString(contest.getScoringMode());
         // ADR-006 §2.1: null兜底 20（与原硬编码一致，零行为回归）
         int penaltyPerWrong = contest.getPenaltyPerWrong() != null
                 ? contest.getPenaltyPerWrong()
@@ -186,16 +189,13 @@ public class ContestScoringServiceImpl implements ContestScoringService {
                 participant.setTotalScore(newScore);
             }
         } else {
-            // 6c. R4 (ADR-006 §2.2): wrong-submission penalty applies ONLY in
-            //     ICPC mode. SCORE and IOI modes ignore penalty — SCORE because
-            //     it's "AC即满分" and IOI because it takes the max per problem.
+            // 6c. R4 (ADR-006 §2.2): wrong-submission penalty handling is now
+            //     mode-keyed through ScoringStrategy. SCORE and IOI strategies
+            //     are no-ops; ICPCStrategy adds penaltyPerWrong to totalPenalty.
             //     Backward compat: the default scoringMode is SCORE in the
             //     schema, so existing contests that haven't been explicitly
             //     set behave like the old "no penalty on wrong" path.
-            if ("ICPC".equalsIgnoreCase(scoringMode)) {
-                int existingPenalty = participant.getTotalPenalty() == null ? 0 : participant.getTotalPenalty();
-                participant.setTotalPenalty(existingPenalty + penaltyPerWrong);
-            }
+            scoringStrategy.applyWrongSubmission(participant, penaltyPerWrong);
         }
 
         // 7. lastSolveTime only advances on AC.

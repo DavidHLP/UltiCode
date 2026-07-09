@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.service.impl;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -37,6 +38,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
     private final ContestParticipantMapper participantMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final ContestClock contestClock;
 
     @Override
     @Transactional
@@ -218,8 +220,9 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         status.setRegisteredAt(participant.getRegisteredAt());
         status.setStartedAt(participant.getStartedAt());
         status.setStartTime(participant.getStartedAt());
-        status.setEndTime(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
-        status.setEndsAt(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
+        LocalDateTime virtualEnd = contestClock.effectiveEndTime(participant, contest).orElse(null);
+        status.setEndTime(virtualEnd);
+        status.setEndsAt(virtualEnd);
         status.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
         status.setPenalty(participant.getTotalPenalty());
         status.setHasStarted(true);

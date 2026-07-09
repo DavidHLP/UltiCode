@@ -1,10 +1,7 @@
 package com.ulticode.modules.backup.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.uuid.FixedUuidGenerator;
-import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -12,9 +9,8 @@ import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
+import com.ulticode.modules.backup.projection.BackupReadProjection;
 import com.ulticode.modules.backup.service.impl.BackupServiceImpl;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,15 +32,17 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for BackupService.
+ * Unit tests for {@link BackupServiceImpl}. The list / detail read paths
+ * moved to {@link BackupReadProjection} &mdash; see
+ * {@code BackupReadProjectionTest} for those. This suite focuses on the
+ * write side: create, restore, delete, file-download and the public
+ * {@link BackupServiceImpl#toVO(Backup)} delegate.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -54,13 +52,13 @@ class BackupServiceTest {
     private BackupMapper backupMapper;
 
     @Mock
-    private UserMapper userMapper;
-
-    @Mock
     private Clock clock;
 
     @Mock
     private BackupProcessPort backupProcessPort;
+
+    @Mock
+    private BackupReadProjection backupReadProjection;
 
     @InjectMocks
     private BackupServiceImpl backupService;
@@ -103,6 +101,16 @@ class BackupServiceTest {
                 backup.setId(BACKUP_ID);
                 return 1;
             });
+            when(backupReadProjection.toVO(any(Backup.class))).thenAnswer(invocation -> {
+                Backup source = invocation.getArgument(0);
+                BackupVO vo = new BackupVO();
+                vo.setId(source.getId());
+                vo.setFilename(source.getFilename());
+                vo.setType(source.getType());
+                vo.setStatus(source.getStatus());
+                vo.setCreatedBy(source.getCreatedBy());
+                return vo;
+            });
 
             // Act
             BackupVO result = backupService.createBackup(USER_ID, dto);
@@ -113,6 +121,7 @@ class BackupServiceTest {
             assertEquals(BackupType.FULL, result.getType());
             assertEquals(USER_ID, result.getCreatedBy());
             verify(backupMapper).insert(any(Backup.class));
+            verify(backupReadProjection).toVO(any(Backup.class));
         }
 
         @Test
@@ -155,124 +164,6 @@ class BackupServiceTest {
     }
 
     @Nested
-    @DisplayName("getBackups Tests")
-    class GetBackupsTests {
-
-        @BeforeEach
-        void setUp() {
-            lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
-            lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
-        }
-
-        @Test
-        @DisplayName("should return paginated backups")
-        void shouldReturnPaginatedBackups() {
-            // Arrange
-            BackupQueryDTO query = new BackupQueryDTO();
-            query.setPage(1);
-            query.setLimit(10);
-
-            Page<Backup> mockPage = new Page<>(1, 10);
-            Backup backup = new Backup();
-            backup.setId(BACKUP_ID);
-            backup.setFilename("backup_full_20240101_120000.sql");
-            backup.setType(BackupType.FULL);
-            backup.setStatus(BackupStatus.COMPLETED);
-            backup.setCreatedBy(USER_ID);
-            mockPage.setRecords(List.of(backup));
-            mockPage.setTotal(1);
-
-            when(backupMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(mockPage);
-            when(userMapper.selectBatchIds(any())).thenReturn(Collections.emptyList());
-
-            // Act
-            var result = backupService.getBackups(query);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(1, result.getTotal());
-            assertEquals(1, result.getItems().size());
-        }
-
-        @Test
-        @DisplayName("should filter backups by type")
-        void shouldFilterBackupsByType() {
-            // Arrange
-            BackupQueryDTO query = new BackupQueryDTO();
-            query.setType(BackupType.FULL);
-
-            Page<Backup> mockPage = new Page<>(1, 20);
-            mockPage.setRecords(Collections.emptyList());
-            mockPage.setTotal(0L);
-
-            when(backupMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(mockPage);
-
-            // Act
-            backupService.getBackups(query);
-
-            // Assert
-            verify(backupMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
-        }
-
-        @Test
-        @DisplayName("should filter backups by status")
-        void shouldFilterBackupsByStatus() {
-            // Arrange
-            BackupQueryDTO query = new BackupQueryDTO();
-            query.setStatus(BackupStatus.COMPLETED);
-
-            Page<Backup> mockPage = new Page<>(1, 20);
-            mockPage.setRecords(Collections.emptyList());
-            mockPage.setTotal(0L);
-
-            when(backupMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(mockPage);
-
-            // Act
-            backupService.getBackups(query);
-
-            // Assert
-            verify(backupMapper).selectPage(any(Page.class), any(LambdaQueryWrapper.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("getBackupById Tests")
-    class GetBackupByIdTests {
-
-        @Test
-        @DisplayName("should return backup when found")
-        void shouldReturnBackupWhenFound() {
-            // Arrange
-            Backup backup = new Backup();
-            backup.setId(BACKUP_ID);
-            backup.setFilename("backup_full_20240101_120000.sql");
-            backup.setType(BackupType.FULL);
-            backup.setStatus(BackupStatus.COMPLETED);
-            backup.setCreatedBy(USER_ID);
-
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(backup);
-
-            // Act
-            BackupVO result = backupService.getBackupById(BACKUP_ID);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(BACKUP_ID, result.getId());
-            assertEquals("backup_full_20240101_120000.sql", result.getFilename());
-        }
-
-        @Test
-        @DisplayName("should throw exception when backup not found")
-        void shouldThrowExceptionWhenBackupNotFound() {
-            // Arrange
-            when(backupMapper.selectById(BACKUP_ID)).thenReturn(null);
-
-            // Act & Assert
-            assertThrows(BusinessException.class, () -> backupService.getBackupById(BACKUP_ID));
-        }
-    }
-
-    @Nested
     @DisplayName("getBackupFile Tests")
     class GetBackupFileTests {
 
@@ -285,7 +176,6 @@ class BackupServiceTest {
             backup.setFilename("test_backup.sql");
             backup.setStatus(BackupStatus.COMPLETED);
 
-            // Create test file
             Path testFile = tempDir.resolve("test_backup.sql");
             Files.writeString(testFile, "test sql content");
 
@@ -344,7 +234,6 @@ class BackupServiceTest {
             backup.setId(BACKUP_ID);
             backup.setFilename("test_backup.sql");
 
-            // Create test file
             Path testFile = tempDir.resolve("test_backup.sql");
             Files.writeString(testFile, "test sql content");
 
@@ -375,8 +264,8 @@ class BackupServiceTest {
     class ToVOTests {
 
         @Test
-        @DisplayName("should convert Backup to BackupVO correctly")
-        void shouldConvertBackupToBackupVOCorrectly() {
+        @DisplayName("should delegate to BackupReadProjection.toVO")
+        void shouldDelegateToProjection() {
             // Arrange
             Backup backup = new Backup();
             backup.setId(BACKUP_ID);
@@ -386,16 +275,21 @@ class BackupServiceTest {
             backup.setStatus(BackupStatus.COMPLETED);
             backup.setCreatedBy(USER_ID);
 
+            BackupVO projected = new BackupVO();
+            projected.setId(BACKUP_ID);
+            projected.setFilename("backup_full_20240101_120000.sql");
+            projected.setSize(1024L);
+            projected.setType(BackupType.FULL);
+            projected.setStatus(BackupStatus.COMPLETED);
+            projected.setCreatedBy(USER_ID);
+            when(backupReadProjection.toVO(backup)).thenReturn(projected);
+
             // Act
             BackupVO result = backupService.toVO(backup);
 
             // Assert
-            assertEquals(BACKUP_ID, result.getId());
-            assertEquals("backup_full_20240101_120000.sql", result.getFilename());
-            assertEquals(1024L, result.getSize());
-            assertEquals(BackupType.FULL, result.getType());
-            assertEquals(BackupStatus.COMPLETED, result.getStatus());
-            assertEquals(USER_ID, result.getCreatedBy());
+            assertSame(projected, result, "service.toVO must delegate to projection.toVO");
+            verify(backupReadProjection).toVO(backup);
         }
     }
 

@@ -4,6 +4,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
+import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
@@ -66,7 +67,8 @@ class UserPermissionServiceImplTest {
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         userPermissionService = new UserPermissionServiceImpl(
-                userMapper, permissionService, adminUserProjection, clock);
+                userMapper, permissionService, adminUserProjection, clock,
+                new PermissionVocabulary());
         // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
         // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
         Authentication auth = new UsernamePasswordAuthenticationToken(

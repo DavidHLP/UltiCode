@@ -1,5 +1,6 @@
 package com.ulticode.modules.contest.integration;
 
+import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -49,6 +50,7 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
     private final ContestParticipantMapper contestParticipantMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
+    private final ContestClock contestClock;
 
     @Override
     public void recordSubmissionIfNeeded(String submissionId, String userId, Long problemId) {
@@ -82,11 +84,7 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
             // use the participant's own startedAt — contest.startTime is
             // irrelevant for replays and would yield nonsense offsets.
             ContestParticipant p = participant.get();
-            LocalDateTime contestClock = contest.getActualStartTime() != null
-                    ? contest.getActualStartTime()
-                    : contest.getStartTime();
-            LocalDateTime virtualClock = p.getStartedAt();
-            LocalDateTime clock = Boolean.TRUE.equals(p.getIsVirtual()) ? virtualClock : contestClock;
+            LocalDateTime clock = contestClock.participantClock(p, contest).orElse(null);
             if (clock != null) {
                 cs.setTimeFromStart((int) Duration.between(clock, LocalDateTime.now()).getSeconds());
             }

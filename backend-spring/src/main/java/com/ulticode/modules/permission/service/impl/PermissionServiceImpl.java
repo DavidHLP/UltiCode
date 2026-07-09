@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
@@ -26,7 +27,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 权限服务实现
+ * 权限服务实现。
+ *
+ * <p>Allowed-action / allowed-resource whitelists live in
+ * {@link PermissionVocabulary} — this class only consults them via the
+ * vocabulary's {@code isAllowedAction} / {@code isAllowedResource}
+ * predicates. Adding or dropping an ENUM value is a one-file change.
  */
 @Slf4j
 @Service
@@ -38,23 +44,9 @@ public class PermissionServiceImpl implements PermissionService {
     private final UserMapper userMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final PermissionVocabulary vocabulary;
 
     private static final String SYSTEM_GRANTOR = "system";
-
-    /**
-     * user_permissions.action ENUM 的合法取值(与 DDL 一致)。
-     * 防止 MySQL 在收到非法值时抛 DataIntegrityViolationException 泄露 SQL 错误。
-     */
-    private static final Set<String> ALLOWED_ACTIONS = Set.of(
-        "CREATE", "READ", "UPDATE", "DELETE",
-        "MODERATE", "PUBLISH", "MANAGE_USERS", "MANAGE_PERMISSIONS");
-
-    /**
-     * user_permissions.resource ENUM 的合法取值(与 DDL 一致)。
-     */
-    private static final Set<String> ALLOWED_RESOURCES = Set.of(
-        "USER", "PROBLEM", "CONTEST", "SOLUTION",
-        "FORUM_POST", "FORUM_COMMENT", "SYSTEM", "PROBLEM_LIST", "TAG");
 
     @Override
     public List<UserPermission> getUserPermissions(String userId) {
@@ -90,21 +82,6 @@ public class PermissionServiceImpl implements PermissionService {
         }
 
         return new ArrayList<>(permissions);
-    }
-
-    @Override
-    public boolean hasPermission(String userId, String action, String resource) {
-        List<String> permissions = getUserPermissionStrings(userId);
-
-        return permissions.stream().anyMatch(p -> {
-            String[] parts = p.split(":");
-            if (parts.length != 2) return false;
-            String permAction = parts[0];
-            String permResource = parts[1];
-
-            return (permAction.equals("*") || permAction.equals(action)) &&
-                   (permResource.equals("*") || permResource.equals(resource));
-        });
     }
 
     @Override
@@ -175,15 +152,15 @@ public class PermissionServiceImpl implements PermissionService {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                 "Wildcard '*' grant/revoke is not allowed via this endpoint");
         }
-        if (!ALLOWED_ACTIONS.contains(action)) {
+        if (!vocabulary.isAllowedAction(action)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                 "Unsupported action: " + action
-                    + " (allowed: " + ALLOWED_ACTIONS + ")");
+                    + " (allowed: " + vocabulary.allowedActions() + ")");
         }
-        if (!ALLOWED_RESOURCES.contains(resource)) {
+        if (!vocabulary.isAllowedResource(resource)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                 "Unsupported resource: " + resource
-                    + " (allowed: " + ALLOWED_RESOURCES + ")");
+                    + " (allowed: " + vocabulary.allowedResources() + ")");
         }
     }
 

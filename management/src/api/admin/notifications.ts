@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPut, apiDelete } from '@/utils/request'
 
 // ==================== Types ====================
@@ -80,13 +81,6 @@ export interface AdminNotificationQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 // ==================== API ====================
 

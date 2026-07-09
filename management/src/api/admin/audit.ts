@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiDownload } from '@/utils/request'
 
 /**
@@ -14,13 +15,6 @@ export interface Result<T> {
  * Paginated response wrapper matching backend PageResult<T>.
  * All admin APIs use this format: {items, total, page, pageSize, totalPages}.
  */
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 /**
  * Audit log entry with nested performer and user information.

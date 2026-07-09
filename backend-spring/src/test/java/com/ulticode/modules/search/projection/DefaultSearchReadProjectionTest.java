@@ -11,6 +11,11 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.search.dto.SearchIndexType;
 import com.ulticode.modules.search.dto.SearchQueryDTO;
 import com.ulticode.modules.search.dto.SearchResponseVO;
+import com.ulticode.modules.search.source.ForumSearchSource;
+import com.ulticode.modules.search.source.ProblemSearchSource;
+import com.ulticode.modules.search.source.SearchSource;
+import com.ulticode.modules.search.source.SolutionSearchSource;
+import com.ulticode.modules.search.source.UserSearchSource;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
@@ -20,7 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -37,11 +41,10 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for {@link DefaultSearchReadProjection}.
  *
- * <p>Migrated verbatim from the deprecated {@code SearchServiceTest}: the
- * assertion surface is unchanged because the projection preserves the
- * facade's behaviour. The {@code meiliSearchClient} field is still injected
- * via {@link ReflectionTestUtils} because the {@link Client} bean is optional
- * (only created when {@code meilisearch.enabled=true}).
+ * <p>The test wires the four per-source {@link SearchSource} adapters by
+ * hand (with mocked mappers) and injects them into the projection as a
+ * {@code List<SearchSource>}. This preserves the original assertion
+ * surface while exercising the new per-source decomposition end-to-end.
  */
 @ExtendWith(MockitoExtension.class)
 class DefaultSearchReadProjectionTest {
@@ -64,13 +67,20 @@ class DefaultSearchReadProjectionTest {
     @Mock
     private Index index;
 
-    @InjectMocks
     private DefaultSearchReadProjection searchProjection;
 
     private SearchQueryDTO queryDTO;
 
     @BeforeEach
     void setUp() {
+        List<SearchSource> sources = List.of(
+                new ProblemSearchSource(problemMapper),
+                new UserSearchSource(userMapper),
+                new ForumSearchSource(forumPostMapper),
+                new SolutionSearchSource(solutionMapper)
+        );
+        searchProjection = new DefaultSearchReadProjection(sources);
+
         queryDTO = new SearchQueryDTO();
         queryDTO.setQuery("test");
         queryDTO.setPage(1);

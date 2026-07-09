@@ -1,6 +1,7 @@
 import { watch } from 'vue'
 import { i18n, getActiveLocale, setLocale } from './index'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale } from './types'
+import { formatDate, formatDateTime, formatRelativeTime as _formatRelativeTime } from '@/lib/format/date'
 
 /**
  * Get all supported locales with their configurations
@@ -49,24 +50,14 @@ export function watchLocale(callback: (locale: SupportedLocale) => void) {
 }
 
 /**
- * Format a date according to current locale
+ * Format a date according to current locale.
+ * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
  */
 export function formatDateByLocale(
   date: Date | string | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  if (date == null) return ''
-  const locale = getActiveLocale()
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    ...options,
-  }
-
-  return dateObj.toLocaleDateString(locale, defaultOptions)
+  return formatDate(date, undefined, options)
 }
 
 /**
@@ -79,26 +70,14 @@ export function formatNumberByLocale(number: number, options?: Intl.NumberFormat
 }
 
 /**
- * Format a date and time according to current locale
+ * Format a date and time according to current locale.
+ * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
  */
 export function formatDateTimeByLocale(
   date: Date | string | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  if (date == null) return ''
-  const locale = getActiveLocale()
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...options,
-  }
-
-  return dateObj.toLocaleString(locale, defaultOptions)
+  return formatDateTime(date, undefined, options)
 }
 
 /**
@@ -127,43 +106,11 @@ export function formatCompactNumber(num: number): string {
 }
 
 /**
- * Format a relative time (e.g., "2 hours ago")
+ * Format a relative time (e.g., "2 hours ago").
+ * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
  */
 export function formatRelativeTime(date: Date | string | null | undefined): string {
-  if (date == null) return ''
-  const locale = getActiveLocale()
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  const now = new Date()
-  const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000)
-
-  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
-
-  if (diffInSeconds < 60) {
-    return rtf.format(-diffInSeconds, 'second')
-  }
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60)
-  if (diffInMinutes < 60) {
-    return rtf.format(-diffInMinutes, 'minute')
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60)
-  if (diffInHours < 24) {
-    return rtf.format(-diffInHours, 'hour')
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24)
-  if (diffInDays < 30) {
-    return rtf.format(-diffInDays, 'day')
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30)
-  if (diffInMonths < 12) {
-    return rtf.format(-diffInMonths, 'month')
-  }
-
-  const diffInYears = Math.floor(diffInMonths / 12)
-  return rtf.format(-diffInYears, 'year')
+  return _formatRelativeTime(date)
 }
 
 /**

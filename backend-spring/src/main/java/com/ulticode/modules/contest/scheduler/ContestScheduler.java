@@ -1,5 +1,6 @@
 package com.ulticode.modules.contest.scheduler;
 
+import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
@@ -39,6 +40,7 @@ public class ContestScheduler {
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
     private final ContestParticipantMapper participantMapper;
+    private final ContestClock contestClock;
     /**
      * ADR-004 M4c: typed intent dispatcher. Active when
      * {@code app.features.use-notification-intent=true}.
@@ -63,7 +65,7 @@ public class ContestScheduler {
         List<Contest> running = contestMapper.findByStatus(
                 com.ulticode.modules.contest.entity.enums.ContestStatus.RUNNING.name());
         for (Contest contest : running) {
-            LocalDateTime effectiveEndTime = computeEffectiveEndTime(contest);
+            LocalDateTime effectiveEndTime = contestClock.contestEndTime(contest).orElse(null);
             if (effectiveEndTime != null && !effectiveEndTime.isAfter(now)) {
                 transitionToFinished(contest);
             }
@@ -197,17 +199,6 @@ public class ContestScheduler {
             log.warn("Failed to send {} reminder for contest {} to user {}: {}",
                     reminderType, contest.getId(), participant.getUserId(), e.getMessage());
         }
-    }
-
-    private LocalDateTime computeEffectiveEndTime(Contest contest) {
-        if (contest.getEndTime() != null) {
-            return contest.getEndTime();
-        }
-        // Fallback: start_time + duration_minutes
-        if (contest.getStartTime() != null && contest.getDurationMinutes() != null) {
-            return contest.getStartTime().plusMinutes(contest.getDurationMinutes());
-        }
-        return null;
     }
 
     void transitionToRunning(Contest contest) {

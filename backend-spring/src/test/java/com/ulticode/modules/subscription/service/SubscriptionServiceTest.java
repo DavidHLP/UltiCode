@@ -3,6 +3,7 @@ package com.ulticode.modules.subscription.service;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
 import com.ulticode.modules.subscription.constants.SubscriptionStatus;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
@@ -10,6 +11,7 @@ import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
 import com.ulticode.modules.subscription.entity.Subscription;
 import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
+import com.ulticode.modules.subscription.projection.SubscriptionReadProjection;
 import com.ulticode.modules.subscription.service.impl.SubscriptionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +30,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.*;
 import com.ulticode.common.auth.CurrentUserProvider;
 
@@ -45,6 +48,10 @@ class SubscriptionServiceTest {
     private java.time.Clock clock;
     @Mock
     private CurrentUserProvider currentUserProvider;
+    @Mock
+    private PremiumAccessPolicy premiumAccessPolicy;
+    @Mock
+    private SubscriptionReadProjection subscriptionReadProjection;
 
     @InjectMocks
     private SubscriptionServiceImpl subscriptionService;
@@ -60,6 +67,63 @@ class SubscriptionServiceTest {
         // LocalDateTime.now(clock) and stamps cancelledAt from it.
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
+
+        // Default policy behaviour: only ADMIN/SUPER_ADMIN bypass; ordinary
+        // users get verdicts driven by hasActivePremium / hasExpired below.
+        // Tests that need different policy behaviour override these stubs.
+        lenient().when(premiumAccessPolicy.isAdminBypass(nullable(String.class)))
+                .thenAnswer(invocation -> {
+                    String role = invocation.getArgument(0);
+                    return PremiumAccessPolicy.ADMIN_ROLE.equals(role)
+                            || PremiumAccessPolicy.SUPER_ADMIN_ROLE.equals(role);
+                });
+        lenient().when(premiumAccessPolicy.hasActivePremium(nullable(Subscription.class)))
+                .thenAnswer(invocation -> {
+                    Subscription s = invocation.getArgument(0);
+                    if (s == null) {
+                        return false;
+                    }
+                    if (!SubscriptionStatus.ACTIVE.getValue().equals(s.getStatus())) {
+                        return false;
+                    }
+                    LocalDateTime expiresAt = s.getExpiresAt();
+                    if (expiresAt != null && expiresAt.isBefore(LocalDateTime.now(clock))) {
+                        return false;
+                    }
+                    SubscriptionPlan plan = SubscriptionPlan.fromValue(s.getPlan());
+                    return plan != null && plan.isPremium();
+                });
+        lenient().when(premiumAccessPolicy.hasExpired(nullable(Subscription.class)))
+                .thenAnswer(invocation -> {
+                    Subscription s = invocation.getArgument(0);
+                    if (s == null) {
+                        return false;
+                    }
+                    LocalDateTime expiresAt = s.getExpiresAt();
+                    return expiresAt != null && expiresAt.isBefore(LocalDateTime.now(clock));
+                });
+
+        // Default projection behaviour: BeanUtils.copyProperties of the input.
+        // Tests that need to assert on the DTO shape override this stub.
+        lenient().when(subscriptionReadProjection.toDTO(nullable(Subscription.class)))
+                .thenAnswer(invocation -> {
+                    Subscription src = invocation.getArgument(0);
+                    if (src == null) {
+                        return null;
+                    }
+                    SubscriptionDTO dto = new SubscriptionDTO();
+                    dto.setId(src.getId());
+                    dto.setUserId(src.getUserId());
+                    dto.setPlan(src.getPlan());
+                    dto.setStatus(src.getStatus());
+                    dto.setExpiresAt(src.getExpiresAt());
+                    dto.setCancelledAt(src.getCancelledAt());
+                    dto.setTransactionId(src.getTransactionId());
+                    dto.setAutoRenew(src.getAutoRenew());
+                    dto.setCreatedAt(src.getCreatedAt());
+                    dto.setUpdatedAt(src.getUpdatedAt());
+                    return dto;
+                });
     }
 
     private Subscription createTestSubscription() {
@@ -178,8 +242,8 @@ class SubscriptionServiceTest {
         }
 
         @Test
-        @DisplayName("should return false and update status when subscription expired")
-        void shouldReturnFalseAndUpdateStatusWhenExpired() {
+        @DisplayName("should return false and NOT update status when subscription expired in query path")
+        void shouldReturnFalseAndNotUpdateStatusWhenExpired() {
             // Arrange
             Subscription subscription = createExpiredSubscription();
             when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(subscription);
@@ -188,10 +252,10 @@ class SubscriptionServiceTest {
             // Act
             SubscriptionCheckResultDTO result = subscriptionService.hasPremiumAccess(USER_ID, "USER");
 
-            // Assert
+            // Assert: the query path is pure — it never mutates the row.
             assertFalse(result.getHasAccess());
             assertEquals(SubscriptionStatus.EXPIRED.getValue(), result.getSubscription().getStatus());
-            verify(subscriptionMapper).updateStatus(SUBSCRIPTION_ID, SubscriptionStatus.EXPIRED.getValue());
+            verify(subscriptionMapper, never()).updateStatus(any(), any());
         }
     }
 
@@ -247,6 +311,39 @@ class SubscriptionServiceTest {
 
             // Assert
             assertFalse(result.isPresent());
+        }
+
+        @Test
+        @DisplayName("should lazy-transition expired subscription to EXPIRED on load")
+        void shouldLazyTransitionExpiredSubscriptionOnLoad() {
+            // Arrange: ACTIVE row whose expiresAt is already in the past
+            Subscription expired = createExpiredSubscription();
+            when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(expired);
+            when(subscriptionMapper.updateStatus(any(), any())).thenReturn(1);
+
+            // Act
+            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+
+            // Assert: the load-for-update path now persists the EXPIRED status
+            assertTrue(result.isPresent());
+            assertEquals(SubscriptionStatus.EXPIRED.getValue(), result.get().getStatus());
+            verify(subscriptionMapper).updateStatus(SUBSCRIPTION_ID, SubscriptionStatus.EXPIRED.getValue());
+        }
+
+        @Test
+        @DisplayName("should not call updateStatus when loaded subscription is still active")
+        void shouldNotCallUpdateStatusWhenActive() {
+            // Arrange: ACTIVE row whose expiresAt is in the future
+            Subscription active = createTestSubscription();
+            when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(active);
+
+            // Act
+            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+
+            // Assert
+            assertTrue(result.isPresent());
+            assertEquals(SubscriptionStatus.ACTIVE.getValue(), result.get().getStatus());
+            verify(subscriptionMapper, never()).updateStatus(any(), any());
         }
     }
 

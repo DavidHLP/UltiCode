@@ -45,6 +45,7 @@ class ContestSchedulerServiceImplVirtualSessionTest {
     private ContestMapper contestMapper;
     private ContestParticipantMapper participantMapper;
     private Clock clock;
+    private com.ulticode.modules.contest.clock.ContestClock contestClock;
     private ContestSchedulerServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -56,9 +57,10 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         contestMapper = mock(ContestMapper.class);
         participantMapper = mock(ContestParticipantMapper.class);
         clock = mock(Clock.class);
+        contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator());
+        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {
@@ -93,7 +95,10 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         ContestParticipant p = buildVirtualParticipant(sessionUuid);
         when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
                 .thenReturn(Optional.of(p));
-        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest());
+        Contest contest = buildContest();
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
+        LocalDateTime virtualEnd = p.getStartedAt().plusMinutes(contest.getDurationMinutes());
+        when(contestClock.effectiveEndTime(p, contest)).thenReturn(java.util.Optional.of(virtualEnd));
 
         ParticipationStatusDTO result = service.getVirtualSession(CONTEST_ID, USER_ID);
 
@@ -101,6 +106,7 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         assertThat(result.getId()).isEqualTo(sessionUuid);
         assertThat(result.getEndsAt()).isNotNull();
         assertThat(result.getEndsAt()).isEqualTo(result.getEndTime());
+        assertThat(result.getEndsAt()).isEqualTo(virtualEnd);
     }
 
     @Test

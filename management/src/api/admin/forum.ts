@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiDelete } from '@/utils/request'
 import type { AuditLog } from '@/api/admin/audit'
 
@@ -75,13 +76,6 @@ export interface ForumPostsResponse {
 }
 
 // Standard PageResult interface for paginated responses
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 export type BulkForumActionType = 'delete' | 'pin' | 'unpin' | 'lock' | 'unlock' | 'unflag'
 

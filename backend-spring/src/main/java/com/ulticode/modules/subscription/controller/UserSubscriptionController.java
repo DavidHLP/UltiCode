@@ -3,6 +3,7 @@ package com.ulticode.modules.subscription.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
@@ -24,6 +25,7 @@ public class UserSubscriptionController {
 
     private final SubscriptionService subscriptionService;
     private final CurrentUserProvider currentUserProvider;
+    private final PremiumAccessPolicy premiumAccessPolicy;
 
     /**
      * Get the current user's subscription status.
@@ -86,12 +88,11 @@ public class UserSubscriptionController {
             return Result.error(40100, "Unauthorized");
         }
 
-        // Get user role from security context
         String role = null;
-        if (currentUserProvider.hasRole("ADMIN")) {
-            role = "ADMIN";
-        } else if (currentUserProvider.hasRole("SUPER_ADMIN")) {
-            role = "SUPER_ADMIN";
+        if (currentUserProvider.hasRole(PremiumAccessPolicy.ADMIN_ROLE)) {
+            role = PremiumAccessPolicy.ADMIN_ROLE;
+        } else if (currentUserProvider.hasRole(PremiumAccessPolicy.SUPER_ADMIN_ROLE)) {
+            role = PremiumAccessPolicy.SUPER_ADMIN_ROLE;
         }
 
         SubscriptionCheckResultDTO result = subscriptionService.hasPremiumAccess(userId, role);

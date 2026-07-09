@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '@/utils/request'
 
 export enum Difficulty {
@@ -168,13 +169,6 @@ export interface ProblemQueryParams {
 }
 
 // Backend PageResult structure (from Result<PageResult>)
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 // ========== API Transport DTOs (match backend Java DTOs exactly) ==========
 

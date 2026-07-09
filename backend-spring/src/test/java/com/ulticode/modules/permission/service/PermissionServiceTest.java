@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
+import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
@@ -17,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -70,7 +70,7 @@ class PermissionServiceTest {
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, clock,
-            new FixedUuidGenerator());
+            new FixedUuidGenerator(), new PermissionVocabulary());
     }
 
     @Nested

@@ -79,6 +79,8 @@ class ContestScoringServiceImplTest {
     @Mock private CacheManager cacheManager;
     @Mock private Cache cache;
     @Mock private Clock clock;
+    @Mock private com.ulticode.modules.contest.scoring.ScoringStrategyResolver scoringStrategyResolver;
+    @Mock private com.ulticode.modules.contest.scoring.ScoringStrategy scoringStrategy;
 
     private ContestScoringServiceImpl service;
 
@@ -89,7 +91,8 @@ class ContestScoringServiceImplTest {
         service = new ContestScoringServiceImpl(
                 contestMapper, contestParticipantMapper, contestProblemMapper,
                 contestSubmissionMapper, contestProblemResultMapper,
-                firstSolveRecordMapper, cacheManager, clock);
+                firstSolveRecordMapper, cacheManager, clock,
+                scoringStrategyResolver);
         // R4: the service now loads the parent contest for scoringMode/penalty
         // config. Provide a default ICPC contest so the existing tests (which
         // assume ICPC semantics: 20-min penalty per WA) continue to hold.
@@ -98,6 +101,12 @@ class ContestScoringServiceImplTest {
         c.setScoringMode("ICPC");
         c.setPenaltyPerWrong(20);
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        lenient().when(scoringStrategyResolver.resolveFromString(
+                org.mockito.ArgumentMatchers.argThat("ICPC"::equals)))
+                .thenReturn(new com.ulticode.modules.contest.scoring.IcpcStrategy());
+        lenient().when(scoringStrategyResolver.resolveFromString(
+                org.mockito.ArgumentMatchers.argThat(s -> s == null || !"ICPC".equals(s))))
+                .thenReturn(new com.ulticode.modules.contest.scoring.ScoreStrategy());
     }
 
     /** P0-1: apply judge result for a non-contest submission is a no-op. */

@@ -13,7 +13,9 @@
     "../shared/http-client/src/**/*",
     "../shared/i18n-storage/src/**/*",
     "../shared/datetime-utils/src/**/*",
-    "../shared/locale-composable/src/**/*"
+    "../shared/locale-composable/src/**/*",
+    "../shared/badge-config/src/**/*",
+    "../shared/domain-types/src/**/*"
   ],
   "exclude": [
     "src/**/__tests__/*"

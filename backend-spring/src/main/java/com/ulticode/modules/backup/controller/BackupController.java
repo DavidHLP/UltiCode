@@ -7,6 +7,7 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
+import com.ulticode.modules.backup.projection.BackupReadProjection;
 import com.ulticode.modules.backup.service.BackupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -25,6 +26,14 @@ import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Controller for backup admin operations.
+ *
+ * <p>Read paths (paginated list, detail by id) depend on
+ * {@link BackupReadProjection} directly so they stay free of write-state
+ * concerns; write paths and the file-download / restore paths depend on
+ * {@link BackupService}.
+ */
 @Tag(name = "Admin - Backup", description = "备份管理接口")
 @RestController
 @RequestMapping("/admin/backups")
@@ -33,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 public class BackupController {
 
     private final BackupService backupService;
+    private final BackupReadProjection backupReadProjection;
     private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "创建备份")
@@ -51,14 +61,14 @@ public class BackupController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<PageResult<BackupVO>> getBackups(BackupQueryDTO query) {
-        return Result.success(backupService.getBackups(query));
+        return Result.success(backupReadProjection.listBackups(query));
     }
 
     @Operation(summary = "获取备份详情")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> getBackupById(@PathVariable String id) {
-        return Result.success(backupService.getBackupById(id));
+        return Result.success(backupReadProjection.getById(id));
     }
 
     @Operation(summary = "下载备份文件")

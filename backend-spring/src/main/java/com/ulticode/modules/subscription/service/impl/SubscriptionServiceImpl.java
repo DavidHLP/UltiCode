@@ -3,6 +3,7 @@ package com.ulticode.modules.subscription.service.impl;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
 import com.ulticode.modules.subscription.constants.SubscriptionStatus;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
@@ -10,10 +11,10 @@ import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
 import com.ulticode.modules.subscription.entity.Subscription;
 import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
+import com.ulticode.modules.subscription.projection.SubscriptionReadProjection;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +23,31 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
- * Implementation of SubscriptionService.
+ * Implementation of {@link SubscriptionService}.
+ *
+ * <p>Read-side verdict logic now lives in {@link PremiumAccessPolicy}
+ * (pure, no mutation) and read-side DTO shaping lives in
+ * {@link SubscriptionReadProjection}. The service retains the write paths
+ * (create / update status / cancel) and orchestrates the policy calls.
+ *
+ * <p><b>EXPIRED transition policy</b>: the {@code hasPremiumAccess} query
+ * method used to call {@code subscriptionMapper.updateStatus(... EXPIRED ...)}
+ * as a side effect inside a read. That was the architecture-review
+ * correctness bug: a method named like a read silently mutating a row
+ * raced with concurrent updates and broke read-after-write consistency.
+ *
+ * <p>The new layout:
+ * <ul>
+ *   <li>{@link #hasPremiumAccess(String, String)} &mdash; pure read; no DB
+ *       write, ever. Returns the verdict via the policy.</li>
+ *   <li>{@link #loadAndMarkExpired(Subscription)} &mdash; private helper
+ *       called from the load-for-update path ({@link #getActiveSubscription}
+ *       and {@link #getCurrentUserSubscription}). It is the only place the
+ *       ACTIVE&rarr;EXPIRED transition runs. This is safe because both
+ *       call sites already operate on rows the service is about to return
+ *       to a caller, and the existing controller paths will pick up the
+ *       fresh status on the next read.</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -32,52 +57,36 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionMapper subscriptionMapper;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
+    private final PremiumAccessPolicy premiumAccessPolicy;
+    private final SubscriptionReadProjection subscriptionReadProjection;
 
     @Override
     public SubscriptionCheckResultDTO hasPremiumAccess(String userId, String userRole) {
-        // Admin and super admin users always have premium access
-        if ("ADMIN".equals(userRole) || "SUPER_ADMIN".equals(userRole)) {
+        if (premiumAccessPolicy.isAdminBypass(userRole)) {
             return new SubscriptionCheckResultDTO(
                     true,
                     new SubscriptionCheckResultDTO.SubscriptionDetail(
-                            "ADMIN",
+                            PremiumAccessPolicy.ADMIN_ROLE,
                             SubscriptionStatus.ACTIVE.getValue(),
                             null
                     )
             );
         }
 
-        // Find active subscription
         Subscription subscription = subscriptionMapper.findActiveByUserId(userId);
-
         if (subscription == null) {
             return new SubscriptionCheckResultDTO(false, null);
         }
 
-        // Check if subscription has expired
-        if (subscription.getExpiresAt() != null && subscription.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
-            // Update status to expired
-            subscriptionMapper.updateStatus(subscription.getId(), SubscriptionStatus.EXPIRED.getValue());
-
-            return new SubscriptionCheckResultDTO(
-                    false,
-                    new SubscriptionCheckResultDTO.SubscriptionDetail(
-                            subscription.getPlan(),
-                            SubscriptionStatus.EXPIRED.getValue(),
-                            subscription.getExpiresAt()
-                    )
-            );
-        }
-
-        // Check if user has premium plan
-        SubscriptionPlan plan = SubscriptionPlan.fromValue(subscription.getPlan());
-        boolean hasAccess = plan != null && plan.isPremium();
-
+        boolean hasAccess = premiumAccessPolicy.hasActivePremium(subscription);
+        String detailStatus = premiumAccessPolicy.hasExpired(subscription)
+                ? SubscriptionStatus.EXPIRED.getValue()
+                : subscription.getStatus();
         return new SubscriptionCheckResultDTO(
                 hasAccess,
                 new SubscriptionCheckResultDTO.SubscriptionDetail(
                         subscription.getPlan(),
-                        subscription.getStatus(),
+                        detailStatus,
                         subscription.getExpiresAt()
                 )
         );
@@ -89,12 +98,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (userId == null) {
             return false;
         }
-
-        // Check if user is admin
-        if (currentUserProvider.hasRole("ADMIN") || currentUserProvider.hasRole("SUPER_ADMIN")) {
+        if (currentUserProvider.hasRole(PremiumAccessPolicy.ADMIN_ROLE)
+                || currentUserProvider.hasRole(PremiumAccessPolicy.SUPER_ADMIN_ROLE)) {
             return true;
         }
-
         SubscriptionCheckResultDTO result = hasPremiumAccess(userId, null);
         return Boolean.TRUE.equals(result.getHasAccess());
     }
@@ -104,7 +111,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (userId == null || userId.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(subscriptionMapper.findActiveByUserId(userId));
+        Subscription subscription = subscriptionMapper.findActiveByUserId(userId);
+        if (subscription == null) {
+            return Optional.empty();
+        }
+        return Optional.of(loadAndMarkExpired(subscription));
     }
 
     @Override
@@ -115,7 +126,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         Subscription subscription = subscriptionMapper.findActiveByUserId(userId);
-        return toDTO(subscription);
+        if (subscription != null) {
+            subscription = loadAndMarkExpired(subscription);
+        }
+        return subscriptionReadProjection.toDTO(subscription);
     }
 
     @Override
@@ -213,12 +227,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public SubscriptionDTO toDTO(Subscription subscription) {
-        if (subscription == null) {
-            return null;
-        }
+        return subscriptionReadProjection.toDTO(subscription);
+    }
 
-        SubscriptionDTO dto = new SubscriptionDTO();
-        BeanUtils.copyProperties(subscription, dto);
-        return dto;
+    /**
+     * Lazy ACTIVE&rarr;EXPIRED transition on the write path.
+     *
+     * <p>If the loaded row is still flagged {@code ACTIVE} but has crossed
+     * its {@code expiresAt} (as evaluated by
+     * {@link PremiumAccessPolicy#hasExpired(Subscription)}), persist
+     * {@code EXPIRED} on the row and return the in-memory updated entity.
+     * Otherwise return the row unchanged.
+     *
+     * <p>This is the only place the transition runs &mdash; it is never
+     * called from the read-only {@link #hasPremiumAccess(String, String)}
+     * query path. Both call sites ({@link #getActiveSubscription(String)}
+     * and {@link #getCurrentUserSubscription()}) are load-for-view paths,
+     * so persisting the correct status keeps the row consistent with the
+     * verdict the policy will produce on the next read.
+     */
+    private Subscription loadAndMarkExpired(Subscription subscription) {
+        if (premiumAccessPolicy.hasExpired(subscription)
+                && SubscriptionStatus.ACTIVE.getValue().equals(subscription.getStatus())) {
+            subscriptionMapper.updateStatus(subscription.getId(), SubscriptionStatus.EXPIRED.getValue());
+            subscription.setStatus(SubscriptionStatus.EXPIRED.getValue());
+        }
+        return subscription;
     }
 }

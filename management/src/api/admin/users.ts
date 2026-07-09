@@ -1,3 +1,4 @@
+import type { PageResult } from "@/shared/domain-types/src"
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 export interface User {
@@ -43,13 +44,6 @@ export interface UserQueryParams {
 }
 
 // Backend PageResult structure
-export interface PageResult<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
 
 export interface CreateUserDto {
   username: string

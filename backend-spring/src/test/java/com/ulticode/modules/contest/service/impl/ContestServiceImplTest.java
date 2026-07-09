@@ -69,6 +69,7 @@ class ContestServiceImplTest {
     @Mock private SubmissionService submissionService;
     @Mock private ContestScoringService contestScoringService;
     @Mock private ContestProjection contestProjection;
+    @Mock private com.ulticode.modules.contest.clock.ContestClock contestClock;
     @Mock private Clock clock;
     @Mock
     private CurrentUserProvider currentUserProvider;
@@ -91,6 +92,7 @@ class ContestServiceImplTest {
                 submissionService,
                 contestScoringService,
                 contestProjection,
+                contestClock,
                 clock,
                 new FixedUuidGenerator(), currentUserProvider);
         org.mockito.Mockito.lenient().when(clock.instant()).thenReturn(LocalDateTime.of(2024, 6, 1, 0, 0).atZone(ZoneId.systemDefault()).toInstant());
@@ -396,6 +398,9 @@ class ContestServiceImplTest {
                     .thenReturn(contestProblem);
             when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
+
+            when(contestClock.effectiveEndTime(any(), any()))
+                    .thenReturn(java.util.Optional.of(LocalDateTime.of(2024, 6, 1, 0, 0).minusMinutes(30)));
 
             assertThatThrownBy(() -> contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto))

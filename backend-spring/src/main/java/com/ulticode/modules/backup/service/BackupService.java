@@ -1,7 +1,5 @@
 package com.ulticode.modules.backup.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
 import com.ulticode.modules.backup.entity.Backup;
@@ -9,7 +7,11 @@ import com.ulticode.modules.backup.entity.Backup;
 import java.io.File;
 
 /**
- * Service interface for backup operations
+ * Service interface for backup write operations. Read paths (paginated list,
+ * detail by id) intentionally live behind
+ * {@link com.ulticode.modules.backup.projection.BackupReadProjection} so the
+ * controller depends on that projection directly for reads &mdash; see
+ * {@code BackupController} and the deep-module note on the projection.
  */
 public interface BackupService {
 
@@ -21,22 +23,6 @@ public interface BackupService {
      * @return the created backup
      */
     BackupVO createBackup(String userId, CreateBackupDTO dto);
-
-    /**
-     * Get a paginated list of backups
-     *
-     * @param query the query parameters
-     * @return paginated backup list
-     */
-    PageResult<BackupVO> getBackups(BackupQueryDTO query);
-
-    /**
-     * Get a backup by ID
-     *
-     * @param id the backup ID
-     * @return the backup
-     */
-    BackupVO getBackupById(String id);
 
     /**
      * Get the backup file for download
@@ -70,7 +56,10 @@ public interface BackupService {
     void executeBackup(String backupId);
 
     /**
-     * Convert Backup entity to BackupVO
+     * Convert Backup entity to BackupVO. Thin delegate to
+     * {@link com.ulticode.modules.backup.projection.BackupReadProjection#toVO(Backup)}
+     * so write paths return the same view shape the controller's read path
+     * serves without re-implementing the projection rules.
      *
      * @param backup the backup entity
      * @return the backup VO

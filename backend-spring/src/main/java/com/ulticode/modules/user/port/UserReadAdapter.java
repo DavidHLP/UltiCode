@@ -6,6 +6,11 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Component
 @RequiredArgsConstructor
 public class UserReadAdapter implements UserReadPort {
@@ -26,5 +31,14 @@ public class UserReadAdapter implements UserReadPort {
             return null;
         }
         return userMapper.selectById(userId);
+    }
+
+    @Override
+    public Map<String, User> findByIds(Collection<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
     }
 }

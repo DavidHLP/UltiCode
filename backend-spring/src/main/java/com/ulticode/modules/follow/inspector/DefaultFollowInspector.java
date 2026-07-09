@@ -9,8 +9,8 @@ import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
+import com.ulticode.modules.follow.port.UserReadPort;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 public class DefaultFollowInspector implements FollowInspector {
 
     private final FollowMapper followMapper;
-    private final UserMapper userMapper;
+    private final UserReadPort userReadPort;
 
     @Override
     public PageResult<UserSummaryDTO> getFollowers(String userId, int page, int pageSize) {
@@ -67,8 +67,7 @@ public class DefaultFollowInspector implements FollowInspector {
         }
 
         List<String> userIds = follows.stream().map(UserFollow::getFollowerId).toList();
-        Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = userReadPort.findByIds(userIds);
 
         // Batch fetch follower/following counts for all users in 2 queries total
         Map<String, FollowCountDTO> countMap = new HashMap<>();
@@ -110,8 +109,7 @@ public class DefaultFollowInspector implements FollowInspector {
         }
 
         List<String> userIds = follows.stream().map(UserFollow::getFollowingId).toList();
-        Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = userReadPort.findByIds(userIds);
 
         // Batch fetch follower/following counts for all users in 2 queries total
         Map<String, FollowCountDTO> countMap = new HashMap<>();
@@ -151,7 +149,7 @@ public class DefaultFollowInspector implements FollowInspector {
         if (currentUserId.equals(targetUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot query follow status of yourself");
         }
-        if (userMapper.selectById(targetUserId) == null) {
+        if (!userReadPort.exists(targetUserId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         return followMapper.exists(currentUserId, targetUserId);

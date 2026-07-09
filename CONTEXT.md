@@ -40,6 +40,11 @@
   `AdminContestProjection`, `AdminNotificationProjection`. The
   `AdminXxxProjection` series is the ADR-0011 deepening that lifts
   entity→VO shaping and pagination out of the admin orchestration services.
+- **Admin projection** — module-owned deep modules holding admin's own
+  `AdminXxxVO` projection rules and read-side aggregation
+  (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
+  the [[AdminReadModel seam]] ports: ports are for cross-module reads,
+  projections are for admin's own VO shape. See ADR-0011.
 - **Search / SearchReadProjection** — the cross-domain read module that
   fans a query across the problems / users / posts / solutions indices
   (MeiliSearch when configured, database LIKE fallback) and aggregates the
@@ -48,6 +53,7 @@
 - **Port** — an interface owned by the consuming module describing a
   collaboration it needs, implemented by an adapter in the providing module
   (dependency inversion). See [[ContestSubmissionPort]],
+  [[AdminReadModel seam]], [[CurrentUserProvider seam]].
   `SubmissionAnalyticsPort`, `AdminSubmissionReadPort`,
   `AdminUserStatsReadPort`, `AdminCommentReadPort`, `AuthSessionPort`,
   `ProblemDetailPort`, `TokenBlacklistPort`.
@@ -84,11 +90,17 @@
   which exists to protect the STOMP transport from leaderboard-flood
   bursts. The old `RealtimeService` god service is deleted. See
   ADR-0009.
-- **Admin projection** — module-owned deep modules holding admin's own
-  `AdminXxxVO` projection rules and read-side aggregation
-  (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
-  the [[AdminReadModel seam]] ports: ports are for cross-module reads,
-  projections are for admin's own VO shape. See ADR-0011.
+- **CurrentUserProvider (sole actor seam)** — the canonical port that
+  every service uses to resolve the acting principal's identity and
+  role. After the 2026-07-09 architecture sweep, the legacy
+  `common/util/SecurityUtil` static helper and the
+  `SecurityContextHolder.getContext().getAuthentication()` direct
+  call are gone: `SystemSettingsServiceImpl`,
+  `PermissionServiceImpl`, `UserPermissionServiceImpl`, and
+  `AuditHelper` all go through `CurrentUserProvider` for `getCurrentUserId`
+  / `hasRole` / `hasAuthority`. Tests inject a `CurrentUserProvider`
+  mock where the previous design reached for `MockedStatic<SecurityUtil>`.
+  See [[CurrentUserProvider seam]].
 - **SystemSettingsStore** — the storage seam for the
   `system_settings` table. Owns the five category keys
   (`general` / `email` / `rate-limits` / `uploads` / `features`), the JSON
@@ -101,9 +113,21 @@
   closed the `SecurityContextHolder.getContext().getAuthentication()`
   leak that survived the `CurrentUserProvider` extraction; the audit
   log's actor now flows through the port.
+- **PartialUpdate** — the partial-PATCH helper (in `common/util`)
+  with four static methods: `setIfPresent(entity, getter, setter)`,
+  `setIfPresentText(text-aware entity variant that skips blanks)`,
+  `setIfPresentWrapper(LambdaUpdateWrapper<T>)`, and
+  `setIfPresentTextWrapper` (text-aware wrapper variant). Every PATCH
+  service that previously had a chain of `if (dto.getX() != null) {
+  wrapper.set(...) }` now delegates to one of the four methods.
+  Applied to: `UserManagementServiceImpl` (12 fields), admin and
+  user `ProblemList` services (4 update methods each), admin and
+  generic `ContestServiceImpl`, admin and user `NotificationService`
+  paths, `AdminTestCaseService.updateTestCase` (8 fields), and
+  `AdminProblemServiceImpl.updateFromImport` (5 fields). One
+  `common/util` import collapses ~30 lines of if-null chains into a
+  few one-liners per service.
 - **TimeSource** — the read-only port that hides `System.currentTimeMillis()`
-  and `System.nanoTime()` behind a two-method interface
-  (`wallMillis()`, `monotonicNanos()`). Two adapters:
   `SystemTimeSource` (prod `@Component`) and `FakeTimeSource` (test,
   not a bean). Static utility call sites (`TraceIdUtil.current()`)
   reach it through `TimeSourceHolder`, installed at startup by

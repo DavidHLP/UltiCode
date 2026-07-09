@@ -80,7 +80,6 @@ class ContestScoringServiceImplTest {
     @Mock private Cache cache;
     @Mock private Clock clock;
     @Mock private com.ulticode.modules.contest.scoring.ScoringStrategyResolver scoringStrategyResolver;
-    @Mock private com.ulticode.modules.contest.scoring.ScoringStrategy scoringStrategy;
 
     private ContestScoringServiceImpl service;
 

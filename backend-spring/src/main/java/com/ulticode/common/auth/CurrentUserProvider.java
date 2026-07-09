@@ -3,9 +3,10 @@ package com.ulticode.common.auth;
 /**
  * Port for accessing the current authenticated user's identity and roles.
  *
- * <p>Inverts the previous static {@code SecurityUtil} coupling: 45 files previously
- * reached into {@code SecurityContextHolder} directly. Now they depend on this interface,
- * making the security context injectable and mockable in tests.
+ * <p>Replaces the old static {@code SecurityUtil} coupling (and the
+ * {@code SecurityContextHolder.getContext().getAuthentication()} leaks that
+ * survived the 2026-07-08 review). Production code now depends on this
+ * interface, making the security context injectable and mockable in tests.
  *
  * <p>Adapters: {@link SecurityCurrentUserProvider} (prod, wraps SecurityContextHolder),
  * any test double (inject in {@code @BeforeEach}).

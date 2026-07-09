@@ -26,9 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -82,16 +79,14 @@ class ContestServiceImplMutatorTest {
                 contestScoringService, contestProjection, contestClock,
                 java.time.Clock.systemDefaultZone(),
                 new FixedUuidGenerator(), currentUserProvider);
-        // Mock authentication with ROLE_ADMIN so SecurityUtil.hasAnyRole passes
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(
-                        "9f6bc78a-5f21-11f1-950a-8ef0eeeb1ca8", "n/a",
-                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
     }
 
     @AfterEach
+    @SuppressWarnings("unused")
     void tearDown() {
-        SecurityContextHolder.clearContext();
+        // Reserved for future per-test cleanup. Production code reads through
+        // the CurrentUserProvider port and the test stubs it directly, so
+        // there is no SecurityContextHolder state to clear.
     }
 
     private Contest newContest(String id, ContestStatus status, boolean isDeleted) {

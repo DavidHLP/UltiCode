@@ -2,7 +2,6 @@ package com.ulticode.modules.subscription.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.subscription.PremiumAccessPolicy;
 import com.ulticode.modules.subscription.constants.SubscriptionPlan;
 import com.ulticode.modules.subscription.constants.SubscriptionStatus;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -358,50 +356,40 @@ class SubscriptionServiceTest {
         void shouldReturnCurrentUserSubscriptionWhenAuthenticated() {
             // Arrange
             Subscription subscription = createTestSubscription();
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
-                when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(subscription);
+            when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(subscription);
 
-                // Act
-                SubscriptionDTO result = subscriptionService.getCurrentUserSubscription();
+            // Act
+            SubscriptionDTO result = subscriptionService.getCurrentUserSubscription();
 
-                // Assert
-                assertNotNull(result);
-                assertEquals(SUBSCRIPTION_ID, result.getId());
-            }
+            // Assert
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTION_ID, result.getId());
         }
 
         @Test
         @DisplayName("should return null when no active subscription")
         void shouldReturnNullWhenNoActiveSubscription() {
             // Arrange
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(USER_ID);
-                when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(null);
+            when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(null);
 
-                // Act
-                SubscriptionDTO result = subscriptionService.getCurrentUserSubscription();
+            // Act
+            SubscriptionDTO result = subscriptionService.getCurrentUserSubscription();
 
-                // Assert
-                assertNull(result);
-            }
+            // Assert
+            assertNull(result);
         }
 
         @Test
         @DisplayName("should throw UNAUTHORIZED when not authenticated")
         void shouldThrowUnauthorizedWhenNotAuthenticated() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
-            // Arrange
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(null);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(null);
 
-                // Act & Assert
-                BusinessException exception = assertThrows(
-                        BusinessException.class,
-                        () -> subscriptionService.getCurrentUserSubscription()
-                );
-                assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
-            }
+            // Act & Assert
+            BusinessException exception = assertThrows(
+                    BusinessException.class,
+                    () -> subscriptionService.getCurrentUserSubscription()
+            );
+            assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
         }
     }
 

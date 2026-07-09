@@ -1,5 +1,6 @@
 package com.ulticode.common.util;
 
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class AuditHelper {
 
     private final AuditService auditService;
     private final ClientIpResolver clientIpResolver;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Log an audit event with the current authenticated user as performer.
@@ -37,7 +39,9 @@ public class AuditHelper {
      */
     public void log(String action, String entityType, String entityId,
                     Map<String, Object> oldValues, Map<String, Object> newValues) {
-        String performerId = SecurityUtil.getCurrentUserId();
+        // Performer id flows through the CurrentUserProvider port — the only
+        // seam that should read the security context.
+        String performerId = currentUserProvider.getCurrentUserId();
         if (performerId == null) {
             performerId = "system";
         }
@@ -67,7 +71,7 @@ public class AuditHelper {
      */
     public void logForUser(String action, String entityType, String entityId, String userId,
                            Map<String, Object> oldValues, Map<String, Object> newValues) {
-        String performerId = SecurityUtil.getCurrentUserId();
+        String performerId = currentUserProvider.getCurrentUserId();
         if (performerId == null) {
             performerId = "system";
         }

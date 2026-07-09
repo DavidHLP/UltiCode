@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -38,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import com.ulticode.common.auth.CurrentUserProvider;
 
@@ -172,40 +169,30 @@ class DefaultUserReadProjectionTest {
         @Test
         @DisplayName("should return current user when authenticated")
         void shouldReturnCurrentUserWhenAuthenticated() {
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-                when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-
-                UserVO result = userReadProjection.getCurrentUser();
-                assertNotNull(result);
-                assertEquals("test-user-id", result.getId());
-            }
+            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            UserVO result = userReadProjection.getCurrentUser();
+            assertNotNull(result);
+            assertEquals("test-user-id", result.getId());
         }
 
         @Test
         @DisplayName("should throw UNAUTHORIZED when not authenticated")
         void shouldThrowUnauthorizedWhenNotAuthenticated() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(null);
-                BusinessException ex = assertThrows(
-                        BusinessException.class,
-                        () -> userReadProjection.getCurrentUser());
-                assertEquals(ErrorCode.UNAUTHORIZED, ex.getErrorCode());
-            }
+            when(currentUserProvider.getCurrentUserId()).thenReturn(null);
+            BusinessException ex = assertThrows(
+                    BusinessException.class,
+                    () -> userReadProjection.getCurrentUser());
+            assertEquals(ErrorCode.UNAUTHORIZED, ex.getErrorCode());
         }
 
         @Test
         @DisplayName("should throw USER_NOT_FOUND when user not found")
         void shouldThrowUserNotFoundWhenUserNotFound() {
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-                when(userMapper.selectById("test-user-id")).thenReturn(null);
-                BusinessException ex = assertThrows(
-                        BusinessException.class,
-                        () -> userReadProjection.getCurrentUser());
-                assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
-            }
+            when(userMapper.selectById("test-user-id")).thenReturn(null);
+            BusinessException ex = assertThrows(
+                    BusinessException.class,
+                    () -> userReadProjection.getCurrentUser());
+            assertEquals(ErrorCode.USER_NOT_FOUND, ex.getErrorCode());
         }
     }
 

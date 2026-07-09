@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.dto.AdminUserVO;
@@ -9,7 +10,6 @@ import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,10 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Clock;
 import java.time.ZoneId;
@@ -58,6 +54,9 @@ class UserPermissionServiceImplTest {
     private AdminUserProjection adminUserProjection;
 
     @Mock
+    private CurrentUserProvider currentUserProvider;
+
+    @Mock
     private Clock clock;
 
     private UserPermissionServiceImpl userPermissionService;
@@ -66,20 +65,14 @@ class UserPermissionServiceImplTest {
     void setUp() {
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        // SUPER_ADMIN role for the requireSuperAdminForManagePermissionsSystem
+        // guard (assignUserPermission / revokeUserPermission tests use
+        // MANAGE_PERMISSIONS:SYSTEM which is super-admin-only).
+        lenient().when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-super-admin");
         userPermissionService = new UserPermissionServiceImpl(
                 userMapper, permissionService, adminUserProjection, clock,
-                new PermissionVocabulary());
-        // 注入 SUPER_ADMIN 安全上下文,让 requireSuperAdminForManagePermissionsSystem 守卫通过
-        // (assignUserPermission / revokeUserPermission 的现有测试用 MANAGE_PERMISSIONS:SYSTEM)
-        Authentication auth = new UsernamePasswordAuthenticationToken(
-            "test-super-admin", "n/a",
-            List.of(new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")));
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
+                new PermissionVocabulary(), currentUserProvider);
     }
 
     private User createValidUser() {
@@ -201,13 +194,10 @@ class UserPermissionServiceImplTest {
     class ManagePermissionsSystemGuard {
 
         @BeforeEach
-        void clearAuth() {
-            // 显式降级为普通 ADMIN,验证守卫拒绝
-            SecurityContextHolder.clearContext();
-            Authentication adminAuth = new UsernamePasswordAuthenticationToken(
-                "test-admin", "n/a",
-                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
-            SecurityContextHolder.getContext().setAuthentication(adminAuth);
+        void downgradeToAdmin() {
+            // Demote the actor to plain ADMIN (no SUPER_ADMIN) so the guard rejects.
+            // The outer @BeforeEach stubbed hasRole("SUPER_ADMIN")→true; we override here.
+            when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(false);
         }
 
         @Test

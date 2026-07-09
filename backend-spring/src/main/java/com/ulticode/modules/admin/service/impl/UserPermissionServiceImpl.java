@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
@@ -15,9 +16,6 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +54,7 @@ public class UserPermissionServiceImpl implements UserPermissionService {
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
     private final PermissionVocabulary vocabulary;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     @Transactional
@@ -151,12 +150,10 @@ public class UserPermissionServiceImpl implements UserPermissionService {
         if (!vocabulary.isSuperAdminOnly(action, resource)) {
             return;
         }
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isSuperAdmin = auth != null
-            && auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_SUPER_ADMIN"::equals);
-        if (!isSuperAdmin) {
+        // Reads through the CurrentUserProvider port — the only seam that
+        // should touch the security context. SecurityCurrentUserProvider is
+        // the sole adapter that consults SecurityContextHolder.
+        if (!currentUserProvider.hasRole("SUPER_ADMIN")) {
             throw new BusinessException(ErrorCode.FORBIDDEN,
                 "Granting/revoking MANAGE_PERMISSIONS:SYSTEM requires SUPER_ADMIN role");
         }

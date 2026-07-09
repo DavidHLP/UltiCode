@@ -3,7 +3,6 @@ package com.ulticode.modules.user.port;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
@@ -18,7 +17,6 @@ import org.mockito.InjectMocks;
 import java.time.Clock;
 
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -84,17 +82,14 @@ class DefaultUserWritePortTest {
             updateDTO.setName("Updated Name");
             updateDTO.setBio("Updated bio");
 
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-                when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-                when(userMapper.updateById(any(User.class))).thenReturn(1);
+            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            when(userMapper.updateById(any(User.class))).thenReturn(1);
 
-                UserVO result = userWritePort.updateCurrentUser(updateDTO);
+            UserVO result = userWritePort.updateCurrentUser(updateDTO);
 
-                assertNotNull(result);
-                assertEquals("Updated Name", result.getName());
-                verify(userMapper).updateById(any(User.class));
-            }
+            assertNotNull(result);
+            assertEquals("Updated Name", result.getName());
+            verify(userMapper).updateById(any(User.class));
         }
 
         @Test
@@ -107,16 +102,13 @@ class DefaultUserWritePortTest {
             existingUser.setId("other-user-id");
             existingUser.setEmail("new@example.com");
 
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-                when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-                when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existingUser);
+            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existingUser);
 
-                BusinessException ex = assertThrows(
-                        BusinessException.class,
-                        () -> userWritePort.updateCurrentUser(updateDTO));
-                assertEquals(ErrorCode.AUTH_EMAIL_TAKEN, ex.getErrorCode());
-            }
+            BusinessException ex = assertThrows(
+                    BusinessException.class,
+                    () -> userWritePort.updateCurrentUser(updateDTO));
+            assertEquals(ErrorCode.AUTH_EMAIL_TAKEN, ex.getErrorCode());
         }
 
         @Test
@@ -126,32 +118,25 @@ class DefaultUserWritePortTest {
             updateDTO.setEmail("test@example.com"); // same as current
             updateDTO.setName("New Name");
 
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-                when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-                when(userMapper.updateById(any(User.class))).thenReturn(1);
+            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            when(userMapper.updateById(any(User.class))).thenReturn(1);
 
-                UserVO result = userWritePort.updateCurrentUser(updateDTO);
-                assertNotNull(result);
-                assertEquals("New Name", result.getName());
-            }
+            UserVO result = userWritePort.updateCurrentUser(updateDTO);
+            assertNotNull(result);
+            assertEquals("New Name", result.getName());
         }
 
         @Test
         @DisplayName("should throw UNAUTHORIZED when not authenticated")
         void shouldThrowUnauthorizedWhenNotAuthenticated() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
+            when(currentUserProvider.getCurrentUserId()).thenReturn(null);
             UpdateUserDTO updateDTO = new UpdateUserDTO();
             updateDTO.setName("New Name");
 
-            try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-                securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn(null);
-
-                BusinessException ex = assertThrows(
-                        BusinessException.class,
-                        () -> userWritePort.updateCurrentUser(updateDTO));
-                assertEquals(ErrorCode.UNAUTHORIZED, ex.getErrorCode());
-            }
+            BusinessException ex = assertThrows(
+                    BusinessException.class,
+                    () -> userWritePort.updateCurrentUser(updateDTO));
+            assertEquals(ErrorCode.UNAUTHORIZED, ex.getErrorCode());
         }
     }
 

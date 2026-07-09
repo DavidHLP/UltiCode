@@ -1,6 +1,7 @@
 package com.ulticode.modules.permission.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -14,8 +15,6 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -45,6 +44,7 @@ public class PermissionServiceImpl implements PermissionService {
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final PermissionVocabulary vocabulary;
+    private final CurrentUserProvider currentUserProvider;
 
     private static final String SYSTEM_GRANTOR = "system";
 
@@ -165,10 +165,11 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     private String currentAdminId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && StringUtils.hasText(auth.getName())) {
-            return auth.getName();
-        }
-        return SYSTEM_GRANTOR;
+        // Reads through the CurrentUserProvider port. SecurityContextHolder
+        // is the sole touchpoint of SecurityCurrentUserProvider (the only
+        // adapter), so this is the only place in the file that needs the
+        // security context.
+        String id = currentUserProvider.getCurrentUserId();
+        return StringUtils.hasText(id) ? id : SYSTEM_GRANTOR;
     }
 }

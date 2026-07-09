@@ -1,6 +1,7 @@
 package com.ulticode.modules.permission.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
@@ -60,6 +61,9 @@ class PermissionServiceTest {
     private UserMapper userMapper;
 
     @Mock
+    private CurrentUserProvider currentUserProvider;
+
+    @Mock
     private Clock clock;
 
     private PermissionService permissionService;
@@ -68,9 +72,10 @@ class PermissionServiceTest {
     void setUp() {
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-admin");
         permissionService = new PermissionServiceImpl(
             userPermissionMapper, rolePermissionMapper, userMapper, clock,
-            new FixedUuidGenerator(), new PermissionVocabulary());
+            new FixedUuidGenerator(), new PermissionVocabulary(), currentUserProvider);
     }
 
     @Nested

@@ -6,7 +6,7 @@ import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.email.EmailTemplates;
 import com.ulticode.modules.notification.intent.NotificationIntent;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.notification.port.UserEmailPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +43,7 @@ public class EmailNotificationChannel implements NotificationChannel {
      * exercised by Spring in production).
      */
     @Autowired(required = false)
-    UserMapper userMapper;
+    UserEmailPort userEmailPort;
 
     @Override
     public String channelId() {
@@ -97,13 +97,13 @@ public class EmailNotificationChannel implements NotificationChannel {
     }
 
     private String resolveRecipientEmail(String userId) {
-        if (userMapper == null) {
+        if (userEmailPort == null) {
             return null;
         }
-        User u = userMapper.selectById(userId);
-        if (u == null || u.getEmail() == null || u.getEmail().isBlank()) {
+        String email = userEmailPort.findEmail(userId);
+        if (email == null || email.isBlank()) {
             return null;
         }
-        return u.getEmail();
+        return email;
     }
 }

@@ -22,7 +22,7 @@ import com.ulticode.modules.moderation.mapper.ReportMapper;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.moderation.port.ModerationUserReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,7 +57,7 @@ public class DefaultModerationProjection implements ModerationProjection {
     private final ModerationQueueMapper queueMapper;
     private final ReportMapper reportMapper;
     private final AppealMapper appealMapper;
-    private final UserMapper userMapper;
+    private final ModerationUserReadPort userReadPort;
     private final SolutionCommentMapper solutionCommentMapper;
 
     // ------------------------------------------------------------------
@@ -209,14 +209,14 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setUpdatedAt(appeal.getUpdatedAt());
 
         if (appeal.getAppellantId() != null) {
-            User appellant = userMapper.selectById(appeal.getAppellantId());
+            User appellant = userReadPort.findById(appeal.getAppellantId());
             if (appellant != null) {
                 vo.setAppellantName(appellant.getName());
                 vo.setAppellantUsername(appellant.getUsername());
             }
         }
         if (appeal.getReviewedById() != null) {
-            User reviewedBy = userMapper.selectById(appeal.getReviewedById());
+            User reviewedBy = userReadPort.findById(appeal.getReviewedById());
             if (reviewedBy != null) {
                 vo.setReviewedByName(reviewedBy.getName());
             }
@@ -378,8 +378,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         if (userIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        return userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        return userReadPort.findByIds(userIds);
     }
 
     private ModerationQueueVO toQueueVO(ModerationQueue item, Map<String, User> userMap) {
@@ -442,7 +441,7 @@ public class DefaultModerationProjection implements ModerationProjection {
         vo.setUpdatedAt(report.getUpdatedAt());
 
         if (report.getReporterId() != null) {
-            User reporter = userMapper.selectById(report.getReporterId());
+            User reporter = userReadPort.findById(report.getReporterId());
             if (reporter != null) {
                 vo.setReporterName(reporter.getName());
                 vo.setReporterUsername(reporter.getUsername());

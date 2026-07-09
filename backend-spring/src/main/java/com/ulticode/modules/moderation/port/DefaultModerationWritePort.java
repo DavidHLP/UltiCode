@@ -2,8 +2,6 @@ package com.ulticode.modules.moderation.port;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.forum.mapper.ForumCommentMapper;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.moderation.dto.AppealVO;
 import com.ulticode.modules.moderation.dto.BatchActionResultVO;
 import com.ulticode.modules.moderation.dto.BatchModerationActionDTO;
@@ -27,9 +25,6 @@ import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.impl.ModerationActionHandler;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
-import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
-import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -81,11 +76,7 @@ public class DefaultModerationWritePort implements ModerationWritePort {
     private final UserWarningMapper warningMapper;
     private final UserBanMapper banMapper;
     private final UserMapper userMapper;
-    private final ForumPostMapper forumPostMapper;
-    private final ForumCommentMapper forumCommentMapper;
-    private final SolutionMapper solutionMapper;
-    private final SolutionCommentMapper solutionCommentMapper;
-    private final ProblemMapper problemMapper;
+    private final ContentModerationPort contentModerationPort;
     private final ModerationProjection moderationProjection;
     private final Clock clock;
 
@@ -383,50 +374,13 @@ public class DefaultModerationWritePort implements ModerationWritePort {
 
     @Override
     public void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
-        switch (entityType) {
-            case "forum_post":
-                forumPostMapper.updateFlagStatus(entityId, isFlagged, reason);
-                break;
-            case "forum_comment":
-                forumCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
-                break;
-            case "solution":
-                solutionMapper.updateFlagStatus(entityId, isFlagged, reason);
-                break;
-            case "solution_comment":
-                solutionCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
-                break;
-            case "problem":
-                problemMapper.updateFlagStatus(entityId, isFlagged, reason);
-                break;
-            default:
-                // Unknown entity type — no content flag to update.
-                break;
-        }
+        contentModerationPort.updateFlagStatus(entityType, entityId, isFlagged, reason);
     }
 
     // ==================== Private Helper Methods ====================
 
     private String resolveAuthorId(String entityType, String entityId) {
-        switch (entityType) {
-            case "forum_post":
-                var post = forumPostMapper.selectById(entityId);
-                return post != null ? post.getUserId() : null;
-            case "forum_comment":
-                var comment = forumCommentMapper.selectById(entityId);
-                return comment != null ? comment.getAuthorId() : null;
-            case "solution":
-                var solution = solutionMapper.selectById(entityId);
-                return solution != null ? solution.getUserId() : null;
-            case "solution_comment":
-                var solComment = solutionCommentMapper.selectById(entityId);
-                return solComment != null ? solComment.getUserId() : null;
-            case "problem":
-                var problem = problemMapper.selectById(entityId);
-                return problem != null ? problem.getPublishedBy() : null;
-            default:
-                return null;
-        }
+        return contentModerationPort.resolveAuthorId(entityType, entityId);
     }
 
     private void updateReportsStatus(String queueId, String status) {

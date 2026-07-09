@@ -5,8 +5,6 @@ import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
@@ -17,6 +15,7 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.port.ProblemExistencePort;
 import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.SolutionService;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +42,7 @@ public class SolutionServiceImpl implements SolutionService {
 
     private final SolutionMapper solutionMapper;
     private final SolutionCommentMapper solutionCommentMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemExistencePort problemExistencePort;
     private final SolutionProjection solutionProjection;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
@@ -154,8 +153,7 @@ public class SolutionServiceImpl implements SolutionService {
     @CheckBan
     public SolutionVO create(Long problemId, String userId, CreateSolutionDTO createDTO) {
         // Verify problem exists
-        Problem problem = problemMapper.selectById(problemId);
-        if (problem == null) {
+        if (!problemExistencePort.exists(problemId)) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 
@@ -193,11 +191,7 @@ public class SolutionServiceImpl implements SolutionService {
 
         solutionMapper.insert(solution);
 
-        // Update problem's hasSolution flag
-        if (!Boolean.TRUE.equals(problem.getHasSolution())) {
-            problem.setHasSolution(true);
-            problemMapper.updateById(problem);
-        }
+        problemExistencePort.markHasSolution(problemId, true);
 
         log.info("Solution created: {} for problem {} by user {}", solution.getId(), problemId, userId);
         return solutionProjection.toVO(solution);
@@ -254,12 +248,7 @@ public class SolutionServiceImpl implements SolutionService {
         long remainingCount = solutionMapper.selectCount(countWrapper);
 
         if (remainingCount == 0) {
-            // Update problem's hasSolution flag
-            Problem problem = problemMapper.selectById(problemId);
-            if (problem != null && Boolean.TRUE.equals(problem.getHasSolution())) {
-                problem.setHasSolution(false);
-                problemMapper.updateById(problem);
-            }
+            problemExistencePort.markHasSolution(problemId, false);
         }
 
         log.info("Solution deleted: {} by user {}", id, userId);

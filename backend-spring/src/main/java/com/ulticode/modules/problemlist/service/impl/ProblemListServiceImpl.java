@@ -4,6 +4,7 @@ import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.problemlist.dto.CreateCategoryDTO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
@@ -129,15 +130,9 @@ public class ProblemListServiceImpl implements ProblemListService {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
-        if (dto.getBannerTag() != null) {
-            list.setBannerTag(dto.getBannerTag());
-        }
-        if (dto.getBannerTheme() != null) {
-            list.setBannerTheme(dto.getBannerTheme());
-        }
-        if (dto.getBannerOrder() != null) {
-            list.setBannerOrder(dto.getBannerOrder());
-        }
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateBannerDTO::getBannerOrder, list::setBannerOrder);
 
         problemListMapper.updateById(list);
 
@@ -163,18 +158,10 @@ public class ProblemListServiceImpl implements ProblemListService {
         if (dto.getIsPublic() != null) {
             list.setIsPublic(dto.getIsPublic());
         }
-        if (dto.getBannerTag() != null) {
-            list.setBannerTag(dto.getBannerTag());
-        }
-        if (dto.getBannerIcon() != null) {
-            list.setBannerIcon(dto.getBannerIcon());
-        }
-        if (dto.getBannerTheme() != null) {
-            list.setBannerTheme(dto.getBannerTheme());
-        }
-        if (dto.getBannerOrder() != null) {
-            list.setBannerOrder(dto.getBannerOrder());
-        }
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerIcon, list::setBannerIcon);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getBannerOrder, list::setBannerOrder);
         if (dto.getIsFeatured() != null) {
             list.setIsFeatured(dto.getIsFeatured());
         }
@@ -413,9 +400,7 @@ public class ProblemListServiceImpl implements ProblemListService {
         if (dto.getColor() != null) {
             category.setColor(dto.getColor());
         }
-        if (dto.getSortOrder() != null) {
-            category.setSortOrder(dto.getSortOrder());
-        }
+        PartialUpdate.setIfPresent(dto, UpdateCategoryDTO::getSortOrder, category::setSortOrder);
 
         problemListCategoryMapper.updateById(category);
 

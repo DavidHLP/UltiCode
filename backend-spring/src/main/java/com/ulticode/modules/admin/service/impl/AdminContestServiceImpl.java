@@ -8,6 +8,8 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.util.PartialUpdate;
+
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestService;
@@ -164,27 +166,18 @@ public class AdminContestServiceImpl implements AdminContestService {
         oldValues.put("maxParticipants", contest.getMaxParticipants());
         oldValues.put("isVisible", contest.getIsVisible());
 
-        if (dto.getTitle() != null) {
-            contest.setTitle(dto.getTitle());
-        }
-        if (dto.getDescription() != null) {
-            contest.setDescription(dto.getDescription());
-        }
-        if (dto.getStartTime() != null) {
-            contest.setStartTime(dto.getStartTime());
-        }
+        PartialUpdate.setIfPresentText(dto, UpdateContestDTO::getTitle, contest::setTitle);
+        PartialUpdate.setIfPresentText(dto, UpdateContestDTO::getDescription, contest::setDescription);
+        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getStartTime, contest::setStartTime);
+        // Duration has a coupled side effect (recompute endTime) so it stays inline.
         if (dto.getDuration() != null) {
             contest.setDurationMinutes(dto.getDuration());
             contest.setEndTime(dto.getStartTime() != null
                     ? dto.getStartTime().plusMinutes(dto.getDuration())
                     : contest.getStartTime().plusMinutes(dto.getDuration()));
         }
-        if (dto.getMaxParticipants() != null) {
-            contest.setMaxParticipants(dto.getMaxParticipants());
-        }
-        if (dto.getIsPublished() != null) {
-            contest.setIsVisible(dto.getIsPublished());
-        }
+        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getMaxParticipants, contest::setMaxParticipants);
+        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getIsPublished, contest::setIsVisible);
 
         // Replace contest problems if problemIds is provided
         if (dto.getProblemIds() != null) {

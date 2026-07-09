@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ulticode.common.util.PartialUpdate;
+
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -105,18 +107,10 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationPreference preference = preferenceMapper.findByUserId(userId)
                 .orElseGet(() -> createDefaultPreference(userId));
 
-        if (dto.getCommunication() != null) {
-            preference.setCommunication(dto.getCommunication());
-        }
-        if (dto.getMarketing() != null) {
-            preference.setMarketing(dto.getMarketing());
-        }
-        if (dto.getSecurity() != null) {
-            preference.setSecurity(dto.getSecurity());
-        }
-        if (dto.getSystemEnabled() != null) {
-            preference.setSystemEnabled(dto.getSystemEnabled());
-        }
+        PartialUpdate.setIfPresent(dto, UpdateNotificationPreferenceDTO::getCommunication, preference::setCommunication);
+        PartialUpdate.setIfPresent(dto, UpdateNotificationPreferenceDTO::getMarketing, preference::setMarketing);
+        PartialUpdate.setIfPresent(dto, UpdateNotificationPreferenceDTO::getSecurity, preference::setSecurity);
+        PartialUpdate.setIfPresent(dto, UpdateNotificationPreferenceDTO::getSystemEnabled, preference::setSystemEnabled);
 
         if (preference.getId() == null) {
             preferenceMapper.insert(preference);

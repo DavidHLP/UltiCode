@@ -6,6 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
@@ -255,11 +256,11 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     }
 
     private void updateFromImport(Problem existing, ImportProblemItemDTO item) {
-        if (item.getTitle() != null) existing.setTitle(item.getTitle());
-        if (item.getDifficulty() != null) existing.setDifficulty(item.getDifficulty());
-        if (item.getStatus() != null) existing.setStatus(item.getStatus());
-        if (item.getIsPremium() != null) existing.setIsPremium(item.getIsPremium());
-        if (item.getIsPublished() != null) existing.setIsPublished(item.getIsPublished());
+        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getTitle, existing::setTitle);
+        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getDifficulty, existing::setDifficulty);
+        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getStatus, existing::setStatus);
+        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPremium, existing::setIsPremium);
+        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPublished, existing::setIsPublished);
     }
 
     private static final java.util.Set<String> VALID_DIFFICULTIES = java.util.Set.of("Easy", "Medium", "Hard");

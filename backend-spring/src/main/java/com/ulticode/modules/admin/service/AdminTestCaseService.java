@@ -6,6 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.problem.entity.TestCase;
@@ -117,32 +118,17 @@ public class AdminTestCaseService {
     @Transactional
     public TestCase updateTestCase(Long problemId, String testCaseId, UpdateTestCaseDTO dto) {
         TestCase existing = getTestCase(problemId, testCaseId);
+        // Validate the supplied JSON before any partial writes touch the row.
         validateInputsJson(dto.getInputs());
 
-        if (dto.getIsSample() != null) {
-            existing.setIsSample(dto.getIsSample());
-        }
-        if (dto.getIsHidden() != null) {
-            existing.setIsHidden(dto.getIsHidden());
-        }
-        if (dto.getTestOrder() != null) {
-            existing.setTestOrder(dto.getTestOrder());
-        }
-        if (dto.getInputText() != null) {
-            existing.setInputText(dto.getInputText());
-        }
-        if (dto.getOutputText() != null) {
-            existing.setOutputText(dto.getOutputText());
-        }
-        if (dto.getExplanation() != null) {
-            existing.setExplanation(dto.getExplanation());
-        }
-        if (dto.getConstraints() != null) {
-            existing.setConstraints(dto.getConstraints());
-        }
-        if (dto.getInputs() != null) {
-            existing.setInputs(dto.getInputs());
-        }
+        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsSample, existing::setIsSample);
+        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsHidden, existing::setIsHidden);
+        PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getTestOrder, existing::setTestOrder);
+        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputText, existing::setInputText);
+        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getOutputText, existing::setOutputText);
+        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getExplanation, existing::setExplanation);
+        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getConstraints, existing::setConstraints);
+        PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputs, existing::setInputs);
         existing.setUpdatedAt(LocalDateTime.now(clock));
 
         testCaseMapper.updateById(existing);

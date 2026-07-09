@@ -9,6 +9,7 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
@@ -154,45 +155,22 @@ public class UserManagementServiceImpl implements UserManagementService {
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id);
 
-        if (StringUtils.hasText(dto.getUsername())) {
-            wrapper.set(User::getUsername, dto.getUsername());
-        }
-        if (StringUtils.hasText(dto.getName())) {
-            wrapper.set(User::getName, dto.getName());
-        }
-        if (StringUtils.hasText(dto.getEmail())) {
-            wrapper.set(User::getEmail, dto.getEmail());
-        }
-        if (StringUtils.hasText(dto.getRole())) {
-            wrapper.set(User::getRole, dto.getRole());
-        }
-        if (dto.getIsActive() != null) {
-            wrapper.set(User::getIsActive, dto.getIsActive());
-        }
-        if (StringUtils.hasText(dto.getAvatar())) {
-            wrapper.set(User::getAvatar, dto.getAvatar());
-        }
-        if (StringUtils.hasText(dto.getBio())) {
-            wrapper.set(User::getBio, dto.getBio());
-        }
-        if (StringUtils.hasText(dto.getCompany())) {
-            wrapper.set(User::getCompany, dto.getCompany());
-        }
-        if (StringUtils.hasText(dto.getGithub())) {
-            wrapper.set(User::getGithub, dto.getGithub());
-        }
-        if (StringUtils.hasText(dto.getWebsite())) {
-            wrapper.set(User::getWebsite, dto.getWebsite());
-        }
-        if (StringUtils.hasText(dto.getLocation())) {
-            wrapper.set(User::getLocation, dto.getLocation());
-        }
-        if (StringUtils.hasText(dto.getTwitter())) {
-            wrapper.set(User::getTwitter, dto.getTwitter());
-        }
-        if (StringUtils.hasText(dto.getPreferredLanguage())) {
-            wrapper.set(User::getPreferredLanguage, dto.getPreferredLanguage());
-        }
+        // Partial-update set clauses — null / blank values are silently
+        // skipped, so the row's existing value is preserved. The wrapper
+        // pattern accumulates the SET clauses and applies them in one UPDATE.
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getName, User::getName);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getEmail, User::getEmail);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getRole, User::getRole);
+        PartialUpdate.setIfPresentWrapper(wrapper, dto, AdminUpdateUserDTO::getIsActive, User::getIsActive);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getAvatar, User::getAvatar);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getBio, User::getBio);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getCompany, User::getCompany);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getGithub, User::getGithub);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getWebsite, User::getWebsite);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getLocation, User::getLocation);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getTwitter, User::getTwitter);
+        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getPreferredLanguage, User::getPreferredLanguage);
 
         userMapper.update(null, wrapper);
 

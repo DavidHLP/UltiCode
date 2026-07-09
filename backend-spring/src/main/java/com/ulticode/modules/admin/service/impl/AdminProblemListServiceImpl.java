@@ -9,6 +9,7 @@ import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -234,31 +235,17 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
         ));
 
-        // Admin bypass: update fields directly without ownership check
-        if (dto.getName() != null) {
-            list.setName(dto.getName());
-        }
-        if (dto.getDescription() != null) {
-            list.setDescription(dto.getDescription());
-        }
-        if (dto.getIsPublic() != null) {
-            list.setIsPublic(dto.getIsPublic());
-        }
-        if (dto.getBannerTag() != null) {
-            list.setBannerTag(dto.getBannerTag());
-        }
-        if (dto.getBannerIcon() != null) {
-            list.setBannerIcon(dto.getBannerIcon());
-        }
-        if (dto.getBannerTheme() != null) {
-            list.setBannerTheme(dto.getBannerTheme());
-        }
-        if (dto.getBannerOrder() != null) {
-            list.setBannerOrder(dto.getBannerOrder());
-        }
-        if (dto.getIsFeatured() != null) {
-            list.setIsFeatured(dto.getIsFeatured());
-        }
+        // Admin bypass: update fields directly without ownership check.
+        // PartialUpdate silently skips null fields, so a PATCH with only one
+        // field still preserves the rest of the row.
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getName, list::setName);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getDescription, list::setDescription);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsPublic, list::setIsPublic);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerIcon, list::setBannerIcon);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getBannerOrder, list::setBannerOrder);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsFeatured, list::setIsFeatured);
 
         problemListMapper.updateById(list);
 
@@ -316,8 +303,8 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             "description", list.getDescription() != null ? list.getDescription() : ""
         ));
 
-        list.setName(dto.getName());
-        list.setDescription(dto.getDescription());
+        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getName, list::setName);
+        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getDescription, list::setDescription);
         problemListMapper.updateById(list);
 
         AuditContext.setNewValues(java.util.Map.of(
@@ -339,12 +326,8 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
         ));
 
-        if (dto.getIsPublic() != null) {
-            list.setIsPublic(dto.getIsPublic());
-        }
-        if (dto.getIsFeatured() != null) {
-            list.setIsFeatured(dto.getIsFeatured());
-        }
+        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsPublic, list::setIsPublic);
+        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsFeatured, list::setIsFeatured);
         problemListMapper.updateById(list);
 
         AuditContext.setNewValues(java.util.Map.of(
@@ -367,18 +350,10 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
         ));
 
-        if (dto.getBannerTag() != null) {
-            list.setBannerTag(dto.getBannerTag());
-        }
-        if (dto.getBannerIcon() != null) {
-            list.setBannerIcon(dto.getBannerIcon());
-        }
-        if (dto.getBannerTheme() != null) {
-            list.setBannerTheme(dto.getBannerTheme());
-        }
-        if (dto.getBannerOrder() != null) {
-            list.setBannerOrder(dto.getBannerOrder());
-        }
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerIcon, list::setBannerIcon);
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateBannerDTO::getBannerOrder, list::setBannerOrder);
         problemListMapper.updateById(list);
 
         AuditContext.setNewValues(java.util.Map.of(

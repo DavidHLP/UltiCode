@@ -9,6 +9,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -228,12 +229,10 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     .eq(Notification::getCategory, SYSTEM_CATEGORY)
                     .set(Notification::getTitle, request.getTitle())
                     .set(Notification::getBody, request.getContent());
-            if (request.getType() != null) {
-                updateWrapper.set(Notification::getType, request.getType());
-            }
-            if (request.getCategory() != null) {
-                updateWrapper.set(Notification::getCategory, request.getCategory());
-            }
+            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+                    UpdateSystemNotificationRequest::getType, Notification::getType);
+            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+                    UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
             updatedCount = notificationMapper.update(null, updateWrapper);
         } else {
             LambdaUpdateWrapper<Notification> updateWrapper = new LambdaUpdateWrapper<>();
@@ -245,12 +244,10 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             if (notification.getCreatedAt() != null) {
                 updateWrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
             }
-            if (request.getType() != null) {
-                updateWrapper.set(Notification::getType, request.getType());
-            }
-            if (request.getCategory() != null) {
-                updateWrapper.set(Notification::getCategory, request.getCategory());
-            }
+            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+                    UpdateSystemNotificationRequest::getType, Notification::getType);
+            PartialUpdate.setIfPresentTextWrapper(updateWrapper, request,
+                    UpdateSystemNotificationRequest::getCategory, Notification::getCategory);
             updatedCount = notificationMapper.update(null, updateWrapper);
         }
 

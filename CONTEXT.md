@@ -89,6 +89,18 @@
   (`AdminSubmissionProjection`, `AdminUserProjection`, …). Complements
   the [[AdminReadModel seam]] ports: ports are for cross-module reads,
   projections are for admin's own VO shape. See ADR-0011.
+- **SystemSettingsStore** — the storage seam for the
+  `system_settings` table. Owns the five category keys
+  (`general` / `email` / `rate-limits` / `uploads` / `features`), the JSON
+  encode/decode of the `value` column, the batched read used by
+  `GET /admin/settings/all`, and the row upsert/delete paths. The
+  service keeps only the business policy (SMTP password masking, the
+  "preserve-on-mask" PATCH rule, the all-defaults feature-toggle
+  safety check, the audit anchor). One prod adapter
+  (`JsonSystemSettingsStore`) + one in-memory test double. The seam
+  closed the `SecurityContextHolder.getContext().getAuthentication()`
+  leak that survived the `CurrentUserProvider` extraction; the audit
+  log's actor now flows through the port.
 - **TimeSource** — the read-only port that hides `System.currentTimeMillis()`
   and `System.nanoTime()` behind a two-method interface
   (`wallMillis()`, `monotonicNanos()`). Two adapters:

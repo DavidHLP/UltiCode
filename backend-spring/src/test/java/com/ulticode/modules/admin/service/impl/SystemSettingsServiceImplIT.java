@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
 import com.ulticode.modules.admin.dto.settings.GeneralSettingsVO;
@@ -11,6 +12,7 @@ import com.ulticode.modules.admin.dto.settings.MaintenanceModeRequest;
 import com.ulticode.modules.admin.dto.settings.RateLimitSettingsVO;
 import com.ulticode.modules.admin.entity.SystemSetting;
 import com.ulticode.modules.admin.mapper.SystemSettingMapper;
+import com.ulticode.modules.admin.store.JsonSystemSettingsStore;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,6 +74,8 @@ class SystemSettingsServiceImplIT {
     private final ObjectMapper objectMapper = new ObjectMapper();
     @Mock
     private Clock clock;
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @BeforeAll
     static void startContainer() {
@@ -115,7 +119,9 @@ class SystemSettingsServiceImplIT {
         mapper = sqlSessionFactory.openSession().getMapper(SystemSettingMapper.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new SystemSettingsServiceImpl(mapper, objectMapper, clock);
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-admin");
+        JsonSystemSettingsStore store = new JsonSystemSettingsStore(mapper, objectMapper, clock);
+        service = new SystemSettingsServiceImpl(store, currentUserProvider, clock);
     }
 
     @AfterEach
@@ -172,8 +178,10 @@ class SystemSettingsServiceImplIT {
 
             // A fresh read (in a new service instance) must see the same
             // values — this is the core regression for §5.1.
+            JsonSystemSettingsStore freshStore =
+                    new JsonSystemSettingsStore(mapper, objectMapper, java.time.Clock.systemDefaultZone());
             SystemSettingsServiceImpl freshService =
-                    new SystemSettingsServiceImpl(mapper, objectMapper, java.time.Clock.systemDefaultZone());
+                    new SystemSettingsServiceImpl(freshStore, currentUserProvider, java.time.Clock.systemDefaultZone());
             GeneralSettingsVO reRead = freshService.getGeneralSettings();
             assertThat(reRead.getSiteName()).isEqualTo("Custom Site");
             assertThat(reRead.isEnableRegistrations()).isFalse();

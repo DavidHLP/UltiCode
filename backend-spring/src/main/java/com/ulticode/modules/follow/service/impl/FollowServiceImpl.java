@@ -7,11 +7,11 @@ import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.inspector.FollowInspector;
 import com.ulticode.modules.follow.mapper.FollowMapper;
+import com.ulticode.modules.follow.port.UserReadPort;
 import com.ulticode.modules.follow.service.FollowService;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 public class FollowServiceImpl implements FollowService {
 
     private final FollowMapper followMapper;
-    private final UserMapper userMapper;
+    private final UserReadPort userReadPort;
     private final AchievementTriggerService achievementTriggerService;
     private final NotificationService notificationService;
     private final NotificationDispatchService notificationDispatchService;
@@ -56,7 +56,7 @@ public class FollowServiceImpl implements FollowService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot follow yourself");
         }
 
-        User target = userMapper.selectById(targetUserId);
+        User target = userReadPort.findById(targetUserId);
         if (target == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -70,7 +70,7 @@ public class FollowServiceImpl implements FollowService {
             // ADR-004 M4c: when the flag is on, dispatch a typed
             // FollowReceivedIntent (InApp + WebSocket; Email skipped per
             // channel matrix). Otherwise fall through to the legacy path.
-            User currentUser = userMapper.selectById(currentUserId);
+            User currentUser = userReadPort.findById(currentUserId);
             try {
                 if (featureFlags.isUseNotificationIntent()) {
                     notificationDispatcher.dispatch(
@@ -108,7 +108,7 @@ public class FollowServiceImpl implements FollowService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot unfollow yourself");
         }
 
-        User target = userMapper.selectById(targetUserId);
+        User target = userReadPort.findById(targetUserId);
         if (target == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }

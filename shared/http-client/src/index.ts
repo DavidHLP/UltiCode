@@ -493,9 +493,5 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
   }
 }
 
-export {
-  createCsrfAxiosInterceptor,
-} from '@ulticode/auth-core/src/axiosCsrfInterceptor'
-export {
-  createRefreshAccessToken,
-} from '@ulticode/auth-core/src/refreshCoordinator'
+// auth-core internals are no longer re-exported here; import them
+// directly from '@ulticode/auth-core/src/{axiosCsrfInterceptor,refreshCoordinator}' if needed.

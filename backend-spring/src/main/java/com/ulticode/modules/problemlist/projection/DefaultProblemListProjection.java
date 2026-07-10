@@ -372,4 +372,128 @@ public class DefaultProblemListProjection implements ProblemListProjection {
 
         return vo;
     }
+
+    // ------------------------------------------------------------------
+    // Admin detail projection
+    // ------------------------------------------------------------------
+
+    @Override
+    public ProblemListDetailVO toAdminDetailVO(ProblemList list) {
+        ProblemListDetailVO vo = new ProblemListDetailVO();
+        vo.setId(list.getId());
+        vo.setName(list.getName());
+        vo.setDescription(list.getDescription());
+        vo.setAuthorId(list.getAuthorId());
+        vo.setIsPublic(list.getIsPublic());
+        vo.setIsFeatured(list.getIsFeatured());
+        vo.setBannerTag(list.getBannerTag());
+        vo.setBannerIcon(list.getBannerIcon());
+        vo.setBannerTheme(list.getBannerTheme());
+        vo.setBannerOrder(list.getBannerOrder());
+        vo.setCreatedAt(list.getCreatedAt());
+        vo.setUpdatedAt(list.getUpdatedAt());
+
+        // Admin view: not owner, not saved.
+        vo.setIsOwner(false);
+        vo.setIsSaved(false);
+
+        // Author enrichment.
+        User author = userMapper.selectById(list.getAuthorId());
+        if (author != null) {
+            vo.setAuthorName(author.getName());
+            vo.setAuthorUsername(author.getUsername());
+        }
+
+        // Problems in the list with batched tag lookup.
+        List<ProblemListProblemRelation> relations =
+                problemListProblemMapper.findByListId(list.getId());
+        List<ProblemListDetailVO.ProblemInListVO> problemVOs;
+        if (relations.isEmpty()) {
+            problemVOs = Collections.emptyList();
+        } else {
+            problemVOs = assembleProblemInList(relations);
+        }
+        vo.setProblems(problemVOs);
+
+        // Solved/attempted/todo stats.
+        vo.setStats(assembleStats(list.getId(), problemVOs));
+
+        // Admin view: no viewer state, no categories.
+        vo.setViewer(null);
+        vo.setCategories(Collections.emptyList());
+        return vo;
+    }
+
+    private List<ProblemListDetailVO.ProblemInListVO> assembleProblemInList(
+            List<ProblemListProblemRelation> relations) {
+        Set<Long> problemIds = relations.stream()
+                .map(ProblemListProblemRelation::getProblemId)
+                .collect(Collectors.toSet());
+        List<Problem> problems = problemMapper.selectBatchIds(problemIds);
+        Map<Long, Problem> problemMap = problems.stream()
+                .collect(Collectors.toMap(Problem::getId, p -> p));
+
+        List<ProblemMapper.ProblemTagDTO> tagDTOs =
+                problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
+        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
+                .collect(Collectors.groupingBy(
+                        ProblemMapper.ProblemTagDTO::problemId,
+                        Collectors.mapping(dto -> {
+                            ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
+                            tagVO.setId(dto.tagId());
+                            tagVO.setLabel(dto.tagName());
+                            return tagVO;
+                        }, Collectors.toList())
+                ));
+
+        return relations.stream()
+                .map(rel -> {
+                    Problem problem = problemMap.get(rel.getProblemId());
+                    if (problem == null) return null;
+                    ProblemListDetailVO.ProblemInListVO pvo =
+                            new ProblemListDetailVO.ProblemInListVO();
+                    pvo.setId(problem.getId());
+                    pvo.setSlug(problem.getSlug());
+                    pvo.setTitle(problem.getTitle());
+                    pvo.setDifficulty(problem.getDifficulty());
+                    pvo.setStatus(problem.getStatus());
+                    pvo.setSortOrder(rel.getSortOrder());
+                    pvo.setAddedAt(rel.getAddedAt());
+                    pvo.setAcceptanceRate(problem.getAcceptanceRate());
+                    pvo.setIsPremium(problem.getIsPremium());
+                    pvo.setHasSolution(problem.getHasSolution());
+                    pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
+                    return pvo;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private ProblemListDetailVO.ProblemListStatsVO assembleStats(
+            String listId, List<ProblemListDetailVO.ProblemInListVO> problems) {
+        ProblemListDetailVO.ProblemListStatsVO statsVO =
+                new ProblemListDetailVO.ProblemListStatsVO();
+        statsVO.setListId(listId);
+        int totalCount = problems.size();
+        int solvedCount = 0;
+        int attemptedCount = 0;
+        for (ProblemListDetailVO.ProblemInListVO p : problems) {
+            String status = p.getStatus();
+            if ("solved".equalsIgnoreCase(status)) {
+                solvedCount++;
+            } else if ("attempted".equalsIgnoreCase(status)) {
+                attemptedCount++;
+            }
+        }
+        int todoCount = Math.max(0, totalCount - solvedCount - attemptedCount);
+        double progress = totalCount == 0
+                ? 0.0
+                : ((double) solvedCount / totalCount) * 100.0;
+        statsVO.setTotalCount(totalCount);
+        statsVO.setSolvedCount(solvedCount);
+        statsVO.setAttemptedCount(attemptedCount);
+        statsVO.setTodoCount(todoCount);
+        statsVO.setProgress(progress);
+        return statsVO;
+    }
 }

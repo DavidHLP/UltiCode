@@ -114,4 +114,17 @@ public interface ProblemListProjection {
      * @return the category summary view object
      */
     CategorySummaryVO toCategorySummaryVO(ProblemListCategory category);
+
+    /**
+     * Admin-specific detail projection: the management console does not need
+     * viewer state (saved / is-owner) or category options, but it does need
+     * the same author / problem / tag enrichment plus solved/attempted/todo
+     * stats as the user-facing overview. Completes the projection seam so
+     * the admin service owns only mutations and audit, not cross-mapper
+     * reads. Architecture-review candidate #3.
+     *
+     * @param list the list entity (must already be loaded by the caller)
+     * @return the admin-facing detail view object
+     */
+    ProblemListDetailVO toAdminDetailVO(ProblemList list);
 }

@@ -93,9 +93,6 @@ function getActionConfig(actionType: ModerationActionType) {
   )
 }
 
-function formatDate(date: Date | string): string {
-  return formatDateTimeByLocale(date)
-}
 
 function getRelativeTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
@@ -109,7 +106,7 @@ function getRelativeTime(date: Date | string): string {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
-  return formatDate(date)
+  return formatDateTimeByLocale(date)
 }
 </script>
 

@@ -39,9 +39,6 @@ const authorInitials = computed(() => {
   return props.post.author.username.slice(0, 2).toUpperCase()
 })
 
-function formatDate(dateStr: string) {
-  return formatDateTimeByLocale(dateStr)
-}
 </script>
 
 <template>
@@ -193,12 +190,12 @@ function formatDate(dateStr: string) {
             <div class="grid grid-cols-2 gap-4">
               <DataBlock
                 :label="t('forum.detail.created')"
-                :value="formatDate(post.createdAt)"
+                :value="formatDateTimeByLocale(post.createdAt)"
                 size="sm"
               />
               <DataBlock
                 :label="t('forum.detail.updated')"
-                :value="formatDate(post.updatedAt)"
+                :value="formatDateTimeByLocale(post.updatedAt)"
                 size="sm"
               />
             </div>
@@ -217,7 +214,7 @@ function formatDate(dateStr: string) {
             </div>
             <DataBlock :label="t('forum.detail.reason')" :value="post.flaggedReason" size="sm" />
             <p v-if="post.flaggedAt" class="font-data text-xs text-[var(--silver-400)] mt-2">
-              {{ t('forum.detail.flaggedOn') }} {{ formatDate(post.flaggedAt) }}
+              {{ t('forum.detail.flaggedOn') }} {{ formatDateTimeByLocale(post.flaggedAt) }}
             </p>
           </div>
 
@@ -233,7 +230,7 @@ function formatDate(dateStr: string) {
               </span>
             </div>
             <p v-if="post.deletedAt" class="font-data text-xs text-[var(--silver-400)]">
-              {{ t('forum.detail.deletedOn') }} {{ formatDate(post.deletedAt) }}
+              {{ t('forum.detail.deletedOn') }} {{ formatDateTimeByLocale(post.deletedAt) }}
             </p>
           </div>
 

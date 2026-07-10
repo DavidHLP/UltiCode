@@ -147,10 +147,6 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(1)} ${units[unitIndex]}`
 }
 
-function formatDate(date: string | null): string {
-  if (!date) return '-'
-  return formatDateTimeByLocale(date)
-}
 
 function getStatusIcon(status: BackupStatus) {
   switch (status) {
@@ -318,7 +314,7 @@ onMounted(async () => {
                 <div class="text-sm text-muted-foreground">
                   {{ t('system.backup.type') }}: {{ backup.type }} | {{ t('system.backup.size') }}:
                   {{ formatBytes(backup.size) }} | {{ t('system.backup.createdAt') }}:
-                  {{ formatDate(backup.created_at) }}
+                  {{ formatDateTimeByLocale(backup.created_at) }}
                 </div>
               </div>
             </div>

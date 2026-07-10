@@ -93,9 +93,6 @@ function handleNextPage() {
   loadAuditLogs()
 }
 
-function formatDate(date: Date | string): string {
-  return formatDateTimeByLocale(date)
-}
 
 function formatAction(action: string): string {
   const key = `audit.actionTypes.${action}`
@@ -231,7 +228,7 @@ onMounted(() => {
                 {{ t(`audit.entityTypes.${log.entityType}`, log.entityType) }}
               </Badge>
               <span class="text-xs text-[var(--silver-500)] font-data tabular-nums truncate">
-                {{ formatDate(log.createdAt) }}
+                {{ formatDateTimeByLocale(log.createdAt) }}
               </span>
               <span class="text-[var(--silver-400)] text-xs">·</span>
               <span v-if="log.performer" class="text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)] truncate">

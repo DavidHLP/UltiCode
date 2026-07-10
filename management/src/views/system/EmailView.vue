@@ -190,9 +190,6 @@ async function deleteTemplate(template: EmailTemplate) {
   }
 }
 
-function formatDate(date: string): string {
-  return formatDateTimeByLocale(date)
-}
 
 function getStatusIcon(status: string) {
   switch (status) {
@@ -376,7 +373,7 @@ onMounted(async () => {
                     <div class="font-medium">{{ log.subject }}</div>
                     <div class="text-sm text-muted-foreground">
                       {{ t('system.email.to') }}: {{ log.recipient }} | {{ t('system.email.createdAt') }}:
-                      {{ formatDate(log.created_at) }}
+                      {{ formatDateTimeByLocale(log.created_at) }}
                     </div>
                     <div v-if="log.error" class="text-sm text-red-500 mt-1">
                       {{ log.error }}

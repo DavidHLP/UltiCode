@@ -52,9 +52,6 @@ const categoryColors: Record<ReportCategory, string> = {
   OTHER: 'text-[var(--silver-500)]',
 }
 
-function formatDate(date: Date | string): string {
-  return formatDateTimeByLocale(date)
-}
 
 function getPriorityLabel(priority: number): string {
   if (priority >= 8) return 'Critical'
@@ -122,7 +119,7 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
             </div>
             <div class="flex items-center gap-2 text-xs text-[var(--silver-500)]">
               <IconClock class="h-3.5 w-3.5" />
-              <span class="font-data tabular-nums">{{ formatDate(item.createdAt) }}</span>
+              <span class="font-data tabular-nums">{{ formatDateTimeByLocale(item.createdAt) }}</span>
             </div>
           </div>
         </div>

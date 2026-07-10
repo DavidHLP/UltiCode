@@ -61,9 +61,6 @@ const truncatedContent = computed(() => {
   return props.content.slice(0, 200) + '...'
 })
 
-function formatDate(date: Date | string): string {
-  return formatDateTimeByLocale(date)
-}
 </script>
 
 <template>
@@ -132,7 +129,7 @@ function formatDate(date: Date | string): string {
         </div>
         <div v-if="createdAt" class="flex items-center gap-1">
           <span>{{ t('moderation.columns.createdAt') }}:</span>
-          <span class="font-data tabular-nums">{{ formatDate(createdAt) }}</span>
+          <span class="font-data tabular-nums">{{ formatDateTimeByLocale(createdAt) }}</span>
         </div>
       </div>
     </CardContent>

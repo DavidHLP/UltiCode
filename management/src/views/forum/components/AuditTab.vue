@@ -80,9 +80,6 @@ function getActionConfig(action: string) {
   )
 }
 
-function formatDate(dateStr: string | Date) {
-  return formatDateTimeByLocale(dateStr)
-}
 
 function getChangesText(entry: AuditLog): string | null {
   const changes: string[] = []
@@ -200,7 +197,7 @@ function getChangesText(entry: AuditLog): string | null {
           <div class="flex items-center gap-2 mb-3">
             <IconCalendar class="h-3.5 w-3.5 text-[var(--silver-400)]" />
             <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-              {{ formatDate(entry.createdAt) }}
+              {{ formatDateTimeByLocale(entry.createdAt) }}
             </span>
           </div>
 

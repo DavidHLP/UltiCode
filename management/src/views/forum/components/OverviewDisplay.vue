@@ -27,9 +27,6 @@ const authorInitials = computed(() => {
   return props.post.author.username.slice(0, 2).toUpperCase()
 })
 
-function formatDate(dateStr: string) {
-  return formatDateTimeByLocale(dateStr)
-}
 </script>
 
 <template>
@@ -175,7 +172,7 @@ function formatDate(dateStr: string) {
           <div class="flex items-center gap-2">
             <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
-              formatDate(post.createdAt)
+              formatDateTimeByLocale(post.createdAt)
             }}</span>
           </div>
         </DataBlock>
@@ -183,7 +180,7 @@ function formatDate(dateStr: string) {
           <div class="flex items-center gap-2">
             <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
-              formatDate(post.updatedAt)
+              formatDateTimeByLocale(post.updatedAt)
             }}</span>
           </div>
         </DataBlock>
@@ -208,7 +205,7 @@ function formatDate(dateStr: string) {
       <div class="p-4 space-y-3">
         <DataBlock :label="t('forum.detail.reason')" :value="post.flaggedReason" size="sm" />
         <p v-if="post.flaggedAt" class="font-data text-xs text-[var(--silver-400)]">
-          {{ t('forum.detail.flaggedOn') }} {{ formatDate(post.flaggedAt) }}
+          {{ t('forum.detail.flaggedOn') }} {{ formatDateTimeByLocale(post.flaggedAt) }}
         </p>
       </div>
     </div>
@@ -230,7 +227,7 @@ function formatDate(dateStr: string) {
       </div>
       <div class="p-4">
         <p v-if="post.deletedAt" class="font-data text-xs text-[var(--silver-400)]">
-          {{ t('forum.detail.deletedOn') }} {{ formatDate(post.deletedAt) }}
+          {{ t('forum.detail.deletedOn') }} {{ formatDateTimeByLocale(post.deletedAt) }}
         </p>
       </div>
     </div>

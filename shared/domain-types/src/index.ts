@@ -1,9 +1,16 @@
 /**
  * @ulticode/domain-types — cross-stack DTO contract shared by console + management.
  *
- * Single source of truth for domain types previously duplicated between
- * console/src/types/ and management/src/api/admin/. Mirrors the
- * @ulticode/sandbox-types pattern. Both apps re-export from this package.
+ * Proven canonical contract: `PageResult<T>` (consumed by callers across both
+ * apps). The Problem / Contest / Comment / ... DTOs below are declared here as
+ * the intended canonical home but are not yet consumed by production callers —
+ * both apps still keep parallel definitions. Migrate them one-by-one only as a
+ * caller is proven to need the shared shape; do not balloon this into a giant
+ * superset (arch review #5).
+ *
+ * Backend serves camelCase JSON (Spring Boot default Jackson, no snake_case
+ * naming strategy), so DTO fields are camelCase. Database snake_case columns
+ * are mapped via MyBatis mapUnderscoreToCamelCase and never leak into transport.
  */
 
 // ============================================================================
@@ -30,7 +37,6 @@ export interface Problem {
   title: string
   slug: string
   difficulty: ProblemDifficulty
-  acceptance_rate: number
   acceptanceRate?: number
   tags: string[]
   status?: ProblemStatus

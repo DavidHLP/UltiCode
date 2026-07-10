@@ -293,21 +293,25 @@ const router = createRouter({
       path: "/login",
       name: "login",
       component: () => import("../views/auth/LoginView.vue"),
+      meta: { guestOnly: true },
     },
     {
       path: "/register",
       name: "register",
       component: () => import("../views/auth/RegisterView.vue"),
+      meta: { guestOnly: true },
     },
     {
       path: "/forgot-password",
       name: "forgot-password",
       component: () => import("../views/auth/ForgotPasswordView.vue"),
+      meta: { guestOnly: true },
     },
     {
       path: "/reset-password",
       name: "reset-password",
       component: () => import("../views/auth/ResetPasswordView.vue"),
+      meta: { guestOnly: true },
     },
     personalRoutes,
     // Public user profile route
@@ -412,11 +416,11 @@ router.beforeEach(async (to) => {
     lastValidatedAt = Date.now();
   }
 
-  // If already authenticated and trying to access login/register, redirect to home
-  if (
-    authStore.isAuthenticated &&
-    (to.name === "login" || to.name === "register")
-  ) {
+  // If already authenticated and trying to access a guest-only route, redirect home
+  const isGuestOnly = to.matched.some(
+    (record) => record.meta.guestOnly === true,
+  );
+  if (authStore.isAuthenticated && isGuestOnly) {
     return { name: "forum-home" };
   }
 

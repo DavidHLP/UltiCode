@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager, getCsrfToken } from "@/utils/csrf";
+import { csrfManager } from "@/utils/csrf";
 import type { User } from "@/types/auth";
 
 vi.mock("@/utils/request", () => ({
@@ -17,7 +17,6 @@ vi.mock("@/utils/csrf", () => ({
     getToken: vi.fn(() => "test-csrf-token"),
     setToken: vi.fn(),
   },
-  getCsrfToken: vi.fn(() => "test-csrf-token"),
 }));
 
 const mockUser: User = {
@@ -34,8 +33,10 @@ describe("useAuthStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
-    // Default: CSRF token exists
-    vi.mocked(getCsrfToken).mockReturnValue("test-csrf-token");
+    // Default: no csrf_token cookie in the browser (anonymous visitor).
+    // Tests that need "session present" must explicitly set
+    // `document.cookie = "csrf_token=..."` before calling store.initialize().
+    document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     const store = useAuthStore();
     store.reset();
   });
@@ -110,9 +111,8 @@ describe("useAuthStore", () => {
   });
 
   describe("initialize", () => {
-    it("skips /auth/me when no CSRF token exists", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue(null);
-
+    it("skips /auth/me when no CSRF cookie exists", async () => {
+      // beforeEach already cleared the cookie — anonymous visitor.
       const store = useAuthStore();
       await store.initialize();
 
@@ -121,8 +121,10 @@ describe("useAuthStore", () => {
       expect(store.user).toBeNull();
     });
 
-    it("calls /auth/me when CSRF token exists and sets user", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue("valid-csrf");
+    it("calls /auth/me when csrf_token cookie exists and sets user", async () => {
+      // Simulate a hard refresh with the sentinel cookie still in the jar
+      // (the in-memory csrfManager would be empty here, by design).
+      document.cookie = "csrf_token=valid-csrf; path=/";
       vi.mocked(apiGet).mockResolvedValue({
         user: mockUser,
         csrfToken: "csrf-refreshed",
@@ -140,7 +142,7 @@ describe("useAuthStore", () => {
     });
 
     it("still transitions to ready when /auth/me fails", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue("valid-csrf");
+      document.cookie = "csrf_token=valid-csrf; path=/";
       vi.mocked(apiGet).mockRejectedValue(new Error("Network error"));
 
       const store = useAuthStore();
@@ -151,7 +153,7 @@ describe("useAuthStore", () => {
     });
 
     it("deduplicates concurrent initialize calls", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue("valid-csrf");
+      document.cookie = "csrf_token=valid-csrf; path=/";
       // Delay the API response to ensure concurrent calls overlap
       vi.mocked(apiGet).mockImplementation(
         () =>
@@ -180,7 +182,7 @@ describe("useAuthStore", () => {
     });
 
     it("skips initialize if already ready", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue("valid-csrf");
+      document.cookie = "csrf_token=valid-csrf; path=/";
       vi.mocked(apiGet).mockResolvedValue({
         user: mockUser,
         csrfToken: "csrf",
@@ -245,7 +247,7 @@ describe("useAuthStore", () => {
     });
 
     it("resets _initializationPromise for test isolation", async () => {
-      vi.mocked(getCsrfToken).mockReturnValue("valid-csrf");
+      document.cookie = "csrf_token=valid-csrf; path=/";
       vi.mocked(apiGet).mockResolvedValue({
         user: mockUser,
         csrfToken: "csrf",

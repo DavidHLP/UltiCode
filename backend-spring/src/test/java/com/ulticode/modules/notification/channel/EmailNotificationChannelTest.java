@@ -6,9 +6,9 @@ import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
+import com.ulticode.modules.notification.port.UserEmailPort;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class EmailNotificationChannelTest {
 
     @Mock private EmailService emailService;
-    @Mock private UserMapper userMapper;
+    @Mock private UserEmailPort userEmailPort;
 
     @Test
     void channelIdIsEmail() {
@@ -60,8 +60,8 @@ class EmailNotificationChannelTest {
         // returns normally so the dispatcher marks the ledger row DELIVERED
         // (we tried, no error) rather than FAILED (we tried and failed).
         EmailNotificationChannel ch = new EmailNotificationChannel(emailService);
-        ch.userMapper = userMapper;
-        when(userMapper.selectById("user-1")).thenReturn(null);
+        ch.userEmailPort = userEmailPort;
+        when(userEmailPort.findEmail("user-1")).thenReturn(null);
 
         // No exception thrown.
         ch.send(sampleSubmission());
@@ -71,11 +71,8 @@ class EmailNotificationChannelTest {
     @Test
     void sendCallsEmailServiceWithRecipient() {
         EmailNotificationChannel ch = new EmailNotificationChannel(emailService);
-        ch.userMapper = userMapper;
-        User u = new User();
-        u.setId("user-1");
-        u.setEmail("user@example.com");
-        when(userMapper.selectById("user-1")).thenReturn(u);
+        ch.userEmailPort = userEmailPort;
+        when(userEmailPort.findEmail("user-1")).thenReturn("user@example.com");
 
         ch.send(sampleAchievement());
 

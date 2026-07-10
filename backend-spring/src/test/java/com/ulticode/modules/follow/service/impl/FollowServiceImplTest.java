@@ -7,7 +7,7 @@ import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.follow.port.UserReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class FollowServiceImplTest {
     private FollowMapper followMapper;
 
     @Mock
-    private UserMapper userMapper;
+    private UserReadPort userReadPort;
 
     @Mock
     private AchievementTriggerService achievementTriggerService;
@@ -74,7 +74,7 @@ class FollowServiceImplTest {
         lenient().when(featureFlags.isUseNotificationIntent()).thenReturn(false);
         followService = new FollowServiceImpl(
             followMapper,
-            userMapper,
+            userReadPort,
             achievementTriggerService,
             notificationService,
             notificationDispatchService,
@@ -102,8 +102,8 @@ class FollowServiceImplTest {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
-        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
-        when(userMapper.selectById(currentUserId)).thenReturn(testUser);
+        when(userReadPort.findById(targetUserId)).thenReturn(testUser);
+        when(userReadPort.findById(currentUserId)).thenReturn(testUser);
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(false);
         when(followInspector.getFollowStats(targetUserId)).thenReturn(stats(1, 1));
         when(notificationDispatchService.dispatch(
@@ -134,7 +134,7 @@ class FollowServiceImplTest {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
-        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(userReadPort.findById(targetUserId)).thenReturn(testUser);
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(true);
         when(followInspector.getFollowStats(targetUserId)).thenReturn(stats(1, 1));
 
@@ -151,8 +151,8 @@ class FollowServiceImplTest {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
-        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
-        when(userMapper.selectById(currentUserId)).thenReturn(testUser);
+        when(userReadPort.findById(targetUserId)).thenReturn(testUser);
+        when(userReadPort.findById(currentUserId)).thenReturn(testUser);
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(false);
         when(followInspector.getFollowStats(targetUserId)).thenReturn(stats(1, 1));
 
@@ -187,7 +187,7 @@ class FollowServiceImplTest {
         String currentUserId = "user-current";
         String targetUserId = "user-target";
 
-        when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(userReadPort.findById(targetUserId)).thenReturn(testUser);
         when(followMapper.deleteIfExists(currentUserId, targetUserId)).thenReturn(0);
         when(followInspector.getFollowStats(targetUserId)).thenReturn(stats(0, 0));
 

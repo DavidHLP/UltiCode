@@ -7,6 +7,7 @@ import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.port.ProblemExistencePort;
 import com.ulticode.modules.solution.projection.SolutionProjection;
 import com.ulticode.modules.solution.service.impl.SolutionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,8 @@ class SolutionServiceTest {
     @Mock
     private ProblemMapper problemMapper;
     @Mock
+    private ProblemExistencePort problemExistencePort;
+    @Mock
     private SolutionProjection solutionProjection;
     @Mock
     private Clock clock;
@@ -60,6 +63,8 @@ class SolutionServiceTest {
     void setUp() {
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+        // Default: problem exists. create() tests rely on this.
+        lenient().when(problemExistencePort.exists(any(Long.class))).thenReturn(true);
     }
 
     private static final String SOLUTION_ID = "sol-uuid-1";

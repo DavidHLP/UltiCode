@@ -1,40 +1,20 @@
 package com.ulticode.modules.forum.service;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.forum.dto.*;
-import com.ulticode.modules.forum.entity.ForumPost;
-
-import java.util.List;
+import com.ulticode.modules.forum.dto.CreatePostDTO;
+import com.ulticode.modules.forum.dto.ForumPostVO;
+import com.ulticode.modules.forum.dto.UpdatePostDTO;
 
 /**
- * Write-side service for forum posts. Owns the transactional create / update /
- * delete paths and the SQL + paging for the read paths.
+ * Write-only side of the forum post lifecycle. Owns the transactional
+ * create / update / delete paths plus share / view bumps.
  *
- * <p><b>Deepened.</b> All entity-to-VO projection rules and the batch-load
- * helpers live behind {@code ForumReadProjection}; this service delegates to it
- * for any VO it returns. The seam inversion keeps the projection rules with
- * the data they describe.
- *
- * <p>Reads that return VOs ({@link #findAllPosts}, {@link #findMyPosts},
- * {@link #findPostById}) are kept on this interface because callers
- * (e.g. {@code ForumReadProjection}) cross this seam to reach the SQL; the
- * projection then re-projects entities to VOs through its own rules. This is
- * the same {@code ModerationProjection} / {@code ForumPostService} pattern
- * used elsewhere — see ADR-0011.
+ * <p>Read-side methods live on
+ * {@link com.ulticode.modules.forum.projection.ForumReadProjection} — this
+ * split breaks the constructor-injection cycle that previously existed
+ * between the read projection and this service (Spring Boot 3.x forbids
+ * cyclic bean wiring by default).
  */
 public interface ForumPostService {
-
-    List<ForumPostVO> findAllPosts(String userId);
-
-    PageResult<ForumPostVO> findAllPosts(String userId, int page, int pageSize);
-
-    PageResult<ForumPostVO> findAllPosts(String userId, String sortBy, int page, int pageSize);
-
-    ForumPostVO findPostById(String id, String userId);
-
-    List<ForumPostVO> findMyPosts(String userId);
-
-    PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize);
 
     ForumPostVO createPost(CreatePostDTO dto, String userId);
 
@@ -42,13 +22,7 @@ public interface ForumPostService {
 
     void deletePost(String id, String userId);
 
-    ForumPostThreadVO getPostThread(String postId, String userId);
-
     void recordShare(String postId);
 
     void recordView(String postId);
-
-    long countByCommunityId(String communityId);
-
-    List<ForumPost> findByCommunityId(String communityId, int limit, int offset);
 }

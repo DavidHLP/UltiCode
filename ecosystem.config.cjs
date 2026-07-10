@@ -71,7 +71,7 @@ module.exports = {
       // interpreter: "none" 让 PM2 直接 exec PATH 中的 bash (Git Bash on Windows / bash on Linux)
       // 注意: 不要用 interpreter: "bash" — PM2 会把 bash 路径和 args 拼成绝对路径调用，引发 Windows "cannot execute binary file"
       script: "bash",
-      args: "-c \"cd backend-spring && ./mvnw clean install -DskipTests && ./mvnw spring-boot:run -Dmaven.test.skip=true\"",
+      args: "-c \"cd backend-spring && mvn clean install && mvn spring-boot:run\"",
       cwd: ".",
       interpreter: "none",
       instance_var: "INSTANCE_ID",

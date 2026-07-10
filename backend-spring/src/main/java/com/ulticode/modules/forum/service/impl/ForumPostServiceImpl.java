@@ -1,23 +1,24 @@
 package com.ulticode.modules.forum.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.response.PageResult;
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.forum.dto.*;
+import com.ulticode.modules.forum.dto.CreatePostDTO;
+import com.ulticode.modules.forum.dto.ForumPostVO;
+import com.ulticode.modules.forum.dto.ForumPostVOAssembler;
+import com.ulticode.modules.forum.dto.UpdatePostDTO;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.entity.ForumUser;
+import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumUserMapper;
-import com.ulticode.modules.forum.projection.ForumReadProjection;
 import com.ulticode.modules.forum.service.ForumPostService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,24 +26,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Write-side service for forum posts. Owns the transactional create / update /
- * delete paths and the SQL + paging for the read paths.
+ * delete paths plus share / view bumps.
  *
- * <p><b>Deepened.</b> All entity-to-VO projection rules and the batch-load
- * helpers live behind {@link ForumReadProjection}; this service delegates to
- * it for any VO it returns (including the VO returned from the write paths).
- * The service no longer needs to know how a {@code ForumPostVO} is built —
- * the projection owns those rules.
- *
- * <p>Reads that return VOs ({@link #findAllPosts}, {@link #findMyPosts},
- * {@link #findPostById}, {@link #getPostThread}) still cross this seam
- * because the SQL + paging live here; the projection is invoked for VO
- * assembly. This is the same shape as {@code ModerationProjection} /
- * {@code ForumPostService} across the inversion series.
+ * <p>Read-side code lives on {@link com.ulticode.modules.forum.projection.ForumReadProjection};
+ * this service no longer depends on the projection. Write paths that need to
+ * return a {@link ForumPostVO} build it via the static
+ * {@link ForumPostVOAssembler} so projection and write service stay decoupled
+ * (Spring Boot 3.x forbids the previous constructor-injection cycle).
  *
  * @author ulticode
  */
@@ -51,98 +44,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ForumPostServiceImpl implements ForumPostService {
 
-    private static final int MAX_RECENT_POSTS = 50;
-
     private final ForumPostMapper postMapper;
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
+    private final ForumCommentMapper commentMapper;
     private final ForumUserMapper forumUserMapper;
     private final UserService userService;
-    /**
-     * Projection for entity-to-VO assembly. Injected so the write paths
-     * (createPost, updatePost, getPostThread) can return a VO without the
-     * service re-implementing the projection rules. This is the seam fix —
-     * the projection rules live in one module.
-     */
-    private final ForumReadProjection forumReadProjection;
+    private final VoteService voteService;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
-
-    // =========================================================================
-    // Find all posts — uses selectPage + QueryWrapper for correct TypeHandler
-    // =========================================================================
-
-    @Override
-    public List<ForumPostVO> findAllPosts(String userId) {
-        return findAllPosts(userId, "new", 1, MAX_RECENT_POSTS).getItems();
-    }
-
-    @Override
-    public PageResult<ForumPostVO> findAllPosts(String userId, int page, int pageSize) {
-        return findAllPosts(userId, "new", page, pageSize);
-    }
-
-    @Override
-    public PageResult<ForumPostVO> findAllPosts(String userId, String sortBy, int page, int pageSize) {
-        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS)),
-            offset = Math.max(0, (page - 1) * limit);
-        LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
-                .eq(ForumPost::getIsDeleted, false);
-        applySortBy(wrapper, sortBy);
-        long total = postMapper.selectCount(new LambdaQueryWrapper<ForumPost>().eq(ForumPost::getIsDeleted, false));
-        List<ForumPost> posts = postMapper.selectList(wrapper.last("LIMIT " + limit + " OFFSET " + offset));
-        Map<String, User> authorMap = forumReadProjection.batchLoadAuthors(posts);
-        Map<String, ForumCommunity> communityMap = batchLoadCommunities(posts);
-        Map<String, Long> commentCounts = forumReadProjection.batchLoadCommentCounts(posts);
-        List<ForumPostVO> items = posts.stream()
-                .map(p -> forumReadProjection.convertToPostVO(
-                        p,
-                        userId,
-                        authorMap.get(p.getUserId()),
-                        communityMap.get(p.getCommunityId()),
-                        commentCounts.getOrDefault(p.getId(), 0L)))
-                .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
-    }
-
-    @Override
-    public ForumPostVO findPostById(String id, String userId) {
-        ForumPost post = postMapper.selectById(id);
-        if (post == null) throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        User author = userService.findById(post.getUserId()).orElse(null);
-        return forumReadProjection.convertToPostVO(post, userId, author);
-    }
-
-    // =========================================================================
-    // My posts
-    // =========================================================================
-
-    @Override
-    public List<ForumPostVO> findMyPosts(String userId) {
-        return findMyPosts(userId, 1, MAX_RECENT_POSTS).getItems();
-    }
-
-    @Override
-    public PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize) {
-        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS)),
-            offset = Math.max(0, (page - 1) * limit);
-        long total = postMapper.countByUserId(userId);
-        List<ForumPost> posts = postMapper.findByUserId(userId);
-        // Manual pagination since findByUserId returns full list
-        List<ForumPost> paged = posts.stream().skip(offset).limit(limit).collect(Collectors.toList());
-        Map<String, User> authorMap = forumReadProjection.batchLoadAuthors(paged);
-        Map<String, ForumCommunity> communityMap = batchLoadCommunities(paged);
-        Map<String, Long> commentCounts = forumReadProjection.batchLoadCommentCounts(paged);
-        List<ForumPostVO> items = paged.stream()
-                .map(p -> forumReadProjection.convertToPostVO(
-                        p,
-                        userId,
-                        authorMap.get(p.getUserId()),
-                        communityMap.get(p.getCommunityId()),
-                        commentCounts.getOrDefault(p.getId(), 0L)))
-                .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
-    }
 
     // =========================================================================
     // Create / Update / Delete
@@ -150,7 +60,7 @@ public class ForumPostServiceImpl implements ForumPostService {
 
     @Override
     @Transactional
-    @CheckBan
+    @com.ulticode.common.annotation.CheckBan
     public ForumPostVO createPost(CreatePostDTO dto, String userId) {
         ForumCommunity community = communityMapper.selectById(dto.getCommunityId());
         if (community == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
@@ -177,7 +87,8 @@ public class ForumPostServiceImpl implements ForumPostService {
         postMapper.insert(post);
         communityMapper.incrementPostsCount(dto.getCommunityId());
         User author = userService.findById(post.getUserId()).orElse(null);
-        return forumReadProjection.convertToPostVO(post, userId, author);
+        return ForumPostVOAssembler.toPostVO(post, userId, author,
+                voteService, communityMapper, commentMapper, memberMapper);
     }
 
     @Override
@@ -198,7 +109,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         postMapper.updateById(post);
         User author = userService.findById(post.getUserId()).orElse(null);
         ForumCommunity community = post.getCommunityId() != null ? communityMapper.selectById(post.getCommunityId()) : null;
-        return forumReadProjection.convertToPostVO(post, userId, author, community, 0L);
+        return ForumPostVOAssembler.toPostVO(post, userId, author, community, 0L, voteService, memberMapper);
     }
 
     @Override
@@ -212,24 +123,8 @@ public class ForumPostServiceImpl implements ForumPostService {
     }
 
     // =========================================================================
-    // Thread
+    // Share / view bumps
     // =========================================================================
-
-    @Override
-    public ForumPostThreadVO getPostThread(String postId, String userId) {
-        ForumPost post = postMapper.selectById(postId);
-        if (post == null) throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        Map<String, User> authorMap = new HashMap<>();
-        userService.findById(post.getUserId()).ifPresent(u -> authorMap.put(post.getUserId(), u));
-        ForumCommunity community = post.getCommunityId() != null ? communityMapper.selectById(post.getCommunityId()) : null;
-        ForumPostThreadVO thread = new ForumPostThreadVO();
-        thread.setPost(forumReadProjection.convertToPostVO(post, userId,
-                authorMap.get(post.getUserId()), community, 0L));
-        // NOTE: comment tree building is done by the projection's
-        // getPostThread() path which calls forumCommentService.buildCommentTree().
-        // This base implementation leaves comments null; the projection sets them.
-        return thread;
-    }
 
     @Override
     @Transactional
@@ -243,50 +138,9 @@ public class ForumPostServiceImpl implements ForumPostService {
         postMapper.incrementViews(postId);
     }
 
-    @Override
-    public long countByCommunityId(String cid) {
-        return postMapper.countByCommunityId(cid);
-    }
-
-    @Override
-    public List<ForumPost> findByCommunityId(String cid, int limit, int offset) {
-        // Used by the projection for community listing — retained for compatibility.
-        LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
-                .eq(ForumPost::getCommunityId, cid)
-                .eq(ForumPost::getIsDeleted, false)
-                .orderByDesc(ForumPost::getCreatedAt)
-                .last("LIMIT " + limit + " OFFSET " + offset);
-        return postMapper.selectList(wrapper);
-    }
-
-    // =========================================================================
-    // SortBy logic
-    // =========================================================================
-
-    private void applySortBy(LambdaQueryWrapper<ForumPost> wrapper, String sortBy) {
-        if (sortBy == null || sortBy.isEmpty() || "new".equals(sortBy)) {
-            wrapper.orderByDesc(ForumPost::getCreatedAt);
-        } else if ("hot".equals(sortBy)) {
-            wrapper.orderByDesc(ForumPost::getViews);
-        } else if ("top".equals(sortBy)) {
-            wrapper.orderByDesc(ForumPost::getViews);
-        } else {
-            wrapper.orderByDesc(ForumPost::getCreatedAt);
-        }
-    }
-
     // =========================================================================
     // Helpers
     // =========================================================================
-
-    private Map<String, ForumCommunity> batchLoadCommunities(List<ForumPost> posts) {
-        Set<String> ids = posts.stream().map(ForumPost::getCommunityId).filter(Objects::nonNull).collect(Collectors.toSet());
-        if (ids.isEmpty()) return Collections.emptyMap();
-        return ids.stream()
-                .map(communityMapper::selectById)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(ForumCommunity::getId, fc -> fc));
-    }
 
     private String ensureForumUserExists(String userId) {
         ForumUser fu = forumUserMapper.selectById(userId);

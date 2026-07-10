@@ -11,7 +11,7 @@
  *
  * See `/tmp/architecture-review-1783341079.html` Card 2.
  */
-import { createCsrfTokenManager } from '@/shared/auth-core/src/csrf'
+import { csrfManager } from '@/utils/csrf'
 import { createHttpClient } from '@/shared/http-client/src'
 import { getActiveLocale } from '@/i18n/utils/locale'
 
@@ -21,8 +21,6 @@ import type {
   AuthFailureStrategy,
   DedupPolicy,
 } from '@/shared/http-client/src'
-
-const csrfManager = createCsrfTokenManager()
 
 /** Late-bound reference to the AppLayout's session-expired callback. */
 let sessionExpiredCallback: (() => void) | null = null

@@ -201,7 +201,7 @@ if [[ "$SKIP_BOOTSTRAP" != true && "$DEV_SEED_USERS_ENABLED" == "true" ]]; then
     DEV_SEED_ADMIN_PASSWORD="$DEV_SEED_ADMIN_PASSWORD" \
     DEV_SEED_ADMIN_ROLE="$DEV_SEED_ADMIN_ROLE" \
     SPRING_PROFILES_ACTIVE=dev \
-      timeout --kill-after=15 90 ./mvnw spring-boot:run \
+      timeout --kill-after=15 90 mvn spring-boot:run \
         -Dmaven.test.skip=true \
         -Dspring-boot.run.fork=false \
         -Dspring-boot.run.arguments='--spring.main.web-application-type=none' \

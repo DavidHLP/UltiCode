@@ -11,7 +11,7 @@
  *
  * See `/tmp/architecture-review-1783341079.html` Card 2.
  */
-import { createCsrfTokenManager } from '@/shared/auth-core/src/csrf'
+import { csrfManager } from '@/utils/csrf'
 import { createHttpClient } from '@/shared/http-client/src'
 import { getActiveLocale, i18n } from '@/i18n'
 import router from '@/router'
@@ -22,8 +22,6 @@ import type {
   AuthFailureStrategy,
   DedupPolicy,
 } from '@/shared/http-client/src'
-
-const csrfManager = createCsrfTokenManager()
 
 const onAuthFailure: AuthFailureStrategy = {
   kind: 'redirect-login',

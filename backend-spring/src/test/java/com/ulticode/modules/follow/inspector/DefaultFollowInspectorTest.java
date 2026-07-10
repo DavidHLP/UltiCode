@@ -7,7 +7,7 @@ import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.follow.port.UserReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -46,7 +47,7 @@ class DefaultFollowInspectorTest {
     private FollowMapper followMapper;
 
     @Mock
-    private UserMapper userMapper;
+    private UserReadPort userReadPort;
 
     private DefaultFollowInspector inspector;
 
@@ -55,7 +56,7 @@ class DefaultFollowInspectorTest {
 
     @BeforeEach
     void setUp() {
-        inspector = new DefaultFollowInspector(followMapper, userMapper);
+        inspector = new DefaultFollowInspector(followMapper, userReadPort);
     }
 
     private User user(String id, String name) {
@@ -106,7 +107,7 @@ class DefaultFollowInspectorTest {
         @Test
         @DisplayName("isFollowing 命中返回 true")
         void isFollowing_relationExists_returnsTrue() {
-            when(userMapper.selectById(TARGET)).thenReturn(user(TARGET, "alice"));
+            when(userReadPort.exists(TARGET)).thenReturn(true);
             when(followMapper.exists(CURRENT, TARGET)).thenReturn(true);
 
             assertThat(inspector.isFollowing(CURRENT, TARGET)).isTrue();
@@ -116,7 +117,7 @@ class DefaultFollowInspectorTest {
         @Test
         @DisplayName("isFollowing 未命中返回 false")
         void isFollowing_noRelation_returnsFalse() {
-            when(userMapper.selectById(TARGET)).thenReturn(user(TARGET, "alice"));
+            when(userReadPort.exists(TARGET)).thenReturn(true);
             when(followMapper.exists(CURRENT, TARGET)).thenReturn(false);
 
             assertThat(inspector.isFollowing(CURRENT, TARGET)).isFalse();
@@ -126,7 +127,7 @@ class DefaultFollowInspectorTest {
         @Test
         @DisplayName("isFollowing target 不存在抛 USER_NOT_FOUND")
         void isFollowing_targetNotFound_throws() {
-            when(userMapper.selectById(TARGET)).thenReturn(null);
+            when(userReadPort.exists(TARGET)).thenReturn(false);
 
             assertThatThrownBy(() -> inspector.isFollowing(CURRENT, TARGET))
                 .hasMessageContaining("User not found");
@@ -160,7 +161,7 @@ class DefaultFollowInspectorTest {
 
             assertThat(result.getItems()).isEmpty();
             assertThat(result.getTotal()).isZero();
-            verify(userMapper, never()).selectBatchIds(any());
+            verify(userReadPort, never()).findByIds(anyCollection());
         }
 
         @Test
@@ -169,7 +170,7 @@ class DefaultFollowInspectorTest {
             UserFollow uf = follow("follower-1", TARGET);
             when(followMapper.selectByFollowingIdPaged(eq(TARGET), eq(0L), eq(20L))).thenReturn(List.of(uf));
             when(followMapper.countByFollowingId(TARGET)).thenReturn(1);
-            when(userMapper.selectBatchIds(anyList())).thenReturn(List.of(user("follower-1", "bob")));
+            when(userReadPort.findByIds(anyList())).thenReturn(Map.of("follower-1", user("follower-1", "bob")));
             when(followMapper.batchFollowCounts(anyList()))
                 .thenReturn(List.of(new FollowCountDTO("follower-1", 5, 0)));
             when(followMapper.batchFollowingCounts(anyList()))
@@ -203,7 +204,7 @@ class DefaultFollowInspectorTest {
 
             assertThat(result.getItems()).isEmpty();
             assertThat(result.getTotal()).isZero();
-            verify(userMapper, never()).selectBatchIds(any());
+            verify(userReadPort, never()).findByIds(anyCollection());
         }
 
         @Test
@@ -212,7 +213,7 @@ class DefaultFollowInspectorTest {
             UserFollow uf = follow(CURRENT, "followee-1");
             when(followMapper.selectByFollowerIdPaged(eq(CURRENT), eq(0L), eq(20L))).thenReturn(List.of(uf));
             when(followMapper.countByFollowerId(CURRENT)).thenReturn(1);
-            when(userMapper.selectBatchIds(anyList())).thenReturn(List.of(user("followee-1", "carol")));
+            when(userReadPort.findByIds(anyList())).thenReturn(Map.of("followee-1", user("followee-1", "carol")));
             when(followMapper.batchFollowCounts(anyList()))
                 .thenReturn(List.of(new FollowCountDTO("followee-1", 8, 0)));
             when(followMapper.batchFollowingCounts(anyList()))

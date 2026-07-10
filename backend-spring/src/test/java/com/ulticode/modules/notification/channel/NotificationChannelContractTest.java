@@ -10,7 +10,7 @@ import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
 import com.ulticode.modules.notification.intent.SystemAlertIntent;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.notification.port.UserEmailPort;
 import com.ulticode.modules.achievement.port.BadgePushPort;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.notification.port.NotificationPushPort;
@@ -44,7 +44,7 @@ class NotificationChannelContractTest {
     @Mock private EmailService emailService;
     @Mock private NotificationPushPort notificationPushPort;
     @Mock private BadgePushPort badgePushPort;
-    @Mock private UserMapper userMapper;
+    @Mock private UserEmailPort userEmailPort;
 
     private InAppNotificationChannel inAppChannel;
     private EmailNotificationChannel emailChannel;
@@ -54,7 +54,7 @@ class NotificationChannelContractTest {
     void setUp() {
         inAppChannel = new InAppNotificationChannel(null); // not used in supports()
         emailChannel = new EmailNotificationChannel(emailService);
-        emailChannel.userMapper = userMapper; // nullable: tests don't exercise send()
+        emailChannel.userEmailPort = userEmailPort; // nullable: tests don't exercise send()
         wsChannel = new WebSocketNotificationChannel(notificationPushPort, badgePushPort);
     }
 

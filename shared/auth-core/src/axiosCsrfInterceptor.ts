@@ -139,26 +139,31 @@ export function createCsrfAxiosInterceptor(
 
       if (isCsrfError) {
         try {
-          // Dynamic import to avoid circular deps and keep peer dep optional
-          const { default: axios } = await import('axios');
+          // Use rawAxios (not the main service axios): rawAxios has
+          // withCredentials and the correct baseURL, so the httpOnly access
+          // cookie is sent and the URL resolves to the backend. Bare
+          // `axios(config)` (the previous implementation) resolved the URL
+          // against the frontend origin and dropped the cookie — see the
+          // 401 retry path above for the same fix.
+          const { rawAxios } = await import('./rawAxios');
 
           // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET)
           const refreshUrl = baseURL ? `${baseURL}/auth/me` : '/auth/me';
-          const meResponse = await axios.get<{ csrfToken?: string }>(refreshUrl, {
-            withCredentials: true,
-          });
+          const meResponse = await rawAxios.get<{ csrfToken?: string }>(refreshUrl);
 
           if (meResponse.data?.csrfToken) {
             csrfManager.refreshFromResponse(meResponse.data);
           }
 
-          // Retry original request once with fresh token
+          // Retry original request once with fresh token via rawAxios —
+          // see the 401 path above for why we bypass the main service
+          // (avoiding re-entry into this interceptor and infinite loops).
           config._metadata = {
             ...config._metadata,
             csrfRetried: true,
           };
 
-          return axios(config);
+          return rawAxios.request(config);
         } catch (err) {
           // Token refresh failed — fall through to error propagation
           console.error('CSRF token refresh failed:', err);

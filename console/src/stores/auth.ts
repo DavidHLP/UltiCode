@@ -8,9 +8,29 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager, getCsrfToken } from "@/utils/csrf";
+import { csrfManager } from "@/utils/csrf";
 
 const isDevelopment = import.meta.env.DEV;
+
+/**
+ * Detect whether the browser has a `csrf_token` cookie set.
+ *
+ * The backend writes this cookie as a non-httpOnly sentinel on every
+ * successful login / register / refresh. Reading it directly from
+ * `document.cookie` lets us detect "there is a session to restore" even
+ * after a hard page refresh, when the in-memory `csrfManager` token has
+ * been wiped. The `access_token` cookie is httpOnly and inaccessible to
+ * JS, so this sentinel cookie is the only client-readable signal of an
+ * existing session.
+ *
+ * Returns false in non-browser environments (SSR, tests without jsdom).
+ */
+function hasCsrfCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith("csrf_token="));
+}
 
 /**
  * Authentication status states
@@ -90,11 +110,12 @@ export const useAuthStore = defineStore("auth", () => {
     // Create and store the promise
     _initializationPromise = (async () => {
       try {
-        // Only call /auth/me if a CSRF token exists (set by backend at login).
-        // No CSRF token = no session to restore, skip the unnecessary 401.
-        // Note: httpOnly cookies (access_token) can't be read from JS,
-        // but csrf_token is a non-httpOnly cookie that serves as a proxy signal.
-        const hasCsrf = !!getCsrfToken();
+        // Only call /auth/me if the csrf_token cookie exists (set by backend
+        // at login). No csrf_token cookie = no session to restore, skip the
+        // unnecessary 401. We read the cookie directly (not the in-memory
+        // csrfManager token) so hard refreshes — which clear the memory but
+        // keep the cookie — still trigger session restoration.
+        const hasCsrf = hasCsrfCookie();
         if (hasCsrf) {
           await fetchUser();
         }

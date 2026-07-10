@@ -1,0 +1,258 @@
+// ---------------------------------------------------------------------------
+// Authenticated navigation policy
+// ---------------------------------------------------------------------------
+//
+// Single seam that concentrates the cross-cutting authenticated-navigation
+// policy previously duplicated verbatim in `console/src/router/index.ts` and
+// `management/src/router/index.ts`:
+//
+//   1. Wait for auth initialization before making routing decisions
+//      (prevents premature redirect to login when the app mounts faster than
+//      the `/auth/me` bootstrap call).
+//   2. Re-validate sessions whose last successful check is older than the
+//      staleness window (token may have expired while the user was idle).
+//   3. Detect navigation aborts — every new navigation bumps a counter; if
+//      an async guard awakens to find itself superseded, it bails out.
+//   4. Hand the actual redirect target back to the caller via callbacks so
+//      each app keeps its own route table and post-redirect conventions.
+//
+// Both apps keep their own route definitions, meta fields, and per-app
+// post-auth redirects. The shared module owns ordering and timing only.
+// ---------------------------------------------------------------------------
+
+import type { AuthStatus, User } from './types';
+
+// Apps may use slightly different status enumerations (e.g. console uses
+// 'ready' where the canonical `AuthStatus` uses 'authenticated'). The seam
+// only branches on the 'loading' value — for everything else the caller
+// decides what the auth state means. We therefore accept any string and
+// keep the canonical union for documentation only.
+export type NavigationStatus = string;
+
+export type NavigationVerdict =
+  | true
+  | { name: string; query?: Record<string, unknown> };
+
+/**
+ * The shape of a Vue Router `to` we actually read. Kept structural (not typed
+ * against `RouteLocationNormalized`) so the seam stays Vue-router-free at the
+ * type level — apps pass a narrow view of the real route.
+ */
+export interface NavigationTarget {
+  name?: string | symbol | null;
+  fullPath: string;
+  query: Record<string, unknown>;
+  matched: ReadonlyArray<{ meta: Record<string, unknown> }>;
+}
+
+/** Auth status snapshot + actions the seam needs. */
+export interface NavigationAuthAdapter {
+  /** Current auth status. The seam only branches on `'loading'`. Apps can
+   *  return their own status string (e.g. `'ready'` instead of
+   *  `'authenticated'`); the canonical `AuthStatus` is just a hint. */
+  status(): NavigationStatus;
+  /** Cached `!!user` — cheaper than reading the whole user record. */
+  isAuthenticated(): boolean;
+  /** Resolves when the current `startInitialization` finishes, or immediately
+   *  if no initialization is in flight. Mirrors `authStore.initializationPromise`. */
+  waitForInitialization(): Promise<void>;
+  /** Force a backend `/auth/me` round-trip — used for staleness revalidation. */
+  fetchUser(): Promise<void>;
+  /** Lazy-load user if missing; no-op if already loaded. */
+  ensureUser(): Promise<void>;
+}
+
+/** Internal seam — both apps use a real `Date.now`, tests inject a fake clock. */
+export interface NavigationClock {
+  now(): number;
+}
+
+const systemClock: NavigationClock = { now: () => Date.now() };
+
+export interface NavigationPolicyOptions {
+  /** A session older than this must be revalidated before protected navigation. */
+  staleSessionMs: number;
+  /** Route name to redirect to when authentication is required. */
+  loginRouteName: string;
+  /** Optional: route name for authenticated users who land on a guest-only route. */
+  authenticatedGuestRouteName?: string;
+  /** Optional: route name for authenticated users who land on the landing page. */
+  authenticatedLandingRouteName?: string;
+}
+
+/** Result of a navigation evaluation. */
+export type NavigationDecision =
+  | { kind: 'allow' }
+  | { kind: 'redirect'; name: string; query?: Record<string, unknown> };
+
+/**
+ * Helper: `to.matched.some((r) => r.meta.<key> === true)`. Vue Router's `meta`
+ * shape is intentionally loose; we only ever read two booleans here.
+ */
+function routeMetaHasBoolean(to: NavigationTarget, key: string): boolean {
+  return to.matched.some((record) => record.meta?.[key] === true);
+}
+
+export interface NavigationPolicy {
+  /**
+   * Run the navigation policy for a route change. Returns `allow` or a
+   * `redirect`. Callers translate that into Vue Router's `boolean | RouteLocationRaw`.
+   */
+  evaluate(to: NavigationTarget): Promise<NavigationDecision>;
+  /** Bump the internal cancellation counter; returns the new id. */
+  bump(): number;
+  /** True if the navigation has been superseded by a newer one. */
+  isStale(id: number): boolean;
+  /** Test seam — explicitly reset the staleness clock. */
+  _reset(): void;
+}
+
+/**
+ * Build a navigation policy. Each app constructs one with its own auth
+ * adapter and per-app redirects.
+ */
+export function createNavigationPolicy(
+  auth: NavigationAuthAdapter,
+  policy: NavigationPolicyOptions,
+  clock: NavigationClock = systemClock,
+): NavigationPolicy {
+  // Cancellation token. Every new navigation bumps this; async guards compare
+  // their captured id against the current value to bail out when superseded.
+  let pendingNavigationId = 0;
+
+  // Last successful validation timestamp. 0 means "never validated yet" — we
+  // do NOT force a fetch on the first protected navigation, because if the
+  // user just logged in the auth store already has a fresh user record.
+  let lastValidatedAt = 0;
+
+  function bump(): number {
+    pendingNavigationId += 1;
+    return pendingNavigationId;
+  }
+
+  function isStale(id: number): boolean {
+    return id !== pendingNavigationId;
+  }
+
+  async function evaluate(to: NavigationTarget): Promise<NavigationDecision> {
+    // 1. Wait for in-flight auth initialization so we don't redirect to login
+    //    before the bootstrap call resolves. We match the literal `'loading'`
+    //    so apps using `'ready'`/`'authenticated'`/`'guest'` opt out of the
+    //    barrier naturally.
+    if (auth.status() === 'loading') {
+      await auth.waitForInitialization();
+      // Caller checks isStale() before consuming the verdict, so we don't
+      // re-check here.
+    }
+
+    const requiresAuth = routeMetaHasBoolean(to, 'requiresAuth');
+
+    if (requiresAuth) {
+      const isSessionExpired =
+        auth.isAuthenticated() &&
+        lastValidatedAt > 0 &&
+        clock.now() - lastValidatedAt > policy.staleSessionMs;
+
+      if (isSessionExpired) {
+        await auth.fetchUser();
+      }
+
+      if (!auth.isAuthenticated()) {
+        await auth.ensureUser();
+      }
+
+      if (!auth.isAuthenticated()) {
+        return {
+          kind: 'redirect',
+          name: policy.loginRouteName,
+          query: { redirect: to.fullPath },
+        };
+      }
+
+      lastValidatedAt = clock.now();
+    }
+
+    // Per-app post-auth redirects. The seam only owns the *contract*: each
+    // callback receives the route, returns a redirect name + optional query,
+    // or `null` to opt out.
+    const isGuestOnly = routeMetaHasBoolean(to, 'guestOnly');
+    if (isGuestOnly && policy.authenticatedGuestRouteName && auth.isAuthenticated()) {
+      return { kind: 'redirect', name: policy.authenticatedGuestRouteName };
+    }
+
+    if (
+      typeof to.name === 'string' &&
+      to.name === 'landing' &&
+      policy.authenticatedLandingRouteName &&
+      auth.isAuthenticated()
+    ) {
+      return { kind: 'redirect', name: policy.authenticatedLandingRouteName };
+    }
+
+    return { kind: 'allow' };
+  }
+
+  function reset(): void {
+    pendingNavigationId = 0;
+    lastValidatedAt = 0;
+  }
+
+  return {
+    evaluate,
+    bump,
+    isStale,
+    _reset: reset,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Vue Router adapter — the only file in this module that imports from
+// `vue-router`. Both apps consume this so their `beforeEach` handlers stay
+// one-liners.
+// ---------------------------------------------------------------------------
+
+export interface VueRouterLike {
+  beforeEach(guard: (to: VueRouterTo) => unknown): void;
+}
+
+export interface VueRouterTo {
+  name?: string | symbol | null;
+  fullPath: string;
+  query: Record<string, unknown>;
+  matched: ReadonlyArray<{ meta: Record<string, unknown> }>;
+}
+
+export interface InstallAuthNavigationOptions {
+  router: VueRouterLike;
+  auth: NavigationAuthAdapter;
+  policy: NavigationPolicyOptions;
+  clock?: NavigationClock;
+}
+
+/**
+ * Install the shared navigation guard onto a Vue Router instance.
+ *
+ * Both apps call this in `router/index.ts` and then layer their own
+ * per-app post-auth redirects on top of the verdict.
+ */
+export function installAuthNavigation(
+  options: InstallAuthNavigationOptions,
+): NavigationPolicy {
+  const nav = createNavigationPolicy(options.auth, options.policy, options.clock);
+
+  options.router.beforeEach(async (to) => {
+    const navId = nav.bump();
+
+    const decision = await nav.evaluate(to);
+    if (nav.isStale(navId)) return;
+
+    if (decision.kind === 'allow') return true;
+    return { name: decision.name, query: decision.query };
+  });
+
+  return nav;
+}
+
+// Re-export the shared User type so apps don't have to chase the secondary
+// import when building their adapter.
+export type { AuthStatus, User };

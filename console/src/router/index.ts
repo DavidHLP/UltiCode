@@ -4,6 +4,7 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { installAuthNavigation } from "@/shared/auth-core/src";
 
 const forumRoutes: RouteRecordRaw = {
   path: "/forum",
@@ -337,99 +338,51 @@ const router = createRouter({
  * LAZY LOADING design: User information is fetched on-demand when
  * accessing authenticated routes, NOT during app bootstrap.
  *
- * Logic:
- * 1. Wait for auth initialization if still in progress (prevents premature redirect to login)
- * 2. Check if route requires authentication
- * 3. If required, call ensureUser() to fetch user info on-demand
- * 4. Re-validate stale sessions (token may have expired while user was idle)
- * 5. Redirect to login if not authenticated after fetch
- * 6. Redirect to home if already authenticated and accessing login/register
- * 7. Guard against navigation abort (newer navigation superseded this one)
+ * The cross-cutting policy (initialization barrier, staleness revalidation,
+ * cancellation ordering, redirect-to-login) lives in
+ * `shared/auth-core/src/navigation.ts` so that console and management share
+ * exactly one implementation. This file keeps only the per-app adapters:
+ *   - the auth-store bridge that exposes `status`/`waitForInitialization`/
+ *     `fetchUser`/`ensureUser`/`isAuthenticated`
+ *   - the per-app redirect targets (`login`, `forum-home` for guest-only
+ *     and landing hits).
+ *
+ * See architecture-review candidate #1.
  */
 
-// Navigation abort detection: each new navigation increments the counter,
-// allowing async guards to bail out when superseded.
-let pendingNavigationId = 0;
-
-// Token freshness: track last successful auth validation to detect stale sessions.
-// Sessions older than this threshold are re-validated against /auth/me before
-// allowing access to protected routes.
-let lastValidatedAt = 0;
 const STALE_SESSION_MS = 5 * 60 * 1000; // 5 minutes
 
-router.beforeEach(async (to) => {
+function buildConsoleAuthAdapter() {
   const authStore = useAuthStore();
-  const navId = ++pendingNavigationId;
-  const isStale = () => navId !== pendingNavigationId;
-
-  // Development-only logging
-  if (import.meta.env.DEV) {
-    console.debug("[Router] beforeEach", {
-      to: to.path,
-      requiresAuth: to.matched.some((r) => r.meta.requiresAuth === true),
-      authStatus: authStore.status,
-      isAuthenticated: authStore.isAuthenticated,
-      hasUser: !!authStore.user,
-    });
-  }
-
-  // If auth is still initializing, wait for it to complete before making navigation decisions.
-  // This prevents premature redirect to login when user navigates before initialize() completes.
-  if (authStore.status === "loading" && authStore.initializationPromise) {
-    await authStore.initializationPromise;
-    if (isStale()) return;
-  }
-
-  const requiresAuth = to.matched.some(
-    (record) => record.meta.requiresAuth === true,
-  );
-
-  // If authentication required, fetch user info on-demand
-  if (requiresAuth) {
-    // Re-validate stale sessions — token may have expired while user was idle.
-    // ensureUser() returns cached user without API call, so we must force
-    // a backend check when the session is potentially expired.
-    const isSessionExpired =
-      authStore.isAuthenticated &&
-      lastValidatedAt > 0 &&
-      Date.now() - lastValidatedAt > STALE_SESSION_MS;
-
-    if (isSessionExpired) {
+  return {
+    status: () => authStore.status,
+    isAuthenticated: () => authStore.isAuthenticated,
+    waitForInitialization: async () => {
+      if (authStore.initializationPromise) {
+        await authStore.initializationPromise;
+      }
+    },
+    fetchUser: async () => {
       await authStore.fetchUser();
-      if (isStale()) return;
-    }
-
-    // ensureUser() loads user from backend if not present; no-op if already loaded
-    if (!authStore.isAuthenticated) {
+    },
+    ensureUser: async () => {
       await authStore.ensureUser();
-      if (isStale()) return;
-    }
+    },
+  };
+}
 
-    // After fetch, check if authenticated
-    if (!authStore.isAuthenticated) {
-      return {
-        name: "login",
-        query: { redirect: to.fullPath },
-      };
-    }
-
-    lastValidatedAt = Date.now();
-  }
-
-  // If already authenticated and trying to access a guest-only route, redirect home
-  const isGuestOnly = to.matched.some(
-    (record) => record.meta.guestOnly === true,
-  );
-  if (authStore.isAuthenticated && isGuestOnly) {
-    return { name: "forum-home" };
-  }
-
-  // If authenticated user tries to access landing page, redirect to app console
-  if (authStore.isAuthenticated && to.name === "landing") {
-    return { name: "forum-home" };
-  }
-
-  return true;
+// Install the shared navigation guard. We capture the returned policy so
+// tests (and the existing `pm2-logs`-style tooling) can introspect state
+// without reaching into router internals.
+const _consoleNavPolicy = installAuthNavigation({
+  router,
+  auth: buildConsoleAuthAdapter(),
+  policy: {
+    staleSessionMs: STALE_SESSION_MS,
+    loginRouteName: "login",
+    authenticatedGuestRouteName: "forum-home",
+    authenticatedLandingRouteName: "forum-home",
+  },
 });
 
 export default router;

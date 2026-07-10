@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { PERM } from '@/constants/permissions'
+import { installAuthNavigation } from '@/shared/auth-core/src'
 
 /**
  * Route naming convention:
@@ -340,53 +341,63 @@ const router = createRouter({
   routes,
 })
 
-// Navigation abort detection: each new navigation increments the counter,
-// allowing async guards to bail out when superseded.
-let pendingNavigationId = 0
+// ----------------------------------------------------------------------------
+// Shared authentication navigation policy
+// ----------------------------------------------------------------------------
+//
+// The cross-cutting navigation policy (staleness revalidation, cancellation
+// ordering, redirect-to-login, post-auth redirects for guest-only routes)
+// lives in `shared/auth-core/src/navigation.ts` so console and management
+// share exactly one implementation. This file owns the per-app adapters:
+//   - the auth-store bridge
+//   - the per-app redirect targets (`login`, `dashboard`)
+//   - the management-only permission/role checks that run AFTER the shared
+//     policy returns `allow`
+//
+// See architecture-review candidate #1.
+// ----------------------------------------------------------------------------
 
-// Token freshness: track last successful auth validation to detect stale sessions.
-// Sessions older than this threshold are re-validated against /auth/me before
-// allowing access to protected routes.
-let lastValidatedAt = 0
 const STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
 
-// Navigation guard for authentication and permissions
+function buildManagementAuthAdapter() {
+  // The management store is initialized in main.ts before the router mounts.
+  // We therefore expose `waitForInitialization` as an unconditional no-op;
+  // `status` reflects `isInitialized` so the seam's barrier is skipped.
+  return {
+    status: () => ('idle' as const),
+    isAuthenticated: () => useAuthStore().isAuthenticated,
+    waitForInitialization: async () => undefined,
+    fetchUser: async () => {
+      await useAuthStore().fetchUser()
+    },
+    ensureUser: async () => {
+      await useAuthStore().fetchUser()
+    },
+  }
+}
+
+installAuthNavigation({
+  router,
+  auth: buildManagementAuthAdapter(),
+  policy: {
+    staleSessionMs: STALE_SESSION_MS,
+    loginRouteName: 'login',
+    // Management has no guest-only routes besides login itself, so we leave
+    // `authenticatedGuestRouteName` unset and rely on the explicit
+    // `authed-redirect-from-login` block below.
+  },
+})
+
+// ----------------------------------------------------------------------------
+// Management-specific permissions / roles check
+// ----------------------------------------------------------------------------
+// Runs after the shared auth-navigation policy. The shared policy owns
+// `requiresAuth` + redirect-to-login; this block owns the management-only
+// `meta.permission` + `meta.roles` checks and the post-login redirect.
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-  const navId = ++pendingNavigationId
-  const isStale = () => navId !== pendingNavigationId
 
-  // Auth is bootstrapped in main.ts before router installation
-  // isInitialized being true means auth state is known
-
-  // Safe default: only routes explicitly marked with requiresAuth: true need authentication
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth === true)
-
-  if (requiresAuth) {
-    // Re-validate stale sessions — token may have expired while user was idle.
-    // isAuthenticated is a cached computed (just checks !!user.value), so we
-    // must hit the backend when the session is potentially expired.
-    const isSessionExpired =
-      authStore.isAuthenticated &&
-      lastValidatedAt > 0 &&
-      Date.now() - lastValidatedAt > STALE_SESSION_MS
-
-    if (isSessionExpired) {
-      await authStore.fetchUser()
-      if (isStale()) return
-    }
-
-    if (!authStore.isAuthenticated) {
-      return {
-        name: 'login',
-        query: { redirect: to.fullPath },
-      }
-    }
-
-    lastValidatedAt = Date.now()
-  }
-
-  // Check permissions if route requires them
   if (to.meta.permission && authStore.isAuthenticated) {
     const permissions = Array.isArray(to.meta.permission)
       ? to.meta.permission
@@ -397,8 +408,6 @@ router.beforeEach(async (to) => {
     )
 
     if (!hasAnyPermission) {
-      if (isStale()) return
-      // Show toast notification for permission denial
       const { toast } = await import('vue-sonner')
       toast.error('You do not have permission to access this page', {
         duration: 4000,
@@ -408,12 +417,9 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // Check roles if route requires them
   if (to.meta.roles && authStore.isAuthenticated) {
     const roles = to.meta.roles as string[]
     if (!authStore.hasAnyRole(roles)) {
-      if (isStale()) return
-      // Show toast notification for role denial
       const { toast } = await import('vue-sonner')
       toast.error('You do not have the required role to access this page', {
         duration: 4000,
@@ -423,7 +429,6 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // Redirect authenticated users away from login
   if (to.name === 'login' && authStore.isAuthenticated) {
     return { name: 'dashboard' }
   }

@@ -106,3 +106,24 @@ export {
 // Single source of truth; `console/src/lib/utils.ts` and
 // `management/src/lib/utils.ts` re-export from here.
 export { cn } from './utils'
+
+// Authenticated navigation policy — single seam shared by `console` and
+// `management` routers (architecture-review candidate #1). Owns the
+// staleness revalidation, cancellation ordering, and post-auth redirects
+// that were previously duplicated line-for-line in both `router/index.ts`
+// files. Per-app adapters keep their own route definitions and per-app
+// post-redirects; the seam owns ordering and timing only.
+export {
+  createNavigationPolicy,
+  installAuthNavigation,
+  type NavigationAuthAdapter,
+  type NavigationClock,
+  type NavigationDecision,
+  type NavigationPolicy,
+  type NavigationPolicyOptions,
+  type NavigationTarget,
+  type NavigationVerdict,
+  type VueRouterLike,
+  type VueRouterTo,
+  type InstallAuthNavigationOptions,
+} from './navigation'

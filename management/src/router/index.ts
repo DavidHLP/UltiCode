@@ -364,7 +364,7 @@ function buildManagementAuthAdapter() {
   // We therefore expose `waitForInitialization` as an unconditional no-op;
   // `status` reflects `isInitialized` so the seam's barrier is skipped.
   return {
-    status: () => ('idle' as const),
+    status: () => 'idle' as const,
     isAuthenticated: () => useAuthStore().isAuthenticated,
     waitForInitialization: async () => undefined,
     fetchUser: async () => {

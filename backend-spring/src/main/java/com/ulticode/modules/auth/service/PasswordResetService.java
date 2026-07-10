@@ -1,15 +1,14 @@
 package com.ulticode.modules.auth.service;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +29,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PasswordResetService {
 
-    private final UserMapper userMapper;
+    private final AuthAccountPort accountPort;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
@@ -47,10 +46,7 @@ public class PasswordResetService {
      */
     @RateLimit(key = "'forgot-password:' + #email", limit = 3, period = 3600)
     public void forgotPassword(String email) {
-        User user = userMapper.selectOne(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, email)
-        );
+        User user = accountPort.findByEmail(email).orElse(null);
 
         if (user == null) {
             // Do not reveal whether user exists (security best practice)
@@ -62,11 +58,8 @@ public class PasswordResetService {
         String hashedToken = passwordEncoder.encode(plainToken);
         LocalDateTime expiresAt = LocalDateTime.now(clock).plusMinutes(30);
 
-        // D-12: Store BCrypt hash + expiry on users table
-        // D-18: New request overwrites previous token
-        user.setPasswordResetTokenHash(hashedToken);
-        user.setPasswordResetExpiresAt(expiresAt);
-        userMapper.updateById(user);
+        accountPort.savePasswordReset(user.getId(), hashedToken,
+                expiresAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
 
         // D-01: Wire EmailServiceImpl to actually send email
         String resetUrl = frontendUrl + "/reset-password?token=" + plainToken;
@@ -95,12 +88,10 @@ public class PasswordResetService {
      * @throws BusinessException if token is invalid or expired
      */
     public void resetPassword(String token, String newPassword) {
-        // D-13: Find user with non-null, non-expired token hash, then verify with BCrypt matches()
-        List<User> candidates = userMapper.selectList(
-            new LambdaQueryWrapper<User>()
-                .isNotNull(User::getPasswordResetTokenHash)
-                .gt(User::getPasswordResetExpiresAt, LocalDateTime.now(clock))
-        );
+        List<User> candidates = accountPort.findUsersWithActivePasswordReset(
+                java.time.LocalDateTime.now(clock)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toInstant().toEpochMilli());
 
         User matchedUser = null;
         for (User candidate : candidates) {
@@ -114,11 +105,8 @@ public class PasswordResetService {
             throw new BusinessException(ErrorCode.AUTH_INVALID_RESET_TOKEN, "Invalid or expired reset token");
         }
 
-        // Update password and clear token
-        matchedUser.setPassword(passwordEncoder.encode(newPassword));
-        matchedUser.setPasswordResetTokenHash(null);
-        matchedUser.setPasswordResetExpiresAt(null);
-        userMapper.updateById(matchedUser);
+        accountPort.updatePassword(matchedUser.getId(), passwordEncoder.encode(newPassword));
+        accountPort.clearPasswordReset(matchedUser.getId());
 
         // D-17: Revoke all user sessions via Redis after successful password change
         refreshTokenService.revokeAllUserTokens(matchedUser.getId());

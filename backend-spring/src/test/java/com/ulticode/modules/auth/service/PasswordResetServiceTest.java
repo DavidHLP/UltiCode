@@ -7,7 +7,7 @@ import com.ulticode.modules.email.dto.SendEmailDTO;
 import com.ulticode.modules.email.service.EmailService;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -26,11 +26,14 @@ import java.time.ZoneId;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.lenient;
@@ -41,7 +44,7 @@ import static org.mockito.Mockito.when;
 class PasswordResetServiceTest {
 
     @Mock
-    private UserMapper userMapper;
+    private AuthAccountPort accountPort;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -88,7 +91,7 @@ class PasswordResetServiceTest {
         @Test
         @DisplayName("non-existent email returns silently (security)")
         void forgotPassword_nonExistentEmail_returnsSilently() {
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(accountPort.findByEmail(anyString())).thenReturn(Optional.empty());
 
             passwordResetService.forgotPassword("nonexistent@example.com");
 
@@ -103,15 +106,13 @@ class PasswordResetServiceTest {
             user.setUsername("testuser");
             user.setEmail(EMAIL);
 
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(accountPort.findByEmail(anyString())).thenReturn(Optional.ofNullable(user));
             when(passwordEncoder.encode(anyString())).thenReturn(HASHED_TOKEN);
 
             passwordResetService.forgotPassword(EMAIL);
 
             verify(emailService).sendEmail(any(SendEmailDTO.class));
-            verify(userMapper).updateById(user);
-            assertThat(user.getPasswordResetTokenHash()).isEqualTo(HASHED_TOKEN);
-            assertThat(user.getPasswordResetExpiresAt()).isNotNull();
+            verify(accountPort).savePasswordReset(eq(user.getId()), eq(HASHED_TOKEN), anyLong());
         }
     }
 
@@ -123,16 +124,17 @@ class PasswordResetServiceTest {
         @DisplayName("valid token resets password and revokes sessions")
         void resetPassword_validToken_resetsAndRevokes() {
             User user = createUserWithResetToken();
-            when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(user));
+            when(accountPort.findUsersWithActivePasswordReset(anyLong())).thenReturn(List.of(user));
             when(passwordEncoder.matches(PLAIN_TOKEN, HASHED_TOKEN)).thenReturn(true);
             when(passwordEncoder.encode("newPassword123")).thenReturn("new-hash");
 
             passwordResetService.resetPassword(PLAIN_TOKEN, "newPassword123");
 
-            assertThat(user.getPassword()).isEqualTo("new-hash");
-            assertThat(user.getPasswordResetTokenHash()).isNull();
-            assertThat(user.getPasswordResetExpiresAt()).isNull();
-            verify(userMapper).updateById(user);
+            // The auth service no longer mutates the in-memory user — it
+            // delegates persistence to the AuthAccountPort. Verify the
+            // port calls instead of the local object's fields.
+            verify(accountPort).updatePassword(eq(user.getId()), eq("new-hash"));
+            verify(accountPort).clearPasswordReset(user.getId());
             verify(refreshTokenService).revokeAllUserTokens(USER_ID);
         }
 
@@ -140,7 +142,7 @@ class PasswordResetServiceTest {
         @DisplayName("invalid token throws AUTH_INVALID_RESET_TOKEN")
         void resetPassword_invalidToken_throwsException() {
             // No users with valid tokens
-            when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+            when(accountPort.findUsersWithActivePasswordReset(anyLong())).thenReturn(Collections.emptyList());
 
             assertThatThrownBy(() -> passwordResetService.resetPassword("invalid-token", "newPassword123"))
                     .isInstanceOf(BusinessException.class)
@@ -152,7 +154,7 @@ class PasswordResetServiceTest {
         @DisplayName("expired token (no matching candidates) throws AUTH_INVALID_RESET_TOKEN")
         void resetPassword_expiredToken_throwsException() {
             // Token expired -- selectList returns empty because gt(expiresAt, now) filters it out
-            when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+            when(accountPort.findUsersWithActivePasswordReset(anyLong())).thenReturn(Collections.emptyList());
 
             assertThatThrownBy(() -> passwordResetService.resetPassword("expired-token", "newPassword123"))
                     .isInstanceOf(BusinessException.class)
@@ -164,7 +166,7 @@ class PasswordResetServiceTest {
         @DisplayName("token with wrong value does not match any candidate")
         void resetPassword_wrongTokenValue_throwsException() {
             User user = createUserWithResetToken();
-            when(userMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(user));
+            when(accountPort.findUsersWithActivePasswordReset(anyLong())).thenReturn(List.of(user));
             when(passwordEncoder.matches("wrong-token-value", HASHED_TOKEN)).thenReturn(false);
 
             assertThatThrownBy(() -> passwordResetService.resetPassword("wrong-token-value", "newPassword123"))

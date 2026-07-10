@@ -64,6 +64,11 @@ class JudgeWorkerProcessorTest {
     @Mock
     private QueueService queueService;
 
+
+    // Architecture-review #4: these collaborators now live on
+    // DefaultJudgeAttemptExecutor. We still keep them as @Mock fields so
+    // the @BeforeEach can wire them into a real executor instance and
+    // the existing assertion-on-mock style keeps working.
     @Mock
     private SubmissionService submissionService;
 
@@ -73,6 +78,18 @@ class JudgeWorkerProcessorTest {
     @Mock
     private ContestSubmissionMapper contestSubmissionMapper;
 
+    @Mock
+    private JudgeExecutionPipeline executionPipeline;
+
+    @Mock
+    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+
+    @Mock
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+
+
+
+
     /**
      * Arch-review deepening seam: the worker delegates all execution
      * (test-case loading, sandbox dispatch, verdict resolution, DTO
@@ -81,8 +98,6 @@ class JudgeWorkerProcessorTest {
      * pipeline's return value and asserts the worker correctly
      * persists + pushes the result.
      */
-    @Mock
-    private JudgeExecutionPipeline executionPipeline;
 
     @Mock
     private QueueConfig queueConfig;
@@ -92,8 +107,6 @@ class JudgeWorkerProcessorTest {
      * (flag-off) is exercised — processJob guards on the flag and never reaches
      * acquireLease when {@link #featureFlags} is flag-off.
      */
-    @Mock
-    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
 
     /**
      * ADR-003 M3b: flag-off properties so {@code processJob} takes the legacy
@@ -108,8 +121,6 @@ class JudgeWorkerProcessorTest {
     /**
      * ADR-003 M3b: metrics registry mock; never invoked on the flag-off path.
      */
-    @Mock
-    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     /**
      * ADR-003 M3c-3a: provider for the {@link JudgeQueue} port. M3a/M3b
@@ -122,10 +133,9 @@ class JudgeWorkerProcessorTest {
     @Mock
     private Clock clock;
 
-    @Mock
-    private com.ulticode.common.uuid.UuidGenerator uuidGenerator;
 
-    @InjectMocks
+    // Constructed manually in setUp() with a real executor that
+    // delegates to the @Mock collaborators above.
     private JudgeWorkerProcessor processor;
 
     @Captor
@@ -136,14 +146,33 @@ class JudgeWorkerProcessorTest {
 
     private JudgeJob sampleJob;
 
+    // Architecture-review #4: the worker is a thin polling adapter; the
+    // attempt lifecycle lives in DefaultJudgeAttemptExecutor. We construct
+    // a real executor with the test's mocks and wire it into the worker
+    // manually so the existing assertion-on-mock style keeps working.
+    private com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor executor;
+
     @BeforeEach
     void setUp() {
         lenient().when(clock.instant()).thenReturn(Instant.now());
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
-        // Inject a deterministic UuidGenerator for the @InjectMocks field
-        // (the field is @Mock which defaults to returning null).
-        org.springframework.test.util.ReflectionTestUtils.setField(processor, "uuidGenerator",
+
+        // Real executor with the existing mocks as its collaborators
+        executor = new com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor(
+                submissionService,
+                submissionResultPushPort,
+                contestSubmissionMapper,
+                executionPipeline,
+                submissionMapper,
+                featureFlags,
+                meterRegistry,
                 new com.ulticode.common.uuid.FixedUuidGenerator());
+        // Wire the worker manually since @InjectMocks can't construct it
+        // with the executor as a dependency.
+        processor = new JudgeWorkerProcessor(
+                queueService, queueConfig, featureFlags,
+                judgeQueueProvider, executor);
+
         sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');", clock,
                 new com.ulticode.common.uuid.FixedUuidGenerator());
         lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
@@ -277,7 +306,7 @@ class JudgeWorkerProcessorTest {
             when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
                     anyString()))
                     .thenReturn(buildAcceptedResult(1));
-            when(contestSubmissionMapper.selectOne(any()))
+            when(contestSubmissionMapper.findBySubmissionId(anyString()))
                     .thenThrow(new RuntimeException("contest schema mismatch"));
 
             processor.processJob(sampleJob);

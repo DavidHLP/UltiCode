@@ -1,7 +1,6 @@
 package com.ulticode.modules.auth.service;
 
 import cn.hutool.core.util.IdUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.dto.LoginResponse;
@@ -10,7 +9,7 @@ import com.ulticode.modules.auth.session.OAuthStatePort;
 import com.ulticode.modules.auth.service.oauth.OAuthClient;
 import com.ulticode.modules.auth.service.oauth.OAuthUserInfo;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import com.ulticode.security.oauth.OAuthProperties;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,7 +53,7 @@ import java.util.Map;
 public class OAuthService {
 
     private final OAuthProperties oauthProperties;
-    private final UserMapper userMapper;
+    private final AuthAccountPort accountPort;
     private final AuthSessionPort authSessionPort;
     private final OAuthStatePort oauthStatePort;
     private final List<OAuthClient> oauthClients;
@@ -161,11 +160,7 @@ public class OAuthService {
      */
     private LoginResponse createOrUpdateUser(OAuthUserInfo userInfo, String provider,
                                              HttpServletResponse response) {
-        // 查找现有用户（通过 email）
-        User user = userMapper.selectOne(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, userInfo.email())
-        );
+        User user = accountPort.findByOAuthEmail(userInfo.email()).orElse(null);
 
         if (user == null) {
             // 创建新用户
@@ -179,14 +174,13 @@ public class OAuthService {
             user.setIsActive(true);
             user.setIsBanned(false);
             user.setJoinedAt(LocalDateTime.now(clock));
-            userMapper.insert(user);
+            accountPort.create(user);
             log.info("Created new user via {} OAuth: {}", provider, userInfo.email());
         } else {
             // 更新头像（如果需要）
             String avatar = userInfo.avatar();
             if (avatar != null && !avatar.equals(user.getAvatar())) {
-                user.setAvatar(avatar);
-                userMapper.updateById(user);
+                accountPort.updateAvatar(user.getId(), avatar);
             }
         }
 

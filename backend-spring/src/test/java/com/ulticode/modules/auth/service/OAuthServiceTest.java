@@ -12,7 +12,7 @@ import com.ulticode.modules.auth.service.oauth.OAuthClient;
 import com.ulticode.modules.auth.service.oauth.OAuthTokenResponse;
 import com.ulticode.modules.auth.service.oauth.OAuthUserInfo;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import com.ulticode.security.oauth.OAuthProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -73,7 +74,7 @@ class OAuthServiceTest {
     private OAuthProperties oauthProperties;
 
     @Mock
-    private UserMapper userMapper;
+    private AuthAccountPort accountPort;
 
     @Mock
     private AuthSessionPort authSessionPort;
@@ -195,7 +196,7 @@ class OAuthServiceTest {
             when(githubClient.exchangeCodeForToken(CODE, GITHUB_REDIRECT))
                 .thenReturn(new OAuthTokenResponse(ACCESS_TOKEN));
             when(githubClient.fetchUserInfo(ACCESS_TOKEN)).thenReturn(userInfo);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.empty());
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
@@ -213,9 +214,9 @@ class OAuthServiceTest {
             verify(googleClient, never()).fetchUserInfo(anyString());
 
             // DB upsert tail: selectOne by email then insert a new user.
-            verify(userMapper).selectOne(any(LambdaQueryWrapper.class));
-            verify(userMapper).insert(userCaptor.capture());
-            verify(userMapper, never()).updateById(any(User.class));
+            verify(accountPort).findByOAuthEmail(anyString());
+            verify(accountPort).create(userCaptor.capture());
+            verify(accountPort, never()).updateAvatar(anyString(), anyString());
 
             User created = userCaptor.getValue();
             assertThat(created.getUsername()).isEqualTo("github_" + GITHUB_ID);
@@ -243,15 +244,14 @@ class OAuthServiceTest {
             when(githubClient.exchangeCodeForToken(CODE, GITHUB_REDIRECT))
                 .thenReturn(new OAuthTokenResponse(ACCESS_TOKEN));
             when(githubClient.fetchUserInfo(ACCESS_TOKEN)).thenReturn(userInfo);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.ofNullable(existing));
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
             oauthService.handleGithubCallback(CODE, STATE, null);
 
-            verify(userMapper).updateById(userCaptor.capture());
-            assertThat(userCaptor.getValue().getAvatar()).isEqualTo(AVATAR);
-            verify(userMapper, never()).insert(any(User.class));
+            verify(accountPort).updateAvatar(eq(existing.getId()), eq(AVATAR));
+            verify(accountPort, never()).create(any(User.class));
         }
 
         @Test
@@ -266,14 +266,14 @@ class OAuthServiceTest {
             when(githubClient.exchangeCodeForToken(CODE, GITHUB_REDIRECT))
                 .thenReturn(new OAuthTokenResponse(ACCESS_TOKEN));
             when(githubClient.fetchUserInfo(ACCESS_TOKEN)).thenReturn(userInfo);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.ofNullable(existing));
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
             oauthService.handleGithubCallback(CODE, STATE, null);
 
-            verify(userMapper, never()).insert(any(User.class));
-            verify(userMapper, never()).updateById(any(User.class));
+            verify(accountPort, never()).create(any(User.class));
+            verify(accountPort, never()).updateAvatar(anyString(), anyString());
         }
 
         @Test
@@ -283,7 +283,7 @@ class OAuthServiceTest {
             when(googleClient.exchangeCodeForToken(CODE, GOOGLE_REDIRECT))
                 .thenReturn(new OAuthTokenResponse("g-access-token"));
             when(googleClient.fetchUserInfo("g-access-token")).thenReturn(userInfo);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.empty());
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
@@ -296,7 +296,7 @@ class OAuthServiceTest {
             verify(githubClient, never()).exchangeCodeForToken(anyString(), anyString());
             verify(githubClient, never()).fetchUserInfo(anyString());
 
-            verify(userMapper).insert(userCaptor.capture());
+            verify(accountPort).create(userCaptor.capture());
             assertThat(userCaptor.getValue().getUsername()).isEqualTo("google_" + GOOGLE_ID);
         }
 
@@ -313,8 +313,8 @@ class OAuthServiceTest {
 
             verify(githubClient, never()).exchangeCodeForToken(anyString(), anyString());
             verify(githubClient, never()).fetchUserInfo(anyString());
-            verify(userMapper, never()).insert(any(User.class));
-            verify(userMapper, never()).selectOne(any(LambdaQueryWrapper.class));
+            verify(accountPort, never()).create(any(User.class));
+            verify(accountPort, never()).findByOAuthEmail(anyString());
             verify(authSessionPort, never()).completeLogin(any(User.class), any());
         }
 
@@ -327,7 +327,7 @@ class OAuthServiceTest {
             when(githubClient.exchangeCodeForToken(CODE, GITHUB_REDIRECT))
                 .thenReturn(new OAuthTokenResponse(ACCESS_TOKEN));
             when(githubClient.fetchUserInfo(ACCESS_TOKEN)).thenReturn(userInfo);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.empty());
             when(authSessionPort.completeLogin(any(User.class), eq(response)))
                 .thenReturn(stubSessionResponse());
 
@@ -348,7 +348,7 @@ class OAuthServiceTest {
         @DisplayName("empty client list → 400 BAD_REQUEST on first call")
         void emptyList_throwsBadRequest() {
             OAuthService bare = new OAuthService(
-                oauthProperties, userMapper, authSessionPort, oauthStatePort,
+                oauthProperties, accountPort, authSessionPort, oauthStatePort,
                 List.of(), clock);
             bare.wireClientLookup();
 
@@ -364,7 +364,7 @@ class OAuthServiceTest {
             OAuthClient anotherGithub = new GithubOAuthClient(
                 oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper());
             OAuthService dup = new OAuthService(
-                oauthProperties, userMapper, authSessionPort, oauthStatePort,
+                oauthProperties, accountPort, authSessionPort, oauthStatePort,
                 List.of(githubClient, anotherGithub), clock);
 
             assertThatThrownBy(dup::wireClientLookup)

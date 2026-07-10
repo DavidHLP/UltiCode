@@ -9,7 +9,7 @@ import com.ulticode.modules.auth.dto.RegisterDTO;
 import com.ulticode.modules.auth.session.AuthSessionPort;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import com.ulticode.modules.user.service.UserService;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.security.jwt.JwtTokenProvider;
@@ -29,11 +29,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -47,7 +49,7 @@ import static org.mockito.Mockito.when;
 class AuthServiceImplTest {
 
     @Mock
-    private UserMapper userMapper;
+    private AuthAccountPort accountPort;
 
     @Mock
     private UserService userService;
@@ -116,7 +118,7 @@ class AuthServiceImplTest {
             loginDTO.setPassword(PASSWORD);
 
             User user = createActiveUser();
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.of(user));
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
             LoginResponse expected = stubbedSessionResponse();
             when(authSessionPort.completeLogin(any(User.class), any())).thenReturn(expected);
@@ -136,7 +138,7 @@ class AuthServiceImplTest {
             LoginDTO loginDTO = new LoginDTO();
             loginDTO.setUsername(USERNAME);
             loginDTO.setPassword(PASSWORD);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
@@ -153,7 +155,7 @@ class AuthServiceImplTest {
             loginDTO.setPassword(PASSWORD);
 
             User user = createActiveUser();
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.of(new User()));
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(false);
 
             assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
@@ -172,7 +174,7 @@ class AuthServiceImplTest {
 
             User user = createActiveUser();
             user.setIsActive(false);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.of(new User()));
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
 
             assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
@@ -191,7 +193,7 @@ class AuthServiceImplTest {
             User user = createActiveUser();
             user.setIsBanned(true);
             user.setBannedUntil(LocalDateTime.now().plusDays(1));
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.of(new User()));
             when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
 
             assertThatThrownBy(() -> authService.login(loginDTO, mock(HttpServletResponse.class)))
@@ -213,7 +215,7 @@ class AuthServiceImplTest {
             registerDTO.setPassword(PASSWORD);
             registerDTO.setEmail("test@example.com");
 
-            when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.empty());
             when(passwordEncoder.encode(PASSWORD)).thenReturn("encoded-password");
 
             LoginResponse expected = stubbedSessionResponse();
@@ -224,7 +226,7 @@ class AuthServiceImplTest {
 
             // Assert
             assertThat(response).isSameAs(expected);
-            verify(userMapper).insert(any(User.class));
+            verify(accountPort).create(any(User.class));
             verify(userService).updateLastLoginAt(anyString());
         }
 
@@ -236,13 +238,13 @@ class AuthServiceImplTest {
             registerDTO.setPassword(PASSWORD);
             registerDTO.setEmail("test@example.com");
 
-            when(userMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
+            when(accountPort.findByUsername(anyString())).thenReturn(Optional.of(new User()));
 
             assertThatThrownBy(() -> authService.register(registerDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_USERNAME_TAKEN));
-            verify(userMapper, never()).insert(any(User.class));
+            verify(accountPort, never()).create(any(User.class));
             verify(authSessionPort, never()).completeLogin(any(), any());
         }
 
@@ -254,15 +256,16 @@ class AuthServiceImplTest {
             registerDTO.setPassword(PASSWORD);
             registerDTO.setEmail("test@example.com");
 
-            when(userMapper.selectCount(any(LambdaQueryWrapper.class)))
-                    .thenReturn(0L)
-                    .thenReturn(1L);
+            when(accountPort.findByUsername(anyString()))
+                    .thenReturn(Optional.empty());
+            when(accountPort.findByEmail(anyString()))
+                    .thenReturn(Optional.of(new User()));
 
             assertThatThrownBy(() -> authService.register(registerDTO, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.AUTH_EMAIL_TAKEN));
-            verify(userMapper, never()).insert(any(User.class));
+            verify(accountPort, never()).create(any(User.class));
         }
     }
 
@@ -277,7 +280,7 @@ class AuthServiceImplTest {
 
             when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
                     .thenReturn(new RefreshTokenService.RotationResult(USER_ID, "new-refresh-token"));
-            when(userMapper.selectById(USER_ID)).thenReturn(user);
+            when(accountPort.findById(USER_ID)).thenReturn(Optional.ofNullable(user));
             LoginResponse expected = stubbedSessionResponse();
             when(authSessionPort.completeRefresh(any(User.class), eq("new-refresh-token"), any())).thenReturn(expected);
 
@@ -305,7 +308,7 @@ class AuthServiceImplTest {
         void refresh_missingUser_throwsException() {
             when(refreshTokenService.validateAndRotate(REFRESH_TOKEN))
                     .thenReturn(new RefreshTokenService.RotationResult(USER_ID, "new-refresh-token"));
-            when(userMapper.selectById(USER_ID)).thenReturn(null);
+            when(accountPort.findById(USER_ID)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.refresh(REFRESH_TOKEN, mock(HttpServletResponse.class)))
                     .isInstanceOf(BusinessException.class)

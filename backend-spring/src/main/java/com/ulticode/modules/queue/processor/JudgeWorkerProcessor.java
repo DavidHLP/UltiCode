@@ -3,10 +3,6 @@ package com.ulticode.modules.queue.processor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
-import com.ulticode.modules.submission.config.JudgeSourceProperties;
-import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
-import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
@@ -16,21 +12,8 @@ import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.service.QueueService;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.CaseScope;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.fence.LeaseConstants;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.service.SubmissionService;
-import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
-import com.ulticode.modules.queue.port.SubmissionResultPushPort;
-import com.ulticode.modules.contest.entity.ContestSubmission;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,12 +23,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Judge worker that polls the Redis judge queue and processes submissions.
@@ -75,38 +52,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
     private final QueueService queueService;
-    private final SubmissionService submissionService;
-    private final SubmissionResultPushPort submissionResultPushPort;
-    private final ContestSubmissionMapper contestSubmissionMapper;
-    private final JudgeExecutionPipeline executionPipeline;
     private final QueueConfig queueConfig;
-    /**
-     * ADR-003 M3b: mapper for the lease CAS (acquire/renew/fenced verdict).
-     * Nullable so existing unit tests that mock SubmissionService still work.
-     */
-    private final SubmissionMapper submissionMapper;
     private final FeatureFlagsProperties featureFlags;
-    /** Nullable; {@code judge.lease.miss_renew} is a no-op without a registry. */
-    private final MeterRegistry meterRegistry;
-    /**
-     * ADR-003 M3c-3a: provider (not direct injection) so the worker compiles
-     * even when no {@link JudgeQueue} bean is registered (i.e. before the
-     * M3c-2 cutover). Resolves to null in M3a/M3b; resolves to the Streams
-     * adapter once the port flag is on.
-     */
     private final ObjectProvider<JudgeQueue> judgeQueueProvider;
-    private final UuidGenerator uuidGenerator;
+    private final JudgeAttemptExecutor attemptExecutor;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
 
-    /**
-     * Single-thread heartbeat scheduler, created via {@link ScheduledThreadPoolExecutor}
-     * (not {@link java.util.concurrent.Executors}, per the backend concurrency
-     * rule). Lazily initialized because the fenced path is flag-gated and most
-     * deployments run flag-off. One worker holds at most one lease at a time, so
-     * a single-thread scheduler is sufficient and serializes heartbeats safely.
-     */
-    private volatile ScheduledExecutorService heartbeatExecutor;
 
     @Override
     public String getJobType() {
@@ -212,45 +164,19 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
      * outbox row.
      */
     private void processJobFromPort(JudgeQueue port, JudgeJobHandle handle) {
+        // Reconstruct a JudgeJob from the leased envelope and hand it to
+        // the executor. The executor owns claim / heartbeat / verdict /
+        // push / release; this adapter only translates the queue-specific
+        // envelope shape.
         JudgeJobEnvelope envelope = handle.envelope();
-        String submissionId = envelope.submissionId();
-        String problemId = envelope.problemId();
-        String userId = envelope.userId();
-        String attemptId = envelope.attemptId() != null
-                ? envelope.attemptId()
-                : uuidGenerator.newId();
-        long generation = envelope.generation() != null ? envelope.generation() : 1L;
-
-        // 1. Acquire the lease using the dispatcher's attemptId so the
-        //    fence CAS matches the outbox row's intent. affected = 0 ->
-        //    already judging or generation moved; abandon + nack so the
-        //    reaper's visibility timer can reclaim.
-        int acquired = submissionMapper.acquireLease(
-                submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
-        if (acquired != 1) {
-            log.debug("Port fenced judge: lease not acquired for submission {} gen {} (already moved)",
-                    submissionId, generation);
-            // nack with a reason so the broker retains the entry in the
-            // PEL and the unacked reaper (M3c-2) can reclaim it after
-            // visibilityTimeoutMs elapses. ack would lose the work
-            // entirely; leaving it undelivered leaves the entry stuck.
-            port.nack(handle, "lease-not-acquired:gen=" + generation);
-            return;
-        }
-
-        ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
-        try {
-            executeAndWriteFenced(
-                    submissionId, problemId, userId,
-                    envelope.language(), envelope.code(),
-                    attemptId, generation);
-        } finally {
-            stopHeartbeat(heartbeatTask);
-        }
-
-        // Ack on success. Acquire-failure path above already returned
-        // without ack; the reaper will reclaim those entries.
-        port.ack(handle);
+        JudgeJob job = new JudgeJob();
+        job.setId(envelope.id());
+        job.setSubmissionId(envelope.submissionId());
+        job.setProblemId(envelope.problemId());
+        job.setUserId(envelope.userId());
+        job.setLanguage(envelope.language());
+        job.setCode(envelope.code());
+        attemptExecutor.runAttempt(job, port, handle);
     }
 
     /**
@@ -265,205 +191,11 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
      * </ul>
      */
     public void processJob(JudgeJob job) {
-        if (featureFlags.isUseGenerationFence() && submissionMapper != null) {
-            processJobFenced(job);
-            return;
-        }
-        processJobLegacy(job);
+        // Public entry used by QueueService for the RQueue path. The
+        // executor decides legacy vs fenced based on its own FeatureFlags
+        // (consistent across all callers).
+        attemptExecutor.runAttempt(job, null, null);
     }
-
-    /**
-     * Legacy judging path (pre-ADR-003). Mark Judging, execute, write verdict
-     * via {@code updateSubmissionResult}. Preserved verbatim so flag-off
-     * deployments observe no behavior change.
-     */
-    private void processJobLegacy(JudgeJob job) {
-        String submissionId = job.getSubmissionId();
-        String problemId = job.getProblemId();
-        String userId = job.getUserId();
-
-        try {
-            submissionService.updateSubmissionResult(submissionId, "Judging", 0, null, null);
-
-            JudgeExecutionResult result = executionPipeline.execute(
-                    job.getLanguage(), job.getCode(),
-                    Long.parseLong(problemId), userId, submissionId);
-
-            if (result == null) {
-                submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
-                return;
-            }
-
-            submissionService.updateSubmissionResult(submissionId, result.verdict(),
-                    result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
-
-            long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
-            String contestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, result.verdict(),
-                    result.maxRuntimeMs(), memoryBytes, contestId);
-        } catch (Exception e) {
-            log.error("Failed to process judge job for submission {}", submissionId, e);
-            submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
-            String failedContestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
-        }
-    }
-
-
-
-    /**
-     * ADR-003 M3b fenced judging path. Acquires a lease via CAS, runs a
-     * heartbeat thread, and writes the verdict through the fenced CAS.
-     */
-    private void processJobFenced(JudgeJob job) {
-        String submissionId = job.getSubmissionId();
-        String problemId = job.getProblemId();
-        String userId = job.getUserId();
-        String attemptId = uuidGenerator.newId();
-
-        Submission current = submissionMapper.selectById(submissionId);
-        if (current == null) {
-            log.warn("Fenced judge: submission {} not found, abandoning", submissionId);
-            return;
-        }
-        long generation = current.getGeneration() != null ? current.getGeneration() : 1L;
-
-        int acquired = submissionMapper.acquireLease(
-                submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
-        if (acquired != 1) {
-            log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
-                    submissionId, generation);
-            return;
-        }
-
-        ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
-        try {
-            executeAndWriteFenced(
-                    submissionId, problemId, userId,
-                    job.getLanguage(), job.getCode(),
-                    attemptId, generation);
-        } finally {
-            stopHeartbeat(heartbeatTask);
-        }
-    }
-
-    /**
-     * Execute the judging and write the verdict through the fenced CAS.
-     * Delegates execution to {@link JudgeExecutionPipeline}.
-     */
-    private void executeAndWriteFenced(String submissionId, String problemId, String userId,
-                                       String language, String code,
-                                       String attemptId, long generation) {
-        try {
-            JudgeExecutionResult result = executionPipeline.execute(
-                    language, code, Long.parseLong(problemId), userId, submissionId);
-
-            if (result == null) {
-                boolean written = submissionService.updateSubmissionResultFenced(
-                        submissionId, generation, attemptId, "System Error", 0, 0.0, null);
-                if (written) {
-                    pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
-                }
-                return;
-            }
-
-            boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, result.verdict(),
-                    result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
-
-            if (written) {
-                long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
-                String contestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, result.verdict(),
-                        result.maxRuntimeMs(), memoryBytes, contestId);
-            } else {
-                log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
-                        result.verdict(), submissionId, generation);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process fenced judge job for submission {}", submissionId, e);
-            boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, "System Error", 0, 0.0, null);
-            if (written) {
-                String failedContestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
-            }
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Lease heartbeat
-    // -----------------------------------------------------------------------
-
-    private ScheduledFuture<?> startHeartbeat(String submissionId, String attemptId) {
-        ScheduledExecutorService executor = getOrCreateHeartbeatExecutor();
-        return executor.scheduleAtFixedRate(
-                () -> {
-                    try {
-                        int renewed = submissionMapper.renewLease(
-                                submissionId, attemptId, LeaseConstants.LEASE_TTL_SECONDS);
-                        if (renewed != 1) {
-                            incrementLeaseMissRenew();
-                            log.debug("Heartbeat renew failed for submission {} attempt {} (lease lost)",
-                                    submissionId, attemptId);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Heartbeat renew threw for submission {}: {}", submissionId, e.getMessage());
-                    }
-                },
-                LeaseConstants.HEARTBEAT_INTERVAL_MS,
-                LeaseConstants.HEARTBEAT_INTERVAL_MS,
-                TimeUnit.MILLISECONDS);
-    }
-
-    private void stopHeartbeat(ScheduledFuture<?> heartbeatTask) {
-        if (heartbeatTask != null) {
-            heartbeatTask.cancel(false);
-        }
-    }
-
-    private ScheduledExecutorService getOrCreateHeartbeatExecutor() {
-        ScheduledExecutorService local = heartbeatExecutor;
-        if (local == null) {
-            synchronized (this) {
-                local = heartbeatExecutor;
-                if (local == null) {
-                    local = new ScheduledThreadPoolExecutor(
-                            1,
-                            new NamedDaemonThreadFactory("judge-heartbeat"));
-                    heartbeatExecutor = local;
-                }
-            }
-        }
-        return local;
-    }
-
-    private void incrementLeaseMissRenew() {
-        if (meterRegistry != null) {
-            meterRegistry.counter("judge.lease.miss_renew").increment();
-        }
-    }
-
-    private static final class NamedDaemonThreadFactory implements ThreadFactory {
-        private final String prefix;
-        private final AtomicInteger counter = new AtomicInteger(0);
-
-        NamedDaemonThreadFactory(String prefix) {
-            this.prefix = prefix;
-        }
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(r, prefix + "-" + counter.incrementAndGet());
-            t.setDaemon(true);
-            return t;
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // JobProcessor interface
-    // -----------------------------------------------------------------------
 
     @Override
     public JobStatusDTO process(JudgeJob job) throws Exception {
@@ -501,44 +233,10 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
                 log.warn("Retry sleep interrupted for job {}", job.getId());
             }
         } else {
+            // Hand the final-failure side-effect to the executor so the
+            // same System-Error write + push lives in one place.
             log.error("All retries exhausted for judge job {}, marking as System Error", job.getId(), error);
-            submissionService.updateSubmissionResult(
-                    job.getSubmissionId(), "System Error", 0, 0.0, null);
-            String failedContestId = findContestIdBySubmissionId(job.getSubmissionId());
-            pushResult(job.getUserId(), job.getSubmissionId(), job.getProblemId(),
-                    "System Error", 0, 0L, failedContestId);
-        }
-    }
-
-    private void pushResult(String userId, String submissionId, String problemId,
-                            String status, int timeUsed, long memoryUsed, String contestId) {
-        SubmissionResultPayload payload = SubmissionResultPayload.of(
-                submissionId, contestId, problemId, userId, status, 0, timeUsed, memoryUsed);
-        submissionResultPushPort.emitSubmissionResult(userId, payload);
-    }
-
-    private String findContestIdBySubmissionId(String submissionId) {
-        // Non-critical path: a missing or unloadable contest mapping is
-        // not a verdict-changing failure. We classify the failure modes so
-        // genuine data-integrity issues surface as ERROR while transient
-        // infra problems stay at WARN.
-        try {
-            ContestSubmission cs = contestSubmissionMapper.selectOne(
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ContestSubmission>()
-                            .eq(ContestSubmission::getSubmissionId, submissionId));
-            return cs != null ? cs.getContestId() : null;
-        } catch (org.springframework.dao.DataAccessException dae) {
-            // Transient DB issues (connection, timeout) — keep judging live.
-            log.warn("Transient DB error resolving contest id for submission {}; continuing without contest context",
-                    submissionId, dae);
-            return null;
-        } catch (Exception e) {
-            // Anything else (schema drift, unexpected TooManyResults, NPE
-            // inside the mapper proxy) likely indicates a real bug; record
-            // as ERROR for alerting but do not let it fail the judge.
-            log.error("Unexpected error resolving contest id for submission {}; continuing without contest context",
-                    submissionId, e);
-            return null;
+            attemptExecutor.markExhausted(job);
         }
     }
 }

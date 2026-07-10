@@ -9,7 +9,6 @@ import com.ulticode.modules.forum.dto.ForumCommunityVO;
 import com.ulticode.modules.forum.dto.ForumPostThreadVO;
 import com.ulticode.modules.forum.dto.ForumPostVO;
 import com.ulticode.modules.forum.dto.ForumTagVO;
-import com.ulticode.modules.forum.dto.ForumPostVOAssembler;
 import com.ulticode.modules.forum.dto.QuickFilterDTO;
 import com.ulticode.modules.forum.entity.ForumComment;
 import com.ulticode.modules.forum.entity.ForumCommunity;
@@ -45,8 +44,8 @@ import java.util.stream.Collectors;
  * <p>After the cycle-breaking refactor this class owns all read-side SQL +
  * paging + VO assembly. It does not depend on {@code ForumPostService}.
  * Write-side code (createPost / updatePost) returns VOs by calling the
- * static {@link ForumPostVOAssembler}, so projection and write service
- * stay decoupled.
+ * injected {@link ForumPostProjection}, so the entity-to-VO shaping lives
+ * in exactly one place and the write service does not duplicate it.
  *
  * @author ulticode
  */
@@ -65,6 +64,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     private final ForumTagMapper tagMapper;
     private final UserService userService;
     private final VoteService voteService;
+    private final ForumPostProjection postProjection;
 
     // ---------- All posts (3 overloads) ----------
 
@@ -116,8 +116,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         ForumPost post = postMapper.selectById(id);
         if (post == null) throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
         User author = userService.findById(post.getUserId()).orElse(null);
-        return ForumPostVOAssembler.toPostVO(post, userId, author,
-                voteService, communityMapper, commentMapper, memberMapper);
+        return postProjection.toPostVO(post, userId, author);
     }
 
     // ---------- Thread — owns full assembly (was previously split with service stub) ----------
@@ -133,9 +132,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         userService.findById(post.getUserId()).ifPresent(u -> authorMap.put(post.getUserId(), u));
 
         ForumPostThreadVO thread = new ForumPostThreadVO();
-        thread.setPost(ForumPostVOAssembler.toPostVO(post, userId,
-                authorMap.get(post.getUserId()), community, 0L,
-                voteService, memberMapper));
+        thread.setPost(postProjection.toPostVO(post, userId, authorMap.get(post.getUserId()), community, 0L));
 
         List<ForumComment> comments = commentMapper.findByPostId(postId);
         Set<String> authorIds = new HashSet<>();
@@ -170,11 +167,10 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         Map<String, User> am = batchLoadAuthors(posts);
         Map<String, Long> commentCounts = batchLoadCommentCounts(posts);
         List<ForumPostVO> items = posts.stream()
-                .map(p -> ForumPostVOAssembler.toPostVO(p, userId,
+                .map(p -> postProjection.toPostVO(p, userId,
                         am.get(p.getUserId()),
                         cm.get(p.getCommunityId()),
-                        commentCounts.getOrDefault(p.getId(), 0L),
-                        voteService, memberMapper))
+                        commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, page, limit);
     }
@@ -219,15 +215,13 @@ public class DefaultForumReadProjection implements ForumReadProjection {
 
     @Override
     public ForumPostVO convertToPostVO(ForumPost post, String userId, User author) {
-        return ForumPostVOAssembler.toPostVO(post, userId, author,
-                voteService, communityMapper, commentMapper, memberMapper);
+        return postProjection.toPostVO(post, userId, author);
     }
 
     @Override
     public ForumPostVO convertToPostVO(ForumPost post, String userId, User author,
                                        ForumCommunity community, long realCommentCount) {
-        return ForumPostVOAssembler.toPostVO(post, userId, author,
-                community, realCommentCount, voteService, memberMapper);
+        return postProjection.toPostVO(post, userId, author, community, realCommentCount);
     }
 
     @Override
@@ -298,12 +292,11 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         Map<String, ForumCommunity> communityMap = batchLoadCommunities(posts);
         Map<String, Long> commentCounts = batchLoadCommentCounts(posts);
         List<ForumPostVO> items = posts.stream()
-                .map(p -> ForumPostVOAssembler.toPostVO(
+                .map(p -> postProjection.toPostVO(
                         p, userId,
                         authorMap.get(p.getUserId()),
                         communityMap.get(p.getCommunityId()),
-                        commentCounts.getOrDefault(p.getId(), 0L),
-                        voteService, memberMapper))
+                        commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
         return PageResult.of(items, total, page, limit);
     }

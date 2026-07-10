@@ -5,8 +5,8 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.forum.dto.CreatePostDTO;
 import com.ulticode.modules.forum.dto.ForumPostVO;
-import com.ulticode.modules.forum.dto.ForumPostVOAssembler;
 import com.ulticode.modules.forum.dto.UpdatePostDTO;
+import com.ulticode.modules.forum.projection.ForumPostProjection;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.entity.ForumUser;
@@ -32,10 +32,11 @@ import java.time.LocalDateTime;
  * delete paths plus share / view bumps.
  *
  * <p>Read-side code lives on {@link com.ulticode.modules.forum.projection.ForumReadProjection};
- * this service no longer depends on the projection. Write paths that need to
- * return a {@link ForumPostVO} build it via the static
- * {@link ForumPostVOAssembler} so projection and write service stay decoupled
- * (Spring Boot 3.x forbids the previous constructor-injection cycle).
+ * write paths that need to return a {@link ForumPostVO} build it via the injected
+ * {@link ForumPostProjection} so the entity-to-VO shaping lives in exactly one
+ * place and the write service does not duplicate it. (Spring Boot 3.x forbids
+ * the previous constructor-injection cycle, which is why the projection is the
+ * shared seam rather than a direct cross-module call.)
  *
  * @author ulticode
  */
@@ -53,6 +54,7 @@ public class ForumPostServiceImpl implements ForumPostService {
     private final VoteService voteService;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    private final ForumPostProjection postProjection;
 
     // =========================================================================
     // Create / Update / Delete
@@ -87,8 +89,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         postMapper.insert(post);
         communityMapper.incrementPostsCount(dto.getCommunityId());
         User author = userService.findById(post.getUserId()).orElse(null);
-        return ForumPostVOAssembler.toPostVO(post, userId, author,
-                voteService, communityMapper, commentMapper, memberMapper);
+        return postProjection.toPostVO(post, userId, author);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         postMapper.updateById(post);
         User author = userService.findById(post.getUserId()).orElse(null);
         ForumCommunity community = post.getCommunityId() != null ? communityMapper.selectById(post.getCommunityId()) : null;
-        return ForumPostVOAssembler.toPostVO(post, userId, author, community, 0L, voteService, memberMapper);
+        return postProjection.toPostVO(post, userId, author, community, 0L);
     }
 
     @Override

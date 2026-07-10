@@ -12,7 +12,7 @@ import com.ulticode.modules.auth.session.AuthSessionPort;
 
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import com.ulticode.modules.user.service.UserService;
 import com.ulticode.security.jwt.JwtTokenProvider;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -39,7 +39,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserMapper userMapper;
+    private final AuthAccountPort accountPort;
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
@@ -49,10 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginDTO loginDTO, HttpServletResponse response) {
-        User user = userMapper.selectOne(
-                new LambdaQueryWrapper<User>()
-                        .eq(User::getUsername, loginDTO.getUsername())
-        );
+        User user = accountPort.findByUsername(loginDTO.getUsername()).orElse(null);
 
         if (user == null) {
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
@@ -72,20 +69,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginResponse register(RegisterDTO registerDTO, HttpServletResponse response) {
-        Long usernameCount = userMapper.selectCount(
-                new LambdaQueryWrapper<User>()
-                        .eq(User::getUsername, registerDTO.getUsername())
-        );
-        if (usernameCount > 0) {
+        boolean usernameTaken = accountPort.findByUsername(registerDTO.getUsername()).isPresent();
+        if (usernameTaken) {
             throw new BusinessException(ErrorCode.AUTH_USERNAME_TAKEN);
         }
 
         if (registerDTO.getEmail() != null && !registerDTO.getEmail().isBlank()) {
-            Long emailCount = userMapper.selectCount(
-                    new LambdaQueryWrapper<User>()
-                            .eq(User::getEmail, registerDTO.getEmail())
-            );
-            if (emailCount > 0) {
+            if (accountPort.findByEmail(registerDTO.getEmail()).isPresent()) {
                 throw new BusinessException(ErrorCode.AUTH_EMAIL_TAKEN);
             }
         }
@@ -99,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
         user.setIsActive(true);
         user.setIsBanned(false);
         user.setJoinedAt(LocalDateTime.now(clock));
-        userMapper.insert(user);
+        accountPort.create(user);
         log.info("Registered new user: {}", user.getUsername());
 
         userService.updateLastLoginAt(user.getId());
@@ -116,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Refresh token has expired");
         }
 
-        User user = userMapper.selectById(rotation.userId());
+        User user = accountPort.findById(rotation.userId()).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND);
         }

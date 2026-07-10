@@ -2,7 +2,7 @@ package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -42,7 +42,7 @@ class DefaultSubmissionProjectionTest {
     @Mock private SubmissionMapper submissionMapper;
     @Mock private SubmissionStreakCalculator submissionStreakCalculator;
     @Mock private UserMapper userMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemFactsPort problemFacts;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -51,7 +51,7 @@ class DefaultSubmissionProjectionTest {
     @BeforeEach
     void setUp() {
         projection = new DefaultSubmissionProjection(
-                submissionMapper, submissionStreakCalculator, userMapper, problemMapper, objectMapper);
+                submissionMapper, submissionStreakCalculator, userMapper, problemFacts, objectMapper);
     }
 
     private Submission buildSubmission(Submission.TestCaseDetail... details) {
@@ -91,7 +91,7 @@ class DefaultSubmissionProjectionTest {
                 detail("Wrong Answer", CaseScope.HIDDEN, "tc-h-1", "SECRET_OUT", "SECRET_EXP", "diff")
         );
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -112,7 +112,7 @@ class DefaultSubmissionProjectionTest {
                 detail("Wrong Answer", null, null, "out", "exp", "diff") // legacy
         );
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -131,7 +131,7 @@ class DefaultSubmissionProjectionTest {
                 detail("Wrong Answer", CaseScope.HIDDEN, "tc-h-1", "SECRET_OUT", "SECRET_EXP", "diff")
         );
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -151,7 +151,7 @@ class DefaultSubmissionProjectionTest {
                 detail("Wrong Answer", CaseScope.SAMPLE, "tc-1", "SAMPLE_OUT", "SAMPLE_EXP", "sample-diff")
         );
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 
@@ -168,7 +168,7 @@ class DefaultSubmissionProjectionTest {
                 detail("Compile Error", CaseScope.SAMPLE, "tc-1", "", "", "javac: class Solution is missing")
         );
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         SubmissionVO vo = projection.toVO(s);
 

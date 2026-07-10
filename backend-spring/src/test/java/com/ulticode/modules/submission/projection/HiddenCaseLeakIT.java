@@ -2,10 +2,10 @@ package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class HiddenCaseLeakIT {
 
     @Mock private SubmissionMapper submissionMapper;
     @Mock private UserMapper userMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemFactsPort problemFacts;
 
     private final ObjectMapper jackson = new ObjectMapper().registerModule(new JavaTimeModule());
 
@@ -55,7 +55,7 @@ class HiddenCaseLeakIT {
     @DisplayName("User-facing SubmissionVO JSON never contains hidden case input/output/expectedOutput")
     void hiddenCaseFieldsNotLeakedInJson() throws Exception {
         DefaultSubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, mock(com.ulticode.modules.submission.stats.SubmissionStreakCalculator.class),
-                userMapper, problemMapper, jackson);
+                userMapper, problemFacts, jackson);
 
         Submission s = new Submission();
         s.setId("sub-1");
@@ -72,7 +72,7 @@ class HiddenCaseLeakIT {
                         "diff: " + HIDDEN_SENTINEL + "_DETAIL_OK_TO_LEAK")
         ));
         when(userMapper.selectById("u-1")).thenReturn(null);
-        when(problemMapper.selectById(100L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(100L)).thenReturn(null);
 
         String json = jackson.writeValueAsString(projection.toVO(s));
 
@@ -95,7 +95,7 @@ class HiddenCaseLeakIT {
     @DisplayName("Multiple hidden cases and mixed legacy rows still redact user JSON")
     void multipleHiddenAndLegacyRowsRedact() throws Exception {
         DefaultSubmissionProjection projection = new DefaultSubmissionProjection(submissionMapper, mock(com.ulticode.modules.submission.stats.SubmissionStreakCalculator.class),
-                userMapper, problemMapper, jackson);
+                userMapper, problemFacts, jackson);
 
         Submission s = new Submission();
         s.setId("sub-2");
@@ -118,7 +118,7 @@ class HiddenCaseLeakIT {
                         "diff: " + HIDDEN_SENTINEL + "_F")
         ));
         when(userMapper.selectById("u-2")).thenReturn(null);
-        when(problemMapper.selectById(101L)).thenReturn(null);
+        when(problemFacts.findDisplayFacts(101L)).thenReturn(null);
 
         String json = jackson.writeValueAsString(projection.toVO(s));
 

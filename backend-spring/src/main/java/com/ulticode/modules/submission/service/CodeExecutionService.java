@@ -12,10 +12,7 @@ import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
 import com.ulticode.modules.submission.util.OJSignatureParser;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.entity.ProblemLanguage;
-import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -52,8 +49,7 @@ public class CodeExecutionService {
     private final SandboxExecutor sandboxExecutor;
     private final CodeExecutionHelper helper;
     private final VerdictResolver verdictResolver;
-    private final ProblemLanguageMapper problemLanguageMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemFactsPort problemFacts;
     private final UuidGenerator uuidGenerator;
     /**
      * M2a-round-2 fix (codex review F2): defaults were hard-coded to
@@ -202,15 +198,7 @@ public class CodeExecutionService {
 
     private List<String> doResolveParamTypes(Long problemId, String language) {
         try {
-            List<ProblemLanguage> langs = problemLanguageMapper.findByProblemId(problemId);
-            if (langs == null) {
-                return List.of();
-            }
-            String starter = langs.stream()
-                    .filter(l -> l.getValue() != null && l.getValue().equalsIgnoreCase(language))
-                    .map(ProblemLanguage::getStarterCode)
-                    .findFirst()
-                    .orElse(null);
+            String starter = problemFacts.findStarterCode(problemId, language);
             if (starter == null || starter.isBlank()) {
                 return List.of();
             }
@@ -335,18 +323,13 @@ public class CodeExecutionService {
         if (problemId == null) {
             return null;
         }
-        try {
-            Problem problem = problemMapper.selectById(problemId);
-            if (problem == null) {
-                return null;
-            }
-            return time ? problem.getTimeLimit() : problem.getMemoryLimit();
-        } catch (RuntimeException e) {
-            // Safe degrade: any data-access hiccup falls back to the global
-            // default rather than failing the run.
-            log.debug("Failed to read problem {} resource limits: {}", problemId, e.getMessage());
+        ProblemFactsPort.ProblemLimits limits = problemFacts.findLimits(problemId);
+        if (limits == null) {
+            // Missing problem row or data-access hiccup absorbed by the port:
+            // fall back to the global default rather than failing the run.
             return null;
         }
+        return time ? limits.timeLimitSeconds() : limits.memoryLimitMb();
     }
 
     // ── Per-run defaults ─────────────────────────────────────────────────────

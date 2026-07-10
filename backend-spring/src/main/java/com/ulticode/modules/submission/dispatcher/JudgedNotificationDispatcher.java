@@ -3,10 +3,9 @@ package com.ulticode.modules.submission.dispatcher;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.service.NotificationDispatchService;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -46,7 +45,7 @@ public class JudgedNotificationDispatcher {
     private final FeatureFlagsProperties featureFlags;
     private final NotificationDispatcher notificationDispatcher;
     private final NotificationDispatchService notificationDispatchService;
-    private final ProblemMapper problemMapper;
+    private final ProblemFactsPort problemFacts;
 
     /**
      * Dispatch the post-verdict notification. Both the legacy (unfenced) and
@@ -65,20 +64,20 @@ public class JudgedNotificationDispatcher {
         try {
             long memBytes = memoryMb == null ? 0L : (long) (memoryMb * 1024 * 1024);
             long safeElapsed = Math.max(0L, elapsedMs);
+            ProblemFactsPort.ProblemDisplayFacts facts = problemFacts.findDisplayFacts(submission.getProblemId());
+            String problemTitle = facts != null ? facts.title() : "";
             if (featureFlags.isUseNotificationIntent()) {
-                Problem problem = problemMapper.selectById(submission.getProblemId());
                 SubmissionStatus statusEnum = SubmissionStatus.fromDbName(status);
                 notificationDispatcher.dispatch(
                         com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
                                 submission,
                                 statusEnum != null ? statusEnum : SubmissionStatus.SYSTEM_ERROR,
-                                problem != null ? problem.getTitle() : "",
+                                problemTitle,
                                 safeElapsed,
                                 memBytes,
                                 null,
                                 null));
             } else {
-                Problem problem = problemMapper.selectById(submission.getProblemId());
                 notificationDispatchService.dispatch(
                         submission.getUserId(),
                         "SUBMISSION",
@@ -89,7 +88,7 @@ public class JudgedNotificationDispatcher {
                         Map.of(
                                 "submissionId", submission.getId(),
                                 "problemId", submission.getProblemId(),
-                                "problemTitle", problem != null ? problem.getTitle() : "",
+                                "problemTitle", problemTitle,
                                 "status", status,
                                 "isAccepted", "Accepted".equals(status)),
                         false);

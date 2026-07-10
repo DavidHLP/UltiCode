@@ -262,14 +262,18 @@ class SubmissionServiceImplIT {
         // DefaultSubmissionWritePort adapter so the existing submit IT
         // assertions exercise the extracted write logic end-to-end through
         // the facade delegate against Testcontainers MySQL.
+        com.ulticode.modules.problem.port.ProblemFactsAdapter problemFacts =
+                new com.ulticode.modules.problem.port.ProblemFactsAdapter(
+                        problemMapper,
+                        session.getMapper(com.ulticode.modules.problem.mapper.ProblemLanguageMapper.class));
         com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
                 new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
-                        submissionMapper, userMapper, problemMapper, objectMapper,
+                        submissionMapper, userMapper, problemFacts, objectMapper,
                         submissionProjection, performanceStats,
                         queueService, contestSubmissionPort,
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
-                                flags, notificationDispatcher, notificationDispatchService, problemMapper),
+                                flags, notificationDispatcher, notificationDispatchService, problemFacts),
                         null, flags, null, null, java.time.Clock.systemDefaultZone(),
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(

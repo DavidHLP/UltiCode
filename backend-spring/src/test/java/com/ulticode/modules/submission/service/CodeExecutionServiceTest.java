@@ -2,9 +2,8 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
@@ -56,10 +55,7 @@ class CodeExecutionServiceTest {
     private DockerSandboxConfig sandboxConfig;
 
     @Mock
-    private ProblemLanguageMapper problemLanguageMapper;
-
-    @Mock
-    private ProblemMapper problemMapper;
+    private ProblemFactsPort problemFacts;
 
     @Spy
     private VerdictResolver verdictResolver = new VerdictResolver();
@@ -79,13 +75,13 @@ class CodeExecutionServiceTest {
         // would otherwise flag the unused stubs.
         lenient().when(sandboxConfig.timeout()).thenReturn(10);
         lenient().when(sandboxConfig.memory()).thenReturn("256m");
-        // ADR-002 §8 (P2-1): ProblemMapper is a plain mock — selectById
+        // ADR-002 §8 (P2-1): ProblemFactsPort is a plain mock — findLimits
         // returns null by default, so resolveTimeoutSeconds/Mb fall back to
         // the global default (matches pre-P2-1 behaviour). No explicit stub
         // needed (an explicit one trips UnnecessaryStubbing for the cases
         // that pass problemId=null).
         codeExecutionService = new CodeExecutionService(
-                sandboxExecutor, helper, verdictResolver, problemLanguageMapper, problemMapper,
+                sandboxExecutor, helper, verdictResolver, problemFacts,
                 new com.ulticode.common.uuid.FixedUuidGenerator(), sandboxConfig);
     }
 

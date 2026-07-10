@@ -6,8 +6,6 @@ import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
 import com.ulticode.modules.queue.service.QueueService;
@@ -60,7 +58,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
 
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemFactsPort problemFacts;
     private final ObjectMapper objectMapper;
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
@@ -126,8 +124,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         }
 
         // Verify problem exists
-        Problem problem = problemMapper.selectById(createDTO.getProblemId());
-        if (problem == null) {
+        if (problemFacts.findDisplayFacts(createDTO.getProblemId()) == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 

@@ -1,8 +1,6 @@
 package com.ulticode.modules.submission.projection;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
@@ -18,6 +16,7 @@ import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.enums.SubmissionStatusCatalog;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -50,7 +49,7 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
     private final SubmissionMapper submissionMapper;
     private final SubmissionStreakCalculator submissionStreakCalculator;
     private final UserMapper userMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemFactsPort problemFacts;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -225,12 +224,12 @@ public class DefaultSubmissionProjection implements SubmissionProjection {
             vo.setUser(userInfo);
         }
 
-        Problem problem = problemMapper.selectById(submission.getProblemId());
-        if (problem != null) {
+        ProblemFactsPort.ProblemDisplayFacts facts = problemFacts.findDisplayFacts(submission.getProblemId());
+        if (facts != null) {
             SubmissionVO.ProblemInfo problemInfo = new SubmissionVO.ProblemInfo();
-            problemInfo.setId(problem.getId());
-            problemInfo.setTitle(problem.getTitle());
-            problemInfo.setSlug(problem.getSlug());
+            problemInfo.setId(facts.id());
+            problemInfo.setTitle(facts.title());
+            problemInfo.setSlug(facts.slug());
             vo.setProblem(problemInfo);
         }
 

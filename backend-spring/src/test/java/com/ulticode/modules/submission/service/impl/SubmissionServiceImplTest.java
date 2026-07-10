@@ -3,8 +3,7 @@ package com.ulticode.modules.submission.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.submission.port.ProblemFactsPort;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
@@ -53,7 +52,7 @@ class SubmissionServiceImplTest {
 
     @Mock private SubmissionMapper submissionMapper;
     @Mock private UserMapper userMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemFactsPort problemFacts;
     @Mock private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     @Mock private Clock clock;
     @Mock private QueueService queueService;
@@ -94,13 +93,13 @@ class SubmissionServiceImplTest {
         // findByProblemId) keep using the same submissionService reference.
         com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
                 new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
-                        submissionMapper, userMapper, problemMapper, objectMapper,
+                        submissionMapper, userMapper, problemFacts, objectMapper,
                         submissionProjection, performanceStats,
                         queueService,
                         contestSubmissionPort,
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
-                                flags, notificationDispatcher, notificationDispatchService, problemMapper),
+                                flags, notificationDispatcher, notificationDispatchService, problemFacts),
                         null, flags, null, null, clock,
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
@@ -192,12 +191,8 @@ class SubmissionServiceImplTest {
         return submission;
     }
 
-    private Problem createValidProblem() {
-        Problem problem = new Problem();
-        problem.setId(PROBLEM_ID);
-        problem.setTitle("Test Problem");
-        problem.setSlug("test-problem");
-        return problem;
+    private ProblemFactsPort.ProblemDisplayFacts createValidProblem() {
+        return new ProblemFactsPort.ProblemDisplayFacts(PROBLEM_ID, "Test Problem", "test-problem");
     }
 
     private User createValidUser() {
@@ -222,7 +217,7 @@ class SubmissionServiceImplTest {
         @Test
         @DisplayName("valid request persists submission and enqueues judge job")
         void submit_validRequest_persistsAndEnqueues() {
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
             when(userMapper.selectById(USER_ID)).thenReturn(createValidUser());
             when(submissionMapper.insert(any(Submission.class))).thenReturn(1);
             when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(), anyString(), anyString()))
@@ -275,7 +270,7 @@ class SubmissionServiceImplTest {
         @Test
         @DisplayName("problem not found throws PROBLEM_NOT_FOUND")
         void submit_problemNotFound_throwsException() {
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(null);
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(null);
 
             assertThatThrownBy(() -> submissionService.submit(USER_ID, createDTO()))
                     .isInstanceOf(BusinessException.class)
@@ -286,7 +281,7 @@ class SubmissionServiceImplTest {
         @Test
         @DisplayName("user not found throws USER_NOT_FOUND")
         void submit_userNotFound_throwsException() {
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
             when(userMapper.selectById(USER_ID)).thenReturn(null);
 
             assertThatThrownBy(() -> submissionService.submit(USER_ID, createDTO()))
@@ -357,11 +352,10 @@ class SubmissionServiceImplTest {
         void findById_existingSubmission_returnsVO() {
             Submission submission = createValidSubmission();
             User user = createValidUser();
-            Problem problem = createValidProblem();
 
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(userMapper.selectById(USER_ID)).thenReturn(user);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -385,7 +379,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(peerBests);
             when(userMapper.selectById(USER_ID)).thenReturn(createValidUser());
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -409,7 +403,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(List.of(new UserBestStats("other-user", 90, 200.0)));
             when(userMapper.selectById(USER_ID)).thenReturn(createValidUser());
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -427,7 +421,7 @@ class SubmissionServiceImplTest {
 
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(userMapper.selectById(USER_ID)).thenReturn(createValidUser());
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
@@ -457,7 +451,7 @@ class SubmissionServiceImplTest {
             Submission submission = createValidSubmission();
             submission.setStatus("Pending");
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
 
@@ -489,7 +483,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(peerBests);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
 
@@ -518,7 +512,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(submissionMapper.findBestStatsByProblemAndLanguage(PROBLEM_ID, LANGUAGE))
                     .thenReturn(peerBests);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
 
@@ -537,7 +531,7 @@ class SubmissionServiceImplTest {
             Submission submission = createValidSubmission();
             submission.setStatus("Pending");
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
             submissionService.updateSubmissionResult("sub-123", "Wrong Answer", 50, 128.0, List.of());
 
@@ -559,7 +553,7 @@ class SubmissionServiceImplTest {
             Submission submission = createValidSubmission();
             submission.setStatus("Pending");
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
             doThrow(new RuntimeException("DB error"))
                     .when(notificationDispatchService).dispatch(
                             anyString(), anyString(), anyString(), anyString(),

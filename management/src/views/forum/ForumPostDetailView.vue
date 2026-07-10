@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
@@ -23,6 +23,7 @@ import OverviewDisplay from './components/OverviewDisplay.vue'
 import CommentsTab from './components/CommentsTab.vue'
 import AuditTab from './components/AuditTab.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDetailWorkspace } from '@/composables/useDetailWorkspace'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,24 +31,22 @@ const { t } = useI18n()
 const forumStore = useForumStore()
 const authStore = useAuthStore()
 
-const isInitialLoad = ref(true)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 const auditLoading = ref(false)
-
-// Animation state for staggered reveal
-const isLoaded = ref(false)
-
-onMounted(() => {
-  setTimeout(() => {
-    isLoaded.value = true
-  }, 100)
-})
 
 const postId = computed(() => route.params.id as string)
 const post = computed(() => forumStore.currentPost)
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'FORUM_POST'))
+
+// Detail lifecycle (first-load skeleton, mount animation, refresh) lives in
+// the shared workspace; audit history is the secondary refresh.
+const { isInitialLoad, isLoaded, refresh } = useDetailWorkspace({
+  entityId: postId,
+  fetch: (id) => forumStore.fetchPostDetail(id),
+  onRefreshed: () => loadAuditHistory(),
+})
 
 // Determine current view from route
 const currentView = computed(() => {
@@ -60,23 +59,6 @@ const currentView = computed(() => {
 function handleTabChange(value: string | number) {
   const view = value as string
   router.push({ name: 'forum-post-detail', params: { id: postId.value, tab: view } })
-}
-
-onMounted(async () => {
-  if (postId.value) {
-    await loadData()
-    isInitialLoad.value = false
-  }
-})
-
-async function loadData() {
-  try {
-    await forumStore.fetchPostDetail(postId.value)
-    // Load audit history in background
-    loadAuditHistory()
-  } catch {
-    // Error is handled in store
-  }
 }
 
 async function loadAuditHistory() {
@@ -99,7 +81,7 @@ async function togglePin() {
         ? t('forum.toast.unpinnedSuccessfully')
         : t('forum.toast.pinnedSuccessfully'),
     )
-    await loadData() // Reload to get fresh data
+    await refresh() // reload detail (+ audit via onRefreshed)
   } catch {
     toast.error(t('forum.toast.failedToUpdatePin'))
   }
@@ -114,7 +96,7 @@ async function toggleLock() {
         ? t('forum.toast.unlockedSuccessfully')
         : t('forum.toast.lockedSuccessfully'),
     )
-    await loadData() // Reload to get fresh data
+    await refresh() // reload detail (+ audit via onRefreshed)
   } catch {
     toast.error(t('forum.toast.failedToUpdateLock'))
   }
@@ -125,8 +107,7 @@ async function unflagPost() {
   try {
     await forumStore.unflagPost(postId.value)
     toast.success(t('forum.toast.unflaggedSuccessfully'))
-    await loadData() // Reload to get fresh data
-    await loadAuditHistory() // Refresh audit history
+    await refresh() // refresh already reloads audit via onRefreshed
   } catch {
     toast.error(t('forum.toast.failedToUnflag'))
   }
@@ -137,8 +118,7 @@ function handleDeleteSuccess() {
 }
 
 function handleFlagSuccess() {
-  loadData()
-  loadAuditHistory()
+  refresh()
 }
 
 async function handleDeletePost(id: string | number) {
@@ -358,7 +338,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             variant="terminal"
             size="sm"
             class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)]"
-            @click="loadData"
+            @click="refresh"
           >
             {{ t('forum.error.retry') }}
           </Button>

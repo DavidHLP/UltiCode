@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -23,6 +23,7 @@ import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { renderMarkdown } from '@/shared/markdown-utils/src'
+import { useDetailWorkspace } from '@/composables/useDetailWorkspace'
 
 const router = useRouter()
 const route = useRoute()
@@ -30,22 +31,21 @@ const { t } = useI18n()
 const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
-const isInitialLoad = ref(true)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
-
-// Animation state
-const isLoaded = ref(false)
-
-onMounted(() => {
-  setTimeout(() => {
-    isLoaded.value = true
-  }, 100)
-})
 
 const commentId = computed(() => route.params.id as string)
 const commentType = computed((): CommentType => {
   return (route.params.type as CommentType) || 'forum'
+})
+
+// Detail lifecycle (first-load skeleton, mount animation, refresh) lives in
+// the shared workspace; comments have no secondary refresh.
+const { isInitialLoad, isLoaded, refresh } = useDetailWorkspace({
+  entityId: commentId,
+  fetch: async (id) => {
+    await commentsStore.fetchComment(id, commentType.value)
+  },
 })
 
 const comment = computed(() => commentsStore.currentComment)
@@ -69,27 +69,12 @@ const canDelete = computed(() =>
       ),
 )
 
-onMounted(async () => {
-  if (commentId.value) {
-    await loadData()
-    isInitialLoad.value = false
-  }
-})
-
-async function loadData() {
-  try {
-    await commentsStore.fetchComment(commentId.value, commentType.value)
-  } catch {
-    // Error is handled in store
-  }
-}
-
 async function unflagComment() {
   if (!comment.value) return
   try {
     await commentsStore.unflagComment(commentId.value, commentType.value)
     toast.success(t('comments.toast.unflaggedSuccessfully'))
-    await loadData()
+    await refresh()
   } catch {
     toast.error(t('comments.toast.failedToUnflag'))
   }
@@ -108,7 +93,7 @@ function handleDeleteSuccess() {
 }
 
 function handleFlagSuccess() {
-  loadData()
+  refresh()
 }
 </script>
 
@@ -227,7 +212,7 @@ function handleFlagSuccess() {
             variant="terminal"
             size="sm"
             class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)]"
-            @click="loadData"
+            @click="refresh"
           >
             {{ t('comments.error.retry') }}
           </Button>

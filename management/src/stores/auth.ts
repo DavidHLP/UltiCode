@@ -1,8 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
-import { csrfManager, clearCsrfToken } from '@/utils/csrf'
-import { checkPermission, checkRole, checkAnyRole } from '@/shared/auth-core/src'
+import {
+  csrfManager,
+  clearCsrfToken,
+  checkPermission,
+  checkRole,
+  checkAnyRole,
+} from '@/shared/auth-core/src'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)

@@ -10,7 +10,7 @@ import {
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
-import { formatDateTime, getDurationMinutes } from "@/utils/date";
+import { formatDateTime, getDurationMinutes } from "@/shared/datetime-utils/src";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{

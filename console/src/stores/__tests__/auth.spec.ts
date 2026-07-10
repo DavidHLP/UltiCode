@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager } from "@/utils/csrf";
+import { csrfManager } from "@/shared/auth-core/src";
 import type { User } from "@/types/auth";
 
 vi.mock("@/utils/request", () => ({
@@ -10,14 +10,20 @@ vi.mock("@/utils/request", () => ({
   apiPost: vi.fn(),
 }));
 
-vi.mock("@/utils/csrf", () => ({
-  csrfManager: {
-    clearToken: vi.fn(),
-    refreshFromResponse: vi.fn(),
-    getToken: vi.fn(() => "test-csrf-token"),
-    setToken: vi.fn(),
-  },
-}));
+// Partial mock of @/shared/auth-core/src — keep the real re-exports (e.g. checkPermission
+// types may be used by the store) while overriding only csrfManager with test doubles.
+vi.mock("@/shared/auth-core/src", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/auth-core/src")>();
+  return {
+    ...actual,
+    csrfManager: {
+      clearToken: vi.fn(),
+      refreshFromResponse: vi.fn(),
+      getToken: vi.fn(() => "test-csrf-token"),
+      setToken: vi.fn(),
+    },
+  };
+});
 
 const mockUser: User = {
   id: "1",

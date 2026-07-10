@@ -135,7 +135,7 @@ const subscriptions = new Map<string, StompSubscription>();
  * Get CSRF token — delegates to the canonical implementation in csrf.ts
  * which supports both in-memory and cookie-based token storage.
  */
-import { getCsrfToken } from "@/utils/csrf";
+import { getCsrfToken } from "@/shared/auth-core/src";
 
 function createSocketManager(): SocketManager {
   let client: Client | null = null;

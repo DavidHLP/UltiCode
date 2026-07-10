@@ -20,10 +20,44 @@ export {
 } from './cookie';
 
 // CSRF token manager (survives page refresh via refreshFromResponse)
+import { createCsrfTokenManager as _createCsrfTokenManager, type CsrfTokenManager } from './csrf';
 export {
   createCsrfTokenManager,
   type CsrfTokenManager,
 } from './csrf';
+
+// Lazy memo singleton — every `import { csrfManager } from '@/shared/auth-core/src'`
+// binds to the same instance, so `csrfManager.setToken(...)` from one caller is
+// `csrfManager.getToken()` for the next. Replaces the per-app `utils/csrf.ts`
+// re-export shims that previously created independent instances (the root cause
+// of the `POST ... 403 CSRF token is required` regression in mgmt+console).
+//
+// Method forwarding is via closures so the proxy shape matches `CsrfTokenManager`
+// exactly; callers keep using `csrfManager.getToken()` / `.refreshFromResponse(...)`.
+let _csrfInstance: CsrfTokenManager | null = null;
+function _getCsrfSingleton(): CsrfTokenManager {
+  if (_csrfInstance === null) {
+    _csrfInstance = _createCsrfTokenManager();
+  }
+  return _csrfInstance;
+}
+export const csrfManager: CsrfTokenManager = {
+  getToken: () => _getCsrfSingleton().getToken(),
+  setToken: (token) => _getCsrfSingleton().setToken(token),
+  clearToken: () => _getCsrfSingleton().clearToken(),
+  refreshFromResponse: (response) => _getCsrfSingleton().refreshFromResponse(response),
+};
+// Convenience wrappers preserved so legacy `import { getCsrfToken } from '...utils/csrf'`
+// call sites (socket.ts, useContestSocket.ts) migrate with one import-path change.
+export function getCsrfToken(): string | null {
+  return csrfManager.getToken();
+}
+export function setCsrfToken(token: string): void {
+  csrfManager.setToken(token);
+}
+export function clearCsrfToken(): void {
+  csrfManager.clearToken();
+}
 
 // Auth state machine
 export {

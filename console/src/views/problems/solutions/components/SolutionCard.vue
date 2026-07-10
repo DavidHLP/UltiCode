@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
 import { resolveVoteCounts } from "@/utils/vote";
-import { formatRelativeTime } from "@/utils/date";
+import { formatRelativeTime } from "@/shared/datetime-utils/src";
 import { useI18n } from "vue-i18n";
 import { ThumbsUp, Eye, MessageSquare } from "lucide-vue-next";
 import { useAvatar } from "@/composables/useAvatar";

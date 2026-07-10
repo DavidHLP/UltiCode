@@ -17,7 +17,7 @@ import {
 import { toast } from "vue-sonner";
 import { Clock, Trophy } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
-import { formatPenaltyTime } from "@/utils/date";
+import { formatPenaltyTime } from "@/shared/datetime-utils/src";
 
 const contestStore = useVirtualContestStore();
 const { t } = useI18n();

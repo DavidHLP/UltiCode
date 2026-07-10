@@ -33,7 +33,7 @@ import {
 import ReportDialog from "@/components/ReportDialog.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatar } from "@/composables/useAvatar";
-import { formatRelativeTime } from "@/utils/date";
+import { formatRelativeTime } from "@/shared/datetime-utils/src";
 
 const route = useRoute();
 const router = useRouter();

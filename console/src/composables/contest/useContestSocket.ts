@@ -4,7 +4,7 @@ import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import type { RankingEntry } from "@/types/contest";
-import { getCsrfToken } from "@/utils/csrf";
+import { getCsrfToken } from "@/shared/auth-core/src";
 
 // ============================================================================
 // TYPES

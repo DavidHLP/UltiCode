@@ -11,7 +11,7 @@
  *
  * See `/tmp/architecture-review-1783341079.html` Card 2.
  */
-import { csrfManager } from '@/utils/csrf'
+import { csrfManager } from '@/shared/auth-core/src'
 import { createHttpClient } from '@/shared/http-client/src'
 import { getActiveLocale } from '@/i18n/utils/locale'
 

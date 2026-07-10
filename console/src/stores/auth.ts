@@ -1,5 +1,10 @@
 import { defineStore } from "pinia";
-import { checkPermission, checkRole, checkAnyRole } from "@/shared/auth-core/src";
+import {
+  checkPermission,
+  checkRole,
+  checkAnyRole,
+  csrfManager,
+} from "@/shared/auth-core/src";
 import { ref, computed } from "vue";
 import type {
   User,
@@ -8,7 +13,6 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager } from "@/utils/csrf";
 
 const isDevelopment = import.meta.env.DEV;
 

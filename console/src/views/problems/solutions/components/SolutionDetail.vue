@@ -20,7 +20,7 @@ import { vote, VoteTargetType } from "@/api/vote";
 import { PostActions } from "@/components/edge-operations";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
-import { formatRelativeTime } from "@/utils/date";
+import { formatRelativeTime } from "@/shared/datetime-utils/src";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2, Flag, List } from "lucide-vue-next";

@@ -2,7 +2,7 @@ import { createI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import zhCN from './locales/zh-CN/'
 import enUS from './locales/en-US/'
-import { getStoredLocale, setStoredLocale, setStorageNotifier } from '@/shared/i18n-storage/src'
+import { getStoredLocale, setStoredLocale, setStorageNotifier } from '@/shared/locale-preference/src'
 
 setStorageNotifier((level, message) => {
   if (level === 'warning') toast.warning(message)

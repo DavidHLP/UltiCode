@@ -1,15 +1,36 @@
 /**
- * Enhanced locale storage with fallback mechanism
- * Supports: localStorage -> sessionStorage -> in-memory storage
+ * Deep locale-preference module — owns the whole locale-change lifecycle:
+ * switch → persist → fallback → notify → DOM language.
  *
- * Extracted from byte-identical copies in console + management (arch review #2).
- * UI notifications (toast) are injected by the consuming app via setStorageNotifier.
+ * Collapses the pre-2026-07-10 split where two shallow shared packages
+ * jointly owned one lifecycle: {@code @ulticode/i18n-storage} (persist +
+ * fallback + toast) and {@code @ulticode/locale-composable} (switch + DOM
+ * language, which reached across to call {@code setStoredLocale}). One user
+ * action crossed every shallow module, and the switching layer depended on
+ * the storage layer via a bare {@code @ulticode/i18n-storage} specifier with
+ * no tsconfig mapping — fragile resolution that this merge removes.
+ *
+ * The app variation that is genuinely per-app (management's backend
+ * {@code PUT /users/me} sync) stays an adapter: the app passes an
+ * {@link UseLocaleDependencies.onLocaleChange} hook. Everything else —
+ * storage layer detection, localized fallback messages, DOM
+ * {@code document.documentElement.lang} sync, toggle — lives here.
+ *
+ * Arch review 2026-07-10, candidate #3 ("Collapse locale preference into
+ * one module"). UI toast injection stays via {@link setStorageNotifier}
+ * (called once per app bootstrap).
  */
+
+import { computed, type ComputedRef } from 'vue'
+
+// ---------------------------------------------------------------------------
+// Public type
+// ---------------------------------------------------------------------------
 
 export type SupportedLocale = 'en-US' | 'zh-CN'
 
 // ---------------------------------------------------------------------------
-// Constants & state
+// Storage constants & state
 // ---------------------------------------------------------------------------
 
 const LOCALE_STORAGE_KEY = 'ulticode-locale'
@@ -152,7 +173,7 @@ function initializeStorage(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Public storage API (also used at app bootstrap to seed vue-i18n)
 // ---------------------------------------------------------------------------
 
 export function getStoredLocale(): string | null {
@@ -195,5 +216,87 @@ export function setStoredLocale(locale: string): void {
         console.error('All storage layers failed:', retryError)
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Locale switching (the composable layer, now in the same module as storage)
+// ---------------------------------------------------------------------------
+
+export interface UseLocaleDependencies<L extends string, C = unknown> {
+  /** The vue-i18n locale ref (from useI18n().locale). */
+  locale: { value: string }
+  /** All locale codes the app supports. */
+  supported: readonly L[]
+  /** Per-locale metadata for display (label, flag, nativeName, etc.). */
+  configs: Record<L, C>
+  /**
+   * Optional side-effect after a locale change (e.g. management's
+   * `apiPatch('/users/me', { locale })` call). This is the only per-app
+   * variation; everything else in the lifecycle lives in this module.
+   */
+  onLocaleChange?: (locale: L) => void
+}
+
+export interface UseLocaleReturn<L extends string, C = unknown> {
+  locale: ComputedRef<L>
+  localeConfig: ComputedRef<C | undefined>
+  availableLocales: ComputedRef<C[]>
+  setLocale: (newLocale: L) => void
+  toggleLocale: () => void
+  isCurrentLocale: (localeCode: L) => boolean
+}
+
+export function createUseLocale<L extends string, C = unknown>(
+  deps: UseLocaleDependencies<L, C>,
+): UseLocaleReturn<L, C> {
+  const { locale, supported, configs, onLocaleChange } = deps
+
+  const currentLocale = computed<L>(() => locale.value as L)
+
+  const currentLocaleConfig = computed<C | undefined>(
+    () => (configs[currentLocale.value as L] ?? undefined) as C | undefined,
+  )
+
+  const availableLocales = computed<C[]>(
+    () => supported.map((code) => configs[code] as C),
+  )
+
+  function setLocale(newLocale: L): void {
+    if (!supported.includes(newLocale)) {
+      return
+    }
+    locale.value = newLocale
+    setStoredLocale(newLocale)
+    document.documentElement.lang = newLocale
+    if (onLocaleChange) {
+      try {
+        onLocaleChange(newLocale)
+      } catch {
+        // Side-effect failure should not block locale change
+      }
+    }
+  }
+
+  function toggleLocale(): void {
+    const currentIndex = supported.indexOf(currentLocale.value as L)
+    const nextIndex = (currentIndex + 1) % supported.length
+    const nextLocale = supported[nextIndex]
+    if (nextLocale) {
+      setLocale(nextLocale)
+    }
+  }
+
+  function isCurrentLocale(localeCode: L): boolean {
+    return currentLocale.value === localeCode
+  }
+
+  return {
+    locale: currentLocale,
+    localeConfig: currentLocaleConfig,
+    availableLocales,
+    setLocale,
+    toggleLocale,
+    isCurrentLocale,
   }
 }

@@ -1,9 +1,10 @@
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale, type LocaleConfig } from '@/i18n'
-import { createUseLocale } from '@/shared/locale-composable/src'
+import { createUseLocale } from '@/shared/locale-preference/src'
 
 /**
- * Console locale composable — delegates to shared locale-composable.
+ * Console locale composable — delegates to the shared locale-preference
+ * module; console has no backend locale sync, so no onLocaleChange adapter.
  */
 export function useLocale() {
   const { locale, t, te, tm, rt, n, d } = useI18n()

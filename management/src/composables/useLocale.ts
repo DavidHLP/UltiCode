@@ -1,11 +1,12 @@
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale, type LocaleConfig } from '@/i18n'
-import { createUseLocale } from '@/shared/locale-composable/src'
+import { createUseLocale } from '@/shared/locale-preference/src'
 import { apiPatch } from '@/utils/request'
 
 /**
- * Management locale composable — delegates to shared locale-composable.
- * Adds backend API sync via the onLocaleChange hook.
+ * Management locale composable — delegates to the shared locale-preference
+ * module. Backend API sync is the one per-app variation, supplied as the
+ * onLocaleChange adapter hook.
  */
 export function useLocale() {
   const { locale, t, te, tm, rt, n, d } = useI18n()

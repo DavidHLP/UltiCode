@@ -11,9 +11,8 @@
     "../shared/sidebar-menu/src/**/*.vue",
     "../shared/markdown-utils/src/**/*",
     "../shared/http-client/src/**/*",
-    "../shared/i18n-storage/src/**/*",
+    "../shared/locale-preference/src/**/*",
     "../shared/datetime-utils/src/**/*",
-    "../shared/locale-composable/src/**/*",
     "../shared/badge-config/src/**/*",
     "../shared/domain-types/src/**/*"
   ],

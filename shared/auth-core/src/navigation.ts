@@ -224,7 +224,16 @@ export interface VueRouterTo {
 
 export interface InstallAuthNavigationOptions {
   router: VueRouterLike;
-  auth: NavigationAuthAdapter;
+  /**
+   * Factory that returns the auth adapter. The factory is invoked lazily
+   * on every navigation so that store lookups (e.g. {@code useAuthStore()})
+   * happen AFTER Pinia has been installed by main.ts. Passing a
+   * pre-constructed adapter here would force the adapter to call
+   * {@code useAuthStore()} at router/index.ts module-eval time, which
+   * runs before {@code app.use(pinia)} and fails with
+   * "getActivePinia() was called but there was no active Pinia".
+   */
+  auth: () => NavigationAuthAdapter;
   policy: NavigationPolicyOptions;
   clock?: NavigationClock;
 }
@@ -238,7 +247,17 @@ export interface InstallAuthNavigationOptions {
 export function installAuthNavigation(
   options: InstallAuthNavigationOptions,
 ): NavigationPolicy {
-  const nav = createNavigationPolicy(options.auth, options.policy, options.clock);
+  // Resolve the auth adapter lazily on each navigation so that any
+  // Pinia store lookup inside the factory runs after `app.use(pinia)`.
+  const auth = () => options.auth();
+  const nav = createNavigationPolicy(
+    // Wrap each method so the factory is invoked on the first call.
+    // The auth adapter object itself is captured once per evaluation,
+    // so internal closures over `useAuthStore()` see a consistent store.
+    wrapAdapter(auth),
+    options.policy,
+    options.clock,
+  );
 
   options.router.beforeEach(async (to) => {
     const navId = nav.bump();
@@ -251,6 +270,23 @@ export function installAuthNavigation(
   });
 
   return nav;
+}
+
+/**
+ * Wrap an auth factory so {@link NavigationPolicy} can call it as if it
+ * were a regular {@link NavigationAuthAdapter}. The factory is invoked
+ * once per {@code evaluate(to)} call.
+ */
+function wrapAdapter(
+  factory: () => NavigationAuthAdapter,
+): NavigationAuthAdapter {
+  return {
+    status: () => factory().status(),
+    isAuthenticated: () => factory().isAuthenticated(),
+    waitForInitialization: () => factory().waitForInitialization(),
+    fetchUser: () => factory().fetchUser(),
+    ensureUser: () => factory().ensureUser(),
+  };
 }
 
 // Re-export the shared User type so apps don't have to chase the secondary

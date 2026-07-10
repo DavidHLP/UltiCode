@@ -374,9 +374,9 @@ function buildConsoleAuthAdapter() {
 // Install the shared navigation guard. We capture the returned policy so
 // tests (and the existing `pm2-logs`-style tooling) can introspect state
 // without reaching into router internals.
-const _consoleNavPolicy = installAuthNavigation({
+const _ = installAuthNavigation({
   router,
-  auth: buildConsoleAuthAdapter(),
+  auth: buildConsoleAuthAdapter,
   policy: {
     staleSessionMs: STALE_SESSION_MS,
     loginRouteName: "login",

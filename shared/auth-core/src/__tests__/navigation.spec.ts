@@ -298,7 +298,7 @@ describe('installAuthNavigation — vue-router adapter', () => {
 
     installAuthNavigation({
       router,
-      auth,
+      auth: () => auth,
       policy: defaultPolicy,
       clock: makeFakeClock(),
     });
@@ -325,7 +325,7 @@ describe('installAuthNavigation — vue-router adapter', () => {
 
     installAuthNavigation({
       router,
-      auth,
+      auth: () => auth,
       policy: defaultPolicy,
       clock: makeFakeClock(),
     });
@@ -358,7 +358,7 @@ describe('installAuthNavigation — vue-router adapter', () => {
 
     const nav = installAuthNavigation({
       router,
-      auth,
+      auth: () => auth,
       policy: defaultPolicy,
       clock: makeFakeClock(),
     });
@@ -390,7 +390,7 @@ describe('installAuthNavigation — vue-router adapter', () => {
 
     installAuthNavigation({
       router,
-      auth,
+      auth: () => auth,
       policy: defaultPolicy,
       clock: makeFakeClock(),
     });

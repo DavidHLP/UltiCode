@@ -378,7 +378,7 @@ function buildManagementAuthAdapter() {
 
 installAuthNavigation({
   router,
-  auth: buildManagementAuthAdapter(),
+  auth: buildManagementAuthAdapter,
   policy: {
     staleSessionMs: STALE_SESSION_MS,
     loginRouteName: 'login',

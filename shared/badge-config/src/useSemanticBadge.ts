@@ -1,5 +1,5 @@
 import { h, type VNode } from 'vue'
-import { cn } from './utils/cn'
+import { joinClasses } from './utils/cn'
 import type { BadgeOptions, SemanticColor } from './semantic-colors'
 
 const COLOR_CLASS_MAP: Record<SemanticColor, string> = {
@@ -41,7 +41,7 @@ export function badge(options: BadgeOptions): VNode {
   if (dot) {
     children.push(
       h('span', {
-        class: cn(
+        class: joinClasses(
           'w-1.5 h-1.5 rounded-full shrink-0',
           DOT_COLOR_MAP[color],
           pulse && 'animate-pulse-subtle',
@@ -59,7 +59,7 @@ export function badge(options: BadgeOptions): VNode {
   return h(
     'span',
     {
-      class: cn(
+      class: joinClasses(
         'terminal-badge inline-flex items-center gap-1.5',
         COLOR_CLASS_MAP[color],
         SIZE_CLASSES[size],

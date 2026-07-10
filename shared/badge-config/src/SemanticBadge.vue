@@ -6,7 +6,7 @@
  * Uses `.terminal-badge-{color}` CSS classes for consistent styling.
  */
 import type { SemanticColor } from './semantic-colors'
-import { cn } from './utils/cn'
+import { joinClasses } from './utils/cn'
 
 withDefaults(
   defineProps<{
@@ -54,7 +54,7 @@ const SIZE_CLASSES = {
 <template>
   <span
     :class="
-      cn(
+      joinClasses(
         'terminal-badge inline-flex items-center gap-1.5',
         COLOR_CLASS_MAP[color],
         SIZE_CLASSES[size],
@@ -65,7 +65,7 @@ const SIZE_CLASSES = {
     <span
       v-if="dot"
       :class="
-        cn(
+        joinClasses(
           'w-1.5 h-1.5 rounded-full shrink-0',
           DOT_COLOR_MAP[color],
           pulse && 'animate-pulse-subtle',

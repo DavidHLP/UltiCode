@@ -6,7 +6,6 @@
  */
 export { default as SemanticBadge } from "@/shared/badge-config/src/SemanticBadge.vue";
 export { badge } from "@/shared/badge-config/src/useSemanticBadge";
-export { cn } from "@/shared/badge-config/src/utils/cn";
 export type {
   SemanticColor,
   BadgeOptions,

@@ -12,4 +12,4 @@ export {
   getAuditActionColor,
 } from './color-maps'
 export { badge } from './useSemanticBadge'
-export { cn } from './utils/cn'
+export { joinClasses } from './utils/cn'

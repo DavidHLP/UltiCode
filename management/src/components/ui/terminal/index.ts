@@ -12,7 +12,6 @@ export { default as DataBlock } from './DataBlock.vue'
 
 export { default as SemanticBadge } from '@/shared/badge-config/src/SemanticBadge.vue'
 export { badge } from '@/shared/badge-config/src/useSemanticBadge'
-export { cn } from '@/shared/badge-config/src/utils/cn'
 export type { SemanticColor, BadgeOptions } from '@/shared/badge-config/src/semantic-colors'
 export {
   DIFFICULTY_COLOR_MAP,

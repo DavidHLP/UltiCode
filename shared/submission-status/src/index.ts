@@ -2,16 +2,16 @@
  * submission-status — the single source of truth linking sandbox verdicts
  * to badge colors.
  *
- * Before this module existed, {@code shared/badge-config/SUBMISSION_STATUS_COLOR_MAP}
- * used UPPERCASE_UNDERSCORE keys and {@code shared/sandbox-types/DFormVerdict}
- * used 'Title Case Space' values. They were unlinked: adding a new verdict
- * could silently produce a colorless badge. This module closes that seam.
+ * History: badge-config previously owned a SUBMISSION_STATUS_COLOR_MAP keyed
+ * by UPPERCASE_UNDERSCORE while sandbox-types/DFormVerdict used 'Title Case
+ * Space' values. They were unlinked — adding a verdict could silently render
+ * a colorless badge. This module is now the sole owner of the verdict→color
+ * truth; the legacy map was removed once all UI callers migrated here.
  *
  * Architecture review candidate #8 — shared-package contract test.
  */
 
 import type { DFormVerdict } from '@ulticode/sandbox-types'
-import { SUBMISSION_STATUS_COLOR_MAP } from '@ulticode/badge-config'
 import type { SemanticColor } from '@ulticode/badge-config'
 
 /**
@@ -72,6 +72,33 @@ export function verdictToStatusKey(verdict: DFormVerdict): string {
   return VERDICT_TO_STATUS_KEY[verdict]
 }
 
-// Re-export for consumers that want the original color map alongside the
-// verdict-keyed version.
-export { SUBMISSION_STATUS_COLOR_MAP }
+/**
+ * Reverse lookup — UPPERCASE status key → verdict, derived from
+ * VERDICT_TO_STATUS_KEY so there is a single source of truth.
+ */
+const STATUS_KEY_TO_VERDICT = new Map<string, DFormVerdict>(
+  (Object.entries(VERDICT_TO_STATUS_KEY) as [DFormVerdict, string][]).map(
+    ([verdict, key]) => [key, verdict],
+  ),
+)
+
+/**
+ * Normalize a submission status string (any casing) to the UPPERCASE_UNDERSCORE
+ * status key. Backend status values arrive in mixed casings ("Accepted",
+ * "WRONG ANSWER", "wrong_answer"); this yields one canonical key for both color
+ * lookup and i18n labels.
+ */
+export function normalizeStatusKey(status: string): string {
+  return status.toUpperCase().replace(/\s+/g, '_')
+}
+
+/**
+ * Get the badge color for a submission status string in any casing. This is the
+ * UI-facing entry point — it replaces the legacy per-app
+ * SUBMISSION_STATUS_COLOR_MAP[normalized] lookups. Covers all 12 verdicts;
+ * unknown statuses fall back to 'neutral'.
+ */
+export function getStatusColor(status: string): SemanticColor {
+  const verdict = STATUS_KEY_TO_VERDICT.get(normalizeStatusKey(status))
+  return verdict ? getVerdictColor(verdict) : 'neutral'
+}

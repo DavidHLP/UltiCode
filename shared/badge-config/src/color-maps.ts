@@ -72,19 +72,6 @@ export const MODERATION_STATUS_COLOR_MAP: Record<string, SemanticColor> = {
   APPEAL_PENDING: 'purple',
 }
 
-// ─── Submission Status ─────────────────────────────────────
-
-export const SUBMISSION_STATUS_COLOR_MAP: Record<string, SemanticColor> = {
-  ACCEPTED: 'success',
-  PENDING: 'warning',
-  JUDGING: 'warning',
-  WRONG_ANSWER: 'error',
-  TIME_LIMIT_EXCEEDED: 'error',
-  MEMORY_LIMIT_EXCEEDED: 'error',
-  RUNTIME_ERROR: 'error',
-  COMPILE_ERROR: 'error',
-}
-
 // ─── Notification Type ─────────────────────────────────────
 
 export const NOTIFICATION_TYPE_COLOR_MAP: Record<string, SemanticColor> = {

@@ -24,16 +24,8 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty";
-import {
-  SemanticBadge,
-  SUBMISSION_STATUS_COLOR_MAP,
-  type SemanticColor,
-} from "@/components/ui/terminal";
-
-function getSubmissionColor(status: string): SemanticColor {
-  const normalized = status.toUpperCase().replace(/\s+/g, "_");
-  return SUBMISSION_STATUS_COLOR_MAP[normalized] ?? "neutral";
-}
+import { SemanticBadge } from "@/components/ui/terminal";
+import { getStatusColor } from "@/shared/submission-status/src";
 
 const props = defineProps<{
   submissions: SubmissionRecord[];
@@ -142,7 +134,7 @@ const showLoginPrompt = computed(
             >
               <TableCell class="font-medium">
                 <SemanticBadge
-                  :color="getSubmissionColor(submission.status)"
+                  :color="getStatusColor(submission.status)"
                   :label="getSubmissionLabel(submission.status)"
                   size="xs"
                 />

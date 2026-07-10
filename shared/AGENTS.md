@@ -11,7 +11,7 @@
 shared/
 ├── auth-core/          # Cookie, CSRF, auth-state machine, refresh coordinator, permissions
 ├── auth-ui/            # LoginForm, RegisterForm, AuthLayout + visual primitives
-├── badge-config/       # Color maps: SUBMISSION_STATUS_COLOR_MAP, DIFFICULTY_COLOR_MAP
+├── badge-config/       # Color maps: DIFFICULTY_COLOR_MAP, USER_STATUS/ROLE, badge()
 ├── datetime-utils/     # formatDate, formatDuration, relativeTime helpers
 ├── design-system/      # Design tokens (CSS-only package, no index.ts)
 ├── domain-types/       # PageResult<T>, Problem, Contest, Comment, ForumPost — cross-stack DTO contract
@@ -21,7 +21,7 @@ shared/
 ├── markdown-utils/     # renderMarkdown() + sanitizeHtml() (MarkdownIt + KaTeX + hljs + DOMPurify)
 ├── sandbox-types/      # DFormVerdict, OJDataType, DFormEnvelope (cross-language with docker/sandbox/)
 ├── sidebar-menu/       # SidebarMenuItem, SidebarGroupCollapsible types
-├── submission-status/  # VERDICT_TO_STATUS_KEY + VERDICT_COLOR_MAP
+├── submission-status/  # verdict→color truth: VERDICT_COLOR_MAP, getStatusColor()
 └── theme/              # ThemeMode, useTheme, typography density, FOUC bootstrap
 ```
 
@@ -36,8 +36,8 @@ shared/
 | `http-client` | `createHttpClient()` | Both apps (replaces duplicated `request.ts`) |
 | `markdown-utils` | `renderMarkdown()`, `sanitizeHtml()` | Both apps (owns sanitization pipeline) |
 | `sandbox-types` | `DFormVerdict`, `OJDataType`, `DFormEnvelope` | Both apps + `docker/sandbox/` contract |
-| `badge-config` | `SUBMISSION_STATUS_COLOR_MAP`, `DIFFICULTY_COLOR_MAP`, `badge()` | Both apps (console 5 consumers, management 29 — volume asymmetry reflects app surface, not missing adoption) |
-| `submission-status` | `VERDICT_TO_STATUS_KEY`, `VERDICT_COLOR_MAP`, `getVerdictColor()` | Both apps |
+| `badge-config` | `DIFFICULTY_COLOR_MAP`, `USER_STATUS_COLOR_MAP`, `badge()` | Both apps (console 5 consumers, management 29 — volume asymmetry reflects app surface, not missing adoption) |
+| `submission-status` | `VERDICT_COLOR_MAP`, `getVerdictColor()`, `getStatusColor()`, `normalizeStatusKey()` | Both apps (submission badge color — sole owner after badge-config map removal) |
 | `sidebar-menu` | `SidebarMenuItem`, `SidebarMenuSubItem`, `SidebarGroupCollapsible` | Both apps |
 | `datetime-utils` | `formatDate`, `formatDuration`, `relativeTime` helpers | Both apps (thin — 1 consumer each, justifies seam for consistent date formatting) |
 | `i18n-storage` | Persisted translation-key storage backend | Both apps (infrastructure singleton for locale persistence) |

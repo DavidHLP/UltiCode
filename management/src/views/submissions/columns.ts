@@ -1,7 +1,8 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SubmissionListItem } from '@/api/admin/submissions'
 import { Checkbox } from '@/components/ui/checkbox'
-import { badge, SUBMISSION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import { badge } from '@/components/ui/terminal'
+import { getStatusColor, normalizeStatusKey } from '@/shared/submission-status/src'
 import { Button } from '@/components/ui/button'
 import { IconEye, IconRefresh } from '@tabler/icons-vue'
 import { h } from 'vue'
@@ -13,20 +14,11 @@ export interface SubmissionActions {
 }
 
 /**
- * Normalize submission status to uppercase with underscores for consistent lookup
- * Backend may return lowercase or mixed case status values with spaces
- * e.g., "WRONG ANSWER" -> "WRONG_ANSWER"
- */
-function normalizeStatus(status: string): string {
-  return status.toUpperCase().replace(/\s+/g, '_')
-}
-
-/**
  * Get translated status label with fallback to original status
  * Handles cases where i18n key might not exist
  */
 function getStatusLabel(t: (key: string) => string, status: string): string {
-  const normalizedStatus = normalizeStatus(status)
+  const normalizedStatus = normalizeStatusKey(status)
   const key = `submissions.statusLabels.${normalizedStatus}`
   const translated = t(key)
   // If translation returns the key itself, it means translation is missing
@@ -125,9 +117,9 @@ export function createColumns(
       accessorKey: 'status',
       header: () => t('submissions.status'),
       cell: ({ row }) => {
-        const normalizedStatus = normalizeStatus(row.original.status)
+        const normalizedStatus = normalizeStatusKey(row.original.status)
         return badge({
-          color: SUBMISSION_STATUS_COLOR_MAP[normalizedStatus] ?? 'neutral',
+          color: getStatusColor(row.original.status),
           label: getStatusLabel(t, row.original.status),
           pulse: normalizedStatus === 'PENDING' || normalizedStatus === 'JUDGING',
         })

@@ -5,7 +5,8 @@ import {
   VERDICT_COLOR_MAP,
   getVerdictColor,
   verdictToStatusKey,
-  SUBMISSION_STATUS_COLOR_MAP,
+  normalizeStatusKey,
+  getStatusColor,
 } from './index'
 
 /**
@@ -94,33 +95,41 @@ describe('submission-status contract', () => {
     })
   })
 
-  describe('cross-package consistency with SUBMISSION_STATUS_COLOR_MAP', () => {
-    /**
-     * For every verdict whose status key EXISTS in the original
-     * SUBMISSION_STATUS_COLOR_MAP, the color must match.
-     *
-     * Verdicts that were newly added (Output Limit Exceeded, Presentation
-     * Error, System Error, Sandbox Error) have no entry in the original map
-     * — that gap is what this module fills.
-     */
-    it('should agree with SUBMISSION_STATUS_COLOR_MAP on shared keys', () => {
-      for (const verdict of ALL_VERDICTS) {
-        const statusKey = VERDICT_TO_STATUS_KEY[verdict]
-        const originalColor = SUBMISSION_STATUS_COLOR_MAP[statusKey]
+  describe('normalizeStatusKey', () => {
+    it('should normalize mixed casings to UPPERCASE_UNDERSCORE', () => {
+      expect(normalizeStatusKey('Accepted')).toBe('ACCEPTED')
+      expect(normalizeStatusKey('accepted')).toBe('ACCEPTED')
+      expect(normalizeStatusKey('Wrong Answer')).toBe('WRONG_ANSWER')
+      expect(normalizeStatusKey('WRONG ANSWER')).toBe('WRONG_ANSWER')
+      expect(normalizeStatusKey('wrong_answer')).toBe('WRONG_ANSWER')
+      expect(normalizeStatusKey('Time Limit Exceeded')).toBe('TIME_LIMIT_EXCEEDED')
+    })
+  })
 
-        if (originalColor !== undefined) {
-          // The original map has this key — colors must match
-          expect(VERDICT_COLOR_MAP[verdict]).toBe(originalColor)
-        }
-      }
+  describe('getStatusColor', () => {
+    it('should accept any casing and return the verdict color', () => {
+      expect(getStatusColor('Accepted')).toBe('success')
+      expect(getStatusColor('ACCEPTED')).toBe('success')
+      expect(getStatusColor('Wrong Answer')).toBe('error')
+      expect(getStatusColor('wrong_answer')).toBe('error')
+      expect(getStatusColor('Runtime Error')).toBe('error')
+      expect(getStatusColor('Judging')).toBe('warning')
+      expect(getStatusColor('Pending')).toBe('warning')
     })
 
-    it('should cover all keys in SUBMISSION_STATUS_COLOR_MAP', () => {
-      // Every key in the original color map should map back to a verdict
-      const statusKeys = Object.values(VERDICT_TO_STATUS_KEY)
-      for (const key of Object.keys(SUBMISSION_STATUS_COLOR_MAP)) {
-        expect(statusKeys).toContain(key)
-      }
+    it('should cover verdicts the legacy map missed', () => {
+      // These four were absent from the old SUBMISSION_STATUS_COLOR_MAP and
+      // previously fell back to 'neutral'; they now resolve to a real color.
+      expect(getStatusColor('Output Limit Exceeded')).toBe('error')
+      expect(getStatusColor('Presentation Error')).toBe('warning')
+      // System/Sandbox Error are intentionally 'neutral' per VERDICT_COLOR_MAP.
+      expect(getStatusColor('System Error')).toBe('neutral')
+      expect(getStatusColor('Sandbox Error')).toBe('neutral')
+    })
+
+    it('should fall back to neutral for unknown statuses', () => {
+      expect(getStatusColor('UNKNOWN_STATUS')).toBe('neutral')
+      expect(getStatusColor('')).toBe('neutral')
     })
   })
 

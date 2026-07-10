@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import SolutionCard from "./components/SolutionCard.vue";
-import Separator from "@/components/ui/separator/Separator.vue";
+import Separator from "@/components/ui/separator";
 import Badge from "@/components/ui/badge/Badge.vue";
 import {
   Search,

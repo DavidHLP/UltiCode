@@ -1,0 +1,45 @@
+{
+  "name": "@ulticode/design-system",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./components/separator": {
+      "import": "./src/components/separator/index.ts",
+      "types": "./src/components/separator/index.ts"
+    },
+    "./components/separator/Separator.vue": {
+      "import": "./src/components/separator/Separator.vue"
+    },
+    "./utils/cn": {
+      "import": "./src/utils/cn.ts",
+      "types": "./src/utils/cn.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "vue-tsc --build"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0",
+    "reka-ui": "^2.9.0"
+  },
+  "dependencies": {
+    "@vueuse/core": "^14.1.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.0",
+    "vue": "^3.5.0",
+    "vue-tsc": "^2.1.10"
+  }
+}

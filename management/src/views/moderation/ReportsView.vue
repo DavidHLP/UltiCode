@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { useDebounceFn } from '@vueuse/core'
-import type { PaginationState } from '@tanstack/vue-table'
 
 import { Button } from '@/components/ui/button'
 import { IconRefresh, IconAlertTriangle } from '@tabler/icons-vue'
@@ -18,7 +16,9 @@ import {
   ReportStatus,
   ReportCategory,
   type ModeratableEntityType,
+  type QueryReportsParams,
 } from '@/api/admin/moderation'
+import { useDataTable } from '@/composables/useDataTable'
 import { createReportsColumns, type ReportActions } from './reports-columns'
 
 const { t } = useI18n()
@@ -26,21 +26,16 @@ const router = useRouter()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
-const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: 20 })
-const searchQuery = ref('')
 
 // Filters
 const statusFilter = ref<ReportStatus | 'all'>('all')
 const categoryFilter = ref<ReportCategory | 'all'>('all')
 const entityTypeFilter = ref<ModeratableEntityType | 'all'>('all')
 
-const selectedRows = ref<Report[]>([])
-
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
-  loadData()
 })
 
 // Stats
@@ -119,47 +114,50 @@ const filters = computed<Filter[]>(() => [
   },
 ])
 
-// Debounced search
-const debouncedSearch = useDebounceFn(() => {
-  pagination.value.pageIndex = 0
-  loadData()
-}, 300)
-
-watch(
-  () => pagination.value.pageIndex,
-  () => loadData(),
-)
-watch(
-  () => pagination.value.pageSize,
-  () => {
-    pagination.value.pageIndex = 0
-    loadData()
+const {
+  searchQuery,
+  tablePagination,
+  selectedRows,
+  loading,
+  data,
+  total,
+  loadEntities: loadReports,
+} = useDataTable<
+  Report,
+  {
+    status: ReportStatus | 'all'
+    category: ReportCategory | 'all'
+    entityType: ModeratableEntityType | 'all'
   },
-)
-watch(searchQuery, () => debouncedSearch())
-watch([statusFilter, categoryFilter, entityTypeFilter], () => {
-  pagination.value.pageIndex = 0
-  loadData()
+  QueryReportsParams
+>({
+  store: {
+    data: computed(() => store.reports),
+    total: computed(() => store.reportsTotal),
+    isLoading: computed(() => store.reportsLoading),
+    error: computed(() => store.reportsError),
+    fetch: (params) => store.fetchReports(params),
+  },
+  filters: () => ({
+    status: statusFilter.value,
+    category: categoryFilter.value,
+    entityType: entityTypeFilter.value,
+  }),
+  transformParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+    category: filters.category === 'all' ? undefined : filters.category,
+    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
 })
-
-async function loadData() {
-  await store.fetchReports({
-    page: pagination.value.pageIndex + 1,
-    limit: pagination.value.pageSize,
-    status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-    category: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
-    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-  })
-}
 
 function handleFilterUpdate(index: number, value: string | number) {
   if (index === 0) statusFilter.value = value as ReportStatus | 'all'
   else if (index === 1) categoryFilter.value = value as ReportCategory | 'all'
   else if (index === 2) entityTypeFilter.value = value as ModeratableEntityType | 'all'
-}
-
-function handleRefresh() {
-  loadData()
 }
 </script>
 
@@ -181,10 +179,10 @@ function handleRefresh() {
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
-          @click="handleRefresh"
-          :disabled="store.reportsLoading"
+          @click="loadReports"
+          :disabled="loading"
         >
-          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': store.reportsLoading }]" />
+          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
       </div>
@@ -226,12 +224,12 @@ function handleRefresh() {
     >
       <DataTable
         :columns="columns"
-        :data="store.reports"
-        :pagination="pagination"
-        :row-count="store.reportsTotal"
-        :loading="store.reportsLoading"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
         v-model:selected-rows="selectedRows"
-        @update:pagination="pagination = $event"
+        @update:pagination="tablePagination = $event"
         :empty-title="t('moderation.reports.emptyTitle')"
         :empty-description="t('moderation.reports.emptyDescription')"
         class="terminal-table"
@@ -241,8 +239,8 @@ function handleRefresh() {
             v-model:search-model-value="searchQuery"
             :search-placeholder="t('moderation.searchPlaceholder')"
             :filters="filters"
-            :loading="store.reportsLoading"
-            :on-refresh="handleRefresh"
+            :loading="loading"
+            :on-refresh="loadReports"
             @update:filter="handleFilterUpdate"
           />
         </template>

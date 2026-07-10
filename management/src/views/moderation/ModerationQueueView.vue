@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { useDebounceFn } from '@vueuse/core'
-import type { PaginationState } from '@tanstack/vue-table'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -34,7 +32,11 @@ import {
   type ModerationQueueItem,
   ModerationActionType,
   type ModeratableEntityType,
+  ModerationStatus,
+  ReportCategory,
+  type QueryModerationQueueParams,
 } from '@/api/admin/moderation'
+import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
 import BatchActionDialog from './components/BatchActionDialog.vue'
@@ -44,19 +46,14 @@ const router = useRouter()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
-const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: 20 })
-const searchQuery = ref('')
 
 const {
   statusFilter,
   categoryFilter,
   entityTypeFilter,
   buildFilters,
-  buildFilterParams,
   handleFilterUpdate,
 } = useModerationFilters()
-
-const selectedRows = ref<ModerationQueueItem[]>([])
 
 // Detail drawer state
 const drawerOpen = ref(false)
@@ -73,7 +70,6 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
-  loadData()
   store.fetchStats()
 })
 
@@ -113,30 +109,45 @@ const columns = computed(() => {
 
 const filters = buildFilters(t)
 
-// Debounced search
-const debouncedSearch = useDebounceFn(() => {
-  pagination.value.pageIndex = 0
-  loadData()
-}, 300)
-
-watch(
-  pagination,
-  () => {
-    loadData()
+const {
+  searchQuery,
+  tablePagination,
+  selectedRows,
+  loading,
+  data,
+  total,
+  loadEntities: loadQueue,
+} = useDataTable<
+  ModerationQueueItem,
+  {
+    status: ModerationStatus | 'all'
+    primaryCategory: ReportCategory | 'all'
+    entityType: ModeratableEntityType | 'all'
   },
-  { deep: true },
-)
-watch(searchQuery, () => {
-  debouncedSearch()
+  QueryModerationQueueParams
+>({
+  store: {
+    data: computed(() => store.queueItems),
+    total: computed(() => store.queueTotal),
+    isLoading: computed(() => store.queueLoading),
+    error: computed(() => store.queueError),
+    fetch: (params) => store.fetchQueue(params),
+  },
+  filters: () => ({
+    status: statusFilter.value,
+    primaryCategory: categoryFilter.value,
+    entityType: entityTypeFilter.value,
+  }),
+  transformParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+    primaryCategory: filters.primaryCategory === 'all' ? undefined : filters.primaryCategory,
+    entityType: filters.entityType === 'all' ? undefined : filters.entityType,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
 })
-watch([statusFilter, categoryFilter, entityTypeFilter], () => {
-  pagination.value.pageIndex = 0
-  loadData()
-})
-
-async function loadData() {
-  await store.fetchQueue(buildFilterParams(pagination.value))
-}
 
 async function handleQuickAction(id: string, action: ModerationActionType) {
   try {
@@ -180,7 +191,7 @@ async function handleDrawerSave() {
 }
 
 function handleRefresh() {
-  loadData()
+  loadQueue()
   store.fetchStats(true)
 }
 
@@ -190,7 +201,7 @@ function clearSelection() {
 
 function handleBatchComplete() {
   selectedRows.value = []
-  loadData()
+  loadQueue()
 }
 
 // Action options for drawer
@@ -270,9 +281,9 @@ const selectedActionOption = computed(() =>
           size="sm"
           class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
           @click="handleRefresh"
-          :disabled="store.queueLoading"
+          :disabled="loading"
         >
-          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': store.queueLoading }]" />
+          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
       </div>
@@ -375,12 +386,12 @@ const selectedActionOption = computed(() =>
     >
       <DataTable
         :columns="columns"
-        :data="store.queueItems"
-        :pagination="pagination"
-        :row-count="store.queueTotal"
-        :loading="store.queueLoading"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
         v-model:selected-rows="selectedRows"
-        @update:pagination="pagination = $event"
+        @update:pagination="tablePagination = $event"
         :empty-title="t('moderation.queue.emptyTitle')"
         :empty-description="t('moderation.queue.emptyDescription')"
         class="terminal-table"
@@ -390,7 +401,7 @@ const selectedActionOption = computed(() =>
             v-model:search-model-value="searchQuery"
             :search-placeholder="t('moderation.searchPlaceholder')"
             :filters="filters"
-            :loading="store.queueLoading"
+            :loading="loading"
             :on-refresh="handleRefresh"
             @update:filter="handleFilterUpdate"
           />

@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { useDebounceFn } from '@vueuse/core'
-import type { PaginationState } from '@tanstack/vue-table'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -22,20 +20,17 @@ import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 
 import { useModerationStore } from '@/stores/admin/moderation'
-import { type Appeal, AppealStatus } from '@/api/admin/moderation'
+import { type Appeal, AppealStatus, type QueryAppealsParams } from '@/api/admin/moderation'
+import { useDataTable } from '@/composables/useDataTable'
 import { createAppealsColumns, type AppealActions } from './appeals-columns'
 
 const { t } = useI18n()
 const store = useModerationStore()
 
 const isLoaded = ref(false)
-const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: 20 })
-const searchQuery = ref('')
 
 // Filters
 const statusFilter = ref<AppealStatus | 'all'>('all')
-
-const selectedRows = ref<Appeal[]>([])
 
 // Review dialog state
 const reviewDialogOpen = ref(false)
@@ -48,7 +43,6 @@ onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
-  loadData()
 })
 
 // Stats
@@ -100,36 +94,31 @@ const filters = computed<Filter[]>(() => [
   },
 ])
 
-// Debounced search
-const debouncedSearch = useDebounceFn(() => {
-  pagination.value.pageIndex = 0
-  loadData()
-}, 300)
-
-watch(
-  () => pagination.value.pageIndex,
-  () => loadData(),
-)
-watch(
-  () => pagination.value.pageSize,
-  () => {
-    pagination.value.pageIndex = 0
-    loadData()
+const {
+  searchQuery,
+  tablePagination,
+  selectedRows,
+  loading,
+  data,
+  total,
+  loadEntities: loadAppeals,
+} = useDataTable<Appeal, { status: AppealStatus | 'all' }, QueryAppealsParams>({
+  store: {
+    data: computed(() => store.appeals),
+    total: computed(() => store.appealsTotal),
+    isLoading: computed(() => store.appealsLoading),
+    error: computed(() => store.appealsError),
+    fetch: (params) => store.fetchAppeals(params),
   },
-)
-watch(searchQuery, () => debouncedSearch())
-watch(statusFilter, () => {
-  pagination.value.pageIndex = 0
-  loadData()
+  filters: () => ({ status: statusFilter.value }),
+  transformParams: ({ filters, page, limit }) => ({
+    page,
+    limit,
+    status: filters.status === 'all' ? undefined : filters.status,
+  }),
+  debounceMs: 300,
+  autoLoad: true,
 })
-
-async function loadData() {
-  await store.fetchAppeals({
-    page: pagination.value.pageIndex + 1,
-    limit: pagination.value.pageSize,
-    status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-  })
-}
 
 function handleFilterUpdate(index: number, value: string | number) {
   if (index === 0) statusFilter.value = value as AppealStatus | 'all'
@@ -161,10 +150,6 @@ async function handleReviewSubmit() {
     reviewLoading.value = false
   }
 }
-
-function handleRefresh() {
-  loadData()
-}
 </script>
 
 <template>
@@ -185,10 +170,10 @@ function handleRefresh() {
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
-          @click="handleRefresh"
-          :disabled="store.appealsLoading"
+          @click="loadAppeals"
+          :disabled="loading"
         >
-          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': store.appealsLoading }]" />
+          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
       </div>
@@ -230,12 +215,12 @@ function handleRefresh() {
     >
       <DataTable
         :columns="columns"
-        :data="store.appeals"
-        :pagination="pagination"
-        :row-count="store.appealsTotal"
-        :loading="store.appealsLoading"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
         v-model:selected-rows="selectedRows"
-        @update:pagination="pagination = $event"
+        @update:pagination="tablePagination = $event"
         :empty-title="t('moderation.appeals.emptyTitle')"
         :empty-description="t('moderation.appeals.emptyDescription')"
         class="terminal-table"
@@ -245,8 +230,8 @@ function handleRefresh() {
             v-model:search-model-value="searchQuery"
             :search-placeholder="t('moderation.searchPlaceholder')"
             :filters="filters"
-            :loading="store.appealsLoading"
-            :on-refresh="handleRefresh"
+            :loading="loading"
+            :on-refresh="loadAppeals"
             @update:filter="handleFilterUpdate"
           />
         </template>

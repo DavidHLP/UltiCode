@@ -1,5 +1,4 @@
 import { ref, computed } from 'vue'
-import type { PaginationState } from '@tanstack/vue-table'
 import {
   ModerationStatus,
   ReportCategory,
@@ -66,17 +65,6 @@ export function useModerationFilters() {
     ])
   }
 
-  // Build API filter params
-  function buildFilterParams(pagination: PaginationState) {
-    return {
-      page: pagination.pageIndex + 1,
-      limit: pagination.pageSize,
-      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-      primaryCategory: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
-      entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-    }
-  }
-
   function handleFilterUpdate(index: number, value: string | number) {
     if (index === 0) {
       statusFilter.value = value as ModerationStatus | 'all'
@@ -92,7 +80,6 @@ export function useModerationFilters() {
     categoryFilter,
     entityTypeFilter,
     buildFilters,
-    buildFilterParams,
     handleFilterUpdate,
   }
 }

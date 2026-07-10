@@ -46,6 +46,7 @@ vi.mock("@/stores/contest/contestStore", () => ({
 }));
 
 // Import after mocking
+import { Client } from "@stomp/stompjs";
 import { useContestSocket } from "../useContestSocket";
 
 describe("useContestSocket", () => {
@@ -182,6 +183,43 @@ describe("useContestSocket", () => {
         contestId: "",
         message: "Not in any contest room",
       });
+    });
+
+    it("joinContest while connecting never overwrites onConnect (uses the ready hook)", async () => {
+      // Regression for the pre-fix bug where joinContest reassigned
+      // client.onConnect, destroying the singleton's connect handler
+      // (status notification + broadcast subscription) and leaving the
+      // parallel "connected_once" callback as dead code.
+      const { connect, joinContest } = useContestSocket({ autoConnect: false });
+      connect(); // creates the singleton STOMP client (mock.connected = false)
+
+      const mockedClient = vi.mocked(Client);
+      const joinPromise = joinContest("contest-regression");
+
+      const instance = mockedClient.mock.results.at(-1)!.value as {
+        connected: boolean;
+        onConnect: unknown;
+        subscribe: ReturnType<typeof vi.fn>;
+        publish: ReturnType<typeof vi.fn>;
+      };
+      // joinContest must NOT reassign the instance onConnect.
+      expect(instance.onConnect).toBeNull();
+
+      // The singleton's onConnect (captured from the constructor config) is
+      // the only connect handler; firing it must drive performJoin via the
+      // ready hook.
+      const config = mockedClient.mock.calls.at(-1)![0] as {
+        onConnect: () => void;
+      };
+      config.onConnect();
+
+      const result = await joinPromise;
+      expect(result.success).toBe(true);
+      expect(instance.subscribe).toHaveBeenCalledWith(
+        "/topic/contest/contest-regression",
+        expect.any(Function),
+      );
+      expect(instance.publish).toHaveBeenCalled();
     });
   });
 });

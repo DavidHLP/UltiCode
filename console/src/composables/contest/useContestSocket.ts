@@ -223,6 +223,16 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
       if (broadcastSub) {
         subscriptions.set("broadcast", broadcastSub);
       }
+
+      // Fire one-shot room-lifecycle hooks. This client is the single owner
+      // of the connect handler — joinContest registers on the "ready" event
+      // instead of overwriting client.onConnect (the old override clobbered
+      // the status notification + broadcast subscription above, and the
+      // parallel "connected_once" callback was never fired — dead code).
+      const readyCallbacks = eventCallbacks.get("ready");
+      if (readyCallbacks) {
+        readyCallbacks.forEach((cb) => cb());
+      }
     },
     onDisconnect: () => {
       connectionStatus = "disconnected";
@@ -418,15 +428,23 @@ export function useContestSocket(
     return new Promise((resolve, reject) => {
       const client = getContestSocket(fullOptions);
 
+      // One-shot "ready" hook used only when the client is still connecting.
+      // The singleton's onConnect fires the "ready" set; we never overwrite
+      // client.onConnect (the old override destroyed status notification +
+      // the broadcast subscription, and the parallel "connected_once"
+      // callback was dead code).
+      let ready: ((...args: unknown[]) => void) | null = null;
       if (!client.connected) {
-        // Wait for connection
-        const onConnect = () => {
+        if (!eventCallbacks.has("ready")) {
+          eventCallbacks.set("ready", new Set());
+        }
+        ready = () => {
+          if (ready) {
+            eventCallbacks.get("ready")?.delete(ready);
+          }
           performJoin();
         };
-        eventCallbacks.set("connected_once", new Set([onConnect]));
-        client.onConnect = () => {
-          performJoin();
-        };
+        eventCallbacks.get("ready")!.add(ready);
       } else {
         performJoin();
       }
@@ -473,8 +491,12 @@ export function useContestSocket(
         });
       }
 
-      // Timeout after 10 seconds
+      // Timeout after 10 seconds; also drop the pending ready hook so a
+      // late connect cannot fire a stale join.
       setTimeout(() => {
+        if (ready) {
+          eventCallbacks.get("ready")?.delete(ready);
+        }
         reject(new Error("Connection timeout"));
       }, 10000);
     });

@@ -19,6 +19,7 @@
     "test": "vitest --run --passWithNoTests --exclude '**/shared/theme/**'",
     "test:watch": "vitest --passWithNoTests",
     "test:coverage": "vitest --coverage --passWithNoTests",
+    "sync:theme-bootstrap": "node ../scripts/sync-theme-bootstrap.mjs",
     "verify:theme-sync": "node ../scripts/verify-theme-sync.mjs",
     "verify:typography-tokens": "node ../scripts/verify-typography-tokens.mjs"
   },

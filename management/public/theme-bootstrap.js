@@ -1,11 +1,20 @@
 // ---------------------------------------------------------------------------
-// theme-bootstrap.js — runs in the HTML head to apply the persisted theme
-// BEFORE Vue/Vite bundles load. Eliminates the "white flash" on dark-mode
-// reloads. Mirrors the logic in shared/theme/src/applyThemeToDOM.ts so the
-// FOUC and post-mount paths cannot diverge.
+// theme-bootstrap.js — FOUC bootstrap (single source of truth).
 //
-// This file is plain ES module JavaScript (no TypeScript) because it lives
-// in the static `public/` directory and is served as-is by Vite.
+// Runs in the HTML head before the Vue/Vite bundle to apply the persisted
+// theme, eliminating the "white flash" on dark-mode reloads. Plain IIFE
+// JavaScript so Vite can serve it as <script src="…"> without a TS toolchain
+// in the critical render path.
+//
+// This file (shared/theme/bootstrap.js) is the CANONICAL SOURCE. The copies at
+// console/public/theme-bootstrap.js and management/public/theme-bootstrap.js
+// are regenerated from it by `pnpm sync:theme-bootstrap`
+// (scripts/sync-theme-bootstrap.mjs); `pnpm verify:theme-sync` fails CI if the
+// copies drift from this source. Edit here, then sync — never edit the copies.
+//
+// Logic mirrors shared/theme/src/applyThemeToDOM.ts (isDarkMode) and reads
+// THEME_STORAGE_KEY = 'ulticode-theme' (shared/theme/src/ThemeMode.ts). Those
+// TS modules own the runtime path; this owns the pre-bundle FOUC path.
 // ---------------------------------------------------------------------------
 ;(function () {
   'use strict'

@@ -1,8 +1,9 @@
 package com.ulticode.modules.websocket.interceptor;
 
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.contest.entity.ContestParticipant;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy;
+import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy.ContestSubscribeRequest;
+import com.ulticode.modules.contest.subscription.ContestSubscriptionPolicy.SubscriptionDecision;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import java.util.Map;
@@ -22,17 +23,22 @@ import org.springframework.stereotype.Component;
 /**
  * R6.4 / F-17: SUBSCRIBE-frame authorization for contest topics.
  *
- * <p>The handshake + JWT channel interceptor (F-17 partial) verifies the user
- * is authenticated, but every authenticated user can still attempt to
- * SUBSCRIBE to {@code /topic/contest/{id}}. This interceptor parses the
- * destination and rejects subscriptions where the user has no
- * {@code contest_participants} row (REGISTERED / STARTED / FINISHED) for
- * the requested contest. Virtual sessions are allowed if the user has any
- * virtual participant row (is_virtual=1) for the contest.
+ * <p>Thin STOMP adapter. Parses the STOMP destination, extracts the
+ * authenticated user from the session, and hands the request to
+ * {@link ContestSubscriptionPolicy}. The policy owns the eligibility
+ * rules; the interceptor only translates the policy verdict into a
+ * STOMP ERROR frame.
  *
  * <p>Failure mode: throws {@link WebSocketAuthenticationException}, which
  * Spring's STOMP adapter translates into a STOMP ERROR frame. The client
  * receives the error and disconnects.
+ *
+ * <p>Architecture-review candidate #6: the previous implementation held
+ * both the STOMP translation AND the {@code ContestParticipantMapper}
+ * lookup. Moving the lookup into
+ * {@link com.ulticode.modules.contest.subscription.DefaultContestSubscriptionPolicy}
+ * means the contest subscription rules can be tested without a STOMP
+ * broker and reused by any future transport (SSE, gRPC stream, etc.).
  */
 @Component
 public class ContestSubscribeAuthInterceptor implements ChannelInterceptor {
@@ -45,10 +51,10 @@ public class ContestSubscribeAuthInterceptor implements ChannelInterceptor {
     private static final Pattern CONTEST_TOPIC =
             Pattern.compile("^/topic/contest/([^/]+)(?:/.*)?$");
 
-    private final ContestParticipantMapper contestParticipantMapper;
+    private final ContestSubscriptionPolicy subscriptionPolicy;
 
-    public ContestSubscribeAuthInterceptor(ContestParticipantMapper contestParticipantMapper) {
-        this.contestParticipantMapper = contestParticipantMapper;
+    public ContestSubscribeAuthInterceptor(ContestSubscriptionPolicy subscriptionPolicy) {
+        this.subscriptionPolicy = subscriptionPolicy;
     }
 
     @Override
@@ -87,20 +93,24 @@ public class ContestSubscribeAuthInterceptor implements ChannelInterceptor {
                     ErrorCode.WEBSOCKET_UNAUTHORIZED, "Not authenticated");
         }
 
-        // Allow any participant row (real or virtual) for the contest.
-        // Public broadcast topics still go through (no contestId match).
-        Optional<ContestParticipant> participant = contestParticipantMapper
-                .findByContestIdAndUserId(contestId, user.userId());
-        if (participant.isEmpty()) {
-            log.warn("R6.4 / F-17: user {} denied SUBSCRIBE to {} (not registered)",
-                    user.userId(), destination);
-            throw new WebSocketAuthenticationException(
-                    ErrorCode.FORBIDDEN,
-                    "Not registered for contest " + contestId);
+        // Translate the STOMP frame into a transport-agnostic request and
+        // delegate the eligibility check to the policy module.
+        SubscriptionDecision decision = subscriptionPolicy.evaluate(
+                new ContestSubscribeRequest(
+                        user.userId(),
+                        destination,
+                        Optional.of(contestId)));
+
+        if (decision.verdict() != ContestSubscriptionPolicy.Verdict.ALLOW) {
+            ErrorCode code = decision.verdict() == ContestSubscriptionPolicy.Verdict.DENY_NOT_REGISTERED
+                    ? ErrorCode.FORBIDDEN
+                    : ErrorCode.WEBSOCKET_UNAUTHORIZED;
+            log.warn("R6.4 / F-17: user {} denied SUBSCRIBE to {} ({})",
+                    user.userId(), destination, decision.verdict());
+            throw new WebSocketAuthenticationException(code, decision.reason());
         }
 
-        log.debug("R6.4 / F-17: user {} allowed SUBSCRIBE to {} (isVirtual={})",
-                user.userId(), destination, participant.get().getIsVirtual());
+        log.debug("R6.4 / F-17: user {} allowed SUBSCRIBE to {}", user.userId(), destination);
         return message;
     }
 }

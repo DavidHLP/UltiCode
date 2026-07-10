@@ -27,6 +27,11 @@ export function useLocale() {
     setLocale: shared.setLocale,
     toggleLocale: shared.toggleLocale,
     isCurrentLocale: shared.isCurrentLocale,
-    t, te, tm, rt, n, d,
+    t,
+    te,
+    tm,
+    rt,
+    n,
+    d,
   }
 }

@@ -2,7 +2,11 @@ import { createI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import zhCN from './locales/zh-CN/'
 import enUS from './locales/en-US/'
-import { getStoredLocale, setStoredLocale, setStorageNotifier } from '@/shared/locale-preference/src'
+import {
+  getStoredLocale,
+  setStoredLocale,
+  setStorageNotifier,
+} from '@/shared/locale-preference/src'
 
 setStorageNotifier((level, message) => {
   if (level === 'warning') toast.warning(message)
@@ -11,12 +15,7 @@ setStorageNotifier((level, message) => {
 })
 
 // Re-export types and constants from types.ts (single source of truth)
-export {
-  SUPPORTED_LOCALES,
-  LOCALE_CONFIGS,
-  DEFAULT_LOCALE,
-  FALLBACK_LOCALE,
-} from './types'
+export { SUPPORTED_LOCALES, LOCALE_CONFIGS, DEFAULT_LOCALE, FALLBACK_LOCALE } from './types'
 
 export type { SupportedLocale, LocaleConfig, MessageSchema } from './types'
 

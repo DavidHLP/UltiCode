@@ -53,10 +53,6 @@ public interface CodeExecutionHelper {
      */
     Set<String> DFORM_SUPPORTED_LANGUAGES = Set.of("java", "python", "cpp");
 
-    String extractFunctionName(String code, String keyword);
-
-    String normalizeOutput(String output);
-
     long parseRuntimeMs(String runtime);
 
     String sanitizeSandboxOutput(String output);

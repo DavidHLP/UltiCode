@@ -189,32 +189,9 @@ class CodeExecutionHelperImplTest {
     }
 
     @Test
-    @DisplayName("extractFunctionName finds the user method name after a keyword")
-    void extractFunctionName_basic() {
-        // The identifier scanner walks back from '(' to the start of the
-        // last Java-identifier-prefixed token. For "public int[] twoSum("
-        // that lands on "twoSum" (the return type "int[]" is a Java type
-        // expression, not an identifier, and is skipped).
-        String java = "class Solution {\n    public int[] twoSum(int[] a, int b) { return a; }\n}";
-        assertThat(helper.extractFunctionName(java, "public ")).isEqualTo("twoSum");
-        // Python def
-        String py = "class Solution:\n    def reverse(self, head):\n        return None";
-        assertThat(helper.extractFunctionName(py, "def ")).isEqualTo("reverse");
-    }
-
-    @Test
     @DisplayName("sanitizeSandboxOutput returns 'Runtime error' for null input")
     void sanitizeSandboxOutput_nullInput() {
         assertThat(helper.sanitizeSandboxOutput(null)).isEqualTo("Runtime error");
-    }
-
-    @Test
-    @DisplayName("normalizeOutput collapses whitespace and removes trailing commas before ] or }")
-    void normalizeOutput_trimsAndDedupes() {
-        // Whitespace gets collapsed to single spaces (including interior);
-        // trailing commas before ] or } are stripped.
-        assertThat(helper.normalizeOutput("  [1, 2, 3,]  ")).isEqualTo("[1,2,3]");
-        assertThat(helper.normalizeOutput("{\"a\": 1, }")).isEqualTo("{\"a\": 1}");
     }
 
     @Test

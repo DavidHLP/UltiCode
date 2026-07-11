@@ -19,17 +19,16 @@ import java.util.List;
  * <ul>
  *   <li>envelope codec — {@link DFormEnvelopeCodec},</li>
  *   <li>display formatter — {@link SandboxOutputFormatter},</li>
- *   <li>legacy text utilities (kept here until callers migrate) —
- *       {@code extractFunctionName}, {@code normalizeOutput},
- *       {@code parseRuntimeMs}.</li>
+ *   <li>runtime parsing — {@code parseRuntimeMs} (kept here because the
+ *       sandbox wire format it serves differs from the queue payload
+ *       format {@link com.ulticode.modules.queue.port.VerdictMetricsParser}
+ *       handles; see that method's javadoc).</li>
  * </ul>
  *
- * <p>This service now exists as a thin delegation surface so existing
- * callers (the dispatcher, the queue pipeline, the controller) keep
- * working without churn. The three legacy methods stay until each caller
- * is independently migrated to its authoritative replacement (parseRuntimeMs
- * → VerdictMetricsParser; the other two have no direct callers and will
- * be removed in a follow-up).
+ * <p>This service exists as a thin delegation surface so existing callers
+ * (the dispatcher, the queue pipeline, the controller) keep working without
+ * churn. The two orphan text utilities (extractFunctionName, normalizeOutput)
+ * that had no production callers were removed.
  *
  * @author ulticode
  */
@@ -85,33 +84,18 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
             runtimeMs, output, detail, memoryMb, elapsedUs, cpuMs);
     }
 
-    // ── Legacy utilities (kept here; no direct callers as of C4 audit) ──────
+    // ── Legacy utility (sandbox wire format; not the queue payload format) ─
 
-    @Override
-    public String extractFunctionName(String code, String keyword) {
-        if (code == null || keyword == null) {
-            return null;
-        }
-        int idx = code.indexOf(keyword);
-        if (idx < 0) {
-            return null;
-        }
-        int parenStart = code.indexOf('(', idx);
-        if (parenStart < 0) {
-            return null;
-        }
-        int nameEnd = parenStart;
-        int nameStart = nameEnd - 1;
-        while (nameStart > idx && Character.isJavaIdentifierPart(code.charAt(nameStart))) {
-            nameStart--;
-        }
-        nameStart++;
-        if (nameStart >= nameEnd) {
-            return null;
-        }
-        return code.substring(nameStart, nameEnd);
-    }
-
+    /**
+     * Parse a sandbox runtime wire string to milliseconds. Unlike
+     * {@link com.ulticode.modules.queue.port.VerdictMetricsParser#parseRuntimeMs},
+     * this version serves the raw sandbox-output formats the dispatcher and
+     * sandbox executor see — the {@code "s"} suffix (seconds -> millis via
+     * {@code Double} math) and fractional milliseconds (e.g. {@code "42.5ms"}).
+     * The queue-side parser only accepts integer {@code "Nms"} payloads, so
+     * the two are NOT interchangeable; routing this onto VerdictMetricsParser
+     * would silently drop runtime data for those formats.
+     */
     @Override
     public long parseRuntimeMs(String runtime) {
         if (runtime == null) {
@@ -134,13 +118,4 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
         }
     }
 
-    @Override
-    public String normalizeOutput(String output) {
-        if (output == null) {
-            return "";
-        }
-        return output.trim().replaceAll("\\s+", " ")
-            .replaceAll("\\s*,\\s*", ",")
-            .replaceAll(",\\s*}", "}").replaceAll(",\\s*]", "]");
-    }
 }

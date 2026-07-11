@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.service.DFormEnvelopeCodec;
+import com.ulticode.modules.submission.service.SandboxOutputFormatter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +16,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("CodeExecutionHelperImpl (D-form)")
 class CodeExecutionHelperImplTest {
 
-    private final CodeExecutionHelperImpl helper = new CodeExecutionHelperImpl(new ObjectMapper(), new FixedUuidGenerator());
+    private final SandboxOutputFormatter formatter = new SandboxOutputFormatterImpl(new FixedUuidGenerator());
+    private final DFormEnvelopeCodec codec =
+        new DFormEnvelopeCodecImpl(new ObjectMapper(), formatter);
+    private final CodeExecutionHelperImpl helper = new CodeExecutionHelperImpl(codec, formatter);
 
     // ── buildDInputsJson / buildDBatchInputsJson ────────────────────────────
 

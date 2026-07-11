@@ -54,13 +54,21 @@ class DFormEnvelopeContractTest {
     private static JsonNode inputSchema;
     private static JsonNode envelopeSchema;
 
-    private final CodeExecutionHelperImpl helper =
-            new CodeExecutionHelperImpl(MAPPER, new UuidGenerator() {
-                @Override
-                public String newId() {
-                    return "test-uuid";
-                }
-            });
+    private final CodeExecutionHelperImpl helper = (CodeExecutionHelperImpl) buildHelper();
+
+    private com.ulticode.modules.submission.service.CodeExecutionHelper buildHelper() {
+        UuidGenerator fixedUuid = new UuidGenerator() {
+            @Override
+            public String newId() {
+                return "test-uuid";
+            }
+        };
+        com.ulticode.modules.submission.service.SandboxOutputFormatter formatter =
+            new com.ulticode.modules.submission.service.impl.SandboxOutputFormatterImpl(fixedUuid);
+        com.ulticode.modules.submission.service.DFormEnvelopeCodec codec =
+            new com.ulticode.modules.submission.service.impl.DFormEnvelopeCodecImpl(MAPPER, formatter);
+        return new CodeExecutionHelperImpl(codec, formatter);
+    }
 
     @BeforeAll
     static void loadFixtures() throws Exception {

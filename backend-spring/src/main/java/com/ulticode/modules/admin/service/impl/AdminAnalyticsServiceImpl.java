@@ -12,9 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -32,12 +29,12 @@ import java.util.Map;
  *   <li>delegates the contest-participation report to
  *       {@link ContestParticipationReporter},</li>
  *   <li>delegates the revenue report to {@link RevenueReporter},</li>
- *   <li>delegates the JVM/OS performance report to
- *       {@link SystemResourceReporter},</li>
- *   <li>composes the lightweight analytics overview inline because it
- *       is a direct fan-out of small port queries plus a one-line heap
- *       sample (lifting it into a fourth reporter would add ceremony
- *       without deepening the seam).</li>
+ *   <li>delegates the JVM/OS performance report and the platform-overview
+ *       system samples to {@link SystemResourceReporter},</li>
+ *   <li>composes the lightweight analytics overview by fan-out of port
+ *       queries plus the two system samples; the foreign entity imports
+ *       the pre-refactor service carried are gone — the port now returns
+ *       admin-owned projection records.</li>
  * </ul>
  *
  * <p>Cross-module reads still flow through {@link AdminAnalyticsPort};
@@ -118,14 +115,10 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         long activeSubscriptions = adminAnalyticsPort.countActiveSubscriptions();
         overview.put("activeSubscriptions", activeSubscriptions);
 
-        // System metrics
-        long uptimeSeconds = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
-        overview.put("systemUptimeSeconds", uptimeSeconds);
-
-        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-        MemoryUsage heapUsage = memoryMXBean.getHeapMemoryUsage();
-        long maxMemory = heapUsage.getMax() > 0 ? heapUsage.getMax() : 1;
-        overview.put("memoryUsagePercent", Math.round(heapUsage.getUsed() * 10000.0 / maxMemory) / 100.0);
+        // System metrics (JVM/OS sampling lives in SystemResourceReporter)
+        SystemResourceReporter.SystemMetrics systemMetrics = systemResourceReporter.sampleSystemMetrics();
+        overview.put("systemUptimeSeconds", systemMetrics.systemUptimeSeconds());
+        overview.put("memoryUsagePercent", systemMetrics.memoryUsagePercent());
 
         overview.put("periodDays", daysToAnalyze);
 

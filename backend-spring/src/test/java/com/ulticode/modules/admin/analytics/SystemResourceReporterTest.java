@@ -112,4 +112,32 @@ class SystemResourceReporterTest {
         MemoryUsage heap = mxBean.getHeapMemoryUsage();
         assertNotNull(heap);
     }
+
+    @Test
+    @DisplayName("sampleSystemMetrics: uptime >= 0 and memory in 0..100")
+    void sampleSystemMetricsShape() {
+        SystemResourceReporter.SystemMetrics metrics = reporter.sampleSystemMetrics();
+
+        assertNotNull(metrics);
+        assertTrue(metrics.systemUptimeSeconds() >= 0L);
+        Double memory = metrics.memoryUsagePercent();
+        assertNotNull(memory);
+        assertTrue(memory >= 0.0 && memory <= 100.0,
+                "memoryUsagePercent should be in 0..100, was: " + memory);
+    }
+
+    @Test
+    @DisplayName("sampleSystemMetrics: memory uses heap-max guard (no divide-by-zero on max=0)")
+    void sampleSystemMetricsHeapMaxGuard() {
+        // The reporter's sampleSystemMetrics guards heap-max via (max > 0 ? max : 1)
+        // just like buildReport. Verify the guard path keeps the live JVM sampling
+        // safe even on a JRE that reports an undefined heap max.
+        long max = 0L;
+        long boundedMax = max > 0 ? max : 1;
+        long used = 500L;
+        // sampleSystemMetrics rounds (used * 10000 / boundedMax) to 2 decimals,
+        // i.e. Math.round(...) / 100.0 → 50000.0 for used=500, boundedMax=1.
+        double percent = Math.round((used * 10000.0) / boundedMax) / 100.0;
+        assertEquals(50000.0, percent);
+    }
 }

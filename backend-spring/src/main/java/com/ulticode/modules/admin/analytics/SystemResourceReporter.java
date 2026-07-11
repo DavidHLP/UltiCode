@@ -37,6 +37,32 @@ public class SystemResourceReporter {
     static final double UNSAMPLED = -1.0;
 
     /**
+     * Raw JVM/OS samples consumed by the platform-overview endpoint.
+     * Holds the same shape the inline implementation used to push
+     * directly into the overview map.
+     */
+    public record SystemMetrics(long systemUptimeSeconds, double memoryUsagePercent) {
+    }
+
+    /**
+     * Sample the JVM/OS metrics needed by the lightweight platform
+     * overview. Centralised here so the orchestrator never touches
+     * {@link ManagementFactory} directly.
+     *
+     * @return uptime in seconds and heap-memory usage as a percentage
+     *         (0–100, 2 decimals; matches the historical overview
+     *         contract)
+     */
+    public SystemMetrics sampleSystemMetrics() {
+        long uptimeSeconds = ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heapUsage = memoryMXBean.getHeapMemoryUsage();
+        long maxMemory = heapUsage.getMax() > 0 ? heapUsage.getMax() : 1;
+        double memoryUsagePercent = Math.round(heapUsage.getUsed() * 10000.0 / maxMemory) / 100.0;
+        return new SystemMetrics(uptimeSeconds, memoryUsagePercent);
+    }
+
+    /**
      * Build the performance report (JVM/OS resource + scaffolded
      * application-level placeholders).
      *

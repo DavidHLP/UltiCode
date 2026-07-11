@@ -2,6 +2,9 @@ package com.ulticode.modules.admin.policy;
 
 import com.ulticode.modules.forum.entity.ForumPost;
 
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
 /**
  * Write policy that flips a single boolean field on a forum post.
  *
@@ -39,22 +42,22 @@ public interface ForumPostFieldToggle {
         /**
          * Pin the post (set {@code is_pinned=true}).
          */
-        PIN(AuditAction.PIN_POST, "isPinned", true, "pinned"),
+        PIN(AuditAction.PIN_POST, "isPinned", ForumPost::getIsPinned, ForumPost::setIsPinned, true, "pinned"),
 
         /**
          * Unpin the post (set {@code is_pinned=false}).
          */
-        UNPIN(AuditAction.UNPIN_POST, "isPinned", false, "unpinned"),
+        UNPIN(AuditAction.UNPIN_POST, "isPinned", ForumPost::getIsPinned, ForumPost::setIsPinned, false, "unpinned"),
 
         /**
          * Lock the post (set {@code is_locked=true}).
          */
-        LOCK(AuditAction.LOCK_POST, "isLocked", true, "locked"),
+        LOCK(AuditAction.LOCK_POST, "isLocked", ForumPost::getIsLocked, ForumPost::setIsLocked, true, "locked"),
 
         /**
          * Unlock the post (set {@code is_locked=false}).
          */
-        UNLOCK(AuditAction.UNLOCK_POST, "isLocked", false, "unlocked");
+        UNLOCK(AuditAction.UNLOCK_POST, "isLocked", ForumPost::getIsLocked, ForumPost::setIsLocked, false, "unlocked");
 
         /**
          * Audit action constants for single-field post toggles. Mirrors the
@@ -75,12 +78,19 @@ public interface ForumPostFieldToggle {
 
         private final String auditAction;
         private final String fieldName;
+        private final Function<ForumPost, Boolean> reader;
+        private final BiConsumer<ForumPost, Boolean> writer;
         private final boolean newValue;
         private final String logVerb;
 
-        FieldToggle(String auditAction, String fieldName, boolean newValue, String logVerb) {
+        FieldToggle(String auditAction, String fieldName,
+                    Function<ForumPost, Boolean> reader,
+                    BiConsumer<ForumPost, Boolean> writer,
+                    boolean newValue, String logVerb) {
             this.auditAction = auditAction;
             this.fieldName = fieldName;
+            this.reader = reader;
+            this.writer = writer;
             this.newValue = newValue;
             this.logVerb = logVerb;
         }
@@ -94,10 +104,7 @@ public interface ForumPostFieldToggle {
          * @return current boolean state of the field
          */
         public boolean readCurrent(ForumPost post) {
-            if ("isPinned".equals(fieldName)) {
-                return Boolean.TRUE.equals(post.getIsPinned());
-            }
-            return Boolean.TRUE.equals(post.getIsLocked());
+            return Boolean.TRUE.equals(reader.apply(post));
         }
 
         /**
@@ -106,11 +113,7 @@ public interface ForumPostFieldToggle {
          * @param post forum post entity to mutate
          */
         public void applyTo(ForumPost post) {
-            if ("isPinned".equals(fieldName)) {
-                post.setIsPinned(newValue);
-            } else {
-                post.setIsLocked(newValue);
-            }
+            writer.accept(post, newValue);
         }
 
         /**

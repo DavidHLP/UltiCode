@@ -240,4 +240,144 @@ class SandboxOutcomeClassifierTest {
                     "WARNING: pids-limit not set, using docker default")).isFalse();
         }
     }
+
+    // ── per-case status accessors (Spec C1: single owner of per-case mapping) ─
+
+    @Nested
+    @DisplayName("timeLimitExceeded")
+    class TimeLimitExceeded {
+
+        @Test
+        @DisplayName("returns TIME_LIMIT_EXCEEDED")
+        void returnsTle() {
+            assertThat(classifier.timeLimitExceeded())
+                    .isEqualTo(SubmissionStatus.TIME_LIMIT_EXCEEDED);
+        }
+    }
+
+    @Nested
+    @DisplayName("genericRuntimeError")
+    class GenericRuntimeError {
+
+        @Test
+        @DisplayName("returns RUNTIME_ERROR")
+        void returnsRuntimeError() {
+            assertThat(classifier.genericRuntimeError())
+                    .isEqualTo(SubmissionStatus.RUNTIME_ERROR);
+        }
+    }
+
+    @Nested
+    @DisplayName("unsupportedLanguage")
+    class UnsupportedLanguage {
+
+        @Test
+        @DisplayName("returns SANDBOX_ERROR (matches pre-M2a and InMemorySandboxAdapterTest)")
+        void returnsSandboxError() {
+            assertThat(classifier.unsupportedLanguage())
+                    .isEqualTo(SubmissionStatus.SANDBOX_ERROR);
+        }
+    }
+
+    @Nested
+    @DisplayName("applyMemoryCeiling")
+    class ApplyMemoryCeiling {
+
+        @Test
+        @DisplayName("peak within ceiling and ACCEPTED → ACCEPTED (no remap)")
+        void withinCeiling_accepted_unchanged() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.ACCEPTED, /* peak */ 1024L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("peak within ceiling and WA → WA (no remap)")
+        void withinCeiling_wa_unchanged() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.WRONG_ANSWER, /* peak */ 1024L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.WRONG_ANSWER);
+        }
+
+        @Test
+        @DisplayName("peak exactly equals ceiling and ACCEPTED → ACCEPTED (boundary stays)")
+        void peakEqualsCeiling_accepted_staysAccepted() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.ACCEPTED, /* peak */ 4096L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.ACCEPTED);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and ACCEPTED → MEMORY_LIMIT_EXCEEDED")
+        void overCeiling_accepted_remapsToMle() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.ACCEPTED, /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.MEMORY_LIMIT_EXCEEDED);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and WA → MEMORY_LIMIT_EXCEEDED")
+        void overCeiling_wa_remapsToMle() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.WRONG_ANSWER, /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.MEMORY_LIMIT_EXCEEDED);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and already-MLE → MLE (idempotent)")
+        void overCeiling_alreadyMle_staysMle() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.MEMORY_LIMIT_EXCEEDED,
+                    /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.MEMORY_LIMIT_EXCEEDED);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and TLE → TLE (backstop only reclassifies AC/WA)")
+        void overCeiling_tle_staysTle() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.TIME_LIMIT_EXCEEDED,
+                    /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.TIME_LIMIT_EXCEEDED);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and CE → CE (compile error wins)")
+        void overCeiling_ce_staysCe() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.COMPILE_ERROR,
+                    /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.COMPILE_ERROR);
+        }
+
+        @Test
+        @DisplayName("peak over ceiling and SE → SE (sandbox error wins)")
+        void overCeiling_se_staysSe() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.SANDBOX_ERROR,
+                    /* peak */ 8192L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.SANDBOX_ERROR);
+        }
+
+        @Test
+        @DisplayName("ceiling disabled (<=0) → harness status unchanged even if peak huge")
+        void disabledCeiling_overPeak_unchanged() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.ACCEPTED,
+                    /* peak */ Long.MAX_VALUE / 2, /* ceiling */ 0L))
+                    .isEqualTo(SubmissionStatus.ACCEPTED);
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.WRONG_ANSWER,
+                    /* peak */ Long.MAX_VALUE / 2, /* ceiling */ -1L))
+                    .isEqualTo(SubmissionStatus.WRONG_ANSWER);
+        }
+
+        @Test
+        @DisplayName("peak zero and ACCEPTED → ACCEPTED (no negative-length guard needed)")
+        void zeroPeak_accepted_staysAccepted() {
+            assertThat(classifier.applyMemoryCeiling(
+                    SubmissionStatus.ACCEPTED, /* peak */ 0L, /* ceiling */ 4096L))
+                    .isEqualTo(SubmissionStatus.ACCEPTED);
+        }
+    }
 }

@@ -169,8 +169,9 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             if (outcome.timedOut()) {
                 long perCase = (System.nanoTime() - start) / 1_000_000
                         / Math.max(cases.size(), 1);
+                SubmissionStatus status = outcomeClassifier.timeLimitExceeded();
                 return new BatchRunResult(cases.stream()
-                        .map(c -> rejected(SubmissionStatus.TIME_LIMIT_EXCEEDED,
+                        .map(c -> rejected(status,
                                 "D-form batch dispatch timed out after "
                                         + hardTimeoutSeconds(job, cases.size()) + "s",
                                 perCase, 0L))
@@ -193,8 +194,9 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 long perCase = (System.nanoTime() - start) / 1_000_000
                         / Math.max(cases.size(), 1);
                 String detail = helper.sanitizeSandboxOutput(outcome.stdout());
+                SubmissionStatus status = outcomeClassifier.genericRuntimeError();
                 return new BatchRunResult(cases.stream()
-                        .map(c -> rejected(SubmissionStatus.RUNTIME_ERROR,
+                        .map(c -> rejected(status,
                                 detail, perCase, 0L))
                         .toList());
             }
@@ -232,7 +234,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             long elapsedMs = (System.nanoTime() - start) / 1_000_000;
 
             if (outcome.timedOut()) {
-                return rejected(SubmissionStatus.TIME_LIMIT_EXCEEDED,
+                return rejected(outcomeClassifier.timeLimitExceeded(),
                         "D-form dispatch timed out after " + hardTimeoutSeconds(job, 1) + "s",
                         elapsedMs, 0L);
             }
@@ -244,7 +246,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 if (failure != SandboxInfraFailure.NONE) {
                     return rejectedInfra(outcome, failure, elapsedMs);
                 }
-                return rejected(SubmissionStatus.RUNTIME_ERROR,
+                return rejected(outcomeClassifier.genericRuntimeError(),
                         helper.sanitizeSandboxOutput(outcome.stdout()),
                         elapsedMs, 0L);
             }
@@ -256,7 +258,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     .map(dto -> toPortResult(dto, tc, memoryLimitBytes))
                     .toList();
             if (parsed.isEmpty()) {
-                return rejected(SubmissionStatus.RUNTIME_ERROR,
+                return rejected(outcomeClassifier.genericRuntimeError(),
                         "D-form envelope empty", elapsedMs, 0L);
             }
             return parsed.get(0);
@@ -475,16 +477,17 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     }
 
     private RunCaseResult unsupportedLanguageSingle(UnsupportedLanguageException e) {
-        return rejected(SubmissionStatus.SANDBOX_ERROR,
+        return rejected(outcomeClassifier.unsupportedLanguage(),
                 "D-form harness not implemented for language: " + e.languageId(),
                 0L, 0L);
     }
 
     private BatchRunResult unsupportedLanguageBatch(List<TestCase> cases,
                                                     UnsupportedLanguageException e) {
+        SubmissionStatus status = outcomeClassifier.unsupportedLanguage();
         String detail = "D-form harness not implemented for language: " + e.languageId();
         return new BatchRunResult(cases.stream()
-                .map(c -> rejected(SubmissionStatus.SANDBOX_ERROR, detail, 0L, 0L))
+                .map(c -> rejected(status, detail, 0L, 0L))
                 .toList());
     }
 
@@ -620,11 +623,8 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         // peak over the limit but didn't self-classify (older harness, or a
         // language whose harness skipped the check), reclassify so the user
         // sees Memory Limit Exceeded instead of a misleading Accepted/WA.
-        if (memoryLimitBytes > 0 && memoryBytes > memoryLimitBytes
-                && (status == SubmissionStatus.ACCEPTED
-                        || status == SubmissionStatus.WRONG_ANSWER)) {
-            status = SubmissionStatus.MEMORY_LIMIT_EXCEEDED;
-        }
+        // Decision is owned by SandboxOutcomeClassifier.applyMemoryCeiling.
+        status = outcomeClassifier.applyMemoryCeiling(status, memoryBytes, memoryLimitBytes);
         double score = status == SubmissionStatus.ACCEPTED ? 1.0 : 0.0;
         // M2a-round-2 fix (codex review F3): preserve the harness's
         // reported actual output, expected output, and the input

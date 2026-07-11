@@ -196,6 +196,90 @@ public class SandboxOutcomeClassifier {
     }
 
     /**
+     * The {@link SubmissionStatus} the executor assigns when a
+     * docker run hit the whole-batch (or single-case) hard timeout.
+     * Caller passes only the "this case timed out" fact; the
+     * mapping is owned here.
+     *
+     * <p>Deliberately <b>not</b> a {@link SandboxInfraFailure}: TLE
+     * is a per-case user-code outcome (the harness exited because
+     * the user's solution ran too long), not an infrastructure
+     * failure of the docker layer. Putting it in
+     * {@link SandboxInfraFailure} would conflate two orthogonal
+     * categories.
+     */
+    public SubmissionStatus timeLimitExceeded() {
+        return SubmissionStatus.TIME_LIMIT_EXCEEDED;
+    }
+
+    /**
+     * The {@link SubmissionStatus} the executor assigns to a non-zero
+     * docker exit that was <b>not</b> an infrastructure failure and
+     * <b>not</b> a compile failure — i.e. the user's solution
+     * crashed at runtime. Caller passes only the "the harness
+     * envelope isn't valid / wasn't produced and this isn't infra"
+     * fact; the mapping is owned here.
+     */
+    public SubmissionStatus genericRuntimeError() {
+        return SubmissionStatus.RUNTIME_ERROR;
+    }
+
+    /**
+     * The {@link SubmissionStatus} the executor assigns when a
+     * {@link com.ulticode.modules.submission.sandbox.UnsupportedLanguageException}
+     * is thrown — i.e. the active {@link LanguageProfile} set does
+     * not cover this submission's language. There is no harness
+     * to run, so there is no verdict possible; surfacing as
+     * {@link SubmissionStatus#SANDBOX_ERROR} matches the pre-M2a
+     * behavior and {@code InMemorySandboxAdapterTest}.
+     */
+    public SubmissionStatus unsupportedLanguage() {
+        return SubmissionStatus.SANDBOX_ERROR;
+    }
+
+    /**
+     * Apply the backend backstop memory-limit-ceiling check
+     * (ADR-002 §8 Layer B). When the harness self-reported a
+     * verdict of {@link SubmissionStatus#ACCEPTED} or
+     * {@link SubmissionStatus#WRONG_ANSWER} but the run's peak
+     * memory exceeded the active {@link com.ulticode.modules.submission.sandbox.SandboxLimits#memoryMb()}
+     * ceiling, reclassify to
+     * {@link SubmissionStatus#MEMORY_LIMIT_EXCEEDED} so the user
+     * sees Memory Limit Exceeded instead of a misleading
+     * Accepted / WA. The check is skipped when no ceiling was
+     * configured ({@code memoryLimitBytes <= 0}) and when the
+     * peak fits within the ceiling.
+     *
+     * <p>Caller passes raw facts (the harness status, the
+     * observed peak, the configured ceiling); the decision is
+     * owned here so the executor never picks a verdict.
+     *
+     * @param harnessStatus    the status the harness envelope
+     *                         decoded for this case
+     * @param peakMemoryBytes  the harness-reported peak memory
+     *                         (bytes) for this case
+     * @param memoryLimitBytes the active per-case memory ceiling
+     *                         (bytes); {@code <= 0} disables the
+     *                         check
+     * @return {@code MEMORY_LIMIT_EXCEEDED} when the ceiling is
+     *         configured and the peak exceeds it AND the harness
+     *         verdict is one of the two pass-through statuses;
+     *         otherwise the original {@code harnessStatus}
+     */
+    public SubmissionStatus applyMemoryCeiling(SubmissionStatus harnessStatus,
+                                                long peakMemoryBytes,
+                                                long memoryLimitBytes) {
+        if (memoryLimitBytes <= 0 || peakMemoryBytes <= memoryLimitBytes) {
+            return harnessStatus;
+        }
+        if (harnessStatus == SubmissionStatus.ACCEPTED
+                || harnessStatus == SubmissionStatus.WRONG_ANSWER) {
+            return SubmissionStatus.MEMORY_LIMIT_EXCEEDED;
+        }
+        return harnessStatus;
+    }
+
+    /**
      * Log an infra failure at WARN with the raw evidence. Replaces the
      * silent generic-"Runtime Error" regression: docker / OCI errors
      * used to vanish into a string the helper had already scrubbed.

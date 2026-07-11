@@ -93,10 +93,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String submissionId = job.getSubmissionId();
         String problemId = job.getProblemId();
         String userId = job.getUserId();
-        SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-        submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
-        String failedContestId = findContestIdBySubmissionId(submissionId);
-        pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
+        markSystemError(submissionId, userId, problemId, findContestIdBySubmissionId(submissionId));
     }
 
     // -----------------------------------------------------------------------
@@ -116,9 +113,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                     Long.parseLong(problemId), userId, submissionId);
 
             if (result == null) {
-                SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-                submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
-                pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, null);
+                markSystemError(submissionId, userId, problemId, null);
                 releaseIfLeased(port, handle);
                 return;
             }
@@ -134,10 +129,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             releaseIfLeased(port, handle);
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
-            SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-            submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
-            String failedContestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
+            markSystemError(submissionId, userId, problemId, findContestIdBySubmissionId(submissionId));
             releaseIfLeased(port, handle);
         }
     }
@@ -189,12 +181,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                     language, code, Long.parseLong(problemId), userId, submissionId);
 
             if (result == null) {
-                SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-                boolean written = submissionService.updateSubmissionResultFenced(
-                        submissionId, generation, attemptId, status, 0, 0.0, null);
-                if (written) {
-                    pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, null);
-                }
+                markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId, null);
                 return;
             }
 
@@ -214,13 +201,8 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             }
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);
-            SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-            boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, status, 0, 0.0, null);
-            if (written) {
-                String failedContestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
-            }
+            markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId,
+                    findContestIdBySubmissionId(submissionId));
         }
     }
 
@@ -315,6 +297,33 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         } catch (Exception e) {
             log.warn("Failed to push judge result for submission {}: {}",
                     submissionId, e.getMessage());
+        }
+    }
+
+    /**
+     * Centralised SYSTEM_ERROR write + push for the unfenced (flag-off) path.
+     * Collapses the three legacy error branches (markExhausted, null result,
+     * pipeline exception) onto one locality so the verdict constant lives here.
+     */
+    private void markSystemError(String submissionId, String userId, String problemId,
+                                 String contestId) {
+        SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
+        submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
+        pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
+    }
+
+    /**
+     * Centralised fenced SYSTEM_ERROR write + push. The push fires only when the
+     * fenced CAS actually lands (written == true), matching the per-branch guard
+     * each call site previously inlined.
+     */
+    private void markSystemErrorFenced(String submissionId, long generation, String attemptId,
+                                       String userId, String problemId, String contestId) {
+        SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
+        boolean written = submissionService.updateSubmissionResultFenced(
+                submissionId, generation, attemptId, status, 0, 0.0, null);
+        if (written) {
+            pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
         }
     }
 

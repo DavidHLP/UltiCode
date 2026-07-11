@@ -1,0 +1,139 @@
+/* Landing page styles.
+ * Scoped block lifted out of LandingView.vue per frontend-rules.md
+ * ("no scoped CSS unless justified"). Component-level import keeps these
+ * rules bundled with the landing chunk instead of polluting the global sheet.
+ * Wrapped in @layer components so Tailwind utilities always win the cascade. */
+@layer components {
+  .hero-grid {
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: -1px -1px;
+  }
+  .hero-title {
+    text-wrap: balance;
+  }
+  .nav-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    transition: color var(--transition-fast);
+  }
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    color: var(--foreground);
+  }
+  .mobile-link {
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .button {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--accent-electric);
+    background: var(--accent-electric);
+    padding: 0 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 3px 3px 0 var(--border);
+    transition:
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+  .button:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--border);
+  }
+  .button:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--border);
+  }
+  .button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
+  }
+  .button--compact {
+    min-height: 2.25rem;
+    padding: 0 0.875rem;
+  }
+  .button--secondary {
+    border-color: var(--border);
+    background: var(--card);
+    color: var(--foreground);
+  }
+  .button--run {
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    box-shadow: 2px 2px 0 var(--border);
+  }
+  .language-tab {
+    border: 1px solid transparent;
+    padding: 0.35rem 0.6rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  .language-tab--active {
+    border-color: var(--accent-electric);
+    background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
+    color: var(--accent-electric);
+  }
+  .workflow-card {
+    padding: 1.75rem;
+  }
+  .workflow-card + .workflow-card {
+    border-top: 1px solid var(--border);
+  }
+  .workflow-card h3 {
+    margin-top: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+  .workflow-card > p:last-child {
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+  .workflow-command {
+    margin-top: 2rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  /* Tailwind v4 only generates font-family utilities from --font-* tokens in
+   * @theme. The project's data-font role lives on --uc-font-data, so expose
+   * it as a .font-data utility for templates that opt in by role. */
+  .font-data {
+    font-family: var(--uc-font-data);
+  }
+  :is(a, button):focus-visible {
+    outline: 3px solid var(--accent-electric);
+    outline-offset: 3px;
+  }
+  @media (min-width: 768px) {
+    .workflow-card + .workflow-card {
+      border-top: 0;
+      border-left: 1px solid var(--border);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .button,
+    .nav-link {
+      transition: none;
+    }
+    .button:hover,
+    .button:active {
+      transform: none;
+    }
+  }
+}

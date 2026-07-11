@@ -381,7 +381,10 @@ const _ = installAuthNavigation({
     staleSessionMs: STALE_SESSION_MS,
     loginRouteName: "login",
     authenticatedGuestRouteName: "forum-home",
-    authenticatedLandingRouteName: "forum-home",
+    // Authenticated users may still view the landing page (route `landing`),
+    // so we intentionally do NOT set `authenticatedLandingRouteName` here.
+    // An unset value makes the shared guard allow `/` instead of bouncing
+    // logged-in users to `forum-home`.
   },
 });
 

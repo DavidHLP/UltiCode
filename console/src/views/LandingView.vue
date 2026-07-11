@@ -14,16 +14,18 @@ import {
   Trophy,
   X,
 } from "lucide-vue-next";
+import "@/assets/styles/landing.css";
 
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
-const mobileMenuOpen = ref(false);
-const simulationTerminalText = ref<string[]>([]);
-const compiling = ref(false);
-const showSuccessMsg = ref(false);
-const timers = new Set<ReturnType<typeof setTimeout>>();
+const TWO_SUM_SLUG = "two-sum";
+const FINAL_STEP_DELAY = 1050;
+const SEED_PROBLEM_STEPS = [
+  { delay: 350, key: "outputCaseOne" },
+  { delay: 700, key: "outputCaseTwo" },
+] as const;
 
 const codeSnippets = {
   cpp: `vector<int> twoSum(vector<int>& nums, int target) {
@@ -53,10 +55,31 @@ const codeSnippets = {
 }`,
 } as const;
 
+const mobileMenuOpen = ref(false);
+const simulationTerminalText = ref<string[]>([]);
+const compiling = ref(false);
+const showSuccessMsg = ref(false);
+const timers = new Set<ReturnType<typeof setTimeout>>();
+
 const selectedLang = ref<keyof typeof codeSnippets>("cpp");
 const code = computed(() => codeSnippets[selectedLang.value]);
 
-const later = (delay: number, action: () => void) => {
+const redirectTo = (guestRoute: string) =>
+  router.push({ name: authStore.isAuthenticated ? "forum-home" : guestRoute });
+
+const goToSeedProblem = () =>
+  router.push(
+    authStore.isAuthenticated
+      ? { name: "forum-home" }
+      : { name: "problem-detail", params: { slug: TWO_SUM_SLUG } },
+  );
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const scheduleTimer = (delay: number, action: () => void) => {
   const timer = setTimeout(() => {
     timers.delete(timer);
     action();
@@ -70,32 +93,40 @@ const runSimulation = () => {
   timers.clear();
   compiling.value = true;
   showSuccessMsg.value = false;
-  simulationTerminalText.value = [t("landing.outputCompile")];
 
-  later(350, () =>
-    simulationTerminalText.value.push(t("landing.outputCaseOne")),
-  );
-  later(700, () =>
-    simulationTerminalText.value.push(t("landing.outputCaseTwo")),
-  );
-  later(1050, () => {
+  const finishSynchronously = (lines: string[]) => {
+    simulationTerminalText.value = lines;
+    compiling.value = false;
+    showSuccessMsg.value = true;
+  };
+
+  const baseLines = [t("landing.outputCompile")];
+  const caseLines = SEED_PROBLEM_STEPS.map((step) => t(`landing.${step.key}`));
+  const fullLines = [...baseLines, ...caseLines, t("landing.outputComplete")];
+
+  if (prefersReducedMotion()) {
+    finishSynchronously(fullLines);
+    return;
+  }
+
+  simulationTerminalText.value = baseLines;
+  for (const step of SEED_PROBLEM_STEPS) {
+    scheduleTimer(step.delay, () =>
+      simulationTerminalText.value.push(t(`landing.${step.key}`)),
+    );
+  }
+  scheduleTimer(FINAL_STEP_DELAY, () => {
     simulationTerminalText.value.push(t("landing.outputComplete"));
     compiling.value = false;
     showSuccessMsg.value = true;
   });
 };
 
-onUnmounted(() => timers.forEach(clearTimeout));
-
-const handleRegisterRedirect = () =>
-  router.push({ name: authStore.isAuthenticated ? "forum-home" : "register" });
-
-const handleLoginRedirect = () =>
-  router.push({ name: authStore.isAuthenticated ? "forum-home" : "login" });
-
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false;
 };
+
+onUnmounted(() => timers.forEach(clearTimeout));
 </script>
 
 <template>
@@ -152,13 +183,13 @@ const closeMobileMenu = () => {
           <template v-else>
             <button
               class="hidden h-9 px-3 text-sm font-medium sm:block"
-              @click="handleLoginRedirect"
+              @click="redirectTo('login')"
             >
               {{ t("landing.signIn") }}
             </button>
             <button
               class="button button--compact hidden sm:flex"
-              @click="handleRegisterRedirect"
+              @click="goToSeedProblem"
             >
               {{ t("landing.freeStart") }}
             </button>
@@ -202,11 +233,7 @@ const closeMobileMenu = () => {
             @click="closeMobileMenu"
             >{{ t("sidebar.forum.platform") }}</RouterLink
           >
-          <button
-            v-if="!authStore.isAuthenticated"
-            class="button mt-3 w-full"
-            @click="handleRegisterRedirect"
-          >
+          <button class="button mt-3 w-full" @click="goToSeedProblem">
             {{ t("landing.freeStart") }}
           </button>
         </div>
@@ -239,11 +266,11 @@ const closeMobileMenu = () => {
             {{ t("landing.subtitle") }}
           </p>
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button class="button" @click="handleRegisterRedirect">
+            <button class="button" @click="goToSeedProblem">
               {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
             </button>
             <RouterLink
-              :to="{ name: 'problem-detail', params: { slug: 'two-sum' } }"
+              :to="{ name: 'problem-detail', params: { slug: TWO_SUM_SLUG } }"
               class="button button--secondary"
               >{{ t("landing.tryProblem") }} <Code2 class="size-4"
             /></RouterLink>
@@ -383,7 +410,7 @@ const closeMobileMenu = () => {
         >
           {{ t("landing.ctaDesc") }}
         </p>
-        <button class="button mx-auto mt-8" @click="handleRegisterRedirect">
+        <button class="button mx-auto mt-8" @click="goToSeedProblem">
           {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
         </button>
       </section>
@@ -397,7 +424,7 @@ const closeMobileMenu = () => {
       >
         <span>{{ t("landing.copyright") }}</span>
         <RouterLink
-          :to="{ name: 'problem-detail', params: { slug: 'two-sum' } }"
+          :to="{ name: 'problem-detail', params: { slug: TWO_SUM_SLUG } }"
           class="font-medium text-foreground hover:text-[var(--accent-electric)]"
           >{{ t("landing.tryProblem") }} →</RouterLink
         >
@@ -405,132 +432,3 @@ const closeMobileMenu = () => {
     </footer>
   </div>
 </template>
-
-<style scoped>
-.hero-grid {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: -1px -1px;
-}
-.hero-title {
-  text-wrap: balance;
-}
-.nav-link {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--muted-foreground);
-  transition: color var(--transition-fast);
-}
-.nav-link:hover,
-.nav-link:focus-visible {
-  color: var(--foreground);
-}
-.mobile-link {
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-.button {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid var(--accent-electric);
-  background: var(--accent-electric);
-  padding: 0 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: white;
-  box-shadow: 3px 3px 0 var(--border);
-  transition:
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-.button:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 5px 5px 0 var(--border);
-}
-.button:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--border);
-}
-.button:disabled {
-  cursor: wait;
-  opacity: 0.6;
-  transform: none;
-}
-.button--compact {
-  min-height: 2.25rem;
-  padding: 0 0.875rem;
-}
-.button--secondary {
-  border-color: var(--border);
-  background: var(--card);
-  color: var(--foreground);
-}
-.button--run {
-  min-height: 2rem;
-  padding: 0 0.75rem;
-  font-family: var(--font-data);
-  font-size: 0.75rem;
-  box-shadow: 2px 2px 0 var(--border);
-}
-.language-tab {
-  border: 1px solid transparent;
-  padding: 0.35rem 0.6rem;
-  font-family: var(--font-data);
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-.language-tab--active {
-  border-color: var(--accent-electric);
-  background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
-  color: var(--accent-electric);
-}
-.workflow-card {
-  padding: 1.75rem;
-}
-.workflow-card + .workflow-card {
-  border-top: 1px solid var(--border);
-}
-.workflow-card h3 {
-  margin-top: 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-}
-.workflow-card > p:last-child {
-  margin-top: 0.5rem;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--muted-foreground);
-}
-.workflow-command {
-  margin-top: 2rem;
-  font-family: var(--font-data);
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-:is(a, button):focus-visible {
-  outline: 3px solid var(--accent-electric);
-  outline-offset: 3px;
-}
-@media (min-width: 768px) {
-  .workflow-card + .workflow-card {
-    border-top: 0;
-    border-left: 1px solid var(--border);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .button,
-  .nav-link {
-    transition: none;
-  }
-  .button:hover,
-  .button:active {
-    transform: none;
-  }
-}
-</style>

@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import LandingView from "../LandingView.vue";
 
+const push = vi.fn();
+
 vi.mock("vue-router", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push }),
 }));
 
 vi.mock("@/stores/auth", () => ({
@@ -27,7 +29,10 @@ const mountView = () =>
   });
 
 describe("LandingView", () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    push.mockClear();
+  });
   afterEach(() => {
     vi.clearAllTimers();
     vi.useRealTimers();
@@ -43,6 +48,19 @@ describe("LandingView", () => {
     expect(languageButtons[1].attributes("aria-pressed")).toBe("true");
   });
 
+  it("swaps the code body when a different language is selected", async () => {
+    const wrapper = mountView();
+    const code = () => wrapper.get("pre code").text();
+
+    expect(code()).toContain("vector<int> twoSum");
+
+    await wrapper.findAll(".language-tab")[1].trigger("click");
+    expect(code()).toContain("def two_sum");
+
+    await wrapper.findAll(".language-tab")[2].trigger("click");
+    expect(code()).toContain("function twoSum");
+  });
+
   it("links the trial call to action directly to the sample problem", () => {
     const wrapper = mountView();
     const trialLinks = wrapper
@@ -54,6 +72,22 @@ describe("LandingView", () => {
       expect(link.attributes("data-to")).toContain('"name":"problem-detail"');
       expect(link.attributes("data-to")).toContain('"slug":"two-sum"');
     }
+  });
+
+  it("routes the primary guest CTA straight into the seeded problem", async () => {
+    const wrapper = mountView();
+    const cta = wrapper.findAll("button").find(
+      (btn) =>
+        btn.text().includes("landing.freeStart") &&
+        !btn.classes().includes("button--compact"),
+    );
+    expect(cta).toBeDefined();
+    await cta!.trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "problem-detail",
+      params: { slug: "two-sum" },
+    });
   });
 
   it("prevents overlapping runs and renders the complete result", async () => {

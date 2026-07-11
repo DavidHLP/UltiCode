@@ -15,6 +15,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.SubmissionStateMachine;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.policy.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,15 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
      * byte-for-byte identical to the legacy non-transactional rejudge.
      */
     private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    /**
+     * C2: the fenced rejudge state machine lifted out of this service. Owns
+     * the generation CAS + lease revoke + afterCommit enqueue + outbox
+     * double-write + 3-way status branch. The legacy non-transactional path
+     * stays inline because, per the red team CR §3.2, fenced and legacy are
+     * not the same shape — folding them into a single method would force
+     * the policy to dispatch internally and lose the depth gain.
+     */
+    private final RejudgePolicy rejudgePolicy;
 
     @Override
     @Audited(action = AuditVocabulary.REQUEUE_SUBMISSION, entityType = AuditVocabulary.ENTITY_SUBMISSION, userIdFrom = "id")
@@ -85,7 +95,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         if (!featureFlags.isUseGenerationFence()) {
             return rejudgeLegacy(submission, result);
         }
-        return rejudgeFenced(submission, result);
+        return rejudgePolicy.rejudgeFenced(submission, result);
     }
 
     /**

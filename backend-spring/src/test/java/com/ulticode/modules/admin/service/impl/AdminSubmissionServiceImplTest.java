@@ -31,20 +31,25 @@ class AdminSubmissionServiceImplTest {
     @Mock
     private QueueService queueService;
 
+    @Mock
+    private com.ulticode.modules.submission.policy.RejudgePolicy rejudgePolicy;
+
     private AdminSubmissionServiceImpl adminSubmissionService;
 
     @BeforeEach
     void setUp() {
         // ADR-003 M3b: flag-off FeatureFlagsProperties so rejudge takes the
-        // legacy path. judgeOutboxMapper + transactionTemplate unused on that
-        // path, so they can be null.
+        // legacy path. judgeOutboxMapper + transactionTemplate + rejudgePolicy
+        // are unused on the legacy path, so they can be null/mocks.
         com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
                 new com.ulticode.modules.submission.config.FeatureFlagsProperties();
-        // After ADR-0011 Stage 2: read paths moved to AdminSubmissionProjection.
-        // Constructor keeps only write-path deps: submissionMapper, queueService,
-        // judgeOutboxMapper, featureFlags, transactionTemplate.
+        // After ADR-0011 Stage 2 + C2 lift: read paths in AdminSubmissionProjection;
+        // fenced rejudge state machine in DefaultRejudgePolicy. Constructor keeps
+        // only write-path deps: submissionMapper, queueService, judgeOutboxMapper,
+        // featureFlags, transactionTemplate, rejudgePolicy.
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, queueService, null, flags, new com.ulticode.common.uuid.FixedUuidGenerator(), null);
+                submissionMapper, queueService, null, flags,
+                new com.ulticode.common.uuid.FixedUuidGenerator(), null, rejudgePolicy);
     }
 
     private Submission createValidSubmission() {

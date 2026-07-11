@@ -162,3 +162,6 @@ docker/sandbox/harness-staging/
 .vfox/
 .vfox.toml
 .tool-versions
+
+.agents
+.factory

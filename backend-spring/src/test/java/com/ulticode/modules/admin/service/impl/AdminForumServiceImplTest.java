@@ -1,7 +1,11 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.util.AuditHelper;
+import com.ulticode.modules.admin.policy.ForumFlagPolicy;
+import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
+import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
@@ -28,19 +32,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
-import com.ulticode.common.auth.CurrentUserProvider;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link AdminForumServiceImpl} after the ADR-0011 Stage 2
- * extraction.
+ * extraction and the C6 forum-toggle policy collapse.
  *
  * <p>Read tests ({@code getPosts} comment count enrichment) migrated to
  * {@link com.ulticode.modules.admin.projection.AdminForumProjectionTest}.
- * This test class pins the write state machine only: pin / unpin / lock /
- * unlock / soft-delete / flag / unflag audit logging, concurrent-delete
- * guard, and bulk-action validation.
+ * The single-field (pin / unpin / lock / unlock) and multi-field (flag /
+ * unflag) toggle tests now assert delegation to {@link ForumPostFieldToggle}
+ * and {@link ForumFlagPolicy}; the implementation-level audit snapshot logic
+ * is covered by {@link com.ulticode.modules.admin.policy.impl.ForumPostFieldToggleImplTest}
+ * and {@link com.ulticode.modules.admin.policy.impl.ForumFlagPolicyImplTest}.
+ *
+ * <p>This test class still pins the soft-delete state machine, the
+ * concurrent-delete guard, and bulk-action validation.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -56,6 +66,10 @@ class AdminForumServiceImplTest {
     private Clock clock;
     @Mock
     private CurrentUserProvider currentUserProvider;
+    @Mock
+    private ForumPostFieldToggle forumPostFieldToggle;
+    @Mock
+    private ForumFlagPolicy forumFlagPolicy;
 
     @InjectMocks
     private AdminForumServiceImpl adminForumService;
@@ -85,74 +99,36 @@ class AdminForumServiceImplTest {
     class AuditLogging {
 
         @Test
-        @DisplayName("pinPost logs audit with old and new isPinned values")
+        @DisplayName("pinPost delegates to fieldToggle policy with PIN enum")
         void pinPost_logsAudit() {
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.pinPost("post-1");
 
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.PIN_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    eq(Map.of("isPinned", false)),
-                    eq(Map.of("isPinned", true))
-            );
-            verify(forumPostMapper).updateById(testPost);
+            verify(forumPostFieldToggle).toggle("post-1", FieldToggle.PIN);
+            verify(forumPostFieldToggle).toggle(eq("post-1"), eq(FieldToggle.PIN));
         }
 
         @Test
-        @DisplayName("unpinPost logs audit with old and new isPinned values")
+        @DisplayName("unpinPost delegates to fieldToggle policy with UNPIN enum")
         void unpinPost_logsAudit() {
-            testPost.setIsPinned(true);
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.unpinPost("post-1");
 
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.UNPIN_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    eq(Map.of("isPinned", true)),
-                    eq(Map.of("isPinned", false))
-            );
+            verify(forumPostFieldToggle).toggle("post-1", FieldToggle.UNPIN);
         }
 
         @Test
-        @DisplayName("lockPost logs audit with old and new isLocked values")
+        @DisplayName("lockPost delegates to fieldToggle policy with LOCK enum")
         void lockPost_logsAudit() {
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.lockPost("post-1");
 
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.LOCK_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    eq(Map.of("isLocked", false)),
-                    eq(Map.of("isLocked", true))
-            );
+            verify(forumPostFieldToggle).toggle("post-1", FieldToggle.LOCK);
         }
 
         @Test
-        @DisplayName("unlockPost logs audit with old and new isLocked values")
+        @DisplayName("unlockPost delegates to fieldToggle policy with UNLOCK enum")
         void unlockPost_logsAudit() {
-            testPost.setIsLocked(true);
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.unlockPost("post-1");
 
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.UNLOCK_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    eq(Map.of("isLocked", true)),
-                    eq(Map.of("isLocked", false))
-            );
+            verify(forumPostFieldToggle).toggle("post-1", FieldToggle.UNLOCK);
         }
 
         @Test
@@ -256,51 +232,19 @@ class AdminForumServiceImplTest {
         }
 
         @Test
-        @DisplayName("flagPost newValues contains isFlagged=true and flaggedReason — audit UI requirement")
+        @DisplayName("flagPost delegates to flagPolicy.flag with the supplied reason")
         void flagPost_newValuesContainsReason() {
-            // Regression for docs/forum-api-curl-test-report-2026-06-08.md §4 #4:
-            // flag/unflag must write the reason into audit so the UI can render before/after.
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.flagPost("post-1", "Spam content for testing");
 
-            org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
-                    org.mockito.ArgumentCaptor.forClass(Map.class);
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.FLAG_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    anyMap(),
-                    newValuesCaptor.capture()
-            );
-            assertThat(newValuesCaptor.getValue())
-                    .containsEntry("isFlagged", true)
-                    .containsEntry("flaggedReason", "Spam content for testing");
+            verify(forumFlagPolicy).flag("post-1", "Spam content for testing");
         }
 
         @Test
-        @DisplayName("unflagPost newValues contains isFlagged=false and clears flaggedReason")
+        @DisplayName("unflagPost delegates to flagPolicy.unflag")
         void unflagPost_newValuesClearsReason() {
-            testPost.setIsFlagged(true);
-            testPost.setFlaggedReason("old reason");
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             adminForumService.unflagPost("post-1");
 
-            org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
-                    org.mockito.ArgumentCaptor.forClass(Map.class);
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.UNFLAG_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    anyMap(),
-                    newValuesCaptor.capture()
-            );
-            assertThat(newValuesCaptor.getValue())
-                    .containsEntry("isFlagged", false)
-                    .containsEntry("flaggedReason", "");
+            verify(forumFlagPolicy).unflag("post-1");
         }
     }
 
@@ -328,22 +272,13 @@ class AdminForumServiceImplTest {
         @Test
         @DisplayName("bulkAction with valid action delegates to per-post service and reports success")
         void bulkAction_validActionDelegates() {
-            when(forumPostMapper.selectById("post-1")).thenReturn(testPost);
-
             var result = adminForumService.bulkAction(List.of("post-1"), "pin");
 
             assertThat(result.getTotal()).isEqualTo(1);
             assertThat(result.getSuccessful()).isEqualTo(1);
             assertThat(result.getFailed()).isZero();
             assertThat(result.getResults().get(0).getSuccess()).isTrue();
-            verify(auditHelper).logForUser(
-                    eq(AuditVocabulary.PIN_POST),
-                    eq(AuditVocabulary.ENTITY_FORUM_POST),
-                    eq("post-1"),
-                    eq("user-001"),
-                    anyMap(),
-                    anyMap()
-            );
+            verify(forumPostFieldToggle).toggle("post-1", FieldToggle.PIN);
         }
     }
 }

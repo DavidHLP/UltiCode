@@ -1,13 +1,16 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditHelper;
-import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
+import com.ulticode.modules.admin.policy.ForumFlagPolicy;
+import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
+import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
 import com.ulticode.modules.admin.service.AdminForumService;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -25,15 +28,18 @@ import java.util.Map;
 
 /**
  * Write-only implementation of {@link AdminForumService} after the ADR-0011
- * Stage 2 extraction.
+ * Stage 2 extraction, with the C6 forum-toggle policy collapse applied.
  *
  * <p>All read paths (paginated post list, single-detail post, community list)
  * moved to {@link com.ulticode.modules.admin.projection.AdminForumProjection}
- * / {@code DefaultAdminForumProjection}. Cross-module entity imports
- * ({@code User}, {@code ForumCommunity}, {@code ForumCommentMapper},
- * {@code EdgeOperationMapper}) and the inline {@code toAdminVO} overloads left
- * this service with the write state machine (pin / unpin / lock / unlock /
- * soft-delete / flag / unflag / bulk action) plus the audit-history delegation.
+ * / {@code DefaultAdminForumProjection}. The six copy-pasted toggle methods
+ * (pin / unpin / lock / unlock / flag / unflag) became thin one-line
+ * delegates over {@link ForumPostFieldToggle} and {@link ForumFlagPolicy}.
+ * Cross-module entity imports ({@code User}, {@code ForumCommunity},
+ * {@code ForumCommentMapper}, {@code EdgeOperationMapper}) and the inline
+ * {@code toAdminVO} overloads left this service with the write state machine
+ * (delete / bulk action / audit-history delegation) plus the two policy
+ * seams.
  *
  * <p>The controller depends on the projection for reads and on this service
  * for writes; write methods return {@code void} / {@link BulkActionResult},
@@ -51,69 +57,27 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final AuditHelper auditHelper;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
+    private final ForumPostFieldToggle forumPostFieldToggle;
+    private final ForumFlagPolicy forumFlagPolicy;
 
     @Override
     public void pinPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.PIN_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false),
-            Map.of("isPinned", true)
-        );
-        post.setIsPinned(true);
-        forumPostMapper.updateById(post);
-        log.info("Post pinned: {}", id);
+        forumPostFieldToggle.toggle(id, FieldToggle.PIN);
     }
 
     @Override
     public void unpinPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.UNPIN_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false),
-            Map.of("isPinned", false)
-        );
-        post.setIsPinned(false);
-        forumPostMapper.updateById(post);
-        log.info("Post unpinned: {}", id);
+        forumPostFieldToggle.toggle(id, FieldToggle.UNPIN);
     }
 
     @Override
     public void lockPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.LOCK_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false),
-            Map.of("isLocked", true)
-        );
-        post.setIsLocked(true);
-        forumPostMapper.updateById(post);
-        log.info("Post locked: {}", id);
+        forumPostFieldToggle.toggle(id, FieldToggle.LOCK);
     }
 
     @Override
     public void unlockPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.UNLOCK_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false),
-            Map.of("isLocked", false)
-        );
-        post.setIsLocked(false);
-        forumPostMapper.updateById(post);
-        log.info("Post unlocked: {}", id);
+        forumPostFieldToggle.toggle(id, FieldToggle.UNLOCK);
     }
 
     @Override
@@ -156,42 +120,12 @@ public class AdminForumServiceImpl implements AdminForumService {
 
     @Override
     public void flagPost(String id, String reason) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.FLAG_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,
-                   "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""),
-            Map.of("isFlagged", true,
-                   "flaggedReason", reason != null ? reason : "")
-        );
-        post.setIsFlagged(true);
-        post.setFlaggedReason(reason);
-        post.setFlaggedAt(LocalDateTime.now(clock));
-        forumPostMapper.updateById(post);
-        log.info("Post flagged: {} reason: {}", id, reason);
+        forumFlagPolicy.flag(id, reason);
     }
 
     @Override
     public void unflagPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditVocabulary.UNFLAG_POST,
-            AuditVocabulary.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,
-                   "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""),
-            Map.of("isFlagged", false,
-                   "flaggedReason", "")
-        );
-        post.setIsFlagged(false);
-        post.setFlaggedReason(null);
-        post.setFlaggedAt(null);
-        forumPostMapper.updateById(post);
-        log.info("Post unflagged: {}", id);
+        forumFlagPolicy.unflag(id);
     }
 
     @Override

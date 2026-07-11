@@ -13,6 +13,8 @@ import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.SandboxLimits;
+import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier;
+import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier.SandboxInfraFailure;
 import com.ulticode.modules.submission.sandbox.TestCase;
 import com.ulticode.modules.submission.sandbox.UnsupportedLanguageException;
 import com.ulticode.modules.submission.service.CodeExecutionHelper;
@@ -56,9 +58,16 @@ import java.util.stream.Stream;
  *
  * <h2>Cross-language concerns live here</h2>
  * <ul>
- *   <li>{@link #isSandboxForkFailure(String)} and
- *       {@link #isDockerDaemonForkFailure(String)} stay in the
- *       executor (ADR-002 §2.5) — they are not language-specific.</li>
+ *   <li>Infra-failure detection delegates to
+ *       {@link SandboxOutcomeClassifier} (the single source of truth
+ *       for exit-code / output → {@link SandboxInfraFailure} →
+ *       {@link SubmissionStatus} mapping). The legacy static
+ *       {@link #isSandboxForkFailure(String)} /
+ *       {@link #isDockerDaemonForkFailure(String)} helpers are
+ *       retained as thin delegations to the classifier so the
+ *       regression coverage in
+ *       {@code SandboxExecutorImplForkDetectionTest} continues to
+ *       pass without behavior change.</li>
  *   <li>The per-case list from {@link #runBatch} is always the same
  *       length and order as the input test-case list, even on
  *       infrastructure failure (the failing branch fills the list
@@ -115,12 +124,15 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     private final Map<String, LanguageProfile> profiles;
     private final DockerSandboxConfig config;
     private final CodeExecutionHelper helper;
+    private final SandboxOutcomeClassifier outcomeClassifier;
 
     public SandboxExecutorImpl(List<LanguageProfile> all,
                                DockerSandboxConfig config,
-                               CodeExecutionHelper helper) {
+                               CodeExecutionHelper helper,
+                               SandboxOutcomeClassifier outcomeClassifier) {
         this.config = config;
         this.helper = helper;
+        this.outcomeClassifier = outcomeClassifier;
         // Fail-fast: two profiles claiming the same language id is a
         // wiring bug, not a runtime fallback. Per ADR-002 §2.2.
         this.profiles = all.stream().collect(Collectors.toUnmodifiableMap(
@@ -166,54 +178,24 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             }
 
             if (outcome.exitCode() != 0) {
-                // M2a-round-2 fix (codex review F5): distinguish
-                // infrastructure launch failures from user
-                // compile / runtime errors. Pre-M2a code surfaced
-                // these as SANDBOX_ERROR; M2a regressed by treating
-                // them as user errors.
-                if (outcome.cause() != null) {
-                    log.warn("D-form sandbox launch failure for runId={}: {}",
-                            job.runId(), outcome.cause().toString());
-                    String detail = "sandbox launch failure: "
-                            + outcome.cause().getClass().getSimpleName() + ": "
-                            + (outcome.cause().getMessage() == null
-                                    ? "(no message)" : outcome.cause().getMessage());
-                    long perCase = (System.nanoTime() - start) / 1_000_000
-                            / Math.max(cases.size(), 1);
-                    return new BatchRunResult(cases.stream()
-                            .map(c -> RunCaseResult.rejected(
-                                    SubmissionStatus.SANDBOX_ERROR,
-                                    detail, perCase, 0L))
-                            .toList());
-                }
-                // ADR-002 §8 Layer C: docker SIGKILL (exit 137) with no
-                // harness envelope is almost always a cgroup OOM kill — a
-                // genuine per-case TLE already produced a "Time Limit Exceeded"
-                // envelope via the harness soft timeout, so a bare 137 means
-                // the harness itself was killed mid-run. Surface as
-                // SANDBOX_ERROR with an honest hint instead of masking as
-                // Runtime Error.
-                if (outcome.exitCode() == 137) {
-                    long perCase = (System.nanoTime() - start) / 1_000_000
-                            / Math.max(cases.size(), 1);
-                    return new BatchRunResult(cases.stream()
-                            .map(c -> rejected(SubmissionStatus.SANDBOX_ERROR,
-                                    "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)",
-                                    perCase, 0L))
-                            .toList());
-                }
-                if (isSandboxForkFailure(outcome.stdout())) {
-                    return forkFailureBatch(cases, outcome, start);
-                }
+                // Classify the raw outcome through the single-source
+                // SandboxOutcomeClassifier (replaces the inline ~14
+                // SubmissionStatus literals and the substring-on-sanitized-
+                // output fork oracle). compileFailure comes from the
+                // active LanguageProfile (only consulted when we couldn't
+                // classify this as an infra failure first).
                 boolean compile = profileOrThrow(job).isCompileFailure(outcome.stdout());
-                SubmissionStatus status = compile
-                        ? SubmissionStatus.COMPILE_ERROR
-                        : SubmissionStatus.RUNTIME_ERROR;
+                SandboxInfraFailure failure = outcomeClassifier.classify(
+                        outcome.exitCode(), outcome.stdout(), outcome.cause(), compile);
+                if (failure != SandboxInfraFailure.NONE) {
+                    return infraFailureBatch(cases, outcome, start, failure);
+                }
                 long perCase = (System.nanoTime() - start) / 1_000_000
                         / Math.max(cases.size(), 1);
                 String detail = helper.sanitizeSandboxOutput(outcome.stdout());
                 return new BatchRunResult(cases.stream()
-                        .map(c -> rejected(status, detail, perCase, 0L))
+                        .map(c -> rejected(SubmissionStatus.RUNTIME_ERROR,
+                                detail, perCase, 0L))
                         .toList());
             }
 
@@ -255,42 +237,14 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                         elapsedMs, 0L);
             }
             if (outcome.exitCode() != 0) {
-                // M2a-round-2 fix (codex review F5): infrastructure
-                // launch failures must surface as SANDBOX_ERROR, not
-                // as a user compile/runtime error. Pre-M2a code
-                // handled this; M2a regressed by treating any
-                // non-zero exit as a user problem.
-                if (outcome.cause() != null) {
-                    log.warn("D-form sandbox launch failure for runId={}: {}",
-                            job.runId(), outcome.cause().toString());
-                    return rejected(SubmissionStatus.SANDBOX_ERROR,
-                            "sandbox launch failure: " + outcome.cause().getClass().getSimpleName()
-                                    + ": " + (outcome.cause().getMessage() == null
-                                            ? "(no message)" : outcome.cause().getMessage()),
-                            elapsedMs, 0L);
-                }
-                // ADR-002 §8 Layer C: docker SIGKILL (exit 137) → cgroup OOM
-                // kill (see runBatch). Surface as SANDBOX_ERROR, not Runtime
-                // Error.
-                if (outcome.exitCode() == 137) {
-                    return rejected(SubmissionStatus.SANDBOX_ERROR,
-                            "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)",
-                            elapsedMs, 0L);
-                }
-                if (isSandboxForkFailure(outcome.stdout())) {
-                    log.warn("D-form sandbox fork failure for runId={}: {}",
-                            job.runId(),
-                            truncateForLog(helper.sanitizeSandboxOutput(outcome.stdout())));
-                    return rejected(SubmissionStatus.SANDBOX_ERROR,
-                            "sandbox fork failure: "
-                                    + helper.sanitizeSandboxOutput(outcome.stdout()),
-                            elapsedMs, 0L);
-                }
+                // Same classification path as runBatch — see comments there.
                 boolean compile = profileOrThrow(job).isCompileFailure(outcome.stdout());
-                SubmissionStatus status = compile
-                        ? SubmissionStatus.COMPILE_ERROR
-                        : SubmissionStatus.RUNTIME_ERROR;
-                return rejected(status,
+                SandboxInfraFailure failure = outcomeClassifier.classify(
+                        outcome.exitCode(), outcome.stdout(), outcome.cause(), compile);
+                if (failure != SandboxInfraFailure.NONE) {
+                    return rejectedInfra(outcome, failure, elapsedMs);
+                }
+                return rejected(SubmissionStatus.RUNTIME_ERROR,
                         helper.sanitizeSandboxOutput(outcome.stdout()),
                         elapsedMs, 0L);
             }
@@ -470,9 +424,9 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             return DFormRunOutcome.finished(elapsedMs, stdout, process.exitValue());
         } catch (IOException e) {
             // Surface docker daemon-side fork failures as
-            // SANDBOX_ERROR via isDockerDaemonForkFailure.
+            // SANDBOX_ERROR via the classifier's fork-detection helper.
             String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            if (isDockerDaemonForkFailure(msg)) {
+            if (outcomeClassifier.looksLikeDockerDaemonForkFailure(msg)) {
                 return DFormRunOutcome.finished(0L,
                         "Cannot fork / pids-limit reached", 137);
             }
@@ -480,26 +434,27 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         }
     }
 
-    // ── Fork-failure detection (ADR-002 §2.5: stays in executor) ──────────────
+    // ── Fork-failure detection (ADR-002 §2.5: classifier is the oracle) ───────
 
+    /**
+     * @deprecated Retained as a thin delegation to
+     * {@link SandboxOutcomeClassifier#looksLikeSandboxForkFailure(String)}
+     * so the regression coverage in
+     * {@code SandboxExecutorImplForkDetectionTest} keeps passing. New
+     * call sites should inject the classifier directly.
+     */
+    @Deprecated
     static boolean isSandboxForkFailure(String output) {
-        if (output == null || output.isEmpty()) {
-            return false;
-        }
-        return output.contains("Cannot fork")
-                || output.contains("Resource temporarily unavailable")
-                || output.contains("fork: Cannot allocate memory");
+        return new SandboxOutcomeClassifier().looksLikeSandboxForkFailure(output);
     }
 
+    /**
+     * @deprecated Retained as a thin delegation to
+     * {@link SandboxOutcomeClassifier#looksLikeDockerDaemonForkFailure(String)}.
+     */
+    @Deprecated
     static boolean isDockerDaemonForkFailure(String msg) {
-        if (msg == null || msg.isEmpty()) {
-            return false;
-        }
-        return msg.contains("Cannot fork")
-                || msg.contains("fork: Cannot allocate memory")
-                || msg.contains("pids-limit reached")
-                || msg.contains("cgroup pids limit")
-                || msg.contains("RLIMIT_NPROC");
+        return new SandboxOutcomeClassifier().looksLikeDockerDaemonForkFailure(msg);
     }
 
     // ── Profile resolution ───────────────────────────────────────────────────
@@ -536,13 +491,76 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     private BatchRunResult forkFailureBatch(List<TestCase> cases,
                                             DFormRunOutcome outcome,
                                             long start) {
+        // Kept for source-compat with any external caller; forwards to the
+        // generic infra-failure builder with FORK_LIMIT.
+        return infraFailureBatch(cases, outcome, start, SandboxInfraFailure.FORK_LIMIT);
+    }
+
+    /**
+     * Build a {@link BatchRunResult} filled with one rejected case per input
+     * test case. The single-source
+     * {@link SandboxOutcomeClassifier#toStatus(SandboxInfraFailure)} picks
+     * the right {@link SubmissionStatus} (typically
+     * {@link SubmissionStatus#SANDBOX_ERROR}, or
+     * {@link SubmissionStatus#COMPILE_ERROR} for COMPILE_ERROR); the
+     * detail string is the user-facing sanitized output so users no
+     * longer see raw docker / OCI lines that used to be scrubbed and
+     * flattened to a generic "Runtime Error".
+     */
+    private BatchRunResult infraFailureBatch(List<TestCase> cases,
+                                             DFormRunOutcome outcome,
+                                             long start,
+                                             SandboxInfraFailure failure) {
+        // Log the raw evidence once per batch — previously the raw
+        // output was scrubbed before any oracle saw it, so real docker /
+        // OCI errors silently disappeared into "Runtime error" + memory=0.
+        outcomeClassifier.logInfraFailure(/* runId */ null, failure,
+                outcome.exitCode(), outcome.stdout(), outcome.cause());
         long perCase = (System.nanoTime() - start) / 1_000_000
                 / Math.max(cases.size(), 1);
-        String detail = "sandbox fork failure: "
-                + helper.sanitizeSandboxOutput(outcome.stdout());
+        SubmissionStatus status = outcomeClassifier.toStatus(failure);
+        String detail = buildInfraDetail(failure, outcome);
         return new BatchRunResult(cases.stream()
-                .map(c -> rejected(SubmissionStatus.SANDBOX_ERROR, detail, perCase, 0L))
+                .map(c -> rejected(status, detail, perCase, 0L))
                 .toList());
+    }
+
+    private RunCaseResult rejectedInfra(DFormRunOutcome outcome,
+                                        SandboxInfraFailure failure,
+                                        long elapsedMs) {
+        outcomeClassifier.logInfraFailure(null, failure,
+                outcome.exitCode(), outcome.stdout(), outcome.cause());
+        SubmissionStatus status = outcomeClassifier.toStatus(failure);
+        String detail = buildInfraDetail(failure, outcome);
+        return rejected(status, detail, elapsedMs, 0L);
+    }
+
+    /**
+     * Build a stable, user-facing detail string for each infra-failure
+     * category. The previous code reused
+     * {@code helper.sanitizeSandboxOutput(outcome.stdout())} which
+     * stripped docker / OCI lines — leaving the user with a generic
+     * "Runtime error". Each branch now spells out which infra signal
+     * fired and (for fork / OOM / OCI / launch) keeps a sanitized
+     * fragment so the user can debug.
+     */
+    private String buildInfraDetail(SandboxInfraFailure failure, DFormRunOutcome outcome) {
+        String sanitized = helper.sanitizeSandboxOutput(outcome.stdout());
+        switch (failure) {
+            case OUT_OF_MEMORY:
+                return "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)";
+            case FORK_LIMIT:
+                return "sandbox fork failure: " + sanitized;
+            case OCI_ERROR:
+                return "sandbox OCI runtime failure: " + sanitized;
+            case LAUNCH_FAILURE:
+                String c = outcome.cause() == null ? "" : outcome.cause().toString();
+                return "sandbox launch failure: " + c;
+            case COMPILE_ERROR:
+                return sanitized;
+            default:
+                return sanitized;
+        }
     }
 
     // ── File I/O helpers ────────────────────────────────────────────────────

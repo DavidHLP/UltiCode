@@ -89,6 +89,19 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 .replaceAll(",\\s*}", "}").replaceAll(",\\s*]", "]");
     }
 
+    /**
+     * Format raw sandbox / harness output for the <b>user-facing</b>
+     * {@code detail} string. Strips docker / OCI runtime infrastructure
+     * lines and collapses an empty result to {@code "Runtime error"}.
+     *
+     * <p>This is <b>purely</b> a display formatter. It is
+     * <b>no longer</b> the failure oracle — that responsibility moved
+     * to
+     * {@link com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier#classify(int, String, Throwable, boolean)},
+     * which sees the <em>raw</em> stdout (including docker / OCI lines)
+     * so real infra failures stop being scrubbed and flattened to a
+     * generic "Runtime error".
+     */
     @Override
     public String sanitizeSandboxOutput(String output) {
         if (output == null) return "Runtime error";

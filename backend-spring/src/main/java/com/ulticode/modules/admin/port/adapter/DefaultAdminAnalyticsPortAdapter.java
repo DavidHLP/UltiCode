@@ -2,6 +2,8 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.port.AdminAnalyticsPort;
+import com.ulticode.modules.admin.port.ContestSummary;
+import com.ulticode.modules.admin.port.SubscriptionSummary;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.mapper.ContestMapper;
@@ -33,6 +35,11 @@ import java.util.stream.Collectors;
  * SubmissionMapper / UserMapper} — all five cross-module dependencies
  * are hidden behind this adapter.
  *
+ * <p>The {@code Contest} and {@code Subscription} entities are mapped to
+ * the admin-owned {@link ContestSummary} and {@link SubscriptionSummary}
+ * projection records on this side of the seam, so admin code never
+ * touches a foreign entity.
+ *
  * @author ulticode
  */
 @Component
@@ -51,6 +58,14 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
         contestWrapper.ge(Contest::getStartTime, startDate);
         List<Contest> contests = contestMapper.selectList(contestWrapper);
 
+        List<ContestSummary> contestSummaries = contests.stream()
+                .map(c -> new ContestSummary(
+                        c.getId(),
+                        c.getTitle(),
+                        c.getContestType(),
+                        c.getStartTime()))
+                .collect(Collectors.toList());
+
         Map<String, Long> participantsByContest = new HashMap<>();
         Set<String> uniqueParticipants = new HashSet<>();
         if (!contests.isEmpty()) {
@@ -61,7 +76,7 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
                 uniqueParticipants.add(p.getUserId());
             }
         }
-        return new ContestParticipationData(contests, participantsByContest, uniqueParticipants);
+        return new ContestParticipationData(contestSummaries, participantsByContest, uniqueParticipants);
     }
 
     @Override
@@ -72,10 +87,12 @@ public class DefaultAdminAnalyticsPortAdapter implements AdminAnalyticsPort {
     }
 
     @Override
-    public List<Subscription> listActiveSubscriptions() {
+    public List<SubscriptionSummary> listActiveSubscriptions() {
         LambdaQueryWrapper<Subscription> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Subscription::getStatus, "ACTIVE");
-        return subscriptionMapper.selectList(wrapper);
+        return subscriptionMapper.selectList(wrapper).stream()
+                .map(s -> new SubscriptionSummary(s.getPlan()))
+                .collect(Collectors.toList());
     }
 
     @Override

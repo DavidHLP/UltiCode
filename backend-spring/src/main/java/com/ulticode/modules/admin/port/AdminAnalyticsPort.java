@@ -1,9 +1,5 @@
 package com.ulticode.modules.admin.port;
 
-import com.ulticode.modules.contest.entity.Contest;
-import com.ulticode.modules.contest.entity.ContestParticipant;
-import com.ulticode.modules.subscription.entity.Subscription;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +23,15 @@ import java.util.Set;
  * behind one port lets the providers ship their own adapters and the
  * admin module focus on shape.
  *
+ * <p><b>Entity-leak closure:</b> the historic
+ * {@link #loadContestData(LocalDateTime)} returned a record carrying
+ * {@code List<Contest>} and {@link #listActiveSubscriptions()} returned
+ * {@code List<Subscription>}, which forced
+ * {@code AdminAnalyticsServiceImpl} to import the contest and
+ * subscription entities. Both now return admin-owned projection records
+ * ({@link ContestSummary}, {@link SubscriptionSummary}) that carry only
+ * the fields the analytics reporters actually use.
+ *
  * @author ulticode
  */
 public interface AdminAnalyticsPort {
@@ -37,8 +42,8 @@ public interface AdminAnalyticsPort {
      * query each).
      *
      * @param startDate inclusive lower bound on {@code contest.startTime}
-     * @return loaded contests + per-contest participant counts + set of
-     *         unique participant ids
+     * @return loaded contest summaries + per-contest participant counts +
+     *         set of unique participant ids
      */
     ContestParticipationData loadContestData(LocalDateTime startDate);
 
@@ -48,10 +53,11 @@ public interface AdminAnalyticsPort {
     long countActiveSubscriptions();
 
     /**
-     * @return list of all currently-active subscriptions (for plan / MRR
-     *         aggregation in the revenue report)
+     * @return list of all currently-active subscriptions projected to the
+     *         admin-owned {@link SubscriptionSummary} shape (plan only) —
+     *         consumed by the revenue reporter for plan/MRR aggregation
      */
-    List<Subscription> listActiveSubscriptions();
+    List<SubscriptionSummary> listActiveSubscriptions();
 
     /**
      * @return distinct user count who submitted in the period
@@ -80,10 +86,12 @@ public interface AdminAnalyticsPort {
 
     /**
      * Loaded data wrapper for {@link #loadContestData}. Mirrors the
-     * internal record that the service previously inlined.
+     * internal record that the service previously inlined. Holds
+     * admin-owned {@link ContestSummary} projections rather than
+     * {@code Contest} entities.
      */
     record ContestParticipationData(
-            List<Contest> contests,
+            List<ContestSummary> contests,
             Map<String, Long> participantsByContest,
             Set<String> uniqueParticipants
     ) {}

@@ -6,6 +6,7 @@ import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
@@ -202,7 +203,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                 // broad catch: enqueue failure falls back to system error status
             } catch (Exception e) {
                 log.error("Failed to enqueue judge job for submission {}", submission.getId(), e);
-                submission.setStatus("System Error");
+                submission.setStatus(SubmissionStatus.SYSTEM_ERROR.wireValue());
                 submission.setNotes("Judge queue unavailable — submission was not processed");
                 submissionMapper.updateById(submission);
             }
@@ -212,27 +213,28 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     }
 
     @Override
-    public void updateSubmissionResult(String submissionId, String status, int runtime,
+    public void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
                                        Double memory, List<Submission.TestCaseDetail> testDetails) {
+        String wire = SubmissionStatusCodec.toWire(status);
         Submission submission = submissionMapper.selectById(submissionId);
         if (submission == null) {
             log.warn("Cannot update result: submission {} not found", submissionId);
             return;
         }
-        submission.setStatus(status);
+        submission.setStatus(wire);
         submission.setRuntime(runtime);
         submission.setMemory(memory);
         submission.setTestDetails(testDetails);
-        if (SubmissionStatusCodec.isAccepted(status)) {
+        if (status == SubmissionStatus.ACCEPTED) {
             PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
         }
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
-                submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+                submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
 
         // Trigger achievement checks for accepted submissions
-        if (SubmissionStatusCodec.isAccepted(status)) {
+        if (status == SubmissionStatus.ACCEPTED) {
             // R6.3 / F-08: skip achievement triggers for virtual-contest
             // submissions. Virtual replays are not part of the user's
             // earned-achievements history.
@@ -267,7 +269,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      * propagated to the caller (the verdict has already been written; we don't
      * want a publisher hiccup to surface as a 500 to the judge worker).
      */
-    private void publishContestScoringEvent(Submission submission, String status) {
+    private void publishContestScoringEvent(Submission submission, SubmissionStatus status) {
         if (applicationEventPublisher == null) {
             return;
         }
@@ -277,8 +279,8 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     submission.getId(),
                     submission.getUserId(),
                     submission.getProblemId(),
-                    status,
-                    SubmissionStatusCodec.isAccepted(status),
+                    SubmissionStatusCodec.toWire(status),
+                    status == SubmissionStatus.ACCEPTED,
                     submission.getRuntime(),
                     java.time.LocalDateTime.now(clock)
             );
@@ -322,8 +324,9 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      */
     @Override
     public boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                                String status, int runtime, Double memory,
+                                                SubmissionStatus status, int runtime, Double memory,
                                                 List<Submission.TestCaseDetail> testDetails) {
+        String wire = SubmissionStatusCodec.toWire(status);
         // Serialize test details to JSON for the json column. Mirror the entity's
         // JacksonTypeHandler semantics by using the same ObjectMapper the service
         // already holds.
@@ -342,7 +345,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         Double memoryPercentile = null;
         String runtimeDistBinsJson = null;
         String memoryDistBinsJson = null;
-        if (SubmissionStatusCodec.isAccepted(status)) {
+        if (status == SubmissionStatus.ACCEPTED) {
             Submission pre = submissionMapper.selectById(submissionId);
             if (pre != null) {
                 PerformanceStats stats = performanceStats.compute(pre, runtime, memory);
@@ -354,7 +357,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         }
 
         int affected = submissionMapper.writeVerdictFencedWithStats(
-                submissionId, generation, attemptId, status, runtime, memory, testDetailsJson,
+                submissionId, generation, attemptId, wire, runtime, memory, testDetailsJson,
                 runtimePercentile, memoryPercentile, runtimeDistBinsJson, memoryDistBinsJson);
 
         if (affected == 0) {
@@ -362,7 +365,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             // the attempt lost the lease. Drop the result and record the metric.
             incrementStaleResultDropped();
             log.debug("Stale judge result dropped for submission {} (gen={}, attempt={}, verdict={})",
-                    submissionId, generation, attemptId, status);
+                    submissionId, generation, attemptId, wire);
             return false;
         }
 
@@ -373,7 +376,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             return true;
         }
         log.info("Updated submission {} (fenced) status={}, runtime={}ms, memory={}",
-                submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+                submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
 
         // Achievements + notifications. F4: the fenced path no longer persists
         // performance stats here — they were written in the CAS above. The
@@ -474,12 +477,12 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      * {@link #updateSubmissionResult} path keeps its own (unfenced, by
      * design — flag-off) {@code updateById} and does not call this method.
      */
-    private void triggerPostVerdictSideEffects(Submission submission, String status) {
+    private void triggerPostVerdictSideEffects(Submission submission, SubmissionStatus status) {
         // Achievements (no DB verdict write here — F4 moved performance stats
         // into the verdict CAS). NOTE: the fenced path does not run the
         // virtual-contest guard that the unfenced path runs — preserved
         // verbatim from the facade; flag-day cleanup is tracked separately.
-        if (SubmissionStatusCodec.isAccepted(status)) {
+        if (status == SubmissionStatus.ACCEPTED) {
             triggerAchievements(submission);
         }
 

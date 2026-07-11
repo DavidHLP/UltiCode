@@ -8,8 +8,10 @@ import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
+import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.LeaseConstants;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
@@ -92,9 +94,10 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String submissionId = job.getSubmissionId();
         String problemId = job.getProblemId();
         String userId = job.getUserId();
-        submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
+        SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
+        submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
         String failedContestId = findContestIdBySubmissionId(submissionId);
-        pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
+        pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
     }
 
     // -----------------------------------------------------------------------
@@ -107,32 +110,36 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String userId = job.getUserId();
 
         try {
-            submissionService.updateSubmissionResult(submissionId, "Judging", 0, null, null);
+            submissionService.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
 
             JudgeExecutionResult result = executionPipeline.execute(
                     job.getLanguage(), job.getCode(),
                     Long.parseLong(problemId), userId, submissionId);
 
             if (result == null) {
-                submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
+                SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
+                submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
+                pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, null);
                 releaseIfLeased(port, handle);
                 return;
             }
 
-            submissionService.updateSubmissionResult(submissionId, result.verdict(),
+            String wire = result.verdict();
+            SubmissionStatus status = SubmissionStatusCodec.fromWire(wire);
+            submissionService.updateSubmissionResult(submissionId, status,
                     result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
 
             long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
             String contestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, result.verdict(),
+            pushResult(userId, submissionId, problemId, wire,
                     result.maxRuntimeMs(), memoryBytes, contestId);
             releaseIfLeased(port, handle);
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
-            submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
+            SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
+            submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
             String failedContestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
+            pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
             releaseIfLeased(port, handle);
         }
     }
@@ -184,22 +191,25 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                     language, code, Long.parseLong(problemId), userId, submissionId);
 
             if (result == null) {
+                SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
                 boolean written = submissionService.updateSubmissionResultFenced(
-                        submissionId, generation, attemptId, "System Error", 0, 0.0, null);
+                        submissionId, generation, attemptId, status, 0, 0.0, null);
                 if (written) {
-                    pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
+                    pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, null);
                 }
                 return;
             }
 
+            String wire = result.verdict();
+            SubmissionStatus status = SubmissionStatusCodec.fromWire(wire);
             boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, result.verdict(),
+                    submissionId, generation, attemptId, status,
                     result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
 
             if (written) {
                 long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
                 String contestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, result.verdict(),
+                pushResult(userId, submissionId, problemId, wire,
                         result.maxRuntimeMs(), memoryBytes, contestId);
             } else {
                 log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
@@ -207,11 +217,12 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             }
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);
+            SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
             boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, "System Error", 0, 0.0, null);
+                    submissionId, generation, attemptId, status, 0, 0.0, null);
             if (written) {
                 String failedContestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, failedContestId);
+                pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, failedContestId);
             }
         }
     }

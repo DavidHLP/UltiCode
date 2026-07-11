@@ -13,6 +13,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
@@ -157,14 +158,14 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public void updateSubmissionResult(String submissionId, String status, int runtime,
+    public void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
                                         Double memory, List<Submission.TestCaseDetail> testDetails) {
         submissionWritePort.updateSubmissionResult(submissionId, status, runtime, memory, testDetails);
     }
 
     @Override
     public boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                                String status, int runtime, Double memory,
+                                                SubmissionStatus status, int runtime, Double memory,
                                                 List<Submission.TestCaseDetail> testDetails) {
         return submissionWritePort.updateSubmissionResultFenced(
                 submissionId, generation, attemptId, status, runtime, memory, testDetails);

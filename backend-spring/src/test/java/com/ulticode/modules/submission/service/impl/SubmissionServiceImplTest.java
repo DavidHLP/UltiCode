@@ -11,6 +11,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.dto.UserBestStats;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.mapper.SubmissionMapper.SubmissionWithProblem;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
@@ -453,7 +454,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
@@ -485,7 +486,7 @@ class SubmissionServiceImplTest {
                     .thenReturn(peerBests);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(argThat((Submission updated) -> {
                 assertThat(updated.getRuntimePercentile()).isEqualTo(33.3);
@@ -514,7 +515,7 @@ class SubmissionServiceImplTest {
                     .thenReturn(peerBests);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(argThat((Submission updated) -> {
                 assertThat(updated.getRuntimePercentile()).isEqualTo(0.0);
@@ -533,7 +534,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", "Wrong Answer", 50, 128.0, List.of());
+            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, List.of());
 
             verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
@@ -560,7 +561,7 @@ class SubmissionServiceImplTest {
                             anyString(), anyString(), any(Map.class), anyBoolean());
 
             // Should not throw
-            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(submission);
         }

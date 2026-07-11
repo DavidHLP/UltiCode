@@ -3,6 +3,7 @@ package com.ulticode.modules.submission.port;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 
 import java.util.List;
 
@@ -78,12 +79,12 @@ public interface SubmissionWritePort {
      * port is off.
      *
      * @param submissionId the submission id
-     * @param status       terminal verdict wire value
+     * @param status       terminal verdict (typed; encoded to the wire string once inside)
      * @param runtime      runtime in ms
      * @param memory       memory in MB
      * @param testDetails  per-case execution details
      */
-    void updateSubmissionResult(String submissionId, String status, int runtime,
+    void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
                                 Double memory, List<Submission.TestCaseDetail> testDetails);
 
     /**
@@ -104,7 +105,7 @@ public interface SubmissionWritePort {
      * @param submissionId submission id
      * @param generation   generation observed at acquire (fence axis 1)
      * @param attemptId    attempt UUID held by the worker (fence axis 2)
-     * @param status       terminal verdict wire value
+     * @param status       terminal verdict (typed; encoded to the wire string once inside)
      * @param runtime      runtime in ms
      * @param memory       memory in MB
      * @param testDetails  per-case execution details
@@ -112,6 +113,6 @@ public interface SubmissionWritePort {
      *         fence rejected it (stale result dropped)
      */
     boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                         String status, int runtime, Double memory,
+                                         SubmissionStatus status, int runtime, Double memory,
                                          List<Submission.TestCaseDetail> testDetails);
 }

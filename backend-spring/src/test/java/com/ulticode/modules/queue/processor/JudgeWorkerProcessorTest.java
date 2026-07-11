@@ -11,6 +11,7 @@ import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
@@ -200,7 +201,7 @@ class JudgeWorkerProcessorTest {
 
             processor.pollAndProcess();
 
-            verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
+            verify(submissionService, never()).updateSubmissionResult(anyString(), any(SubmissionStatus.class),
                     anyInt(), any(), any());
             verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
                     anyString(), anyString());
@@ -218,7 +219,7 @@ class JudgeWorkerProcessorTest {
 
             verify(executionPipeline).execute(eq("javascript"), eq("console.log('hello');"),
                     eq(100L), eq("user-1"), eq("sub-1"));
-            verify(submissionService).updateSubmissionResult(eq("sub-1"), eq("Accepted"),
+            verify(submissionService).updateSubmissionResult(eq("sub-1"), eq(SubmissionStatus.ACCEPTED),
                     anyInt(), any(), any());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
@@ -263,11 +264,11 @@ class JudgeWorkerProcessorTest {
 
             var statusOrder = inOrder(executionPipeline, submissionService);
             statusOrder.verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("Judging"), eq(0), isNull(), isNull());
+                    eq("sub-1"), eq(SubmissionStatus.JUDGING), eq(0), isNull(), isNull());
             statusOrder.verify(executionPipeline).execute(eq("javascript"),
                     eq("console.log('hello');"), eq(100L), eq("user-1"), eq("sub-1"));
             statusOrder.verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("Accepted"), anyInt(), any(), any());
+                    eq("sub-1"), eq(SubmissionStatus.ACCEPTED), anyInt(), any(), any());
         }
 
         @Test
@@ -280,7 +281,7 @@ class JudgeWorkerProcessorTest {
             processor.processJob(sampleJob);
 
             verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
+                    eq("sub-1"), eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
@@ -296,7 +297,7 @@ class JudgeWorkerProcessorTest {
 
             var inOrder = inOrder(submissionService, submissionResultPushPort);
             inOrder.verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("Wrong Answer"), anyInt(), any(), any());
+                    eq("sub-1"), eq(SubmissionStatus.WRONG_ANSWER), anyInt(), any(), any());
             inOrder.verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), any());
         }
 
@@ -312,9 +313,9 @@ class JudgeWorkerProcessorTest {
             processor.processJob(sampleJob);
 
             verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("Accepted"), anyInt(), any(), any());
+                    eq("sub-1"), eq(SubmissionStatus.ACCEPTED), anyInt(), any(), any());
             verify(submissionService, never()).updateSubmissionResult(
-                    eq("sub-1"), eq("System Error"), anyInt(), any(), any());
+                    eq("sub-1"), eq(SubmissionStatus.SYSTEM_ERROR), anyInt(), any(), any());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
         }
@@ -330,9 +331,9 @@ class JudgeWorkerProcessorTest {
 
             var statusOrder = inOrder(submissionService);
             statusOrder.verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("Judging"), eq(0), isNull(), isNull());
+                    eq("sub-1"), eq(SubmissionStatus.JUDGING), eq(0), isNull(), isNull());
             statusOrder.verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
+                    eq("sub-1"), eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
@@ -358,7 +359,7 @@ class JudgeWorkerProcessorTest {
                     eq("sub-1")))
                     .thenReturn(buildAcceptedResult(1));
             when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
-                    eq("Accepted"), anyInt(), anyDouble(), any()))
+                    eq(SubmissionStatus.ACCEPTED), anyInt(), anyDouble(), any()))
                     .thenReturn(true);
 
             processor.processJob(sampleJob);
@@ -367,7 +368,7 @@ class JudgeWorkerProcessorTest {
             verify(executionPipeline).execute(eq("javascript"), eq("console.log('hello');"),
                     eq(100L), eq("user-1"), eq("sub-1"));
             verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
-                    eq("Accepted"), anyInt(), anyDouble(), any());
+                    eq(SubmissionStatus.ACCEPTED), anyInt(), anyDouble(), any());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("Accepted");
         }
@@ -384,7 +385,7 @@ class JudgeWorkerProcessorTest {
                     anyLong());
             verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
                     anyString(), anyString());
-            verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
+            verify(submissionService, never()).updateSubmissionResult(anyString(), any(SubmissionStatus.class),
                     anyInt(), any(), any());
         }
 
@@ -403,7 +404,7 @@ class JudgeWorkerProcessorTest {
 
             verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
                     anyString(), anyString());
-            verify(submissionService, never()).updateSubmissionResult(anyString(), anyString(),
+            verify(submissionService, never()).updateSubmissionResult(anyString(), any(SubmissionStatus.class),
                     anyInt(), any(), any());
             verify(submissionResultPushPort, never()).emitSubmissionResult(anyString(), any());
         }
@@ -422,13 +423,13 @@ class JudgeWorkerProcessorTest {
                     eq("sub-1")))
                     .thenReturn(null);
             when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
-                    eq("System Error"), eq(0), eq(0.0), isNull()))
+                    eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull()))
                     .thenReturn(true);
 
             processor.processJob(sampleJob);
 
             verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
-                    anyString(), eq("System Error"), eq(0), eq(0.0), isNull());
+                    anyString(), eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
@@ -448,13 +449,13 @@ class JudgeWorkerProcessorTest {
                     .thenReturn(buildAcceptedResult(1));
             // Simulate fence CAS rejecting the write (gen was bumped during judging)
             when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
-                    eq("Accepted"), anyInt(), anyDouble(), any()))
+                    eq(SubmissionStatus.ACCEPTED), anyInt(), anyDouble(), any()))
                     .thenReturn(false);
 
             processor.processJob(sampleJob);
 
             verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
-                    anyString(), eq("Accepted"), anyInt(), anyDouble(), any());
+                    anyString(), eq(SubmissionStatus.ACCEPTED), anyInt(), anyDouble(), any());
             verify(submissionResultPushPort, never()).emitSubmissionResult(anyString(), any());
         }
 
@@ -472,13 +473,13 @@ class JudgeWorkerProcessorTest {
                     eq("sub-1")))
                     .thenThrow(new RuntimeException("sandbox crash"));
             when(submissionService.updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
-                    eq("System Error"), eq(0), eq(0.0), isNull()))
+                    eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull()))
                     .thenReturn(true);
 
             processor.processJob(sampleJob);
 
             verify(submissionService).updateSubmissionResultFenced(eq("sub-1"), eq(1L),
-                    anyString(), eq("System Error"), eq(0), eq(0.0), isNull());
+                    anyString(), eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }
@@ -545,7 +546,7 @@ class JudgeWorkerProcessorTest {
             processor.onFailure(sampleJob, new RuntimeException("Docker down"));
 
             verify(submissionService).updateSubmissionResult(
-                    eq("sub-1"), eq("System Error"), eq(0), eq(0.0), isNull());
+                    eq("sub-1"), eq(SubmissionStatus.SYSTEM_ERROR), eq(0), eq(0.0), isNull());
             verify(submissionResultPushPort).emitSubmissionResult(eq("user-1"), payloadCaptor.capture());
             assertThat(payloadCaptor.getValue().status()).isEqualTo("System Error");
         }

@@ -58,22 +58,4 @@ public final class SubmissionStatusCodec {
     public static String toWire(SubmissionStatus status) {
         return status == null ? null : status.wireValue();
     }
-
-    /**
-     * Type-safe verdict check: returns {@code true} iff the wire string decodes
-     * to {@link SubmissionStatus#ACCEPTED}. Lenient on unknown / null values
-     * (returns {@code false}) so a malformed historic row does not crash the
-     * verdict pipeline.
-     *
-     * <p>C1: this helper replaces the {@code "Accepted".equals(status)} pattern
-     * that used to live inline in five places inside the submission write port.
-     * Decision logic now flows through the codec so the wire-string contract
-     * has a single source of truth.
-     *
-     * @param wire the wire string from the caller; may be {@code null}
-     * @return {@code true} only when {@code wire} decodes to {@code ACCEPTED}
-     */
-    public static boolean isAccepted(String wire) {
-        return SubmissionStatus.ACCEPTED == fromWireLenient(wire);
-    }
 }

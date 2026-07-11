@@ -56,22 +56,21 @@ public class JudgedNotificationDispatcher {
      * @param submission the submission entity (canonical row after the verdict
      *                   wrote; the unfenced path passes the entity it just
      *                   inserted)
-     * @param status     wire-string status (e.g. {@code "Accepted"})
+     * @param status     the typed verdict
      * @param elapsedMs  runtime in ms; values < 0 are clamped to 0
      * @param memoryMb   memory in MB; {@code null} treated as 0 MB
      */
-    public void dispatch(Submission submission, String status, long elapsedMs, Double memoryMb) {
+    public void dispatch(Submission submission, SubmissionStatus status, long elapsedMs, Double memoryMb) {
         try {
             long memBytes = memoryMb == null ? 0L : (long) (memoryMb * 1024 * 1024);
             long safeElapsed = Math.max(0L, elapsedMs);
             ProblemFactsPort.ProblemDisplayFacts facts = problemFacts.findDisplayFacts(submission.getProblemId());
             String problemTitle = facts != null ? facts.title() : "";
             if (featureFlags.isUseNotificationIntent()) {
-                SubmissionStatus statusEnum = SubmissionStatus.fromDbName(status);
                 notificationDispatcher.dispatch(
                         com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
                                 submission,
-                                statusEnum != null ? statusEnum : SubmissionStatus.SYSTEM_ERROR,
+                                status,
                                 problemTitle,
                                 safeElapsed,
                                 memBytes,
@@ -82,15 +81,15 @@ public class JudgedNotificationDispatcher {
                         submission.getUserId(),
                         "SUBMISSION",
                         "SYSTEM",
-                        "Submission judged: " + status,
+                        "Submission judged: " + status.wireValue(),
                         "",
                         "/submissions/" + submission.getId(),
                         Map.of(
                                 "submissionId", submission.getId(),
                                 "problemId", submission.getProblemId(),
                                 "problemTitle", problemTitle,
-                                "status", status,
-                                "isAccepted", "Accepted".equals(status)),
+                                "status", status.wireValue(),
+                                "isAccepted", status == SubmissionStatus.ACCEPTED),
                         false);
             }
         } catch (Exception e) {

@@ -8,6 +8,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -100,7 +101,7 @@ public interface SubmissionService {
      * @param memory       memory usage in MB
      * @param testDetails  test case execution details
      */
-    void updateSubmissionResult(String submissionId, String status, int runtime,
+    void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
                                 Double memory, List<Submission.TestCaseDetail> testDetails);
 
     /**
@@ -112,7 +113,7 @@ public interface SubmissionService {
      * @param submissionId  submission id
      * @param generation    generation the worker observed at acquire (fence axis 1)
      * @param attemptId     attempt UUID held by the worker (fence axis 2)
-     * @param status        terminal verdict wire value
+     * @param status        terminal verdict (typed)
      * @param runtime       runtime in ms
      * @param memory        memory in MB
      * @param testDetails   test case details
@@ -120,6 +121,6 @@ public interface SubmissionService {
      *         fence rejected it (stale result dropped)
      */
     boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                         String status, int runtime, Double memory,
+                                         SubmissionStatus status, int runtime, Double memory,
                                          List<Submission.TestCaseDetail> testDetails);
 }

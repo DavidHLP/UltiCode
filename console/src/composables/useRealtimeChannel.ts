@@ -7,6 +7,23 @@ import {
 import type { NotificationItem } from "@/types/notification";
 
 /**
+ * Options for {@link useRealtimeChannel}.
+ *
+ * The three orthogonal callbacks (auth gate, item sink, signed-out hook)
+ * are grouped into one parameter object so they cannot be silently
+ * swapped at call sites and so adding a new hook later does not break
+ * positional ordering.
+ */
+export interface UseRealtimeChannelOptions {
+  /** Auth gate read each time the auth state changes. */
+  isAuthenticated: () => boolean;
+  /** Sink invoked for every realtime notification item. */
+  onItem: (item: NotificationItem) => void;
+  /** Optional cleanup fired when the user signs out. */
+  onSignedOut?: () => void;
+}
+
+/**
  * Realtime notification channel composable.
  *
  * Owns the WebSocket side effects for notifications: connection-status
@@ -17,9 +34,9 @@ import type { NotificationItem } from "@/types/notification";
  * taking on any WS lifecycle itself.
  */
 export function useRealtimeChannel(
-  isAuthenticated: () => boolean,
-  onNew: (item: NotificationItem) => void,
+  options: UseRealtimeChannelOptions,
 ) {
+  const { isAuthenticated, onItem, onSignedOut } = options;
   const realtimeConnected = ref(false);
   const isSetup = ref(false);
 
@@ -36,16 +53,17 @@ export function useRealtimeChannel(
       readAt: null,
       createdAt: payload.createdAt,
     };
-    onNew(newItem);
+    onItem(newItem);
   }
 
   /**
    * Set up WebSocket listeners exactly once. Subsequent calls are
-   * idempotent. The caller passes the auth check and a "reset unread
-   * count on logout" hook so the websocket lifecycle stays inside this
-   * composable while auth semantics stay with the store.
+   * idempotent. The auth check and "reset unread count on logout" hook
+   * are passed via the options object on construction so the websocket
+   * lifecycle stays inside this composable while auth semantics stay
+   * with the store.
    */
-  function setupRealtimeListeners(onSignedOut?: () => void): void {
+  function setupRealtimeListeners(): void {
     if (isSetup.value) {
       return;
     }

@@ -84,10 +84,15 @@ export function useAuthSession() {
   }
 
   /**
-   * Read-only accessor for the in-flight init promise. Returns null when
-   * no init is in progress. Callers (router guards) may `await` this.
+   * Public accessor for the in-flight init promise.
+   *
+   * Returns the currently-running `initialize()` promise so callers
+   * (notably the router guard) can `await` the bootstrap barrier, or
+   * `null` when no init is in progress. The underlying dedup promise
+   * itself stays module-private — this accessor is the only sanctioned
+   * bridge to the store / router.
    */
-  function getInitializationPromise(): Promise<void> | null {
+  function whenInitialized(): Promise<void> | null {
     return initializationPromise;
   }
 
@@ -266,9 +271,9 @@ export function useAuthSession() {
     clearUser,
     reset,
     loadPermissions,
-    // internal dedup accessor — store bridges this to its public
-    // initializationPromise computed; not for direct external use.
-    getInitializationPromise,
+    // dedup accessor — store bridges this to its public
+    // initializationPromise computed.
+    whenInitialized,
   };
 }
 

@@ -22,29 +22,28 @@ export const useNotificationStore = defineStore("notification", () => {
   const authStore = useAuthStore();
 
   const { realtimeConnected, setupRealtimeListeners: setupChannelListeners } =
-    useRealtimeChannel(
-      () => authStore.isAuthenticated,
-      (item: NotificationItem) => {
+    useRealtimeChannel({
+      isAuthenticated: () => authStore.isAuthenticated,
+      onItem: (item: NotificationItem) => {
         // Prepend the realtime event into the feed and bump counters
         // exactly as the legacy `handleNewNotification` reducer did.
         feed.notifications.value = [item, ...feed.notifications.value];
         feed.total.value += 1;
         feed.unreadCount.value += 1;
       },
-    );
+      onSignedOut: () => {
+        feed.unreadCount.value = 0;
+      },
+    });
 
   /**
-   * Public, idempotent listener setup.
-   *
-   * Accepts an optional callback for the "user signed out" side effect
-   * so the store owns the auth-semantic (reset unread badge) while the
-   * composable owns the socket lifecycle. Mirrors the legacy store
-   * signature exactly — no public surface change.
+   * Public, idempotent listener setup. Kept on the store so view code
+   * and tests continue to call `store.setupRealtimeListeners()` with no
+   * argument; the signed-out reset is now configured once on the
+   * realtime channel at construction time.
    */
   function setupRealtimeListeners(): void {
-    setupChannelListeners(() => {
-      feed.unreadCount.value = 0;
-    });
+    setupChannelListeners();
   }
 
   async function initialize(): Promise<void> {

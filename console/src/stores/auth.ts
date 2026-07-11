@@ -49,9 +49,7 @@ export const useAuthStore = defineStore("auth", () => {
    * name is preserved exactly. The dedup implementation is internal to
    * `useAuthSession` and never leaves that module as a raw ref.
    */
-  const initializationPromise = computed(() =>
-    session.getInitializationPromise(),
-  );
+  const initializationPromise = computed(() => session.whenInitialized());
 
   // Action wrappers — each forwards to the session composable. Kept as
   // named functions on the store so call sites

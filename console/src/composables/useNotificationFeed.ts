@@ -31,21 +31,37 @@ export function useNotificationFeed() {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
+  /**
+   * Run an async operation with the standard error handling: capture a
+   * human-readable message into `error.value` (falling back to the
+   * caller-supplied label) and rethrow so callers can still observe
+   * the failure.
+   */
+  async function withError<T>(
+    fallbackMessage: string,
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : fallbackMessage;
+      throw err;
+    }
+  }
+
   async function loadNotifications(params: NotificationQuery = {}) {
     loading.value = true;
     error.value = null;
     try {
-      const result: NotificationListResult = await fetchNotifications(params);
-      notifications.value = result.items;
-      total.value = result.total;
-      page.value = result.page;
-      limit.value = result.limit;
-      totalPages.value = result.totalPages;
-      return result;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load notifications";
-      throw err;
+      return await withError("Failed to load notifications", async () => {
+        const result: NotificationListResult = await fetchNotifications(params);
+        notifications.value = result.items;
+        total.value = result.total;
+        page.value = result.page;
+        limit.value = result.limit;
+        totalPages.value = result.totalPages;
+        return result;
+      });
     } finally {
       loading.value = false;
     }
@@ -55,6 +71,8 @@ export function useNotificationFeed() {
    * Load unread notification count.
    * `isAuthenticated` gate is enforced by the caller (the store reads
    * `useAuthStore().isAuthenticated` and short-circuits when false).
+   * Silently swallows errors — unread count is non-critical and the
+   * `withError` helper would surface a message consumers do not act on.
    */
   async function loadUnreadCount(): Promise<number> {
     error.value = null;
@@ -70,7 +88,7 @@ export function useNotificationFeed() {
 
   async function markAsRead(id: string, isRead: boolean = true) {
     error.value = null;
-    try {
+    return withError("Failed to update notification", async () => {
       const updated = await updateNotificationRead(id, isRead);
       const index = notifications.value.findIndex((item) => item.id === id);
       if (index !== -1) {
@@ -82,16 +100,12 @@ export function useNotificationFeed() {
         unreadCount.value += 1;
       }
       return updated;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to update notification";
-      throw err;
-    }
+    });
   }
 
   async function markAllRead() {
     error.value = null;
-    try {
+    return withError("Failed to mark all as read", async () => {
       const result = await markAllNotificationsRead();
       notifications.value = notifications.value.map((item) => ({
         ...item,
@@ -100,32 +114,24 @@ export function useNotificationFeed() {
       }));
       unreadCount.value = 0;
       return result;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to mark all as read";
-      throw err;
-    }
+    });
   }
 
   async function clearAll() {
     error.value = null;
-    try {
+    return withError("Failed to clear notifications", async () => {
       const result = await clearNotifications();
       notifications.value = [];
       total.value = 0;
       totalPages.value = 1;
       unreadCount.value = 0;
       return result;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to clear notifications";
-      throw err;
-    }
+    });
   }
 
   async function removeNotification(id: string) {
     error.value = null;
-    try {
+    return withError("Failed to delete notification", async () => {
       const existing = notifications.value.find((item) => item.id === id);
       await apiDeleteNotification(id);
       notifications.value = notifications.value.filter(
@@ -135,11 +141,7 @@ export function useNotificationFeed() {
       if (existing && !existing.isRead) {
         unreadCount.value = Math.max(0, unreadCount.value - 1);
       }
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to delete notification";
-      throw err;
-    }
+    });
   }
 
   function clearError() {

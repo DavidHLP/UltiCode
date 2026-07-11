@@ -1,119 +1,34 @@
-# Shared Packages AGENTS.md
+# Shared frontend packages guide
 
-> **Part of**: UltiCode (see [root AGENTS.md](../AGENTS.md) for project context)
-> **Last Updated**: 2026-07-06
+This file supplements [`../AGENTS.md`](../AGENTS.md) for packages under `shared/`.
 
-14 pnpm workspace packages consumed by `console/` and `management/` via symlinks. Each owns a single seam (deep-module pattern, ADR-0004 / ADR-0005 / ADR-0011).
+## Package boundary
 
-## STRUCTURE
+Each package owns one focused cross-app seam. Current packages and their manifests are authoritative; `pnpm-workspace.yaml` discovers `shared/*` automatically.
 
-```
-shared/
-├── auth-core/          # Cookie, CSRF, auth-state machine, refresh coordinator, permissions
-├── auth-ui/            # LoginForm, RegisterForm, AuthLayout + visual primitives
-├── badge-config/       # Color maps: DIFFICULTY_COLOR_MAP, USER_STATUS/ROLE, badge()
-├── datetime-utils/     # formatDate, formatDuration, relativeTime helpers
-├── design-system/      # Design tokens (CSS-only package, no index.ts)
-├── domain-types/       # PageResult<T>, Problem, Contest, Comment, ForumPost — cross-stack DTO contract
-├── http-client/        # createHttpClient() — CSRF/refresh/dedup/retry/401 seam
-├── i18n-storage/       # Persisted translation-key storage backend
-├── locale-composable/  # useLocale composable (builds on i18n-storage)
-├── markdown-utils/     # renderMarkdown() + sanitizeHtml() (MarkdownIt + KaTeX + hljs + DOMPurify)
-├── sandbox-types/      # DFormVerdict, OJDataType, DFormEnvelope (cross-language with docker/sandbox/)
-├── sidebar-menu/       # SidebarMenuItem, SidebarGroupCollapsible types
-├── submission-status/  # verdict→color truth: VERDICT_COLOR_MAP, getStatusColor()
-└── theme/              # ThemeMode, useTheme, typography density, FOUC bootstrap
-```
+- `auth-core`, `auth-ui`: authentication state, CSRF, permissions, and reusable auth UI.
+- `http-client`: shared Axios behavior, retries, request deduplication, and auth-failure coordination.
+- `domain-types`, `sandbox-types`: cross-surface contracts.
+- `markdown-utils`: Markdown/KaTeX rendering and sanitization.
+- `theme`, `design-system`: theme state, bootstrap, tokens, and CSS primitives.
+- `badge-config`, `submission-status`, `sidebar-menu`, `datetime-utils`, `locale-preference`: focused presentation and preference seams.
 
-## Package Reference
+## Rules
 
-| Package | Exports | Consumed By |
-|---------|---------|-------------|
-| `auth-core` | Cookie parse, CSRF manager, auth-state machine, `setOnAuthFailure`, permission checker, `cn` util | Both apps (via `@/shared/auth-core/src`) |
-| `auth-core` subpaths | `@ulticode/auth-core/src/csrf`, `…/axiosCsrfInterceptor`, `…/refreshCoordinator` | Sibling shared packages (subpath exports) |
-| `auth-ui` | LoginForm, RegisterForm, AuthLayout, AuthButton/Input/Card | Both apps |
-| `domain-types` | `PageResult<T>`, `Problem`, `Contest`, `ContestStatus`, `Comment`, `ForumPost`, `UserStats`, `ProblemList` | Both apps (canonical DTO contract — replaces 11× `PageResult` re-declarations) |
-| `http-client` | `createHttpClient()` | Both apps (replaces duplicated `request.ts`) |
-| `markdown-utils` | `renderMarkdown()`, `sanitizeHtml()` | Both apps (owns sanitization pipeline) |
-| `sandbox-types` | `DFormVerdict`, `OJDataType`, `DFormEnvelope` | Both apps + `docker/sandbox/` contract |
-| `badge-config` | `DIFFICULTY_COLOR_MAP`, `USER_STATUS_COLOR_MAP`, `badge()` | Both apps (console 5 consumers, management 29 — volume asymmetry reflects app surface, not missing adoption) |
-| `submission-status` | `VERDICT_COLOR_MAP`, `getVerdictColor()`, `getStatusColor()`, `normalizeStatusKey()` | Both apps (submission badge color — sole owner after badge-config map removal) |
-| `sidebar-menu` | `SidebarMenuItem`, `SidebarMenuSubItem`, `SidebarGroupCollapsible` | Both apps |
-| `datetime-utils` | `formatDate`, `formatDuration`, `relativeTime` helpers | Both apps (thin — 1 consumer each, justifies seam for consistent date formatting) |
-| `i18n-storage` | Persisted translation-key storage backend | Both apps (infrastructure singleton for locale persistence) |
-| `locale-composable` | `useLocale` composable (builds on `i18n-storage`) | Both apps (thin — 1 consumer each, wraps i18n-storage) |
-| `theme` | `ThemeMode`, `useTheme`, `useColorTheme`, `applyTypographyDensity`, tokens | Both apps + `public/theme-bootstrap.js` |
-| `design-system` | CSS tokens via `shared/design-system/style.css` (no JS exports) | Both apps |
+- Keep public interfaces small and import through a package entry point or a declared `package.json` subpath export. Do not couple consumers to undeclared internals.
+- Extend an existing package when the behavior belongs to its seam; create a package only for a durable boundary used across applications.
+- When a consuming app type-checks shared source through `@/shared/<package>/src`, ensure its `tsconfig.app.json` includes the package.
+- Preserve the full sanitization pipeline in `markdown-utils`; add malicious-input regressions for rendering changes.
+- Theme initialization is owned by `shared/theme` and the generated `public/theme-bootstrap.js` copies. Change the source, run the sync/verification scripts, and do not duplicate initialization in components or `main.ts`.
+- Keep `auth-core` subpath exports explicit when sibling packages need a narrow internal seam.
 
-## WHERE TO LOOK
+## Verification
 
-| Task | Location |
-|------|----------|
-| Add new shared package | Create `shared/<name>/` with `package.json` + `src/index.ts` — `pnpm-workspace.yaml` glob auto-discovers |
-| Add CSRF/auth logic | `auth-core/src/` — expose via index.ts or subpath export |
-| Change axios behavior | `http-client/src/createHttpClient.ts` |
-| Change Markdown rendering | `markdown-utils/src/` — **always** keep DOMPurify in the pipeline |
-| Change theme tokens | `theme/src/` — update `applyThemeToDOM.ts` + `public/theme-bootstrap.js` in both apps |
-| Add badge color mapping | `badge-config/src/` or `submission-status/src/` (verdict→color link) |
-| Wire package into an app | Add to app's `tsconfig.app.json` `include` array for type-checking |
-
-## CONVENTIONS
-
-### Deep-Module Pattern (ADR-0004 / ADR-0005 / ADR-0011)
-Each package owns **one seam**. The interface is small; the implementation is deep.
-When logic is duplicated between `console/` and `management/`, extract a shared package
-and leave each app as a thin re-export seam.
-
-### Consumption Pattern
-```
-console/src/shared/  →  symlink to ../../shared/
-management/src/shared/  →  symlink to ../../shared/
-```
-Import path: `@/shared/<package>/src` (configured in each app's `tsconfig.app.json`).
-
-### Subpath Exports (auth-core only)
-`auth-core` exposes internal seams without re-exporting the full index:
-```json
-"exports": {
-  ".": "./src/index.ts",
-  "./src/csrf": "./src/csrf/index.ts",
-  "./src/axiosCsrfInterceptor": "./src/axiosCsrfInterceptor.ts",
-  "./src/refreshCoordinator": "./src/refreshCoordinator.ts"
-}
-```
-
-### Theme Bootstrap Singleton
-`console/public/theme-bootstrap.js` and `management/public/theme-bootstrap.js` are external
-scripts matching `shared/theme/src/applyThemeToDOM.ts`. **Never** duplicate theme init logic
-in `main.ts`, `onMounted`, or component code — causes hydration mismatch.
-
-## ANTI-PATTERNS
-
-- **Never call `markdown-it` directly** — use `renderMarkdown()` from `markdown-utils`
-- **Never bypass DOMPurify** — sanitization is baked into the `renderMarkdown()` pipeline
-- **Never set `data-theme` attribute from app code** — only the theme system writes it
-- **Never duplicate logic between console and management** — extract a shared package instead
-- **Never import shared package internals directly** — use the index.ts or declared subpath exports
-- **`useThemeForceUpdate`** is test-only — never import in production code
-
-## COMMANDS
+Run the scripts declared by the changed package from its directory:
 
 ```bash
-# Per-package (run in each shared/<name>/)
-pnpm test           # vitest --run
-pnpm type-check     # tsc --noEmit
-
-# auth-core is the most tested (5 spec files); others have 0-1 tests
-cd shared/auth-core && pnpm test && pnpm type-check
-cd shared/markdown-utils && pnpm test && pnpm type-check
-cd shared/http-client && pnpm test && pnpm type-check
+pnpm type-check
+pnpm test
 ```
 
-## NOTES
-
-- **Auto-discovery**: `pnpm-workspace.yaml` glob `shared/*` picks up new packages automatically.
-- **Test coverage is thin**: `markdown-utils` and `http-client` have 1 test each; `auth-core` has 5.
-- **`design-system` has no `index.ts`** — it's a CSS-only package imported via `style.css`.
-- **Console excludes** `**/auth-core/**` and `**/shared/theme/**` from its vitest run.
-- **Management excludes** `**/shared/theme/**` only.
-- **New packages**: must be added to the consuming app's `tsconfig.app.json` `include` array.
+Not every package defines both scripts. Also run the consuming app's type-check and tests when a public contract, runtime behavior, theme bootstrap, or import path changes.

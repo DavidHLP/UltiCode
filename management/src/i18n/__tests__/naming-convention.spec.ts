@@ -6,25 +6,10 @@ import zhCN from '../locales/zh-CN'
  * These keys in table.columnNames match backend API response field names
  * and are dynamically referenced via DataTable.vue's resolveColumnName().
  */
+// table.columnNames.* keys were normalised to camelCase at the DataTable seam
+// (resolveColumnName/toCamelCase, C8), so no snake_case column-id keys remain
+// and none need to be allow-listed here.
 const API_MAPPED_KEYS = new Set([
-  // table.columnNames — match backend API response field names
-  'table.columnNames.joined_at',
-  'table.columnNames.last_login_at',
-  'table.columnNames.is_active',
-  'table.columnNames.is_banned',
-  'table.columnNames.start_time',
-  'table.columnNames.end_time',
-  'table.columnNames.ip_address',
-  'table.columnNames.entity_type',
-  'table.columnNames.primary_category',
-  'table.columnNames.report_count',
-  'table.columnNames.assigned_to',
-  'table.columnNames.created_at',
-  'table.columnNames.submitted_at',
-  'table.columnNames.reviewed_by',
-  'table.columnNames.reviewed_at',
-  'table.columnNames.usage_count',
-  'table.columnNames.code_length',
   // moderation.entityTypes — match backend enum values
   'moderation.entityTypes.forum_post',
   'moderation.entityTypes.forum_comment',

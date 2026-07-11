@@ -19,13 +19,13 @@ const tableTranslations = {
   emptyTitle: '没有数据',
   emptyDescription: '当前没有可显示的数据',
 
-  // 列名映射 - 通用列
+  // 列名映射 - C8 在 DataTable 边界把 snake_case 规范化为 camelCase
+  // (resolveColumnName/toCamelCase),因此此处只保留 camelCase 键。
+  // 新增列 id 必须匹配 /^[a-z][a-zA-Z0-9]*$/。
   columnNames: {
     username: '用户名',
     role: '角色',
     status: '状态',
-    joined_at: '注册时间',
-    last_login_at: '最后登录',
     actions: '操作',
     id: 'ID',
     name: '名称',
@@ -35,8 +35,6 @@ const tableTranslations = {
     created: '创建时间',
     updated: '更新时间',
     email: '邮箱',
-    is_active: '激活状态',
-    is_banned: '封禁状态',
     submissions: '提交数',
     solutions: '题解数',
     difficulty: '难度',
@@ -46,8 +44,6 @@ const tableTranslations = {
     visibility: '可见性',
     author: '作者',
     creator: '创建者',
-    start_time: '开始时间',
-    end_time: '结束时间',
     duration: '时长',
     participants: '参与者',
 
@@ -55,20 +51,11 @@ const tableTranslations = {
     action: '操作',
     performer: '执行者',
     user: '目标用户',
-    ip_address: 'IP 地址',
-    entity_type: '实体类型',
     entity: '实体',
-    primary_category: '类别',
     priority: '优先级',
-    report_count: '举报数',
-    assigned_to: '分配给',
-    created_at: '创建时间',
     reporter: '举报者',
     reason: '原因',
     appellant: '申诉人',
-    submitted_at: '提交时间',
-    reviewed_by: '审核人',
-    reviewed_at: '审核时间',
     response: '回复',
 
     // 论坛/评论列
@@ -102,7 +89,6 @@ const tableTranslations = {
     sortOrder: '排序',
     runtime: '运行时间',
     codeLength: '代码长度',
-    code_length: '代码长度',
     language: '语言',
     problemTitle: '题目标题',
     memory: '内存',
@@ -114,7 +100,6 @@ const tableTranslations = {
     ipAddress: 'IP 地址',
     queueId: '队列 ID',
     reviewer: '审核人',
-    usage_count: '使用次数',
   },
 } as const
 

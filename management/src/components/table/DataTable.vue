@@ -83,14 +83,31 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 function resolveColumnName(columnId: string): string {
-  const name = t(`table.columnNames.${columnId}`, columnId)
-  if (import.meta.env.DEV && name === columnId) {
+  // C8 normalisation: column ids may arrive from the backend as snake_case
+  // (joined_at, last_login_at, …) but the i18n keys are camelCase only.
+  // Normalise at the seam so we ship one key per column, not two.
+  const normalised = toCamelCase(columnId)
+  const name = t(`table.columnNames.${normalised}`, normalised)
+  if (import.meta.env.DEV && name === normalised) {
     console.error(
-      `[i18n] Missing translation key: table.columnNames.${columnId}. ` +
+      `[i18n] Missing translation key: table.columnNames.${normalised}. ` +
         `Add it to management/src/i18n/locales/*/modules/table.ts`,
     )
   }
   return name
+}
+
+/**
+ * Convert snake_case → camelCase. Column ids that are already camelCase
+ * (or single-word) pass through unchanged. Booleans like {@code is_active}
+ * become {@code isActive}; underscored compound names like {@code last_login_at}
+ * become {@code lastLoginAt}.
+ *
+ * @param id raw column id from the column definition
+ * @return camelCase key matching the {@code table.columnNames.*} namespace
+ */
+function toCamelCase(id: string): string {
+  return id.replace(/_([a-z0-9])/g, (_, ch: string) => ch.toUpperCase())
 }
 
 const sorting = ref<SortingState>([])

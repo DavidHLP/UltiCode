@@ -19,13 +19,13 @@ const tableTranslations = {
   emptyTitle: 'No data',
   emptyDescription: 'There is no data to display',
 
-  // Column name mappings - Common columns
+  // Column name mappings - C8 normalises snake_case column ids to camelCase
+  // at the DataTable seam (resolveColumnName/toCamelCase), so only camelCase
+  // keys live here. New column ids must match /^[a-z][a-zA-Z0-9]*$/.
   columnNames: {
     username: 'Username',
     role: 'Role',
     status: 'Status',
-    joined_at: 'Joined',
-    last_login_at: 'Last Login',
     actions: 'Actions',
     id: 'ID',
     name: 'Name',
@@ -35,8 +35,6 @@ const tableTranslations = {
     created: 'Created',
     updated: 'Updated',
     email: 'Email',
-    is_active: 'Active',
-    is_banned: 'Banned',
     submissions: 'Submissions',
     solutions: 'Solutions',
     difficulty: 'Difficulty',
@@ -46,8 +44,6 @@ const tableTranslations = {
     visibility: 'Visibility',
     author: 'Author',
     creator: 'Creator',
-    start_time: 'Start Time',
-    end_time: 'End Time',
     duration: 'Duration',
     participants: 'Participants',
 
@@ -55,20 +51,11 @@ const tableTranslations = {
     action: 'Action',
     performer: 'Performer',
     user: 'Target User',
-    ip_address: 'IP Address',
-    entity_type: 'Entity Type',
     entity: 'Entity',
-    primary_category: 'Category',
     priority: 'Priority',
-    report_count: 'Reports',
-    assigned_to: 'Assigned To',
-    created_at: 'Created',
     reporter: 'Reporter',
     reason: 'Reason',
     appellant: 'Appellant',
-    submitted_at: 'Submitted',
-    reviewed_by: 'Reviewed By',
-    reviewed_at: 'Reviewed At',
     response: 'Response',
 
     // Forum/Comments columns
@@ -102,7 +89,6 @@ const tableTranslations = {
     sortOrder: 'Sort Order',
     runtime: 'Runtime',
     codeLength: 'Code Length',
-    code_length: 'Code Length',
     language: 'Language',
     problemTitle: 'Problem Title',
     memory: 'Memory',
@@ -114,7 +100,6 @@ const tableTranslations = {
     ipAddress: 'IP Address',
     queueId: 'Queue ID',
     reviewer: 'Reviewer',
-    usage_count: 'Usage',
   },
 } as const
 

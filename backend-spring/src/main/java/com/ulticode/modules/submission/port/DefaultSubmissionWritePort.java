@@ -5,6 +5,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.achievement.constants.AchievementType;
+import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.queue.outbox.entity.JudgeOutboxRecord;
 import com.ulticode.modules.queue.outbox.mapper.JudgeOutboxMapper;
@@ -222,7 +223,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         submission.setRuntime(runtime);
         submission.setMemory(memory);
         submission.setTestDetails(testDetails);
-        if ("Accepted".equals(status)) {
+        if (SubmissionStatusCodec.isAccepted(status)) {
             PerformanceStats stats = performanceStats.compute(submission, runtime, memory);
             applyPerformanceStatsToEntity(submission, stats);
         }
@@ -231,7 +232,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                 submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
 
         // Trigger achievement checks for accepted submissions
-        if ("Accepted".equals(status)) {
+        if (SubmissionStatusCodec.isAccepted(status)) {
             // R6.3 / F-08: skip achievement triggers for virtual-contest
             // submissions. Virtual replays are not part of the user's
             // earned-achievements history.
@@ -277,7 +278,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     submission.getUserId(),
                     submission.getProblemId(),
                     status,
-                    "Accepted".equals(status),
+                    SubmissionStatusCodec.isAccepted(status),
                     submission.getRuntime(),
                     java.time.LocalDateTime.now(clock)
             );
@@ -341,7 +342,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         Double memoryPercentile = null;
         String runtimeDistBinsJson = null;
         String memoryDistBinsJson = null;
-        if ("Accepted".equals(status)) {
+        if (SubmissionStatusCodec.isAccepted(status)) {
             Submission pre = submissionMapper.selectById(submissionId);
             if (pre != null) {
                 PerformanceStats stats = performanceStats.compute(pre, runtime, memory);
@@ -478,7 +479,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         // into the verdict CAS). NOTE: the fenced path does not run the
         // virtual-contest guard that the unfenced path runs — preserved
         // verbatim from the facade; flag-day cleanup is tracked separately.
-        if ("Accepted".equals(status)) {
+        if (SubmissionStatusCodec.isAccepted(status)) {
             triggerAchievements(submission);
         }
 

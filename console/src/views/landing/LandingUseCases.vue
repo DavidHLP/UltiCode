@@ -1,49 +1,42 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useI18n } from "vue-i18n";
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   ArrowRight,
   BriefcaseBusiness,
+  Building2,
   GraduationCap,
   School,
   Trophy,
-} from "lucide-vue-next";
+} from 'lucide-vue-next';
+import { useRovingTablist } from '@/composables/landing/useLandingNav';
+import type { UseCaseKey } from '@/types/landing';
 
 const { t } = useI18n();
 const cases = [
-  { key: "learner", icon: GraduationCap },
-  { key: "school", icon: School },
-  { key: "contest", icon: Trophy },
-  { key: "interview", icon: BriefcaseBusiness },
-] as const;
-const selected = ref<(typeof cases)[number]["key"]>("learner");
+  { key: 'learner', icon: GraduationCap },
+  { key: 'school', icon: School },
+  { key: 'enterprise', icon: Building2 },
+  { key: 'contest', icon: Trophy },
+  { key: 'interview', icon: BriefcaseBusiness },
+] as const satisfies ReadonlyArray<{ key: UseCaseKey; icon: typeof GraduationCap }>;
+type CaseKey = (typeof cases)[number]['key'];
+
+const selected = ref<CaseKey>('learner');
 const current = computed(
   () => cases.find((item) => item.key === selected.value) ?? cases[0],
 );
+const tabRefs = ref(
+  Object.fromEntries(
+    cases.map((item) => [item.key, null]),
+  ) as Record<CaseKey, HTMLButtonElement | null>,
+);
 
-const handleTabKey = (
-  event: KeyboardEvent,
-  key: (typeof cases)[number]["key"],
-) => {
-  const currentIndex = cases.findIndex((item) => item.key === key);
-  let nextIndex = currentIndex;
-  if (event.key === "ArrowRight" || event.key === "ArrowDown")
-    nextIndex = (currentIndex + 1) % cases.length;
-  else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
-    nextIndex = (currentIndex - 1 + cases.length) % cases.length;
-  else if (event.key === "Home") nextIndex = 0;
-  else if (event.key === "End") nextIndex = cases.length - 1;
-  else return;
-
-  event.preventDefault();
-  selected.value = cases[nextIndex].key;
-  const tablist = (event.currentTarget as HTMLElement).parentElement;
-  requestAnimationFrame(() =>
-    tablist
-      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
-      [nextIndex]?.focus(),
-  );
-};
+const { onKeydown } = useRovingTablist<CaseKey>({
+  selected,
+  items: cases,
+  tabRefs,
+});
 </script>
 
 <template>
@@ -52,12 +45,12 @@ const handleTabKey = (
     aria-labelledby="usecase-title"
   >
     <div class="max-w-2xl">
-      <p class="section-eyebrow">{{ t("landing.usecase.eyebrow") }}</p>
+      <p class="section-eyebrow">{{ t('landing.usecase.eyebrow') }}</p>
       <h2 id="usecase-title" class="mt-3 text-3xl font-black sm:text-5xl">
-        {{ t("landing.usecase.title") }}
+        {{ t('landing.usecase.title') }}
       </h2>
       <p class="mt-4 text-base leading-7 text-muted-foreground">
-        {{ t("landing.usecase.subtitle") }}
+        {{ t('landing.usecase.subtitle') }}
       </p>
     </div>
     <div class="mt-10 grid gap-6 lg:grid-cols-[0.65fr_1.35fr]">
@@ -69,6 +62,7 @@ const handleTabKey = (
         <button
           v-for="item in cases"
           :id="`usecase-tab-${item.key}`"
+          :ref="(el) => (tabRefs[item.key] = el as HTMLButtonElement | null)"
           :key="item.key"
           role="tab"
           :aria-selected="selected === item.key"
@@ -77,7 +71,7 @@ const handleTabKey = (
           class="usecase-tab"
           :class="{ 'usecase-tab--active': selected === item.key }"
           @click="selected = item.key"
-          @keydown="handleTabKey($event, item.key)"
+          @keydown="onKeydown($event, item.key)"
         >
           <component :is="item.icon" class="size-5" />
           <span>{{ t(`landing.usecase.${item.key}.label`) }}</span>

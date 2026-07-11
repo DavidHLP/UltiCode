@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n";
+import { useI18n } from 'vue-i18n';
 import {
   BookOpen,
   Code2,
@@ -7,22 +7,26 @@ import {
   MessageSquare,
   Trophy,
   Users,
-} from "lucide-vue-next";
+} from 'lucide-vue-next';
+import { landingNavItems } from '@/composables/landing/useLandingNav';
+import type { CapabilityKey, Tone } from '@/types/landing';
+import type { Component } from 'vue';
 
 const { t } = useI18n();
-const capabilities = [
-  { key: "editor", icon: Code2, tone: "electric" },
-  { key: "judge", icon: ListChecks, tone: "green" },
-  { key: "contest", icon: Trophy, tone: "amber" },
-  { key: "lists", icon: BookOpen, tone: "purple" },
-  { key: "solutions", icon: MessageSquare, tone: "cyan" },
-  { key: "community", icon: Users, tone: "red" },
-] as const;
-const proofItems = [
-  { key: "practice", to: { name: "problemset" } },
-  { key: "contest", to: { name: "contest-list" } },
-  { key: "community", to: { name: "forum-home" } },
-] as const;
+const capabilities: ReadonlyArray<{
+  key: CapabilityKey;
+  tone: Tone;
+  icon: Component;
+}> = [
+  { key: 'editor', tone: 'electric', icon: Code2 },
+  { key: 'judge', tone: 'green', icon: ListChecks },
+  { key: 'contest', tone: 'amber', icon: Trophy },
+  { key: 'lists', tone: 'purple', icon: BookOpen },
+  { key: 'solutions', tone: 'cyan', icon: MessageSquare },
+  { key: 'community', tone: 'red', icon: Users },
+];
+const pipelineSteps: ReadonlyArray<'source' | 'compile' | 'run' | 'accepted'> =
+  ['source', 'compile', 'run', 'accepted'];
 </script>
 
 <template>
@@ -31,25 +35,25 @@ const proofItems = [
       class="container mx-auto grid max-w-6xl md:grid-cols-[1.4fr_repeat(3,1fr)]"
     >
       <div class="proof-cell proof-cell--lead">
-        <p class="section-eyebrow">{{ t("landing.social.eyebrow") }}</p>
+        <p class="section-eyebrow">{{ t('landing.social.eyebrow') }}</p>
         <h2 id="proof-title" class="mt-2 text-xl font-bold">
-          {{ t("landing.social.title") }}
+          {{ t('landing.social.title') }}
         </h2>
       </div>
       <RouterLink
-        v-for="item in proofItems"
+        v-for="item in landingNavItems"
         :key="item.key"
         :to="item.to"
         class="proof-cell"
       >
         <strong class="font-data text-sm text-[var(--accent-electric)]">{{
-          t(`landing.social.${item.key}.label`)
+          t(`${item.i18nPath}.label`)
         }}</strong>
         <span class="mt-1 text-sm text-muted-foreground">{{
-          t(`landing.social.${item.key}.desc`)
+          t(`${item.i18nPath}.desc`)
         }}</span>
         <span class="mt-3 text-xs font-bold"
-          >{{ t("landing.social.verify") }} →</span
+          >{{ t('landing.social.verify') }} →</span
         >
       </RouterLink>
     </div>
@@ -60,20 +64,23 @@ const proofItems = [
       <div class="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
         <div>
           <p class="section-eyebrow text-[var(--terminal-cyan)]">
-            {{ t("landing.feature.eyebrow") }}
+            {{ t('landing.feature.eyebrow') }}
           </p>
           <h2 id="features-title" class="mt-3 text-3xl font-black sm:text-5xl">
-            {{ t("landing.feature.title") }}
+            {{ t('landing.feature.title') }}
           </h2>
         </div>
         <div
           class="judge-pipeline"
           :aria-label="t('landing.feature.pipeline.label')"
         >
-          <span>{{ t("landing.feature.pipeline.source") }}</span
-          ><i></i><span>{{ t("landing.feature.pipeline.compile") }}</span
-          ><i></i><span>{{ t("landing.feature.pipeline.run") }}</span
-          ><i></i><strong>{{ t("landing.feature.pipeline.accepted") }}</strong>
+          <template v-for="(step, index) in pipelineSteps" :key="step">
+            <strong v-if="step === 'accepted'">{{
+              t(`landing.feature.pipeline.${step}`)
+            }}</strong>
+            <span v-else>{{ t(`landing.feature.pipeline.${step}`) }}</span>
+            <i v-if="index < pipelineSteps.length - 1"></i>
+          </template>
         </div>
       </div>
       <div
@@ -84,7 +91,11 @@ const proofItems = [
           :key="item.key"
           class="feature-cell"
         >
-          <component :is="item.icon" class="size-6" :data-tone="item.tone" />
+          <component
+            :is="item.icon"
+            class="size-6"
+            :data-tone="item.tone"
+          />
           <p class="mt-8 font-data text-xs text-white/50">
             {{ t(`landing.feature.${item.key}.command`) }}
           </p>

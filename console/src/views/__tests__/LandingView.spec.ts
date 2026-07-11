@@ -16,13 +16,21 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+const routeHref = (to: { name?: string; params?: Record<string, string> }) => {
+  const params = to.params
+    ? "/" + Object.values(to.params).join("/")
+    : "";
+  return `/${to.name ?? ""}${params}`;
+};
+
 const mountView = () =>
   mount(LandingView, {
     global: {
       stubs: {
         RouterLink: {
           props: ["to"],
-          template: '<a :data-to="JSON.stringify(to)"><slot /></a>',
+          template: '<a :href="routeHref(to)"><slot /></a>',
+          methods: { routeHref },
         },
       },
     },
@@ -69,8 +77,7 @@ describe("LandingView", () => {
 
     expect(trialLinks).toHaveLength(2);
     for (const link of trialLinks) {
-      expect(link.attributes("data-to")).toContain('"name":"problem-detail"');
-      expect(link.attributes("data-to")).toContain('"slug":"two-sum"');
+      expect(link.attributes("href")).toBe("/problem-detail/two-sum");
     }
   });
 
@@ -120,20 +127,20 @@ describe("LandingView", () => {
     const wrapper = mountView();
     const tabs = wrapper.findAll('[role="tab"]');
 
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(5);
     expect(tabs[0].attributes("aria-selected")).toBe("true");
     await tabs[2].trigger("click");
     expect(tabs[0].attributes("aria-selected")).toBe("false");
     expect(tabs[2].attributes("aria-selected")).toBe("true");
     expect(wrapper.get('[role="tabpanel"]').text()).toContain(
-      "landing.usecase.contest.title",
+      "landing.usecase.enterprise.title",
     );
 
-    const focus = vi.spyOn(tabs[3].element as HTMLButtonElement, "focus");
+    const focus = vi.spyOn(tabs[4].element as HTMLButtonElement, "focus");
     await tabs[2].trigger("keydown", { key: "End" });
     await vi.runAllTimersAsync();
-    expect(tabs[3].attributes("aria-selected")).toBe("true");
-    expect(tabs[3].attributes("tabindex")).toBe("0");
+    expect(tabs[4].attributes("aria-selected")).toBe("true");
+    expect(tabs[4].attributes("tabindex")).toBe("0");
     expect(tabs[2].attributes("tabindex")).toBe("-1");
     expect(focus).toHaveBeenCalledOnce();
   });
@@ -143,10 +150,10 @@ describe("LandingView", () => {
     const proofLinks = wrapper.findAll("a.proof-cell");
 
     expect(proofLinks).toHaveLength(3);
-    expect(proofLinks.map((link) => link.attributes("data-to"))).toEqual([
-      '{"name":"problemset"}',
-      '{"name":"contest-list"}',
-      '{"name":"forum-home"}',
+    expect(proofLinks.map((link) => link.attributes("href"))).toEqual([
+      "/problemset",
+      "/contest-list",
+      "/forum-home",
     ]);
   });
 
@@ -154,12 +161,21 @@ describe("LandingView", () => {
     const wrapper = mountView();
     const triggers = wrapper.findAll(".faq-trigger");
 
-    expect(triggers).toHaveLength(6);
+    expect(triggers).toHaveLength(8);
     expect(triggers[0].attributes("aria-expanded")).toBe("true");
     await triggers[1].trigger("click");
     expect(triggers[0].attributes("aria-expanded")).toBe("false");
     expect(triggers[1].attributes("aria-expanded")).toBe("true");
-    expect(wrapper.text()).toContain("landing.faq.judge.answer");
+    expect(wrapper.text()).toContain("landing.faq.judge_speed.answer");
     expect(wrapper.text()).not.toContain("landing.faq.free.answer");
+  });
+
+  it("renders offline and partnership FAQs as separate entries", () => {
+    const wrapper = mountView();
+    const triggers = wrapper.findAll(".faq-trigger");
+    const labels = triggers.map((trigger) => trigger.text());
+
+    expect(labels).toContain("landing.faq.offline.question");
+    expect(labels).toContain("landing.faq.partnership.question");
   });
 });

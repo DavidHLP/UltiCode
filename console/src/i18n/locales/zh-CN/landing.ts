@@ -125,6 +125,14 @@ export default {
       point1: "经典主题练习",
       point2: "Markdown 思路复盘",
     },
+    enterprise: {
+      label: "企业内训",
+      signal: "GOAL / STANDARDIZE THE LOOP",
+      title: "用同一套评测规则组织内训",
+      desc: "复用公开题库与提交流程，让内训候选人与公开榜单在同一基线下对比。",
+      point1: "统一题库入口",
+      point2: "可审计的提交记录",
+    },
   },
   timeline: {
     eyebrow: "能力记录",
@@ -132,17 +140,21 @@ export default {
     subtitle: "不使用虚构季度路线图。以下能力均可从当前产品导航直接进入。",
     available: "已开放",
     open: "立即查看",
-    judge: {
-      title: "题库与隔离评测",
-      desc: "浏览公开题目、编写解答并查看提交结果。",
+    editor: {
+      title: "在线代码编辑器",
+      desc: "在题目上下文里编写和调整解答，首屏演示预置三种语言。",
     },
-    contest: {
-      title: "竞赛与排名",
-      desc: "进入比赛列表，参与限时解题并查看排名。",
+    lists: {
+      title: "题单与收藏",
+      desc: "按目标把题目分组，让零散练习变成可以反复回到的计划。",
     },
-    community: {
-      title: "题解与开发者社区",
-      desc: "发布 Markdown 题解，在讨论中补全推理。",
+    solutions: {
+      title: "Markdown 题解",
+      desc: "发布思路、复杂度和边界条件，让一次通过可以被后续题目复用。",
+    },
+    auth: {
+      title: "HttpOnly 会话存储",
+      desc: "访问与刷新令牌保存在 HttpOnly Cookie 中，不暴露给页面脚本。",
     },
   },
   faq: {
@@ -152,10 +164,10 @@ export default {
       question: "使用 UltiCode 需要付费吗？",
       answer: "注册与当前公开题库入口免费；页面不会要求信用卡。",
     },
-    judge: {
-      question: "页面里的运行演示是真实在线判题吗？",
+    judge_speed: {
+      question: "实际判题速度大概多快？",
       answer:
-        "不是。首屏工作台是明确的交互演示；进入具体题目提交后，才会使用平台评测流程。",
+        "正常负载下大多数提交在数秒内返回 verdict；具体等待时间取决于语言和提交页显示的队列深度。",
     },
     privacy: {
       question: "登录凭证如何保存？",
@@ -171,15 +183,26 @@ export default {
       answer:
         "语言支持以具体题目编辑器中的可选项为准；首屏演示提供 C++、Python 和 JavaScript。",
     },
+    offline: {
+      question: "支持离线模式吗？",
+      answer:
+        "不支持。UltiCode 是 Web 平台，提交、判题与同步都依赖活跃的网络连接。",
+    },
     api: {
-      question: "是否有公开 API 或离线模式？",
-      answer: "当前落地页不承诺公开 API 或离线模式；可用入口以产品导航为准。",
+      question: "是否有公开 API？",
+      answer: "当前落地页不承诺公开 API；可用入口以产品导航为准。",
+    },
+    partnership: {
+      question: "是否支持企业或学校合作？",
+      answer: "合作按一事一议处理。请通过开发者社区论坛说明使用场景并留下联系方式。",
     },
   },
   ctaTitle: "下一次通过，从这一题开始",
   ctaDesc: "创建免费账户，保存提交、参加竞赛，并和其他解题者一起复盘算法。",
   ctaBrowse: "浏览全部题目",
   ctaContests: "查看竞赛",
+  ctaReadDocs: "阅读文档",
+  ctaGithubStar: "在 GitHub 上点亮 Star",
   footer: {
     statement: "把每次提交变成下一题还能复用的算法能力。",
     practice: "练习",
@@ -188,6 +211,10 @@ export default {
     contests: "竞赛列表",
     connect: "交流",
     community: "开发者社区",
+    friends: "友情链接",
+    docs: "项目文档",
+    star: "GitHub 仓库",
+    icp: "ICP 备案申请中 · ICP filing pending",
   },
   copyright: "© 2026 UltiCode 项目 · Apache License 2.0",
 };

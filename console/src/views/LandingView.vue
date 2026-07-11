@@ -393,6 +393,22 @@ onUnmounted(() => timers.forEach(clearTimeout));
           >
             {{ t("landing.ctaContests") }}
           </RouterLink>
+          <a
+            href="https://ulticode.dev/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="button button--secondary"
+          >
+            {{ t("landing.ctaReadDocs") }}
+          </a>
+          <a
+            href="https://github.com/ulticode/ulticode"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="button button--secondary"
+          >
+            {{ t("landing.ctaGithubStar") }}
+          </a>
         </div>
       </section>
     </main>
@@ -437,6 +453,30 @@ onUnmounted(() => timers.forEach(clearTimeout));
           }}</RouterLink>
         </div>
       </div>
+      <nav
+        class="container mx-auto mt-8 flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 border-t border-silver px-4 pt-6 text-xs"
+        :aria-label="t('landing.footer.friends')"
+      >
+        <span class="footer-heading">{{ t("landing.footer.friends") }}</span>
+        <a
+          href="https://ulticode.dev/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-link"
+          >{{ t("landing.footer.docs") }}</a
+        ><a
+          href="https://github.com/ulticode/ulticode"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-link"
+          >{{ t("landing.footer.star") }}</a
+        >
+      </nav>
+      <p
+        class="container mx-auto mt-3 max-w-6xl px-4 text-xs"
+      >
+        {{ t("landing.footer.icp") }}
+      </p>
     </footer>
   </div>
 </template>

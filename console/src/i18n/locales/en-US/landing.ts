@@ -137,17 +137,21 @@ export default {
       "No fictional quarterly roadmap. Every capability below is reachable from the current product navigation.",
     available: "Available",
     open: "Open now",
-    judge: {
-      title: "Problems and isolated judging",
-      desc: "Browse public problems, write a solution, and inspect submission results.",
+    editor: {
+      title: "Online code editor",
+      desc: "Write and refine solutions next to the problem statement, with three languages preloaded in the hero demo.",
     },
-    contest: {
-      title: "Contests and rankings",
-      desc: "Open the contest list, solve under time, and view rankings.",
+    lists: {
+      title: "Problem lists and bookmarks",
+      desc: "Group problems by goal so scattered practice becomes a plan you can return to.",
     },
-    community: {
-      title: "Solutions and developer community",
-      desc: "Publish Markdown solutions and complete the reasoning through discussion.",
+    solutions: {
+      title: "Markdown editorials",
+      desc: "Publish reasoning, complexity, and edge cases; reuse one accepted solution across future problems.",
+    },
+    auth: {
+      title: "HttpOnly session storage",
+      desc: "Access and refresh tokens stay in HttpOnly cookies and never reach page scripts.",
     },
   },
   faq: {
@@ -158,10 +162,10 @@ export default {
       answer:
         "Registration and the current public problem entry are free; the page does not ask for a credit card.",
     },
-    judge: {
-      question: "Is the hero run demo a real online judge?",
+    judge_speed: {
+      question: "How fast is the judging queue in practice?",
       answer:
-        "No. The hero workbench is an explicit interaction demo; the platform judging flow begins after you submit on a real problem.",
+        "Most submissions return a verdict within a few seconds during normal load; the exact wait depends on the language and the queue depth shown on the submission page.",
     },
     privacy: {
       question: "How are sign-in credentials stored?",
@@ -178,10 +182,20 @@ export default {
       answer:
         "Language support follows the options on each problem editor. The hero demo includes C++, Python, and JavaScript.",
     },
-    api: {
-      question: "Is there a public API or offline mode?",
+    offline: {
+      question: "Is there an offline mode?",
       answer:
-        "This landing page does not promise a public API or offline mode; current product navigation is the source of available entry points.",
+        "No. UltiCode is a web platform that needs an active connection to submit, judge, and sync submissions.",
+    },
+    api: {
+      question: "Is there a public API?",
+      answer:
+        "This landing page does not promise a public API; current product navigation is the source of available entry points.",
+    },
+    partnership: {
+      question: "Do you support business or school partnerships?",
+      answer:
+        "Partnerships are handled case by case. Reach out through the developer community forum with your use case and a contact channel.",
     },
   },
   ctaTitle: "Your next accepted solution starts here",
@@ -189,6 +203,8 @@ export default {
     "Create a free account to save submissions, enter contests, and review algorithms with other solvers.",
   ctaBrowse: "Browse all problems",
   ctaContests: "View contests",
+  ctaReadDocs: "Read docs",
+  ctaGithubStar: "Star on GitHub",
   footer: {
     statement:
       "Turn every submission into an algorithmic method you can reuse.",
@@ -198,6 +214,10 @@ export default {
     contests: "Contest list",
     connect: "Connect",
     community: "Developer community",
+    friends: "Friends",
+    docs: "Documentation",
+    star: "GitHub repository",
+    icp: "ICP filing pending · 备案申请中",
   },
   copyright: "© 2026 UltiCode Project · Apache License 2.0",
 };

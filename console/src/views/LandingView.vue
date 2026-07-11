@@ -9,11 +9,12 @@ import {
   ChevronDown,
   Code2,
   Menu,
-  MessageSquare,
   Play,
-  Trophy,
   X,
 } from "lucide-vue-next";
+import LandingCapabilities from "./landing/LandingCapabilities.vue";
+import LandingTrust from "./landing/LandingTrust.vue";
+import LandingUseCases from "./landing/LandingUseCases.vue";
 import "@/assets/styles/landing.css";
 
 const { t } = useI18n();
@@ -360,43 +361,9 @@ onUnmounted(() => timers.forEach(clearTimeout));
         </div>
       </section>
 
-      <section class="border-y border-silver bg-[var(--surface-sunken)]">
-        <div class="container mx-auto max-w-6xl px-4 py-16 lg:py-20">
-          <div class="max-w-2xl">
-            <p
-              class="font-data text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-electric)]"
-            >
-              {{ t("landing.workflowEyebrow") }}
-            </p>
-            <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
-              {{ t("landing.workflowTitle") }}
-            </h2>
-            <p class="mt-4 text-base leading-7 text-muted-foreground">
-              {{ t("landing.workflowSubtitle") }}
-            </p>
-          </div>
-          <div class="mt-10 grid border border-silver bg-card md:grid-cols-3">
-            <article class="workflow-card">
-              <Code2 class="size-6 text-[var(--accent-electric)]" />
-              <p class="workflow-command">problem.open()</p>
-              <h3>{{ t("landing.practiceTitle") }}</h3>
-              <p>{{ t("landing.practiceDesc") }}</p>
-            </article>
-            <article class="workflow-card">
-              <Trophy class="size-6 text-[var(--terminal-amber)]" />
-              <p class="workflow-command">contest.enter()</p>
-              <h3>{{ t("landing.competeTitle") }}</h3>
-              <p>{{ t("landing.competeDesc") }}</p>
-            </article>
-            <article class="workflow-card">
-              <MessageSquare class="size-6 text-[var(--terminal-green)]" />
-              <p class="workflow-command">solution.explain()</p>
-              <h3>{{ t("landing.reviewTitle") }}</h3>
-              <p>{{ t("landing.reviewDesc") }}</p>
-            </article>
-          </div>
-        </div>
-      </section>
+      <LandingCapabilities />
+      <LandingUseCases />
+      <LandingTrust />
 
       <section
         class="container mx-auto max-w-4xl px-4 py-20 text-center lg:py-28"
@@ -410,24 +377,65 @@ onUnmounted(() => timers.forEach(clearTimeout));
         >
           {{ t("landing.ctaDesc") }}
         </p>
-        <button class="button mx-auto mt-8" @click="goToSeedProblem">
-          {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
-        </button>
+        <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <button class="button" @click="goToSeedProblem">
+            {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
+          </button>
+          <RouterLink
+            :to="{ name: 'problemset' }"
+            class="button button--secondary"
+          >
+            {{ t("landing.ctaBrowse") }}
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'contest-list' }"
+            class="button button--secondary"
+          >
+            {{ t("landing.ctaContests") }}
+          </RouterLink>
+        </div>
       </section>
     </main>
 
     <footer
-      class="border-t border-silver bg-card py-7 text-sm text-muted-foreground"
+      class="border-t border-silver bg-card py-12 text-sm text-muted-foreground"
     >
       <div
-        class="container mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between"
+        class="container mx-auto grid max-w-6xl gap-10 px-4 md:grid-cols-[1.4fr_repeat(3,1fr)]"
       >
-        <span>{{ t("landing.copyright") }}</span>
-        <RouterLink
-          :to="{ name: 'problem-detail', params: { slug: TWO_SUM_SLUG } }"
-          class="font-medium text-foreground hover:text-[var(--accent-electric)]"
-          >{{ t("landing.tryProblem") }} →</RouterLink
-        >
+        <div>
+          <strong class="font-data text-foreground">ULTICODE</strong>
+          <p class="mt-3 max-w-xs leading-6">
+            {{ t("landing.footer.statement") }}
+          </p>
+          <p class="mt-5 text-xs">{{ t("landing.copyright") }}</p>
+        </div>
+        <div>
+          <h2 class="footer-heading">{{ t("landing.footer.practice") }}</h2>
+          <RouterLink :to="{ name: 'problemset' }" class="footer-link">{{
+            t("landing.footer.problemset")
+          }}</RouterLink
+          ><RouterLink
+            :to="{ name: 'problem-detail', params: { slug: TWO_SUM_SLUG } }"
+            class="footer-link"
+            >{{ t("landing.tryProblem") }}</RouterLink
+          >
+        </div>
+        <div>
+          <h2 class="footer-heading">{{ t("landing.footer.compete") }}</h2>
+          <RouterLink :to="{ name: 'contest-list' }" class="footer-link">{{
+            t("landing.footer.contests")
+          }}</RouterLink>
+        </div>
+        <div>
+          <h2 class="footer-heading">{{ t("landing.footer.connect") }}</h2>
+          <RouterLink :to="{ name: 'forum-home' }" class="footer-link">{{
+            t("landing.footer.community")
+          }}</RouterLink
+          ><RouterLink :to="{ name: 'login' }" class="footer-link">{{
+            t("landing.signIn")
+          }}</RouterLink>
+        </div>
       </div>
     </footer>
   </div>

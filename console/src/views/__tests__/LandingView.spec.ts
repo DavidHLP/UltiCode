@@ -76,11 +76,13 @@ describe("LandingView", () => {
 
   it("routes the primary guest CTA straight into the seeded problem", async () => {
     const wrapper = mountView();
-    const cta = wrapper.findAll("button").find(
-      (btn) =>
-        btn.text().includes("landing.freeStart") &&
-        !btn.classes().includes("button--compact"),
-    );
+    const cta = wrapper
+      .findAll("button")
+      .find(
+        (btn) =>
+          btn.text().includes("landing.freeStart") &&
+          !btn.classes().includes("button--compact"),
+      );
     expect(cta).toBeDefined();
     await cta!.trigger("click");
 
@@ -112,5 +114,52 @@ describe("LandingView", () => {
 
     wrapper.unmount();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("switches use-case content with accessible tab state", async () => {
+    const wrapper = mountView();
+    const tabs = wrapper.findAll('[role="tab"]');
+
+    expect(tabs).toHaveLength(4);
+    expect(tabs[0].attributes("aria-selected")).toBe("true");
+    await tabs[2].trigger("click");
+    expect(tabs[0].attributes("aria-selected")).toBe("false");
+    expect(tabs[2].attributes("aria-selected")).toBe("true");
+    expect(wrapper.get('[role="tabpanel"]').text()).toContain(
+      "landing.usecase.contest.title",
+    );
+
+    const focus = vi.spyOn(tabs[3].element as HTMLButtonElement, "focus");
+    await tabs[2].trigger("keydown", { key: "End" });
+    await vi.runAllTimersAsync();
+    expect(tabs[3].attributes("aria-selected")).toBe("true");
+    expect(tabs[3].attributes("tabindex")).toBe("0");
+    expect(tabs[2].attributes("tabindex")).toBe("-1");
+    expect(focus).toHaveBeenCalledOnce();
+  });
+
+  it("links every proof item to a verifiable product surface", () => {
+    const wrapper = mountView();
+    const proofLinks = wrapper.findAll("a.proof-cell");
+
+    expect(proofLinks).toHaveLength(3);
+    expect(proofLinks.map((link) => link.attributes("data-to"))).toEqual([
+      '{"name":"problemset"}',
+      '{"name":"contest-list"}',
+      '{"name":"forum-home"}',
+    ]);
+  });
+
+  it("expands one FAQ answer at a time", async () => {
+    const wrapper = mountView();
+    const triggers = wrapper.findAll(".faq-trigger");
+
+    expect(triggers).toHaveLength(6);
+    expect(triggers[0].attributes("aria-expanded")).toBe("true");
+    await triggers[1].trigger("click");
+    expect(triggers[0].attributes("aria-expanded")).toBe("false");
+    expect(triggers[1].attributes("aria-expanded")).toBe("true");
+    expect(wrapper.text()).toContain("landing.faq.judge.answer");
+    expect(wrapper.text()).not.toContain("landing.faq.free.answer");
   });
 });

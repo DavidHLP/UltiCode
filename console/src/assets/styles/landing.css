@@ -116,11 +116,168 @@
   .font-data {
     font-family: var(--uc-font-data);
   }
+  .section-eyebrow {
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-electric);
+  }
+  .proof-cell {
+    display: flex;
+    min-height: 7.5rem;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+  a.proof-cell:hover {
+    background: var(--surface-sunken);
+  }
+  .proof-cell--lead {
+    border-top: 0;
+  }
+  .judge-section {
+    background:
+      linear-gradient(135deg, rgb(14 22 35 / 96%), rgb(4 10 20 / 99%)),
+      var(--solarized-base03);
+  }
+  .judge-pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    overflow: hidden;
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    color: rgb(255 255 255 / 55%);
+  }
+  .judge-pipeline i {
+    height: 1px;
+    min-width: 1rem;
+    flex: 1;
+    background: rgb(255 255 255 / 25%);
+  }
+  .judge-pipeline strong {
+    border: 1px solid var(--terminal-green);
+    padding: 0.3rem 0.5rem;
+    color: var(--terminal-green);
+  }
+  .feature-cell {
+    min-height: 16rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgb(255 255 255 / 20%);
+  }
+  .feature-cell svg[data-tone="electric"] {
+    color: var(--accent-electric);
+  }
+  .feature-cell svg[data-tone="green"] {
+    color: var(--terminal-green);
+  }
+  .feature-cell svg[data-tone="amber"] {
+    color: var(--terminal-amber);
+  }
+  .feature-cell svg[data-tone="purple"] {
+    color: var(--terminal-purple);
+  }
+  .feature-cell svg[data-tone="cyan"] {
+    color: var(--terminal-cyan);
+  }
+  .feature-cell svg[data-tone="red"] {
+    color: #ef6b73;
+  }
+  .usecase-tab {
+    display: flex;
+    min-height: 3.75rem;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--border);
+    padding: 0 1rem;
+    text-align: left;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--muted-foreground);
+  }
+  .usecase-tab--active {
+    border-color: var(--accent-electric);
+    background: color-mix(in oklch, var(--accent-electric) 10%, var(--card));
+    color: var(--foreground);
+    box-shadow: 3px 3px 0 var(--border);
+  }
+  .usecase-panel {
+    min-height: 23rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: clamp(1.5rem, 5vw, 3.5rem);
+    box-shadow: 5px 5px 0 var(--border);
+  }
+  .timeline-item {
+    position: relative;
+    padding-bottom: 2.25rem;
+  }
+  .timeline-item:last-child {
+    padding-bottom: 0;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -1.9rem;
+    top: 0.4rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 2px solid var(--surface-sunken);
+    background: var(--accent-electric);
+    box-shadow: 0 0 0 1px var(--accent-electric);
+  }
+  .status-chip {
+    border: 1px solid
+      color-mix(in oklch, var(--terminal-green) 45%, transparent);
+    padding: 0.15rem 0.45rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    color: var(--terminal-green);
+  }
+  .faq-trigger {
+    display: flex;
+    width: 100%;
+    min-height: 4.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    text-align: left;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .footer-heading {
+    margin-bottom: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--foreground);
+  }
+  .footer-link {
+    display: block;
+    width: fit-content;
+    padding: 0.25rem 0;
+  }
+  .footer-link:hover {
+    color: var(--accent-electric);
+  }
   :is(a, button):focus-visible {
     outline: 3px solid var(--accent-electric);
     outline-offset: 3px;
   }
   @media (min-width: 768px) {
+    .proof-cell {
+      border-top: 0;
+      border-left: 1px solid var(--border);
+    }
+    .proof-cell--lead {
+      border-left: 0;
+    }
+    .feature-cell {
+      border-right: 1px solid rgb(255 255 255 / 20%);
+    }
     .workflow-card + .workflow-card {
       border-top: 0;
       border-left: 1px solid var(--border);
@@ -134,6 +291,9 @@
     .button:hover,
     .button:active {
       transform: none;
+    }
+    .faq-trigger svg {
+      transition: none;
     }
   }
 }

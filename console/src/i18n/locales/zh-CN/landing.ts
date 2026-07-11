@@ -39,7 +39,155 @@ export default {
   competeDesc: "进入限时竞赛，在相同规则下检验解题节奏和实现准确度。",
   reviewTitle: "复盘思路",
   reviewDesc: "阅读题解、讨论复杂度，把一次 AC 沉淀成下一题还能复用的方法。",
+  social: {
+    eyebrow: "当前可用，不画大饼",
+    title: "一条训练路径，三个已经开放的入口",
+    practice: { label: "PRACTICE", desc: "公开题库与即时提交" },
+    contest: { label: "CONTEST", desc: "限时竞赛与排名" },
+    community: { label: "DISCUSS", desc: "题解、评论与复盘" },
+    verify: "打开入口",
+  },
+  feature: {
+    eyebrow: "从源码到结论",
+    title: "每一步，都为一次可信的评测服务",
+    pipeline: {
+      label: "从源码到评测结论",
+      source: "源码",
+      compile: "编译",
+      run: "运行",
+      accepted: "通过",
+    },
+    editor: {
+      command: "editor.write()",
+      title: "在线代码编辑",
+      desc: "在题目上下文中编写和调整解答，不必切换本地工具。",
+    },
+    judge: {
+      command: "judge.run()",
+      title: "隔离评测",
+      desc: "编译、运行并返回明确 verdict，帮助定位失败阶段。",
+    },
+    contest: {
+      command: "contest.rank()",
+      title: "限时竞赛",
+      desc: "在统一规则和时间窗口中提交，并查看比赛排名。",
+    },
+    lists: {
+      command: "problem.save()",
+      title: "题单与收藏",
+      desc: "按目标整理题目，把零散练习变成可继续的计划。",
+    },
+    solutions: {
+      command: "solution.publish()",
+      title: "Markdown 题解",
+      desc: "记录思路、复杂度与边界条件，让一次通过可以被复用。",
+    },
+    community: {
+      command: "thread.reply()",
+      title: "实时讨论",
+      desc: "围绕题目和方案继续追问，而不是只看一个答案。",
+    },
+  },
+  usecase: {
+    eyebrow: "不同目标，同一条反馈链",
+    title: "今天为什么打开 UltiCode？",
+    subtitle: "选择你正在解决的问题，页面只展示真正相关的工作流。",
+    tabsLabel: "使用场景",
+    learner: {
+      label: "日常刷题",
+      signal: "GOAL / BUILD CONSISTENCY",
+      title: "把每次练习接成一条成长轨迹",
+      desc: "从主题题单进入题目，提交后立刻复盘错误，再保存值得重看的解法。",
+      point1: "按主题选择下一题",
+      point2: "保存提交与题解",
+    },
+    school: {
+      label: "高校教学",
+      signal: "GOAL / TEACH WITH EVIDENCE",
+      title: "让作业结果有据可查",
+      desc: "用统一题目和评测规则组织课程练习，让反馈围绕代码结果而不是环境差异。",
+      point1: "统一提交入口",
+      point2: "清晰的评测状态",
+    },
+    contest: {
+      label: "竞赛训练",
+      signal: "GOAL / PERFORM UNDER TIME",
+      title: "在计时和排名中检验稳定性",
+      desc: "通过限时比赛暴露读题、实现和调试节奏中的真实瓶颈。",
+      point1: "限时竞赛流程",
+      point2: "实时排名反馈",
+    },
+    interview: {
+      label: "面试准备",
+      signal: "GOAL / EXPLAIN THE TRADEOFF",
+      title: "不只做对，还要讲清为什么",
+      desc: "完成典型题后记录复杂度和替代方案，把代码答案变成可表达的方法。",
+      point1: "经典主题练习",
+      point2: "Markdown 思路复盘",
+    },
+  },
+  timeline: {
+    eyebrow: "能力记录",
+    title: "只承诺你现在就能使用的部分",
+    subtitle: "不使用虚构季度路线图。以下能力均可从当前产品导航直接进入。",
+    available: "已开放",
+    open: "立即查看",
+    judge: {
+      title: "题库与隔离评测",
+      desc: "浏览公开题目、编写解答并查看提交结果。",
+    },
+    contest: {
+      title: "竞赛与排名",
+      desc: "进入比赛列表，参与限时解题并查看排名。",
+    },
+    community: {
+      title: "题解与开发者社区",
+      desc: "发布 Markdown 题解，在讨论中补全推理。",
+    },
+  },
+  faq: {
+    eyebrow: "开始之前",
+    title: "常见问题，直接回答",
+    free: {
+      question: "使用 UltiCode 需要付费吗？",
+      answer: "注册与当前公开题库入口免费；页面不会要求信用卡。",
+    },
+    judge: {
+      question: "页面里的运行演示是真实在线判题吗？",
+      answer:
+        "不是。首屏工作台是明确的交互演示；进入具体题目提交后，才会使用平台评测流程。",
+    },
+    privacy: {
+      question: "登录凭证如何保存？",
+      answer: "访问与刷新令牌保存在 HttpOnly Cookie 中，不暴露给页面脚本。",
+    },
+    school: {
+      question: "可以用于课程和训练组织吗？",
+      answer:
+        "现有题库、提交和竞赛能力可用于统一练习；页面不虚构尚未上线的学校管理功能。",
+    },
+    languages: {
+      question: "支持哪些编程语言？",
+      answer:
+        "语言支持以具体题目编辑器中的可选项为准；首屏演示提供 C++、Python 和 JavaScript。",
+    },
+    api: {
+      question: "是否有公开 API 或离线模式？",
+      answer: "当前落地页不承诺公开 API 或离线模式；可用入口以产品导航为准。",
+    },
+  },
   ctaTitle: "下一次通过，从这一题开始",
   ctaDesc: "创建免费账户，保存提交、参加竞赛，并和其他解题者一起复盘算法。",
+  ctaBrowse: "浏览全部题目",
+  ctaContests: "查看竞赛",
+  footer: {
+    statement: "把每次提交变成下一题还能复用的算法能力。",
+    practice: "练习",
+    problemset: "公开题库",
+    compete: "竞赛",
+    contests: "竞赛列表",
+    connect: "交流",
+    community: "开发者社区",
+  },
   copyright: "© 2026 UltiCode 项目 · Apache License 2.0",
 };

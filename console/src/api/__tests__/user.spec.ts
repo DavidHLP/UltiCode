@@ -72,9 +72,21 @@ describe("user api", () => {
   describe("fetchUserProfile", () => {
     it("calls apiGet with /users/{userId}", async () => {
       vi.mocked(apiGet).mockResolvedValue(mockProfile);
-      const result = await fetchUserProfile("user-123");
+      await fetchUserProfile("user-123");
       expect(apiGet).toHaveBeenCalledWith("/users/user-123");
-      expect(result).toEqual(mockProfile);
+    });
+
+    it("decodes the snake_case UserVO into ProfileData", async () => {
+      vi.mocked(apiGet).mockResolvedValue(mockProfile);
+      const result = await fetchUserProfile("user-123");
+      // snake_case joined_at → camelCase joinedAt
+      expect(result.joinedAt).toBe("2026-01-01T00:00:00Z");
+      expect(result.id).toBe("user-123");
+      expect(result.username).toBe("alice");
+      // empty defaults for fields UserVO does not expose
+      expect(result.totalSolved).toBe(0);
+      expect(result.followerCount).toBe(0);
+      expect(result.globalRank).toBeNull();
     });
   });
 
@@ -82,7 +94,7 @@ describe("user api", () => {
     it("targets /users/me (not /users/{userId})", async () => {
       vi.mocked(apiPatch).mockResolvedValue(mockProfile);
       const update: Partial<UserProfile> = { bio: "updated bio" };
-      const result = await updateMyProfile(update);
+      await updateMyProfile(update);
       // CRITICAL: must call /users/me, not /users/{id}
       expect(apiPatch).toHaveBeenCalledWith("/users/me", update);
       // Negative check: must NOT call /users/{uuid-anything}-like path
@@ -95,7 +107,13 @@ describe("user api", () => {
           !path.startsWith("/users/me/"),
       );
       expect(usedNonMePath).toBe(false);
-      expect(result).toEqual(mockProfile);
+    });
+
+    it("returns a decoded ProfileData", async () => {
+      vi.mocked(apiPatch).mockResolvedValue(mockProfile);
+      const result = await updateMyProfile({ bio: "x" });
+      expect(result.joinedAt).toBe("2026-01-01T00:00:00Z");
+      expect(result.id).toBe("user-123");
     });
 
     it("passes Partial<UserProfile> payload verbatim", async () => {
@@ -136,7 +154,8 @@ describe("user api", () => {
       vi.mocked(apiGet).mockResolvedValue(mockProfileData);
       const result = await fetchProfileByUsername("alice");
       expect(apiGet).toHaveBeenCalledWith("/users/by-username/alice/profile");
-      expect(result).toEqual(mockProfileData);
+      // decodeProfile passes camelCase through; editable fields default to ''
+      expect(result).toEqual({ ...mockProfileData, email: "", twitter: "", github: "" });
     });
 
     it("URL-encodes usernames with special characters", async () => {

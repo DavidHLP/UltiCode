@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
-import { fetchUserProfile, updateMyProfile, type UserProfile } from "@/api/user";
+import { fetchUserProfile, updateMyProfile, type ProfileData } from "@/api/user";
 import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
 import {
@@ -22,7 +22,7 @@ import { Globe, Github, Lock, Mail, MapPin, Twitter } from "lucide-vue-next";
 const { t } = useI18n();
 const loading = ref(true);
 const saving = ref(false);
-const user = ref<UserProfile | null>(null);
+const user = ref<ProfileData | null>(null);
 
 const saveProfile = async () => {
   if (!user.value) return;

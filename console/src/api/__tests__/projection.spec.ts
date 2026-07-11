@@ -263,4 +263,37 @@ describe("decodeProfile", () => {
     expect(r.id).toBe("");
     expect(r.totalSolved).toBe(0);
   });
+
+  it("maps UserVO `rank` to globalRank", () => {
+    const r = decodeProfile({
+      id: "u1",
+      username: "alice",
+      name: "Alice",
+      avatar: "a.png",
+      rank: 7,
+    });
+    expect(r.globalRank).toBe(7);
+  });
+
+  it("maps UserVO contact fields (email/twitter/github)", () => {
+    const r = decodeProfile({
+      id: "u1",
+      username: "alice",
+      name: "Alice",
+      avatar: "a.png",
+      email: "a@x.com",
+      twitter: "https://x.com/a",
+      github: "https://github.com/a",
+    });
+    expect(r.email).toBe("a@x.com");
+    expect(r.twitter).toBe("https://x.com/a");
+    expect(r.github).toBe("https://github.com/a");
+  });
+
+  it("empty contact fields default to ''", () => {
+    const r = decodeProfile({});
+    expect(r.email).toBe("");
+    expect(r.twitter).toBe("");
+    expect(r.github).toBe("");
+  });
 });

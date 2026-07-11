@@ -13,10 +13,10 @@ import {
 } from "lucide-vue-next";
 import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
-import type { UserProfile } from "@/api/user";
+import type { ProfileData } from "@/api/user";
 
 defineProps<{
-  user: UserProfile;
+  user: ProfileData;
 }>();
 
 const { t } = useI18n();
@@ -135,8 +135,8 @@ const { t } = useI18n();
             <Calendar class="h-4 w-4 text-primary/70" />
             <span>{{
               t("personal.profile.joinedDate", {
-                date: user.joined_at
-                  ? new Date(user.joined_at).toLocaleDateString(undefined, {
+                date: user.joinedAt
+                  ? new Date(user.joinedAt).toLocaleDateString(undefined, {
                       month: "long",
                       year: "numeric",
                     })

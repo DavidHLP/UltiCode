@@ -11,7 +11,7 @@ import {
   fetchUserProfile,
   fetchUserStats,
   fetchUserSkills,
-  type UserProfile,
+  type ProfileData,
 } from "@/api/user";
 import type { UserStats, UserSkill } from "@/types/userStats";
 import { fetchUserSubmissions } from "@/api/submission";
@@ -22,7 +22,7 @@ import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const authStore = useAuthStore();
 const loading = ref(true);
-const user = ref<UserProfile | null>(null);
+const user = ref<ProfileData | null>(null);
 const submissions = ref<SubmissionRecord[]>([]);
 const statsData = ref<UserStats | null>(null);
 const skillsData = ref<UserSkill[]>([]);
@@ -105,7 +105,7 @@ onMounted(async () => {
       :submissions="submissions"
       :skills-data="skillsData"
       :skills-loading="skillsLoading"
-      :user-rank="user.rank"
+      :user-rank="user.globalRank ?? undefined"
     />
   </PersonalPageShell>
 </template>

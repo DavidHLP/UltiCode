@@ -6,7 +6,7 @@ import {
   fetchUserProfile,
   fetchUserStats,
   fetchUserSkills,
-  type UserProfile,
+  type ProfileData,
 } from "@/api/user";
 import type { UserStats, UserSkills } from "@/types/userStats";
 import StatsCard from "@/components/dashboard/StatsCard.vue";
@@ -29,20 +29,20 @@ const route = useRoute();
 const userId = computed(() => route.params.id as string);
 
 const loading = ref(true);
-const profile = ref<UserProfile | null>(null);
+const profile = ref<ProfileData | null>(null);
 const stats = ref<UserStats | null>(null);
 const skills = ref<UserSkills | null>(null);
 const error = ref<string | null>(null);
 
 const acceptanceRate = computed(() => {
-  if (!stats.value || !profile.value?.submission_count) return 0;
+  if (!stats.value || !profile.value?.submissionCount) return 0;
   const { stats: problemStats } = stats.value;
   const total =
     (problemStats.Easy?.count || 0) +
     (problemStats.Medium?.count || 0) +
     (problemStats.Hard?.count || 0);
-  if (profile.value.submission_count === 0) return 0;
-  return Math.round((total / profile.value.submission_count) * 100);
+  if (profile.value.submissionCount === 0) return 0;
+  return Math.round((total / profile.value.submissionCount) * 100);
 });
 
 const totalSolved = computed(() => {
@@ -124,11 +124,11 @@ onMounted(async () => {
       <div class="rounded-none border bg-card p-6 space-y-4">
         <p v-if="profile.bio" class="text-sm">{{ profile.bio }}</p>
         <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <div v-if="profile.joined_at" class="flex items-center gap-1">
+          <div v-if="profile.joinedAt" class="flex items-center gap-1">
             <Calendar class="h-4 w-4" />
             <span>{{
               t("profile.joined", {
-                date: new Date(profile.joined_at).toLocaleDateString(),
+                date: new Date(profile.joinedAt).toLocaleDateString(),
               })
             }}</span>
           </div>
@@ -166,7 +166,7 @@ onMounted(async () => {
 
         <StatsCard
           :title="t('profile.stats.globalRank')"
-          :value="profile.rank || '-'"
+          :value="profile.globalRank ?? '-'"
           :subtitle="t('profile.stats.basedOnSolved')"
           color="blue"
         >
@@ -180,7 +180,7 @@ onMounted(async () => {
           :value="`${acceptanceRate}%`"
           :subtitle="
             t('profile.stats.submissions', {
-              count: profile.submission_count || 0,
+              count: profile.submissionCount || 0,
             })
           "
           color="purple"
@@ -192,7 +192,7 @@ onMounted(async () => {
 
         <StatsCard
           :title="t('profile.stats.submissions')"
-          :value="profile.submission_count || 0"
+          :value="profile.submissionCount || 0"
           :subtitle="t('profile.stats.totalSubmissions')"
           color="orange"
         >

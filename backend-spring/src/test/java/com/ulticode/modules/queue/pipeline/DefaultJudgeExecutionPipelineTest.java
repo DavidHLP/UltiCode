@@ -10,6 +10,7 @@ import com.ulticode.modules.queue.port.VerdictMetricsParser;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.CaseScope;
+import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,7 +137,7 @@ class DefaultJudgeExecutionPipelineTest {
                     "java", "class Solution {}", 100L, "user-1", "sub-1");
 
             assertThat(result).isNotNull();
-            assertThat(result.verdict()).isEqualTo("Accepted");
+            assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
             assertThat(result.maxRuntimeMs()).isEqualTo(20);
             assertThat(result.maxMemoryMb()).isEqualTo(2.0);
             assertThat(result.testCaseDetails()).hasSize(2);
@@ -172,7 +173,7 @@ class DefaultJudgeExecutionPipelineTest {
                     "java", "class Solution {}", 100L, "user-1", "sub-1");
 
             assertThat(result).isNotNull();
-            assertThat(result.verdict()).isEqualTo("Accepted");
+            assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
             assertThat(result.testCaseDetails()).hasSize(1);
             assertThat(result.testCaseDetails().get(0).getCaseScope()).isNull();
             assertThat(result.testCaseDetails().get(0).getCaseId()).isNull();
@@ -243,7 +244,7 @@ class DefaultJudgeExecutionPipelineTest {
                     "java", "class Solution {}", 100L, "user-1", "sub-1");
 
             assertThat(result).isNotNull();
-            assertThat(result.verdict()).isEqualTo("Accepted");
+            assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
             // Even if problem_examples has data, the test_cases path must
             // not consult it (no silent fallback).
             verify(problemExampleMapper, never()).findByProblemIdOrderByOrder(anyLong());
@@ -287,9 +288,9 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Accepted", "30ms", "3.0MB")
             );
 
-            String verdict = pipeline.determineVerdict(cases);
+            SubmissionStatus verdict = pipeline.determineVerdict(cases);
 
-            assertThat(verdict).isEqualTo("Runtime Error");
+            assertThat(verdict).isEqualTo(SubmissionStatus.RUNTIME_ERROR);
         }
 
         @Test
@@ -300,9 +301,9 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Accepted", "30ms", "3.0MB")
             );
 
-            String verdict = pipeline.determineVerdict(cases);
+            SubmissionStatus verdict = pipeline.determineVerdict(cases);
 
-            assertThat(verdict).isEqualTo("Accepted");
+            assertThat(verdict).isEqualTo(SubmissionStatus.ACCEPTED);
         }
 
         @Test
@@ -313,9 +314,9 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Wrong Answer", "30ms", "3.0MB")
             );
 
-            String verdict = pipeline.determineVerdict(cases);
+            SubmissionStatus verdict = pipeline.determineVerdict(cases);
 
-            assertThat(verdict).isEqualTo("Wrong Answer");
+            assertThat(verdict).isEqualTo(SubmissionStatus.WRONG_ANSWER);
         }
 
         @Test
@@ -326,9 +327,9 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Time Limit Exceeded", "2000ms", "4.0MB")
             );
 
-            String verdict = pipeline.determineVerdict(cases);
+            SubmissionStatus verdict = pipeline.determineVerdict(cases);
 
-            assertThat(verdict).isEqualTo("Time Limit Exceeded");
+            assertThat(verdict).isEqualTo(SubmissionStatus.TIME_LIMIT_EXCEEDED);
         }
 
         @Test
@@ -343,13 +344,13 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Runtime Error", "10ms", "1.0MB")
             );
 
-            assertThat(pipeline.determineVerdict(cases)).isEqualTo("Runtime Error");
+            assertThat(pipeline.determineVerdict(cases)).isEqualTo(SubmissionStatus.RUNTIME_ERROR);
         }
 
         @Test
         @DisplayName("empty case list → System Error (reducer convention)")
         void emptyCases_returnsSystemError() {
-            assertThat(pipeline.determineVerdict(List.of())).isEqualTo("System Error");
+            assertThat(pipeline.determineVerdict(List.of())).isEqualTo(SubmissionStatus.SYSTEM_ERROR);
         }
     }
 

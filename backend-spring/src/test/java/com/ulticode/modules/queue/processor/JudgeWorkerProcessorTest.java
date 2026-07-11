@@ -585,7 +585,7 @@ class JudgeWorkerProcessorTest {
             details.add(detail);
         }
         return new JudgeExecutionResult(
-                "Accepted",
+                SubmissionStatus.ACCEPTED,
                 50 + (caseCount - 1) * 10,
                 4.0 + (caseCount - 1),
                 details);
@@ -601,6 +601,6 @@ class JudgeWorkerProcessorTest {
             detail.setMemory(4.0);
             details.add(detail);
         }
-        return new JudgeExecutionResult("Wrong Answer", 50, 4.0, details);
+        return new JudgeExecutionResult(SubmissionStatus.WRONG_ANSWER, 50, 4.0, details);
     }
 }

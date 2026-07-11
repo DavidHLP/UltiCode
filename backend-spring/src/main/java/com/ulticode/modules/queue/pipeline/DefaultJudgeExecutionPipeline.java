@@ -85,7 +85,7 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
         RunSubmissionDTO runDto = buildRunSubmissionDTOFromTestCases(language, code, cases);
         RunResultDTO result = codeExecutionService.execute(runDto, problemId, userId);
 
-        String verdict = determineVerdict(result.getCases());
+        SubmissionStatus status = determineVerdict(result.getCases());
         long maxRuntimeMs = 0;
         double maxMemoryMb = 0.0;
         for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
@@ -96,7 +96,7 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
         List<Submission.TestCaseDetail> testCaseDetails = buildTestCaseDetailsWithScope(
                 result.getCases(), byId, submissionId, String.valueOf(problemId));
 
-        return new JudgeExecutionResult(verdict, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
+        return new JudgeExecutionResult(status, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
     }
 
     // -----------------------------------------------------------------------
@@ -115,7 +115,7 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
         RunSubmissionDTO runDto = buildRunSubmissionDTO(language, code, examples);
         RunResultDTO result = codeExecutionService.execute(runDto, problemId, userId);
 
-        String verdict = determineVerdict(result.getCases());
+        SubmissionStatus status = determineVerdict(result.getCases());
         long maxRuntimeMs = 0;
         double maxMemoryMb = 0.0;
         for (RunResultDTO.RunCaseResult caseResult : result.getCases()) {
@@ -136,22 +136,22 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
                 })
                 .toList();
 
-        return new JudgeExecutionResult(verdict, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
+        return new JudgeExecutionResult(status, (int) maxRuntimeMs, maxMemoryMb, testCaseDetails);
     }
 
     // -----------------------------------------------------------------------
     // Verdict resolution
     // -----------------------------------------------------------------------
 
-    String determineVerdict(List<RunResultDTO.RunCaseResult> cases) {
+    SubmissionStatus determineVerdict(List<RunResultDTO.RunCaseResult> cases) {
         if (cases == null || cases.isEmpty()) {
-            return SubmissionStatus.SYSTEM_ERROR.wireValue();
+            return SubmissionStatus.SYSTEM_ERROR;
         }
         List<String> caseWireValues = new ArrayList<>(cases.size());
         for (RunResultDTO.RunCaseResult caseResult : cases) {
             caseWireValues.add(caseResult.getStatus());
         }
-        return verdictResolver.reduceWire(caseWireValues).wireValue();
+        return verdictResolver.reduceWire(caseWireValues);
     }
 
     // -----------------------------------------------------------------------

@@ -8,7 +8,6 @@ import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
-import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
@@ -124,14 +123,13 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                 return;
             }
 
-            String wire = result.verdict();
-            SubmissionStatus status = SubmissionStatusCodec.fromWire(wire);
+            SubmissionStatus status = result.status();
             submissionService.updateSubmissionResult(submissionId, status,
                     result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
 
             long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
             String contestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, wire,
+            pushResult(userId, submissionId, problemId, status.wireValue(),
                     result.maxRuntimeMs(), memoryBytes, contestId);
             releaseIfLeased(port, handle);
         } catch (Exception e) {
@@ -200,8 +198,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                 return;
             }
 
-            String wire = result.verdict();
-            SubmissionStatus status = SubmissionStatusCodec.fromWire(wire);
+            SubmissionStatus status = result.status();
             boolean written = submissionService.updateSubmissionResultFenced(
                     submissionId, generation, attemptId, status,
                     result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
@@ -209,11 +206,11 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             if (written) {
                 long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
                 String contestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, wire,
+                pushResult(userId, submissionId, problemId, status.wireValue(),
                         result.maxRuntimeMs(), memoryBytes, contestId);
             } else {
                 log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
-                        result.verdict(), submissionId, generation);
+                        status.wireValue(), submissionId, generation);
             }
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);

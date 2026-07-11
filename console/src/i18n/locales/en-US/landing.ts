@@ -1,84 +1,49 @@
 export default {
   brand: "ULTICODE",
   version: "v1.0.0-beta",
-  signIn: "Sign In",
-  initialize: "Initialize",
-  console: "Console",
-  coreSessionReady: "Core Session Ready",
-  titlePart1: "Next-Gen",
-  titlePart2: "Competitive Coding",
-  titlePart3: "& Algorithmic Terminal",
+  signIn: "Sign in",
+  console: "Enter platform",
+  freeStart: "Start for free",
+  primaryNavigation: "Primary navigation",
+  mobileNavigation: "Mobile navigation",
+  openMenu: "Open navigation menu",
+  closeMenu: "Close navigation menu",
+  heroEyebrow: "Write the idea. Let the code prove it.",
+  titlePart1: "Train logic.",
+  titlePart2: "Test it.",
+  titlePart3: "Know it works.",
   subtitle:
-    "// UltiCode is a low-latency, immersive algorithmic competitive coding platform built for developers. Speed, precision, and clean terminal control. Reclaim your programming peak.",
-  startSession: "Start Session",
-  browseProblems: "Browse Problems",
-  systemBootStatus: "System Boot Status",
-  bootOk: "100% OK",
-  shellActive: "// UltiCode shell active. Waiting for input...",
-  runCode: "Run Code",
-  running: "Running...",
-  compileSuccess:
-    "COMPILE SUCCESSFUL: Solution compiled and all local test cases evaluated to PASS.",
-
-  // Platform Modules
-  modulesTitle: "Platform Modules",
-  modulesSubtitle: "// Engineered components optimized for developer workflow.",
-
-  judgeTitle: "Precision Judge (SANDBOX JUDGE)",
-  judgeDesc:
-    "Zero-buffer sandboxed isolation compiler supporting fast containerized executions under 10ms compiler overhead and sub-millisecond telemetry.",
-  judgeFooter: "LATENCY < 12ms",
-
-  contestsTitle: "Weekly Contests",
-  contestsDesc:
-    "Compete live in rated algorithmic events. Real-time subsecond leaderboard updates with historical solver statistics.",
-  contestsFooter: "WEEKLY PRIZES",
-
-  feedTitle: "Developer Feed",
-  feedDesc:
-    "Write solutions, discuss optimizations, share ideas, and connect with other engineers in our Markdown-native feeds.",
-  feedFooter: "MARKDOWN NATIVE",
-
-  badgesTitle: "Gamified Badges",
-  badgesDesc:
-    "Unlock achievements, maintain your solving streak, and display terminal badges on your public developer profile.",
-  badgesFooter: "STREAK TRACKED",
-
-  // Telemetry
-  telemetryTitle: "System Telemetry",
-  telemetrySubtitle:
-    "// Real-time server diagnostics indicating network performance and global database processing volume.",
-  solverCapacity: "GLOBAL SOLVER CAPACITY",
-  latencyStability: "SANDBOX LATENCY STABILITY",
-  logHeader: "system_status.log",
-
-  totalSubmissions: "TOTAL_SUBMISSIONS",
-  totalSubmissionsDesc:
-    "Low-latency judge nodes have safely executed millions of runs",
-  activeSolvers24h: "ACTIVE_SOLVERS_24H",
-  activeSolversDesc: "Thousands of developers coding and benchmarking daily",
-  compilationAvgMs: "COMPILATION_AVG_MS",
-  compilationAvgDesc: "Parallel compilation on RAM-disks minimizes wait times",
-  contestsCompleted: "CONTESTS_COMPLETED",
-  contestsCompletedDesc:
-    "High-quality algorithmic tournaments held continuously",
-  eventsUnit: "events",
-
-  logInfoInit: "[INFO] Initializing node group-04...",
-  logInfoSandbox: "[INFO] Distributed sandbox environment established.",
-  logOkSync: "[OK] Node syncing complete. Average block delta 0.001s.",
-
-  // Launch CTA
-  readyToLaunch: "// READY TO LAUNCH //",
-  ctaTitle: "Initialize Your Developer Session",
+    "Start with one problem, sharpen your approach through immediate judging, then turn every submission into lasting skill through contests and editorials.",
+  tryProblem: "Try a problem",
+  noCreditCard: "No credit card · Sign up to save submissions",
+  workbenchTitle: "practice/two-sum",
+  ready: "Ready",
+  sampleProblem: "Sample problem · Array / Hash table",
+  sampleProblemTitle: "Two Sum",
+  languageSelect: "Choose programming language",
+  runCode: "Run",
+  running: "Judging",
+  outputHint: "> Choose a language, then run this solution.",
+  outputCompile: "> Compiling in an isolated runner…",
+  outputCaseOne: "✓ Sample 1 passed: [2, 7, 11, 15] → [0, 1]",
+  outputCaseTwo: "✓ Sample 2 passed: [3, 2, 4] → [1, 2]",
+  outputComplete: "> 2 / 2 samples passed",
+  compileSuccess: "Solution passed. Continue with the full problem.",
+  workflowEyebrow: "One complete practice loop",
+  workflowTitle: "From reading the prompt to explaining why it works",
+  workflowSubtitle:
+    "UltiCode keeps practice, contests, and discussion in one learning path, so you can focus on solving instead of switching tools.",
+  practiceTitle: "Break down the problem",
+  practiceDesc:
+    "Filter by topic, submit in a familiar language, and use clear feedback to find missed edge cases.",
+  competeTitle: "Test your pace",
+  competeDesc:
+    "Join timed contests and measure your solving rhythm and implementation accuracy under the same rules.",
+  reviewTitle: "Explain the approach",
+  reviewDesc:
+    "Read editorials, discuss complexity, and turn one accepted solution into a method you can reuse.",
+  ctaTitle: "Your next accepted solution starts here",
   ctaDesc:
-    "Establish connection, unlock problem repositories, compile solutions, and benchmark execution timing.",
-  createAccount: "Create Account",
-
-  // Footer
-  copyright: "© 2026 UltiCode Project. Apache License 2.0.",
-  apiDocs: "API Docs",
-  repository: "Repository",
-  terms: "Terms",
-  status: "Status",
+    "Create a free account to save submissions, enter contests, and review algorithms with other solvers.",
+  copyright: "© 2026 UltiCode Project · Apache License 2.0",
 };

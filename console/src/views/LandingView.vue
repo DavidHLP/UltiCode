@@ -1,794 +1,536 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "vue-i18n";
 import {
-  Code2,
-  Trophy,
-  MessageSquare,
-  Flame,
   ArrowRight,
-  Play,
   CheckCircle2,
-  Sparkles,
-  Cpu,
+  ChevronDown,
+  Code2,
+  Menu,
+  MessageSquare,
+  Play,
+  Trophy,
+  X,
 } from "lucide-vue-next";
 
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
-// Code Simulation State
-const selectedLang = ref("cpp");
+const mobileMenuOpen = ref(false);
 const simulationTerminalText = ref<string[]>([]);
 const compiling = ref(false);
 const showSuccessMsg = ref(false);
+const timers = new Set<ReturnType<typeof setTimeout>>();
 
 const codeSnippets = {
-  cpp: `#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {2, 7, 11, 15};\n    int target = 9;\n    cout << "Initializing solver..." << endl;\n    return 0;\n}`,
-  py: `def two_sum(nums, target):\n    # Initialize hash map\n    prev_map = {}\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in prev_map:\n            return [prev_map[diff], i]\n        prev_map[n] = i\n    return []`,
-  js: `function twoSum(nums, target) {\n    const map = new Map();\n    for (let i = 0; i < nums.length; i++) {\n        const diff = target - nums[i];\n        if (map.has(diff)) {\n            return [map.get(diff), i];\n        }\n        map.set(nums[i], i);\n    }\n    return [];\n}`,
+  cpp: `vector<int> twoSum(vector<int>& nums, int target) {
+  unordered_map<int, int> seen;
+  for (int i = 0; i < nums.size(); i++) {
+    if (seen.count(target - nums[i]))
+      return {seen[target - nums[i]], i};
+    seen[nums[i]] = i;
+  }
+  return {};
+}`,
+  py: `def two_sum(nums, target):
+    seen = {}
+    for i, value in enumerate(nums):
+        if target - value in seen:
+            return [seen[target - value], i]
+        seen[value] = i
+    return []`,
+  js: `function twoSum(nums, target) {
+  const seen = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    if (seen.has(target - nums[i]))
+      return [seen.get(target - nums[i]), i];
+    seen.set(nums[i], i);
+  }
+  return [];
+}`,
+} as const;
+
+const selectedLang = ref<keyof typeof codeSnippets>("cpp");
+const code = computed(() => codeSnippets[selectedLang.value]);
+
+const later = (delay: number, action: () => void) => {
+  const timer = setTimeout(() => {
+    timers.delete(timer);
+    action();
+  }, delay);
+  timers.add(timer);
 };
 
-// Simulated compile output
 const runSimulation = () => {
   if (compiling.value) return;
+  timers.forEach(clearTimeout);
+  timers.clear();
   compiling.value = true;
   showSuccessMsg.value = false;
-  simulationTerminalText.value = ["> ulticode-compiler --target solve.bin"];
+  simulationTerminalText.value = [t("landing.outputCompile")];
 
-  setTimeout(() => {
-    simulationTerminalText.value.push("Compiling source files... [OK]");
-  }, 400);
-
-  setTimeout(() => {
-    simulationTerminalText.value.push("Linking binary objects... [OK]");
-    simulationTerminalText.value.push("> ./solve.bin --test-suite=all");
-  }, 900);
-
-  setTimeout(() => {
-    simulationTerminalText.value.push(
-      "CASE 1: [2, 7, 11, 15] target=9 -> Expect [0, 1]... [PASS] (0.01ms)",
-    );
-  }, 1400);
-
-  setTimeout(() => {
-    simulationTerminalText.value.push(
-      "CASE 2: [3, 2, 4] target=6 -> Expect [1, 2]... [PASS] (0.02ms)",
-    );
-    simulationTerminalText.value.push(
-      "CASE 3: [3, 3] target=6 -> Expect [0, 1]... [PASS] (0.01ms)",
-    );
-  }, 1800);
-
-  setTimeout(() => {
-    simulationTerminalText.value.push(
-      "STATUS: All tests passed. Execution trace finalized.",
-    );
+  later(350, () =>
+    simulationTerminalText.value.push(t("landing.outputCaseOne")),
+  );
+  later(700, () =>
+    simulationTerminalText.value.push(t("landing.outputCaseTwo")),
+  );
+  later(1050, () => {
+    simulationTerminalText.value.push(t("landing.outputComplete"));
     compiling.value = false;
     showSuccessMsg.value = true;
-  }, 2200);
+  });
 };
 
-// Automatic typing effect for hero terminal
-const heroCommand = ref("");
-const targetCommand = "ulticode --init-console --verbose";
-let typeInterval: ReturnType<typeof setInterval> | null = null;
+onUnmounted(() => timers.forEach(clearTimeout));
 
-onMounted(() => {
-  let index = 0;
-  typeInterval = setInterval(() => {
-    if (index < targetCommand.length) {
-      heroCommand.value += targetCommand[index];
-      index++;
-    } else {
-      if (typeInterval) clearInterval(typeInterval);
-    }
-  }, 80);
-});
+const handleRegisterRedirect = () =>
+  router.push({ name: authStore.isAuthenticated ? "forum-home" : "register" });
 
-onUnmounted(() => {
-  if (typeInterval) clearInterval(typeInterval);
-});
+const handleLoginRedirect = () =>
+  router.push({ name: authStore.isAuthenticated ? "forum-home" : "login" });
 
-const handleRegisterRedirect = () => {
-  if (authStore.isAuthenticated) {
-    router.push({ name: "forum-home" });
-  } else {
-    router.push({ name: "register" });
-  }
-};
-
-const handleLoginRedirect = () => {
-  if (authStore.isAuthenticated) {
-    router.push({ name: "forum-home" });
-  } else {
-    router.push({ name: "login" });
-  }
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false;
 };
 </script>
 
 <template>
   <div
-    class="min-h-screen bg-background text-foreground selection:bg-[var(--accent-electric)] selection:text-white font-sans"
+    class="min-h-screen bg-background text-foreground selection:bg-[var(--accent-electric)] selection:text-white"
   >
-    <!-- Top Landing Header -->
-    <header class="border-b border-silver bg-card sticky top-0 z-50">
+    <header
+      class="sticky top-0 z-50 border-b border-silver bg-card/95 backdrop-blur"
+    >
       <div
-        class="container mx-auto max-w-6xl h-14 px-4 flex items-center justify-between"
+        class="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4"
       >
-        <div class="flex items-center gap-3">
-          <div
-            class="h-8 w-8 bg-[var(--accent-electric)] flex items-center justify-center text-white font-data font-bold"
+        <RouterLink
+          :to="{ name: 'landing' }"
+          class="flex items-center gap-3"
+          @click="closeMobileMenu"
+        >
+          <span
+            class="grid size-9 place-items-center bg-[var(--accent-electric)] font-data font-bold text-white"
+            >U</span
           >
-            U
-          </div>
-          <div>
-            <span class="font-data font-bold text-sm tracking-tight">{{
-              t("landing.brand")
-            }}</span>
-            <span class="text-2xs text-muted-foreground ml-1 font-data">{{
-              t("landing.version")
-            }}</span>
-          </div>
-        </div>
+          <span class="font-data text-sm font-bold tracking-tight">{{
+            t("landing.brand")
+          }}</span>
+          <span
+            class="hidden font-data text-xs text-muted-foreground sm:inline"
+            >{{ t("landing.version") }}</span
+          >
+        </RouterLink>
 
-        <nav class="hidden md:flex items-center gap-6">
-          <RouterLink
-            :to="{ name: 'problemset' }"
-            class="text-xs font-data uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {{ t("sidebar.problem.problemSet") }}
-          </RouterLink>
-          <RouterLink
-            :to="{ name: 'forum-home' }"
-            class="text-xs font-data uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {{ t("sidebar.forum.platform") }}
-          </RouterLink>
-          <RouterLink
-            :to="{ name: 'contest-list' }"
-            class="text-xs font-data uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {{ t("sidebar.contest.contestSection") }}
-          </RouterLink>
+        <nav
+          class="hidden items-center gap-7 md:flex"
+          :aria-label="t('landing.primaryNavigation')"
+        >
+          <RouterLink :to="{ name: 'problemset' }" class="nav-link">{{
+            t("sidebar.problem.problemSet")
+          }}</RouterLink>
+          <RouterLink :to="{ name: 'contest-list' }" class="nav-link">{{
+            t("sidebar.contest.contestSection")
+          }}</RouterLink>
+          <RouterLink :to="{ name: 'forum-home' }" class="nav-link">{{
+            t("sidebar.forum.platform")
+          }}</RouterLink>
         </nav>
 
-        <div class="flex items-center gap-3">
-          <template v-if="authStore.isAuthenticated">
-            <RouterLink
-              :to="{ name: 'forum-home' }"
-              class="h-8 px-3 text-xs font-data uppercase tracking-wider border border-silver flex items-center justify-center hover:bg-accent transition-colors text-foreground"
-            >
-              {{ t("landing.console") }}
-            </RouterLink>
-          </template>
+        <div class="flex items-center gap-2">
+          <RouterLink
+            v-if="authStore.isAuthenticated"
+            :to="{ name: 'forum-home' }"
+            class="button button--compact"
+          >
+            {{ t("landing.console") }}
+          </RouterLink>
           <template v-else>
             <button
+              class="hidden h-9 px-3 text-sm font-medium sm:block"
               @click="handleLoginRedirect"
-              class="h-8 px-3 text-xs font-data uppercase tracking-wider hover:text-[var(--accent-electric)] cursor-pointer transition-colors border border-transparent"
             >
               {{ t("landing.signIn") }}
             </button>
             <button
+              class="button button--compact hidden sm:flex"
               @click="handleRegisterRedirect"
-              class="h-8 px-3 text-xs font-data uppercase tracking-wider bg-[var(--accent-electric)] text-white border border-[var(--accent-electric)] shadow-[2px_2px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
             >
-              {{ t("landing.initialize") }}
+              {{ t("landing.freeStart") }}
             </button>
           </template>
+          <button
+            class="grid size-10 place-items-center border border-silver md:hidden"
+            type="button"
+            :aria-expanded="mobileMenuOpen"
+            :aria-label="
+              mobileMenuOpen ? t('landing.closeMenu') : t('landing.openMenu')
+            "
+            @click="mobileMenuOpen = !mobileMenuOpen"
+          >
+            <X v-if="mobileMenuOpen" class="size-5" />
+            <Menu v-else class="size-5" />
+          </button>
         </div>
       </div>
+
+      <nav
+        v-if="mobileMenuOpen"
+        class="border-t border-silver bg-card px-4 py-4 md:hidden"
+        :aria-label="t('landing.mobileNavigation')"
+      >
+        <div class="mx-auto grid max-w-6xl gap-1">
+          <RouterLink
+            :to="{ name: 'problemset' }"
+            class="mobile-link"
+            @click="closeMobileMenu"
+            >{{ t("sidebar.problem.problemSet") }}</RouterLink
+          >
+          <RouterLink
+            :to="{ name: 'contest-list' }"
+            class="mobile-link"
+            @click="closeMobileMenu"
+            >{{ t("sidebar.contest.contestSection") }}</RouterLink
+          >
+          <RouterLink
+            :to="{ name: 'forum-home' }"
+            class="mobile-link"
+            @click="closeMobileMenu"
+            >{{ t("sidebar.forum.platform") }}</RouterLink
+          >
+          <button
+            v-if="!authStore.isAuthenticated"
+            class="button mt-3 w-full"
+            @click="handleRegisterRedirect"
+          >
+            {{ t("landing.freeStart") }}
+          </button>
+        </div>
+      </nav>
     </header>
 
-    <!-- Main Container -->
-    <main class="container mx-auto max-w-5xl px-4 py-8 md:py-16 space-y-20">
-      <!-- Hero Section -->
-      <section class="grid gap-12 lg:grid-cols-12 items-center">
-        <div class="lg:col-span-6 space-y-6">
-          <div
-            class="inline-flex items-center gap-2 px-2.5 py-0.5 border bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)] border-[color-mix(in_oklch,var(--accent-electric)_30%,transparent)] font-data text-2xs tracking-wider uppercase"
+    <main>
+      <section
+        class="hero-grid container mx-auto grid max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-24"
+      >
+        <div class="max-w-xl">
+          <p
+            class="mb-5 font-data text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-electric)]"
           >
-            <Sparkles class="size-3" /> {{ t("landing.coreSessionReady") }}
-          </div>
-
-          <div class="space-y-3">
-            <h1
-              class="text-4xl md:text-5xl font-extrabold tracking-tight uppercase leading-none text-[var(--solarized-base03)] dark:text-[var(--silver-900)]"
-            >
-              {{ t("landing.titlePart1") }} <br />
-              <span class="text-[var(--accent-electric)]">{{
-                t("landing.titlePart2")
-              }}</span>
-              <br />
-              {{ t("landing.titlePart3") }}
-            </h1>
-            <p
-              class="text-xs text-muted-foreground font-data leading-relaxed max-w-md bg-[color-mix(in_oklch,var(--silver-300)_5%,transparent)] border-l-2 border-silver p-2.5"
-            >
-              {{ t("landing.subtitle") }}
-            </p>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-3 pt-2">
-            <button
-              @click="handleRegisterRedirect"
-              class="h-10 px-6 font-data text-xs uppercase tracking-wider bg-[var(--accent-electric)] text-white border border-[var(--accent-electric)] shadow-[3px_3px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {{ t("landing.startSession") }} <ArrowRight class="size-4" />
+            {{ t("landing.heroEyebrow") }}
+          </p>
+          <h1
+            class="hero-title text-5xl font-black leading-[0.9] tracking-[-0.055em] sm:text-6xl lg:text-7xl"
+          >
+            {{ t("landing.titlePart1") }}<br />
+            <span class="text-[var(--accent-electric)]">{{
+              t("landing.titlePart2")
+            }}</span
+            ><br />
+            {{ t("landing.titlePart3") }}
+          </h1>
+          <p
+            class="mt-7 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg"
+          >
+            {{ t("landing.subtitle") }}
+          </p>
+          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button class="button" @click="handleRegisterRedirect">
+              {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
             </button>
             <RouterLink
-              :to="{ name: 'problemset' }"
-              class="h-10 px-6 font-data text-xs uppercase tracking-wider border border-silver bg-card shadow-[3px_3px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 text-foreground transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {{ t("landing.browseProblems") }} <Code2 class="size-4" />
-            </RouterLink>
+              :to="{ name: 'problem-detail', params: { slug: 'two-sum' } }"
+              class="button button--secondary"
+              >{{ t("landing.tryProblem") }} <Code2 class="size-4"
+            /></RouterLink>
           </div>
-
-          <!-- Hero ASCII progress stats -->
-          <div class="pt-4 space-y-2 max-w-sm">
-            <div
-              class="flex justify-between items-center text-2xs font-data text-muted-foreground uppercase"
-            >
-              <span>{{ t("landing.systemBootStatus") }}</span>
-              <span>{{ t("landing.bootOk") }}</span>
-            </div>
-            <div class="ascii-progress flex items-center">
-              <span class="ascii-progress-fill"
-                >[■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■]</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Interactive Hero Terminal (Right) -->
-        <div class="lg:col-span-6">
-          <div class="terminal-card border border-silver">
-            <div class="terminal-card-header flex items-center justify-between">
-              <span>ulticode@system:~</span>
-              <div class="flex items-center gap-1.5">
-                <span
-                  class="size-2 bg-red-500/30 border border-red-600/50"
-                ></span>
-                <span
-                  class="size-2 bg-yellow-500/30 border border-yellow-600/50"
-                ></span>
-                <span
-                  class="size-2 bg-green-500/30 border border-green-600/50"
-                ></span>
-              </div>
-            </div>
-
-            <div class="p-4 space-y-4 min-h-[300px] bg-card text-xs">
-              <div class="space-y-1 font-data">
-                <p class="text-muted-foreground">
-                  {{ t("landing.shellActive") }}
-                </p>
-                <div class="flex items-center">
-                  <span class="terminal-prompt"></span>
-                  <span class="text-[var(--accent-electric)]">{{
-                    heroCommand
-                  }}</span>
-                  <span class="terminal-cursor"></span>
-                </div>
-              </div>
-
-              <!-- Simulator Box -->
-              <div
-                class="border border-silver p-3 space-y-2 bg-[var(--surface-sunken)]"
-              >
-                <div
-                  class="flex justify-between items-center border-b border-silver pb-2 mb-2"
-                >
-                  <div class="flex gap-2">
-                    <button
-                      v-for="lang in ['cpp', 'py', 'js']"
-                      :key="lang"
-                      @click="selectedLang = lang"
-                      :class="[
-                        'px-2 py-0.5 font-data text-2xs uppercase border transition-colors',
-                        selectedLang === lang
-                          ? 'border-[var(--accent-electric)] bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] text-[var(--accent-electric)]'
-                          : 'border-transparent text-muted-foreground hover:text-foreground',
-                      ]"
-                    >
-                      {{ lang }}
-                    </button>
-                  </div>
-                  <button
-                    @click="runSimulation"
-                    :disabled="compiling"
-                    class="px-3 py-1 font-data text-2xs uppercase bg-primary text-primary-foreground hover:bg-primary/95 flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <Play class="size-3" />
-                    {{
-                      compiling ? t("landing.running") : t("landing.runCode")
-                    }}
-                  </button>
-                </div>
-                <pre
-                  class="font-data text-2xs text-foreground leading-tight overflow-x-auto max-h-[140px] max-w-full"
-                ><code>{{ codeSnippets[selectedLang as keyof typeof codeSnippets] }}</code></pre>
-              </div>
-
-              <!-- Output Logs -->
-              <div
-                v-if="simulationTerminalText.length > 0"
-                class="border border-silver p-3 bg-black/5 dark:bg-black/40 space-y-1 max-h-[120px] overflow-y-auto"
-              >
-                <p
-                  v-for="(log, i) in simulationTerminalText"
-                  :key="i"
-                  :class="[
-                    'font-data text-2xs leading-tight',
-                    log.includes('[PASS]')
-                      ? 'text-[var(--terminal-green)]'
-                      : log.includes('STATUS')
-                        ? 'text-[var(--accent-electric)]'
-                        : 'text-muted-foreground',
-                  ]"
-                >
-                  {{ log }}
-                </p>
-                <div
-                  v-if="showSuccessMsg"
-                  class="mt-2 p-2 bg-[color-mix(in_oklch,var(--terminal-green)_10%,transparent)] border border-[color-mix(in_oklch,var(--terminal-green)_25%,transparent)] flex items-center gap-2 text-[var(--terminal-green)] font-data text-2xs"
-                >
-                  <CheckCircle2 class="size-3.5 shrink-0" />
-                  <span>{{ t("landing.compileSuccess") }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="terminal-separator"></div>
-
-      <!-- Feature Matrix Section -->
-      <section class="space-y-8">
-        <div class="text-center space-y-2">
-          <h2
-            class="text-2xl font-bold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]"
-          >
-            {{ t("landing.modulesTitle") }}
-          </h2>
-          <p class="text-xs text-muted-foreground font-data">
-            {{ t("landing.modulesSubtitle") }}
+          <p class="mt-4 font-data text-xs text-muted-foreground">
+            {{ t("landing.noCreditCard") }}
           </p>
         </div>
 
-        <div class="grid gap-6 md:grid-cols-3">
-          <!-- Card 1 - Core Featured Module (精密评测机) -->
-          <div
-            class="precision-card precision-card--featured lg:col-span-3 border border-[var(--border)] bg-card p-6 shadow-[3px_3px_0px_0px_var(--border)] grid gap-6 md:grid-cols-12 relative overflow-hidden"
-          >
-            <div
-              class="absolute right-0 top-0 bg-[var(--accent-electric)] text-white font-data text-2xs uppercase tracking-widest px-3 py-1 font-bold"
-            >
-              PRIMARY ENGINE
-            </div>
-
-            <div class="md:col-span-7 space-y-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="size-11 bg-[color-mix(in_oklch,var(--accent-electric)_15%,transparent)] flex items-center justify-center border border-[var(--accent-electric)]"
-                >
-                  <Cpu
-                    class="size-6 text-[var(--accent-electric)] animate-pulse"
-                  />
-                </div>
-                <div>
-                  <span
-                    class="text-2xs font-data text-[var(--accent-electric)] uppercase tracking-wider font-bold"
-                    >HIGH PERFORMANCE</span
-                  >
-                  <h3 class="font-data font-bold text-base uppercase mt-0.5">
-                    {{ t("landing.judgeTitle") }}
-                  </h3>
-                </div>
-              </div>
-              <p class="text-xs text-muted-foreground leading-relaxed">
-                {{ t("landing.judgeDesc") }}
-              </p>
-              <div
-                class="grid grid-cols-3 gap-4 pt-4 border-t border-[var(--border)]"
-              >
-                <div class="space-y-0.5">
-                  <span
-                    class="text-2xs text-muted-foreground uppercase font-data"
-                    >EXECUTION SPEED</span
-                  >
-                  <p
-                    class="text-xs font-bold font-mono text-[var(--accent-electric)]"
-                  >
-                    &lt; 12ms avg
-                  </p>
-                </div>
-                <div class="space-y-0.5">
-                  <span
-                    class="text-2xs text-muted-foreground uppercase font-data"
-                    >CONTAINERIZATION</span
-                  >
-                  <p
-                    class="text-xs font-bold font-mono text-[var(--terminal-green)]"
-                  >
-                    DOCKER SECURE
-                  </p>
-                </div>
-                <div class="space-y-0.5">
-                  <span
-                    class="text-2xs text-muted-foreground uppercase font-data"
-                    >SUPPORTED LANGS</span
-                  >
-                  <p
-                    class="text-xs font-bold font-mono text-[var(--terminal-amber)]"
-                  >
-                    C++ / PY / JS
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="md:col-span-5 border border-[var(--border)] bg-[var(--surface-sunken)] p-3 flex flex-col justify-between font-mono text-2xs text-muted-foreground h-full min-h-[140px]"
-            >
-              <div
-                class="flex items-center justify-between border-b border-[var(--border)] pb-1.5 mb-1.5"
-              >
-                <span class="text-2xs text-[var(--accent-electric)] font-bold"
-                  >// SANDBOX RUNNER ACTIVE</span
-                >
-                <span
-                  class="size-2 bg-[var(--terminal-green)] rounded-full animate-ping"
-                ></span>
-              </div>
-              <div class="space-y-1 select-none">
-                <p>
-                  <span class="text-[var(--terminal-cyan)]">[OK]</span> Init
-                  jail-root sandbox environment...
-                </p>
-                <p>
-                  <span class="text-[var(--terminal-cyan)]">[OK]</span> Mount
-                  read-only headers (glibc-2.39)
-                </p>
-                <p>
-                  <span class="text-[var(--terminal-amber)]">[RUN]</span>
-                  Evaluate user solution (PID: 18402)
-                </p>
-                <p>
-                  <span class="text-[var(--terminal-green)]">[PASS]</span> Test
-                  case 01-15 validated in 4.2ms
-                </p>
-                <p class="text-foreground font-bold">
-                  &gt; Process terminated with status code 0
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2 -->
-          <div
-            class="precision-card border border-silver bg-card p-5 space-y-4 lg:col-span-1 shadow-[3px_3px_0px_0px_var(--border)]"
-          >
-            <div
-              class="size-10 bg-[color-mix(in_oklch,var(--terminal-green)_15%,transparent)] flex items-center justify-center border border-[color-mix(in_oklch,var(--terminal-green)_30%,transparent)]"
-            >
-              <Trophy class="size-5 text-[var(--terminal-green)]" />
-            </div>
-            <div class="space-y-2">
-              <h3 class="font-data font-bold text-sm uppercase">
-                {{ t("landing.contestsTitle") }}
-              </h3>
-              <p class="text-xs text-muted-foreground leading-relaxed">
-                {{ t("landing.contestsDesc") }}
-              </p>
-            </div>
-            <div
-              class="text-2xs font-data text-[var(--terminal-green)] uppercase tracking-wider flex items-center gap-1"
-            >
-              {{ t("landing.contestsFooter") }} <CheckCircle2 class="size-3" />
-            </div>
-          </div>
-
-          <!-- Card 3 -->
-          <div
-            class="precision-card border border-silver bg-card p-5 space-y-4 lg:col-span-1 shadow-[3px_3px_0px_0px_var(--border)]"
-          >
-            <div
-              class="size-10 bg-[color-mix(in_oklch,var(--terminal-amber)_15%,transparent)] flex items-center justify-center border border-[color-mix(in_oklch,var(--terminal-amber)_30%,transparent)]"
-            >
-              <MessageSquare class="size-5 text-[var(--terminal-amber)]" />
-            </div>
-            <div class="space-y-2">
-              <h3 class="font-data font-bold text-sm uppercase">
-                {{ t("landing.feedTitle") }}
-              </h3>
-              <p class="text-xs text-muted-foreground leading-relaxed">
-                {{ t("landing.feedDesc") }}
-              </p>
-            </div>
-            <div
-              class="text-2xs font-data text-[var(--terminal-amber)] uppercase tracking-wider flex items-center gap-1"
-            >
-              {{ t("landing.feedFooter") }}
-            </div>
-          </div>
-
-          <!-- Card 4 -->
-          <div
-            class="precision-card border border-silver bg-card p-5 space-y-4 lg:col-span-1 shadow-[3px_3px_0px_0px_var(--border)]"
-          >
-            <div
-              class="size-10 bg-[color-mix(in_oklch,var(--terminal-purple)_15%,transparent)] flex items-center justify-center border border-[color-mix(in_oklch,var(--terminal-purple)_30%,transparent)]"
-            >
-              <Flame class="size-5 text-[var(--terminal-purple)]" />
-            </div>
-            <div class="space-y-2">
-              <h3 class="font-data font-bold text-sm uppercase">
-                {{ t("landing.badgesTitle") }}
-              </h3>
-              <p class="text-xs text-muted-foreground leading-relaxed">
-                {{ t("landing.badgesDesc") }}
-              </p>
-            </div>
-            <div
-              class="text-2xs font-data text-[var(--terminal-purple)] uppercase tracking-wider flex items-center gap-1"
-            >
-              {{ t("landing.badgesFooter") }}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="terminal-separator"></div>
-
-      <!-- System Telemetry (Live stats) -->
-      <section class="grid gap-8 md:grid-cols-12 items-center">
-        <div class="md:col-span-5 space-y-4">
-          <h2 class="text-2xl font-bold uppercase tracking-tight">
-            {{ t("landing.telemetryTitle") }}
-          </h2>
-          <p class="text-xs text-muted-foreground leading-relaxed font-data">
-            {{ t("landing.telemetrySubtitle") }}
-          </p>
-
-          <div class="space-y-3 pt-2">
-            <div class="space-y-1">
-              <div
-                class="flex justify-between text-xxs font-data text-muted-foreground"
-              >
-                <span>{{ t("landing.solverCapacity") }}</span>
-                <span class="tabular-nums">84,912 / 100,000</span>
-              </div>
-              <div class="ascii-progress">
-                <span class="ascii-progress-fill"
-                  >[■■■■■■■■■■■■■■■■■■■■■■■■■□□□□□]</span
-                >
-              </div>
-            </div>
-
-            <div class="space-y-1">
-              <div
-                class="flex justify-between text-xxs font-data text-muted-foreground"
-              >
-                <span>{{ t("landing.latencyStability") }}</span>
-                <span class="tabular-nums">99.86%</span>
-              </div>
-              <div class="ascii-progress">
-                <span class="ascii-progress-fill"
-                  >[■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■]</span
-                >
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Telemetry Data Display -->
-        <div class="md:col-span-7">
-          <div class="terminal-card border border-silver">
-            <div class="terminal-card-header font-data flex justify-between">
-              <span>{{ t("landing.logHeader") }}</span>
-              <span class="text-[var(--terminal-green)] animate-pulse-subtle"
-                >LIVE</span
-              >
-            </div>
-            <div class="p-4 bg-card font-data text-xs space-y-4">
-              <div class="grid grid-cols-2 gap-4">
-                <div
-                  class="border border-silver p-3 bg-[var(--surface-sunken)] shadow-[2px_2px_0px_0px_var(--border)]"
-                >
-                  <span class="terminal-kv-key text-muted-foreground">{{
-                    t("landing.totalSubmissions")
-                  }}</span>
-                  <p
-                    class="terminal-kv-value text-xl font-extrabold mt-1 text-[var(--accent-electric)]"
-                  >
-                    1,348,902
-                  </p>
-                  <p
-                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
-                  >
-                    {{ t("landing.totalSubmissionsDesc") }}
-                  </p>
-                </div>
-                <div
-                  class="border border-silver p-3 bg-[var(--surface-sunken)] shadow-[2px_2px_0px_0px_var(--border)]"
-                >
-                  <span class="terminal-kv-key text-muted-foreground">{{
-                    t("landing.activeSolvers24h")
-                  }}</span>
-                  <p
-                    class="terminal-kv-value text-xl font-extrabold mt-1 text-[var(--terminal-green)]"
-                  >
-                    42,918
-                  </p>
-                  <p
-                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
-                  >
-                    {{ t("landing.activeSolversDesc") }}
-                  </p>
-                </div>
-                <div
-                  class="border border-silver p-3 bg-[var(--surface-sunken)] shadow-[2px_2px_0px_0px_var(--border)]"
-                >
-                  <span class="terminal-kv-key text-muted-foreground">{{
-                    t("landing.compilationAvgMs")
-                  }}</span>
-                  <p
-                    class="terminal-kv-value text-xl font-extrabold mt-1 text-[var(--terminal-amber)]"
-                  >
-                    14.2 ms
-                  </p>
-                  <p
-                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
-                  >
-                    {{ t("landing.compilationAvgDesc") }}
-                  </p>
-                </div>
-                <div
-                  class="border border-silver p-3 bg-[var(--surface-sunken)] shadow-[2px_2px_0px_0px_var(--border)]"
-                >
-                  <span class="terminal-kv-key text-muted-foreground">{{
-                    t("landing.contestsCompleted")
-                  }}</span>
-                  <p
-                    class="terminal-kv-value text-xl font-extrabold mt-1 text-[var(--terminal-purple)]"
-                  >
-                    142 {{ t("landing.eventsUnit") }}
-                  </p>
-                  <p
-                    class="text-2xs text-muted-foreground/80 mt-1 border-t border-[var(--border)]/30 pt-1.5 leading-normal"
-                  >
-                    {{ t("landing.contestsCompletedDesc") }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Terminal style code status log -->
-              <div
-                class="border border-silver p-2.5 bg-[var(--surface-sunken)] text-2xs text-muted-foreground space-y-0.5"
-              >
-                <p>
-                  <span class="text-[var(--terminal-cyan)]">[INFO]</span>
-                  2026-06-02T23:38:04Z - {{ t("landing.logInfoInit") }}
-                </p>
-                <p>
-                  <span class="text-[var(--terminal-cyan)]">[INFO]</span>
-                  2026-06-02T23:38:05Z - {{ t("landing.logInfoSandbox") }}
-                </p>
-                <p>
-                  <span class="text-[var(--terminal-green)]">[OK]</span>
-                  2026-06-02T23:38:05Z - {{ t("landing.logOkSync") }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="terminal-separator"></div>
-
-      <!-- CTA Session Initialize -->
-      <section
-        class="terminal-card border border-silver bg-[var(--surface-sunken)] max-w-3xl mx-auto overflow-hidden shadow-[4px_4px_0px_0px_var(--border)]"
-      >
         <div
-          class="flex items-center justify-between border-b border-silver px-4 py-2 bg-[var(--surface-sunken)] font-data text-xs text-muted-foreground"
+          class="workbench border border-silver bg-card shadow-[6px_6px_0_0_var(--border)]"
         >
-          <span>session_initialize.sh</span>
-          <span
-            class="text-[var(--terminal-green)] flex items-center gap-1.5 font-bold"
+          <div
+            class="flex items-center justify-between border-b border-silver bg-[var(--surface-sunken)] px-4 py-3 font-data text-xs"
           >
-            <span
-              class="size-1.5 bg-[var(--terminal-green)] rounded-full animate-pulse"
-            ></span>
-            EXECUTE_READY
-          </span>
-        </div>
-        <div class="py-10 px-6 text-center bg-card space-y-6">
-          <div class="space-y-2">
-            <div
-              class="text-[var(--accent-electric)] font-data text-xs uppercase tracking-widest font-bold animate-pulse-subtle"
+            <span>{{ t("landing.workbenchTitle") }}</span>
+            <span class="flex items-center gap-2 text-[var(--terminal-green)]"
+              ><span class="size-2 bg-[var(--terminal-green)]"></span
+              >{{ t("landing.ready") }}</span
             >
-              {{ t("landing.readyToLaunch") }}
-            </div>
-            <h2
-              class="text-2xl font-extrabold uppercase tracking-tight text-[var(--solarized-base03)] dark:text-[var(--silver-900)]"
-            >
-              {{ t("landing.ctaTitle") }}
-            </h2>
-            <p class="text-xs text-muted-foreground max-w-md mx-auto font-data">
-              {{ t("landing.ctaDesc") }}
-            </p>
           </div>
-
-          <div class="flex justify-center gap-3">
-            <button
-              @click="handleRegisterRedirect"
-              class="h-10 px-8 font-data text-xs uppercase tracking-wider bg-[var(--accent-electric)] text-white border border-[var(--accent-electric)] shadow-[3px_3px_0px_0px_var(--border)] active:translate-x-0.5 active:translate-y-0.5 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all flex items-center gap-2 cursor-pointer"
+          <div class="border-b border-silver px-4 py-4">
+            <p class="font-data text-xs text-muted-foreground">
+              {{ t("landing.sampleProblem") }}
+            </p>
+            <h2 class="mt-1 text-lg font-bold">
+              {{ t("landing.sampleProblemTitle") }}
+            </h2>
+          </div>
+          <div
+            class="flex items-center justify-between border-b border-silver px-3 py-2"
+          >
+            <div
+              class="flex gap-1"
+              role="group"
+              :aria-label="t('landing.languageSelect')"
             >
-              {{ t("landing.createAccount") }} <ArrowRight class="size-4" />
+              <button
+                v-for="lang in ['cpp', 'py', 'js'] as const"
+                :key="lang"
+                class="language-tab"
+                :class="{ 'language-tab--active': selectedLang === lang }"
+                :aria-pressed="selectedLang === lang"
+                @click="selectedLang = lang"
+              >
+                {{ lang }}
+              </button>
+            </div>
+            <button
+              data-testid="run-simulation"
+              class="button button--run"
+              :disabled="compiling"
+              @click="runSimulation"
+            >
+              <Play class="size-3.5" />{{
+                compiling ? t("landing.running") : t("landing.runCode")
+              }}
             </button>
           </div>
+          <pre
+            class="min-h-64 overflow-x-auto p-4 font-data text-xs leading-5 sm:text-sm"
+          ><code>{{ code }}</code></pre>
+          <div
+            class="min-h-32 border-t border-silver bg-[var(--surface-sunken)] p-4 font-data text-xs"
+            aria-live="polite"
+          >
+            <p
+              v-if="simulationTerminalText.length === 0"
+              class="text-muted-foreground"
+            >
+              {{ t("landing.outputHint") }}
+            </p>
+            <p
+              v-for="(line, index) in simulationTerminalText"
+              :key="index"
+              class="mb-1"
+            >
+              {{ line }}
+            </p>
+            <p
+              v-if="showSuccessMsg"
+              class="mt-3 flex items-center gap-2 font-bold text-[var(--terminal-green)]"
+            >
+              <CheckCircle2 class="size-4" />{{ t("landing.compileSuccess") }}
+            </p>
+          </div>
         </div>
+      </section>
+
+      <section class="border-y border-silver bg-[var(--surface-sunken)]">
+        <div class="container mx-auto max-w-6xl px-4 py-16 lg:py-20">
+          <div class="max-w-2xl">
+            <p
+              class="font-data text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-electric)]"
+            >
+              {{ t("landing.workflowEyebrow") }}
+            </p>
+            <h2 class="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+              {{ t("landing.workflowTitle") }}
+            </h2>
+            <p class="mt-4 text-base leading-7 text-muted-foreground">
+              {{ t("landing.workflowSubtitle") }}
+            </p>
+          </div>
+          <div class="mt-10 grid border border-silver bg-card md:grid-cols-3">
+            <article class="workflow-card">
+              <Code2 class="size-6 text-[var(--accent-electric)]" />
+              <p class="workflow-command">problem.open()</p>
+              <h3>{{ t("landing.practiceTitle") }}</h3>
+              <p>{{ t("landing.practiceDesc") }}</p>
+            </article>
+            <article class="workflow-card">
+              <Trophy class="size-6 text-[var(--terminal-amber)]" />
+              <p class="workflow-command">contest.enter()</p>
+              <h3>{{ t("landing.competeTitle") }}</h3>
+              <p>{{ t("landing.competeDesc") }}</p>
+            </article>
+            <article class="workflow-card">
+              <MessageSquare class="size-6 text-[var(--terminal-green)]" />
+              <p class="workflow-command">solution.explain()</p>
+              <h3>{{ t("landing.reviewTitle") }}</h3>
+              <p>{{ t("landing.reviewDesc") }}</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="container mx-auto max-w-4xl px-4 py-20 text-center lg:py-28"
+      >
+        <ChevronDown class="mx-auto size-6 text-[var(--accent-electric)]" />
+        <h2 class="mt-5 text-3xl font-black tracking-tight sm:text-5xl">
+          {{ t("landing.ctaTitle") }}
+        </h2>
+        <p
+          class="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground"
+        >
+          {{ t("landing.ctaDesc") }}
+        </p>
+        <button class="button mx-auto mt-8" @click="handleRegisterRedirect">
+          {{ t("landing.freeStart") }} <ArrowRight class="size-4" />
+        </button>
       </section>
     </main>
 
-    <!-- Footer -->
     <footer
-      class="border-t border-silver bg-card py-8 mt-12 text-xs font-data text-muted-foreground"
+      class="border-t border-silver bg-card py-7 text-sm text-muted-foreground"
     >
       <div
-        class="container mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-4"
+        class="container mx-auto flex max-w-6xl flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between"
       >
-        <div>
-          <span>{{ t("landing.copyright") }}</span>
-        </div>
-        <div class="flex gap-6">
-          <a href="#" class="hover:text-foreground">{{
-            t("landing.apiDocs")
-          }}</a>
-          <a href="#" class="hover:text-foreground">{{
-            t("landing.repository")
-          }}</a>
-          <a href="#" class="hover:text-foreground">{{ t("landing.terms") }}</a>
-          <a href="#" class="hover:text-foreground">{{
-            t("landing.status")
-          }}</a>
-        </div>
+        <span>{{ t("landing.copyright") }}</span>
+        <RouterLink
+          :to="{ name: 'problem-detail', params: { slug: 'two-sum' } }"
+          class="font-medium text-foreground hover:text-[var(--accent-electric)]"
+          >{{ t("landing.tryProblem") }} →</RouterLink
+        >
       </div>
     </footer>
   </div>
 </template>
 
 <style scoped>
-.terminal-card {
-  box-shadow: 4px 4px 0px 0px var(--border);
-  transition: all var(--transition-normal);
+.hero-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: -1px -1px;
 }
-
-.terminal-card:hover {
-  border-color: var(--accent-electric);
-  box-shadow: 6px 6px 0px 0px var(--accent-electric-glow);
+.hero-title {
+  text-wrap: balance;
+}
+.nav-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition: color var(--transition-fast);
+}
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: var(--foreground);
+}
+.mobile-link {
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--accent-electric);
+  background: var(--accent-electric);
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: white;
+  box-shadow: 3px 3px 0 var(--border);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.button:hover {
   transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--border);
 }
-
-.precision-card {
-  box-shadow: 3px 3px 0px 0px var(--border);
-  transition: all var(--transition-normal);
+.button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--border);
 }
-
-.precision-card:hover {
+.button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+  transform: none;
+}
+.button--compact {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+}
+.button--secondary {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--foreground);
+}
+.button--run {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  box-shadow: 2px 2px 0 var(--border);
+}
+.language-tab {
+  border: 1px solid transparent;
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.language-tab--active {
   border-color: var(--accent-electric);
-  box-shadow: 5px 5px 0px 0px var(--accent-electric-glow);
-  transform: translate(-2px, -2px);
+  background: color-mix(in oklch, var(--accent-electric) 12%, transparent);
+  color: var(--accent-electric);
 }
-
-.precision-card--featured:hover {
-  border-color: var(--accent-electric);
-  box-shadow: 6px 6px 0px 0px var(--accent-electric-glow);
-  transform: translate(-2px, -2px);
+.workflow-card {
+  padding: 1.75rem;
+}
+.workflow-card + .workflow-card {
+  border-top: 1px solid var(--border);
+}
+.workflow-card h3 {
+  margin-top: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.workflow-card > p:last-child {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+.workflow-command {
+  margin-top: 2rem;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+:is(a, button):focus-visible {
+  outline: 3px solid var(--accent-electric);
+  outline-offset: 3px;
+}
+@media (min-width: 768px) {
+  .workflow-card + .workflow-card {
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .nav-link {
+    transition: none;
+  }
+  .button:hover,
+  .button:active {
+    transform: none;
+  }
 }
 </style>

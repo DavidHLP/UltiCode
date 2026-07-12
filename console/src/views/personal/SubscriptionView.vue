@@ -213,6 +213,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Download, Loader2, Settings } from "lucide-vue-next";
+import { formatDate as sharedFormatDate } from "@/utils/datetime";
 import {
   subscriptionApi,
   type Invoice,
@@ -382,7 +383,7 @@ async function openBillingPortal() {
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString(undefined, {
+  return sharedFormatDate(dateString, undefined, {
     year: "numeric",
     month: "long",
     day: "numeric",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/utils/datetime";
 import {
   Card,
   CardContent,
@@ -110,7 +111,7 @@ const recentActivity = computed(() => {
         : t("personal.submissions.attempted"),
     problem: sub.problem?.title || "Unknown Problem",
     problemSlug: sub.problem?.slug || "",
-    time: new Date(sub.created_at).toLocaleDateString(),
+    time: formatDate(sub.created_at),
     status: sub.status,
   }));
 });

@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/utils/datetime";
 import { SemanticBadge } from "@/components/ui/terminal";
 import {
   AlertDialog,
@@ -136,7 +137,7 @@ onMounted(loadPosts);
               >
                 <Calendar class="h-3 w-3" />
                 {{
-                  new Date(post.createdAt).toLocaleDateString(locale, {
+                  formatDate(post.createdAt, locale, {
                     month: "short",
                     day: "numeric",
                     year: "numeric",

@@ -2,6 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/utils/datetime";
 import {
   MapPin,
   Link as LinkIcon,
@@ -136,7 +137,7 @@ const { t } = useI18n();
             <span>{{
               t("personal.profile.joinedDate", {
                 date: user.joinedAt
-                  ? new Date(user.joinedAt).toLocaleDateString(undefined, {
+                  ? formatDate(user.joinedAt, undefined, {
                       month: "long",
                       year: "numeric",
                     })

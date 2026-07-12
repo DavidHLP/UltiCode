@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { formatDate } from "@/utils/datetime";
 import {
   fetchUserProfile,
   fetchUserStats,
@@ -128,7 +129,7 @@ onMounted(async () => {
             <Calendar class="h-4 w-4" />
             <span>{{
               t("profile.joined", {
-                date: new Date(profile.joinedAt).toLocaleDateString(),
+                date: formatDate(profile.joinedAt),
               })
             }}</span>
           </div>

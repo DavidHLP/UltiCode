@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { onMounted, ref, computed } from "vue";
 import { fetchUserSubmissions } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
+import { formatDate } from "@/utils/datetime";
 import {
   CheckCircle2,
   XCircle,
@@ -270,9 +271,7 @@ onMounted(async () => {
 
         <template #cell-created_at="{ item }">
           {{
-            new Date((item as SubmissionRecord).created_at).toLocaleDateString(
-              locale,
-            )
+            formatDate((item as SubmissionRecord).created_at, locale)
           }}
         </template>
 

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { formatDate } from "@/utils/datetime";
 import { useAuthStore } from "@/stores/auth";
 import { apiGet } from "@/utils/request";
 import { fetchProfileByUsername, type ProfileData } from "@/api/user";
@@ -126,7 +127,7 @@ onMounted(async () => {
               <Calendar class="h-4 w-4" />
               <span>{{
                 t("personal.profile.joinedDate", {
-                  date: new Date(profile.joinedAt).toLocaleDateString(),
+                  date: formatDate(profile.joinedAt),
                 })
               }}</span>
             </div>

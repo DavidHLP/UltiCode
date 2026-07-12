@@ -29,7 +29,6 @@ const { t } = useI18n();
 const {
   thread,
   isLoading,
-  deleting,
   onSubmitComment,
   onEditComment,
   onDeleteComment,
@@ -40,7 +39,6 @@ const {
   handleCommentVote,
   handleThreadSave,
   countThreadComments,
-  authorUsername,
   authorAvatarUrl,
   authorInitial,
   createdAgo,

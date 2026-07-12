@@ -195,7 +195,6 @@ export function useForumThread() {
   return {
     thread,
     isLoading,
-    deleting,
     onSubmitComment,
     onEditComment,
     onDeleteComment,
@@ -206,7 +205,6 @@ export function useForumThread() {
     handleCommentVote,
     handleThreadSave,
     countThreadComments,
-    authorUsername,
     authorAvatarUrl,
     authorInitial,
     createdAgo,

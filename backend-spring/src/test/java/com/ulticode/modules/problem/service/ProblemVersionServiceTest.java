@@ -18,9 +18,7 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.problem.mapper.ProblemVersionMapper;
-import com.ulticode.modules.problem.service.codec.ProblemSnapshotCodec;
-import com.ulticode.modules.problem.service.codec.ProblemVersionDiff;
-import com.ulticode.modules.problem.service.codec.ProblemVersionRollback;
+import com.ulticode.modules.problem.service.impl.ProblemSnapshotServiceImpl;
 import com.ulticode.modules.problem.service.impl.ProblemVersionServiceImpl;
 import com.ulticode.modules.problem.vo.ProblemVersionDetailVO;
 import com.ulticode.modules.problem.vo.ProblemVersionVO;
@@ -51,6 +49,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Pins the ProblemVersionService public contract after the snapshot deep-module
+ * extraction. The snapshot capture/restore is delegated to a real
+ * {@link ProblemSnapshotServiceImpl} wired to the same mock mapper graph, so
+ * the end-to-end behavior assertions (snapshot non-empty, rollback writes,
+ * diff fields) are preserved unchanged. The snapshot schema internals are now
+ * covered by {@link ProblemSnapshotServiceTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ProblemVersionService")
 class ProblemVersionServiceTest {
@@ -88,24 +94,21 @@ class ProblemVersionServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         FixedUuidGenerator uuidGenerator = new FixedUuidGenerator();
-        ProblemSnapshotCodec snapshotCodec = new ProblemSnapshotCodec(objectMapper);
-        ProblemVersionDiff versionDiff = new ProblemVersionDiff(objectMapper);
-        ProblemVersionRollback versionRollback = new ProblemVersionRollback(
-                problemMapper, problemDetailMapper, problemExampleMapper,
-                problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
-                uuidGenerator, objectMapper);
-        problemVersionService = new ProblemVersionServiceImpl(
+        // The service now sees only the snapshot seam; wire a real impl to the
+        // same mock graph so behavior assertions stay end-to-end.
+        ProblemSnapshotService snapshotService = new ProblemSnapshotServiceImpl(
                 problemMapper,
                 problemDetailMapper,
                 problemExampleMapper,
                 problemLanguageMapper,
-                problemVersionMapper,
-                objectMapper,
+                problemTagMapper,
+                problemTagRelationMapper,
                 uuidGenerator,
-                snapshotCodec,
-                versionDiff,
-                versionRollback
-        );
+                objectMapper);
+        problemVersionService = new ProblemVersionServiceImpl(
+                problemMapper,
+                problemVersionMapper,
+                snapshotService);
     }
 
     private Problem createProblem() {

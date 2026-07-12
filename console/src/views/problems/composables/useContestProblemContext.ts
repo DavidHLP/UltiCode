@@ -21,7 +21,7 @@
  */
 import { computed, ref, watch, type ComputedRef, type Ref } from "vue";
 import { storeToRefs } from "pinia";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useContestDetailStore } from "@/stores/contestDetail";
 import { useAuthStore } from "@/stores/auth";
 import type {
@@ -54,12 +54,21 @@ export interface UseContestProblemContext {
   problemBelongsToContest: ComputedRef<boolean | null>;
   refreshParticipation: () => Promise<void>;
   refreshProblems: () => Promise<void>;
+  /**
+   * Navigate to another problem inside the current contest, preserving
+   * the {@code ?contestId=} query so the contest context stays live.
+   * No-op when given a falsy slug. Centralises the
+   * {@code router.push({ name: "problem-detail", ... })} shape that the
+   * shell pills and the dock both used to inline.
+   */
+  goToContestProblem: (slug: string | null) => void;
 }
 
 export function useContestProblemContext(
   problem: Ref<ProblemDetail | null>,
 ): UseContestProblemContext {
   const route = useRoute();
+  const router = useRouter();
   const contestStore = useContestDetailStore();
   const authStore = useAuthStore();
 
@@ -210,6 +219,19 @@ export function useContestProblemContext(
     await contestStore.loadProblems(contestId.value);
   }
 
+  // Centralised contest-problem navigation. Both ContestProblemShell
+  // (pills) and ContestProblemDock used to inline this exact push; the
+  // `?contestId=` preservation is a contest-routing invariant, so it
+  // belongs with the rest of the contest context, not copied per view.
+  function goToContestProblem(slug: string | null): void {
+    if (!slug) return;
+    router.push({
+      name: "problem-detail",
+      params: { slug },
+      query: { contestId: currentContest.value?.slug ?? "" },
+    });
+  }
+
   return {
     contestId,
     contest: currentContest,
@@ -220,5 +242,6 @@ export function useContestProblemContext(
     problemBelongsToContest,
     refreshParticipation,
     refreshProblems,
+    goToContestProblem,
   };
 }

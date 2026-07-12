@@ -110,12 +110,7 @@ function isActivePill(p: ProblemPill): boolean {
 }
 
 function goToPill(p: ProblemPill): void {
-  if (!p.slug) return;
-  router.push({
-    name: "problem-detail",
-    params: { slug: p.slug },
-    query: { contestId: ctx?.contest.value?.slug ?? "" },
-  });
+  ctx?.goToContestProblem(p.slug);
 }
 
 let pendingToast: ReturnType<typeof setTimeout> | null = null;

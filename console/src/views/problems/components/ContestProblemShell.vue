@@ -24,7 +24,6 @@
  */
 import { computed, inject, onBeforeUnmount, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
 import { ArrowLeft, Target, Trophy, Timer, Lightbulb } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import ContestStatusBadge from "@/views/contest/components/ContestStatusBadge.vue";
@@ -36,7 +35,6 @@ import { useVirtualContestStore } from "@/stores/virtualContest";
 import { useAuthStore } from "@/stores/auth";
 import { toast } from "vue-sonner";
 
-const router = useRouter();
 const { t } = useI18n();
 const ctx = inject(ContestProblemContextKey, null);
 const shellStore = useContestProblemShellStore();
@@ -141,15 +139,7 @@ function isActivePill(p: ProblemPill): boolean {
 }
 
 function goToPill(p: ProblemPill): void {
-  if (!p.slug) return;
-  // Preserve the ?contestId=... query. `problem-detail` route
-  // accepts the slug param; contestId is the URL-stable form
-  // (matching what ContestProblemList.problemLink puts in the URL).
-  router.push({
-    name: "problem-detail",
-    params: { slug: p.slug },
-    query: { contestId: ctx?.contest.value?.slug ?? "" },
-  });
+  ctx?.goToContestProblem(p.slug);
 }
 
 // ---------------------------------------------------------------------------

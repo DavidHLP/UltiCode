@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -108,24 +109,19 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         try {
             submissionService.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
 
-            JudgeExecutionResult result = executionPipeline.execute(
-                    job.getLanguage(), job.getCode(),
-                    Long.parseLong(problemId), userId, submissionId);
-
-            if (result == null) {
+            Optional<JudgeExecutionResult> result = runPipeline(job);
+            if (result.isEmpty()) {
                 markSystemError(submissionId, userId, problemId, null);
                 releaseIfLeased(port, handle);
                 return;
             }
+            JudgeExecutionResult r = result.get();
 
-            SubmissionStatus status = result.status();
+            SubmissionStatus status = r.status();
             submissionService.updateSubmissionResult(submissionId, status,
-                    result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
+                    r.maxRuntimeMs(), r.maxMemoryMb(), r.testCaseDetails());
 
-            long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
-            String contestId = findContestIdBySubmissionId(submissionId);
-            pushResult(userId, submissionId, problemId, status.wireValue(),
-                    result.maxRuntimeMs(), memoryBytes, contestId);
+            notifyVerdict(userId, submissionId, problemId, status, r);
             releaseIfLeased(port, handle);
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
@@ -163,38 +159,32 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
         ScheduledFuture<?> heartbeatTask = startHeartbeat(submissionId, attemptId);
         try {
-            executeAndWriteFenced(
-                    submissionId, problemId, userId,
-                    job.getLanguage(), job.getCode(),
-                    attemptId, generation);
+            executeAndWriteFenced(job, attemptId, generation);
         } finally {
             stopHeartbeat(heartbeatTask);
             releaseIfLeased(port, handle);
         }
     }
 
-    private void executeAndWriteFenced(String submissionId, String problemId, String userId,
-                                       String language, String code,
-                                       String attemptId, long generation) {
+    private void executeAndWriteFenced(JudgeJob job, String attemptId, long generation) {
+        String submissionId = job.getSubmissionId();
+        String problemId = job.getProblemId();
+        String userId = job.getUserId();
         try {
-            JudgeExecutionResult result = executionPipeline.execute(
-                    language, code, Long.parseLong(problemId), userId, submissionId);
-
-            if (result == null) {
+            Optional<JudgeExecutionResult> result = runPipeline(job);
+            if (result.isEmpty()) {
                 markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId, null);
                 return;
             }
+            JudgeExecutionResult r = result.get();
 
-            SubmissionStatus status = result.status();
+            SubmissionStatus status = r.status();
             boolean written = submissionService.updateSubmissionResultFenced(
                     submissionId, generation, attemptId, status,
-                    result.maxRuntimeMs(), result.maxMemoryMb(), result.testCaseDetails());
+                    r.maxRuntimeMs(), r.maxMemoryMb(), r.testCaseDetails());
 
             if (written) {
-                long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
-                String contestId = findContestIdBySubmissionId(submissionId);
-                pushResult(userId, submissionId, problemId, status.wireValue(),
-                        result.maxRuntimeMs(), memoryBytes, contestId);
+                notifyVerdict(userId, submissionId, problemId, status, r);
             } else {
                 log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
                         status.wireValue(), submissionId, generation);
@@ -283,6 +273,31 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             log.debug("No contest mapping for submission {}: {}", submissionId, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Shared execute step of the attempt lifecycle: run the sandbox pipeline
+     * for one job and lift the null-result (sandbox yielded no verdict) into
+     * an empty Optional so each path applies its own SYSTEM_ERROR variant.
+     */
+    private Optional<JudgeExecutionResult> runPipeline(JudgeJob job) throws Exception {
+        return Optional.ofNullable(executionPipeline.execute(
+                job.getLanguage(), job.getCode(),
+                Long.parseLong(job.getProblemId()), job.getUserId(), job.getSubmissionId()));
+    }
+
+    /**
+     * Shared notify step of the attempt lifecycle: compute the contest-id +
+     * memory shape and push one verdict payload. The legacy and fenced
+     * success paths share this verbatim; the fenced path gates the call on
+     * its CAS landing, keeping the fail-closed conditional fencing intact.
+     */
+    private void notifyVerdict(String userId, String submissionId, String problemId,
+                               SubmissionStatus status, JudgeExecutionResult result) {
+        long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
+        String contestId = findContestIdBySubmissionId(submissionId);
+        pushResult(userId, submissionId, problemId, status.wireValue(),
+                result.maxRuntimeMs(), memoryBytes, contestId);
     }
 
     private void pushResult(String userId, String submissionId, String problemId,

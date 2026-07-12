@@ -1,16 +1,14 @@
 package com.ulticode.modules.websocket.interceptor;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.auth.util.JwtUtils;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.projection.UserReadProjection;
+import com.ulticode.modules.websocket.auth.WebSocketAuthenticator;
 import com.ulticode.modules.websocket.dto.SocketClientData;
-import com.ulticode.modules.websocket.port.TokenBlacklistPort;
+import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.util.TokenExtractor;
-import io.jsonwebtoken.Claims;
+import com.ulticode.common.exception.ErrorCode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,13 +23,18 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 
-/** Tests for JwtChannelInterceptor. */
+/**
+ * Tests for the STOMP transport adapter.
+ *
+ * <p>The transport now only knows how to extract a token candidate and
+ * delegate to the {@link WebSocketAuthenticator}. Auth policy tests
+ * (blacklist, expiry, user existence, fail-closed) live in
+ * {@code DefaultWebSocketAuthenticatorTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 class JwtChannelInterceptorTest {
 
-  @Mock private JwtUtils jwtUtils;
-  @Mock private TokenBlacklistPort tokenBlacklistPort;
-  @Mock private UserReadProjection userReadProjection;
+  @Mock private WebSocketAuthenticator authenticator;
   @Mock private TokenExtractor tokenExtractor;
   @Mock private MessageChannel channel;
 
@@ -39,7 +42,7 @@ class JwtChannelInterceptorTest {
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(jwtUtils, tokenBlacklistPort, userReadProjection, tokenExtractor);
+    interceptor = new JwtChannelInterceptor(authenticator, tokenExtractor);
   }
 
   @Test
@@ -60,165 +63,82 @@ class JwtChannelInterceptorTest {
     Message<?> result = interceptor.preSend(message, channel);
 
     assertSame(message, result);
+    verifyNoInteractions(authenticator);
   }
 
   @Test
-  void preSend_withValidToken_authenticatesSuccessfully() {
+  void preSend_withValidToken_delegatesAndAttachesPrincipal() {
     String token = "valid-token";
     String userId = "user-123";
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    // Keep the accessor mutable - don't call getMessageHeaders() until we need to
-    accessor.setLeaveMutable(true);
+    SocketClientData clientData = new SocketClientData(userId, "testuser", "USER");
 
-    Claims claims = mock(Claims.class);
-    User user = createUser(userId, "testuser", "USER");
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setLeaveMutable(true);
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    accessor.setSessionAttributes(sessionAttrs);
 
     when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
-    when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
-    when(claims.getSubject()).thenReturn(userId);
-    when(userReadProjection.findById(userId)).thenReturn(Optional.of(user));
+    when(authenticator.authenticate(Optional.of(token))).thenReturn(clientData);
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
     Message<?> result = interceptor.preSend(message, channel);
 
     assertSame(message, result);
-    verify(tokenExtractor).extractTokenFromHeaders(any());
-    verify(tokenBlacklistPort).isBlacklisted(token);
-    verify(jwtUtils).validateToken(token);
-    verify(userReadProjection).findById(userId);
+    verify(authenticator).authenticate(Optional.of(token));
+    assertEquals(clientData, accessor.getSessionAttributes().get("user"));
+    assertNotNull(accessor.getUser());
   }
 
   @Test
-  void preSend_withoutToken_throwsException() {
+  void preSend_propagatesAuthenticatorException() {
+    String token = "bad-token";
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
+    accessor.setLeaveMutable(true);
+    accessor.setSessionAttributes(new HashMap<>());
 
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.empty());
+    when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
+    when(authenticator.authenticate(any()))
+            .thenThrow(new WebSocketAuthenticationException(
+                    ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked"));
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
+    WebSocketAuthenticationException ex = assertThrows(
+            WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_UNAUTHORIZED, exception.getErrorCode());
-    assertTrue(exception.getMessage().contains("No authentication token"));
+    assertEquals(ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, ex.getErrorCode());
   }
 
   @Test
-  void preSend_withBlacklistedToken_throwsException() {
-    String token = "blacklisted-token";
+  void preSend_withoutToken_delegatesEmptyOptional() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
+    accessor.setLeaveMutable(true);
+    accessor.setSessionAttributes(new HashMap<>());
 
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(true);
+    when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.empty());
+    when(authenticator.authenticate(Optional.empty()))
+            .thenThrow(new WebSocketAuthenticationException(
+                    ErrorCode.WEBSOCKET_UNAUTHORIZED, "No authentication token provided"));
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
+    WebSocketAuthenticationException ex = assertThrows(
+            WebSocketAuthenticationException.class,
             () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, exception.getErrorCode());
-    assertTrue(exception.getMessage().contains("revoked"));
+    assertEquals(ErrorCode.WEBSOCKET_UNAUTHORIZED, ex.getErrorCode());
+    verify(authenticator).authenticate(Optional.empty());
   }
 
   @Test
-  void preSend_withInvalidToken_throwsException() {
-    String token = "invalid-token";
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
+  void preSend_withSendCommand_doesNotInvokeAuthenticator() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    accessor.setDestination("/app/test");
+    Message<?> message = MessageBuilder.createMessage("test", accessor.getMessageHeaders());
 
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
-    when(jwtUtils.validateToken(token)).thenReturn(Optional.empty());
+    Message<?> result = interceptor.preSend(message, channel);
 
-    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
-
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
-            () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_INVALID_TOKEN, exception.getErrorCode());
-    assertTrue(exception.getMessage().contains("Invalid or expired"));
-  }
-
-  @Test
-  void preSend_withNullUserIdInToken_throwsException() {
-    String token = "token-without-userId";
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
-
-    Claims claims = mock(Claims.class);
-
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
-    when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
-    when(claims.getSubject()).thenReturn(null);
-
-    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
-
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
-            () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_INVALID_TOKEN, exception.getErrorCode());
-    assertTrue(exception.getMessage().contains("Invalid token payload"));
-  }
-
-  @Test
-  void preSend_withEmptyUserIdInToken_throwsException() {
-    String token = "token-with-empty-userId";
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
-
-    Claims claims = mock(Claims.class);
-
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
-    when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
-    when(claims.getSubject()).thenReturn("");
-
-    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
-
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
-            () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_INVALID_TOKEN, exception.getErrorCode());
-  }
-
-  @Test
-  void preSend_withUserNotFound_throwsException() {
-    String token = "valid-token";
-    String userId = "nonexistent-user";
-    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
-    Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
-
-    Claims claims = mock(Claims.class);
-
-    when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
-    when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
-    when(claims.getSubject()).thenReturn(userId);
-    when(userReadProjection.findById(userId)).thenReturn(Optional.empty());
-
-    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
-
-    JwtChannelInterceptor.WebSocketAuthenticationException exception =
-        assertThrows(
-            JwtChannelInterceptor.WebSocketAuthenticationException.class,
-            () -> interceptor.preSend(message, channel));
-
-    assertEquals(ErrorCode.WEBSOCKET_USER_NOT_FOUND, exception.getErrorCode());
-    assertTrue(exception.getMessage().contains("User not found"));
+    assertSame(message, result);
+    verifyNoInteractions(authenticator);
   }
 
   @Test
@@ -233,11 +153,22 @@ class JwtChannelInterceptorTest {
     assertEquals(message, exception.getMessage());
   }
 
-  private User createUser(String id, String username, String role) {
-    User user = new User();
-    user.setId(id);
-    user.setUsername(username);
-    user.setRole(role);
-    return user;
+  @Test
+  void preSend_prefersSessionTokenOverHeaderToken() {
+    String sessionToken = "session-token";
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.CONNECT);
+    accessor.setLeaveMutable(true);
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    sessionAttrs.put("auth", sessionToken);
+    accessor.setSessionAttributes(sessionAttrs);
+
+    when(authenticator.authenticate(Optional.of(sessionToken)))
+            .thenReturn(new SocketClientData("u-1", "alice", "USER"));
+
+    Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
+    interceptor.preSend(message, channel);
+
+    verify(authenticator).authenticate(Optional.of(sessionToken));
+    verifyNoInteractions(tokenExtractor);
   }
 }

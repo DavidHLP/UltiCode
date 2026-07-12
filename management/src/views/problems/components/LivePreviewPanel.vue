@@ -44,7 +44,9 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 </script>
 
 <template>
-  <div class="live-preview-panel flex flex-col h-full bg-[var(--background)] border-l border-[var(--border)]">
+  <div
+    class="live-preview-panel flex flex-col h-full bg-[var(--background)] border-l border-[var(--border)]"
+  >
     <!-- Header -->
     <div class="shrink-0 border-b border-[var(--border)] bg-card px-5 py-4">
       <div class="space-y-1 mb-3">
@@ -96,11 +98,18 @@ const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
         <Separator class="my-4 border-[var(--border)]" />
 
         <Collapsible class="border border-[var(--border)] bg-card rounded-none overflow-hidden">
-          <CollapsibleTrigger class="w-full bg-muted/15 border-b border-[var(--border)] px-4 py-2 text-left hover:bg-muted/20 transition-colors">
+          <CollapsibleTrigger
+            class="w-full bg-muted/15 border-b border-[var(--border)] px-4 py-2 text-left hover:bg-muted/20 transition-colors"
+          >
             <div class="flex items-center justify-between group cursor-pointer">
-              <span class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] flex items-center gap-2">
+              <span
+                class="text-xs font-mono font-bold uppercase tracking-wider text-[var(--silver-600)] flex items-center gap-2"
+              >
                 {{ t('problems.display.hints') }}
-                <Badge variant="secondary" class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]">
+                <Badge
+                  variant="secondary"
+                  class="rounded-none shadow-none font-mono text-2xs px-1.5 py-0 border border-[var(--border)] bg-muted/30 text-[var(--silver-600)]"
+                >
                   {{ data.hints.length }}
                 </Badge>
               </span>

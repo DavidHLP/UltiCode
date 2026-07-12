@@ -1,7 +1,11 @@
 import { watch } from 'vue'
 import { i18n, getActiveLocale, setLocale } from './index'
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale } from './types'
-import { formatDate, formatDateTime, formatRelativeTime as _formatRelativeTime } from '@/lib/format/date'
+import {
+  formatDate,
+  formatDateTime,
+  formatRelativeTime as _formatRelativeTime,
+} from '@/lib/format/date'
 
 /**
  * Get all supported locales with their configurations

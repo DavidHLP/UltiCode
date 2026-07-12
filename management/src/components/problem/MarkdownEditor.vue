@@ -308,7 +308,6 @@ onUnmounted(() => {
   padding: 1rem;
 }
 
-
 .preview-content :deep(h1) {
   font-size: var(--uc-text-2xl);
   font-weight: var(--uc-font-weight-bold);

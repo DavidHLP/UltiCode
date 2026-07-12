@@ -104,15 +104,26 @@ function difficultyColor(difficulty: string): SemanticColor {
 <template>
   <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
     <!-- Card Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+    <div
+      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
+    >
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-1.5">
-          <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+          <span
+            class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+          >
             04 // {{ t('problemLists.problemsManager.manageProblems') }}
           </span>
         </div>
-        <span class="text-2xs font-mono px-1.5 py-0.5 bg-[var(--editor-control-bg)] border border-[var(--editor-control-border)] text-[var(--editor-cyan)] font-bold">
-          {{ problems.length }} {{ t('problemLists.problemsManager.problemsCount', { count: problems.length }).split(' ')[1] || '题目' }}
+        <span
+          class="text-2xs font-mono px-1.5 py-0.5 bg-[var(--editor-control-bg)] border border-[var(--editor-control-border)] text-[var(--editor-cyan)] font-bold"
+        >
+          {{ problems.length }}
+          {{
+            t('problemLists.problemsManager.problemsCount', { count: problems.length }).split(
+              ' ',
+            )[1] || '题目'
+          }}
         </span>
       </div>
 
@@ -130,7 +141,9 @@ function difficultyColor(difficulty: string): SemanticColor {
           :disabled="!isDirty || loading"
           @click="saveProblems"
         >
-          <span v-if="loading" class="animate-pulse">{{ t('problemLists.problemsManager.saving') }}</span>
+          <span v-if="loading" class="animate-pulse">{{
+            t('problemLists.problemsManager.saving')
+          }}</span>
           <span v-else>{{ t('problemLists.problemsManager.saveChanges') }}</span>
         </Button>
       </div>
@@ -141,19 +154,29 @@ function difficultyColor(difficulty: string): SemanticColor {
       <Table class="w-full border-collapse">
         <TableHeader class="bg-[var(--editor-control-bg)]/20 select-none">
           <TableRow class="hover:bg-transparent border-b border-[var(--editor-border-weak)]">
-            <TableHead class="h-9 px-4 text-left font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[80px]">
+            <TableHead
+              class="h-9 px-4 text-left font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[80px]"
+            >
               {{ t('problemLists.problemsManager.order') }}
             </TableHead>
-            <TableHead class="h-9 px-4 text-left font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)]">
+            <TableHead
+              class="h-9 px-4 text-left font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)]"
+            >
               {{ t('problemLists.problemsManager.problem') }}
             </TableHead>
-            <TableHead class="h-9 px-4 text-center font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[120px]">
+            <TableHead
+              class="h-9 px-4 text-center font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[120px]"
+            >
               {{ t('problemLists.problemsManager.difficulty') }}
             </TableHead>
-            <TableHead class="h-9 px-4 text-center font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[100px]">
+            <TableHead
+              class="h-9 px-4 text-center font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[100px]"
+            >
               {{ t('table.columnNames.status') }}
             </TableHead>
-            <TableHead class="h-9 px-4 text-right font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[160px]">
+            <TableHead
+              class="h-9 px-4 text-right font-mono text-2xs uppercase tracking-wider text-[var(--editor-text-muted)] w-[160px]"
+            >
               {{ t('table.columnNames.addedAt') }}
             </TableHead>
             <TableHead class="h-9 px-4 w-[50px]"></TableHead>
@@ -207,7 +230,9 @@ function difficultyColor(difficulty: string): SemanticColor {
             </TableCell>
 
             <!-- Added At Date -->
-            <TableCell class="p-2 px-4 text-right align-middle font-mono text-xxs text-[var(--editor-text-muted)] tabular-nums">
+            <TableCell
+              class="p-2 px-4 text-right align-middle font-mono text-xxs text-[var(--editor-text-muted)] tabular-nums"
+            >
               {{ problem.addedAt ? formatDateByLocale(problem.addedAt) : '-' }}
             </TableCell>
 
@@ -252,7 +277,9 @@ function difficultyColor(difficulty: string): SemanticColor {
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 :deep(.custom-terminal-input) {

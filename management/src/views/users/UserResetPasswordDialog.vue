@@ -72,7 +72,6 @@ async function handleReset() {
       <!-- Terminal Header -->
       <DialogHeader class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4">
         <div class="flex items-center gap-3">
-          
           <DialogTitle class="text-lg font-medium tracking-tight">
             {{ t('users.actions.resetPassword') }}
           </DialogTitle>

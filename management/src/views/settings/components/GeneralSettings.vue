@@ -77,7 +77,7 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
             :class="[
               theme === 'light'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
             ]"
             @click="setTheme('light')"
           >
@@ -91,7 +91,7 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
             :class="[
               theme === 'dark'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
             ]"
             @click="setTheme('dark')"
           >
@@ -105,7 +105,7 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
             :class="[
               theme === 'system'
                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] font-bold'
-                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50'
+                : 'border-[var(--silver-200)] dark:border-[var(--silver-300)]/50 hover:bg-[var(--silver-100)]/50',
             ]"
             @click="setTheme('system')"
           >

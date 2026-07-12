@@ -39,7 +39,11 @@ const { t } = useI18n()
       <DropdownMenuItem
         variant="terminal"
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
-        :class="[theme === 'light' ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold' : '']"
+        :class="[
+          theme === 'light'
+            ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold'
+            : '',
+        ]"
         @click="setTheme('light')"
       >
         <div class="flex items-center gap-3">
@@ -54,7 +58,11 @@ const { t } = useI18n()
       <DropdownMenuItem
         variant="terminal"
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
-        :class="[theme === 'dark' ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold' : '']"
+        :class="[
+          theme === 'dark'
+            ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold'
+            : '',
+        ]"
         @click="setTheme('dark')"
       >
         <div class="flex items-center gap-3">
@@ -69,7 +77,11 @@ const { t } = useI18n()
       <DropdownMenuItem
         variant="terminal"
         class="flex items-center justify-between cursor-pointer transition-all duration-200 px-3 py-2"
-        :class="[theme === 'system' ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold' : '']"
+        :class="[
+          theme === 'system'
+            ? 'bg-[var(--silver-100)]/40 text-[var(--accent-primary)] font-bold'
+            : '',
+        ]"
         @click="setTheme('system')"
       >
         <div class="flex items-center gap-3">

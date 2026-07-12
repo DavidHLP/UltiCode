@@ -190,7 +190,6 @@ async function deleteTemplate(template: EmailTemplate) {
   }
 }
 
-
 function getStatusIcon(status: string) {
   switch (status) {
     case 'SENT':
@@ -285,249 +284,262 @@ onMounted(async () => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('system.email.stats.total') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold">{{ stats?.total ?? 0 }}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('system.email.stats.sent') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-green-500">{{ stats?.sent ?? 0 }}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('system.email.stats.pending') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-yellow-500">{{ stats?.pending ?? 0 }}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('system.email.stats.failed') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-red-500">{{ stats?.failed ?? 0 }}</div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <!-- Tabs -->
-    <Tabs v-model="activeTab">
-      <TabsList>
-        <TabsTrigger value="logs">
-          <IconMail class="h-4 w-4 mr-1" />
-          {{ t('system.email.tabs.logs') }}
-        </TabsTrigger>
-        <TabsTrigger value="templates">
-          <IconFileText class="h-4 w-4 mr-1" />
-          {{ t('system.email.tabs.templates') }}
-        </TabsTrigger>
-      </TabsList>
-
-      <!-- Logs Tab -->
-      <TabsContent value="logs" class="mt-4">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>{{ t('system.email.logs.title') }}</CardTitle>
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-medium text-muted-foreground">
+              {{ t('system.email.stats.total') }}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div v-if="loading" class="flex items-center justify-center py-8">
-              <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <div class="text-2xl font-bold">{{ stats?.total ?? 0 }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-medium text-muted-foreground">
+              {{ t('system.email.stats.sent') }}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold text-green-500">{{ stats?.sent ?? 0 }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-medium text-muted-foreground">
+              {{ t('system.email.stats.pending') }}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold text-yellow-500">{{ stats?.pending ?? 0 }}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardTitle class="text-sm font-medium text-muted-foreground">
+              {{ t('system.email.stats.failed') }}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="text-2xl font-bold text-red-500">{{ stats?.failed ?? 0 }}</div>
+          </CardContent>
+        </Card>
+      </div>
 
-            <div v-else-if="logs.length === 0" class="text-center py-8 text-muted-foreground">
-              {{ t('system.email.logs.noLogs') }}
-            </div>
+      <!-- Tabs -->
+      <Tabs v-model="activeTab">
+        <TabsList>
+          <TabsTrigger value="logs">
+            <IconMail class="h-4 w-4 mr-1" />
+            {{ t('system.email.tabs.logs') }}
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            <IconFileText class="h-4 w-4 mr-1" />
+            {{ t('system.email.tabs.templates') }}
+          </TabsTrigger>
+        </TabsList>
 
-            <div v-else class="space-y-4">
-              <div
-                v-for="log in logs"
-                :key="log.id"
-                class="flex items-center justify-between p-4 rounded-none border bg-card"
-              >
-                <div class="flex items-center gap-4">
-                  <component
-                    :is="getStatusIcon(log.status)"
-                    :class="['h-5 w-5', getStatusColor(log.status)]"
-                  />
-                  <div>
-                    <div class="font-medium">{{ log.subject }}</div>
-                    <div class="text-sm text-muted-foreground">
-                      {{ t('system.email.to') }}: {{ log.recipient }} | {{ t('system.email.createdAt') }}:
-                      {{ formatDateTimeByLocale(log.created_at) }}
-                    </div>
-                    <div v-if="log.error" class="text-sm text-red-500 mt-1">
-                      {{ log.error }}
+        <!-- Logs Tab -->
+        <TabsContent value="logs" class="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{{ t('system.email.logs.title') }}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div v-if="loading" class="flex items-center justify-center py-8">
+                <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+
+              <div v-else-if="logs.length === 0" class="text-center py-8 text-muted-foreground">
+                {{ t('system.email.logs.noLogs') }}
+              </div>
+
+              <div v-else class="space-y-4">
+                <div
+                  v-for="log in logs"
+                  :key="log.id"
+                  class="flex items-center justify-between p-4 rounded-none border bg-card"
+                >
+                  <div class="flex items-center gap-4">
+                    <component
+                      :is="getStatusIcon(log.status)"
+                      :class="['h-5 w-5', getStatusColor(log.status)]"
+                    />
+                    <div>
+                      <div class="font-medium">{{ log.subject }}</div>
+                      <div class="text-sm text-muted-foreground">
+                        {{ t('system.email.to') }}: {{ log.recipient }} |
+                        {{ t('system.email.createdAt') }}:
+                        {{ formatDateTimeByLocale(log.created_at) }}
+                      </div>
+                      <div v-if="log.error" class="text-sm text-red-500 mt-1">
+                        {{ log.error }}
+                      </div>
                     </div>
                   </div>
+                  <SemanticBadge :color="getStatusBadgeColor(log.status)">
+                    {{ t(`system.email.status.${log.status}`, log.status) }}
+                  </SemanticBadge>
                 </div>
-                <SemanticBadge :color="getStatusBadgeColor(log.status)">
-                  {{ t(`system.email.status.${log.status}`, log.status) }}
-                </SemanticBadge>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <!-- Templates Tab -->
-      <TabsContent value="templates" class="mt-4">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between">
-            <CardTitle>{{ t('system.email.templates.title') }}</CardTitle>
-            <Button size="sm" @click="openCreateTemplateDialog">
-              <IconPlus class="h-4 w-4 mr-1" />
-              {{ t('system.email.templates.create') }}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div v-if="loading" class="flex items-center justify-center py-8">
-              <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+        <!-- Templates Tab -->
+        <TabsContent value="templates" class="mt-4">
+          <Card>
+            <CardHeader class="flex flex-row items-center justify-between">
+              <CardTitle>{{ t('system.email.templates.title') }}</CardTitle>
+              <Button size="sm" @click="openCreateTemplateDialog">
+                <IconPlus class="h-4 w-4 mr-1" />
+                {{ t('system.email.templates.create') }}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div v-if="loading" class="flex items-center justify-center py-8">
+                <IconLoader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
 
-            <div v-else-if="templates.length === 0" class="text-center py-8 text-muted-foreground">
-              {{ t('system.email.templates.noTemplates') }}
-            </div>
-
-            <div v-else class="space-y-4">
               <div
-                v-for="template in templates"
-                :key="template.id"
-                class="flex items-center justify-between p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
+                v-else-if="templates.length === 0"
+                class="text-center py-8 text-muted-foreground"
               >
-                <div>
-                  <div class="font-medium">{{ template.name }}</div>
-                  <div class="text-sm text-muted-foreground">{{ template.subject }}</div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" @click="openSendDialog(template)">
-                    <IconSend class="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" @click="openEditTemplateDialog(template)">
-                    <IconPencil class="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="text-destructive hover:text-destructive"
-                    @click="deleteTemplate(template)"
-                  >
-                    <IconTrash class="h-4 w-4" />
-                  </Button>
+                {{ t('system.email.templates.noTemplates') }}
+              </div>
+
+              <div v-else class="space-y-4">
+                <div
+                  v-for="template in templates"
+                  :key="template.id"
+                  class="flex items-center justify-between p-4 rounded-none border bg-card hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <div class="font-medium">{{ template.name }}</div>
+                    <div class="text-sm text-muted-foreground">{{ template.subject }}</div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" @click="openSendDialog(template)">
+                      <IconSend class="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" @click="openEditTemplateDialog(template)">
+                      <IconPencil class="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="text-destructive hover:text-destructive"
+                      @click="deleteTemplate(template)"
+                    >
+                      <IconTrash class="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <!-- Send Email Dialog -->
+      <Dialog v-model:open="showSendDialog">
+        <DialogContent class="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{{ t('system.email.sendEmail') }}</DialogTitle>
+          </DialogHeader>
+          <div class="space-y-4 py-4">
+            <div>
+              <Label>{{ t('system.email.form.to') }}</Label>
+              <Input v-model="sendForm.to" type="email" placeholder="user@example.com" />
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+            <div>
+              <Label>{{ t('system.email.form.subject') }}</Label>
+              <Input
+                v-model="sendForm.subject"
+                :placeholder="t('system.email.form.subjectPlaceholder')"
+              />
+            </div>
+            <div>
+              <Label>{{ t('system.email.form.body') }}</Label>
+              <Textarea
+                v-model="sendForm.html"
+                :placeholder="t('system.email.form.bodyPlaceholder')"
+                class="min-h-[200px] font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="showSendDialog = false">
+              {{ t('common.cancel') }}
+            </Button>
+            <Button :disabled="sending" @click="sendEmail">
+              <IconLoader2 v-if="sending" class="h-4 w-4 mr-1 animate-spin" />
+              <IconSend v-else class="h-4 w-4 mr-1" />
+              {{ t('system.email.send') }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-    <!-- Send Email Dialog -->
-    <Dialog v-model:open="showSendDialog">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{{ t('system.email.sendEmail') }}</DialogTitle>
-        </DialogHeader>
-        <div class="space-y-4 py-4">
-          <div>
-            <Label>{{ t('system.email.form.to') }}</Label>
-            <Input v-model="sendForm.to" type="email" placeholder="user@example.com" />
+      <!-- Template Dialog -->
+      <Dialog v-model:open="showTemplateDialog">
+        <DialogContent class="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {{
+                editingTemplate
+                  ? t('system.email.templates.edit')
+                  : t('system.email.templates.create')
+              }}
+            </DialogTitle>
+          </DialogHeader>
+          <div class="space-y-4 py-4">
+            <div>
+              <Label>{{ t('system.email.form.name') }}</Label>
+              <Input
+                v-model="templateForm.name"
+                :placeholder="t('system.email.form.namePlaceholder')"
+              />
+            </div>
+            <div>
+              <Label>{{ t('system.email.form.subject') }}</Label>
+              <Input
+                v-model="templateForm.subject"
+                :placeholder="t('system.email.form.subjectPlaceholder')"
+              />
+            </div>
+            <div>
+              <Label>{{ t('system.email.form.body') }}</Label>
+              <Textarea
+                v-model="templateForm.body"
+                :placeholder="t('system.email.form.bodyPlaceholder')"
+                class="min-h-[200px] font-mono"
+              />
+            </div>
+            <div>
+              <Label>{{ t('system.email.form.variables') }}</Label>
+              <Input
+                v-model="templateForm.variables"
+                :placeholder="t('system.email.form.variablesPlaceholder')"
+              />
+              <p class="text-xs text-muted-foreground mt-1">
+                {{ t('system.email.form.variablesHelp') }}
+              </p>
+            </div>
           </div>
-          <div>
-            <Label>{{ t('system.email.form.subject') }}</Label>
-            <Input v-model="sendForm.subject" :placeholder="t('system.email.form.subjectPlaceholder')" />
-          </div>
-          <div>
-            <Label>{{ t('system.email.form.body') }}</Label>
-            <Textarea
-              v-model="sendForm.html"
-              :placeholder="t('system.email.form.bodyPlaceholder')"
-              class="min-h-[200px] font-mono"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="showSendDialog = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button :disabled="sending" @click="sendEmail">
-            <IconLoader2 v-if="sending" class="h-4 w-4 mr-1 animate-spin" />
-            <IconSend v-else class="h-4 w-4 mr-1" />
-            {{ t('system.email.send') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Template Dialog -->
-    <Dialog v-model:open="showTemplateDialog">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            {{ editingTemplate ? t('system.email.templates.edit') : t('system.email.templates.create') }}
-          </DialogTitle>
-        </DialogHeader>
-        <div class="space-y-4 py-4">
-          <div>
-            <Label>{{ t('system.email.form.name') }}</Label>
-            <Input v-model="templateForm.name" :placeholder="t('system.email.form.namePlaceholder')" />
-          </div>
-          <div>
-            <Label>{{ t('system.email.form.subject') }}</Label>
-            <Input
-              v-model="templateForm.subject"
-              :placeholder="t('system.email.form.subjectPlaceholder')"
-            />
-          </div>
-          <div>
-            <Label>{{ t('system.email.form.body') }}</Label>
-            <Textarea
-              v-model="templateForm.body"
-              :placeholder="t('system.email.form.bodyPlaceholder')"
-              class="min-h-[200px] font-mono"
-            />
-          </div>
-          <div>
-            <Label>{{ t('system.email.form.variables') }}</Label>
-            <Input
-              v-model="templateForm.variables"
-              :placeholder="t('system.email.form.variablesPlaceholder')"
-            />
-            <p class="text-xs text-muted-foreground mt-1">
-              {{ t('system.email.form.variablesHelp') }}
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" @click="showTemplateDialog = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button :disabled="savingTemplate" @click="saveTemplate">
-            <IconLoader2 v-if="savingTemplate" class="h-4 w-4 mr-1 animate-spin" />
-            {{ t('common.save') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" @click="showTemplateDialog = false">
+              {{ t('common.cancel') }}
+            </Button>
+            <Button :disabled="savingTemplate" @click="saveTemplate">
+              <IconLoader2 v-if="savingTemplate" class="h-4 w-4 mr-1 animate-spin" />
+              {{ t('common.save') }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   </div>
 </template>

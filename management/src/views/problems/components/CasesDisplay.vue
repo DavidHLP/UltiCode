@@ -75,7 +75,10 @@ const hasAnyContent = computed(
   <!-- Content Grid -->
   <div v-else class="grid grid-cols-1 lg:grid-cols-12 gap-5">
     <!-- Test Cases -->
-    <section v-if="hasExamples" class="lg:col-span-7 rounded-none border border-silver bg-card overflow-hidden">
+    <section
+      v-if="hasExamples"
+      class="lg:col-span-7 rounded-none border border-silver bg-card overflow-hidden"
+    >
       <div class="flex items-center gap-2 p-4 border-b border-silver bg-muted/20">
         <IconFlask class="h-4 w-4 text-muted-foreground" />
         <h3 class="font-semibold text-sm">{{ t('problems.casesDisplay.examples') }}</h3>

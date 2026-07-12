@@ -164,7 +164,11 @@ const columns: ColumnDef<AuditLog>[] = [
       return h('div', { class: 'flex items-center gap-2' }, [
         h(icon, { class: 'h-4 w-4 text-[var(--silver-500)]' }),
         h('div', { class: 'flex flex-col' }, [
-          h('span', { class: 'text-sm font-medium' }, t(entityTypeToI18nKey(entityType), entityType)),
+          h(
+            'span',
+            { class: 'text-sm font-medium' },
+            t(entityTypeToI18nKey(entityType), entityType),
+          ),
           h(
             'span',
             { class: 'text-[var(--silver-500)] text-xs font-data' },
@@ -180,11 +184,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h(
-          'span',
-          { class: 'text-[var(--silver-500)] text-sm' },
-          t('audit.systemAction'),
-        )
+        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, t('audit.systemAction'))
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
@@ -275,11 +275,7 @@ const columns: ColumnDef<AuditLog>[] = [
             statsTotal
           }}</span>
         </div>
-        <div
-          v-for="item in actionTypeStats"
-          :key="item.actionType"
-          class="flex items-center gap-2"
-        >
+        <div v-for="item in actionTypeStats" :key="item.actionType" class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]"
             >{{ t(actionTypeGroupToI18nKey(item.actionType)) }}:</span
           >
@@ -310,7 +306,9 @@ const columns: ColumnDef<AuditLog>[] = [
         <template #toolbar-left>
           <div class="flex items-center gap-3 flex-wrap">
             <div class="relative flex items-center min-w-[200px] w-[260px]">
-              <IconSearch class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none" />
+              <IconSearch
+                class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none"
+              />
               <Input
                 v-model="searchQuery"
                 variant="terminal"

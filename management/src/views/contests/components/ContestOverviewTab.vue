@@ -39,7 +39,9 @@ defineProps<{
                   <span v-if="contest.isVisible" class="text-[var(--terminal-green)]">
                     {{ $t('contests.detail.statusPublished') }}
                   </span>
-                  <span v-else class="text-[var(--silver-400)]">{{ $t('contests.detail.statusHidden') }}</span>
+                  <span v-else class="text-[var(--silver-400)]">{{
+                    $t('contests.detail.statusHidden')
+                  }}</span>
                 </p>
               </div>
             </div>

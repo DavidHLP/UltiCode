@@ -29,7 +29,8 @@ export default {
   },
   docs: {
     title: 'Documentation',
-    description: 'Browse the in-repo docs/ folder for architecture, operations, and security guides.',
+    description:
+      'Browse the in-repo docs/ folder for architecture, operations, and security guides.',
     openFolder: 'Open docs/',
   },
 }

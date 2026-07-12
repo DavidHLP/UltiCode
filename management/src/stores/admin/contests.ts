@@ -42,8 +42,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       currentContest.value = contest
       return contest
     } catch (err: unknown) {
-      const errorMessage =
-        extractApiErrorMessage(err, 'Failed to fetch contest')
+      const errorMessage = extractApiErrorMessage(err, 'Failed to fetch contest')
       error.value = errorMessage
       console.error('Failed to fetch contest:', err)
       return null

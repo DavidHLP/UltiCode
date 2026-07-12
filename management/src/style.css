@@ -1,12 +1,10 @@
-@import "../../shared/design-system/style.css";
-@import "../../shared/sidebar-menu/src/styles/sidebar-menu.css";
+@import '../../shared/design-system/style.css';
+@import '../../shared/sidebar-menu/src/styles/sidebar-menu.css';
 
 :root {
   --header-padding-y: 1.25rem;
   --stats-padding-y: 0.625rem;
 }
-
-
 
 .code-viewer-surface {
   background: var(--surface-sunken);
@@ -17,7 +15,6 @@
   background: color-mix(in oklch, var(--surface-sunken) 88%, var(--background));
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--silver-200) 35%, transparent);
 }
-
 
 .hljs {
   background: transparent;
@@ -87,7 +84,8 @@
 }
 
 .hljs-strong {
-  font-weight: var(--uc-font-weight-bold);}
+  font-weight: var(--uc-font-weight-bold);
+}
 
 .hljs-function {
   color: var(--accent-electric);
@@ -113,7 +111,6 @@
   color: var(--silver-400);
 }
 
-
 .hljs-javascript .hljs-title,
 .hljs-typescript .hljs-title {
   color: var(--accent-electric);
@@ -126,7 +123,6 @@
 .hljs-java .hljs-annotation {
   color: var(--accent-electric);
 }
-
 
 .dark .hljs {
   color: var(--silver-600);
@@ -144,7 +140,6 @@
 .dark .hljs-params {
   color: var(--silver-600);
 }
-
 
 .lc-code-tabs {
   margin: 1em 0;
@@ -217,13 +212,11 @@
   pointer-events: none;
 }
 
-
 [data-vis-xy-container] {
   overflow: hidden;
   contain: content;
   touch-action: none;
 }
-
 
 .terminal-table th:first-child,
 .terminal-table td:first-child {
@@ -247,7 +240,6 @@
   }
 }
 
-
 .terminal-row-num {
   font-family: var(--uc-font-data);
   font-size: var(--uc-text-xxs);
@@ -258,38 +250,27 @@
   width: 40px;
 }
 
-
-
-
 .dark {
   --surface-elevated: oklch(0.3092 0.0518 219.7);
   --surface-sunken: oklch(0.2673 0.0486 219.8);
 }
-
-
-
 
 .px-4.lg\:px-6.py-4.flex.items-center.justify-between {
   padding-top: var(--header-padding-y) !important;
   padding-bottom: var(--header-padding-y) !important;
 }
 
-
 .px-4.lg\:px-6.py-2\.5.flex.items-center.gap-6.border-t {
   padding-top: var(--stats-padding-y) !important;
   padding-bottom: var(--stats-padding-y) !important;
 }
-
 
 .flex-1.py-4 {
   padding-top: 0.875rem !important;
   padding-bottom: 0px !important;
 }
 
-
 main.overflow-auto,
 .overflow-auto {
   scrollbar-gutter: stable;
 }
-
-

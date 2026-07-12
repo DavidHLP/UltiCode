@@ -2,13 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import {
-  IconCheck,
-  IconMessage,
-  IconTrash,
-  IconUser,
-  IconFileText,
-} from '@tabler/icons-vue'
+import { IconCheck, IconMessage, IconTrash, IconUser, IconFileText } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -285,32 +279,42 @@ async function handleBulkDeleteConfirm() {
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.flagged') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.flagged') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.forum') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.forum') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.forumCount
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.solution') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.solution') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.solutionCount
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconMessage class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('comments.stats.commentModeration') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('comments.stats.commentModeration')
+          }}</span>
         </div>
       </div>
     </div>
@@ -481,8 +485,7 @@ async function handleBulkDeleteConfirm() {
           <div
             class="prose dark:prose-invert max-w-none text-sm text-[var(--foreground)] leading-relaxed rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3 markdown-content"
             v-html="renderMarkdown(detailComment.content)"
-          >
-          </div>
+          ></div>
         </div>
         <!-- Type & Author Row -->
         <div class="grid grid-cols-2 gap-4">

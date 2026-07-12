@@ -68,16 +68,18 @@ const selectCase = (id: string) => {
       <div v-if="activeCase" class="space-y-4 p-4 border rounded-none bg-muted/10">
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Input</p>
-          <pre class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap">{{
-            activeCase.input
-          }}</pre>
+          <pre
+            class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap"
+            >{{ activeCase.input }}</pre
+          >
         </div>
 
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground uppercase">Output</p>
-          <pre class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap">{{
-            activeCase.output
-          }}</pre>
+          <pre
+            class="text-xs bg-muted p-3 rounded-none border overflow-x-auto whitespace-pre-wrap"
+            >{{ activeCase.output }}</pre
+          >
         </div>
 
         <div v-if="activeCase.explanation" class="space-y-2">

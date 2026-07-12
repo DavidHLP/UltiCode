@@ -34,9 +34,7 @@ const testCases = ref<TestCase[]>([])
 const loading = ref(false)
 const expanded = ref(true)
 
-const hiddenCases = computed(() =>
-  testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample),
-)
+const hiddenCases = computed(() => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample))
 
 async function loadHiddenCases() {
   loading.value = true
@@ -62,7 +60,9 @@ onMounted(() => {
   <Collapsible v-model:open="expanded" class="w-full">
     <Card>
       <CollapsibleTrigger as-child>
-        <CardHeader class="cursor-pointer flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader
+          class="cursor-pointer flex flex-row items-center justify-between space-y-0 pb-2"
+        >
           <div class="flex items-center gap-2">
             <IconLock class="h-4 w-4 text-muted-foreground" />
             <CardTitle class="text-base font-medium">

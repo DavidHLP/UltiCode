@@ -36,15 +36,19 @@ export interface ForumPostActions {
 
 function renderStatusBadge(post: ForumPost, t: (key: string) => string) {
   if (post.isDeleted) return badge({ color: 'error', label: t('forum.status.deleted') })
-  if (post.isFlagged) return badge({ color: 'error', label: t('forum.status.flagged'), pulse: true })
+  if (post.isFlagged)
+    return badge({ color: 'error', label: t('forum.status.flagged'), pulse: true })
   return badge({ color: 'success', label: t('forum.status.active'), dot: true, pulse: true })
 }
 
 function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
   const badges: ReturnType<typeof h>[] = []
-  if (post.isPinned) badges.push(badge({ color: 'info', label: t('forum.actions.pin'), size: 'xs', icon: IconPin }))
+  if (post.isPinned)
+    badges.push(badge({ color: 'info', label: t('forum.actions.pin'), size: 'xs', icon: IconPin }))
   if (post.isLocked)
-    badges.push(badge({ color: 'warning', label: t('forum.actions.lock'), size: 'xs', icon: IconLock }))
+    badges.push(
+      badge({ color: 'warning', label: t('forum.actions.lock'), size: 'xs', icon: IconLock }),
+    )
   return badges.length > 0 ? h('div', { class: 'flex items-center gap-1.5' }, badges) : null
 }
 

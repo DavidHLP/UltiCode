@@ -1,4 +1,4 @@
-import type { PageResult } from "@/shared/domain-types/src"
+import type { PageResult } from '@/shared/domain-types/src'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/utils/request'
 
 // ==================== Types ====================
@@ -80,7 +80,6 @@ export interface AdminNotificationQueryParams {
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
-
 
 // ==================== API ====================
 

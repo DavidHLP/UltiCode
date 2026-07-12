@@ -69,7 +69,6 @@ function renderTypeBadge(type: string) {
   <div class="space-y-6">
     <!-- Section Header -->
     <div class="flex items-center gap-2 mb-4">
-
       <span class="terminal-cursor" />
     </div>
 

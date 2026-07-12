@@ -69,7 +69,9 @@ const planBarItems = computed<BarListItem[]>(() =>
       <div
         class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
       >
-        <div class="pb-4 px-5 pt-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
+        <div
+          class="pb-4 px-5 pt-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+        >
           <h3 class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
             {{ t('analytics.revenue.metrics') }}
           </h3>

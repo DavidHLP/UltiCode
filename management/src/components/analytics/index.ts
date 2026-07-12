@@ -12,7 +12,4 @@ export type { MetricData } from './AnalyticsMetricCard.vue'
 export type { BarListItem } from './AnalyticsBarList.vue'
 export type { TagItem } from './AnalyticsTagCloud.vue'
 export type { HeatmapCell, HeatmapRow, HeatmapColumn } from './AnalyticsHeatmap.vue'
-export type {
-  AnalyticsOverviewGroup,
-  AnalyticsOverviewItem,
-} from './AnalyticsOverviewPanel.vue'
+export type { AnalyticsOverviewGroup, AnalyticsOverviewItem } from './AnalyticsOverviewPanel.vue'

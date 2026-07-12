@@ -146,273 +146,277 @@ onMounted(async () => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <IconUser class="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <IconUser class="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-
-    <div v-else class="space-y-6">
-      <!-- Basic Information -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconUser class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.basic') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>{{ t('account.fields.name') }}</Label>
-              <Input
-                :model-value="formData.name ?? profile.name"
-                @update:model-value="(v: string | number) => updateField('name', String(v))"
-                :placeholder="profile.name"
-              />
+      <div v-else class="space-y-6">
+        <!-- Basic Information -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconUser class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.basic') }}</CardTitle>
             </div>
-            <div class="space-y-2">
-              <Label>{{ t('account.fields.email') }}</Label>
-              <Input
-                :model-value="formData.email ?? profile.email"
-                @update:model-value="(v: string | number) => updateField('email', String(v))"
-                type="email"
-                :placeholder="profile.email"
-              />
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label>{{ t('account.fields.avatar') }}</Label>
-            <Input
-              :model-value="formData.avatar ?? profile.avatar"
-              @update:model-value="(v: string | number) => updateField('avatar', String(v))"
-              :placeholder="profile.avatar || 'https://example.com/avatar.png'"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- About -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconUser class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.about') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>{{ t('account.fields.company') }}</Label>
-              <Input
-                :model-value="formData.company ?? profile.company"
-                @update:model-value="(v: string | number) => updateField('company', String(v))"
-                :placeholder="profile.company || 'Your company'"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label>{{ t('account.fields.location') }}</Label>
-              <Input
-                :model-value="formData.location ?? profile.location"
-                @update:model-value="(v: string | number) => updateField('location', String(v))"
-                :placeholder="profile.location || 'Your location'"
-              />
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label>{{ t('account.fields.bio') }}</Label>
-            <Textarea
-              :model-value="formData.bio ?? profile.bio"
-              @update:model-value="(v: string | number) => updateField('bio', String(v))"
-              :placeholder="profile.bio || 'Tell us about yourself...'"
-              rows="3"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Social Links -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconWorld class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.social') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label class="flex items-center gap-2">
-                <IconBrandGithub class="h-4 w-4" />
-                {{ t('account.fields.github') }}
-              </Label>
-              <Input
-                :model-value="formData.github ?? profile.github"
-                @update:model-value="(v: string | number) => updateField('github', String(v))"
-                :placeholder="profile.github || 'https://github.com/username'"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label class="flex items-center gap-2">
-                <IconBrandTwitter class="h-4 w-4" />
-                {{ t('account.fields.twitter') }}
-              </Label>
-              <Input
-                :model-value="formData.twitter ?? profile.twitter"
-                @update:model-value="(v: string | number) => updateField('twitter', String(v))"
-                :placeholder="profile.twitter || 'https://twitter.com/username'"
-              />
-            </div>
-          </div>
-          <div class="space-y-2">
-            <Label class="flex items-center gap-2">
-              <IconWorld class="h-4 w-4" />
-              {{ t('account.fields.website') }}
-            </Label>
-            <Input
-              :model-value="formData.website ?? profile.website"
-              @update:model-value="(v: string | number) => updateField('website', String(v))"
-              :placeholder="profile.website || 'https://yourwebsite.com'"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Preferences -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconLanguage class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.preferences') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label>{{ t('account.fields.preferredLanguage') }}</Label>
-            <Input
-              :model-value="formData.preferred_language ?? profile.preferred_language"
-              @update:model-value="
-                (v: string | number) => updateField('preferred_language', String(v))
-              "
-              :placeholder="profile.preferred_language || 'en-US'"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Security -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconShield class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.security') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div v-if="!showPasswordForm">
-            <Button variant="outline" @click="showPasswordForm = true">
-              <IconKey class="h-4 w-4 mr-2" />
-              {{ t('account.actions.changePassword') }}
-            </Button>
-          </div>
-          <div v-else class="space-y-4">
-            <div class="space-y-2">
-              <Label>{{ t('account.fields.currentPassword') }}</Label>
-              <Input
-                v-model="passwordData.currentPassword"
-                type="password"
-                :placeholder="t('account.fields.currentPassword')"
-              />
-            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="space-y-2">
-                <Label>{{ t('account.fields.newPassword') }}</Label>
+                <Label>{{ t('account.fields.name') }}</Label>
                 <Input
-                  v-model="passwordData.newPassword"
-                  type="password"
-                  :placeholder="t('account.fields.newPassword')"
+                  :model-value="formData.name ?? profile.name"
+                  @update:model-value="(v: string | number) => updateField('name', String(v))"
+                  :placeholder="profile.name"
                 />
               </div>
               <div class="space-y-2">
-                <Label>{{ t('account.fields.confirmPassword') }}</Label>
+                <Label>{{ t('account.fields.email') }}</Label>
                 <Input
-                  v-model="passwordData.confirmPassword"
+                  :model-value="formData.email ?? profile.email"
+                  @update:model-value="(v: string | number) => updateField('email', String(v))"
+                  type="email"
+                  :placeholder="profile.email"
+                />
+              </div>
+            </div>
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.avatar') }}</Label>
+              <Input
+                :model-value="formData.avatar ?? profile.avatar"
+                @update:model-value="(v: string | number) => updateField('avatar', String(v))"
+                :placeholder="profile.avatar || 'https://example.com/avatar.png'"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- About -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconUser class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.about') }}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label>{{ t('account.fields.company') }}</Label>
+                <Input
+                  :model-value="formData.company ?? profile.company"
+                  @update:model-value="(v: string | number) => updateField('company', String(v))"
+                  :placeholder="profile.company || 'Your company'"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label>{{ t('account.fields.location') }}</Label>
+                <Input
+                  :model-value="formData.location ?? profile.location"
+                  @update:model-value="(v: string | number) => updateField('location', String(v))"
+                  :placeholder="profile.location || 'Your location'"
+                />
+              </div>
+            </div>
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.bio') }}</Label>
+              <Textarea
+                :model-value="formData.bio ?? profile.bio"
+                @update:model-value="(v: string | number) => updateField('bio', String(v))"
+                :placeholder="profile.bio || 'Tell us about yourself...'"
+                rows="3"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Social Links -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconWorld class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.social') }}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label class="flex items-center gap-2">
+                  <IconBrandGithub class="h-4 w-4" />
+                  {{ t('account.fields.github') }}
+                </Label>
+                <Input
+                  :model-value="formData.github ?? profile.github"
+                  @update:model-value="(v: string | number) => updateField('github', String(v))"
+                  :placeholder="profile.github || 'https://github.com/username'"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label class="flex items-center gap-2">
+                  <IconBrandTwitter class="h-4 w-4" />
+                  {{ t('account.fields.twitter') }}
+                </Label>
+                <Input
+                  :model-value="formData.twitter ?? profile.twitter"
+                  @update:model-value="(v: string | number) => updateField('twitter', String(v))"
+                  :placeholder="profile.twitter || 'https://twitter.com/username'"
+                />
+              </div>
+            </div>
+            <div class="space-y-2">
+              <Label class="flex items-center gap-2">
+                <IconWorld class="h-4 w-4" />
+                {{ t('account.fields.website') }}
+              </Label>
+              <Input
+                :model-value="formData.website ?? profile.website"
+                @update:model-value="(v: string | number) => updateField('website', String(v))"
+                :placeholder="profile.website || 'https://yourwebsite.com'"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Preferences -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconLanguage class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.preferences') }}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.preferredLanguage') }}</Label>
+              <Input
+                :model-value="formData.preferred_language ?? profile.preferred_language"
+                @update:model-value="
+                  (v: string | number) => updateField('preferred_language', String(v))
+                "
+                :placeholder="profile.preferred_language || 'en-US'"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Security -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconShield class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.security') }}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div v-if="!showPasswordForm">
+              <Button variant="outline" @click="showPasswordForm = true">
+                <IconKey class="h-4 w-4 mr-2" />
+                {{ t('account.actions.changePassword') }}
+              </Button>
+            </div>
+            <div v-else class="space-y-4">
+              <div class="space-y-2">
+                <Label>{{ t('account.fields.currentPassword') }}</Label>
+                <Input
+                  v-model="passwordData.currentPassword"
                   type="password"
-                  :placeholder="t('account.fields.confirmPassword')"
+                  :placeholder="t('account.fields.currentPassword')"
                 />
               </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <Label>{{ t('account.fields.newPassword') }}</Label>
+                  <Input
+                    v-model="passwordData.newPassword"
+                    type="password"
+                    :placeholder="t('account.fields.newPassword')"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <Label>{{ t('account.fields.confirmPassword') }}</Label>
+                  <Input
+                    v-model="passwordData.confirmPassword"
+                    type="password"
+                    :placeholder="t('account.fields.confirmPassword')"
+                  />
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <Button @click="changePassword" :disabled="changingPassword">
+                  {{ changingPassword ? t('common.saving') : t('account.actions.changePassword') }}
+                </Button>
+                <Button variant="outline" @click="showPasswordForm = false">
+                  {{ t('account.actions.cancel') }}
+                </Button>
+              </div>
             </div>
-            <div class="flex gap-2">
-              <Button @click="changePassword" :disabled="changingPassword">
-                {{ changingPassword ? t('common.saving') : t('account.actions.changePassword') }}
-              </Button>
-              <Button variant="outline" @click="showPasswordForm = false">
-                {{ t('account.actions.cancel') }}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <!-- Account Information (Read-only) -->
-      <Card>
-        <CardHeader>
-          <div class="flex items-center gap-2">
-            <IconShield class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('account.sections.accountInfo') }}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
-              <div>
-                <SemanticBadge
-                  :color="USER_ROLE_COLOR_MAP[profile.role] || 'neutral'"
-                  :label="t(`users.filters.role.${profile.role}`) !== `users.filters.role.${profile.role}` ? t(`users.filters.role.${profile.role}`) : profile.role"
-                />
+        <!-- Account Information (Read-only) -->
+        <Card>
+          <CardHeader>
+            <div class="flex items-center gap-2">
+              <IconShield class="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{{ t('account.sections.accountInfo') }}</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
+                <div>
+                  <SemanticBadge
+                    :color="USER_ROLE_COLOR_MAP[profile.role] || 'neutral'"
+                    :label="
+                      t(`users.filters.role.${profile.role}`) !==
+                      `users.filters.role.${profile.role}`
+                        ? t(`users.filters.role.${profile.role}`)
+                        : profile.role
+                    "
+                  />
+                </div>
+              </div>
+              <div class="space-y-1">
+                <Label class="text-muted-foreground">{{ t('account.fields.joinedAt') }}</Label>
+                <div class="text-sm">
+                  {{ formatDateByLocale(profile.joined_at) }}
+                </div>
               </div>
             </div>
+            <Separator />
             <div class="space-y-1">
-              <Label class="text-muted-foreground">{{ t('account.fields.joinedAt') }}</Label>
+              <Label class="text-muted-foreground">{{ t('account.fields.username') }}</Label>
+              <div class="text-sm">@{{ profile.username }}</div>
+            </div>
+            <div v-if="profile.last_login_at" class="space-y-1">
+              <Label class="text-muted-foreground">{{ t('account.fields.lastLogin') }}</Label>
               <div class="text-sm">
-                {{ formatDateByLocale(profile.joined_at) }}
+                {{ formatDateTimeByLocale(profile.last_login_at) }}
               </div>
             </div>
-          </div>
-          <Separator />
-          <div class="space-y-1">
-            <Label class="text-muted-foreground">{{ t('account.fields.username') }}</Label>
-            <div class="text-sm">@{{ profile.username }}</div>
-          </div>
-          <div v-if="profile.last_login_at" class="space-y-1">
-            <Label class="text-muted-foreground">{{ t('account.fields.lastLogin') }}</Label>
-            <div class="text-sm">
-              {{ formatDateTimeByLocale(profile.last_login_at) }}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <!-- Actions -->
-      <div class="flex justify-end gap-2">
-        <Button
-          v-if="canSave"
-          variant="outline"
-          @click="
-            () => {
-              formData = {}
-              showPasswordForm = false
-            }
-          "
-        >
-          {{ t('account.actions.cancel') }}
-        </Button>
-        <Button @click="saveProfile" :disabled="saving || !canSave">
-          <IconDeviceFloppy class="h-4 w-4 mr-2" />
-          {{ saving ? t('common.saving') : t('account.actions.save') }}
-        </Button>
+        <!-- Actions -->
+        <div class="flex justify-end gap-2">
+          <Button
+            v-if="canSave"
+            variant="outline"
+            @click="
+              () => {
+                formData = {}
+                showPasswordForm = false
+              }
+            "
+          >
+            {{ t('account.actions.cancel') }}
+          </Button>
+          <Button @click="saveProfile" :disabled="saving || !canSave">
+            <IconDeviceFloppy class="h-4 w-4 mr-2" />
+            {{ saving ? t('common.saving') : t('account.actions.save') }}
+          </Button>
+        </div>
       </div>
-    </div>
     </div>
   </div>
 </template>

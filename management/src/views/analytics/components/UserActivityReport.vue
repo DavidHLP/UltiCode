@@ -2,12 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AnalyticsMetricCard, AnalyticsHeatmap } from '@/components/analytics'
-import type {
-  MetricData,
-  HeatmapCell,
-  HeatmapRow,
-  HeatmapColumn,
-} from '@/components/analytics'
+import type { MetricData, HeatmapCell, HeatmapRow, HeatmapColumn } from '@/components/analytics'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
 import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 import type { UserActivityReport } from '@/api/admin/analytics'
@@ -76,9 +71,7 @@ const heatmapData = computed(() => {
 })
 
 const topUsers = computed(() => {
-  return [...props.report.topActiveUsers]
-    .sort((a, b) => b.loginCount - a.loginCount)
-    .slice(0, 10)
+  return [...props.report.topActiveUsers].sort((a, b) => b.loginCount - a.loginCount).slice(0, 10)
 })
 
 const maxVal = computed(() => {
@@ -132,7 +125,9 @@ function truncateUsername(username: string) {
     <Card
       class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card shadow-float overflow-hidden flex flex-col rounded-none"
     >
-      <CardHeader class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50">
+      <CardHeader
+        class="pb-4 pt-5 px-5 bg-[var(--silver-50)] dark:bg-[var(--silver-100)]/10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]/50"
+      >
         <div class="flex items-center gap-2">
           <IconChartBar class="h-4 w-4 text-[var(--accent-primary)]" />
           <CardTitle class="text-sm font-bold font-mono uppercase tracking-wide text-foreground">
@@ -145,20 +140,97 @@ function truncateUsername(username: string) {
       </CardHeader>
       <CardContent class="p-6">
         <div class="w-full overflow-hidden">
-          <svg viewBox="0 0 600 240" class="w-full h-auto text-foreground select-none overflow-visible">
+          <svg
+            viewBox="0 0 600 240"
+            class="w-full h-auto text-foreground select-none overflow-visible"
+          >
             <!-- Horizontal grid lines -->
-            <line x1="45" y1="200" x2="580" y2="200" stroke="color-mix(in oklch, var(--border) 60%, transparent)" stroke-width="1" />
-            <line x1="45" y1="160" x2="580" y2="160" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-            <line x1="45" y1="120" x2="580" y2="120" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-            <line x1="45" y1="80" x2="580" y2="80" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
-            <line x1="45" y1="40" x2="580" y2="40" stroke="color-mix(in oklch, var(--border) 25%, transparent)" stroke-width="1" stroke-dasharray="2 2" />
+            <line
+              x1="45"
+              y1="200"
+              x2="580"
+              y2="200"
+              stroke="color-mix(in oklch, var(--border) 60%, transparent)"
+              stroke-width="1"
+            />
+            <line
+              x1="45"
+              y1="160"
+              x2="580"
+              y2="160"
+              stroke="color-mix(in oklch, var(--border) 25%, transparent)"
+              stroke-width="1"
+              stroke-dasharray="2 2"
+            />
+            <line
+              x1="45"
+              y1="120"
+              x2="580"
+              y2="120"
+              stroke="color-mix(in oklch, var(--border) 25%, transparent)"
+              stroke-width="1"
+              stroke-dasharray="2 2"
+            />
+            <line
+              x1="45"
+              y1="80"
+              x2="580"
+              y2="80"
+              stroke="color-mix(in oklch, var(--border) 25%, transparent)"
+              stroke-width="1"
+              stroke-dasharray="2 2"
+            />
+            <line
+              x1="45"
+              y1="40"
+              x2="580"
+              y2="40"
+              stroke="color-mix(in oklch, var(--border) 25%, transparent)"
+              stroke-width="1"
+              stroke-dasharray="2 2"
+            />
 
             <!-- Y-Axis labels (ticks) -->
-            <text x="35" y="203" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">0</text>
-            <text x="35" y="163" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.25)) }}</text>
-            <text x="35" y="123" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.5)) }}</text>
-            <text x="35" y="83" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(Math.round(maxVal * 0.75)) }}</text>
-            <text x="35" y="43" class="text-2xs font-mono fill-[var(--silver-400)] text-right" text-anchor="end">{{ formatNumber(maxVal) }}</text>
+            <text
+              x="35"
+              y="203"
+              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              text-anchor="end"
+            >
+              0
+            </text>
+            <text
+              x="35"
+              y="163"
+              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              text-anchor="end"
+            >
+              {{ formatNumber(Math.round(maxVal * 0.25)) }}
+            </text>
+            <text
+              x="35"
+              y="123"
+              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              text-anchor="end"
+            >
+              {{ formatNumber(Math.round(maxVal * 0.5)) }}
+            </text>
+            <text
+              x="35"
+              y="83"
+              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              text-anchor="end"
+            >
+              {{ formatNumber(Math.round(maxVal * 0.75)) }}
+            </text>
+            <text
+              x="35"
+              y="43"
+              class="text-2xs font-mono fill-[var(--silver-400)] text-right"
+              text-anchor="end"
+            >
+              {{ formatNumber(maxVal) }}
+            </text>
 
             <!-- Bars loop -->
             <g v-for="(user, i) in topUsers" :key="user.userId" class="group/bar">

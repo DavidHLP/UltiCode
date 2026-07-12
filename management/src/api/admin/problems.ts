@@ -1,4 +1,4 @@
-import type { PageResult } from "@/shared/domain-types/src"
+import type { PageResult } from '@/shared/domain-types/src'
 import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '@/utils/request'
 
 export enum Difficulty {

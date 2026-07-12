@@ -240,7 +240,9 @@ function navigateToAppeals() {
         </CardHeader>
         <CardContent>
           <div v-if="categoryData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--silver-400)]">{{ t('common.noDataAvailable') }}</p>
+            <p class="text-xs font-data text-[var(--silver-400)]">
+              {{ t('common.noDataAvailable') }}
+            </p>
           </div>
           <div v-else class="space-y-3">
             <div v-for="item in categoryData" :key="item.category" class="space-y-1">
@@ -271,7 +273,9 @@ function navigateToAppeals() {
         </CardHeader>
         <CardContent>
           <div v-if="entityTypeData.length === 0" class="py-8 text-center">
-            <p class="text-xs font-data text-[var(--silver-400)]">{{ t('common.noDataAvailable') }}</p>
+            <p class="text-xs font-data text-[var(--silver-400)]">
+              {{ t('common.noDataAvailable') }}
+            </p>
           </div>
           <div v-else class="space-y-3">
             <div

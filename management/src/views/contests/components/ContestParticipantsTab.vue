@@ -19,7 +19,6 @@ defineProps<{
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center gap-2">
-
       <span class="terminal-comment text-xs">[{{ contest.participantCount || 0 }}]</span>
     </div>
 

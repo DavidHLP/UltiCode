@@ -183,98 +183,99 @@ onMounted(async () => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <IconSettings class="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <IconSettings class="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
+      <Tabs v-else v-model="activeTab" class="space-y-6">
+        <TabsList class="grid grid-cols-5 w-full max-w-2xl">
+          <TabsTrigger value="general">
+            <IconSettings class="h-4 w-4 mr-2" />
+            {{ t('settings.tabs.general') }}
+          </TabsTrigger>
+          <TabsTrigger value="email">
+            <IconMail class="h-4 w-4 mr-2" />
+            {{ t('settings.tabs.email') }}
+          </TabsTrigger>
+          <TabsTrigger value="rateLimits">
+            <IconClock class="h-4 w-4 mr-2" />
+            {{ t('settings.tabs.rateLimits') }}
+          </TabsTrigger>
+          <TabsTrigger value="uploads">
+            <IconUpload class="h-4 w-4 mr-2" />
+            {{ t('settings.tabs.uploads') }}
+          </TabsTrigger>
+          <TabsTrigger value="features">
+            <IconToggleLeft class="h-4 w-4 mr-2" />
+            {{ t('settings.tabs.features') }}
+          </TabsTrigger>
+        </TabsList>
 
-    <Tabs v-else v-model="activeTab" class="space-y-6">
-      <TabsList class="grid grid-cols-5 w-full max-w-2xl">
-        <TabsTrigger value="general">
-          <IconSettings class="h-4 w-4 mr-2" />
-          {{ t('settings.tabs.general') }}
-        </TabsTrigger>
-        <TabsTrigger value="email">
-          <IconMail class="h-4 w-4 mr-2" />
-          {{ t('settings.tabs.email') }}
-        </TabsTrigger>
-        <TabsTrigger value="rateLimits">
-          <IconClock class="h-4 w-4 mr-2" />
-          {{ t('settings.tabs.rateLimits') }}
-        </TabsTrigger>
-        <TabsTrigger value="uploads">
-          <IconUpload class="h-4 w-4 mr-2" />
-          {{ t('settings.tabs.uploads') }}
-        </TabsTrigger>
-        <TabsTrigger value="features">
-          <IconToggleLeft class="h-4 w-4 mr-2" />
-          {{ t('settings.tabs.features') }}
-        </TabsTrigger>
-      </TabsList>
+        <TabsContent value="general" class="space-y-6">
+          <GeneralSettings :settings="settings" @update:settings="onSettingsUpdate" />
+        </TabsContent>
 
-      <TabsContent value="general" class="space-y-6">
-        <GeneralSettings :settings="settings" @update:settings="onSettingsUpdate" />
-      </TabsContent>
+        <TabsContent value="email" class="space-y-6">
+          <EmailSettings :settings="settings" @update:settings="onSettingsUpdate" />
+        </TabsContent>
 
-      <TabsContent value="email" class="space-y-6">
-        <EmailSettings :settings="settings" @update:settings="onSettingsUpdate" />
-      </TabsContent>
+        <TabsContent value="rateLimits" class="space-y-6">
+          <RateLimitSettings :settings="settings" @update:settings="onSettingsUpdate" />
+        </TabsContent>
 
-      <TabsContent value="rateLimits" class="space-y-6">
-        <RateLimitSettings :settings="settings" @update:settings="onSettingsUpdate" />
-      </TabsContent>
+        <TabsContent value="uploads" class="space-y-6">
+          <UploadSettings :settings="settings" @update:settings="onSettingsUpdate" />
+        </TabsContent>
 
-      <TabsContent value="uploads" class="space-y-6">
-        <UploadSettings :settings="settings" @update:settings="onSettingsUpdate" />
-      </TabsContent>
+        <TabsContent value="features" class="space-y-6">
+          <FeatureToggleSettings :settings="settings" @update:settings="onSettingsUpdate" />
+        </TabsContent>
 
-      <TabsContent value="features" class="space-y-6">
-        <FeatureToggleSettings :settings="settings" @update:settings="onSettingsUpdate" />
-      </TabsContent>
+        <!-- Actions (always visible) -->
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ t('settings.actions.title') }}</CardTitle>
+          </CardHeader>
+          <CardContent class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex gap-2">
+              <Button variant="outline" @click="clearCache" :disabled="clearingCache">
+                <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
+                {{ t('settings.actions.clearCache') }}
+              </Button>
 
-      <!-- Actions (always visible) -->
-      <Card>
-        <CardHeader>
-          <CardTitle>{{ t('settings.actions.title') }}</CardTitle>
-        </CardHeader>
-        <CardContent class="flex items-center justify-between flex-wrap gap-4">
-          <div class="flex gap-2">
-            <Button variant="outline" @click="clearCache" :disabled="clearingCache">
-              <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
-              {{ t('settings.actions.clearCache') }}
+              <AlertDialog>
+                <AlertDialogTrigger as-child>
+                  <Button variant="outline">
+                    <IconReload class="h-4 w-4 mr-2" />
+                    {{ t('settings.actions.resetToDefaults') }}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{{
+                      t('settings.actions.resetConfirmTitle')
+                    }}</AlertDialogTitle>
+                    <AlertDialogDescription>{{
+                      t('settings.actions.resetConfirmDescription')
+                    }}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
+                    <AlertDialogAction @click="resetToDefaults">{{
+                      t('settings.actions.resetConfirm')
+                    }}</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            <Button @click="saveSettings" :disabled="saving">
+              <IconDeviceFloppy class="h-4 w-4 mr-2" />
+              {{ saving ? t('settings.actions.saving') : t('settings.actions.saveChanges') }}
             </Button>
-
-            <AlertDialog>
-              <AlertDialogTrigger as-child>
-                <Button variant="outline">
-                  <IconReload class="h-4 w-4 mr-2" />
-                  {{ t('settings.actions.resetToDefaults') }}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{{ t('settings.actions.resetConfirmTitle') }}</AlertDialogTitle>
-                  <AlertDialogDescription>{{
-                    t('settings.actions.resetConfirmDescription')
-                  }}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
-                  <AlertDialogAction @click="resetToDefaults">{{
-                    t('settings.actions.resetConfirm')
-                  }}</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-
-          <Button @click="saveSettings" :disabled="saving">
-            <IconDeviceFloppy class="h-4 w-4 mr-2" />
-            {{ saving ? t('settings.actions.saving') : t('settings.actions.saveChanges') }}
-          </Button>
-        </CardContent>
-      </Card>
-    </Tabs>
+          </CardContent>
+        </Card>
+      </Tabs>
     </div>
   </div>
 </template>

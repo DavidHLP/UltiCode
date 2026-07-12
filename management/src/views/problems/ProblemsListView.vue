@@ -253,32 +253,42 @@ watch(
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.stats.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.stats.published') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.stats.published') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.published
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.stats.draft') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.stats.draft') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.draft
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.stats.flagged') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.stats.flagged') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('problems.stats.problemManagement') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('problems.stats.problemManagement')
+          }}</span>
         </div>
       </div>
     </div>

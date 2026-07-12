@@ -93,7 +93,6 @@ function getActionConfig(actionType: ModerationActionType) {
   )
 }
 
-
 function getRelativeTime(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
   const now = new Date()

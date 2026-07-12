@@ -146,7 +146,9 @@ onUnmounted(() => {
               <span
                 class="animate-ping absolute inline-flex h-full w-full rounded-none bg-[var(--status-success)] opacity-75"
               ></span>
-              <span class="relative inline-flex rounded-none h-1.5 w-1.5 bg-[var(--status-success)]"></span>
+              <span
+                class="relative inline-flex rounded-none h-1.5 w-1.5 bg-[var(--status-success)]"
+              ></span>
             </span>
             <span class="text-[var(--silver-500)] font-bold">API</span>
           </div>
@@ -158,7 +160,9 @@ onUnmounted(() => {
         </div>
 
         <!-- Vertical Divider -->
-        <span class="hidden sm:inline-block h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"></span>
+        <span
+          class="hidden sm:inline-block h-4 w-px bg-[var(--silver-200)]/60 dark:bg-[var(--silver-300)]/40"
+        ></span>
 
         <!-- Quick Actions Menu -->
         <DropdownMenu>
@@ -166,7 +170,9 @@ onUnmounted(() => {
             <button
               class="flex items-center gap-1.5 h-8 px-3 text-xs font-mono border border-[var(--accent-primary)]/40 bg-transparent hover:bg-[var(--accent-primary)]/5 hover:border-[var(--accent-primary)] text-[var(--accent-primary)] transition-all rounded-none cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
             >
-              <IconBolt class="size-3.5 text-[var(--solarized-yellow)] fill-[var(--solarized-yellow)]/20" />
+              <IconBolt
+                class="size-3.5 text-[var(--solarized-yellow)] fill-[var(--solarized-yellow)]/20"
+              />
               <span class="font-bold uppercase">{{ t('common.actions.label') }}</span>
               <IconChevronDown class="size-3 text-[var(--accent-primary)]" />
             </button>
@@ -202,7 +208,9 @@ onUnmounted(() => {
           :title="t('nav.notifications')"
         >
           <IconBell class="size-4" />
-          <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-[var(--status-error)] rounded-none"></span>
+          <span
+            class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-[var(--status-error)] rounded-none"
+          ></span>
         </button>
 
         <!-- Vertical Divider -->

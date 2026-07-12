@@ -4,13 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { isAxiosError } from 'axios'
 import { toast } from 'vue-sonner'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -141,17 +135,26 @@ function handleBlur() {
 <template>
   <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
     <!-- Card Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+    <div
+      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
+    >
       <div class="flex items-center gap-1.5">
-        <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+        <span
+          class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+        >
           03 // {{ t('problemLists.sections.bannerSettings') }}
         </span>
       </div>
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="saveStatus !== 'idle'" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
+      <div
+        v-if="saveStatus !== 'idle'"
+        class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold"
+      >
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
-          <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.status.saving') }}</span>
+          <span class="text-[var(--editor-yellow)] animate-pulse">{{
+            t('problemLists.status.saving')
+          }}</span>
         </template>
         <template v-else-if="saveStatus === 'saved'">
           <span class="text-[var(--editor-green)] font-bold">// SAVED</span>
@@ -168,7 +171,9 @@ function handleBlur() {
       <FormField name="bannerTag">
         <FormItem class="space-y-1.5">
           <div class="flex justify-between items-baseline select-none">
-            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            <FormLabel
+              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+            >
               {{ t('problemLists.form.bannerTag') }}
             </FormLabel>
             <span class="text-2xs text-[var(--editor-text-muted)] font-mono">
@@ -197,16 +202,24 @@ function handleBlur() {
       <!-- Banner Theme -->
       <FormField name="bannerTheme">
         <FormItem class="space-y-1.5">
-          <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+          <FormLabel
+            class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+          >
             {{ t('problemLists.form.bannerTheme') }}
           </FormLabel>
-          <Select v-model="localBannerTheme" :disabled="disabled" @update:modelValue="handleBlur()()">
+          <Select
+            v-model="localBannerTheme"
+            :disabled="disabled"
+            @update:modelValue="handleBlur()()"
+          >
             <FormControl>
               <SelectTrigger class="custom-terminal-input h-9 font-mono text-xs select-none">
                 <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
               </SelectTrigger>
             </FormControl>
-            <SelectContent class="rounded-none border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]">
+            <SelectContent
+              class="rounded-none border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)]"
+            >
               <SelectItem
                 v-for="theme in bannerThemes"
                 :key="theme.value"
@@ -224,7 +237,9 @@ function handleBlur() {
       <!-- Banner Order -->
       <FormField name="bannerOrder">
         <FormItem class="space-y-1.5">
-          <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+          <FormLabel
+            class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+          >
             {{ t('problemLists.form.sortOrder') }}
           </FormLabel>
           <FormControl>
@@ -256,7 +271,9 @@ function handleBlur() {
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 :deep(.custom-terminal-input) {

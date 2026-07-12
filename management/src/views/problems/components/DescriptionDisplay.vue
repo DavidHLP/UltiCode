@@ -119,7 +119,12 @@ const problemDescription = computed<ProblemDescription>(() => ({
 
           <div class="flex items-center gap-2">
             <Badge variant="outline" :class="['capitalize px-2.5 py-0.5 border', difficultyClass]">
-              {{ t(`problems.difficulty.${(problem.difficulty || 'UNKNOWN').toUpperCase()}`, problem.difficulty || 'UNKNOWN') }}
+              {{
+                t(
+                  `problems.difficulty.${(problem.difficulty || 'UNKNOWN').toUpperCase()}`,
+                  problem.difficulty || 'UNKNOWN',
+                )
+              }}
             </Badge>
             <Badge
               v-if="problem.isPremium"

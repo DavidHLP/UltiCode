@@ -98,7 +98,8 @@ function back() {
             @click="back"
           >
             <ArrowLeft :size="18" />
-          </Button><h1 v-if="solution" class="text-sm font-semibold text-[var(--foreground)]">
+          </Button>
+          <h1 v-if="solution" class="text-sm font-semibold text-[var(--foreground)]">
             {{ solution.title }}
           </h1>
           <Skeleton v-else class="h-5 w-32" />

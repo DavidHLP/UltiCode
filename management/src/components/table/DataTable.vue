@@ -259,7 +259,7 @@ watch(
     <div
       v-if="loading || table.getRowModel().rows.length"
       class="w-full overflow-auto min-h-[200px]"
-      style="max-height: calc(100vh - 380px);"
+      style="max-height: calc(100vh - 380px)"
     >
       <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
         <Table :overflow="false">
@@ -318,10 +318,7 @@ watch(
     </div>
 
     <!-- Empty State -->
-    <div
-      v-else
-      class="flex h-96 items-center justify-center rounded-none bg-[var(--card)]"
-    >
+    <div v-else class="flex h-96 items-center justify-center rounded-none bg-[var(--card)]">
       <slot name="empty">
         <Empty class="border-none">
           <EmptyMedia variant="icon">

@@ -47,13 +47,8 @@ const store = useModerationStore()
 
 const isLoaded = ref(false)
 
-const {
-  statusFilter,
-  categoryFilter,
-  entityTypeFilter,
-  buildFilters,
-  handleFilterUpdate,
-} = useModerationFilters()
+const { statusFilter, categoryFilter, entityTypeFilter, buildFilters, handleFilterUpdate } =
+  useModerationFilters()
 
 // Detail drawer state
 const drawerOpen = ref(false)

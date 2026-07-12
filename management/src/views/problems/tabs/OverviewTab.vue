@@ -258,23 +258,17 @@ const hintsList = computed(() => {
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.created') }}</span>
-                    <span class="ml-auto">{{
-                      formatDateByLocale(problem.createdAt)
-                    }}</span>
+                    <span class="ml-auto">{{ formatDateByLocale(problem.createdAt) }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.updated') }}</span>
-                    <span class="ml-auto">{{
-                      formatDateByLocale(problem.updatedAt)
-                    }}</span>
+                    <span class="ml-auto">{{ formatDateByLocale(problem.updatedAt) }}</span>
                   </div>
                   <div v-if="problem.publishedAt" class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.published') }}</span>
-                    <span class="ml-auto">{{
-                      formatDateByLocale(problem.publishedAt)
-                    }}</span>
+                    <span class="ml-auto">{{ formatDateByLocale(problem.publishedAt) }}</span>
                   </div>
                 </div>
               </div>

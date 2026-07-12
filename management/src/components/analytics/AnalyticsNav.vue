@@ -30,7 +30,9 @@ function selectItem(id: string) {
 </script>
 
 <template>
-  <nav class="flex flex-col gap-1 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card p-1 shadow-sm rounded-none">
+  <nav
+    class="flex flex-col gap-1 border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card p-1 shadow-sm rounded-none"
+  >
     <button
       v-for="item in items || defaultItems"
       :key="item.id"

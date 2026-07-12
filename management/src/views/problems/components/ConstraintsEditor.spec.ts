@@ -11,8 +11,7 @@ vi.mock('vue-i18n', () => ({
         'problems.descriptionForm.constraintsSection.emptyDescription':
           'No constraints added yet. Constraints describe the limits and rules for the problem (e.g., array length, value ranges).',
         'problems.descriptionForm.constraintsSection.addNew': 'Add new constraint',
-        'problems.descriptionForm.constraintsSection.placeholder':
-          'e.g., 1 <= nums.length <= 10^5',
+        'problems.descriptionForm.constraintsSection.placeholder': 'e.g., 1 <= nums.length <= 10^5',
       }
       return messages[key] || key
     },

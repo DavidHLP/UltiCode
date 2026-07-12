@@ -104,7 +104,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   font-family: var(--uc-font-prose);
 }
 
-
 .description-markdown :deep(.markdown-content h1) {
   font-size: var(--uc-text-2xl);
   font-weight: var(--uc-font-weight-semibold);
@@ -136,7 +135,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   margin-bottom: 1em;
 }
 
-
 .description-markdown :deep(.markdown-content ul),
 .description-markdown :deep(.markdown-content ol) {
   padding-left: 1.25rem;
@@ -151,7 +149,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   margin-bottom: 0.25rem;
 }
 
-
 .description-markdown :deep(.markdown-content code) {
   font-family: var(--uc-font-code);
   font-size: var(--uc-text-xl);
@@ -162,7 +159,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   white-space: pre-wrap;
   word-break: break-word;
 }
-
 
 .description-markdown :deep(.markdown-content pre) {
   background-color: var(--surface-sunken);
@@ -181,7 +177,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   font-size: var(--uc-text-sm);
 }
 
-
 .description-markdown :deep(.markdown-content blockquote) {
   border-left: 3px solid var(--border);
   padding-left: 1rem;
@@ -189,10 +184,9 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   margin: 1rem 0;
 }
 
-
 .description-markdown :deep(.markdown-content strong) {
-  font-weight: var(--uc-font-weight-semibold);}
-
+  font-weight: var(--uc-font-weight-semibold);
+}
 
 .description-markdown :deep(.katex) {
   font-size: var(--uc-text-md);
@@ -203,7 +197,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value))
   overflow-x: auto;
   overflow-y: hidden;
 }
-
 
 .description-markdown :deep(.lc-code-tabs) {
   margin: 1rem 0;

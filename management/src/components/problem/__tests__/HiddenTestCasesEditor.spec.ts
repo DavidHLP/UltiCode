@@ -7,9 +7,8 @@ import type { TestCase } from '@/api/admin/test-cases'
 
 // Mock the API module to assert call shape end-to-end (no real network).
 vi.mock('@/api/admin/test-cases', async () => {
-  const actual = await vi.importActual<typeof import('@/api/admin/test-cases')>(
-    '@/api/admin/test-cases',
-  )
+  const actual =
+    await vi.importActual<typeof import('@/api/admin/test-cases')>('@/api/admin/test-cases')
   return {
     ...actual,
     testCasesApi: {

@@ -112,9 +112,7 @@ const displayProblemLabels = computed(() => {
           >
             Rank
           </TableHead>
-          <TableHead
-            class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]"
-          >
+          <TableHead class="font-data text-2xs uppercase tracking-widest text-[var(--silver-500)]">
             User
           </TableHead>
           <TableHead

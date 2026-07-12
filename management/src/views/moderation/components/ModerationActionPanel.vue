@@ -242,7 +242,9 @@ function handleSubmit() {
             :placeholder="t('moderation.actionPanel.durationPlaceholder')"
             class="font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
           />
-          <span class="text-xs text-[var(--silver-500)]">{{ t('moderation.actionPanel.days') }}</span>
+          <span class="text-xs text-[var(--silver-500)]">{{
+            t('moderation.actionPanel.days')
+          }}</span>
         </div>
       </div>
 

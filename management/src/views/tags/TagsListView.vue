@@ -352,7 +352,9 @@ const columns: ColumnDef<Tag>[] = [
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('tags.stats.problem') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('tags.stats.problem') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.problemTags
           }}</span>
@@ -365,7 +367,9 @@ const columns: ColumnDef<Tag>[] = [
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconTag class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('tags.tagManagement') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('tags.tagManagement')
+          }}</span>
         </div>
       </div>
     </div>
@@ -427,7 +431,9 @@ const columns: ColumnDef<Tag>[] = [
             @update:search-model-value="searchQuery = $event"
             :search-placeholder="t('tags.searchPlaceholder')"
             :filters="toolbarFilters"
-            @update:filter="(index, value) => index === 0 ? (tagTypeFilter = value as TagType) : null"
+            @update:filter="
+              (index, value) => (index === 0 ? (tagTypeFilter = value as TagType) : null)
+            "
             :loading="loading"
             :on-refresh="loadTags"
           />

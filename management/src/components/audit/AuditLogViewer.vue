@@ -14,12 +14,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  IconSearch,
-  IconDownload,
-  IconChevronDown,
-  IconChevronUp,
-} from '@tabler/icons-vue'
+import { IconSearch, IconDownload, IconChevronDown, IconChevronUp } from '@tabler/icons-vue'
 import { auditApi, type AuditLog } from '@/api/admin/audit'
 import { formatJson } from '@/views/audit/utils'
 import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
@@ -93,7 +88,6 @@ function handleNextPage() {
   loadAuditLogs()
 }
 
-
 function formatAction(action: string): string {
   const key = `audit.actionTypes.${action}`
   const translated = t(key)
@@ -105,7 +99,6 @@ function formatAction(action: string): string {
   }
   return translated
 }
-
 
 function getChangesSummary(log: AuditLog): { count: number; label: string } {
   let count = 0
@@ -231,7 +224,10 @@ onMounted(() => {
                 {{ formatDateTimeByLocale(log.createdAt) }}
               </span>
               <span class="text-[var(--silver-400)] text-xs">·</span>
-              <span v-if="log.performer" class="text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)] truncate">
+              <span
+                v-if="log.performer"
+                class="text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)] truncate"
+              >
                 {{ log.performer.username }}
               </span>
               <span v-else class="text-xs text-[var(--silver-500)]">System</span>
@@ -245,12 +241,7 @@ onMounted(() => {
               >
                 {{ getChangesSummary(log).label }}
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="h-6 w-6 p-0"
-                @click="toggleExpand(log.id)"
-              >
+              <Button variant="ghost" size="sm" class="h-6 w-6 p-0" @click="toggleExpand(log.id)">
                 <component
                   :is="expandedLogs.has(log.id) ? IconChevronUp : IconChevronDown"
                   class="h-3 w-3"
@@ -286,11 +277,14 @@ onMounted(() => {
                 <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
                   {{ t('audit.oldValues') }}
                 </span>
-                <div class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+                <div
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+                >
                   <ScrollArea class="h-[120px] w-full rounded-none">
-                    <pre class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
-                      formatJson(log.oldValues)
-                    }}</pre>
+                    <pre
+                      class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]"
+                      >{{ formatJson(log.oldValues) }}</pre
+                    >
                   </ScrollArea>
                 </div>
               </div>
@@ -299,11 +293,14 @@ onMounted(() => {
                 <span class="text-xs font-medium text-[var(--silver-500)] uppercase tracking-wider">
                   {{ t('audit.newValues') }}
                 </span>
-                <div class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+                <div
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+                >
                   <ScrollArea class="h-[120px] w-full rounded-none">
-                    <pre class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
-                      formatJson(log.newValues)
-                    }}</pre>
+                    <pre
+                      class="p-2 text-xs font-data leading-relaxed text-[var(--terminal-green)]"
+                      >{{ formatJson(log.newValues) }}</pre
+                    >
                   </ScrollArea>
                 </div>
               </div>
@@ -318,7 +315,8 @@ onMounted(() => {
                 {{ t('audit.ipAddress') }}: {{ log.ipAddress }}
               </span>
               <span v-if="log.userAgent" class="truncate max-w-[300px]" :title="log.userAgent">
-                {{ t('audit.userAgent') }}: {{ log.userAgent.slice(0, 60) }}{{ log.userAgent.length > 60 ? '...' : '' }}
+                {{ t('audit.userAgent') }}: {{ log.userAgent.slice(0, 60)
+                }}{{ log.userAgent.length > 60 ? '...' : '' }}
               </span>
             </div>
           </div>
@@ -334,7 +332,12 @@ onMounted(() => {
       <span class="text-sm text-muted-foreground">
         {{ t('common.page') }} {{ currentPage }} / {{ totalPages }}
       </span>
-      <Button variant="outline" size="sm" :disabled="currentPage === totalPages" @click="handleNextPage">
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="currentPage === totalPages"
+        @click="handleNextPage"
+      >
         {{ t('common.next') }}
       </Button>
     </div>

@@ -39,7 +39,6 @@ function getRankIcon(rank: number) {
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center gap-2">
-
       <span class="terminal-comment text-xs">[{{ rankings.length }}]</span>
     </div>
 

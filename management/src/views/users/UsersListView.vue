@@ -274,20 +274,26 @@ async function confirmBulkDelete() {
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('users.stats.active') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('users.stats.active') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.active
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('users.stats.banned') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('users.stats.banned') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
             stats.banned
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconUsers class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('users.stats.userManagement') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('users.stats.userManagement')
+          }}</span>
         </div>
       </div>
     </div>

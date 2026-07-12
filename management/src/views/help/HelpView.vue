@@ -10,13 +10,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -56,9 +50,7 @@ const shortcuts: Shortcut[] = [
 ]
 
 const quickLinks = computed(() => {
-  const links = [
-    { to: '/', icon: IconChartBar, labelKey: 'help.quickLinks.dashboard' },
-  ]
+  const links = [{ to: '/', icon: IconChartBar, labelKey: 'help.quickLinks.dashboard' }]
   if (authStore.hasPermission('READ', 'USER')) {
     links.push({ to: '/users', icon: IconUsers, labelKey: 'help.quickLinks.users' })
   }
@@ -79,7 +71,9 @@ function go(to: string) {
 <template>
   <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 bg-background">
     <!-- Header -->
-    <header class="flex flex-col gap-2 pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+    <header
+      class="flex flex-col gap-2 pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+    >
       <div class="flex items-center gap-3">
         <IconBook class="size-6 text-[var(--accent-primary)]" />
         <h1 class="text-2xl font-medium tracking-tight text-foreground">
@@ -188,7 +182,9 @@ function go(to: string) {
     <Card
       class="border border-[var(--silver-200)] dark:border-[var(--silver-300)]/60 bg-card rounded-none gap-0 py-0"
     >
-      <CardContent class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4">
+      <CardContent
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4"
+      >
         <div class="flex items-start gap-3">
           <IconBook class="size-5 mt-0.5 text-[var(--accent-primary)] shrink-0" />
           <div>

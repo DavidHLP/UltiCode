@@ -9,7 +9,7 @@
   "scripts": {
     "validate:i18n-keys": "node scripts/validate-i18n-keys.js",
     "check:i18n": "node --import jiti/register src/i18n/check.ts",
-    "dev": "pnpm run lint && pnpm run type-check && pnpm run format && pnpm run test && vite",
+    "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",

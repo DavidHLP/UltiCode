@@ -125,7 +125,13 @@ watch(
                 />
                 <SemanticBadge
                   :color="entity.isBanned ? 'error' : entity.isActive ? 'success' : 'neutral'"
-                  :label="entity.isBanned ? t('users.status.banned') : entity.isActive ? t('users.status.active') : t('users.status.inactive')"
+                  :label="
+                    entity.isBanned
+                      ? t('users.status.banned')
+                      : entity.isActive
+                        ? t('users.status.active')
+                        : t('users.status.inactive')
+                  "
                   :dot="entity.isActive"
                   :pulse="entity.isActive"
                 />

@@ -121,7 +121,13 @@ function renderStatusBadge(comment: Comment, t: (key: string) => string) {
     return badge({ color: 'error', label: t('comments.status.flagged'), size: 'sm', pulse: true })
   }
 
-  return badge({ color: 'success', label: t('comments.status.active'), size: 'sm', dot: true, pulse: true })
+  return badge({
+    color: 'success',
+    label: t('comments.status.active'),
+    size: 'sm',
+    dot: true,
+    pulse: true,
+  })
 }
 
 const columns: ColumnDef<Comment>[] = [
@@ -177,7 +183,10 @@ const columns: ColumnDef<Comment>[] = [
       return h('div', { class: 'flex flex-col gap-1.5 py-1' }, [
         h(
           'div',
-          { class: 'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1' },
+          {
+            class:
+              'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1',
+          },
           renderInlineContent(truncated),
         ),
         h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
@@ -347,7 +356,6 @@ const columns: ColumnDef<Comment>[] = [
       >
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-
             <span class="terminal-cursor" />
           </div>
           <IconMessage class="h-4 w-4 text-[var(--terminal-cyan)]" />
@@ -369,19 +377,25 @@ const columns: ColumnDef<Comment>[] = [
       <!-- Stats Ticker -->
       <div class="px-4 py-2 flex items-center gap-4 bg-[var(--surface-sunken)]">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.total') }}:</span
+          >
           <span class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.flagged') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.flagged') }}:</span
+          >
           <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
             stats.flagged
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.stats.deleted') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('comments.stats.deleted') }}:</span
+          >
           <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
             stats.deleted
           }}</span>

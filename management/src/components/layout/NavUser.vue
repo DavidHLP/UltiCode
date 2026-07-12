@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  IconDotsVertical,
-  IconLogout,
-  IconNotification,
-  IconUserCircle,
-} from '@tabler/icons-vue'
+import { IconDotsVertical, IconLogout, IconNotification, IconUserCircle } from '@tabler/icons-vue'
 
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -66,7 +61,10 @@ async function handleLogout() {
             tooltip="User Menu"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-11"
           >
-            <Avatar class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]" shape="square">
+            <Avatar
+              class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+              shape="square"
+            >
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
               <AvatarFallback class="rounded-none"> CN </AvatarFallback>
             </Avatar>
@@ -84,7 +82,9 @@ async function handleLogout() {
                 {{ user.email }}
               </span>
             </div>
-            <IconDotsVertical class="ml-auto size-4 text-[var(--silver-400)] group-hover:text-foreground" />
+            <IconDotsVertical
+              class="ml-auto size-4 text-[var(--silver-400)] group-hover:text-foreground"
+            />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -96,7 +96,10 @@ async function handleLogout() {
         >
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]" shape="square">
+              <Avatar
+                class="h-8 w-8 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+                shape="square"
+              >
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
                 <AvatarFallback class="rounded-none"> CN </AvatarFallback>
               </Avatar>

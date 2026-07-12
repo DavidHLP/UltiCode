@@ -178,18 +178,27 @@ defineExpose({ saveStatus, form, saveChanges })
 <template>
   <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
     <!-- Card Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+    <div
+      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
+    >
       <div class="flex items-center gap-1.5">
-        <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+        <span
+          class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+        >
           01 // {{ t('problemLists.sections.basicInfo') }}
         </span>
       </div>
 
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="!isCreate" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
+      <div
+        v-if="!isCreate"
+        class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold"
+      >
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
-          <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.form.saving') }}</span>
+          <span class="text-[var(--editor-yellow)] animate-pulse">{{
+            t('problemLists.form.saving')
+          }}</span>
         </template>
         <template v-else-if="saveStatus === 'saved'">
           <span class="text-[var(--editor-green)]">// SAVED</span>
@@ -205,7 +214,9 @@ defineExpose({ saveStatus, form, saveChanges })
       <form class="space-y-4.5" @submit.prevent>
         <FormField v-slot="{ componentField }" name="name">
           <FormItem class="space-y-1.5">
-            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            <FormLabel
+              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+            >
               {{ t('problemLists.form.name') }}
             </FormLabel>
             <FormControl>
@@ -214,7 +225,10 @@ defineExpose({ saveStatus, form, saveChanges })
                 :disabled="disabled || saveStatus === 'saving'"
                 :placeholder="t('problemLists.form.namePlaceholder')"
                 class="custom-terminal-input h-9"
-                :class="{ 'border-[var(--editor-red)] focus:ring-[var(--editor-red)]': form.errors.value?.name }"
+                :class="{
+                  'border-[var(--editor-red)] focus:ring-[var(--editor-red)]':
+                    form.errors.value?.name,
+                }"
                 @blur="handleBlur"
               />
             </FormControl>
@@ -224,7 +238,9 @@ defineExpose({ saveStatus, form, saveChanges })
 
         <FormField v-slot="{ componentField }" name="description">
           <FormItem class="space-y-1.5">
-            <FormLabel class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+            <FormLabel
+              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+            >
               {{ t('problemLists.form.description') }}
             </FormLabel>
             <FormControl>
@@ -233,7 +249,10 @@ defineExpose({ saveStatus, form, saveChanges })
                 :disabled="disabled || saveStatus === 'saving'"
                 :placeholder="t('problemLists.form.descriptionPlaceholder')"
                 class="custom-terminal-input min-h-[120px] py-2 px-3 resize-y"
-                :class="{ 'border-[var(--editor-red)] focus:ring-[var(--editor-red)]': form.errors.value?.description }"
+                :class="{
+                  'border-[var(--editor-red)] focus:ring-[var(--editor-red)]':
+                    form.errors.value?.description,
+                }"
                 @blur="handleBlur"
               />
             </FormControl>
@@ -267,7 +286,9 @@ defineExpose({ saveStatus, form, saveChanges })
   border: 1px solid var(--editor-control-border);
   background: var(--editor-control-bg);
   color: var(--editor-text-primary);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
 }
 
 :deep(.custom-terminal-input) {

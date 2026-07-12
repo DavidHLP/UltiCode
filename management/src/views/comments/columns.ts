@@ -40,7 +40,8 @@ function renderTypeBadge(type: CommentType) {
 }
 
 function renderStatusBadge(comment: Comment, t: (key: string) => string) {
-  if (comment.isDeleted) return badge({ color: 'error', label: t('comments.status.deleted'), dot: true, pulse: true })
+  if (comment.isDeleted)
+    return badge({ color: 'error', label: t('comments.status.deleted'), dot: true, pulse: true })
   if (comment.isFlagged)
     return badge({ color: 'warning', label: t('comments.status.flagged'), dot: true, pulse: true })
   return badge({ color: 'success', label: t('comments.status.active'), dot: true, pulse: true })
@@ -104,7 +105,10 @@ export function createColumns(
         return h('div', { class: 'flex flex-col gap-1.5 py-1.5' }, [
           h(
             'div',
-            { class: 'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1' },
+            {
+              class:
+                'text-sm text-[var(--foreground)] leading-relaxed flex flex-wrap items-center gap-y-1',
+            },
             renderInlineContent(truncated),
           ),
           h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [

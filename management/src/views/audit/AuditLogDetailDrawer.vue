@@ -5,12 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { IconDatabase, IconUser, IconTerminal, IconEye, IconClock } from '@tabler/icons-vue'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { AuditLog } from '@/api/admin/audit'
-import {
-  formatJson,
-  getActionIcon,
-  getActionIconColor,
-  getEntityTypeIcon,
-} from './utils'
+import { formatJson, getActionIcon, getActionIconColor, getEntityTypeIcon } from './utils'
 import { SemanticBadge, getAuditActionColor } from '@/components/ui/terminal'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 
@@ -86,7 +81,11 @@ const emit = defineEmits<{
                 {{ entity.performer?.username || t('audit.drawer.system') }}
               </span>
               <span class="text-xs text-[var(--silver-500)]">
-                {{ entity.performer?.role ? t(`users.filters.role.${entity.performer.role}`, entity.performer.role) : 'SYSTEM' }}
+                {{
+                  entity.performer?.role
+                    ? t(`users.filters.role.${entity.performer.role}`, entity.performer.role)
+                    : 'SYSTEM'
+                }}
               </span>
             </div>
           </div>

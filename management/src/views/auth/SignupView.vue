@@ -8,21 +8,21 @@
  * consistency, but the submit handler always rejects with a "contact
  * admin" message so the form behaves as a placeholder.
  */
-import { useI18n } from "vue-i18n";
-import AuthCard from "@/shared/auth-ui/src/components/AuthCard.vue";
-import AuthLayout from "@/shared/auth-ui/src/layouts/AuthLayout.vue";
-import AuthPatternBackground from "@/shared/auth-ui/src/layouts/AuthPatternBackground.vue";
-import RegisterForm from "@/shared/auth-ui/src/components/RegisterForm.vue";
+import { useI18n } from 'vue-i18n'
+import AuthCard from '@/shared/auth-ui/src/components/AuthCard.vue'
+import AuthLayout from '@/shared/auth-ui/src/layouts/AuthLayout.vue'
+import AuthPatternBackground from '@/shared/auth-ui/src/layouts/AuthPatternBackground.vue'
+import RegisterForm from '@/shared/auth-ui/src/components/RegisterForm.vue'
 
-const { t } = useI18n();
+const { t } = useI18n()
 
 async function blockRegistration() {
-  throw new Error(t("auth.messages.contactAdmin"))
+  throw new Error(t('auth.messages.contactAdmin'))
 }
 
 defineOptions({
-  name: "SignupView",
-});
+  name: 'SignupView',
+})
 </script>
 
 <template>
@@ -37,11 +37,20 @@ defineOptions({
         :title="t('auth.layout.codingConsole')"
         :subtitle="t('auth.layout.codingConsoleSubtitle')"
         :spec="[
-          { prompt: 'systemctl status ulticode.service', output: { text: '● ulticode.service - UltiCode Platform', tone: 'success' } },
+          {
+            prompt: 'systemctl status ulticode.service',
+            output: { text: '● ulticode.service - UltiCode Platform', tone: 'success' },
+          },
           { output: { text: 'Active: active (running) since Jun 2026', tone: 'muted' } },
           { output: { text: 'PID: 9003 (vite-management)', tone: 'muted' } },
-          { prompt: 'npx vitest run --coverage', output: { text: '✓ tests passed', tone: 'success' } },
-          { prompt: 'check_db_connection', output: { text: 'Database: mysql@localhost (CONNECTED)', tone: 'success' } },
+          {
+            prompt: 'npx vitest run --coverage',
+            output: { text: '✓ tests passed', tone: 'success' },
+          },
+          {
+            prompt: 'check_db_connection',
+            output: { text: 'Database: mysql@localhost (CONNECTED)', tone: 'success' },
+          },
           { output: { text: 'Server Port: 9003 (Vite Management)', tone: 'accent' } },
         ]"
       />

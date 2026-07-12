@@ -27,7 +27,6 @@ const emit = defineEmits<{
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
-
         <span class="terminal-comment text-xs">[{{ contest.problemCount || 0 }}]</span>
       </div>
       <Button

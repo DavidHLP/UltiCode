@@ -80,7 +80,6 @@ function getActionConfig(action: string) {
   )
 }
 
-
 function getChangesText(entry: AuditLog): string | null {
   const changes: string[] = []
 
@@ -103,7 +102,6 @@ function getChangesText(entry: AuditLog): string | null {
         class="px-4 py-3 flex items-center gap-3 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
       >
         <div class="flex items-center gap-2">
-          
           <span class="terminal-cursor" />
         </div>
         <IconShield class="h-4 w-4 text-[var(--terminal-cyan)]" />

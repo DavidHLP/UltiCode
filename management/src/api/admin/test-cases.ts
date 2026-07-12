@@ -170,9 +170,7 @@ export function mapFlagsToCaseScope(
  * flag pair to send to the backend. Always emits both booleans so the wire
  * contract satisfies the backend XOR filter.
  */
-export function mapCaseScopeToFlags(
-  scope: CaseScope,
-): { is_sample: boolean; is_hidden: boolean } {
+export function mapCaseScopeToFlags(scope: CaseScope): { is_sample: boolean; is_hidden: boolean } {
   switch (scope) {
     case 'HIDDEN':
       return { is_sample: false, is_hidden: true }

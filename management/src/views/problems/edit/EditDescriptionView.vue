@@ -112,7 +112,6 @@ function handleCancel() {
 
           <div class="flex items-center gap-3 min-w-0">
             <div class="flex items-center gap-2">
-              
               <span class="terminal-cursor" />
             </div>
             <h1 v-if="data" class="text-sm font-medium text-[var(--foreground)] truncate">
@@ -127,12 +126,20 @@ function handleCancel() {
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.edit.action') }}:</span>
-          <span class="font-data text-sm text-[var(--accent-electric)]">{{ t('common.edit').toUpperCase() }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.edit.action') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--accent-electric)]">{{
+            t('common.edit').toUpperCase()
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('problems.edit.section') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{ t('problems.edit.description') }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('problems.edit.section') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{
+            t('problems.edit.description')
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <IconPencil class="h-4 w-4 text-[var(--silver-400)]" />
@@ -142,7 +149,9 @@ function handleCancel() {
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('problems.edit.problemEditor') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('problems.edit.problemEditor')
+          }}</span>
         </div>
       </div>
     </div>

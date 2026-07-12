@@ -67,7 +67,9 @@ const toolbarFilters = computed<Filter[]>(() => [
       { value: 'all', label: t('submissions.allStatuses') },
       ...store.statuses.map((s) => ({
         value: s.key,
-        label: te(`submissions.statusLabels.${s.key}`) ? t(`submissions.statusLabels.${s.key}`) : s.label,
+        label: te(`submissions.statusLabels.${s.key}`)
+          ? t(`submissions.statusLabels.${s.key}`)
+          : s.label,
       })),
     ],
   },
@@ -222,32 +224,42 @@ const columns = createColumns(t, {
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('submissions.stats.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total.toLocaleString()
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.pending') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('submissions.stats.pending') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.topLanguage') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('submissions.stats.topLanguage') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)]">{{
             stats.topLanguage
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('submissions.stats.acceptedRate') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('submissions.stats.acceptedRate') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums"
             >{{ stats.acceptedRate }}%</span
           >
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('submissions.stats.submissionManagement') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('submissions.stats.submissionManagement')
+          }}</span>
         </div>
       </div>
     </div>
@@ -344,11 +356,8 @@ const columns = createColumns(t, {
     <DialogContent
       class="max-w-4xl max-h-[80vh] overflow-y-auto border-[var(--silver-200)] dark:border-[var(--silver-300)]"
     >
-      <DialogHeader
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-4"
-      >
+      <DialogHeader class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] pb-4">
         <DialogTitle class="flex items-center gap-2">
-          
           <span class="text-lg font-medium">{{ t('submissions.detail') }}</span>
         </DialogTitle>
         <DialogDescription
@@ -430,7 +439,6 @@ const columns = createColumns(t, {
     <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          
           <span class="text-lg font-medium">{{ t('submissions.rejudgeTitle') }}</span>
         </DialogTitle>
         <DialogDescription class="text-[var(--silver-500)]">
@@ -465,7 +473,6 @@ const columns = createColumns(t, {
     <DialogContent class="border-[var(--silver-200)] dark:border-[var(--silver-300)]">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
-          
           <span class="text-lg font-medium">{{ t('submissions.batchRejudgeTitle') }}</span>
         </DialogTitle>
         <DialogDescription class="text-[var(--silver-500)]">

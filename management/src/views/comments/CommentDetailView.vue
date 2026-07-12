@@ -296,8 +296,7 @@ function handleFlagSuccess() {
               <div
                 class="prose dark:prose-invert max-w-none text-[var(--foreground)] leading-relaxed markdown-content"
                 v-html="renderMarkdown(comment.content)"
-              >
-              </div>
+              ></div>
 
               <!-- Mobile Status Badges -->
               <div
@@ -325,9 +324,7 @@ function handleFlagSuccess() {
             <div
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
-              <h3
-                class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3"
-              >
+              <h3 class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3">
                 {{ t('comments.detail.parent') }}
               </h3>
               <div class="flex items-start gap-2">
@@ -354,9 +351,7 @@ function handleFlagSuccess() {
             <div
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
-              <h3
-                class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3"
-              >
+              <h3 class="text-xs font-data uppercase tracking-widest text-[var(--silver-500)] mb-3">
                 {{ t('comments.detail.metadata') }}
               </h3>
               <div class="space-y-3">

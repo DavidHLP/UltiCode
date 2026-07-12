@@ -60,7 +60,6 @@ const truncatedContent = computed(() => {
   if (props.content.length <= 200) return props.content
   return props.content.slice(0, 200) + '...'
 })
-
 </script>
 
 <template>

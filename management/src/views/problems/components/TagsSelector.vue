@@ -122,7 +122,10 @@ onMounted(() => {
     </div>
 
     <!-- Loading State -->
-    <div v-if="store.tagsLoading" class="flex items-center gap-2 text-xs font-mono text-[var(--silver-500)]">
+    <div
+      v-if="store.tagsLoading"
+      class="flex items-center gap-2 text-xs font-mono text-[var(--silver-500)]"
+    >
       <IconLoader2 class="h-3.5 w-3.5 animate-spin" />
       {{ t('problems.tagsSelector.loading') }}
     </div>
@@ -157,7 +160,7 @@ onMounted(() => {
             :class="[
               isSelected(tag.id)
                 ? 'border-transparent font-semibold'
-                : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground'
+                : 'bg-transparent text-muted-foreground border-[var(--border)] hover:bg-muted/30 hover:text-foreground',
             ]"
           >
             {{ tag.label }}

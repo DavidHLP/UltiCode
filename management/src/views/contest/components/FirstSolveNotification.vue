@@ -134,9 +134,7 @@ onUnmounted(() => {
           <!-- Content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span
-                class="font-data text-2xs uppercase tracking-wide text-[var(--terminal-amber)]"
-              >
+              <span class="font-data text-2xs uppercase tracking-wide text-[var(--terminal-amber)]">
                 First Solve
               </span>
             </div>

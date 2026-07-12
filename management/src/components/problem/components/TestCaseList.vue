@@ -38,9 +38,7 @@ const emit = defineEmits<{
       <IconGripVertical class="h-4 w-4 text-muted-foreground cursor-grab" />
       <span class="text-sm font-medium flex-1">
         #{{ index + 1 }}
-        <Badge v-if="testCase.is_sample" variant="secondary" class="ml-1 text-2xs">
-          Sample
-        </Badge>
+        <Badge v-if="testCase.is_sample" variant="secondary" class="ml-1 text-2xs"> Sample </Badge>
         <Badge v-if="testCase.is_hidden" variant="outline" class="ml-1 text-2xs"> Hidden </Badge>
       </span>
       <DropdownMenu>

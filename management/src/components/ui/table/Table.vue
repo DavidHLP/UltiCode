@@ -17,10 +17,7 @@ const props = withDefaults(
   <div
     data-slot="table-container"
     :class="
-      cn(
-        'relative w-full',
-        overflow ? 'overflow-y-auto overflow-x-hidden' : 'overflow-visible',
-      )
+      cn('relative w-full', overflow ? 'overflow-y-auto overflow-x-hidden' : 'overflow-visible')
     "
   >
     <table data-slot="table" :class="cn('min-w-full caption-bottom text-sm', props.class)">

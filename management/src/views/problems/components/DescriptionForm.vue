@@ -111,11 +111,11 @@ function updateForm(data?: ProblemData) {
     content: data.content || '',
     examples: data.examples?.length
       ? data.examples.map((ex) => ({
-        input: ex.input || '',
-        output: ex.output || '',
-        explanation: ex.explanation || '',
-        inputs: ex.inputs,
-      }))
+          input: ex.input || '',
+          output: ex.output || '',
+          explanation: ex.explanation || '',
+          inputs: ex.inputs,
+        }))
       : [],
     constraints: data.constraints?.length ? data.constraints : [],
     hints: data.hints?.length ? data.hints : [],
@@ -196,7 +196,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.basicInfo') }}
                   </span>
                 </div>
@@ -368,7 +370,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.problemDescription') }}
                   </span>
                 </div>
@@ -424,7 +428,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.examples') }}
                   </span>
                 </div>
@@ -452,7 +458,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.constraints') }}
                   </span>
                 </div>
@@ -480,7 +488,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.hints') }}
                   </span>
                 </div>
@@ -508,7 +518,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.tags') }}
                   </span>
                 </div>
@@ -539,7 +551,9 @@ function isLanguageSelected(lang: string): boolean {
               >
                 <div class="flex items-center gap-2.5">
                   <IconFileDescription class="size-4 text-[var(--silver-400)] shrink-0" />
-                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-foreground">
+                  <span
+                    class="text-xs font-mono font-bold uppercase tracking-wider text-foreground"
+                  >
                     {{ t('problems.descriptionForm.languages') }}
                   </span>
                 </div>

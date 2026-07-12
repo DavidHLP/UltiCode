@@ -164,7 +164,6 @@ function handleTabChange(value: string | number) {
               </div>
               <div>
                 <div class="flex items-center gap-2">
-                  
                   <h1 class="font-medium text-sm text-[var(--foreground)]">{{ contest.title }}</h1>
                 </div>
                 <div class="flex items-center gap-2 mt-1">

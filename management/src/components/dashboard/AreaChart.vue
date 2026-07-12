@@ -231,18 +231,18 @@ function crosshairTemplate(d: Data) {
       const value = Number(d[key]) || 0
       return (
         `<div class="uc-chart-tooltip__row">` +
-          `<span class="uc-chart-tooltip__dot" style="background:${color}"></span>` +
-          `<span class="uc-chart-tooltip__label">${escapeHtml(String(label))}</span>` +
-          `<span class="uc-chart-tooltip__value">${value.toLocaleString()}</span>` +
+        `<span class="uc-chart-tooltip__dot" style="background:${color}"></span>` +
+        `<span class="uc-chart-tooltip__label">${escapeHtml(String(label))}</span>` +
+        `<span class="uc-chart-tooltip__value">${value.toLocaleString()}</span>` +
         `</div>`
       )
     })
     .join('')
   return (
     `<div class="uc-chart-tooltip">` +
-      `<div class="uc-chart-tooltip__date">${escapeHtml(dateStr)}</div>` +
-      `<div class="uc-chart-tooltip__divider"></div>` +
-      rows +
+    `<div class="uc-chart-tooltip__date">${escapeHtml(dateStr)}</div>` +
+    `<div class="uc-chart-tooltip__divider"></div>` +
+    rows +
     `</div>`
   )
 }
@@ -365,7 +365,7 @@ function escapeHtml(s: string): string {
             :domain-line="false"
             :grid-line="true"
             :grid-line-color="'color-mix(in oklch, var(--border) 45%, transparent)'"
-            :tick-format="(d: number) => Number.isInteger(d) ? d.toString() : d.toFixed(1)"
+            :tick-format="(d: number) => (Number.isInteger(d) ? d.toString() : d.toFixed(1))"
           />
           <!-- Vertical crosshair + tooltip showing the hovered data point -->
           <VisCrosshair

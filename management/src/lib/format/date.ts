@@ -36,17 +36,11 @@ export function formatRelativeTime(
   return _formatRelativeTime(date, locale ?? getActiveLocale())
 }
 
-export function formatTime(
-  date: string | Date | null | undefined,
-  locale?: string,
-): string {
+export function formatTime(date: string | Date | null | undefined, locale?: string): string {
   return _formatTime(date, locale ?? getActiveLocale())
 }
 
-export function formatShortDate(
-  date: string | Date | null | undefined,
-  locale?: string,
-): string {
+export function formatShortDate(date: string | Date | null | undefined, locale?: string): string {
   return _formatShortDate(date, locale ?? getActiveLocale())
 }
 

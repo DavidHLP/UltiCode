@@ -108,7 +108,6 @@ async function handleSubmit() {
       <!-- Terminal Header -->
       <DialogHeader class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4">
         <div class="flex items-center gap-3">
-          
           <DialogTitle class="text-lg font-medium tracking-tight">{{
             t('users.editUser')
           }}</DialogTitle>
@@ -193,10 +192,18 @@ async function handleSubmit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USER" class="font-data">{{ t('users.filters.role.USER') }}</SelectItem>
-                      <SelectItem value="MODERATOR" class="font-data">{{ t('users.filters.role.MODERATOR') }}</SelectItem>
-                      <SelectItem value="ADMIN" class="font-data">{{ t('users.filters.role.ADMIN') }}</SelectItem>
-                      <SelectItem value="SUPER_ADMIN" class="font-data">{{ t('users.filters.role.SUPER_ADMIN') }}</SelectItem>
+                      <SelectItem value="USER" class="font-data">{{
+                        t('users.filters.role.USER')
+                      }}</SelectItem>
+                      <SelectItem value="MODERATOR" class="font-data">{{
+                        t('users.filters.role.MODERATOR')
+                      }}</SelectItem>
+                      <SelectItem value="ADMIN" class="font-data">{{
+                        t('users.filters.role.ADMIN')
+                      }}</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" class="font-data">{{
+                        t('users.filters.role.SUPER_ADMIN')
+                      }}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

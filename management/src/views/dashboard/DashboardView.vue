@@ -180,7 +180,11 @@ onMounted(() => loadData())
           <span
             class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-500)] dark:text-[var(--silver-400)]"
           >
-            {{ authStore.userRole ? t(`users.filters.role.${authStore.userRole}`, authStore.userRole) : '' }}
+            {{
+              authStore.userRole
+                ? t(`users.filters.role.${authStore.userRole}`, authStore.userRole)
+                : ''
+            }}
           </span>
         </div>
       </div>

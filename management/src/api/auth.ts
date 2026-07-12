@@ -1,9 +1,5 @@
 import { apiGet, apiPost } from '@/utils/request'
-import type {
-  LoginCredentials,
-  LoginResponse,
-  User,
-} from '@/shared/auth-core/src/types'
+import type { LoginCredentials, LoginResponse, User } from '@/shared/auth-core/src/types'
 
 export type { LoginCredentials, LoginResponse, User }
 

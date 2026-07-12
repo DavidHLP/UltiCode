@@ -26,7 +26,6 @@ const authorInitials = computed(() => {
   if (!props.post.author?.username) return '?'
   return props.post.author.username.slice(0, 2).toUpperCase()
 })
-
 </script>
 
 <template>

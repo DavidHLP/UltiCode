@@ -60,8 +60,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
       currentSolution.value = solution
       return solution
     } catch (err: unknown) {
-      const errorMessage =
-        extractApiErrorMessage(err, 'Failed to fetch solution')
+      const errorMessage = extractApiErrorMessage(err, 'Failed to fetch solution')
       error.value = errorMessage
       console.error('Failed to fetch solution:', err)
       return null

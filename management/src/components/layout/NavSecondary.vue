@@ -46,15 +46,10 @@ function isActive(url: string): boolean {
             :class="[
               isActive(item.url)
                 ? 'border-l-4 border-[var(--accent-electric)] bg-[var(--accent-electric)]/8 text-[var(--foreground)] font-bold pl-2'
-                : 'border-l-4 border-transparent'
+                : 'border-l-4 border-transparent',
             ]"
           >
-            <a
-              v-if="item.onClick"
-              href="#"
-              role="button"
-              @click.prevent="item.onClick($event)"
-            >
+            <a v-if="item.onClick" href="#" role="button" @click.prevent="item.onClick($event)">
               <component :is="item.icon" v-if="item.icon" />
               <span class="group-data-[collapsible=icon]:hidden">{{ item.title }}</span>
             </a>

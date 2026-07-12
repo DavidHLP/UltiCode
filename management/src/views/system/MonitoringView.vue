@@ -198,232 +198,251 @@ onUnmounted(() => {
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
     >
+      <!-- Loading state -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <IconLoader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
 
-    <!-- Loading state -->
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <IconLoader2 class="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>
-
-    <!-- Main content -->
-    <template v-else>
-      <!-- Overall Health Status -->
-      <Card :class="['border-2', statusBgColor]">
-        <CardHeader>
-          <CardTitle class="flex items-center gap-2">
-            <IconHeartbeat class="h-5 w-5" />
-            {{ t('system.monitoring.healthStatus') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div class="flex items-center gap-4 mb-4">
-            <SemanticBadge
-              :color="overallStatus === 'healthy' ? 'success' : 'error'"
-              :label="t(`system.monitoring.status.${overallStatus}`, overallStatus)"
-              class="text-lg px-4 py-2"
-            />
-            <span class="text-sm text-muted-foreground">
-              {{ t('system.monitoring.lastChecked') }}:
-              {{ healthStatus ? formatDateTimeByLocale(healthStatus.timestamp) : '-' }}
-            </span>
-          </div>
-
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div
-              v-for="check in healthStatus?.checks"
-              :key="check.service"
-              class="flex items-center gap-2 p-3 rounded-none bg-muted/50"
-            >
-              <component
-                :is="getHealthIcon(check.status)"
-                :class="['h-5 w-5', getHealthColor(check.status)]"
-              />
-              <div>
-                <p class="font-medium capitalize">{{ check.service }}</p>
-                <p class="text-xs text-muted-foreground">{{ check.message }}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Stats Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- System Info -->
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center gap-2">
-              <IconServer class="h-4 w-4" />
-              {{ t('system.monitoring.systemInfo') }}
+      <!-- Main content -->
+      <template v-else>
+        <!-- Overall Health Status -->
+        <Card :class="['border-2', statusBgColor]">
+          <CardHeader>
+            <CardTitle class="flex items-center gap-2">
+              <IconHeartbeat class="h-5 w-5" />
+              {{ t('system.monitoring.healthStatus') }}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.javaVersion') }}</span>
-                <span class="font-mono">{{ systemInfo?.javaVersion }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.platform') }}</span>
-                <span>{{ systemInfo?.platform }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.uptime') }}</span>
-                <span>{{ systemInfo ? formatUptime(systemInfo.uptime) : '-' }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.environment') }}</span>
-                <span>{{ systemInfo?.env }}</span>
+            <div class="flex items-center gap-4 mb-4">
+              <SemanticBadge
+                :color="overallStatus === 'healthy' ? 'success' : 'error'"
+                :label="t(`system.monitoring.status.${overallStatus}`, overallStatus)"
+                class="text-lg px-4 py-2"
+              />
+              <span class="text-sm text-muted-foreground">
+                {{ t('system.monitoring.lastChecked') }}:
+                {{ healthStatus ? formatDateTimeByLocale(healthStatus.timestamp) : '-' }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div
+                v-for="check in healthStatus?.checks"
+                :key="check.service"
+                class="flex items-center gap-2 p-3 rounded-none bg-muted/50"
+              >
+                <component
+                  :is="getHealthIcon(check.status)"
+                  :class="['h-5 w-5', getHealthColor(check.status)]"
+                />
+                <div>
+                  <p class="font-medium capitalize">{{ check.service }}</p>
+                  <p class="text-xs text-muted-foreground">{{ check.message }}</p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <!-- Memory Usage -->
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center gap-2">
-              <IconBrain class="h-4 w-4" />
-              {{ t('system.monitoring.memoryUsage') }}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-3">
-              <div>
-                <div class="flex justify-between text-sm mb-1">
-                  <span>{{ t('system.monitoring.heapUsed') }}</span>
-                  <span>{{ getMemoryPercent().toFixed(1) }}%</span>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- System Info -->
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-medium flex items-center gap-2">
+                <IconServer class="h-4 w-4" />
+                {{ t('system.monitoring.systemInfo') }}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.javaVersion')
+                  }}</span>
+                  <span class="font-mono">{{ systemInfo?.javaVersion }}</span>
                 </div>
-                <div class="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-primary transition-all"
-                    :style="{ width: `${getMemoryPercent()}%` }"
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{ t('system.monitoring.platform') }}</span>
+                  <span>{{ systemInfo?.platform }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{ t('system.monitoring.uptime') }}</span>
+                  <span>{{ systemInfo ? formatUptime(systemInfo.uptime) : '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.environment')
+                  }}</span>
+                  <span>{{ systemInfo?.env }}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Memory Usage -->
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-medium flex items-center gap-2">
+                <IconBrain class="h-4 w-4" />
+                {{ t('system.monitoring.memoryUsage') }}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span>{{ t('system.monitoring.heapUsed') }}</span>
+                    <span>{{ getMemoryPercent().toFixed(1) }}%</span>
+                  </div>
+                  <div class="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-primary transition-all"
+                      :style="{ width: `${getMemoryPercent()}%` }"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-muted-foreground">{{ t('system.monitoring.heapMax') }}:</span>
+                    <span class="ml-1 font-mono">
+                      {{ resourceUsage ? formatBytes(resourceUsage.memory.heapMax) : '-' }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-muted-foreground"
+                      >{{ t('system.monitoring.nonHeapUsed') }}:</span
+                    >
+                    <span class="ml-1 font-mono">
+                      {{ resourceUsage ? formatBytes(resourceUsage.memory.nonHeapUsed) : '-' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Database -->
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-medium flex items-center gap-2">
+                <IconDatabase class="h-4 w-4" />
+                {{ t('system.monitoring.database') }}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.activeConnections')
+                  }}</span>
+                  <span>{{ databaseStats?.activeConnections ?? 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.maxConnections')
+                  }}</span>
+                  <span>{{ databaseStats?.maxConnections ?? 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{ t('system.monitoring.queryCount') }}</span>
+                  <span>{{ databaseStats?.queryCount ?? 0 }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.slowQueries')
+                  }}</span>
+                  <span :class="{ 'text-red-500': (databaseStats?.slowQueries ?? 0) > 0 }">
+                    {{ databaseStats?.slowQueries ?? 0 }}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Redis -->
+          <Card>
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-medium flex items-center gap-2">
+                <IconServer class="h-4 w-4" />
+                Redis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="text-muted-foreground">{{
+                    t('system.monitoring.status.status')
+                  }}</span>
+                  <SemanticBadge
+                    :color="redisStats?.connected ? 'success' : 'error'"
+                    :label="
+                      redisStats?.connected
+                        ? t('system.monitoring.connected')
+                        : t('system.monitoring.disconnected')
+                    "
                   />
                 </div>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span class="text-muted-foreground">{{ t('system.monitoring.heapMax') }}:</span>
-                  <span class="ml-1 font-mono">
-                    {{ resourceUsage ? formatBytes(resourceUsage.memory.heapMax) : '-' }}
-                  </span>
+                <div v-if="redisStats?.version" class="flex justify-between">
+                  <span class="text-muted-foreground">{{ t('system.monitoring.version') }}</span>
+                  <span>{{ redisStats.version }}</span>
                 </div>
-                <div>
-                  <span class="text-muted-foreground">{{ t('system.monitoring.nonHeapUsed') }}:</span>
-                  <span class="ml-1 font-mono">
-                    {{ resourceUsage ? formatBytes(resourceUsage.memory.nonHeapUsed) : '-' }}
-                  </span>
+                <div v-if="redisStats?.usedMemory" class="flex justify-between">
+                  <span class="text-muted-foreground">{{ t('system.monitoring.usedMemory') }}</span>
+                  <span>{{ formatBytes(redisStats.usedMemory) }}</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <!-- Database -->
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center gap-2">
-              <IconDatabase class="h-4 w-4" />
-              {{ t('system.monitoring.database') }}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.activeConnections') }}</span>
-                <span>{{ databaseStats?.activeConnections ?? 0 }}</span>
+          <!-- Queues -->
+          <Card class="md:col-span-2">
+            <CardHeader class="pb-2">
+              <CardTitle class="text-sm font-medium flex items-center gap-2">
+                <IconListTree class="h-4 w-4" />
+                {{ t('system.monitoring.queues') }}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div v-if="queueStats.length === 0" class="text-sm text-muted-foreground">
+                {{ t('system.monitoring.noQueues') }}
               </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.maxConnections') }}</span>
-                <span>{{ databaseStats?.maxConnections ?? 0 }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.queryCount') }}</span>
-                <span>{{ databaseStats?.queryCount ?? 0 }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.slowQueries') }}</span>
-                <span :class="{ 'text-red-500': (databaseStats?.slowQueries ?? 0) > 0 }">
-                  {{ databaseStats?.slowQueries ?? 0 }}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- Redis -->
-        <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center gap-2">
-              <IconServer class="h-4 w-4" />
-              Redis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between items-center">
-                <span class="text-muted-foreground">{{ t('system.monitoring.status.status') }}</span>
-                <SemanticBadge
-                  :color="redisStats?.connected ? 'success' : 'error'"
-                  :label="redisStats?.connected ? t('system.monitoring.connected') : t('system.monitoring.disconnected')"
-                />
-              </div>
-              <div v-if="redisStats?.version" class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.version') }}</span>
-                <span>{{ redisStats.version }}</span>
-              </div>
-              <div v-if="redisStats?.usedMemory" class="flex justify-between">
-                <span class="text-muted-foreground">{{ t('system.monitoring.usedMemory') }}</span>
-                <span>{{ formatBytes(redisStats.usedMemory) }}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- Queues -->
-        <Card class="md:col-span-2">
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center gap-2">
-              <IconListTree class="h-4 w-4" />
-              {{ t('system.monitoring.queues') }}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div v-if="queueStats.length === 0" class="text-sm text-muted-foreground">
-              {{ t('system.monitoring.noQueues') }}
-            </div>
-            <div v-else class="space-y-4">
-              <div v-for="queue in queueStats" :key="queue.name" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ queue.name }}</span>
-                </div>
-                <div class="grid grid-cols-5 gap-2 text-xs">
-                  <div class="text-center p-2 bg-muted rounded-none">
-                    <div class="text-lg font-bold text-blue-500">{{ queue.waiting }}</div>
-                    <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>
+              <div v-else class="space-y-4">
+                <div v-for="queue in queueStats" :key="queue.name" class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium">{{ queue.name }}</span>
                   </div>
-                  <div class="text-center p-2 bg-muted rounded-none">
-                    <div class="text-lg font-bold text-yellow-500">{{ queue.active }}</div>
-                    <div class="text-muted-foreground">{{ t('system.monitoring.active') }}</div>
-                  </div>
-                  <div class="text-center p-2 bg-muted rounded-none">
-                    <div class="text-lg font-bold text-green-500">{{ queue.completed }}</div>
-                    <div class="text-muted-foreground">{{ t('system.monitoring.completed') }}</div>
-                  </div>
-                  <div class="text-center p-2 bg-muted rounded-none">
-                    <div class="text-lg font-bold text-red-500">{{ queue.failed }}</div>
-                    <div class="text-muted-foreground">{{ t('system.monitoring.failed') }}</div>
-                  </div>
-                  <div class="text-center p-2 bg-muted rounded-none">
-                    <div class="text-lg font-bold text-purple-500">{{ queue.delayed }}</div>
-                    <div class="text-muted-foreground">{{ t('system.monitoring.delayed') }}</div>
+                  <div class="grid grid-cols-5 gap-2 text-xs">
+                    <div class="text-center p-2 bg-muted rounded-none">
+                      <div class="text-lg font-bold text-blue-500">{{ queue.waiting }}</div>
+                      <div class="text-muted-foreground">{{ t('system.monitoring.waiting') }}</div>
+                    </div>
+                    <div class="text-center p-2 bg-muted rounded-none">
+                      <div class="text-lg font-bold text-yellow-500">{{ queue.active }}</div>
+                      <div class="text-muted-foreground">{{ t('system.monitoring.active') }}</div>
+                    </div>
+                    <div class="text-center p-2 bg-muted rounded-none">
+                      <div class="text-lg font-bold text-green-500">{{ queue.completed }}</div>
+                      <div class="text-muted-foreground">
+                        {{ t('system.monitoring.completed') }}
+                      </div>
+                    </div>
+                    <div class="text-center p-2 bg-muted rounded-none">
+                      <div class="text-lg font-bold text-red-500">{{ queue.failed }}</div>
+                      <div class="text-muted-foreground">{{ t('system.monitoring.failed') }}</div>
+                    </div>
+                    <div class="text-center p-2 bg-muted rounded-none">
+                      <div class="text-lg font-bold text-purple-500">{{ queue.delayed }}</div>
+                      <div class="text-muted-foreground">{{ t('system.monitoring.delayed') }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </template>
+            </CardContent>
+          </Card>
+        </div>
+      </template>
     </div>
   </div>
 </template>

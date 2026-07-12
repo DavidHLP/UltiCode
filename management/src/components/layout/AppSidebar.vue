@@ -207,7 +207,6 @@ const userSecurityItems = computed(() => {
   return items
 })
 
-
 const navSecondary = computed(() => {
   const items = []
 
@@ -233,7 +232,7 @@ const navSecondary = computed(() => {
       url: '/search',
       icon: IconSearch,
       onClick: openSearch,
-      })
+    })
   }
 
   return items

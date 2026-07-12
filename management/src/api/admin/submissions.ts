@@ -1,4 +1,4 @@
-import type { PageResult } from "@/shared/domain-types/src"
+import type { PageResult } from '@/shared/domain-types/src'
 import { apiGet, apiPost } from '@/utils/request'
 
 export interface SubmissionQueryParams {
@@ -53,7 +53,6 @@ export interface SubmissionDetail extends SubmissionListItem {
   memoryDistBinsMb: unknown
   runtimeDistBinsMs: unknown
 }
-
 
 export interface RejudgeResult {
   submissionId: string

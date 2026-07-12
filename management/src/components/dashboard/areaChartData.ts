@@ -25,9 +25,7 @@ function startOfUtcDay(timestamp: number): Date {
  * fields on the input point are preserved so the chart can still read
  * series keys like `users` / `count` on each emitted row.
  */
-function bucketByUtcDay<T extends DatedChartPoint>(
-  data: T[],
-): Map<number, T> {
+function bucketByUtcDay<T extends DatedChartPoint>(data: T[]): Map<number, T> {
   const buckets = new Map<number, T>()
   for (const point of data) {
     const ts = toUtcDay(new Date(point.date))

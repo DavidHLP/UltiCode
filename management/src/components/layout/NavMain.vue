@@ -15,11 +15,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from '@/components/ui/collapsible'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,9 +25,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { DropdownMenuArrow } from 'reka-ui'
-import {
-  SidebarMenuSubItem as SharedSidebarMenuSubItem,
-} from '@/shared/sidebar-menu/src'
+import { SidebarMenuSubItem as SharedSidebarMenuSubItem } from '@/shared/sidebar-menu/src'
 
 interface NavItem {
   title: string
@@ -120,8 +114,12 @@ watchEffect(() => {
               align="start"
               class="w-48 p-1.5 space-y-0.5 z-50 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
             >
-              <DropdownMenuArrow class="bg-[var(--card)] fill-[var(--card)] z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45" />
-              <DropdownMenuLabel class="px-2.5 py-1.5 text-2xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+              <DropdownMenuArrow
+                class="bg-[var(--card)] fill-[var(--card)] z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45"
+              />
+              <DropdownMenuLabel
+                class="px-2.5 py-1.5 text-2xs font-mono font-bold uppercase tracking-wider text-muted-foreground"
+              >
                 {{ item.title }}
               </DropdownMenuLabel>
               <DropdownMenuSeparator class="bg-border mx-1" />
@@ -140,7 +138,11 @@ watchEffect(() => {
                     :is="subItem.icon"
                     v-if="subItem.icon"
                     class="size-3.5 shrink-0"
-                    :class="isActive(subItem.url) ? 'text-[var(--accent-electric)]' : 'text-muted-foreground'"
+                    :class="
+                      isActive(subItem.url)
+                        ? 'text-[var(--accent-electric)]'
+                        : 'text-muted-foreground'
+                    "
                   />
                   <span>{{ subItem.title }}</span>
                 </SharedSidebarMenuSubItem>

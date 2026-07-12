@@ -47,8 +47,13 @@ function updateFilter(index: number, value: string | number) {
 
 <template>
   <div class="flex items-center gap-2 flex-wrap">
-    <div class="relative flex items-center" :class="searchWidth || 'min-w-[150px] w-full lg:w-[250px]'">
-      <IconSearch class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none" />
+    <div
+      class="relative flex items-center"
+      :class="searchWidth || 'min-w-[150px] w-full lg:w-[250px]'"
+    >
+      <IconSearch
+        class="absolute left-2.5 h-3.5 w-3.5 text-[var(--silver-400)] pointer-events-none"
+      />
       <Input
         variant="terminal"
         :model-value="searchModelValue"

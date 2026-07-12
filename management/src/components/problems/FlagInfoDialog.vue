@@ -58,11 +58,7 @@ function handleClose(value: boolean) {
           <span class="font-data text-2xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.status') }}
           </span>
-          <SemanticBadge
-            :color="statusColor"
-            size="sm"
-            class="font-data uppercase"
-          >
+          <SemanticBadge :color="statusColor" size="sm" class="font-data uppercase">
             {{ statusLabel }}
           </SemanticBadge>
         </div>

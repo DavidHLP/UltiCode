@@ -1,4 +1,4 @@
-import type { PageResult } from "@/shared/domain-types/src"
+import type { PageResult } from '@/shared/domain-types/src'
 import { apiGet, apiPost, apiDelete } from '@/utils/request'
 import type { AuditLog } from '@/api/admin/audit'
 

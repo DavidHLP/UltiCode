@@ -28,7 +28,6 @@ const mockT = (key: string) => {
 describe('getErrorContext', () => {
   describe('when error is ApiError with status code', () => {
     it('should return validation context for 400 status', () => {
-       
       const error = new ApiError('Invalid field', 400, {
         data: { message: 'Invalid field' },
       } as unknown as Parameters<typeof ApiError>[2])

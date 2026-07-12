@@ -76,17 +76,26 @@ const saveStatusText = {
 <template>
   <div class="border border-[var(--editor-panel-border)] bg-[var(--editor-panel-bg)] rounded-none">
     <!-- Card Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none">
+    <div
+      class="flex items-center justify-between px-4 py-3 border-b border-[var(--editor-border-weak)] select-none"
+    >
       <div class="flex items-center gap-1.5">
-        <span class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider">
+        <span
+          class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider"
+        >
           02 // {{ t('problemLists.sections.visibilityFeatured') }}
         </span>
       </div>
       <!-- Auto-save Status Indicator in Header -->
-      <div v-if="saveStatusText[saveStatus]" class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold">
+      <div
+        v-if="saveStatusText[saveStatus]"
+        class="flex items-center gap-1.5 font-mono text-2xs uppercase font-bold"
+      >
         <template v-if="saveStatus === 'saving'">
           <span class="h-1.5 w-1.5 bg-[var(--editor-yellow)] shrink-0 animate-ping"></span>
-          <span class="text-[var(--editor-yellow)] animate-pulse">{{ t('problemLists.form.saving') }}</span>
+          <span class="text-[var(--editor-yellow)] animate-pulse">{{
+            t('problemLists.form.saving')
+          }}</span>
         </template>
         <template v-else-if="saveStatus === 'saved'">
           <span class="text-[var(--editor-green)]">// SAVED</span>
@@ -100,9 +109,13 @@ const saveStatusText = {
     <!-- Card Content -->
     <div class="divide-y divide-[var(--editor-border-weak)]">
       <!-- isPublic Switch Row -->
-      <div class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150">
+      <div
+        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150"
+      >
         <div class="flex flex-col gap-0.5 max-w-[80%]">
-          <label class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer">
+          <label
+            class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer"
+          >
             {{ t('problemLists.form.isPublic') }}
           </label>
           <span class="text-xxs text-[var(--editor-text-muted)] leading-normal font-mono">
@@ -119,16 +132,24 @@ const saveStatusText = {
       </div>
 
       <!-- isFeatured Switch Row -->
-      <div class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150">
+      <div
+        class="flex items-center justify-between px-4 py-3.5 gap-4 hover:bg-[var(--editor-control-bg)]/20 transition-colors duration-150"
+      >
         <div class="flex flex-col gap-0.5 max-w-[80%]">
           <div class="flex items-center gap-1.5">
-            <label class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer">
+            <label
+              class="text-xs font-mono font-bold text-[var(--editor-text-primary)] uppercase tracking-wider select-none cursor-pointer"
+            >
               {{ t('problemLists.form.isFeatured') }}
             </label>
             <TooltipProvider v-if="isFeatured">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <span class="text-[var(--editor-text-muted)] cursor-help font-mono text-xxs font-bold"> [?] </span>
+                  <span
+                    class="text-[var(--editor-text-muted)] cursor-help font-mono text-xxs font-bold"
+                  >
+                    [?]
+                  </span>
                 </TooltipTrigger>
                 <TooltipContent
                   class="max-w-xs bg-[var(--surface-elevated)] border-[var(--editor-panel-border)] rounded-none"
@@ -181,7 +202,7 @@ const saveStatusText = {
   transition: transform 0.15s ease-in-out;
 }
 
-:deep(.custom-switch[data-state=checked] span) {
+:deep(.custom-switch[data-state='checked'] span) {
   transform: translateX(18px) !important;
   background-color: #ffffff !important;
 }

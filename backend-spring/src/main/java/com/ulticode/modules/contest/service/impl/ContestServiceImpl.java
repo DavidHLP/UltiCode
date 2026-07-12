@@ -12,7 +12,6 @@ import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
@@ -24,9 +23,6 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.achievement.constants.AchievementType;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
-import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestScoringService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
@@ -46,16 +42,16 @@ import java.util.Map;
 /**
  * Write-side facade for contest operations. Owns the contest state machine
  * (create / update / delete / start / end / addProblem / removeProblem /
- * submit) and the participation lifecycle methods that delegate to
- * {@link ContestSchedulerService}.
+ * submit) only.
  *
  * <p>All read paths — catalog lists, detail, problems, announcements, stats,
- * rankings — live in {@link ContestProjection}. Write paths shape their return
- * values through {@link ContestProjection#toVO} and resolve entities for guards
- * via the internal {@link #getContestOrThrow(String)} helper (direct mapper
- * access, since every guard needs the soft-delete-aware variant).
- *
- * <p>Delegates scheduling / lifecycle to {@link ContestSchedulerService}.
+ * rankings — live in {@link ContestProjection}. Participation (register,
+ * unregister, status, virtual replay, history) lives in
+ * {@link com.ulticode.modules.contest.service.ContestParticipationService}.
+ * Write paths shape their return values through {@link ContestProjection#toVO}
+ * and resolve entities for guards via the internal {@link #getContestOrThrow(String)}
+ * helper (direct mapper access, since every guard needs the soft-delete-aware
+ * variant).
  */
 @Slf4j
 @Service
@@ -65,8 +61,6 @@ public class ContestServiceImpl implements ContestService {
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
-    private final ContestSchedulerService schedulerService;
-    private final AchievementTriggerService achievementTriggerService;
     private final SubmissionService submissionService;
     private final ContestScoringService contestScoringService;
     private final ContestProjection contestProjection;
@@ -228,53 +222,6 @@ public class ContestServiceImpl implements ContestService {
 
         createDTO.setProblemId(problemId);
         return submissionService.submit(userId, createDTO);
-    }
-
-    // =========================================================================
-    // Participation (delegated to ContestSchedulerService)
-    // =========================================================================
-
-    @Override
-    public void registerForContest(String contestId, String userId) {
-        schedulerService.registerForContest(contestId, userId);
-
-        // Trigger contest participation achievement
-        try {
-            long participationCount = participantMapper.countByUserId(userId);
-            achievementTriggerService.trigger(userId, AchievementType.CONTEST_PARTICIPATION, (int) participationCount);
-        } catch (Exception e) {
-            log.warn("Failed to trigger contest achievement for user {}: {}", userId, e.getMessage());
-        }
-    }
-
-    @Override
-    public void unregisterFromContest(String contestId, String userId) {
-        schedulerService.unregisterFromContest(contestId, userId);
-    }
-
-    @Override
-    public ParticipationStatusDTO getParticipationStatus(String contestId, String userId) {
-        return schedulerService.getParticipationStatus(contestId, userId);
-    }
-
-    @Override
-    public java.util.List<ContestVO> getUserContests(String userId, String type) {
-        return schedulerService.getUserContests(userId, type);
-    }
-
-    @Override
-    public ParticipationStatusDTO startVirtualContest(String contestId, String userId) {
-        return schedulerService.startVirtualContest(contestId, userId);
-    }
-
-    @Override
-    public ParticipationStatusDTO getVirtualSession(String contestId, String userId) {
-        return schedulerService.getVirtualSession(contestId, userId);
-    }
-
-    @Override
-    public void finishVirtualContest(String contestId, String sessionId, String userId) {
-        schedulerService.finishVirtualContest(contestId, sessionId, userId);
     }
 
     // =========================================================================

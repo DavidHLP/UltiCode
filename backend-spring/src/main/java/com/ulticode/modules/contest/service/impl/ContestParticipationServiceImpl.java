@@ -11,8 +11,10 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.achievement.constants.AchievementType;
+import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
-import com.ulticode.modules.contest.service.ContestSchedulerService;
+import com.ulticode.modules.contest.service.ContestParticipationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -26,19 +28,21 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of ContestSchedulerService.
- * Handles contest registration, virtual contests, and participation lifecycle.
+ * Implementation of {@link ContestParticipationService}. Owns contest
+ * registration, virtual replay, and the participation lifecycle invariants,
+ * plus the registration achievement side effect.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ContestSchedulerServiceImpl implements ContestSchedulerService {
+public class ContestParticipationServiceImpl implements ContestParticipationService {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper participantMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final ContestClock contestClock;
+    private final AchievementTriggerService achievementTriggerService;
 
     @Override
     @Transactional
@@ -76,6 +80,15 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
             throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
         }
         log.info("User {} registered for contest {}", userId, contestId);
+
+        // Fire the contest participation achievement. Internal side effect of
+        // registration; failures must not roll back the registration itself.
+        try {
+            long participationCount = participantMapper.countByUserId(userId);
+            achievementTriggerService.trigger(userId, AchievementType.CONTEST_PARTICIPATION, (int) participationCount);
+        } catch (Exception e) {
+            log.warn("Failed to trigger contest achievement for user {}: {}", userId, e.getMessage());
+        }
     }
 
     @Override

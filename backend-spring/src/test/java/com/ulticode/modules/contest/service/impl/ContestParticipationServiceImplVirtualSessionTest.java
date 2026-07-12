@@ -32,21 +32,21 @@ import static org.mockito.Mockito.lenient;
 /**
  * Focused unit tests for the new behaviour added in 2026-06-11
  * (see PR `fix/contest-api-contracts`):
- *  - {@link ContestSchedulerServiceImpl#getVirtualSession} populates
+ *  - {@link ContestParticipationServiceImpl#getVirtualSession} populates
  *    {@code id} and {@code endsAt} fields.
- *  - {@link ContestSchedulerServiceImpl#finishVirtualContest} accepts a null
+ *  - {@link ContestParticipationServiceImpl#finishVirtualContest} accepts a null
  *    or blank sessionId and falls back to the stored virtualSessionId.
  *
  * These tests use Mockito only (no @WebMvcTest) to keep the test surface
  * minimal and avoid coupling with other pre-existing test files.
  */
-class ContestSchedulerServiceImplVirtualSessionTest {
+class ContestParticipationServiceImplVirtualSessionTest {
 
     private ContestMapper contestMapper;
     private ContestParticipantMapper participantMapper;
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
-    private ContestSchedulerServiceImpl service;
+    private ContestParticipationServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
     private static final String USER_ID = "user-001";
@@ -58,9 +58,11 @@ class ContestSchedulerServiceImplVirtualSessionTest {
         participantMapper = mock(ContestParticipantMapper.class);
         clock = mock(Clock.class);
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
+        com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService =
+                mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new ContestSchedulerServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock);
+        service = new ContestParticipationServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock, achievementTriggerService);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {

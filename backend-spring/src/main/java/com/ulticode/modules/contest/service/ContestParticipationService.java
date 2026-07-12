@@ -4,13 +4,22 @@ import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
- * Service for contest scheduling and lifecycle operations.
- * Handles registration, virtual contests, and participation tracking.
+ * Deep contest participation lifecycle seam.
+ *
+ * <p>Single owner of the (contest, user) join state machine: registration
+ * invariants, virtual replay start/finish, participation status reads, and
+ * the user's contest history. Every method that mutates or reads the
+ * participation row flows through here so the invariants concentrate in one
+ * module instead of being mirrored as pass-throughs on the contest write
+ * facade.
+ *
+ * <p>The registration side effect (contest participation achievement) is
+ * fired from within {@link #registerForContest}; callers never need to know
+ * it exists.
  */
-public interface ContestSchedulerService {
+public interface ContestParticipationService {
 
     void registerForContest(String contestId, String userId);
 

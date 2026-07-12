@@ -13,9 +13,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestScoringService;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,8 +56,6 @@ class ContestServiceImplMutatorTest {
     @Mock ContestMapper contestMapper;
     @Mock ContestProblemMapper contestProblemMapper;
     @Mock ContestParticipantMapper participantMapper;
-    @Mock ContestSchedulerService schedulerService;
-    @Mock AchievementTriggerService achievementTriggerService;
     @Mock SubmissionService submissionService;
     @Mock ContestScoringService contestScoringService;
     @Mock ContestProjection contestProjection;
@@ -75,7 +71,7 @@ class ContestServiceImplMutatorTest {
         when(currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")).thenReturn(true);
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
-                schedulerService, achievementTriggerService, submissionService,
+                submissionService,
                 contestScoringService, contestProjection, contestClock,
                 java.time.Clock.systemDefaultZone(),
                 new FixedUuidGenerator(), currentUserProvider);

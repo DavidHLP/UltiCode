@@ -14,9 +14,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestScoringService;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
@@ -64,8 +62,6 @@ class ContestServiceImplTest {
     @Mock private ContestMapper contestMapper;
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestParticipantMapper participantMapper;
-    @Mock private ContestSchedulerService schedulerService;
-    @Mock private AchievementTriggerService achievementTriggerService;
     @Mock private SubmissionService submissionService;
     @Mock private ContestScoringService contestScoringService;
     @Mock private ContestProjection contestProjection;
@@ -87,8 +83,6 @@ class ContestServiceImplTest {
                 contestMapper,
                 contestProblemMapper,
                 participantMapper,
-                schedulerService,
-                achievementTriggerService,
                 submissionService,
                 contestScoringService,
                 contestProjection,

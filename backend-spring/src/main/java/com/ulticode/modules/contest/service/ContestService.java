@@ -4,21 +4,19 @@ import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 
-import java.util.List;
-
 /**
- * Write-side facade for the contest domain — the contest state machine plus the
- * participation lifecycle methods that delegate to the scheduler.
+ * Write-side facade for the contest domain — the contest state machine only.
  *
  * <p>Read paths (catalog lists, detail, problems, announcements, stats, rankings)
- * were lifted into {@link com.ulticode.modules.contest.projection.ContestProjection};
- * controllers depend on that projection directly for reads and on this service
- * for writes. Write paths shape their return values through
+ * live in {@link com.ulticode.modules.contest.projection.ContestProjection};
+ * participation (register, unregister, status, virtual replay, history) lives
+ * in {@link ContestParticipationService}. This facade keeps the contest
+ * lifecycle (create, update, delete, start, end, problem management) and
+ * contest submission. Write paths shape their return values through
  * {@link com.ulticode.modules.contest.projection.ContestProjection#toVO}.
  */
 public interface ContestService {
@@ -52,67 +50,6 @@ public interface ContestService {
      * Submit code for a problem in a specific contest.
      */
     SubmissionVO submitContestProblem(String contestId, Long problemId, String userId, CreateSubmissionDTO createDTO);
-
-    /**
-     * Register a user for a contest.
-     *
-     * @param contestId the contest ID
-     * @param userId    the user ID
-     */
-    void registerForContest(String contestId, String userId);
-
-    /**
-     * Unregister a user from a contest.
-     *
-     * @param contestId the contest ID
-     * @param userId    the user ID
-     */
-    void unregisterFromContest(String contestId, String userId);
-
-    /**
-     * Get user's participation status for a contest.
-     *
-     * @param contestId the contest ID
-     * @param userId    the user ID
-     * @return the participation status
-     */
-    ParticipationStatusDTO getParticipationStatus(String contestId, String userId);
-
-    /**
-     * Get user's contests.
-     *
-     * @param userId the user ID
-     * @param type   the type of contests (registered, participated, virtual)
-     * @return list of contests the user participated in
-     */
-    List<ContestVO> getUserContests(String userId, String type);
-
-    /**
-     * Start a virtual contest.
-     *
-     * @param contestId the contest ID
-     * @param userId    the user ID
-     * @return the virtual session information
-     */
-    ParticipationStatusDTO startVirtualContest(String contestId, String userId);
-
-    /**
-     * Get virtual contest session status.
-     *
-     * @param contestId the contest ID
-     * @param userId    the user ID
-     * @return the virtual session status
-     */
-    ParticipationStatusDTO getVirtualSession(String contestId, String userId);
-
-    /**
-     * Finish a virtual contest.
-     *
-     * @param contestId the contest ID
-     * @param sessionId the virtual session ID
-     * @param userId    the user ID
-     */
-    void finishVirtualContest(String contestId, String sessionId, String userId);
 
     /**
      * Start a contest (transition from DRAFT/UPCOMING to RUNNING).

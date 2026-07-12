@@ -8,7 +8,7 @@ import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
 import com.ulticode.modules.contest.dto.UserContestHistoryVO;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.contest.service.ContestParticipationService;
 import com.ulticode.modules.contest.service.RankingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,7 +40,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContestParticipationController {
 
-    private final ContestService contestService;
+    private final ContestParticipationService participationService;
     private final ContestProjection contestProjection;
     private final RankingService rankingService;
     private final CurrentUserProvider currentUserProvider;
@@ -56,7 +56,7 @@ public class ContestParticipationController {
     @PostMapping("/{id}/register")
     public Result<Void> registerForContest(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        contestService.registerForContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
+        participationService.registerForContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
         return Result.success();
     }
 
@@ -71,7 +71,7 @@ public class ContestParticipationController {
     @PostMapping("/{id}/check-in")
     public Result<Void> checkIn(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        contestService.registerForContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
+        participationService.registerForContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
         return Result.success();
     }
 
@@ -85,7 +85,7 @@ public class ContestParticipationController {
     @DeleteMapping("/{id}/register")
     public Result<Void> unregisterFromContest(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        contestService.unregisterFromContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
+        participationService.unregisterFromContest(resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
         return Result.success();
     }
 
@@ -97,7 +97,7 @@ public class ContestParticipationController {
     @GetMapping("/{id}/participation")
     public Result<ParticipationStatusDTO> getParticipationStatus(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(contestService.getParticipationStatus(
+        return Result.success(participationService.getParticipationStatus(
                 resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider)));
     }
 
@@ -112,7 +112,7 @@ public class ContestParticipationController {
     @PostMapping("/{id}/virtual/start")
     public Result<ParticipationStatusDTO> startVirtualContest(@PathVariable String id) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(contestService.startVirtualContest(
+        return Result.success(participationService.startVirtualContest(
                 resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider)));
     }
 
@@ -127,7 +127,7 @@ public class ContestParticipationController {
             @Parameter(description = "Virtual session ID (optional since 2026-06-11)")
             @RequestParam(required = false) String sessionId) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        return Result.success(contestService.getVirtualSession(
+        return Result.success(participationService.getVirtualSession(
                 resolvedId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider)));
     }
 
@@ -143,7 +143,7 @@ public class ContestParticipationController {
             @PathVariable String id,
             @RequestParam(required = false) String sessionId) {
         String resolvedId = ContestControllerSupport.resolveContestId(contestProjection, id);
-        contestService.finishVirtualContest(
+        participationService.finishVirtualContest(
                 resolvedId, sessionId, ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider));
         return Result.success();
     }
@@ -156,7 +156,7 @@ public class ContestParticipationController {
     public Result<List<ContestVO>> getMyContests(
             @Parameter(description = "Type of contests (registered, participated, virtual)")
             @RequestParam(required = false, defaultValue = "participated") String type) {
-        return Result.success(contestService.getUserContests(
+        return Result.success(participationService.getUserContests(
                 ContestControllerSupport.getCurrentUserIdOrThrow(currentUserProvider), type));
     }
 

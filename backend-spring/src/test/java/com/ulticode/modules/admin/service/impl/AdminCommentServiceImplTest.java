@@ -68,7 +68,8 @@ class AdminCommentServiceImplTest {
         service = new AdminCommentServiceImpl(
                 List.of(forumModerator, solutionModerator),
                 commentReadPort,
-                currentUserProvider);
+                currentUserProvider,
+                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
         service.indexModeratorsByType();
     }
 

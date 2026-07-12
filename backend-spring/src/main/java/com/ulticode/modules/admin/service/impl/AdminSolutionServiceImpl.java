@@ -7,6 +7,7 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.projection.AdminSolutionProjection;
 import com.ulticode.modules.admin.service.AdminSolutionService;
@@ -56,6 +57,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final ProblemMapper problemMapper;
     private final AdminSolutionProjection solutionProjection;
     private final Clock clock;
+    private final AdminBulkExecutor bulkExecutor;
 
     @Override
     @Transactional
@@ -163,56 +165,46 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     @Audited(action = AuditVocabulary.BULK_SOLUTION_ACTION, entityType = AuditVocabulary.ENTITY_SOLUTION, captureNewState = false)
     public List<BulkActionResult> bulkAction(List<String> ids, String action) {
         AuditContext.setEntityId(String.join(",", ids));
-        List<BulkActionResult> results = new ArrayList<>();
 
-        // Pre-check existence in a single batched query (BUG-Q4, perf fix per code review
-        // M-1): replaces the previous N+1 selectById loop. MyBatis-Plus update returns 0
-        // affected rows silently for non-existent ids, so we must verify presence first.
+        // Pre-check existence in a single batched query (BUG-Q4 perf fix):
+        // passed to the executor as an existence guard so non-existent ids
+        // short-circuit to a not-found outcome without running the action.
         Set<String> existingIds = solutionMapper.selectBatchIds(ids).stream()
                 .map(Solution::getId)
                 .collect(Collectors.toSet());
 
-        for (String id : ids) {
-            if (!existingIds.contains(id)) {
-                results.add(BulkActionResult.failure(id, BulkActionResult.NOT_FOUND_MESSAGE));
-                continue;
-            }
-            try {
-                switch (action) {
-                    case "publish" -> {
-                        LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
-                        wrapper.eq(Solution::getId, id)
-                                .set(Solution::getIsPublished, true)
-                                .set(Solution::getPublishedAt, LocalDateTime.now(clock));
-                        solutionMapper.update(null, wrapper);
-                        results.add(BulkActionResult.success(id));
-                    }
-                    case "unpublish" -> {
-                        LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
-                        wrapper.eq(Solution::getId, id)
-                                .set(Solution::getIsPublished, false)
-                                .set(Solution::getPublishedAt, (LocalDateTime) null);
-                        solutionMapper.update(null, wrapper);
-                        results.add(BulkActionResult.success(id));
-                    }
-                    case "delete" -> {
-                        deleteSolution(id);
-                        results.add(BulkActionResult.success(id));
-                    }
-                    case "unflag" -> {
-                        unflagSolution(id);
-                        results.add(BulkActionResult.success(id));
-                    }
-                    default -> {
-                        results.add(BulkActionResult.failure(id, "Unknown action: " + action));
-                    }
+        AdminBulkExecutor.Run run = bulkExecutor.run(ids, action, id -> {
+            switch (action) {
+                case "publish" -> {
+                    LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
+                    wrapper.eq(Solution::getId, id)
+                            .set(Solution::getIsPublished, true)
+                            .set(Solution::getPublishedAt, LocalDateTime.now(clock));
+                    solutionMapper.update(null, wrapper);
                 }
-            } catch (RuntimeException e) {
-                log.error("Failed to perform action {} on solution {}: {}", action, id, e.getMessage());
-                results.add(BulkActionResult.failure(id, e.getMessage()));
+                case "unpublish" -> {
+                    LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
+                    wrapper.eq(Solution::getId, id)
+                            .set(Solution::getIsPublished, false)
+                            .set(Solution::getPublishedAt, (LocalDateTime) null);
+                    solutionMapper.update(null, wrapper);
+                }
+                case "delete" -> deleteSolution(id);
+                case "unflag" -> unflagSolution(id);
+                default -> throw new IllegalArgumentException("Unknown action: " + action);
+            }
+        }, existingIds::contains);
+
+        List<BulkActionResult> results = new ArrayList<>(run.items().size());
+        for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
+            if (outcome.success()) {
+                results.add(BulkActionResult.success(outcome.id()));
+            } else if (outcome.notFound()) {
+                results.add(BulkActionResult.failure(outcome.id(), BulkActionResult.NOT_FOUND_MESSAGE));
+            } else {
+                results.add(BulkActionResult.failure(outcome.id(), outcome.error()));
             }
         }
-
         return results;
     }
 }

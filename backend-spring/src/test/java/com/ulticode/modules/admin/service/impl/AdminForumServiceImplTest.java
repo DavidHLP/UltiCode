@@ -71,6 +71,10 @@ class AdminForumServiceImplTest {
     @Mock
     private ForumFlagPolicy forumFlagPolicy;
 
+    @org.mockito.Spy
+    private final com.ulticode.modules.admin.bulk.AdminBulkExecutor bulkExecutor =
+            new com.ulticode.modules.admin.bulk.AdminBulkExecutor();
+
     @InjectMocks
     private AdminForumServiceImpl adminForumService;
 

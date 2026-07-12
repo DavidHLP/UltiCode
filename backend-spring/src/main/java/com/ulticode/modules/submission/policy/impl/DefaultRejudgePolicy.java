@@ -11,6 +11,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.SubmissionStateMachine;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.policy.LegacyRejudgeStrategy;
 import com.ulticode.modules.submission.policy.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,24 @@ public class DefaultRejudgePolicy implements RejudgePolicy {
     private final FeatureFlagsProperties featureFlags;
     private final TransactionTemplate transactionTemplate;
     private final UuidGenerator uuidGenerator;
+    private final LegacyRejudgeStrategy legacyRejudgeStrategy;
+
+    /**
+     * Select strategy on the {@code useGenerationFence} feature flag and
+     * delegate. Flag-on runs the fenced state machine; flag-off runs the
+     * legacy non-transactional path via {@link LegacyRejudgeStrategy}.
+     *
+     * @param submission the submission to rejudge
+     * @param result     the result DTO to populate
+     * @return the same result DTO with success/error populated
+     */
+    @Override
+    public RejudgeResult rejudge(Submission submission, RejudgeResult result) {
+        if (!featureFlags.isUseGenerationFence()) {
+            return legacyRejudgeStrategy.rejudge(submission, result);
+        }
+        return rejudgeFenced(submission, result);
+    }
 
     /**
      * Run the fenced rejudge flow on {@code submission}.

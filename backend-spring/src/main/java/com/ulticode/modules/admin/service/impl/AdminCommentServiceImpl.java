@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
+import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -70,6 +71,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final List<CommentModerator> moderators;
     private final AdminCommentReadPort commentReadPort;
     private final CurrentUserProvider currentUserProvider;
+    private final AdminBulkExecutor bulkExecutor;
 
     /**
      * Type-keyed view of {@link #moderators}, built once at startup.
@@ -138,34 +140,26 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     @Override
     @Transactional
     public BulkActionResult bulkCommentAction(BulkCommentActionRequest request) {
-        BulkActionResult response = new BulkActionResult();
-        response.setTotal(request.getIds().size());
-        response.setResults(new ArrayList<>());
-        response.setSuccessful(0);
-        response.setFailed(0);
-
-        for (String id : request.getIds()) {
-            BulkActionResult.BulkActionItem item = new BulkActionResult.BulkActionItem();
-            item.setId(id);
-
-            try {
+        AdminBulkExecutor.Run run = bulkExecutor.run(
+            request.getIds(),
+            request.getAction(),
+            id -> {
                 switch (request.getAction()) {
                     case "delete" -> deleteComment(id, request.getType());
                     case "unflag" -> unflagComment(id, request.getType());
                     default -> throw new IllegalArgumentException("Unknown action: " + request.getAction());
                 }
-                item.setSuccess(true);
-                response.setSuccessful(response.getSuccessful() + 1);
-            } catch (RuntimeException e) {
-                log.error("Failed to perform action {} on comment {}", request.getAction(), id, e);
-                item.setSuccess(false);
-                item.setError(e.getMessage());
-                response.setFailed(response.getFailed() + 1);
-            }
+            });
 
-            response.getResults().add(item);
+        BulkActionResult response = new BulkActionResult();
+        response.setTotal(run.total());
+        response.setSuccessful(run.successful());
+        response.setFailed(run.failed());
+        response.setResults(new ArrayList<>(run.items().size()));
+        for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
+            response.getResults().add(new BulkActionResult.BulkActionItem(
+                outcome.id(), outcome.success(), outcome.error()));
         }
-
         return response;
     }
 

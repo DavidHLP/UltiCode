@@ -6,6 +6,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
+import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
@@ -59,6 +60,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final CurrentUserProvider currentUserProvider;
     private final ForumPostFieldToggle forumPostFieldToggle;
     private final ForumFlagPolicy forumFlagPolicy;
+    private final AdminBulkExecutor bulkExecutor;
 
     @Override
     public void pinPost(String id) {
@@ -130,38 +132,27 @@ public class AdminForumServiceImpl implements AdminForumService {
 
     @Override
     public BulkActionResult bulkAction(List<String> ids, String action) {
-        BulkActionResult response = new BulkActionResult();
-        response.setTotal(ids.size());
-        response.setResults(new ArrayList<>());
-        response.setSuccessful(0);
-        response.setFailed(0);
-
-        for (String id : ids) {
-            BulkActionResult.BulkActionItem item = new BulkActionResult.BulkActionItem();
-            item.setId(id);
-
-            try {
-                switch (action) {
-                    case "delete" -> deletePost(id);
-                    case "pin" -> pinPost(id);
-                    case "unpin" -> unpinPost(id);
-                    case "lock" -> lockPost(id);
-                    case "unlock" -> unlockPost(id);
-                    case "unflag" -> unflagPost(id);
-                    default -> throw new IllegalArgumentException("Unknown action: " + action);
-                }
-                item.setSuccess(true);
-                response.setSuccessful(response.getSuccessful() + 1);
-            } catch (RuntimeException e) {
-                log.error("Failed to perform action {} on post {}", action, id, e);
-                item.setSuccess(false);
-                item.setError(e.getMessage());
-                response.setFailed(response.getFailed() + 1);
+        AdminBulkExecutor.Run run = bulkExecutor.run(ids, action, id -> {
+            switch (action) {
+                case "delete" -> deletePost(id);
+                case "pin" -> pinPost(id);
+                case "unpin" -> unpinPost(id);
+                case "lock" -> lockPost(id);
+                case "unlock" -> unlockPost(id);
+                case "unflag" -> unflagPost(id);
+                default -> throw new IllegalArgumentException("Unknown action: " + action);
             }
+        });
 
-            response.getResults().add(item);
+        BulkActionResult response = new BulkActionResult();
+        response.setTotal(run.total());
+        response.setSuccessful(run.successful());
+        response.setFailed(run.failed());
+        response.setResults(new ArrayList<>(run.items().size()));
+        for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
+            response.getResults().add(new BulkActionResult.BulkActionItem(
+                outcome.id(), outcome.success(), outcome.error()));
         }
-
         return response;
     }
 

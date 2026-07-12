@@ -1,20 +1,19 @@
 package com.ulticode.modules.admin.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.time.LocalDate;
+import java.io.OutputStream;
 import java.util.List;
-import java.util.stream.Collectors;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
+import com.ulticode.modules.admin.service.ProblemExportService;
+import com.ulticode.modules.admin.service.impl.ExportPayload;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
@@ -40,12 +39,10 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "Bearer")
 public class AdminProblemController {
 
-    private static final int MAX_EXPORT_SIZE = 10000;
-
     private final ProblemService problemService;
     private final ProblemProjection problemProjection;
     private final AdminProblemService adminProblemService;
-    private final ObjectMapper objectMapper;
+    private final ProblemExportService problemExportService;
 
     @Operation(summary = "Get problems list", description = "Get paginated list of problems with filters")
     @GetMapping
@@ -60,70 +57,23 @@ public class AdminProblemController {
     public void exportProblems(ProblemQueryDTO query,
                                @RequestParam(defaultValue = "json") String format,
                                HttpServletResponse response) throws IOException {
-        // Validate format first before any response headers are set
-        String normalizedFormat = format != null ? format.trim().toLowerCase() : "json";
-        if (!"csv".equals(normalizedFormat) && !"json".equals(normalizedFormat)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write("{\"error\":\"Unsupported format: \" + format + \". Use 'json' or 'csv'.\"}");
-            return;
-        }
-
-        // Set response encoding first
+        // All shaping (format validation, size cap, CSV header/escape, date
+        // stamp via the Clock seam) lives in ProblemExportService; the
+        // controller only streams the payload to the response. Format errors
+        // throw BusinessException(BAD_REQUEST) and are shaped by the global
+        // exception handler.
+        ExportPayload payload = problemExportService.export(query, format);
         response.setCharacterEncoding("UTF-8");
-
-        List<ProblemVO> problems = problemProjection.listAllProblems(query);
-
-        // Enforce export size limit to prevent memory issues
-        if (problems.size() > MAX_EXPORT_SIZE) {
-            problems = problems.subList(0, MAX_EXPORT_SIZE);
-        }
-
-        String date = LocalDate.now().toString();
-
-        if ("json".equals(normalizedFormat)) {
-            response.setContentType("application/json");
-            response.setHeader("Content-Disposition",
-                "attachment; filename=problems-export-" + date + ".json");
-            objectMapper.writeValue(response.getOutputStream(), problems);
+        response.setContentType(payload.contentType());
+        response.setHeader("Content-Disposition", "attachment; filename=" + payload.filename());
+        if (payload.jsonBytes() != null) {
+            OutputStream out = response.getOutputStream();
+            out.write(payload.jsonBytes());
+            out.flush();
         } else {
-            response.setContentType("text/csv; charset=UTF-8");
-            response.setHeader("Content-Disposition",
-                "attachment; filename=problems-export-" + date + ".csv");
-            PrintWriter writer = response.getWriter();
-            writer.println("id,slug,title,difficulty,status,isPremium,isPublished,submissionCount,solutionCount,createdAt,updatedAt,tags");
-            for (ProblemVO problem : problems) {
-                String tags = problem.getTags() != null
-                    ? problem.getTags().stream().map(ProblemVO.ProblemTagVO::getLabel).collect(Collectors.joining(";"))
-                    : "";
-                writer.println(String.join(",",
-                    String.valueOf(problem.getId()),
-                    escapeCsvField(problem.getSlug()),
-                    escapeCsvField(problem.getTitle()),
-                    escapeCsvField(problem.getDifficulty()),
-                    escapeCsvField(problem.getStatus()),
-                    String.valueOf(problem.getIsPremium()),
-                    String.valueOf(problem.getIsPublished()),
-                    String.valueOf(problem.getSubmissionCount()),
-                    String.valueOf(problem.getSolutionCount()),
-                    problem.getCreatedAt() != null ? problem.getCreatedAt().toString() : "",
-                    problem.getUpdatedAt() != null ? problem.getUpdatedAt().toString() : "",
-                    escapeCsvField(tags)
-                ));
-            }
-            writer.flush();
+            response.getWriter().write(payload.csvBody());
+            response.getWriter().flush();
         }
-    }
-
-    private static String escapeCsvField(String field) {
-        if (field == null || field.isEmpty()) {
-            return "";
-        }
-        if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
-            return "\"" + field.replace("\"", "\"\"") + "\"";
-        }
-        return field;
     }
 
     @Operation(summary = "Get problem by ID", description = "Get detailed problem information")

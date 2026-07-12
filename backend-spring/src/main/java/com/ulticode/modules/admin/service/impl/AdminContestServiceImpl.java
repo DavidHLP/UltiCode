@@ -73,6 +73,14 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final Clock clock;
     private final AdminContestProjection adminContestProjection;
     private final CurrentUserProvider currentUserProvider;
+    /**
+     * ADR-0011 phase 2 (contest): cross-module contest-side reads now cross
+     * the {@link com.ulticode.modules.admin.port.AdminContestReadPort} seam.
+     * The remaining {@link ContestProblemMapper} usage below is for
+     * legitimate write paths (bulk insert, problem-existence check,
+     * problem-add) — admin's own CRUD targets.
+     */
+    private final com.ulticode.modules.admin.port.AdminContestReadPort contestReadPort;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -246,7 +254,7 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED);
         }
 
-        long problemCount = contestProblemMapper.countByContestId(id);
+        long problemCount = contestReadPort.countProblemsByContestId(id);
         if (problemCount == 0) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
@@ -386,7 +394,7 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONFLICT);
         }
 
-        long problemCount = contestProblemMapper.countByContestId(contestId);
+        long problemCount = contestReadPort.countProblemsByContestId(contestId);
 
         ContestProblem cp = new ContestProblem();
         cp.setContestId(contestId);

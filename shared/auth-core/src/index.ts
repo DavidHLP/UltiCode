@@ -127,3 +127,14 @@ export {
   type VueRouterTo,
   type InstallAuthNavigationOptions,
 } from './navigation'
+
+// Auth store factory — the deep seam that owns the duplicated
+// login/logout/fetchUser/loadPermissions/initialize/clearUser/hasPermission/
+// hasRole chain both apps carried. Each app's Pinia `defineStore` calls this
+// with its per-app backend adapter; the auth contract lives once. See
+// architecture-review candidate #4.
+export {
+  createAuthStore,
+  type AuthStoreAdapter,
+  type AuthStoreInternals,
+} from './createAuthStore'

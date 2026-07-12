@@ -74,7 +74,8 @@ class AdminSolutionServiceImplTest {
     void setUp() {
         when(clock.instant()).thenReturn(Instant.EPOCH);
         when(clock.getZone()).thenReturn(ZoneId.systemDefault());
-        service = new AdminSolutionServiceImpl(solutionMapper, problemMapper, solutionProjection, clock);
+        service = new AdminSolutionServiceImpl(solutionMapper, problemMapper, solutionProjection, clock,
+                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
     }
 
     @AfterEach

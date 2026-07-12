@@ -7,6 +7,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.PartialUpdate;
+import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
@@ -47,6 +48,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final AdminProblemPort problemPort;
     private final AuditService auditService;
     private final CurrentUserProvider currentUserProvider;
+    private final AdminBulkExecutor bulkExecutor;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -96,40 +98,38 @@ public class AdminProblemServiceImpl implements AdminProblemService {
 
     @Override
     public List<BulkProblemResultDTO> bulkAction(BulkProblemRequestDTO request) {
-        List<BulkProblemResultDTO> results = new ArrayList<>();
-        for (String idStr : request.getIds()) {
-            try {
-                Long id = Long.parseLong(idStr);
-                switch (request.getAction()) {
-                    case publish -> problemPort.publishProblem(id);
-                    case unpublish -> problemPort.unpublishProblem(id);
-                    case delete -> problemPort.deleteProblem(id);
-                    case restore -> {
-                        int restored = problemMapper.restoreDeletedByIds(List.of(id));
-                        if (restored > 0) {
-                            log.info("Problem id={} restored by user={}", id, currentUserProvider.getCurrentUserId());
-                        }
+        AdminBulkExecutor.Run run = bulkExecutor.run(request.getIds(), request.getAction().name(), idStr -> {
+            Long id = Long.parseLong(idStr);
+            switch (request.getAction()) {
+                case publish -> problemPort.publishProblem(id);
+                case unpublish -> problemPort.unpublishProblem(id);
+                case delete -> problemPort.deleteProblem(id);
+                case restore -> {
+                    int restored = problemMapper.restoreDeletedByIds(List.of(id));
+                    if (restored > 0) {
+                        log.info("Problem id={} restored by user={}", id, currentUserProvider.getCurrentUserId());
                     }
-                    case edit -> {
-                        var params = request.getParams();
-                        if (params != null && params.containsKey("difficulty")) {
-                            String difficulty = (String) params.get("difficulty");
-                            if (!isValidDifficulty(difficulty)) {
-                                throw new IllegalArgumentException("Invalid difficulty value: " + difficulty);
-                            }
-                            Problem problem = problemMapper.selectById(id);
-                            if (problem != null) {
-                                problem.setDifficulty(difficulty);
-                                problemMapper.updateById(problem);
-                            }
+                }
+                case edit -> {
+                    var params = request.getParams();
+                    if (params != null && params.containsKey("difficulty")) {
+                        String difficulty = (String) params.get("difficulty");
+                        if (!isValidDifficulty(difficulty)) {
+                            throw new IllegalArgumentException("Invalid difficulty value: " + difficulty);
+                        }
+                        Problem problem = problemMapper.selectById(id);
+                        if (problem != null) {
+                            problem.setDifficulty(difficulty);
+                            problemMapper.updateById(problem);
                         }
                     }
                 }
-                results.add(new BulkProblemResultDTO(idStr, true, null));
-            } catch (Exception e) {
-                log.error("Bulk action failed for problem id={}: {}", idStr, e.getMessage(), e);
-                results.add(new BulkProblemResultDTO(idStr, false, e.getMessage()));
             }
+        });
+
+        List<BulkProblemResultDTO> results = new ArrayList<>(run.items().size());
+        for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
+            results.add(new BulkProblemResultDTO(outcome.id(), outcome.success(), outcome.error()));
         }
         return results;
     }

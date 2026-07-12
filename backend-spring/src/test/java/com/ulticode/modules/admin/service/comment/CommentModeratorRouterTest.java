@@ -85,7 +85,8 @@ class CommentModeratorRouterTest {
         router = new AdminCommentServiceImpl(
                 List.of(forumModerator, solutionModerator, contestModerator),
                 commentReadPort,
-                currentUserProvider);
+                currentUserProvider,
+                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
         router.indexModeratorsByType();
     }
 
@@ -207,7 +208,8 @@ class CommentModeratorRouterTest {
     @DisplayName("Type=null with empty moderator list returns empty PageResult")
     void listComments_emptyModerators_returnsEmpty() {
         AdminCommentServiceImpl emptyRouter = new AdminCommentServiceImpl(
-                new ArrayList<>(), commentReadPort, currentUserProvider);
+                new ArrayList<>(), commentReadPort, currentUserProvider,
+                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
         emptyRouter.indexModeratorsByType();
 
         AdminCommentQueryDTO query = new AdminCommentQueryDTO();

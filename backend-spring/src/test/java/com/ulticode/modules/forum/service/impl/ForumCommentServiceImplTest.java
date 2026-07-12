@@ -6,7 +6,7 @@ import com.ulticode.modules.forum.entity.ForumComment;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumUserMapper;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class ForumCommentServiceImplTest {
     @Mock
     private ForumUserMapper forumUserMapper;
     @Mock
-    private UserService userService;
+    private UserReadProjection userReadProjection;
     @Mock
     private Clock clock;
 
@@ -78,7 +78,7 @@ class ForumCommentServiceImplTest {
         when(commentMapper.selectById(COMMENT_ID)).thenReturn(existing);
         when(commentMapper.updateById(any(ForumComment.class))).thenReturn(1);
         when(commentMapper.markAsEdited(COMMENT_ID)).thenReturn(1);
-        when(userService.findById(AUTHOR_ID)).thenReturn(Optional.empty());
+        when(userReadProjection.findById(AUTHOR_ID)).thenReturn(Optional.empty());
 
         UpdateCommentDTO dto = new UpdateCommentDTO();
         dto.setBody("new body");

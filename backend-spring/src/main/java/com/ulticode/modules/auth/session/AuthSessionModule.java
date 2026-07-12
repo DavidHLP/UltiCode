@@ -4,7 +4,7 @@ import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
@@ -38,7 +38,7 @@ public class AuthSessionModule implements AuthSessionPort {
     private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
     private final CsrfService csrfService;
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
 
     @Override
     public LoginResponse completeLogin(User user, HttpServletResponse response) {
@@ -59,7 +59,7 @@ public class AuthSessionModule implements AuthSessionPort {
         // 4. CSRF token + cookie + LoginResponse
         String csrfToken = csrfService.generateToken(user.getId());
         setCsrfCookie(response, csrfToken);
-        UserVO userVO = userService.toVO(user);
+        UserVO userVO = userReadProjection.toVO(user);
 
         return LoginResponse.builder()
                 .csrfToken(csrfToken)
@@ -81,7 +81,7 @@ public class AuthSessionModule implements AuthSessionPort {
 
         String csrfToken = csrfService.generateToken(user.getId());
         setCsrfCookie(response, csrfToken);
-        UserVO userVO = userService.toVO(user);
+        UserVO userVO = userReadProjection.toVO(user);
 
         return LoginResponse.builder()
                 .csrfToken(csrfToken)

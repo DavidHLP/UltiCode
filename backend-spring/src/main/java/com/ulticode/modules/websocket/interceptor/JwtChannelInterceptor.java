@@ -3,7 +3,7 @@ package com.ulticode.modules.websocket.interceptor;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;
 import com.ulticode.modules.websocket.util.TokenExtractor;
@@ -37,17 +37,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
   private final JwtUtils jwtUtils;
   private final TokenBlacklistPort tokenBlacklistPort;
-  private final UserService userService;
+  private final UserReadProjection userReadProjection;
   private final TokenExtractor tokenExtractor;
 
   public JwtChannelInterceptor(
       JwtUtils jwtUtils,
       TokenBlacklistPort tokenBlacklistPort,
-      UserService userService,
+      UserReadProjection userReadProjection,
       TokenExtractor tokenExtractor) {
     this.jwtUtils = jwtUtils;
     this.tokenBlacklistPort = tokenBlacklistPort;
-    this.userService = userService;
+    this.userReadProjection = userReadProjection;
     this.tokenExtractor = tokenExtractor;
   }
 
@@ -196,7 +196,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     }
 
     // Verify user exists
-    Optional<User> userOpt = userService.findById(userId);
+    Optional<User> userOpt = userReadProjection.findById(userId);
     if (userOpt.isEmpty()) {
       log.warn("WebSocket connection rejected: User not found, userId: {}", userId);
       throw new WebSocketAuthenticationException(

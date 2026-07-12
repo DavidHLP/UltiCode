@@ -10,7 +10,7 @@ import com.ulticode.modules.auth.session.AuthSessionPort;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.auth.account.AuthAccountPort;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.port.UserWritePort;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.security.jwt.JwtTokenProvider;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -52,7 +52,7 @@ class AuthServiceImplTest {
     private AuthAccountPort accountPort;
 
     @Mock
-    private UserService userService;
+    private UserWritePort userWritePort;
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
@@ -129,7 +129,7 @@ class AuthServiceImplTest {
             // Assert
             assertThat(response).isSameAs(expected);
             verify(authSessionPort).completeLogin(eq(user), any());
-            verify(userService).updateLastLoginAt(USER_ID);
+            verify(userWritePort).updateLastLoginAt(USER_ID);
         }
 
         @Test
@@ -227,7 +227,7 @@ class AuthServiceImplTest {
             // Assert
             assertThat(response).isSameAs(expected);
             verify(accountPort).create(any(User.class));
-            verify(userService).updateLastLoginAt(anyString());
+            verify(userWritePort).updateLastLoginAt(anyString());
         }
 
         @Test

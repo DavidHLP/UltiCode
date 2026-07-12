@@ -16,7 +16,7 @@ import com.ulticode.modules.auth.service.PasswordResetService;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.security.csrf.CsrfService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -46,7 +46,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final CsrfService csrfService;
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
     private final PasswordResetService passwordResetService;
     private final OAuthService oauthService;
     private final PermissionService permissionService;
@@ -144,11 +144,11 @@ public class AuthController {
     @GetMapping("/me")
     public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
         String userId = principal.getName();
-        User user = userService.findById(userId)
+        User user = userReadProjection.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
 
         String csrfToken = csrfService.generateToken(user.getId());
-        UserVO userVO = userService.toVO(user);
+        UserVO userVO = userReadProjection.toVO(user);
 
         UserWithCsrfVO response = new UserWithCsrfVO();
         response.setUser(userVO);

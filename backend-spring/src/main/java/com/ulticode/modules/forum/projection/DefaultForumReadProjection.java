@@ -21,7 +21,7 @@ import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
 import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +62,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumTagMapper tagMapper;
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
     private final VoteService voteService;
     private final ForumPostProjection postProjection;
 
@@ -115,7 +115,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     public ForumPostVO findPostById(String id, String userId) {
         ForumPost post = postMapper.selectById(id);
         if (post == null) throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        User author = userService.findById(post.getUserId()).orElse(null);
+        User author = userReadProjection.findById(post.getUserId()).orElse(null);
         return postProjection.toPostVO(post, userId, author);
     }
 
@@ -129,7 +129,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
                 ? communityMapper.selectById(post.getCommunityId())
                 : null;
         Map<String, User> authorMap = new HashMap<>();
-        userService.findById(post.getUserId()).ifPresent(u -> authorMap.put(post.getUserId(), u));
+        userReadProjection.findById(post.getUserId()).ifPresent(u -> authorMap.put(post.getUserId(), u));
 
         ForumPostThreadVO thread = new ForumPostThreadVO();
         thread.setPost(postProjection.toPostVO(post, userId, authorMap.get(post.getUserId()), community, 0L));
@@ -138,7 +138,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         Set<String> authorIds = new HashSet<>();
         comments.forEach(c -> authorIds.add(c.getAuthorId()));
         if (post.getUserId() != null) authorIds.add(post.getUserId());
-        authorIds.forEach(aid -> userService.findById(aid).ifPresent(u -> authorMap.put(aid, u)));
+        authorIds.forEach(aid -> userReadProjection.findById(aid).ifPresent(u -> authorMap.put(aid, u)));
         thread.setComments(forumCommentService.buildCommentTree(comments, authorMap));
         return thread;
     }
@@ -263,7 +263,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     @Override
     public Map<String, User> batchLoadAuthors(List<ForumPost> posts) {
         Set<String> ids = posts.stream().map(ForumPost::getUserId).filter(Objects::nonNull).collect(Collectors.toSet());
-        return userService.findAllById(ids);
+        return userReadProjection.findAllById(ids);
     }
 
     @Override

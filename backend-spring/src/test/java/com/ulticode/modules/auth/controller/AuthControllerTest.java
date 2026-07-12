@@ -13,7 +13,7 @@ import com.ulticode.modules.auth.service.PasswordResetService;
 import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.security.AuthenticationEntryPointImpl;
 import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
@@ -81,7 +81,7 @@ class AuthControllerTest {
     @MockBean
     private CsrfService csrfService;
     @MockBean
-    private UserService userService;
+    private UserReadProjection userReadProjection;
     @MockBean
     private PasswordResetService passwordResetService;
     @MockBean
@@ -177,8 +177,8 @@ class AuthControllerTest {
             userVO.setId("user-1");
             userVO.setUsername("testuser");
 
-            when(userService.findById("user-1")).thenReturn(Optional.of(user));
-            when(userService.toVO(user)).thenReturn(userVO);
+            when(userReadProjection.findById("user-1")).thenReturn(Optional.of(user));
+            when(userReadProjection.toVO(user)).thenReturn(userVO);
             when(csrfService.generateToken("user-1")).thenReturn("csrf-token");
 
             mockMvc.perform(get("/auth/me")

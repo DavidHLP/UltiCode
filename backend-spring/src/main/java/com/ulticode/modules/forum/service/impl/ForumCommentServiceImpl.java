@@ -14,7 +14,7 @@ import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
     private final ForumCommentMapper commentMapper;
     private final ForumPostMapper postMapper;
     private final ForumUserMapper forumUserMapper;
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
     private final Clock clock;
 
     @Override
@@ -71,7 +71,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         commentMapper.insert(comment);
 
         Map<String, User> authorMap = new HashMap<>();
-        userService.findById(userId).ifPresent(user -> authorMap.put(userId, user));
+        userReadProjection.findById(userId).ifPresent(user -> authorMap.put(userId, user));
 
         return convertToCommentVO(comment, authorMap);
     }
@@ -99,7 +99,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         commentMapper.markAsEdited(id);
 
         Map<String, User> authorMap = new HashMap<>();
-        userService.findById(comment.getAuthorId()).ifPresent(user -> authorMap.put(comment.getAuthorId(), user));
+        userReadProjection.findById(comment.getAuthorId()).ifPresent(user -> authorMap.put(comment.getAuthorId(), user));
 
         return convertToCommentVO(comment, authorMap);
     }
@@ -188,7 +188,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
             return forumUser.getId();
         }
 
-        User user = userService.findById(userId)
+        User user = userReadProjection.findById(userId)
                 .orElseThrow(() -> {
                     log.error("User not found when creating forum user: {}", userId);
                     return new BusinessException(ErrorCode.USER_NOT_FOUND);

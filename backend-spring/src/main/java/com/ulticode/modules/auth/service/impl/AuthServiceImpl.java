@@ -13,7 +13,7 @@ import com.ulticode.modules.auth.session.AuthSessionPort;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.auth.account.AuthAccountPort;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.port.UserWritePort;
 import com.ulticode.security.jwt.JwtTokenProvider;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,7 +40,7 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private final AuthAccountPort accountPort;
-    private final UserService userService;
+    private final UserWritePort userWritePort;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
@@ -61,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
 
         ensureAccountActive(user);
 
-        userService.updateLastLoginAt(user.getId());
+        userWritePort.updateLastLoginAt(user.getId());
 
         return authSessionPort.completeLogin(user, response);
     }
@@ -92,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
         accountPort.create(user);
         log.info("Registered new user: {}", user.getUsername());
 
-        userService.updateLastLoginAt(user.getId());
+        userWritePort.updateLastLoginAt(user.getId());
 
         return authSessionPort.completeLogin(user, response);
     }

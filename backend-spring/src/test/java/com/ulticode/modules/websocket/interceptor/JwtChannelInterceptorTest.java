@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;
 import com.ulticode.modules.websocket.util.TokenExtractor;
@@ -31,7 +31,7 @@ class JwtChannelInterceptorTest {
 
   @Mock private JwtUtils jwtUtils;
   @Mock private TokenBlacklistPort tokenBlacklistPort;
-  @Mock private UserService userService;
+  @Mock private UserReadProjection userReadProjection;
   @Mock private TokenExtractor tokenExtractor;
   @Mock private MessageChannel channel;
 
@@ -39,7 +39,7 @@ class JwtChannelInterceptorTest {
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(jwtUtils, tokenBlacklistPort, userService, tokenExtractor);
+    interceptor = new JwtChannelInterceptor(jwtUtils, tokenBlacklistPort, userReadProjection, tokenExtractor);
   }
 
   @Test
@@ -77,7 +77,7 @@ class JwtChannelInterceptorTest {
     when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn(userId);
-    when(userService.findById(userId)).thenReturn(Optional.of(user));
+    when(userReadProjection.findById(userId)).thenReturn(Optional.of(user));
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
     Message<?> result = interceptor.preSend(message, channel);
@@ -86,7 +86,7 @@ class JwtChannelInterceptorTest {
     verify(tokenExtractor).extractTokenFromHeaders(any());
     verify(tokenBlacklistPort).isBlacklisted(token);
     verify(jwtUtils).validateToken(token);
-    verify(userService).findById(userId);
+    verify(userReadProjection).findById(userId);
   }
 
   @Test
@@ -208,7 +208,7 @@ class JwtChannelInterceptorTest {
     when(tokenBlacklistPort.isBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn(userId);
-    when(userService.findById(userId)).thenReturn(Optional.empty());
+    when(userReadProjection.findById(userId)).thenReturn(Optional.empty());
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 

@@ -4,7 +4,8 @@ import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.port.UserWritePort;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,20 +26,21 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminAccountController {
 
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
+    private final UserWritePort userWritePort;
     private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get current admin profile", description = "Get the profile of the currently authenticated admin user")
     @GetMapping("/profile")
     public Result<UserVO> getProfile() {
-        UserVO user = userService.getCurrentUser();
+        UserVO user = userReadProjection.getCurrentUser();
         return Result.success(user);
     }
 
     @Operation(summary = "Update current admin profile", description = "Update the profile of the currently authenticated admin user")
     @PatchMapping("/profile")
     public Result<UserVO> updateProfile(@Valid @RequestBody UpdateUserDTO updateDTO) {
-        UserVO user = userService.updateCurrentUser(updateDTO);
+        UserVO user = userWritePort.updateCurrentUser(updateDTO);
         return Result.success(user);
     }
 

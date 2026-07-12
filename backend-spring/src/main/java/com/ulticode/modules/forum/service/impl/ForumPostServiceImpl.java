@@ -17,7 +17,7 @@ import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.forum.service.ForumPostService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +50,7 @@ public class ForumPostServiceImpl implements ForumPostService {
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumCommentMapper commentMapper;
     private final ForumUserMapper forumUserMapper;
-    private final UserService userService;
+    private final UserReadProjection userReadProjection;
     private final VoteService voteService;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
@@ -88,7 +88,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         post.setIsFlagged(false);
         postMapper.insert(post);
         communityMapper.incrementPostsCount(dto.getCommunityId());
-        User author = userService.findById(post.getUserId()).orElse(null);
+        User author = userReadProjection.findById(post.getUserId()).orElse(null);
         return postProjection.toPostVO(post, userId, author);
     }
 
@@ -108,7 +108,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         if (dto.getIsPinned() != null) post.setIsPinned(dto.getIsPinned());
         if (dto.getIsLocked() != null) post.setIsLocked(dto.getIsLocked());
         postMapper.updateById(post);
-        User author = userService.findById(post.getUserId()).orElse(null);
+        User author = userReadProjection.findById(post.getUserId()).orElse(null);
         ForumCommunity community = post.getCommunityId() != null ? communityMapper.selectById(post.getCommunityId()) : null;
         return postProjection.toPostVO(post, userId, author, community, 0L);
     }
@@ -146,7 +146,7 @@ public class ForumPostServiceImpl implements ForumPostService {
     private String ensureForumUserExists(String userId) {
         ForumUser fu = forumUserMapper.selectById(userId);
         if (fu != null) return fu.getId();
-        User user = userService.findById(userId).orElseThrow(() -> {
+        User user = userReadProjection.findById(userId).orElseThrow(() -> {
             log.error("User not found when creating forum user: {}", userId);
             return new BusinessException(ErrorCode.USER_NOT_FOUND);
         });

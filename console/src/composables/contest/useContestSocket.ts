@@ -284,23 +284,7 @@ export function useContestSocket(
       // pre-refactor getContestSocket behaviour).
       transport.connect();
 
-      // One-shot "ready" hook used only when the client is still connecting.
-      // The transport's onConnect emits "ready"; we never overwrite
-      // client.onConnect (the old override destroyed status notification +
-      // the broadcast subscription, and the parallel "connected_once"
-      // callback was dead code).
-      let ready: (() => void) | null = null;
-      if (!transport.isConnected()) {
-        ready = () => {
-          if (ready) transport.off("ready", ready);
-          performJoin();
-        };
-        transport.on("ready", ready);
-      } else {
-        performJoin();
-      }
-
-      function performJoin() {
+      const performJoin = () => {
         // Unsubscribe from existing contest subscription if any
         transport.unsubscribeKey(`contest-${currentContestId.value}`);
 
@@ -332,16 +316,43 @@ export function useContestSocket(
           contestId,
           message: `Successfully joined contest ${contestId}`,
         });
+      };
+
+      // Fast path: already connected, join synchronously — no pending hooks.
+      if (transport.isConnected()) {
+        performJoin();
+        return;
       }
 
-      // Timeout after 10 seconds; also drop the pending ready hook so a late
-      // connect cannot fire a stale join.
-      setTimeout(() => {
-        if (ready) {
-          transport.off("ready", ready);
-        }
+      // Still connecting: wait for the transport's one-shot "ready" event.
+      // We never overwrite client.onConnect (the old override destroyed status
+      // notification + the broadcast subscription, and the parallel
+      // "connected_once" callback was dead code).
+      //
+      // The pending "ready" hook + timeout are registered in `unsubscribers`
+      // so an unmount mid-connect tears them down; otherwise a late connect
+      // (or the 10s timer) could fire a stale join against the singleton
+      // transport for an already-unmounted component.
+      let settled = false;
+      function cleanup() {
+        settled = true;
+        transport.off("ready", ready);
+        clearTimeout(timeoutId);
+        const idx = unsubscribers.indexOf(cleanup);
+        if (idx !== -1) unsubscribers.splice(idx, 1);
+      }
+      function ready() {
+        if (settled) return;
+        cleanup();
+        performJoin();
+      }
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        cleanup();
         reject(new Error("Connection timeout"));
       }, 10000);
+      transport.on("ready", ready);
+      unsubscribers.push(cleanup);
     });
   };
 

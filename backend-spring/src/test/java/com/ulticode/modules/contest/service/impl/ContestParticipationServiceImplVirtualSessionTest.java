@@ -23,6 +23,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,6 +48,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     private ContestParticipantMapper participantMapper;
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
+    private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     private ContestParticipationServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -58,7 +61,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         participantMapper = mock(ContestParticipantMapper.class);
         clock = mock(Clock.class);
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
-        com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService =
+        achievementTriggerService =
                 mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
@@ -228,5 +231,90 @@ class ContestParticipationServiceImplVirtualSessionTest {
         assertThat(p.getUpdatedAt()).isEqualTo(originalFinish);
         // The SQL UPDATE must NOT be re-issued
         verify(participantMapper, never()).bulkFinishByIds(any(), any());
+    }
+
+    // ============================================================
+    // registerForContest — capacity, dedup, achievement side effect
+    // ============================================================
+
+    private Contest buildUpcomingContest() {
+        Contest c = buildContest();
+        c.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.UPCOMING.name());
+        c.setRegistrationEnd(null);
+        return c;
+    }
+
+    @Test
+    @DisplayName("registerForContest inserts participant and fires participation achievement")
+    void registerForContest_successTriggersAchievement() {
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
+        when(participantMapper.countByUserId(USER_ID)).thenReturn(3L);
+
+        service.registerForContest(CONTEST_ID, USER_ID);
+
+        verify(participantMapper).insert(any(ContestParticipant.class));
+        verify(achievementTriggerService).trigger(
+                USER_ID,
+                com.ulticode.modules.achievement.constants.AchievementType.CONTEST_PARTICIPATION,
+                3);
+    }
+
+    @Test
+    @DisplayName("registerForContest throws CONTEST_FULL and skips insert when capacity increment fails")
+    void registerForContest_full() {
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_FULL);
+
+        verify(participantMapper, never()).insert(any(ContestParticipant.class));
+        verify(achievementTriggerService, never()).trigger(any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("registerForContest maps duplicate insert to CONTEST_ALREADY_REGISTERED, no achievement")
+    void registerForContest_duplicate() {
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
+        doThrow(new org.springframework.dao.DuplicateKeyException("dup"))
+                .when(participantMapper).insert(any(ContestParticipant.class));
+
+        assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ALREADY_REGISTERED);
+
+        verify(achievementTriggerService, never()).trigger(any(), any(), anyInt());
+    }
+
+    @Test
+    @DisplayName("registerForContest rejects non-upcoming contest before touching capacity")
+    void registerForContest_notUpcoming() {
+        Contest c = buildContest();
+        c.setStatus(com.ulticode.modules.contest.entity.enums.ContestStatus.RUNNING.name());
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+
+        assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+
+        verify(contestMapper, never()).tryIncrementRegisteredCount(any());
+    }
+
+    @Test
+    @DisplayName("registerForContest swallows achievement failure — registration still succeeds")
+    void registerForContest_achievementFailureDoesNotRollBack() {
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
+        when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
+        when(participantMapper.countByUserId(USER_ID)).thenReturn(1L);
+        doThrow(new RuntimeException("achievement service down"))
+                .when(achievementTriggerService).trigger(any(), any(), anyInt());
+
+        // Must not propagate — the side effect is best-effort by design.
+        service.registerForContest(CONTEST_ID, USER_ID);
+
+        verify(participantMapper).insert(any(ContestParticipant.class));
     }
 }

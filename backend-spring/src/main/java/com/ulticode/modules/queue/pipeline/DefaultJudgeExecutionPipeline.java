@@ -112,6 +112,11 @@ public class DefaultJudgeExecutionPipeline implements JudgeExecutionPipeline {
             if (tcId != null && !tcId.isBlank()) {
                 JudgingCase tc = byId.get(tcId);
                 if (tc != null) {
+                    // caseId is now stamped uniformly for BOTH sources. The
+                    // legacy problem_examples path left it null pre-refactor;
+                    // sealing case loading behind JudgingCaseSource makes every
+                    // case carry a stable id, so downstream must not treat a
+                    // null caseId as a "legacy submission" marker.
                     detail.setCaseId(tc.getId());
                     if (Boolean.TRUE.equals(tc.getHidden())) {
                         detail.setCaseScope(CaseScope.HIDDEN);

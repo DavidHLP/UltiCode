@@ -1,97 +1,34 @@
 // console/src/composables/contest/useContestSocket.ts
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import type { IMessage } from "@stomp/stompjs";
 import { useAuthStore } from "@/stores/auth";
-import type { RankingEntry } from "@/types/contest";
-import { getCsrfToken } from "@/shared/auth-core/src";
 import {
-  createRealtimeTransport,
+  ContestRoom,
   type ConnectionStatus,
-  type RealtimeTransport,
-} from "@/lib/realtime/transport";
+  type ContestRoomResponse,
+  type RankingUpdatePayload,
+  type FirstSolvePayload,
+  type AnnouncementPayload,
+  type ContestStatusPayload,
+  type SubmissionResultPayload,
+} from "@/lib/realtime/contest-room";
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export type { ConnectionStatus };
-
-/**
- * Response from join/leave contest operations
- */
-interface ContestRoomResponse {
-  success: boolean;
-  contestId: string;
-  message: string;
-  error?: string;
-}
-
-/**
- * Ranking update event payload from server
- */
-export interface RankingUpdatePayload {
-  contestId: string;
-  rankings: RankingEntry[];
-  updatedAt: Date | string;
-}
-
-/**
- * First solve notification payload from server
- */
-export interface FirstSolvePayload {
-  contestId: string;
-  problemId: string;
-  problemTitle: string;
-  userId: string;
-  username: string;
-  solvedAt: Date | string;
-}
-
-/**
- * Announcement payload from server
- */
-export interface AnnouncementPayload {
-  id: string;
-  contestId: string;
-  title: string;
-  content: string;
-  createdAt: Date | string;
-}
-
-/**
- * Contest status update payload from server
- */
-export interface ContestStatusPayload {
-  contestId: string;
-  status: "upcoming" | "registration" | "running" | "ended";
-  startedAt?: Date | string;
-  endsAt?: Date | string;
-  message?: string;
-}
-
-/**
- * Submission result payload from server
- */
-export interface SubmissionResultPayload {
-  submissionId: string;
-  contestId: string;
-  problemId: string;
-  userId: string;
-  status: string;
-  score: number;
-  timeUsed?: number;
-  memoryUsed?: number;
-  judgedAt: Date | string;
-}
+// Re-export room types so existing imports from this module stay valid.
+export type {
+  ConnectionStatus,
+  ContestRoomResponse,
+  RankingUpdatePayload,
+  FirstSolvePayload,
+  AnnouncementPayload,
+  ContestStatusPayload,
+  SubmissionResultPayload,
+};
 
 /**
  * Options for useContestSocket composable.
  *
- * Only {@link autoConnect} is honoured per-call. Reconnect policy
- * (cadence, attempt cap, delay) is now owned by the deep realtime transport
- * (see {@link getContestTransport}) so it concentrates in one module instead
- * of drifting per caller; the remaining fields are retained for API
- * compatibility and default to the transport's values.
+ * Only {@link autoConnect} is honoured per-call. Reconnect policy is owned by
+ * the deep realtime transport (via {@link ContestRoom}'s contest-channel
+ * adapter); the remaining fields are retained for API compatibility.
  */
 export interface UseContestSocketOptions {
   /** Auto-connect when authenticated (default: true) */
@@ -148,78 +85,14 @@ export interface UseContestSocketReturn {
   clearError: () => void;
 }
 
-// ============================================================================
-// CONTEST CHANNEL ADAPTER (deep transport)
-// ============================================================================
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
-
-let contestTransport: RealtimeTransport | null = null;
-
 /**
- * Contest channel adapter over the deep realtime transport. Endpoint
- * /ws/contest; manual exponential backoff (1s -> 2s -> 4s -> ... -> 30s, max
- * 10 attempts) owned by the transport via scheduleExponential. OnConnect
- * (re)subscribes the broadcast topic then fires the one-shot "ready" event
- * that joinContest uses for the join-during-connect dance. STOMP ERROR frames
- * carrying FORBIDDEN / 403 / "not registered" are classified as "rejected"
- * (F-43) so views can show "you are not registered" instead of looping.
- */
-function getContestTransport(): RealtimeTransport {
-  if (contestTransport) return contestTransport;
-  contestTransport = createRealtimeTransport({
-    endpoint: "/ws/contest",
-    apiBaseUrl: API_BASE_URL,
-    getCsrfToken,
-    logTag: "STOMP Contest",
-    reconnect: {
-      kind: "exponential",
-      baseDelay: 1000,
-      maxDelay: 30_000,
-      maxAttempts: 10,
-    },
-    onConnect: (t) => {
-      // General broadcast topic — must be (re)established before the
-      // room-lifecycle "ready" hooks fire so joinContest's performJoin inherits
-      // a connected, broadcast-subscribed client.
-      t.subscribe("broadcast", "/topic/broadcast", (message: IMessage) =>
-        t.dispatch("announcement", message),
-      );
-      // Fire one-shot room-lifecycle hooks. The transport is the single owner
-      // of the connect handler — joinContest registers on "ready" instead of
-      // overwriting client.onConnect (the old override clobbered the status
-      // notification + broadcast subscription, and the parallel
-      // "connected_once" callback was never fired — dead code).
-      t.emit("ready");
-    },
-    classifyStompError: (body) => {
-      if (
-        body.includes("FORBIDDEN") ||
-        body.includes("403") ||
-        body.toLowerCase().includes("not registered")
-      ) {
-        return "rejected";
-      }
-      return undefined;
-    },
-  });
-  return contestTransport;
-}
-
-// ============================================================================
-// COMPOSABLE
-// ============================================================================
-
-/**
- * Composable for contest WebSocket real-time updates
+ * Composable for contest WebSocket real-time updates.
  *
- * Connects to the /ws/contest STOMP endpoint (via the deep realtime
- * transport) and provides methods to:
- * - Join/leave contest rooms
- * - Listen for ranking updates, first solves, announcements
- * - Handle contest status changes and submission results
- * - Auto-reconnect on connection loss
+ * Thin Vue binding over the deep {@link ContestRoom} room module: it owns the
+ * reactive refs and component lifecycle (mount auth-check, unmount teardown)
+ * and delegates room semantics — join/leave, the join-during-connect dance,
+ * message parsing, and the six typed room events — to the room. Behavior is
+ * preserved exactly from the legacy inline composable.
  *
  * @example
  * ```ts
@@ -230,12 +103,8 @@ function getContestTransport(): RealtimeTransport {
  *   onFirstSolve,
  * } = useContestSocket();
  *
- * // Join a contest
  * await joinContest('contest-uuid');
- *
- * // Listen for ranking updates
- * onRankingUpdate((data) => {
- * });
+ * onRankingUpdate((data) => { });
  * ```
  */
 export function useContestSocket(
@@ -244,16 +113,17 @@ export function useContestSocket(
   const { autoConnect = true } = options;
 
   const authStore = useAuthStore();
-  const transport = getContestTransport();
+  const room = new ContestRoom();
 
-  const status = ref<ConnectionStatus>(transport.status);
-  const isConnected = ref(transport.status === "connected");
+  const status = ref<ConnectionStatus>(room.status);
+  const isConnected = ref(room.status === "connected");
   const currentContestId = ref<string | null>(null);
   const error = ref<string | null>(null);
 
+  // Auto-teardown list: the internal status subscription and any
+  // onConnectionStatus registrations the consumer made. The room's own
+  // pending-join cleanup runs via room.dispose() on unmount.
   const unsubscribers: (() => void)[] = [];
-
-  // ==================== Status Management ====================
 
   const handleStatusChange = (newStatus: ConnectionStatus): void => {
     status.value = newStatus;
@@ -264,12 +134,12 @@ export function useContestSocket(
 
   const connect = (): void => {
     if (authStore.isAuthenticated) {
-      transport.connect();
+      room.connect();
     }
   };
 
   const disconnect = (): void => {
-    transport.disconnect();
+    room.disconnect();
     currentContestId.value = null;
   };
 
@@ -278,163 +148,47 @@ export function useContestSocket(
   const joinContest = async (
     contestId: string,
   ): Promise<ContestRoomResponse> => {
-    return new Promise((resolve, reject) => {
-      // Ensure the singleton transport is connecting. connect() reuses a
-      // connected client or spawns a fresh one when half-open (matching the
-      // pre-refactor getContestSocket behaviour).
-      transport.connect();
-
-      const performJoin = () => {
-        // Unsubscribe from existing contest subscription if any
-        transport.unsubscribeKey(`contest-${currentContestId.value}`);
-
-        // Subscribe to contest-specific topic
-        transport.subscribe(
-          `contest-${contestId}`,
-          `/topic/contest/${contestId}`,
-          (message: IMessage) => {
-            // Parse message to determine event type
-            try {
-              const data = JSON.parse(message.body);
-              const eventType = data.type || data.event || "contest_update";
-              transport.dispatch(eventType, message);
-            } catch {
-              transport.dispatch("contest_update", message);
-            }
-          },
-        );
-
-        // Send join message to server via STOMP
-        transport.publish("/app/contest.join", JSON.stringify({ contestId }));
-
-        currentContestId.value = contestId;
-
-        // Resolve with success response. In STOMP we don't get a direct
-        // response, so we assume success.
-        resolve({
-          success: true,
-          contestId,
-          message: `Successfully joined contest ${contestId}`,
-        });
-      };
-
-      // Fast path: already connected, join synchronously — no pending hooks.
-      if (transport.isConnected()) {
-        performJoin();
-        return;
-      }
-
-      // Still connecting: wait for the transport's one-shot "ready" event.
-      // We never overwrite client.onConnect (the old override destroyed status
-      // notification + the broadcast subscription, and the parallel
-      // "connected_once" callback was dead code).
-      //
-      // The pending "ready" hook + timeout are registered in `unsubscribers`
-      // so an unmount mid-connect tears them down; otherwise a late connect
-      // (or the 10s timer) could fire a stale join against the singleton
-      // transport for an already-unmounted component.
-      let settled = false;
-      function cleanup() {
-        settled = true;
-        transport.off("ready", ready);
-        clearTimeout(timeoutId);
-        const idx = unsubscribers.indexOf(cleanup);
-        if (idx !== -1) unsubscribers.splice(idx, 1);
-      }
-      function ready() {
-        if (settled) return;
-        cleanup();
-        performJoin();
-      }
-      const timeoutId = setTimeout(() => {
-        if (settled) return;
-        cleanup();
-        reject(new Error("Connection timeout"));
-      }, 10000);
-      transport.on("ready", ready);
-      unsubscribers.push(cleanup);
-    });
+    const response = await room.join(contestId);
+    currentContestId.value = room.contestId;
+    return response;
   };
 
   const leaveContest = async (): Promise<ContestRoomResponse> => {
-    if (!currentContestId.value) {
-      return {
-        success: true,
-        contestId: "",
-        message: "Not in any contest room",
-      };
-    }
-
-    const contestId = currentContestId.value;
-
-    if (transport.isConnected()) {
-      // Unsubscribe from contest topic
-      transport.unsubscribeKey(`contest-${contestId}`);
-
-      // Send leave message to server
-      transport.publish("/app/contest.leave", JSON.stringify({ contestId }));
-    }
-
-    currentContestId.value = null;
-
-    return {
-      success: true,
-      contestId,
-      message: `Successfully left contest ${contestId}`,
-    };
+    const response = await room.leave();
+    currentContestId.value = room.contestId;
+    return response;
   };
 
   // ==================== Event Subscriptions ====================
 
   const onRankingUpdate = (
     callback: (data: RankingUpdatePayload) => void,
-  ): (() => void) => {
-    const event = "ranking_update";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
-  };
+  ): (() => void) => room.onRankingUpdate(callback);
 
   const onFirstSolve = (
     callback: (data: FirstSolvePayload) => void,
-  ): (() => void) => {
-    const event = "first_solve";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
-  };
+  ): (() => void) => room.onFirstSolve(callback);
 
   const onAnnouncement = (
     callback: (data: AnnouncementPayload) => void,
-  ): (() => void) => {
-    const event = "announcement";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
-  };
+  ): (() => void) => room.onAnnouncement(callback);
 
   const onContestStatus = (
     callback: (data: ContestStatusPayload) => void,
-  ): (() => void) => {
-    const event = "contest_status";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
-  };
+  ): (() => void) => room.onContestStatus(callback);
 
   const onSubmissionResult = (
     callback: (data: SubmissionResultPayload) => void,
-  ): (() => void) => {
-    const event = "submission_result";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
-  };
+  ): (() => void) => room.onSubmissionResult(callback);
 
   const onConnectionStatus = (
     callback: (status: ConnectionStatus) => void,
   ): (() => void) => {
-    const event = "connection:status";
-    transport.on(event, callback as (...args: unknown[]) => void);
-    unsubscribers.push(() =>
-      transport.off(event, callback as (...args: unknown[]) => void),
-    );
-    return () => transport.off(event, callback as (...args: unknown[]) => void);
+    const unsub = room.onConnectionStatus(callback);
+    // Match legacy behaviour: connection-status listeners are auto-torn-down
+    // on unmount alongside the room's pending-join cleanup.
+    unsubscribers.push(unsub);
+    return unsub;
   };
 
   const clearError = (): void => {
@@ -444,15 +198,15 @@ export function useContestSocket(
   // ==================== Lifecycle ====================
 
   onMounted(() => {
-    // Subscribe to connection status changes
+    // Subscribe to connection status changes (auto-tracked).
     onConnectionStatus(handleStatusChange);
 
-    // Auto-connect if enabled and authenticated
+    // Auto-connect if enabled and authenticated.
     if (autoConnect && authStore.isAuthenticated) {
       connect();
     }
 
-    // Watch for authentication changes
+    // Watch for authentication changes.
     watch(
       () => authStore.isAuthenticated,
       (isAuth) => {
@@ -467,6 +221,7 @@ export function useContestSocket(
 
   onUnmounted(() => {
     unsubscribers.forEach((unsub) => unsub());
+    room.dispose();
   });
 
   return {

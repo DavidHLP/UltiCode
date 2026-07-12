@@ -36,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -91,8 +90,8 @@ class DefaultSolutionProjectionTest {
         author.setAvatar("a.png");
         when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(author));
 
-        when(voteReadPort.countLikes(eq(SOLUTION_ID), anyString())).thenReturn(3L);
-        when(voteReadPort.countDislikes(eq(SOLUTION_ID), anyString())).thenReturn(1L);
+        when(voteReadPort.countLikes(eq(SOLUTION_ID))).thenReturn(3L);
+        when(voteReadPort.countDislikes(eq(SOLUTION_ID))).thenReturn(1L);
         when(solutionCommentMapper.countBySolutionId(SOLUTION_ID)).thenReturn(2L);
         when(problemTagReadPort.findFirstTagLabel(PROBLEM_ID)).thenReturn("Dynamic Programming");
         when(achievementBadgeReadPort.findBadgeNames(USER_ID, 3))
@@ -214,8 +213,8 @@ class DefaultSolutionProjectionTest {
         when(userReadProjection.findAllById(any())).thenReturn(Map.of(
                 "u1", user("u1", "Alice"),
                 "u2", user("u2", "Bob")));
-        when(voteReadPort.countLikesByTargets(any(), anyString())).thenReturn(Map.of());
-        when(voteReadPort.countDislikesByTargets(any(), anyString())).thenReturn(Map.of());
+        when(voteReadPort.countLikesByTargets(any())).thenReturn(Map.of());
+        when(voteReadPort.countDislikesByTargets(any())).thenReturn(Map.of());
         when(currentUserProvider.getCurrentUserId()).thenReturn(null);
 
         PageResult<SolutionListItemVO> result = projection.findByProblemId(PROBLEM_ID, 1, 20);
@@ -235,7 +234,7 @@ class DefaultSolutionProjectionTest {
         solution.setUserId(USER_ID);
         solution.setTags("");
 
-        when(voteReadPort.viewerVotes(eq("viewer-1"), any(), anyString()))
+        when(voteReadPort.viewerVotes(eq("viewer-1"), any()))
                 .thenReturn(Map.of(SOLUTION_ID, 1));
 
         SolutionVO vo = projection.toVO(solution, "viewer-1");

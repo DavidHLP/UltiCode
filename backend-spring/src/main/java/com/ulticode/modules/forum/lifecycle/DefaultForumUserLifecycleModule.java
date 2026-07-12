@@ -22,7 +22,16 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>The lock is a {@link ConcurrentHashMap} of per-userId monitor objects.
  * Two threads racing on the same {@code userId} serialize on the same
- * monitor; threads for different users do not contend.
+ * monitor; threads for different users do not contend. Entries are evicted
+ * after the critical section so the map cannot grow unbounded with the user
+ * base (cf. coding rule (九)8 — bounded data structures).
+ *
+ * <p><b>Multi-node caveat.</b> The lock is JVM-local: it only collapses the
+ * race between threads in this process. Across nodes the real guarantee is
+ * the {@code forum_users} primary key plus the {@link DuplicateKeyException}
+ * recovery path below — the losing node re-reads the winner's row. The lock
+ * exists to reduce contention and the duplicate-key noise, not to enforce
+ * uniqueness.
  *
  * @author ulticode
  */
@@ -50,36 +59,44 @@ public class DefaultForumUserLifecycleModule implements ForumUserLifecyclePort {
             return existing;
         }
         Object monitor = locks.computeIfAbsent(userId, k -> new Object());
-        synchronized (monitor) {
-            // Re-check inside the lock: another thread may have just inserted.
-            existing = forumUserMapper.selectById(userId);
-            if (existing != null) {
-                return existing;
-            }
-            User user = userReadProjection.findById(userId).orElseThrow(() -> {
-                log.error("User not found when creating forum user: {}", userId);
-                return new BusinessException(ErrorCode.USER_NOT_FOUND);
-            });
-            ForumUser fresh = new ForumUser();
-            fresh.setId(userId);
-            fresh.setUsername(user.getUsername());
-            fresh.setAvatar(user.getAvatar());
-            fresh.setKarma(0);
-            fresh.setCreatedAt(LocalDateTime.now(clock));
-            try {
-                forumUserMapper.insert(fresh);
-                log.debug("Created forum user entry for user: {} with id: {}",
-                        user.getUsername(), userId);
-            } catch (DuplicateKeyException raceLost) {
-                // Another process / node inserted between our re-check and
-                // our insert. Re-read so the caller still gets a row.
-                ForumUser winner = forumUserMapper.selectById(userId);
-                if (winner == null) {
-                    throw raceLost;
+        try {
+            synchronized (monitor) {
+                // Re-check inside the lock: another thread may have just inserted.
+                existing = forumUserMapper.selectById(userId);
+                if (existing != null) {
+                    return existing;
                 }
-                return winner;
+                User user = userReadProjection.findById(userId).orElseThrow(() -> {
+                    log.error("User not found when creating forum user: {}", userId);
+                    return new BusinessException(ErrorCode.USER_NOT_FOUND);
+                });
+                ForumUser fresh = new ForumUser();
+                fresh.setId(userId);
+                fresh.setUsername(user.getUsername());
+                fresh.setAvatar(user.getAvatar());
+                fresh.setKarma(0);
+                fresh.setCreatedAt(LocalDateTime.now(clock));
+                try {
+                    forumUserMapper.insert(fresh);
+                    log.debug("Created forum user entry for user: {} with id: {}",
+                            user.getUsername(), userId);
+                } catch (DuplicateKeyException raceLost) {
+                    // Another process / node inserted between our re-check and
+                    // our insert. Re-read so the caller still gets a row.
+                    ForumUser winner = forumUserMapper.selectById(userId);
+                    if (winner == null) {
+                        throw raceLost;
+                    }
+                    return winner;
+                }
+                return fresh;
             }
-            return fresh;
+        } finally {
+            // Evict the monitor once the critical section ends. Safe because
+            // any contender that still needs to serialize already grabbed this
+            // monitor reference before we got here; a late arrival finds the
+            // row via the fast-path selectById above and never enters the lock.
+            locks.remove(userId);
         }
     }
 

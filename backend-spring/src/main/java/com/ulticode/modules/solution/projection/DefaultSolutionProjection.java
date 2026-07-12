@@ -22,7 +22,6 @@ import com.ulticode.modules.solution.port.ProblemTagReadPort;
 import com.ulticode.modules.solution.port.SolutionVoteReadPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.projection.UserReadProjection;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -32,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -131,9 +131,8 @@ public class DefaultSolutionProjection implements SolutionProjection {
         Map<String, User> userMap = userReadProjection.findAllById(userIds);
 
         // Batch vote counts via the consumer-owned port.
-        String targetType = EdgeOperationTargetType.SOLUTION.getValue();
-        Map<String, Long> likesMap = voteReadPort.countLikesByTargets(solutionIds, targetType);
-        Map<String, Long> dislikesMap = voteReadPort.countDislikesByTargets(solutionIds, targetType);
+        Map<String, Long> likesMap = voteReadPort.countLikesByTargets(solutionIds);
+        Map<String, Long> dislikesMap = voteReadPort.countDislikesByTargets(solutionIds);
 
         Map<String, Long> commentCounts = solutionIds.stream()
                 .collect(Collectors.toMap(
@@ -143,7 +142,7 @@ public class DefaultSolutionProjection implements SolutionProjection {
         String currentUserId = currentUserProvider.getCurrentUserId();
         Map<String, Integer> viewerVoteMap = currentUserId == null
                 ? Collections.emptyMap()
-                : voteReadPort.viewerVotes(currentUserId, solutionIds, targetType);
+                : voteReadPort.viewerVotes(currentUserId, solutionIds);
 
         List<SolutionListItemVO> voList = records.stream()
                 .map(s -> toListItemVO(s, userMap, likesMap, dislikesMap, commentCounts, viewerVoteMap))
@@ -164,8 +163,21 @@ public class DefaultSolutionProjection implements SolutionProjection {
         }
 
         List<Solution> solutions = solutionMapper.selectList(queryWrapper);
+        if (solutions.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Batch topic-name resolution so the list does not pay a per-row
+        // N+1 for problem-tag labels.
+        List<Long> problemIds = solutions.stream()
+                .map(Solution::getProblemId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, String> topicByProblem = problemTagReadPort.findFirstTagLabels(problemIds);
+
         return solutions.stream()
-                .map(this::toVO)
+                .map(s -> toVO(s, null, topicByProblem))
                 .collect(Collectors.toList());
     }
 
@@ -216,11 +228,20 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
     @Override
     public SolutionVO toVO(Solution solution) {
-        return toVO(solution, null);
+        return toVO(solution, null, null);
     }
 
     @Override
     public SolutionVO toVO(Solution solution, String currentUserId) {
+        return toVO(solution, currentUserId, null);
+    }
+
+    /**
+     * Shape a {@link Solution} into its VO. When {@code topicByProblem} is
+     * non-null the topic name is read from it (batched by the list caller);
+     * otherwise it falls back to a single {@link ProblemTagReadPort} lookup.
+     */
+    private SolutionVO toVO(Solution solution, String currentUserId, Map<Long, String> topicByProblem) {
         if (solution == null) {
             return null;
         }
@@ -235,11 +256,10 @@ public class DefaultSolutionProjection implements SolutionProjection {
             vo.setAuthorAvatar(author.getAvatar());
         }
 
-        String targetId = solution.getId();
-        String targetType = EdgeOperationTargetType.SOLUTION.getValue();
-        long likes = voteReadPort.countLikes(targetId, targetType);
-        long dislikes = voteReadPort.countDislikes(targetId, targetType);
-        long commentCount = solutionCommentMapper.countBySolutionId(targetId);
+        String solutionId = solution.getId();
+        long likes = voteReadPort.countLikes(solutionId);
+        long dislikes = voteReadPort.countDislikes(solutionId);
+        long commentCount = solutionCommentMapper.countBySolutionId(solutionId);
 
         vo.setLikes(likes);
         vo.setDislikes(dislikes);
@@ -248,13 +268,16 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
         if (currentUserId != null) {
             Map<String, Integer> mine = voteReadPort.viewerVotes(currentUserId,
-                    Collections.singletonList(targetId), targetType);
-            Integer my = mine.get(targetId);
+                    Collections.singletonList(solutionId));
+            Integer my = mine.get(solutionId);
             vo.setUserVote(my == null ? 0 : my);
         }
 
         // Topic from the first tag attached to the problem.
-        vo.setTopicName(problemTagReadPort.findFirstTagLabel(solution.getProblemId()));
+        String topicName = topicByProblem != null
+                ? topicByProblem.get(solution.getProblemId())
+                : problemTagReadPort.findFirstTagLabel(solution.getProblemId());
+        vo.setTopicName(topicName);
 
         // Badges from the author.
         List<String> badgeNames = achievementBadgeReadPort.findBadgeNames(solution.getUserId(), 3);

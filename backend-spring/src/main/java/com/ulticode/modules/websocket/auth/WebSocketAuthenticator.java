@@ -1,7 +1,6 @@
 package com.ulticode.modules.websocket.auth;
 
 import com.ulticode.modules.websocket.dto.SocketClientData;
-import io.jsonwebtoken.Claims;
 
 import java.util.Optional;
 
@@ -47,11 +46,4 @@ public interface WebSocketAuthenticator {
      *         when the policy rejects the connection
      */
     SocketClientData authenticate(Optional<String> tokenOpt);
-
-    /**
-     * Validate the raw JWT signature + expiry and return the parsed claims.
-     * Exposed for the test surface; production callers go through
-     * {@link #authenticate(Optional)}.
-     */
-    Optional<Claims> validateToken(String token);
 }

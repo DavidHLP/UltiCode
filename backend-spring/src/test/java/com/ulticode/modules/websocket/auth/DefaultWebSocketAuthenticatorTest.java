@@ -150,13 +150,4 @@ class DefaultWebSocketAuthenticatorTest {
         assertThat(data.username()).isEqualTo("alice");
         assertThat(data.role()).isEqualTo("USER");
     }
-
-    @Test
-    @DisplayName("validateToken delegates to JwtUtils")
-    void validateTokenDelegates() {
-        Claims claims = org.mockito.Mockito.mock(Claims.class);
-        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
-
-        assertThat(authenticator.validateToken(TOKEN)).contains(claims);
-    }
 }

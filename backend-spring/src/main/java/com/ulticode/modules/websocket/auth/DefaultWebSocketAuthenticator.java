@@ -60,7 +60,7 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
                     ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked");
         }
 
-        Optional<Claims> claimsOpt = validateToken(token);
+        Optional<Claims> claimsOpt = jwtUtils.validateToken(token);
         if (claimsOpt.isEmpty()) {
             log.warn("WebSocket connection rejected: Invalid token");
             throw new WebSocketAuthenticationException(
@@ -83,10 +83,5 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
 
         User user = userOpt.get();
         return new SocketClientData(userId, user.getUsername(), user.getRole());
-    }
-
-    @Override
-    public Optional<Claims> validateToken(String token) {
-        return jwtUtils.validateToken(token);
     }
 }

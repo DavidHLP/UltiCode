@@ -1,7 +1,6 @@
 package com.ulticode.modules.solution.port;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,6 +14,12 @@ import java.util.Map;
  * shape ({@code target_id}, {@code operation_type}, {@code cnt}) into
  * the solution cluster and forced every test to mock raw SQL outputs.
  *
+ * <p>The port is solution-scoped: it only reads votes whose target is a
+ * solution. The {@code target_type = 'SOLUTION'} filter is owned by the
+ * adapter, never threaded through the seam as a {@code String} — that
+ * avoids primitive obsession at the interface and keeps the
+ * {@code vote} module's enum out of the {@code solution} cluster.
+ *
  * <p>Adapter lives in {@code modules.vote}. This module only sees the
  * port.
  *
@@ -23,37 +28,30 @@ import java.util.Map;
 public interface SolutionVoteReadPort {
 
     /**
-     * Count likes (VOTE_UP) for a single target.
+     * Count likes (VOTE_UP) for a single solution.
      */
-    long countLikes(String targetId, String targetType);
+    long countLikes(String solutionId);
 
     /**
-     * Count dislikes (VOTE_DOWN) for a single target.
+     * Count dislikes (VOTE_DOWN) for a single solution.
      */
-    long countDislikes(String targetId, String targetType);
+    long countDislikes(String solutionId);
 
     /**
-     * Batch-count likes across many targets. Returns a map from target
-     * id to count; missing targets are simply absent (count 0).
+     * Batch-count likes across many solutions. Returns a map from solution
+     * id to count; missing solutions are simply absent (count 0).
      */
-    Map<String, Long> countLikesByTargets(Collection<String> targetIds, String targetType);
+    Map<String, Long> countLikesByTargets(Collection<String> solutionIds);
 
     /**
-     * Batch-count dislikes across many targets.
+     * Batch-count dislikes across many solutions.
      */
-    Map<String, Long> countDislikesByTargets(Collection<String> targetIds, String targetType);
+    Map<String, Long> countDislikesByTargets(Collection<String> solutionIds);
 
     /**
-     * Read the current viewer's vote state across many targets. Returns
-     * a map from target id to {@code +1} (liked), {@code -1} (disliked),
-     * {@code 0} (no vote).
+     * Read the current viewer's vote state across many solutions. Returns
+     * a map from solution id to {@code +1} (liked), {@code -1} (disliked);
+     * a missing entry means no vote.
      */
-    Map<String, Integer> viewerVotes(String viewerId, Collection<String> targetIds, String targetType);
-
-    /**
-     * Raw form for tests and admin tools. Production callers should
-     * prefer {@link #viewerVotes}.
-     */
-    List<Map<String, Object>> findRawByOperatorAndTargets(
-            String operatorId, Collection<String> targetIds, String targetType);
+    Map<String, Integer> viewerVotes(String viewerId, Collection<String> solutionIds);
 }

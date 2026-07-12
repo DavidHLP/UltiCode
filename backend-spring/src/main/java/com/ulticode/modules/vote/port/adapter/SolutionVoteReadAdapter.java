@@ -1,12 +1,12 @@
 package com.ulticode.modules.vote.port.adapter;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.solution.port.SolutionVoteReadPort;
-import com.ulticode.modules.vote.entity.EdgeOperation;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -18,10 +18,17 @@ import java.util.stream.Collectors;
  * {@code EdgeOperationMapper}. Lives in the {@code vote} module so the
  * {@code solution} module never imports the mapper.
  *
+ * <p>The port is solution-scoped, so the {@code target_type} filter is
+ * fixed here to {@link EdgeOperationTargetType#SOLUTION} rather than
+ * threaded through the seam.
+ *
  * @author ulticode
  */
 @Component
 public class SolutionVoteReadAdapter implements SolutionVoteReadPort {
+
+    /** Solutions are the only target this port reads votes for. */
+    private static final String SOLUTION_TARGET = EdgeOperationTargetType.SOLUTION.getValue();
 
     private final EdgeOperationMapper edgeOperationMapper;
 
@@ -30,35 +37,35 @@ public class SolutionVoteReadAdapter implements SolutionVoteReadPort {
     }
 
     @Override
-    public long countLikes(String targetId, String targetType) {
+    public long countLikes(String solutionId) {
         return edgeOperationMapper.countByTargetAndOperation(
-                targetId, targetType, EdgeOperationType.VOTE_UP.getValue());
+                solutionId, SOLUTION_TARGET, EdgeOperationType.VOTE_UP.getValue());
     }
 
     @Override
-    public long countDislikes(String targetId, String targetType) {
+    public long countDislikes(String solutionId) {
         return edgeOperationMapper.countByTargetAndOperation(
-                targetId, targetType, EdgeOperationType.VOTE_DOWN.getValue());
+                solutionId, SOLUTION_TARGET, EdgeOperationType.VOTE_DOWN.getValue());
     }
 
     @Override
-    public Map<String, Long> countLikesByTargets(Collection<String> targetIds, String targetType) {
-        if (targetIds == null || targetIds.isEmpty()) return Collections.emptyMap();
+    public Map<String, Long> countLikesByTargets(Collection<String> solutionIds) {
+        if (solutionIds == null || solutionIds.isEmpty()) return Collections.emptyMap();
         return aggregateCounts(edgeOperationMapper.countByTargetsAndOperation(
-                toList(targetIds), targetType, EdgeOperationType.VOTE_UP.getValue()));
+                toList(solutionIds), SOLUTION_TARGET, EdgeOperationType.VOTE_UP.getValue()));
     }
 
     @Override
-    public Map<String, Long> countDislikesByTargets(Collection<String> targetIds, String targetType) {
-        if (targetIds == null || targetIds.isEmpty()) return Collections.emptyMap();
+    public Map<String, Long> countDislikesByTargets(Collection<String> solutionIds) {
+        if (solutionIds == null || solutionIds.isEmpty()) return Collections.emptyMap();
         return aggregateCounts(edgeOperationMapper.countByTargetsAndOperation(
-                toList(targetIds), targetType, EdgeOperationType.VOTE_DOWN.getValue()));
+                toList(solutionIds), SOLUTION_TARGET, EdgeOperationType.VOTE_DOWN.getValue()));
     }
 
     @Override
-    public Map<String, Integer> viewerVotes(String viewerId, Collection<String> targetIds, String targetType) {
-        if (viewerId == null || targetIds == null || targetIds.isEmpty()) return Collections.emptyMap();
-        return edgeOperationMapper.findByOperatorAndTargets(viewerId, toList(targetIds), targetType).stream()
+    public Map<String, Integer> viewerVotes(String viewerId, Collection<String> solutionIds) {
+        if (viewerId == null || solutionIds == null || solutionIds.isEmpty()) return Collections.emptyMap();
+        return edgeOperationMapper.findByOperatorAndTargets(viewerId, toList(solutionIds), SOLUTION_TARGET).stream()
                 .collect(Collectors.toMap(
                         m -> (String) m.get("target_id"),
                         m -> {
@@ -70,29 +77,8 @@ public class SolutionVoteReadAdapter implements SolutionVoteReadPort {
                         (a, b) -> a));
     }
 
-    @Override
-    public List<Map<String, Object>> findRawByOperatorAndTargets(
-            String operatorId, Collection<String> targetIds, String targetType) {
-        if (operatorId == null || targetIds == null || targetIds.isEmpty()) return Collections.emptyList();
-        return edgeOperationMapper.findByOperatorAndTargets(operatorId, toList(targetIds), targetType);
-    }
-
     private static List<String> toList(Collection<String> c) {
-        return c instanceof List ? (List<String>) c : new java.util.ArrayList<>(c);
-    }
-
-    /**
-     * Read a single user's vote on one target via the mapper's
-     * {@code selectOne} entry point. Exposed for callers that need only
-     * one target (kept here so the port stays focused on the
-     * projection's hot path).
-     */
-    public EdgeOperation selectOneVote(String userId, String targetId, String targetType) {
-        LambdaQueryWrapper<EdgeOperation> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(EdgeOperation::getOperatorId, userId)
-                .eq(EdgeOperation::getTargetId, targetId)
-                .eq(EdgeOperation::getTargetType, targetType);
-        return edgeOperationMapper.selectOne(wrapper);
+        return c instanceof List<String> ? (List<String>) c : new ArrayList<>(c);
     }
 
     private static Map<String, Long> aggregateCounts(List<Map<String, Object>> rows) {

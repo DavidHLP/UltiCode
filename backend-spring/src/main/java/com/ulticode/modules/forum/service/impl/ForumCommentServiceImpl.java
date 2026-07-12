@@ -8,10 +8,9 @@ import com.ulticode.modules.forum.dto.ForumCommentVO;
 import com.ulticode.modules.forum.dto.UpdateCommentDTO;
 import com.ulticode.modules.forum.entity.ForumComment;
 import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.entity.ForumUser;
+import com.ulticode.modules.forum.lifecycle.ForumUserLifecyclePort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.projection.UserReadProjection;
@@ -38,7 +37,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
 
     private final ForumCommentMapper commentMapper;
     private final ForumPostMapper postMapper;
-    private final ForumUserMapper forumUserMapper;
+    private final ForumUserLifecyclePort forumUserLifecycle;
     private final UserReadProjection userReadProjection;
     private final Clock clock;
 
@@ -56,7 +55,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
             throw new BusinessException(ErrorCode.FORUM_POST_LOCKED);
         }
 
-        String forumUserId = ensureForumUserExists(userId);
+        String forumUserId = forumUserLifecycle.resolveOrCreate(userId).getId();
 
         ForumComment comment = new ForumComment();
         comment.setPostId(postId);
@@ -180,30 +179,5 @@ public class ForumCommentServiceImpl implements ForumCommentService {
                     return vo;
                 })
                 .collect(Collectors.toList());
-    }
-
-    private String ensureForumUserExists(String userId) {
-        ForumUser forumUser = forumUserMapper.selectById(userId);
-        if (forumUser != null) {
-            return forumUser.getId();
-        }
-
-        User user = userReadProjection.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("User not found when creating forum user: {}", userId);
-                    return new BusinessException(ErrorCode.USER_NOT_FOUND);
-                });
-
-        ForumUser newForumUser = new ForumUser();
-        newForumUser.setId(userId);
-        newForumUser.setUsername(user.getUsername());
-        newForumUser.setAvatar(user.getAvatar());
-        newForumUser.setKarma(0);
-        newForumUser.setCreatedAt(LocalDateTime.now(clock));
-
-        forumUserMapper.insert(newForumUser);
-        log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);
-
-        return newForumUser.getId();
     }
 }

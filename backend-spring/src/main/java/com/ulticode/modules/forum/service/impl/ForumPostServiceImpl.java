@@ -9,12 +9,11 @@ import com.ulticode.modules.forum.dto.UpdatePostDTO;
 import com.ulticode.modules.forum.projection.ForumPostProjection;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.entity.ForumUser;
+import com.ulticode.modules.forum.lifecycle.ForumUserLifecyclePort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.forum.service.ForumPostService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.projection.UserReadProjection;
@@ -23,9 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.time.LocalDateTime;
 
 /**
  * Write-side service for forum posts. Owns the transactional create / update /
@@ -49,10 +45,9 @@ public class ForumPostServiceImpl implements ForumPostService {
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumCommentMapper commentMapper;
-    private final ForumUserMapper forumUserMapper;
+    private final ForumUserLifecyclePort forumUserLifecycle;
     private final UserReadProjection userReadProjection;
     private final VoteService voteService;
-    private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final ForumPostProjection postProjection;
 
@@ -68,7 +63,7 @@ public class ForumPostServiceImpl implements ForumPostService {
         if (community == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
         if ("PRIVATE".equals(community.getVisibility()) && !memberMapper.isMember(dto.getCommunityId(), userId))
             throw new BusinessException(ErrorCode.FORUM_COMMUNITY_RESTRICTED);
-        String forumUserId = ensureForumUserExists(userId);
+        String forumUserId = forumUserLifecycle.resolveOrCreate(userId).getId();
         ForumPost post = new ForumPost();
         post.setCommunityId(dto.getCommunityId());
         post.setUserId(forumUserId);
@@ -142,24 +137,6 @@ public class ForumPostServiceImpl implements ForumPostService {
     // =========================================================================
     // Helpers
     // =========================================================================
-
-    private String ensureForumUserExists(String userId) {
-        ForumUser fu = forumUserMapper.selectById(userId);
-        if (fu != null) return fu.getId();
-        User user = userReadProjection.findById(userId).orElseThrow(() -> {
-            log.error("User not found when creating forum user: {}", userId);
-            return new BusinessException(ErrorCode.USER_NOT_FOUND);
-        });
-        ForumUser nu = new ForumUser();
-        nu.setId(userId);
-        nu.setUsername(user.getUsername());
-        nu.setAvatar(user.getAvatar());
-        nu.setKarma(0);
-        nu.setCreatedAt(LocalDateTime.now(clock));
-        forumUserMapper.insert(nu);
-        log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);
-        return nu.getId();
-    }
 
     private String generatePermalink() {
         return uuidGenerator.newId().replace("-", "").substring(0, 12);

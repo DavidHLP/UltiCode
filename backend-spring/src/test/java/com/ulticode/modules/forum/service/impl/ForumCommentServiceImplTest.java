@@ -3,9 +3,9 @@ package com.ulticode.modules.forum.service.impl;
 import com.ulticode.modules.forum.dto.ForumCommentVO;
 import com.ulticode.modules.forum.dto.UpdateCommentDTO;
 import com.ulticode.modules.forum.entity.ForumComment;
+import com.ulticode.modules.forum.lifecycle.ForumUserLifecyclePort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
-import com.ulticode.modules.forum.mapper.ForumUserMapper;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +47,7 @@ class ForumCommentServiceImplTest {
     @Mock
     private ForumPostMapper postMapper;
     @Mock
-    private ForumUserMapper forumUserMapper;
+    private ForumUserLifecyclePort forumUserLifecycle;
     @Mock
     private UserReadProjection userReadProjection;
     @Mock

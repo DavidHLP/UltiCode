@@ -1,5 +1,10 @@
-import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
+import type { IMessage } from "@stomp/stompjs";
+import { getCsrfToken } from "@/shared/auth-core/src";
+import {
+  createRealtimeTransport,
+  type ConnectionStatus,
+  type RealtimeTransport,
+} from "@/lib/realtime/transport";
 
 /**
  * WebSocket event types matching backend WebSocketConstants
@@ -39,6 +44,8 @@ export enum NotificationEvent {
   CONNECT_ERROR = "connect_error",
   CONNECTION_STATUS = "connection:status",
 }
+
+export type { ConnectionStatus };
 
 export interface SubmissionResultPayload {
   submissionId: string;
@@ -97,12 +104,6 @@ export interface WebSocketMessage<T = unknown> {
   timestamp: number;
 }
 
-export type ConnectionStatus =
-  | "connected"
-  | "disconnected"
-  | "connecting"
-  | "reconnecting";
-
 type EventCallback<T = unknown> = (data: T) => void;
 
 interface SocketManager {
@@ -126,270 +127,113 @@ interface SocketManager {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
 
-// Singleton socket manager
-let socketInstance: SocketManager | null = null;
-const eventListeners = new Map<string, Set<EventCallback>>();
-const subscriptions = new Map<string, StompSubscription>();
-
 /**
- * Get CSRF token — delegates to the canonical implementation in csrf.ts
- * which supports both in-memory and cookie-based token storage.
+ * Notification channel adapter over the deep realtime transport. Owns the
+ * three user-queue subscriptions established on every connect and the
+ * notification-specific STOMP-error classification (auth errors stop the
+ * reconnect loop). Endpoint: /ws/notifications; reconnect delegated to the
+ * @stomp/stompjs built-in schedule.
  */
-import { getCsrfToken } from "@/shared/auth-core/src";
-
-function createSocketManager(): SocketManager {
-  let client: Client | null = null;
-  let status: ConnectionStatus = "disconnected";
-  let reconnectAttempts = 0;
-  const maxReconnectAttempts = 5;
-
-  const notifyStatusChange = (newStatus: ConnectionStatus) => {
-    status = newStatus;
-    const callbacks = eventListeners.get(NotificationEvent.CONNECTION_STATUS);
-    if (callbacks) {
-      callbacks.forEach((cb) => cb(newStatus));
-    }
-  };
-
-  const handleMessage = (event: string, message: IMessage) => {
-    try {
-      const body = JSON.parse(message.body);
-      const callbacks = eventListeners.get(event);
-      if (callbacks) {
-        callbacks.forEach((cb) => cb(body));
-      }
-    } catch (error) {
-      console.error(`[WebSocket] Error parsing message for ${event}:`, error);
-    }
-  };
-
-  const connect = () => {
-    if (client?.connected) return;
-
-    notifyStatusChange("connecting");
-
-    const csrfToken = getCsrfToken();
-
-    // Auth relies on httpOnly cookies sent automatically by SockJS (withCredentials).
-    // Do NOT attempt to read access_token from document.cookie — httpOnly prevents JS access.
-    client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/notifications`),
-      connectHeaders: {
-        "X-CSRF-Token": csrfToken || "",
-      },
-      debug: () => {},
+let notificationTransport: RealtimeTransport | null = null;
+function getNotificationTransport(): RealtimeTransport {
+  if (notificationTransport) return notificationTransport;
+  notificationTransport = createRealtimeTransport({
+    endpoint: "/ws/notifications",
+    apiBaseUrl: API_BASE_URL,
+    getCsrfToken,
+    logTag: "WebSocket",
+    reconnect: {
+      kind: "library",
       reconnectDelay: 1000,
       maxReconnectDelay: 5000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-      onConnect: () => {
-        notifyStatusChange("connected");
-        reconnectAttempts = 0;
-
-        // Notify connection listeners
-        const callbacks = eventListeners.get(NotificationEvent.CONNECTED);
-        if (callbacks) {
-          callbacks.forEach((cb) => cb({ connected: true }));
-        }
-
-        // Subscribe to user-specific notification queue
-        const notifSub = client?.subscribe(
-          "/user/queue/notification",
-          (message) =>
-            handleMessage(NotificationEvent.SYSTEM_ANNOUNCEMENT, message),
-        );
-        if (notifSub) {
-          subscriptions.set("notification", notifSub);
-        }
-
-        // Subscribe to submission results
-        const submissionSub = client?.subscribe(
-          "/user/queue/submission",
-          (message) =>
-            handleMessage(NotificationEvent.SUBMISSION_RESULT, message),
-        );
-        if (submissionSub) {
-          subscriptions.set("submission", submissionSub);
-        }
-
-        // Subscribe to errors
-        const errorSub = client?.subscribe("/user/queue/errors", (message) => {
-          console.error("[WebSocket] Server error:", message.body);
-          const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
-          if (callbacks) {
-            callbacks.forEach((cb) => cb({ error: message.body }));
-          }
-        });
-        if (errorSub) {
-          subscriptions.set("errors", errorSub);
-        }
-      },
-      onDisconnect: () => {
-        notifyStatusChange("disconnected");
-        const callbacks = eventListeners.get(NotificationEvent.DISCONNECT);
-        if (callbacks) {
-          callbacks.forEach((cb) => cb({ reason: "disconnected" }));
-        }
-      },
-      onStompError: (frame) => {
-        console.error("[WebSocket] STOMP error:", frame);
-        const errorBody = frame.body || "";
-        const isAuthError =
-          errorBody.includes("WEBSOCKET_UNAUTHORIZED") ||
-          errorBody.includes("WEBSOCKET_INVALID_TOKEN") ||
-          errorBody.includes("No authentication token");
-
-        if (isAuthError) {
-          // Auth error means user is not logged in - stop reconnecting
-          reconnectAttempts = maxReconnectAttempts; // Prevent further reconnect
-          // Deactivate to stop reconnection attempts
-          if (client) {
-            client.deactivate();
-          }
-        }
-
-        notifyStatusChange("disconnected");
-        const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
-        if (callbacks) {
-          callbacks.forEach((cb) => cb({ error: frame.body }));
-        }
-      },
-      onWebSocketError: (event) => {
-        console.error("[WebSocket] WebSocket error:", event);
-        reconnectAttempts++;
-
-        if (reconnectAttempts >= maxReconnectAttempts) {
-          console.error("[WebSocket] Max reconnect attempts reached, stopping");
-          notifyStatusChange("disconnected");
-          reconnectAttempts = maxReconnectAttempts; // Ensure no more reconnects
-        } else {
-          notifyStatusChange("reconnecting");
-        }
-      },
-      onWebSocketClose: () => {
-        if (status === "connected") {
-          notifyStatusChange("disconnected");
-        }
-      },
-    });
-
-    client.activate();
-  };
-
-  const disconnect = () => {
-    // Unsubscribe from all subscriptions
-    subscriptions.forEach((sub) => sub.unsubscribe());
-    subscriptions.clear();
-
-    if (client) {
-      client.deactivate();
-      client = null;
-      notifyStatusChange("disconnected");
-    }
-  };
-
-  const on = <T>(
-    event: NotificationEvent | string,
-    callback: EventCallback<T>,
-  ) => {
-    if (!eventListeners.has(event)) {
-      eventListeners.set(event, new Set());
-    }
-    eventListeners.get(event)!.add(callback as EventCallback);
-  };
-
-  const off = <T>(
-    event: NotificationEvent | string,
-    callback: EventCallback<T>,
-  ) => {
-    const callbacks = eventListeners.get(event);
-    if (callbacks) {
-      callbacks.delete(callback as EventCallback);
-    }
-  };
-
-  const subscribeToContest = (contestId: string) => {
-    if (!client?.connected) {
-      return;
-    }
-
-    // Unsubscribe from existing contest subscription if any
-    const existingKey = `contest-${contestId}`;
-    const existingSub = subscriptions.get(existingKey);
-    if (existingSub) {
-      existingSub.unsubscribe();
-    }
-
-    // Subscribe to contest topic
-    const sub = client.subscribe(`/topic/contest/${contestId}`, (message) =>
-      handleMessage(NotificationEvent.CONTEST_UPDATE, message),
-    );
-    subscriptions.set(existingKey, sub);
-
-    // Send join message to server
-    client.publish({
-      destination: `/app/contest.join`,
-      body: contestId,
-    });
-  };
-
-  const unsubscribeFromContest = (contestId: string) => {
-    const key = `contest-${contestId}`;
-    const sub = subscriptions.get(key);
-    if (sub) {
-      sub.unsubscribe();
-      subscriptions.delete(key);
-    }
-
-    // Send leave message to server
-    if (client?.connected) {
-      client.publish({
-        destination: `/app/contest.leave`,
-        body: contestId,
+      maxAttempts: 5,
+    },
+    onConnect: (t) => {
+      t.subscribe(
+        "notification",
+        "/user/queue/notification",
+        (message: IMessage) =>
+          t.dispatch(NotificationEvent.SYSTEM_ANNOUNCEMENT, message),
+      );
+      t.subscribe(
+        "submission",
+        "/user/queue/submission",
+        (message: IMessage) =>
+          t.dispatch(NotificationEvent.SUBMISSION_RESULT, message),
+      );
+      t.subscribe("errors", "/user/queue/errors", (message: IMessage) => {
+        console.error("[WebSocket] Server error:", message.body);
+        t.emit(NotificationEvent.CONNECT_ERROR, { error: message.body });
       });
-    }
-  };
+    },
+    classifyStompError: (body) => {
+      if (
+        body.includes("WEBSOCKET_UNAUTHORIZED") ||
+        body.includes("WEBSOCKET_INVALID_TOKEN") ||
+        body.includes("No authentication token")
+      ) {
+        return "auth";
+      }
+      return undefined;
+    },
+  });
+  return notificationTransport;
+}
 
-  const subscribeToCommunity = (communityId: string) => {
-    if (!client?.connected) {
-      return;
-    }
-
-    const key = `community-${communityId}`;
-    const existingSub = subscriptions.get(key);
-    if (existingSub) {
-      existingSub.unsubscribe();
-    }
-
-    const sub = client.subscribe(`/topic/community/${communityId}`, (message) =>
-      handleMessage(NotificationEvent.COMMUNITY_NEW_POST, message),
-    );
-    subscriptions.set(key, sub);
-  };
-
-  const unsubscribeFromCommunity = (communityId: string) => {
-    const key = `community-${communityId}`;
-    const sub = subscriptions.get(key);
-    if (sub) {
-      sub.unsubscribe();
-      subscriptions.delete(key);
-    }
-  };
+/**
+ * Build the public {@link SocketManager} facade over the notification
+ * transport. Lifecycle, listener registry, and JSON parsing live in the
+ * transport; this object only maps the legacy contest/community subscription
+ * helpers onto transport.subscribe + publish.
+ */
+function createSocketManager(): SocketManager {
+  const transport = getNotificationTransport();
 
   return {
     get status() {
-      return status;
+      return transport.status;
     },
-    connect,
-    disconnect,
-    on,
-    off,
-    subscribeToContest,
-    unsubscribeFromContest,
-    subscribeToCommunity,
-    unsubscribeFromCommunity,
+    connect: () => transport.connect(),
+    disconnect: () => transport.disconnect(),
+    on: (event, callback) => transport.on(event, callback as EventCallback),
+    off: (event, callback) => transport.off(event, callback as EventCallback),
+    subscribeToContest: (contestId: string) => {
+      if (!transport.isConnected()) return;
+      const key = `contest-${contestId}`;
+      transport.unsubscribeKey(key);
+      transport.subscribe(
+        key,
+        `/topic/contest/${contestId}`,
+        (message: IMessage) =>
+          transport.dispatch(NotificationEvent.CONTEST_UPDATE, message),
+      );
+      transport.publish("/app/contest.join", contestId);
+    },
+    unsubscribeFromContest: (contestId: string) => {
+      transport.unsubscribeKey(`contest-${contestId}`);
+      if (transport.isConnected()) {
+        transport.publish("/app/contest.leave", contestId);
+      }
+    },
+    subscribeToCommunity: (communityId: string) => {
+      if (!transport.isConnected()) return;
+      const key = `community-${communityId}`;
+      transport.unsubscribeKey(key);
+      transport.subscribe(
+        key,
+        `/topic/community/${communityId}`,
+        (message: IMessage) =>
+          transport.dispatch(NotificationEvent.COMMUNITY_NEW_POST, message),
+      );
+    },
+    unsubscribeFromCommunity: (communityId: string) => {
+      transport.unsubscribeKey(`community-${communityId}`);
+    },
   };
 }
+
+// Singleton socket manager
+let socketInstance: SocketManager | null = null;
 
 export function getSocketManager(): SocketManager {
   if (!socketInstance) {

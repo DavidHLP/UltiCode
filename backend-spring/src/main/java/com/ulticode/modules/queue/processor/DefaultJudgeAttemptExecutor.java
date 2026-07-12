@@ -107,7 +107,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String userId = job.getUserId();
 
         try {
-            submissionService.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
+            transitionToJudging(submissionId);
 
             Optional<JudgeExecutionResult> result = runPipeline(job);
             if (result.isEmpty()) {
@@ -115,19 +115,35 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                 releaseIfLeased(port, handle);
                 return;
             }
-            JudgeExecutionResult r = result.get();
-
-            SubmissionStatus status = r.status();
-            submissionService.updateSubmissionResult(submissionId, status,
-                    r.maxRuntimeMs(), r.maxMemoryMb(), r.testCaseDetails());
-
-            notifyVerdict(userId, submissionId, problemId, status, r);
+            applyLegacyVerdict(submissionId, userId, problemId, result.get());
             releaseIfLeased(port, handle);
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
             markSystemError(submissionId, userId, problemId, findContestIdBySubmissionId(submissionId));
             releaseIfLeased(port, handle);
         }
+    }
+
+    /**
+     * Legacy transition step of the attempt lifecycle: flip the submission row
+     * to JUDGING before the sandbox runs. Centralised so the verdict constant
+     * lives here and the path reads as orchestrator above it.
+     */
+    private void transitionToJudging(String submissionId) {
+        submissionService.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
+    }
+
+    /**
+     * Legacy verdict step: write the pipeline outcome to the submission row
+     * and notify. Cleanup (release) is the caller's responsibility so this
+     * helper stays a single-responsibility writer.
+     */
+    private void applyLegacyVerdict(String submissionId, String userId, String problemId,
+                                    JudgeExecutionResult pipelineResult) {
+        SubmissionStatus status = pipelineResult.status();
+        submissionService.updateSubmissionResult(submissionId, status,
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
+        notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
     }
 
     // -----------------------------------------------------------------------
@@ -176,23 +192,32 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                 markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId, null);
                 return;
             }
-            JudgeExecutionResult r = result.get();
-
-            SubmissionStatus status = r.status();
-            boolean written = submissionService.updateSubmissionResultFenced(
-                    submissionId, generation, attemptId, status,
-                    r.maxRuntimeMs(), r.maxMemoryMb(), r.testCaseDetails());
-
-            if (written) {
-                notifyVerdict(userId, submissionId, problemId, status, r);
-            } else {
-                log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
-                        status.wireValue(), submissionId, generation);
-            }
+            writeVerdictFenced(submissionId, userId, problemId, attemptId, generation, result.get());
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);
             markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId,
                     findContestIdBySubmissionId(submissionId));
+        }
+    }
+
+    /**
+     * Fenced verdict step: CAS-write the pipeline outcome and notify only when
+     * the CAS lands. Fail-closed conditional fencing lives here as one named
+     * seam so the path reads as orchestration above it.
+     */
+    private void writeVerdictFenced(String submissionId, String userId, String problemId,
+                                    String attemptId, long generation,
+                                    JudgeExecutionResult pipelineResult) {
+        SubmissionStatus status = pipelineResult.status();
+        boolean written = submissionService.updateSubmissionResultFenced(
+                submissionId, generation, attemptId, status,
+                pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
+
+        if (written) {
+            notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
+        } else {
+            log.info("Fenced judge: verdict {} for submission {} gen {} dropped (superseded)",
+                    status.wireValue(), submissionId, generation);
         }
     }
 

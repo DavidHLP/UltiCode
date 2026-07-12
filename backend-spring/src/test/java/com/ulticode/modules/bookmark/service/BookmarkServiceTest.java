@@ -11,6 +11,7 @@ import com.ulticode.modules.bookmark.entity.BookmarkFolder;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkFolderMapper;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
+import com.ulticode.modules.bookmark.projection.DefaultBookmarkProjection;
 import com.ulticode.modules.bookmark.projection.FolderItemCount;
 import com.ulticode.modules.bookmark.service.impl.BookmarkServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +62,8 @@ class BookmarkServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new BookmarkServiceImpl(folderMapper, bookmarkMapper);
+        service = new BookmarkServiceImpl(folderMapper, bookmarkMapper,
+                new DefaultBookmarkProjection(folderMapper, bookmarkMapper));
     }
 
     @Nested

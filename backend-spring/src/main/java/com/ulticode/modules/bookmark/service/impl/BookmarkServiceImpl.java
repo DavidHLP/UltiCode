@@ -9,7 +9,7 @@ import com.ulticode.modules.bookmark.entity.BookmarkFolder;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkFolderMapper;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
-import com.ulticode.modules.bookmark.projection.FolderItemCount;
+import com.ulticode.modules.bookmark.projection.BookmarkProjection;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +45,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     private final BookmarkFolderMapper folderMapper;
     private final BookmarkMapper bookmarkMapper;
+    private final BookmarkProjection projection;
 
     @Override
     @Transactional
@@ -74,34 +75,13 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     @Override
     public List<BookmarkFolderVO> getFolders(String userId) {
-        List<BookmarkFolder> folders = folderMapper.findByUserId(userId);
-        Map<String, Long> itemCounts = itemCountsByFolderIds(folders);
-        return folders.stream()
-                .map(folder -> toFolderVO(folder, itemCounts.getOrDefault(folder.getId(), 0L)))
-                .collect(Collectors.toList());
+        return projection.listFolders(userId);
     }
 
     @Override
     public BookmarkFolderDetailVO getFolderDetail(String userId, String folderId) {
         BookmarkFolder folder = requireOwnedFolder(folderId, userId);
-
-        List<Bookmark> bookmarks = bookmarkMapper.findByFolderId(folderId);
-        List<BookmarkVO> bookmarkVOs = bookmarks.stream()
-                .map(this::toBookmarkVO)
-                .collect(Collectors.toList());
-
-        BookmarkFolderDetailVO vo = new BookmarkFolderDetailVO();
-        vo.setId(folder.getId());
-        vo.setName(folder.getName());
-        vo.setDescription(folder.getDescription());
-        vo.setIcon(folder.getIcon());
-        vo.setColor(folder.getColor());
-        vo.setSortOrder(folder.getSortOrder());
-        vo.setIsDefault(folder.getIsDefault());
-        vo.setItems(bookmarkVOs);
-        vo.setCreatedAt(folder.getCreatedAt());
-        vo.setUpdatedAt(folder.getUpdatedAt());
-        return vo;
+        return projection.folderDetail(folder);
     }
 
     @Override
@@ -127,7 +107,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         folderMapper.insert(folder);
 
         log.debug("Created folder {} for user {}", folder.getId(), userId);
-        return toFolderVO(folder, 0);
+        return projection.toFolderVO(folder, 0);
     }
 
     @Override
@@ -159,7 +139,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         folderMapper.updateById(folder);
         log.debug("Updated folder {} for user {}", folderId, userId);
-        return toFolderVO(folder, bookmarkMapper.countByFolderId(folderId));
+        return projection.toFolderVO(folder, bookmarkMapper.countByFolderId(folderId));
     }
 
     @Override
@@ -190,7 +170,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         Optional<Bookmark> existing = bookmarkMapper.findByFolderAndTarget(
                 folderId, dto.getTargetType().name(), dto.getTargetId());
         if (existing.isPresent()) {
-            return toBookmarkVO(existing.get());
+            return projection.toBookmarkVO(existing.get());
         }
 
         Bookmark bookmark = newItem(folderId, dto.getTargetType(), dto.getTargetId(), dto.getNote());
@@ -198,7 +178,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         log.debug("Added bookmark {}:{} to folder {} for user {}",
                 dto.getTargetType(), dto.getTargetId(), folderId, userId);
-        return toBookmarkVO(bookmark);
+        return projection.toBookmarkVO(bookmark);
     }
 
     @Override
@@ -246,24 +226,12 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         bookmarkMapper.updateById(bookmark);
         log.debug("Updated bookmark {} in folder {} for user {}", bookmarkId, folderId, userId);
-        return toBookmarkVO(bookmark);
+        return projection.toBookmarkVO(bookmark);
     }
 
     @Override
     public ItemFoldersVO getItemFolders(String userId, BookmarkType targetType, String targetId) {
-        List<BookmarkFolder> folders = folderMapper.findByUserAndTarget(userId, targetType.name(), targetId);
-
-        Map<String, Long> itemCounts = itemCountsByFolderIds(folders);
-        List<BookmarkFolderVO> folderVOs = folders.stream()
-                .map(folder -> toFolderVO(folder, itemCounts.getOrDefault(folder.getId(), 0L)))
-                .collect(Collectors.toList());
-
-        ItemFoldersVO vo = new ItemFoldersVO();
-        vo.setTargetId(targetId);
-        vo.setTargetType(targetType.name());
-        vo.setIsFavorited(!folders.isEmpty());
-        vo.setFolders(folderVOs);
-        return vo;
+        return projection.itemFolders(userId, targetType, targetId);
     }
 
     @Override
@@ -412,51 +380,5 @@ public class BookmarkServiceImpl implements BookmarkService {
         folderMapper.insert(folder);
         log.debug("Created default folder for user {}", userId);
         return folder;
-    }
-
-    /**
-     * Resolve item counts for the given folders in a single query, returning a
-     * folder-id to count map. Folders holding no items are absent from the map;
-     * callers resolve them to {@code 0L} via {@link Map#getOrDefault}.
-     *
-     * @param folders the folders to project
-     * @return folder-id to item-count map (empty if no folders)
-     */
-    private Map<String, Long> itemCountsByFolderIds(List<BookmarkFolder> folders) {
-        if (folders.isEmpty()) {
-            return Map.of();
-        }
-        List<String> folderIds = folders.stream()
-                .map(BookmarkFolder::getId)
-                .collect(Collectors.toList());
-        return bookmarkMapper.countItemsByFolderIds(folderIds).stream()
-                .collect(Collectors.toMap(FolderItemCount::folderId, FolderItemCount::itemCount));
-    }
-
-    private BookmarkFolderVO toFolderVO(BookmarkFolder folder, long itemCount) {
-        BookmarkFolderVO vo = new BookmarkFolderVO();
-        vo.setId(folder.getId());
-        vo.setName(folder.getName());
-        vo.setDescription(folder.getDescription());
-        vo.setIcon(folder.getIcon());
-        vo.setColor(folder.getColor());
-        vo.setSortOrder(folder.getSortOrder());
-        vo.setIsDefault(folder.getIsDefault());
-        vo.setItemCount((int) itemCount);
-        vo.setCreatedAt(folder.getCreatedAt());
-        vo.setUpdatedAt(folder.getUpdatedAt());
-        return vo;
-    }
-
-    private BookmarkVO toBookmarkVO(Bookmark bookmark) {
-        BookmarkVO vo = new BookmarkVO();
-        vo.setId(bookmark.getId());
-        vo.setFolderId(bookmark.getFolderId());
-        vo.setTargetId(bookmark.getTargetId());
-        vo.setTargetType(bookmark.getTargetType());
-        vo.setSortOrder(bookmark.getSortOrder());
-        vo.setNote(bookmark.getNote());
-        vo.setCreatedAt(bookmark.getCreatedAt());
-        return vo;
     }
 }

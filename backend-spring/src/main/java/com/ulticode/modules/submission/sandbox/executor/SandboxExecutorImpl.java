@@ -5,7 +5,6 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
-import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.sandbox.BatchRunResult;
 import com.ulticode.modules.submission.sandbox.LanguageProfile;
@@ -125,6 +124,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     private final DockerSandboxConfig config;
     private final CodeExecutionHelper helper;
     private final SandboxOutcomeClassifier outcomeClassifier;
+    private final SandboxResultTranslator resultTranslator;
 
     public SandboxExecutorImpl(List<LanguageProfile> all,
                                DockerSandboxConfig config,
@@ -133,6 +133,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         this.config = config;
         this.helper = helper;
         this.outcomeClassifier = outcomeClassifier;
+        this.resultTranslator = new SandboxResultTranslator(helper, outcomeClassifier);
         // Fail-fast: two profiles claiming the same language id is a
         // wiring bug, not a runtime fallback. Per ADR-002 §2.2.
         this.profiles = all.stream().collect(Collectors.toUnmodifiableMap(
@@ -204,7 +205,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             // Happy path: parse the harness envelope into one
             // RunCaseResult per case. Translate at the DTO boundary.
             List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
-                    .map(this::toRunTestCase)
+                    .map(resultTranslator::toRunTestCase)
                     .toList();
             List<RunResultDTO.RunCaseResult> parsedDto = helper.parseDEnvelope(
                     outcome.stdout(), runCases, job.runId(), job.userId());
@@ -216,7 +217,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             long memoryLimitBytes = effectiveMemoryLimitBytes(job);
             List<RunCaseResult> parsed = new ArrayList<>(parsedDto.size());
             for (int i = 0; i < parsedDto.size(); i++) {
-                parsed.add(toPortResult(parsedDto.get(i), cases.get(i), memoryLimitBytes));
+                parsed.add(resultTranslator.toPortResult(parsedDto.get(i), cases.get(i), memoryLimitBytes));
             }
             return new BatchRunResult(parsed);
 
@@ -252,10 +253,10 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             }
             long memoryLimitBytes = effectiveMemoryLimitBytes(job);
             List<RunCaseResult> parsed = helper.parseDEnvelope(
-                    outcome.stdout(), List.of(toRunTestCase(tc)),
+                    outcome.stdout(), List.of(resultTranslator.toRunTestCase(tc)),
                     job.runId(), job.userId())
                     .stream()
-                    .map(dto -> toPortResult(dto, tc, memoryLimitBytes))
+                    .map(dto -> resultTranslator.toPortResult(dto, tc, memoryLimitBytes))
                     .toList();
             if (parsed.isEmpty()) {
                 return rejected(outcomeClassifier.genericRuntimeError(),
@@ -278,7 +279,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             // RunSubmissionDTO.RunTestCase; we map at the boundary so
             // the sandbox port stays decoupled from the DTO package.
             List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
-                    .map(this::toRunTestCase)
+                    .map(resultTranslator::toRunTestCase)
                     .toList();
             String inputJson = runCases.size() == 1
                     ? helper.buildDInputsJson(runCases.get(0), perCaseMs, effectiveMemoryLimitBytes(job))
@@ -568,81 +569,6 @@ public class SandboxExecutorImpl implements SandboxExecutor {
 
     // ── File I/O helpers ────────────────────────────────────────────────────
 
-    /**
-     * Translate the port-owned {@link TestCase} into the DTO the
-     * pre-existing {@link CodeExecutionHelper} still speaks. Lives
-     * here (not in the port) so {@code sandbox} stays decoupled from
-     * the {@code submission.dto} package in the public type
-     * signatures; only this executor — which is the seam — touches
-     * the DTO type.
-     */
-    private RunSubmissionDTO.RunTestCase toRunTestCase(TestCase tc) {
-        RunSubmissionDTO.RunTestCase rtc = new RunSubmissionDTO.RunTestCase();
-        rtc.setId(tc.id());
-        rtc.setLabel(tc.label());
-        rtc.setOutput(tc.expectedOutput());
-        List<RunSubmissionDTO.RunInput> inputs = new ArrayList<>(tc.inputs().size());
-        for (TestCase.Input in : tc.inputs()) {
-            RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
-            ri.setId(in.id());
-            ri.setLabel(in.label());
-            ri.setName(in.name());
-            ri.setValue(in.value());
-            ri.setType(in.type());
-            inputs.add(ri);
-        }
-        rtc.setInputs(inputs);
-        return rtc;
-    }
-
-    /**
-     * Translate the DTO-level {@link RunResultDTO.RunCaseResult}
-     * (which carries a wire-string status) into the port-owned
-     * {@link RunCaseResult} (which carries a
-     * {@link SubmissionStatus} enum, per ADR-001).
-     *
-     * <p>The helper writes the pre-formatted runtime / memory
-     * strings (e.g. {@code "12ms"} / {@code "22.0MB"}) AND the
-     * numeric v2 fields (e.g. {@code runtimeMs} /
-     * {@code memoryMb}). We prefer the numeric fields when
-     * present and fall back to the formatted strings for legacy
-     * callers, matching the pre-M2a behavior.
-     */
-    private RunCaseResult toPortResult(RunResultDTO.RunCaseResult dto,
-                                       TestCase originalCase, long memoryLimitBytes) {
-        SubmissionStatus status = SubmissionStatusCodec.fromWire(dto.getStatus());
-        long elapsedMs = dto.getRuntimeMs() != null
-                ? dto.getRuntimeMs()
-                : helper.parseRuntimeMs(dto.getRuntime());
-        long memoryBytes = dto.getMemoryMb() != null
-                ? (long) (dto.getMemoryMb() * 1024L * 1024L)
-                : 0L;
-        long elapsedUs = dto.getRuntimeUs() != null ? dto.getRuntimeUs() : 0L;
-        long cpuMs = dto.getCpuMs() != null ? dto.getCpuMs() : 0L;
-        // ADR-002 §8 Layer B: backend backstop MLE. If the harness reported a
-        // peak over the limit but didn't self-classify (older harness, or a
-        // language whose harness skipped the check), reclassify so the user
-        // sees Memory Limit Exceeded instead of a misleading Accepted/WA.
-        // Decision is owned by SandboxOutcomeClassifier.applyMemoryCeiling.
-        status = outcomeClassifier.applyMemoryCeiling(status, memoryBytes, memoryLimitBytes);
-        double score = status == SubmissionStatus.ACCEPTED ? 1.0 : 0.0;
-        // M2a-round-2 fix (codex review F3): preserve the harness's
-        // reported actual output, expected output, and the input
-        // metadata so the facade can hand them back to
-        // JudgeWorkerProcessor (which persists them on the
-        // submission_cases row) and to the /run response.
-        String output = dto.getOutput();
-        String expectedOutput = originalCase == null
-                ? null
-                : originalCase.expectedOutput();
-        List<TestCase.Input> inputs = originalCase == null
-                ? null
-                : originalCase.inputs();
-        return new RunCaseResult(status, elapsedMs, memoryBytes,
-                elapsedUs, cpuMs,
-                dto.getDetail(), score, output, expectedOutput, inputs);
-    }
-
     private static final Set<PosixFilePermission> READ_ONLY_POSIX =
             EnumSet.of(PosixFilePermission.OWNER_READ,
                        PosixFilePermission.GROUP_READ,
@@ -711,7 +637,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
      * Effective per-run memory ceiling in bytes (from the active
      * LanguageProfile's limits). Forwarded to the harness as
      * {@code memory_limit_bytes} so it can self-report MLE, and used by
-     * {@link #toPortResult} as the Layer-B backstop threshold. ADR-002 §8.
+     * {@link SandboxResultTranslator#toPortResult} as the Layer-B backstop threshold. ADR-002 §8.
      */
     private long effectiveMemoryLimitBytes(SandboxJob job) {
         SandboxLimits limits = profileOrThrow(job).effectiveLimits(job);

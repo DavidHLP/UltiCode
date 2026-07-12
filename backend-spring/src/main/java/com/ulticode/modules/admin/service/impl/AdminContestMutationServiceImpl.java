@@ -207,7 +207,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         contestMapper.updateById(contest);
 
         AuditContext.setOldValues(oldValues);
-        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("title", contest.getTitle());
+        newValues.put("status", contest.getStatus());
+        AuditContext.setNewValues(newValues);
 
         log.info("Admin updated contest: {}", id);
         return adminContestProjection.toAdminVO(contest);
@@ -232,7 +235,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         contest.setDeletedBy(currentUserProvider.getCurrentUserId());
         contestMapper.updateById(contest);
 
-        AuditContext.setOldValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("title", contest.getTitle());
+        oldValues.put("status", contest.getStatus());
+        AuditContext.setOldValues(oldValues);
         AuditContext.setNewValues(null);
 
         log.info("Admin deleted contest: {}", id);
@@ -308,7 +314,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         contestAnnouncementPushPort.emitAnnouncement(contestId,
                 AnnouncementPayload.of(announcement.getId(), contestId, title, content));
 
-        AuditContext.setNewValues(Map.of("title", title, "contestId", contestId));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("title", title);
+        newValues.put("contestId", contestId);
+        AuditContext.setNewValues(newValues);
 
         log.info("Admin created announcement {} for contest {}", announcement.getId(), contestId);
         return announcement;
@@ -322,10 +331,9 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
-        Map<String, Object> oldValues = Map.of(
-            "title", announcement.getTitle(),
-            "isPinned", announcement.getIsPinned()
-        );
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("title", announcement.getTitle());
+        oldValues.put("isPinned", announcement.getIsPinned());
 
         if (title != null) {
             announcement.setTitle(title);
@@ -340,7 +348,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         contestAnnouncementMapper.updateById(announcement);
 
         AuditContext.setOldValues(oldValues);
-        AuditContext.setNewValues(Map.of("title", announcement.getTitle(), "isPinned", announcement.getIsPinned()));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("title", announcement.getTitle());
+        newValues.put("isPinned", announcement.getIsPinned());
+        AuditContext.setNewValues(newValues);
 
         log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
         return announcement;
@@ -356,7 +367,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
 
         contestAnnouncementMapper.deleteById(announcementId);
 
-        AuditContext.setOldValues(Map.of("title", announcement.getTitle(), "contestId", contestId));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("title", announcement.getTitle());
+        oldValues.put("contestId", contestId);
+        AuditContext.setOldValues(oldValues);
         AuditContext.setNewValues(null);
 
         log.info("Admin deleted announcement {} for contest {}", announcementId, contestId);

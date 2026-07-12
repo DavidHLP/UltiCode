@@ -6,6 +6,8 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.modules.admin.dto.AdminContestVO;
+import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminContestController {
 
     private final ContestService contestService;
+    private final AdminContestMutationService adminContestMutation;
     private final ContestProjection contestProjection;
     private final CurrentUserProvider currentUserProvider;
 
@@ -76,10 +79,10 @@ public class AdminContestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:create", limit = 30, period = 60)
     @PostMapping
-    public Result<ContestVO> createContest(@Valid @RequestBody CreateContestDTO dto) {
+    public Result<AdminContestVO> createContest(@Valid @RequestBody CreateContestDTO dto) {
         rejectUnsafeTitleChars(dto.getTitle());
         String userId = getCurrentUserIdOrThrow();
-        return Result.success(contestService.createContest(dto, userId));
+        return Result.success(adminContestMutation.createContest(dto, userId));
     }
 
     @Operation(summary = "Update contest (partial)", description = "Partially update a contest")
@@ -89,11 +92,11 @@ public class AdminContestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:update", limit = 30, period = 60)
     @PatchMapping("/{id}")
-    public Result<ContestVO> updateContest(
+    public Result<AdminContestVO> updateContest(
             @Parameter(description = "Contest ID") @PathVariable String id,
             @Valid @RequestBody UpdateContestDTO dto) {
         rejectUnsafeTitleChars(dto.getTitle());
-        return Result.success(contestService.updateContest(id, dto));
+        return Result.success(adminContestMutation.updateContest(id, dto));
     }
 
     @Operation(summary = "Delete contest", description = "Soft delete a contest")
@@ -105,7 +108,7 @@ public class AdminContestController {
     public Result<Void> deleteContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        contestService.deleteContest(id);
+        adminContestMutation.deleteContest(id);
         return Result.success();
     }
 
@@ -158,11 +161,10 @@ public class AdminContestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:start", limit = 30, period = 60)
     @PostMapping("/{id}/start")
-    public Result<ContestVO> startContest(
+    public Result<AdminContestVO> startContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        String userId = getCurrentUserIdOrThrow();
-        return Result.success(contestService.startContest(id, userId));
+        return Result.success(adminContestMutation.startContest(id));
     }
 
     @Operation(summary = "End contest", description = "Transition a contest from RUNNING to FINISHED")
@@ -172,11 +174,10 @@ public class AdminContestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "admin-contest:end", limit = 30, period = 60)
     @PostMapping("/{id}/end")
-    public Result<ContestVO> endContest(
+    public Result<AdminContestVO> endContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        String userId = getCurrentUserIdOrThrow();
-        return Result.success(contestService.endContest(id, userId));
+        return Result.success(adminContestMutation.endContest(id));
     }
 
     private String getCurrentUserIdOrThrow() {

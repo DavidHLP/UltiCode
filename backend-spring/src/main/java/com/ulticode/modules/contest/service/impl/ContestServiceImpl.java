@@ -1,19 +1,15 @@
 package com.ulticode.modules.contest.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.ContestProblemVO;
-import com.ulticode.modules.contest.dto.ContestVO;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.UpdateContestDTO;
-import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -31,27 +27,31 @@ import com.ulticode.modules.submission.service.SubmissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Write-side facade for contest operations. Owns the contest state machine
- * (create / update / delete / start / end / addProblem / removeProblem /
- * submit) only.
+ * Write-side facade for contest operations. After the admin-contest mutation
+ * seam landed, this only owns the contest state-machine pieces that the
+ * user-facing path still drives: {@code submitContestProblem} (the
+ * participant submit guard matrix) and {@code addProblem} /
+ * {@code removeProblem} (contest-problem link management).
  *
- * <p>All read paths — catalog lists, detail, problems, announcements, stats,
- * rankings — live in {@link ContestProjection}. Participation (register,
- * unregister, status, virtual replay, history) lives in
+ * <p>Admin lifecycle (create / update / soft-delete / start / end /
+ * announcement CRUD / admin add-problem) moved to
+ * {@link com.ulticode.modules.admin.service.AdminContestMutationService} —
+ * the single seam where every admin contest write policy lives. Read paths
+ * live in {@link ContestProjection}; participation in
  * {@link com.ulticode.modules.contest.service.ContestParticipationService}.
- * Write paths shape their return values through {@link ContestProjection#toVO}
- * and resolve entities for guards via the internal {@link #getContestOrThrow(String)}
- * helper (direct mapper access, since every guard needs the soft-delete-aware
- * variant).
+ *
+ * <p>The internal {@link #getContestOrThrow} helper is the soft-delete-aware
+ * guard every write path uses; it loads directly from the mapper so callers
+ * never see soft-deleted contests.
  */
 @Slf4j
 @Service
@@ -70,121 +70,8 @@ public class ContestServiceImpl implements ContestService {
     private final CurrentUserProvider currentUserProvider;
 
     // =========================================================================
-    // CRUD Operations (Admin)
+    // Participant submission (state-machine guards)
     // =========================================================================
-
-    @Override
-    @Transactional
-    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditVocabulary.CREATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, captureOldState = false)
-    public ContestVO createContest(CreateContestDTO dto, String userId) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = new Contest();
-        contest.setTitle(dto.getTitle());
-        contest.setDescription(dto.getDescription());
-        contest.setStartTime(dto.getStartTime());
-        contest.setDurationMinutes(dto.getDuration());
-        contest.setEndTime(dto.getStartTime().plusMinutes(dto.getDuration()));
-        contest.setMaxParticipants(dto.getMaxParticipants());
-        contest.setIsVisible(dto.getIsPublished() != null ? dto.getIsPublished() : false);
-        contest.setCreatedBy(userId);
-        // P0-3 (simplified): honor the caller's isPublished flag instead of always
-        // DRAFT. Admin path (AdminContestServiceImpl.createContest:127) already
-        // does this; this makes the user-facing path consistent. DRAFT remains
-        // the default for backward compatibility when isPublished is null/false.
-        contest.setStatus(Boolean.TRUE.equals(dto.getIsPublished())
-                ? ContestStatus.UPCOMING.name()
-                : ContestStatus.DRAFT.name());
-        contest.setRegisteredCount(0);
-        contest.setParticipantCount(0);
-        contest.setSubmissionCount(0);
-        contest.setIsDeleted(false);
-        contest.setSlug(generateSlug(dto.getTitle()));
-        try {
-            contestMapper.insert(contest);
-        } catch (DataIntegrityViolationException e) {
-            // P0-5 / H2: uk_contest_slug rejected. Catch the parent class so we
-            // surface 409 regardless of which Spring exception subtype the
-            // underlying driver throws.
-            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
-                    "Contest slug already exists: " + contest.getSlug());
-        }
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("slug", contest.getSlug()), Map.entry("status", contest.getStatus())));
-        AuditContext.setUserId(userId);
-        log.info("Contest created: {} by user {}", contest.getId(), userId);
-        return contestProjection.toVO(contest, userId);
-    }
-
-    @Override
-    @Transactional
-    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
-    public ContestVO updateContest(String id, UpdateContestDTO dto) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = getContestOrThrow(id);
-        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_UPDATE_UPCOMING,
-                    "Contest can only be updated when in UPCOMING status, current: " + contest.getStatus());
-        }
-        Map<String, Object> oldValues = new java.util.HashMap<>();
-        oldValues.put("title", contest.getTitle());
-        oldValues.put("status", contest.getStatus());
-        if (dto.getTitle() != null) { contest.setTitle(dto.getTitle()); contest.setSlug(generateSlug(dto.getTitle())); }
-        if (dto.getDescription() != null) contest.setDescription(dto.getDescription());
-        if (dto.getStartTime() != null) {
-            contest.setStartTime(dto.getStartTime());
-            contest.setEndTime(dto.getDuration() != null ? dto.getStartTime().plusMinutes(dto.getDuration())
-                    : contest.getStartTime().plusMinutes(contest.getDurationMinutes()));
-        }
-        if (dto.getDuration() != null) {
-            contest.setDurationMinutes(dto.getDuration());
-            if (contest.getStartTime() != null) contest.setEndTime(contest.getStartTime().plusMinutes(dto.getDuration()));
-        }
-        if (dto.getMaxParticipants() != null) contest.setMaxParticipants(dto.getMaxParticipants());
-        if (dto.getIsPublished() != null) contest.setIsVisible(dto.getIsPublished());
-        try {
-            contestMapper.updateById(contest);
-        } catch (DataIntegrityViolationException e) {
-            // P0-5 / H2: title→slug change collided with existing row's slug.
-            // Parent-class catch for cross-driver compatibility.
-            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
-                    "Contest slug already exists: " + contest.getSlug());
-        }
-        AuditContext.setOldValues(oldValues);
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("status", contest.getStatus())));
-        log.info("Contest updated: {}", id);
-        return contestProjection.toVO(contest, null);
-    }
-
-    @Override
-    @Transactional
-    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditVocabulary.DELETE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
-    public void deleteContest(String id) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = getContestOrThrow(id);
-        // LambdaUpdateWrapper is required because Contest.isDeleted carries @TableLogic;
-        // mapper.updateById(entity) silently skips fields annotated with @TableLogic.
-        String deletedBy = currentUserProvider.getCurrentUserId();
-        LocalDateTime now = LocalDateTime.now(clock);
-        contestMapper.update(null, new LambdaUpdateWrapper<Contest>()
-                .eq(Contest::getId, id)
-                .set(Contest::getIsDeleted, true)
-                .set(Contest::getDeletedAt, now)
-                .set(Contest::getDeletedBy, deletedBy));
-        // P2-5 fix: cascade physical delete of relational rows (participants,
-        // submissions, problem results, first-solve records, contest_problems).
-        // The soft-delete of the parent is already done above; this is a clean-up
-        // step that prevents stale rows from polluting stats / rankings.
-        try {
-            contestLifecycleService.deleteContestCascade(id);
-        } catch (Exception e) {
-            log.warn("P2-5 cascade cleanup failed for contest {}: {}", id, e.getMessage());
-        }
-        AuditContext.setOldValues(Map.ofEntries(Map.entry("title", contest.getTitle()), Map.entry("status", contest.getStatus())));
-        AuditContext.setNewValues(null);
-        log.info("Contest deleted: {} by {}", id, deletedBy);
-    }
 
     @Override
     @Transactional
@@ -225,47 +112,8 @@ public class ContestServiceImpl implements ContestService {
     }
 
     // =========================================================================
-    // Admin lifecycle (state transitions + problem management)
+    // Contest-problem link management
     // =========================================================================
-
-    @Override
-    @Transactional
-    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
-    public ContestVO startContest(String id, String userId) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = getContestOrThrow(id);
-        String status = contest.getStatus();
-        if (!ContestStatus.DRAFT.name().equals(status) && !ContestStatus.UPCOMING.name().equals(status)) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be started from DRAFT or UPCOMING status");
-        }
-        contest.setStatus(ContestStatus.RUNNING.name());
-        contest.setActualStartTime(LocalDateTime.now(clock));
-        contestMapper.updateById(contest);
-        AuditContext.setOldValues(Map.ofEntries(Map.entry("status", status)));
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
-        log.info("Contest started: {} by user {}", id, userId);
-        return contestProjection.toVO(contest, userId);
-    }
-
-    @Override
-    @Transactional
-    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
-    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
-    public ContestVO endContest(String id, String userId) {
-        if (!currentUserProvider.hasAnyRole("ADMIN", "SUPER_ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
-        Contest contest = getContestOrThrow(id);
-        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be ended from RUNNING status");
-        }
-        contest.setStatus(ContestStatus.FINISHED.name());
-        contest.setActualEndTime(LocalDateTime.now(clock));
-        contestMapper.updateById(contest);
-        AuditContext.setOldValues(Map.ofEntries(Map.entry("status", ContestStatus.RUNNING.name())));
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("status", ContestStatus.FINISHED.name())));
-        log.info("Contest ended: {} by user {}", id, userId);
-        return contestProjection.toVO(contest, userId);
-    }
 
     @Override
     @Transactional
@@ -287,7 +135,10 @@ public class ContestServiceImpl implements ContestService {
         cp.setSolvedCount(0);
         cp.setSubmissionCount(0);
         contestProblemMapper.insert(cp);
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("addedProblemId", dto.getProblemId()), Map.entry("problemIndex", cp.getProblemIndex())));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("addedProblemId", dto.getProblemId());
+        newValues.put("problemIndex", cp.getProblemIndex());
+        AuditContext.setNewValues(newValues);
         log.info("Problem {} added to contest {}", dto.getProblemId(), contestId);
         ContestProblemVO vo = new ContestProblemVO();
         vo.setId(cp.getId());
@@ -310,7 +161,9 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem not found in this contest");
         }
         contestProblemMapper.deleteById(cp.getId());
-        AuditContext.setNewValues(Map.ofEntries(Map.entry("removedProblemId", problemId)));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("removedProblemId", problemId);
+        AuditContext.setNewValues(newValues);
         log.info("Problem {} removed from contest {}", problemId, contestId);
     }
 
@@ -338,11 +191,5 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
         return contestProblem;
-    }
-
-    private String generateSlug(String title) {
-        if (title == null || title.isBlank()) return "contest-" + uuidGenerator.newId().substring(0, 8);
-        String slug = title.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").replaceAll("\\s+", "-").replaceAll("-+", "-").replaceAll("^-|-$", "");
-        return slug.length() < 3 ? slug + "-" + uuidGenerator.newId().substring(0, 8) : slug;
     }
 }

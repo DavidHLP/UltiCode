@@ -58,7 +58,6 @@ import java.util.stream.Collectors;
 public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
 
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
-    private static final TypeReference<List<Map<String, Object>>> LIST_MAP_TYPE = new TypeReference<>() {};
     private static final TypeReference<List<String>> LIST_STRING_TYPE = new TypeReference<>() {};
 
     private final ProblemMapper problemMapper;
@@ -172,13 +171,9 @@ public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
             exMap.put("input", ex.getInputText());
             exMap.put("output", ex.getOutputText());
             exMap.put("explanation", ex.getExplanation());
-            if (ex.getInputs() != null && !ex.getInputs().isBlank()) {
-                try {
-                    exMap.put("inputs", objectMapper.readValue(ex.getInputs(), LIST_MAP_TYPE));
-                } catch (JsonProcessingException e) {
-                    exMap.put("inputs", ex.getInputs());
-                }
-            }
+            // HIDDEN test-case payload (ProblemExample.inputs) intentionally
+            // excluded from the snapshot whitelist: only input/output/explanation
+            // (the user-visible example text) belong in the version rollback.
             exampleSnapshots.add(exMap);
         }
         snapshot.put("examples", exampleSnapshots);
@@ -271,7 +266,7 @@ public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
     private void restoreProblem(Long problemId, Map<String, Object> snapshot) {
         Problem problem = problemMapper.selectById(problemId);
         if (problem == null) {
-            return;
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
         problem.setTitle((String) snapshot.get("title"));
         problem.setSlug((String) snapshot.get("slug"));
@@ -294,8 +289,8 @@ public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
             detail = new ProblemDetail();
             detail.setId(uuidGenerator.newId());
             detail.setProblemId(problemId);
-            Objects.requireNonNull(problem != null ? problem.getSlug() : null,
-                    "Problem.slug must not be null");
+            Objects.requireNonNull(problem, "Problem must exist to seed ProblemDetail")
+                    .getSlug();
             detail.setSlug(problem.getSlug());
             detail.setConstraintsJson(ProblemDetail.EMPTY_JSON_ARRAY);
         }
@@ -340,14 +335,8 @@ public class ProblemSnapshotServiceImpl implements ProblemSnapshotService {
             example.setInputText((String) (ex.get("input") != null ? ex.get("input") : ex.get("inputText")));
             example.setOutputText((String) (ex.get("output") != null ? ex.get("output") : ex.get("outputText")));
             example.setExplanation((String) ex.get("explanation"));
-            Object inputs = ex.get("inputs");
-            if (inputs != null) {
-                try {
-                    example.setInputs(objectMapper.writeValueAsString(inputs));
-                } catch (JsonProcessingException e) {
-                    log.warn("Failed to serialize inputs during rollback", e);
-                }
-            }
+            // HIDDEN test-case payload intentionally not restored: the snapshot
+            // whitelist excludes `inputs` so a rollback can never reintroduce it.
             problemExampleMapper.insert(example);
         }
     }

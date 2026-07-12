@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.admin.dto.AdminContestVO;
+import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.projection.ContestProjection;
@@ -68,6 +70,9 @@ class ContestControllerTest {
     private ContestService contestService;
 
     @MockBean
+    private AdminContestMutationService adminContestMutation;
+
+    @MockBean
     private ContestProjection contestProjection;
 
     @MockBean
@@ -92,17 +97,16 @@ class ContestControllerTest {
         return dto;
     }
 
-    private ContestVO createValidContestVO() {
-        ContestVO vo = new ContestVO();
+    private AdminContestVO createValidAdminContestVO() {
+        AdminContestVO vo = new AdminContestVO();
         vo.setId("contest-uuid-123");
         vo.setSlug("weekly-contest-123");
         vo.setTitle("Weekly Contest #123");
         vo.setDescription("Test contest description");
-        vo.setStatus("DRAFT");
-        vo.setDuration(120);
-        vo.setMaxParticipants(1000);
-        vo.setIsPublished(true);
-        vo.setCurrentParticipants(0);
+        vo.setStatus("UPCOMING");
+        vo.setDurationMinutes(120);
+        vo.setIsVisible(true);
+        vo.setParticipantCount(0);
         return vo;
     }
 
@@ -114,9 +118,9 @@ class ContestControllerTest {
         @WithMockUser(roles = {"ADMIN"})
         @DisplayName("should return 200 with created contest when admin creates contest")
         void createContest_success_asAdmin() throws Exception {
-            ContestVO contestVO = createValidContestVO();
-            when(contestService.createContest(any(CreateContestDTO.class), anyString()))
-                    .thenReturn(contestVO);
+            AdminContestVO adminVO = createValidAdminContestVO();
+            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
+                    .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
 
@@ -128,19 +132,18 @@ class ContestControllerTest {
                     .andExpect(jsonPath("$.data.id").value("contest-uuid-123"))
                     .andExpect(jsonPath("$.data.title").value("Weekly Contest #123"))
                     .andExpect(jsonPath("$.data.slug").value("weekly-contest-123"))
-                    .andExpect(jsonPath("$.data.status").value("DRAFT"))
-                    .andExpect(jsonPath("$.data.duration").value(120))
-                    .andExpect(jsonPath("$.data.maxParticipants").value(1000))
-                    .andExpect(jsonPath("$.data.isPublished").value(true));
+                    .andExpect(jsonPath("$.data.status").value("UPCOMING"))
+                    .andExpect(jsonPath("$.data.durationMinutes").value(120))
+                    .andExpect(jsonPath("$.data.isVisible").value(true));
         }
 
         @Test
         @WithMockUser(roles = {"SUPER_ADMIN"})
         @DisplayName("should return 200 with created contest when super admin creates contest")
         void createContest_success_asSuperAdmin() throws Exception {
-            ContestVO contestVO = createValidContestVO();
-            when(contestService.createContest(any(CreateContestDTO.class), anyString()))
-                    .thenReturn(contestVO);
+            AdminContestVO adminVO = createValidAdminContestVO();
+            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
+                    .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
 
@@ -156,7 +159,7 @@ class ContestControllerTest {
         @WithMockUser(roles = {"USER"})
         @DisplayName("should return 403 when non-admin user tries to create contest")
         void createContest_forbidden_asUser() throws Exception {
-            when(contestService.createContest(any(CreateContestDTO.class), anyString()))
+            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
                     .thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
 
             CreateContestDTO dto = createValidDTO();

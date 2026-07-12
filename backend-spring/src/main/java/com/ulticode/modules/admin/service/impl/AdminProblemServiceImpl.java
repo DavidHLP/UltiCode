@@ -6,13 +6,13 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.admin.service.AdminProblemService;
+import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.problem.dto.ProblemVO;
@@ -49,6 +49,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final AuditService auditService;
     private final CurrentUserProvider currentUserProvider;
     private final AdminBulkExecutor bulkExecutor;
+    private final ProblemImportService problemImportService;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -192,75 +193,8 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     }
 
     @Override
-    @Transactional
     public ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request) {
-        int created = 0, updated = 0, skipped = 0, failed = 0;
-        List<ImportProblemsResponseDTO.ImportResultItem> results = new ArrayList<>();
-
-        for (ImportProblemItemDTO item : request.getProblems()) {
-            try {
-                Problem existing = problemPort.findBySlug(item.getSlug()).orElse(null);
-                if (existing != null) {
-                    switch (request.getOnConflict()) {
-                        case "skip" -> {
-                            skipped++;
-                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "skipped"));
-                        }
-                        case "update" -> {
-                            updateFromImport(existing, item);
-                            problemMapper.updateById(existing);
-                            updated++;
-                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "updated"));
-                        }
-                        case "create_new" -> {
-                            Problem newProblem = createFromImport(item);
-                            newProblem.setSlug(item.getSlug() + "-" + System.currentTimeMillis());
-                            problemMapper.insert(newProblem);
-                            created++;
-                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "created"));
-                        }
-                        default -> {
-                            skipped++;
-                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "skipped"));
-                        }
-                    }
-                } else {
-                    Problem newProblem = createFromImport(item);
-                    problemMapper.insert(newProblem);
-                    created++;
-                    results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "created"));
-                }
-            } catch (Exception e) {
-                failed++;
-                log.error("Import failed for problem slug={}: {}", item.getSlug(), e.getMessage(), e);
-                results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), false, e.getMessage(), null));
-            }
-        }
-
-        return new ImportProblemsResponseDTO(request.getProblems().size(), created, updated, skipped, failed, results);
-    }
-
-    private Problem createFromImport(ImportProblemItemDTO item) {
-        Problem problem = new Problem();
-        problem.setSlug(item.getSlug());
-        problem.setTitle(item.getTitle());
-        problem.setDifficulty(item.getDifficulty());
-        problem.setStatus(item.getStatus() != null ? item.getStatus() : "todo");
-        problem.setIsPremium(item.getIsPremium() != null ? item.getIsPremium() : false);
-        problem.setIsPublished(item.getIsPublished() != null ? item.getIsPublished() : false);
-        problem.setHasSolution(false);
-        problem.setIsFlagged(false);
-        problem.setIsDeleted(false);
-        problem.setVersion(1);
-        return problem;
-    }
-
-    private void updateFromImport(Problem existing, ImportProblemItemDTO item) {
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getTitle, existing::setTitle);
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getDifficulty, existing::setDifficulty);
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getStatus, existing::setStatus);
-        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPremium, existing::setIsPremium);
-        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPublished, existing::setIsPublished);
+        return problemImportService.importProblems(request);
     }
 
     private static final java.util.Set<String> VALID_DIFFICULTIES = java.util.Set.of("Easy", "Medium", "Hard");

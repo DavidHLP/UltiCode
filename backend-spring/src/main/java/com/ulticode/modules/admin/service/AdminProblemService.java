@@ -33,7 +33,5 @@ public interface AdminProblemService {
 
     PageResult<Submission> getProblemSubmissions(Long id, int page, int limit);
 
-    ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request);
-
     List<AuditLogVO> getProblemAuditHistory(Long id);
 }

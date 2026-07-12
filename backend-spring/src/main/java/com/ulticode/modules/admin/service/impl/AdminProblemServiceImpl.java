@@ -12,7 +12,6 @@ import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.admin.service.AdminProblemService;
-import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
 import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.problem.dto.ProblemVO;
@@ -49,7 +48,6 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final AuditService auditService;
     private final CurrentUserProvider currentUserProvider;
     private final AdminBulkExecutor bulkExecutor;
-    private final ProblemImportService problemImportService;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -190,11 +188,6 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     public PageResult<Submission> getProblemSubmissions(Long id, int page, int limit) {
         findProblemById(id);
         return problemPort.findSubmissionsByProblemId(id, page, limit);
-    }
-
-    @Override
-    public ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request) {
-        return problemImportService.importProblems(request);
     }
 
     private static final java.util.Set<String> VALID_DIFFICULTIES = java.util.Set.of("Easy", "Medium", "Hard");

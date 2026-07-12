@@ -12,6 +12,7 @@ import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
 import com.ulticode.modules.admin.service.ProblemExportService;
+import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.service.impl.ExportPayload;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
@@ -42,6 +43,7 @@ public class AdminProblemController {
     private final ProblemProjection problemProjection;
     private final AdminProblemService adminProblemService;
     private final ProblemExportService problemExportService;
+    private final ProblemImportService problemImportService;
 
     @Operation(summary = "Get problems list", description = "Get paginated list of problems with filters")
     @GetMapping
@@ -179,7 +181,7 @@ public class AdminProblemController {
     @PostMapping("/import")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ImportProblemsResponseDTO> importProblems(@RequestBody @Valid ImportProblemsRequestDTO request) {
-        return Result.success(adminProblemService.importProblems(request));
+        return Result.success(problemImportService.importProblems(request));
     }
 
     // ========== Tab-specific Endpoints ==========

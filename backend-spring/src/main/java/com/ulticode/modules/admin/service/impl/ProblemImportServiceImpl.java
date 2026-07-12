@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -23,7 +25,7 @@ import java.util.Optional;
  * <p>Owns the whole batch outcome end-to-end behind the
  * {@link ProblemImportService} seam:
  * <ul>
- *   <li>conflict-policy resolution ({@link #conflictAction}) — skip /
+ *   <li>conflict-policy resolution ({@link ConflictPolicy}) — skip /
  *       update / create_new, with any unknown policy folding to skip;</li>
  *   <li>per-row failure isolation — one bad row is counted as failed and
  *       logged, the rest of the batch still runs;</li>
@@ -32,8 +34,9 @@ import java.util.Optional;
  *       non-null DTO fields onto an existing row;</li>
  *   <li>slug uniqueness on conflict — {@code create_new} against an
  *       existing slug mints {@code slug + "-" + wall-clock millis};</li>
- *   <li>result accounting — created / updated / skipped / failed counters
- *       and the per-item result list.</li>
+ *   <li>result accounting — {@link ImportAction} counters accumulated via
+ *       an {@link EnumMap} and the per-item result list with the wire
+ *       string the legacy DTO contract expects.</li>
  * </ul>
  *
  * <p>Behavior is preserved exactly from the legacy inline
@@ -49,14 +52,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ProblemImportServiceImpl implements ProblemImportService {
 
-    private static final String CONFLICT_SKIP = "skip";
-    private static final String CONFLICT_UPDATE = "update";
-    private static final String CONFLICT_CREATE_NEW = "create_new";
-
-    private static final String ACTION_CREATED = "created";
-    private static final String ACTION_UPDATED = "updated";
-    private static final String ACTION_SKIPPED = "skipped";
-
     private static final String DEFAULT_STATUS = "todo";
 
     private final ProblemMapper problemMapper;
@@ -65,66 +60,58 @@ public class ProblemImportServiceImpl implements ProblemImportService {
     @Override
     @Transactional
     public ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request) {
-        int created = 0, updated = 0, skipped = 0, failed = 0;
         List<ImportProblemItemDTO> items = request.getProblems();
         List<ImportProblemsResponseDTO.ImportResultItem> results = new ArrayList<>(items.size());
-        String conflictPolicy = request.getOnConflict();
+        Map<ImportAction, Integer> counters = new EnumMap<>(ImportAction.class);
+        int failed = 0;
 
         for (ImportProblemItemDTO item : items) {
-            ImportProblemsResponseDTO.ImportResultItem result;
+            ImportAction action;
             try {
-                result = applyItem(conflictPolicy, item);
+                action = applyItem(request.getOnConflict(), item);
             } catch (Exception e) {
                 log.error("Import failed for problem slug={}: {}", item.getSlug(), e.getMessage(), e);
                 failed++;
                 results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), false, e.getMessage(), null));
                 continue;
             }
-            results.add(result);
-            switch (result.getAction()) {
-                case ACTION_CREATED -> created++;
-                case ACTION_UPDATED -> updated++;
-                default -> skipped++;
-            }
+            counters.merge(action, 1, Integer::sum);
+            results.add(success(item.getSlug(), action));
         }
 
-        return new ImportProblemsResponseDTO(items.size(), created, updated, skipped, failed, results);
+        return new ImportProblemsResponseDTO(
+                items.size(),
+                counters.getOrDefault(ImportAction.CREATED, 0),
+                counters.getOrDefault(ImportAction.UPDATED, 0),
+                counters.getOrDefault(ImportAction.SKIPPED, 0),
+                failed,
+                results);
     }
 
-    private ImportProblemsResponseDTO.ImportResultItem applyItem(String conflictPolicy, ImportProblemItemDTO item) {
+    private ImportAction applyItem(String onConflictWire, ImportProblemItemDTO item) {
         Optional<Problem> existing = problemPort.findBySlug(item.getSlug());
         if (existing.isEmpty()) {
             problemMapper.insert(createNew(item));
-            return success(item.getSlug(), ACTION_CREATED);
+            return ImportAction.CREATED;
         }
-        return resolveConflict(conflictPolicy, existing.get(), item);
+        return resolveConflict(ConflictPolicy.from(onConflictWire), existing.get(), item);
     }
 
-    private ImportProblemsResponseDTO.ImportResultItem resolveConflict(
-            String conflictPolicy, Problem existing, ImportProblemItemDTO item) {
-        switch (conflictAction(conflictPolicy)) {
-            case CONFLICT_UPDATE -> {
+    private ImportAction resolveConflict(
+            ConflictPolicy policy, Problem existing, ImportProblemItemDTO item) {
+        return switch (policy) {
+            case UPDATE -> {
                 applyPartialUpdate(existing, item);
                 problemMapper.updateById(existing);
-                return success(item.getSlug(), ACTION_UPDATED);
+                yield ImportAction.UPDATED;
             }
-            case CONFLICT_CREATE_NEW -> {
+            case CREATE_NEW -> {
                 Problem created = createNew(item);
                 created.setSlug(item.getSlug() + "-" + System.currentTimeMillis());
                 problemMapper.insert(created);
-                return success(item.getSlug(), ACTION_CREATED);
+                yield ImportAction.CREATED;
             }
-            default -> {
-                return success(item.getSlug(), ACTION_SKIPPED);
-            }
-        }
-    }
-
-    private String conflictAction(String policy) {
-        return switch (policy == null ? "" : policy) {
-            case CONFLICT_UPDATE -> CONFLICT_UPDATE;
-            case CONFLICT_CREATE_NEW -> CONFLICT_CREATE_NEW;
-            default -> CONFLICT_SKIP;
+            case SKIP -> ImportAction.SKIPPED;
         };
     }
 
@@ -151,7 +138,7 @@ public class ProblemImportServiceImpl implements ProblemImportService {
         PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPublished, existing::setIsPublished);
     }
 
-    private ImportProblemsResponseDTO.ImportResultItem success(String slug, String action) {
-        return new ImportProblemsResponseDTO.ImportResultItem(slug, true, null, action);
+    private ImportProblemsResponseDTO.ImportResultItem success(String slug, ImportAction action) {
+        return new ImportProblemsResponseDTO.ImportResultItem(slug, true, null, action.wireValue());
     }
 }

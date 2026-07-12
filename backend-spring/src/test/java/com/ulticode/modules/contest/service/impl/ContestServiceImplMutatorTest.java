@@ -13,7 +13,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestScoringService;
+import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +57,7 @@ class ContestServiceImplMutatorTest {
     @Mock ContestProblemMapper contestProblemMapper;
     @Mock ContestParticipantMapper participantMapper;
     @Mock SubmissionService submissionService;
-    @Mock ContestScoringService contestScoringService;
+    @Mock ContestLifecycleService contestLifecycleService;
     @Mock ContestProjection contestProjection;
     @Mock com.ulticode.modules.contest.clock.ContestClock contestClock;
     @Mock
@@ -72,7 +72,7 @@ class ContestServiceImplMutatorTest {
         service = new ContestServiceImpl(
                 contestMapper, contestProblemMapper, participantMapper,
                 submissionService,
-                contestScoringService, contestProjection, contestClock,
+                contestLifecycleService, contestProjection, contestClock,
                 java.time.Clock.systemDefaultZone(),
                 new FixedUuidGenerator(), currentUserProvider);
     }

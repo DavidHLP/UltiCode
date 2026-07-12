@@ -1,7 +1,5 @@
 package com.ulticode.modules.contest.service.impl;
 
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -14,37 +12,41 @@ import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
+import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.scoring.ScoringStrategy;
 import com.ulticode.modules.contest.scoring.ScoringStrategyResolver;
-import com.ulticode.modules.contest.service.ContestScoringService;
+import com.ulticode.modules.contest.service.ContestAdjudicationService;
 import com.ulticode.modules.submission.event.SubmissionJudgedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementation of {@link ContestScoringService}. Wired as the side-effect target of
- * the AFTER_COMMIT {@link com.ulticode.modules.contest.listener.ContestScoringListener}.
+ * Implementation of {@link ContestAdjudicationService}. Wired as the
+ * side-effect target of the AFTER_COMMIT
+ * {@link com.ulticode.modules.contest.listener.ContestAdjudicationListener}.
  *
- * <p>Idempotent and re-entrant: every public method is safe to call twice for the same
- * input without producing double-counting. This is required because the
- * {@link SubmissionJudgedEvent} can be replayed (e.g. on listener retry, on
- * transaction-rollback + re-commit) without the upstream {@code submissions} row
- * being rewritten.
+ * <p>Idempotent and re-entrant: {@link #applyJudgeResult} is safe to call
+ * twice for the same input without producing double-counting. This is
+ * required because the {@link SubmissionJudgedEvent} can be replayed (e.g. on
+ * listener retry, on transaction-rollback + re-commit) without the upstream
+ * {@code submissions} row being rewritten.
+ *
+ * <p>This is the deep adjudication module: verdict application, first-solve
+ * claiming, participant aggregates, and ranking-cache invalidation all live
+ * here. Contest lifecycle transitions and cascade cleanup belong to
+ * {@link ContestLifecycleServiceImpl}.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ContestScoringServiceImpl implements ContestScoringService {
+public class ContestAdjudicationServiceImpl implements ContestAdjudicationService {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
@@ -52,15 +54,10 @@ public class ContestScoringServiceImpl implements ContestScoringService {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestProblemResultMapper contestProblemResultMapper;
     private final FirstSolveRecordMapper firstSolveRecordMapper;
-    private final CacheManager cacheManager;
+    private final ContestRankingCacheEvictor rankingCacheEvictor;
     private final Clock clock;
     private final ScoringStrategyResolver scoringStrategyResolver;
 
-    private static final String RANKING_CACHE = "contestRanking";
-
-    // Cache name + key pattern: must match @Cacheable("contestRanking") in ContestServiceImpl.
-    // We use clear() because ranking cache keys are not contest-keyed (e.g.
-    // 'getGlobalRanking:50' / 'globalPaginated:1:50') — partial eviction is unsafe.
     private static final int FIRST_SOLVE_BONUS = 10;
 
     @Override
@@ -214,100 +211,10 @@ public class ContestScoringServiceImpl implements ContestScoringService {
         }
 
         // 9. Invalidate ranking cache so the next read sees the fresh aggregate.
-        evictRankingCache();
+        rankingCacheEvictor.evictRankingCache();
 
         log.info("Applied contest scoring: contest={} user={} problem={} accepted={} score={} attempts={}",
                 contestId, event.getUserId(), contestProblem.getProblemId(), accepted,
                 participant.getTotalScore(), participant.getAttemptCount());
     }
-
-    @Override
-    @Transactional
-    public int batchStartParticipants(String contestId) {
-        LocalDateTime now = LocalDateTime.now(clock);
-        int updated = contestParticipantMapper.batchUpdateStatus(contestId, "REGISTERED", "STARTED", now);
-        if (updated > 0) {
-            log.info("P0-2: transitioned {} participants REGISTERED -> STARTED for contest {}",
-                    updated, contestId);
-        }
-        return updated;
-    }
-
-    @Override
-    @Transactional
-    public int autoFinishVirtualParticipants() {
-        LocalDateTime now = LocalDateTime.now(clock);
-        List<ContestParticipant> toFinish = contestParticipantMapper.findVirtualParticipantsToFinish(now);
-        if (toFinish.isEmpty()) {
-            return 0;
-        }
-        // M2: replace per-row UPDATE with a single bulk UPDATE keyed by id
-        // (the result list is bounded by the 10s scheduler tick, typically
-        // small, but previously this was N+1 UPDATEs).
-        java.util.Set<String> ids = new java.util.HashSet<>();
-        for (ContestParticipant p : toFinish) {
-            ids.add(p.getId());
-        }
-        int total = contestParticipantMapper.bulkFinishByIds(ids, now);
-        if (total > 0) {
-            log.info("P2-2: auto-finished {} virtual participants past their duration", total);
-        }
-        return total;
-    }
-
-    @Override
-    @Transactional
-    public void deleteContestCascade(String contestId) {
-        // 1. Soft-delete the parent contest row first. The soft-delete guard is
-        //    in ContestServiceImpl; here we only do the relational cleanup.
-        Contest contest = contestMapper.selectById(contestId);
-        if (contest == null || Boolean.TRUE.equals(contest.getIsDeleted())) {
-            // Soft-delete is idempotent; missing/already-deleted is not an error.
-            return;
-        }
-        // 2. Cascade: physical delete of contest-scoped rows. Preserve global
-        //    ranking rows (they reflect the user's overall history, not the
-        //    contest's lifetime).
-        contestSubmissionMapper.deleteByContestId(contestId);
-        contestProblemResultMapper.deleteByContestId(contestId);
-        firstSolveRecordMapper.deleteByContestId(contestId);
-        contestParticipantMapper.deleteByContestId(contestId);
-        contestProblemMapper.deleteByContestId(contestId);
-        evictRankingCache();
-        log.info("P2-5: cascade-deleted relational rows for soft-deleted contest {}", contestId);
-    }
-
-    /**
-     * Evict cached ranking entries. The ranking cache uses non-contest-keyed keys
-     * (e.g. {@code 'getGlobalRanking:50'}), so {@code clear()} is the safe option.
-     */
-    /**
-     * R9.2 / F-21: ranking cache invalidation. R9.1 did not land
-     * (the cache key was left at the global pattern
-     * {@code 'getGlobalRanking:' + #limit} / 'globalPaginated:...'),
-     * so true per-contest eviction is still not possible. This
-     * method falls back to a global clear(); the cost is acceptable
-     * at the current scale because the ranking cache TTL is short.
-     * R9.1 (keyset + per-contest key template) is the next step
-     * toward the per-contest evict goal.
-     */
-    void evictRankingCache() {
-        Cache cache;
-        try {
-            cache = cacheManager.getCache(RANKING_CACHE);
-        } catch (Exception e) {
-            log.debug("Ranking cache not available: {}", e.getMessage());
-            return;
-        }
-        if (cache != null) {
-            cache.clear();
-        }
-    }
-
-    // R7.1 / F-21: per-contest ranking cache invalidation was deferred
-    // to R8 — see ADR-007 §8. The @Cacheable key template is
-    // "getGlobalRanking:{limit}" / "globalPaginated:{page}:{limit}" —
-    // global, not per-contest. Per-contest eviction needs a key template
-    // change first. Current global clear() is acceptable at the
-    // < 10k-row pagination range; NFR-P1 is not triggered.
 }

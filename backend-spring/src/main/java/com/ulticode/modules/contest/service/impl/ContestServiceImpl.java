@@ -23,7 +23,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.projection.ContestProjection;
-import com.ulticode.modules.contest.service.ContestScoringService;
+import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -62,7 +62,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
     private final SubmissionService submissionService;
-    private final ContestScoringService contestScoringService;
+    private final ContestLifecycleService contestLifecycleService;
     private final ContestProjection contestProjection;
     private final ContestClock contestClock;
     private final Clock clock;
@@ -177,7 +177,7 @@ public class ContestServiceImpl implements ContestService {
         // The soft-delete of the parent is already done above; this is a clean-up
         // step that prevents stale rows from polluting stats / rankings.
         try {
-            contestScoringService.deleteContestCascade(id);
+            contestLifecycleService.deleteContestCascade(id);
         } catch (Exception e) {
             log.warn("P2-5 cascade cleanup failed for contest {}: {}", id, e.getMessage());
         }

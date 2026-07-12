@@ -75,7 +75,7 @@ public class ContestScheduler {
         // virtual_end_time has passed, even if the user is offline. Runs
         // every 10s to keep latency low without overloading the DB.
         try {
-            int finished = contestScoringService.autoFinishVirtualParticipants();
+            int finished = contestLifecycleService.autoFinishVirtualParticipants();
             if (finished > 0) {
                 log.info("R3.1: auto-finished {} expired virtual participants", finished);
             }
@@ -92,7 +92,7 @@ public class ContestScheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void sweepOnStartup() {
         try {
-            int swept = contestScoringService.autoFinishVirtualParticipants();
+            int swept = contestLifecycleService.autoFinishVirtualParticipants();
             if (swept > 0) {
                 log.info("R7.2 / F-31: startup sweep closed {} expired virtual sessions", swept);
             }
@@ -214,7 +214,7 @@ public class ContestScheduler {
         // submit. Runs after contest.status is committed; transitions are
         // idempotent (only REGISTERED rows are touched).
         try {
-            int started = contestScoringService.batchStartParticipants(contest.getId());
+            int started = contestLifecycleService.batchStartParticipants(contest.getId());
             if (started > 0) {
                 log.info("P0-2: started {} participants for contest {}", started, contest.getId());
             }
@@ -240,9 +240,9 @@ public class ContestScheduler {
     }
 
     /**
-     * The injected ContestScoringService. P0-2 wiring.
+     * Contest lifecycle transitions (P0-2 batch start, virtual auto-finish).
      */
-    private final com.ulticode.modules.contest.service.ContestScoringService contestScoringService;
+    private final com.ulticode.modules.contest.service.ContestLifecycleService contestLifecycleService;
 
     void transitionToFinished(Contest contest) {
         // Re-check: skip if already FINISHED (idempotent)

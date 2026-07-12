@@ -24,8 +24,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problemlist.port.ProblemExistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -55,7 +54,7 @@ public class ProblemListServiceImpl implements ProblemListService {
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListCategoryMapper problemListCategoryMapper;
     private final ProblemListBookmarkMapper problemListBookmarkMapper;
-    private final ProblemMapper problemMapper;
+    private final ProblemExistencePort problemExistencePort;
     private final ProblemListProjection problemListProjection;
 
     @Override
@@ -236,9 +235,8 @@ public class ProblemListServiceImpl implements ProblemListService {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
         }
 
-        // Check if problem exists
-        Problem problem = problemMapper.selectById(problemId);
-        if (problem == null) {
+        // Check if problem exists (via the consumer-owned port, not the problem mapper)
+        if (!problemExistencePort.exists(problemId)) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
 

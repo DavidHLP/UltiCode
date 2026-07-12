@@ -12,10 +12,9 @@ import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
+import com.ulticode.modules.problemlist.port.ProblemExistencePort;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.impl.ProblemListServiceImpl;
-import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -62,7 +61,7 @@ class ProblemListServiceTest {
     @Mock private ProblemListProblemMapper problemListProblemMapper;
     @Mock private ProblemListCategoryMapper problemListCategoryMapper;
     @Mock private ProblemListBookmarkMapper problemListBookmarkMapper;
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemExistencePort problemExistencePort;
     @Mock private ProblemListProjection problemListProjection;
 
     private ProblemListService problemListService;
@@ -74,7 +73,7 @@ class ProblemListServiceTest {
                 problemListProblemMapper,
                 problemListCategoryMapper,
                 problemListBookmarkMapper,
-                problemMapper,
+                problemExistencePort,
                 problemListProjection
         );
 
@@ -450,11 +449,9 @@ class ProblemListServiceTest {
         @DisplayName("should throw 409 PROBLEM_LIST_PROBLEM_DUPLICATE on duplicate add")
         void addProblem_DuplicateThrows() {
             ProblemList list = createProblemList();
-            Problem problem = new Problem();
-            problem.setId(PROBLEM_ID);
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
             // Problem exists (else service throws PROBLEM_NOT_FOUND before duplicate check)
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+            when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(true);
             when(problemListProblemMapper.findByListIdAndProblemId(LIST_ID, PROBLEM_ID))
                     .thenReturn(Optional.of(new ProblemListProblemRelation()));
 
@@ -498,7 +495,7 @@ class ProblemListServiceTest {
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
             // Service checks problem existence BEFORE duplicate check, so this
             // stub triggers PROBLEM_NOT_FOUND without needing the duplicate mock.
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(null);
+            when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(false);
 
             assertThatThrownBy(() -> problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID))
                     .isInstanceOf(BusinessException.class)
@@ -512,12 +509,10 @@ class ProblemListServiceTest {
         @DisplayName("should insert relation on successful add")
         void addProblem_Success() {
             ProblemList list = createProblemList();
-            Problem problem = new Problem();
-            problem.setId(PROBLEM_ID);
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
             when(problemListProblemMapper.findByListIdAndProblemId(LIST_ID, PROBLEM_ID))
                     .thenReturn(Optional.empty());
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+            when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(true);
             when(problemListProblemMapper.getMaxSortOrder(LIST_ID)).thenReturn(2);
 
             problemListService.addProblem(LIST_ID, OWNER_ID, PROBLEM_ID);
@@ -535,13 +530,11 @@ class ProblemListServiceTest {
         @DisplayName("should throw 409 when insert loses duplicate race (DB PK conflict)")
         void addProblem_DuplicateRace_ThrowsBusinessException() {
             ProblemList list = createProblemList();
-            Problem problem = new Problem();
-            problem.setId(PROBLEM_ID);
             when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
             // Fast-path check says not present, but DB PK says duplicate (concurrent insert won)
             when(problemListProblemMapper.findByListIdAndProblemId(LIST_ID, PROBLEM_ID))
                     .thenReturn(Optional.empty());
-            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
+            when(problemExistencePort.exists(PROBLEM_ID)).thenReturn(true);
             when(problemListProblemMapper.getMaxSortOrder(LIST_ID)).thenReturn(0);
             doThrow(new DuplicateKeyException("PK conflict (problem_id, list_id)"))
                     .when(problemListProblemMapper).insert(any(ProblemListProblemRelation.class));

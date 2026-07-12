@@ -24,7 +24,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of BookmarkService.
+ * Bookmark collection service implementation.
+ *
+ * <p>This is the DEEP half of the bookmark module. Every collection operation
+ * delegates to a small set of named invariants that the module owns:
+ * <ul>
+ *   <li>{@link #requireOwnedFolder} — folder ownership</li>
+ *   <li>{@link #ensureDefaultFolder} — default-folder existence</li>
+ *   <li>{@link #nextItemSortOrder} / {@link #nextFolderSortOrder} — ordering</li>
+ *   <li>{@link #insertItemConverging} — duplicate-key convergence under the
+ *       {@code collection_items} unique index</li>
+ * </ul>
+ * Callers (the controller) express collection intent; the choreography of
+ * those invariants never leaves this class.
  */
 @Slf4j
 @Service
@@ -40,11 +52,9 @@ public class BookmarkServiceImpl implements BookmarkService {
         BookmarkType targetType = dto.getTargetType();
         String targetId = dto.getTargetId();
 
-        // Check if already favorited in any folder
+        // Toggle off: the target is already in at least one of the user's folders.
         List<String> existingFolderIds = bookmarkMapper.findFolderIdsByTarget(userId, targetType.name(), targetId);
-
         if (!existingFolderIds.isEmpty()) {
-            // Remove from all folders
             for (String folderId : existingFolderIds) {
                 bookmarkMapper.deleteByFolderAndTarget(folderId, targetType.name(), targetId);
             }
@@ -52,32 +62,14 @@ public class BookmarkServiceImpl implements BookmarkService {
             return new QuickFavoriteVO(false, List.of());
         }
 
-        // Get or create default folder
-        BookmarkFolder defaultFolder = folderMapper.findDefaultByUserId(userId)
-                .orElseGet(() -> createDefaultFolder(userId));
-
-        // Add to default folder
-        Bookmark bookmark = new Bookmark();
-        bookmark.setFolderId(defaultFolder.getId());
-        bookmark.setTargetId(targetId);
-        bookmark.setTargetType(targetType.name());
-        bookmark.setSortOrder(getNextSortOrder(defaultFolder.getId()));
-
-        try {
-            bookmarkMapper.insert(bookmark);
-        } catch (DuplicateKeyException ex) {
-            // 并发场景:在 findFolderIdsByTarget 与 insert 之间,另一线程已经插入了
-            // 相同的 (collection_id, target_type, target_id),触发 collection_items 的
-            // UNIQUE 索引。收敛到「当前真实状态」并返回成功,避免对用户暴露竞态错误。
-            log.warn("Concurrent quickFavorite collision for user={}, type={}, id={}; converging to current state",
-                    userId, targetType, targetId);
-            List<String> currentFolderIds = bookmarkMapper.findFolderIdsByTarget(
-                    userId, targetType.name(), targetId);
-            return new QuickFavoriteVO(!currentFolderIds.isEmpty(), currentFolderIds);
-        }
+        // Toggle on: add to the default folder, converging on the current state
+        // if a concurrent insert wins the race for the same unique row.
+        BookmarkFolder defaultFolder = ensureDefaultFolder(userId);
+        Bookmark bookmark = newItem(defaultFolder.getId(), targetType, targetId, null);
+        List<String> folderIds = insertItemConverging(userId, bookmark, targetType, targetId);
 
         log.debug("Quick favorited {}:{} for user {} in folder {}", targetType, targetId, userId, defaultFolder.getId());
-        return new QuickFavoriteVO(true, List.of(defaultFolder.getId()));
+        return new QuickFavoriteVO(true, folderIds);
     }
 
     @Override
@@ -91,7 +83,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     @Override
     public BookmarkFolderDetailVO getFolderDetail(String userId, String folderId) {
-        BookmarkFolder folder = getFolderAndValidateOwnership(folderId, userId);
+        BookmarkFolder folder = requireOwnedFolder(folderId, userId);
 
         List<Bookmark> bookmarks = bookmarkMapper.findByFolderId(folderId);
         List<BookmarkVO> bookmarkVOs = bookmarks.stream()
@@ -115,15 +107,14 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public BookmarkFolderVO createFolder(String userId, CreateFolderDTO dto) {
-        // Check if folder name already exists
+        // Reject a name already in use by another of the user's folders.
         Optional<BookmarkFolder> existing = folderMapper.findByUserIdAndName(userId, dto.getName());
         if (existing.isPresent()) {
             throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NAME_EXISTS);
         }
 
-        // Ensure user has a default folder
-        folderMapper.findDefaultByUserId(userId)
-                .orElseGet(() -> createDefaultFolder(userId));
+        // Ensure the user has a default folder before adding a named one.
+        ensureDefaultFolder(userId);
 
         BookmarkFolder folder = new BookmarkFolder();
         folder.setUserId(userId);
@@ -131,7 +122,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         folder.setDescription(dto.getDescription());
         folder.setIcon(dto.getIcon());
         folder.setColor(dto.getColor());
-        folder.setSortOrder(getNextFolderSortOrder(userId));
+        folder.setSortOrder(nextFolderSortOrder(userId));
         folder.setIsDefault(false);
         folderMapper.insert(folder);
 
@@ -142,9 +133,9 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public BookmarkFolderVO updateFolder(String userId, String folderId, UpdateFolderDTO dto) {
-        BookmarkFolder folder = getFolderAndValidateOwnership(folderId, userId);
+        BookmarkFolder folder = requireOwnedFolder(folderId, userId);
 
-        // Check new name doesn't conflict
+        // Reject a rename that collides with another of the user's folders.
         if (dto.getName() != null && !dto.getName().equals(folder.getName())) {
             Optional<BookmarkFolder> existing = folderMapper.findByUserIdAndName(userId, dto.getName());
             if (existing.isPresent()) {
@@ -174,7 +165,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public void deleteFolder(String userId, String folderId) {
-        BookmarkFolder folder = getFolderAndValidateOwnership(folderId, userId);
+        BookmarkFolder folder = requireOwnedFolder(folderId, userId);
 
         if (Boolean.TRUE.equals(folder.getIsDefault())) {
             throw new BusinessException(ErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT);
@@ -193,23 +184,17 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public BookmarkVO addBookmark(String userId, String folderId, AddBookmarkDTO dto) {
-        // Validate folder ownership
-        getFolderAndValidateOwnership(folderId, userId);
+        requireOwnedFolder(folderId, userId);
 
-        // Check if already in this folder
+        // Idempotent add: if the target is already in the folder, return it unchanged.
         Optional<Bookmark> existing = bookmarkMapper.findByFolderAndTarget(
                 folderId, dto.getTargetType().name(), dto.getTargetId());
         if (existing.isPresent()) {
             return toBookmarkVO(existing.get());
         }
 
-        Bookmark bookmark = new Bookmark();
-        bookmark.setFolderId(folderId);
-        bookmark.setTargetId(dto.getTargetId());
-        bookmark.setTargetType(dto.getTargetType().name());
-        bookmark.setNote(dto.getNote());
-        bookmark.setSortOrder(getNextSortOrder(folderId));
-        bookmarkMapper.insert(bookmark);
+        Bookmark bookmark = newItem(folderId, dto.getTargetType(), dto.getTargetId(), dto.getNote());
+        insertItemConverging(userId, bookmark, dto.getTargetType(), dto.getTargetId());
 
         log.debug("Added bookmark {}:{} to folder {} for user {}",
                 dto.getTargetType(), dto.getTargetId(), folderId, userId);
@@ -219,8 +204,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public void removeBookmark(String userId, String folderId, String bookmarkId) {
-        // Validate folder ownership
-        getFolderAndValidateOwnership(folderId, userId);
+        requireOwnedFolder(folderId, userId);
 
         Bookmark bookmark = bookmarkMapper.selectById(bookmarkId);
         if (bookmark == null || !bookmark.getFolderId().equals(folderId)) {
@@ -234,8 +218,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public void removeBookmarkByTarget(String userId, String folderId, BookmarkType targetType, String targetId) {
-        // Validate folder ownership
-        getFolderAndValidateOwnership(folderId, userId);
+        requireOwnedFolder(folderId, userId);
 
         int deleted = bookmarkMapper.deleteByFolderAndTarget(folderId, targetType.name(), targetId);
         if (deleted == 0) {
@@ -247,8 +230,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     @Transactional
     public BookmarkVO updateBookmark(String userId, String folderId, String bookmarkId, UpdateBookmarkDTO dto) {
-        // Validate folder ownership
-        getFolderAndValidateOwnership(folderId, userId);
+        requireOwnedFolder(folderId, userId);
 
         Bookmark bookmark = bookmarkMapper.selectById(bookmarkId);
         if (bookmark == null || !bookmark.getFolderId().equals(folderId)) {
@@ -312,9 +294,18 @@ public class BookmarkServiceImpl implements BookmarkService {
         log.debug("Reordered {} folders for user {}", folderIds.size(), userId);
     }
 
-    // ==================== Private Helper Methods ====================
+    // ==================== Collection invariants (the module's depth) ====================
 
-    private BookmarkFolder getFolderAndValidateOwnership(String folderId, String userId) {
+    /**
+     * Folder ownership invariant. Returns the folder if {@code userId} owns it,
+     * otherwise throws {@link ErrorCode#BOOKMARK_FOLDER_NOT_FOUND} (missing) or
+     * {@link ErrorCode#FORBIDDEN} (owned by another user).
+     *
+     * @param folderId the folder to resolve
+     * @param userId   the requesting user
+     * @return the owned folder
+     */
+    private BookmarkFolder requireOwnedFolder(String folderId, String userId) {
         BookmarkFolder folder = folderMapper.selectById(folderId);
         if (folder == null) {
             throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NOT_FOUND);
@@ -323,6 +314,90 @@ public class BookmarkServiceImpl implements BookmarkService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot access other user's folder");
         }
         return folder;
+    }
+
+    /**
+     * Default-folder existence invariant. Returns the user's default folder,
+     * creating it (with canonical name/icon/color and sort order {@code 0}) if
+     * the user does not yet have one.
+     *
+     * @param userId the owning user
+     * @return the user's default folder
+     */
+    private BookmarkFolder ensureDefaultFolder(String userId) {
+        return folderMapper.findDefaultByUserId(userId)
+                .orElseGet(() -> createDefaultFolder(userId));
+    }
+
+    /**
+     * Item-ordering invariant. Returns the next sort order for an item in the
+     * given folder ({@code max + 1}, or {@code 0} for the first item).
+     *
+     * @param folderId the folder receiving the item
+     * @return the next item sort order
+     */
+    private Integer nextItemSortOrder(String folderId) {
+        Integer max = bookmarkMapper.getMaxSortOrder(folderId);
+        return max == null ? 0 : max + 1;
+    }
+
+    /**
+     * Folder-ordering invariant. Returns the next sort order for a folder
+     * belonging to the user ({@code max + 1}, or {@code 1} when the user has
+     * no folders yet so the default folder keeps order {@code 0}).
+     *
+     * @param userId the owning user
+     * @return the next folder sort order
+     */
+    private Integer nextFolderSortOrder(String userId) {
+        Integer max = folderMapper.getMaxSortOrder(userId);
+        return max == null ? 1 : max + 1;
+    }
+
+    /**
+     * Duplicate-convergence invariant. Inserts the item, and if a concurrent
+     * insert between the pre-read and this insert trips the
+     * {@code collection_items} unique index, re-reads the true current state
+     * and returns it instead of surfacing the race to the caller.
+     *
+     * <p>Used by both {@link #quickFavorite} and {@link #addBookmark} so the
+     * duplicate rule lives in exactly one place.
+     *
+     * @param userId     the owning user (for the re-read query)
+     * @param bookmark   the item to insert (sort order already assigned)
+     * @param targetType the target type (for the re-read query)
+     * @param targetId   the target id (for the re-read query)
+     * @return the folders now holding the target (the inserted folder, or the
+     *         true current set on convergence)
+     */
+    private List<String> insertItemConverging(String userId, Bookmark bookmark,
+                                               BookmarkType targetType, String targetId) {
+        try {
+            bookmarkMapper.insert(bookmark);
+            return List.of(bookmark.getFolderId());
+        } catch (DuplicateKeyException ex) {
+            // 并发场景:在 pre-read 与 insert 之间,另一线程已经插入了
+            // 相同的 (collection_id, target_type, target_id),触发 collection_items 的
+            // UNIQUE 索引。收敛到「当前真实状态」并返回成功,避免对用户暴露竞态错误。
+            log.warn("Converging on current state after duplicate-key collision for user={}, type={}, id={}",
+                    userId, targetType, targetId);
+            return bookmarkMapper.findFolderIdsByTarget(userId, targetType.name(), targetId);
+        }
+    }
+
+    // ==================== Private helpers ====================
+
+    /**
+     * Build an item entity ready to insert, with the next sort order assigned.
+     */
+    private Bookmark newItem(String folderId, BookmarkType targetType, String targetId, String note) {
+        Bookmark bookmark = new Bookmark();
+        bookmark.setFolderId(folderId);
+        bookmark.setTargetId(targetId);
+        bookmark.setTargetType(targetType.name());
+        bookmark.setNote(note);
+        bookmark.setSortOrder(nextItemSortOrder(folderId));
+        return bookmark;
     }
 
     private BookmarkFolder createDefaultFolder(String userId) {
@@ -337,16 +412,6 @@ public class BookmarkServiceImpl implements BookmarkService {
         folderMapper.insert(folder);
         log.debug("Created default folder for user {}", userId);
         return folder;
-    }
-
-    private Integer getNextFolderSortOrder(String userId) {
-        Integer max = folderMapper.getMaxSortOrder(userId);
-        return max == null ? 1 : max + 1;
-    }
-
-    private Integer getNextSortOrder(String folderId) {
-        Integer max = bookmarkMapper.getMaxSortOrder(folderId);
-        return max == null ? 0 : max + 1;
     }
 
     /**

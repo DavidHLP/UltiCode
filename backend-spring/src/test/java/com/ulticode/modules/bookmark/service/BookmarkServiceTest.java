@@ -3,6 +3,7 @@ package com.ulticode.modules.bookmark.service;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.bookmark.dto.AddBookmarkDTO;
+import com.ulticode.modules.bookmark.dto.CreateFolderDTO;
 import com.ulticode.modules.bookmark.dto.QuickFavoriteDTO;
 import com.ulticode.modules.bookmark.dto.UpdateFolderDTO;
 import com.ulticode.modules.bookmark.entity.Bookmark;
@@ -343,6 +344,132 @@ class BookmarkServiceTest {
             assertThat(vo.getIsFavorited()).isFalse();
             assertThat(vo.getFolders()).isEmpty();
             verify(bookmarkMapper, never()).countItemsByFolderIds(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("addBookmark duplicate convergence (shared invariant)")
+    class AddBookmarkConvergence {
+
+        @Test
+        @DisplayName("converges to existing row on concurrent duplicate-key collision")
+        void concurrentInsert_convergesToExisting() {
+            // Arrange — pre-read returns absent, the insert trips the unique
+            // index because a concurrent writer won the race, the re-read
+            // returns the true current state.
+            BookmarkFolder folder = new BookmarkFolder();
+            folder.setId(FOLDER_ID);
+            folder.setUserId(USER_ID);
+            when(folderMapper.selectById(FOLDER_ID)).thenReturn(folder);
+            when(bookmarkMapper.findByFolderAndTarget(FOLDER_ID, "PROBLEM", TARGET_ID))
+                    .thenReturn(Optional.empty());
+            when(bookmarkMapper.getMaxSortOrder(FOLDER_ID)).thenReturn(null);
+            org.mockito.Mockito.doThrow(new DuplicateKeyException("collision"))
+                    .when(bookmarkMapper).insert(any(Bookmark.class));
+            when(bookmarkMapper.findFolderIdsByTarget(USER_ID, "PROBLEM", TARGET_ID))
+                    .thenReturn(List.of(FOLDER_ID));
+
+            AddBookmarkDTO dto = new AddBookmarkDTO();
+            dto.setTargetType(BookmarkType.PROBLEM);
+            dto.setTargetId(TARGET_ID);
+
+            // Act — the convergence path returns the row that won the race,
+            // surfaced through the same insert-converging invariant as quickFavorite.
+            var vo = service.addBookmark(USER_ID, FOLDER_ID, dto);
+
+            // Assert — the duplicate-key rule is owned inside; the caller sees
+            // a successful add pointing at the folder now holding the target.
+            assertThat(vo.getFolderId()).isEqualTo(FOLDER_ID);
+            assertThat(vo.getTargetId()).isEqualTo(TARGET_ID);
+            verify(bookmarkMapper).findFolderIdsByTarget(USER_ID, "PROBLEM", TARGET_ID);
+        }
+    }
+
+    @Nested
+    @DisplayName("ensureDefaultFolder (default-folder invariant)")
+    class DefaultFolderInvariant {
+
+        @Test
+        @DisplayName("createFolder materializes a default folder when the user has none")
+        void createFolder_ensuresDefaultFolder() {
+            // Arrange — user has no default folder yet and no name conflict.
+            when(folderMapper.findByUserIdAndName(USER_ID, "My Folder"))
+                    .thenReturn(Optional.empty());
+            // No default folder present → ensureDefaultFolder must create one.
+            when(folderMapper.findDefaultByUserId(USER_ID)).thenReturn(Optional.empty());
+            when(folderMapper.getMaxSortOrder(USER_ID)).thenReturn(null);
+
+            CreateFolderDTO dto = new CreateFolderDTO();
+            dto.setName("My Folder");
+
+            // Act
+            var vo = service.createFolder(USER_ID, dto);
+
+            // Assert — the default folder is created first, then the named folder.
+            assertThat(vo.getName()).isEqualTo("My Folder");
+            verify(folderMapper).findDefaultByUserId(USER_ID);
+            // Two inserts: the default folder, then the named folder.
+            verify(folderMapper, org.mockito.Mockito.times(2)).insert(any(BookmarkFolder.class));
+        }
+
+        @Test
+        @DisplayName("createFolder reuses the existing default folder")
+        void createFolder_reusesExistingDefault() {
+            // Arrange — user already has a default folder.
+            BookmarkFolder defaultFolder = new BookmarkFolder();
+            defaultFolder.setId(DEFAULT_FOLDER_ID);
+            defaultFolder.setUserId(USER_ID);
+            defaultFolder.setIsDefault(true);
+            when(folderMapper.findByUserIdAndName(USER_ID, "My Folder"))
+                    .thenReturn(Optional.empty());
+            when(folderMapper.findDefaultByUserId(USER_ID)).thenReturn(Optional.of(defaultFolder));
+            when(folderMapper.getMaxSortOrder(USER_ID)).thenReturn(0);
+
+            CreateFolderDTO dto = new CreateFolderDTO();
+            dto.setName("My Folder");
+
+            // Act
+            var vo = service.createFolder(USER_ID, dto);
+
+            // Assert — only the named folder is inserted; the default is reused.
+            assertThat(vo.getName()).isEqualTo("My Folder");
+            verify(folderMapper).findDefaultByUserId(USER_ID);
+            verify(folderMapper, org.mockito.Mockito.times(1)).insert(any(BookmarkFolder.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("requireOwnedFolder (ownership invariant)")
+    class OwnershipInvariant {
+
+        @Test
+        @DisplayName("deleteFolder throws when folder belongs to another user")
+        void otherUsersFolder_throwsForbidden() {
+            BookmarkFolder otherFolder = new BookmarkFolder();
+            otherFolder.setId(FOLDER_ID);
+            otherFolder.setUserId(OTHER_USER_ID);
+            otherFolder.setIsDefault(false);
+            when(folderMapper.selectById(FOLDER_ID)).thenReturn(otherFolder);
+
+            assertThatThrownBy(() -> service.deleteFolder(USER_ID, FOLDER_ID))
+                    .isInstanceOf(BusinessException.class);
+            verify(folderMapper, never()).deleteById(anyString());
+        }
+
+        @Test
+        @DisplayName("deleteFolder throws BOOKMARK_CANNOT_DELETE_DEFAULT for the default folder")
+        void defaultFolder_cannotBeDeleted() {
+            BookmarkFolder defaultFolder = new BookmarkFolder();
+            defaultFolder.setId(FOLDER_ID);
+            defaultFolder.setUserId(USER_ID);
+            defaultFolder.setIsDefault(true);
+            when(folderMapper.selectById(FOLDER_ID)).thenReturn(defaultFolder);
+
+            assertThatThrownBy(() -> service.deleteFolder(USER_ID, FOLDER_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("code")
+                    .isEqualTo(ErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT.getCode());
+            verify(folderMapper, never()).deleteById(anyString());
         }
     }
 

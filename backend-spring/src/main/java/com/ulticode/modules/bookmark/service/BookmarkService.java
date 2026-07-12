@@ -6,119 +6,147 @@ import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import java.util.List;
 
 /**
- * Service interface for bookmark operations.
+ * Bookmark collection service.
+ *
+ * <p>The module's DEPTH is the set of collection invariants it owns
+ * internally — folder ownership, default-folder existence, item ordering,
+ * and duplicate-convergence under the {@code collection_items} unique index.
+ * Callers express collection intent (favorite toggle, add to a collection,
+ * remove, reorder, read); they never choreograph those invariants.
+ *
+ * <p>Persistence stays behind the mapper adapters in
+ * {@code com.ulticode.modules.bookmark.mapper}; this interface never
+ * exposes entity types or storage verbs.
  */
 public interface BookmarkService {
 
     /**
-     * Quick favorite/unfavorite an item.
-     * Adds to default folder if not favorited, removes from all folders if favorited.
+     * Toggle whether a target is in the user's collection.
      *
-     * @param userId     the user ID
-     * @param dto        the quick favorite DTO
-     * @return result with favorite status and folder IDs
+     * <p>If the target is absent from every folder the user owns, it is added
+     * to the user's default folder (creating that folder first if needed,
+     * assigning the next sort order, and converging on the current state if a
+     * concurrent insert trips the unique index). If the target is already in
+     * one or more folders, it is removed from all of them.
+     *
+     * @param userId the owning user
+     * @param dto    the target to toggle
+     * @return the resulting favorite state and the folders involved
      */
     QuickFavoriteVO quickFavorite(String userId, QuickFavoriteDTO dto);
 
     /**
-     * Get all folders for a user.
+     * List the user's folders with per-folder item counts.
      *
-     * @param userId the user ID
-     * @return list of folders with item counts
+     * @param userId the owning user
+     * @return folders in display order, each with its item count
      */
     List<BookmarkFolderVO> getFolders(String userId);
 
     /**
-     * Get a folder with its bookmarks.
+     * Read a single folder together with its items.
      *
-     * @param userId   the user ID
-     * @param folderId the folder ID
-     * @return folder with bookmarks
+     * @param userId   the owning user
+     * @param folderId the folder to read
+     * @return the folder and its items
      */
     BookmarkFolderDetailVO getFolderDetail(String userId, String folderId);
 
     /**
-     * Create a new folder.
+     * Create a named folder for the user.
      *
-     * @param userId the user ID
-     * @param dto    the create folder DTO
+     * <p>Ensures the user has a default folder (creating one if absent) and
+     * assigns the new folder the next display sort order. Rejects a name
+     * already in use by another of the user's folders.
+     *
+     * @param userId the owning user
+     * @param dto    the folder to create
      * @return the created folder
      */
     BookmarkFolderVO createFolder(String userId, CreateFolderDTO dto);
 
     /**
-     * Update a folder.
+     * Update a folder's editable fields.
      *
-     * @param userId   the user ID
-     * @param folderId the folder ID
-     * @param dto      the update folder DTO
+     * <p>Rejects a rename that collides with another of the user's folders.
+     *
+     * @param userId   the owning user
+     * @param folderId the folder to update
+     * @param dto      the fields to update
      * @return the updated folder
      */
     BookmarkFolderVO updateFolder(String userId, String folderId, UpdateFolderDTO dto);
 
     /**
-     * Delete a folder.
+     * Delete a non-default folder and every item it contains.
      *
-     * @param userId   the user ID
-     * @param folderId the folder ID
+     * <p>The user's default folder cannot be deleted.
+     *
+     * @param userId   the owning user
+     * @param folderId the folder to delete
      */
     void deleteFolder(String userId, String folderId);
 
     /**
-     * Add a bookmark to a folder.
+     * Add a target to a folder, converging on the existing row if present.
      *
-     * @param userId   the user ID
-     * @param folderId the folder ID
-     * @param dto      the add bookmark DTO
-     * @return the created bookmark
+     * <p>If the target is already in the folder, the existing item is
+     * returned unchanged (idempotent add). Otherwise a new item is inserted
+     * at the next sort order, converging on the current state if a concurrent
+     * insert trips the unique index.
+     *
+     * @param userId   the owning user
+     * @param folderId the destination folder
+     * @param dto      the target to add
+     * @return the added (or pre-existing) item
      */
     BookmarkVO addBookmark(String userId, String folderId, AddBookmarkDTO dto);
 
     /**
-     * Remove a bookmark from a folder by bookmark ID.
+     * Remove an item from a folder by item ID.
      *
-     * @param userId     the user ID
-     * @param folderId   the folder ID
-     * @param bookmarkId the bookmark ID
+     * @param userId     the owning user
+     * @param folderId   the folder
+     * @param bookmarkId the item to remove
      */
     void removeBookmark(String userId, String folderId, String bookmarkId);
 
     /**
-     * Remove a bookmark from a folder by target.
+     * Remove an item from a folder by target.
      *
-     * @param userId     the user ID
-     * @param folderId   the folder ID
+     * @param userId     the owning user
+     * @param folderId   the folder
      * @param targetType the target type
-     * @param targetId   the target ID
+     * @param targetId   the target id
      */
     void removeBookmarkByTarget(String userId, String folderId, BookmarkType targetType, String targetId);
 
     /**
-     * Update a bookmark.
+     * Update an item's mutable fields (note, sort order).
      *
-     * @param userId     the user ID
-     * @param folderId   the folder ID
-     * @param bookmarkId the bookmark ID
-     * @param dto        the update bookmark DTO
-     * @return the updated bookmark
+     * @param userId     the owning user
+     * @param folderId   the folder
+     * @param bookmarkId the item to update
+     * @param dto        the fields to update
+     * @return the updated item
      */
     BookmarkVO updateBookmark(String userId, String folderId, String bookmarkId, UpdateBookmarkDTO dto);
 
     /**
-     * Get folders containing a specific item.
+     * Read the folders that contain a given target for the user.
      *
-     * @param userId     the user ID
+     * @param userId     the owning user
      * @param targetType the target type
-     * @param targetId   the target ID
-     * @return item with its folders
+     * @param targetId   the target id
+     * @return the target together with its containing folders
      */
     ItemFoldersVO getItemFolders(String userId, BookmarkType targetType, String targetId);
 
     /**
-     * Reorder folders.
+     * Reorder the user's folders to match the given display order.
      *
-     * @param userId    the user ID
-     * @param folderIds the ordered list of folder IDs
+     * @param userId    the owning user
+     * @param folderIds the folder ids in the desired display order
      */
     void reorderFolders(String userId, List<String> folderIds);
 }

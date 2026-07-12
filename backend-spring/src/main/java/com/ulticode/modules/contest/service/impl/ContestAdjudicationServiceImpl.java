@@ -40,13 +40,23 @@ import java.util.Optional;
  *
  * <p>This is the deep adjudication module: verdict application, first-solve
  * claiming, participant aggregates, and ranking-cache invalidation all live
- * here. Contest lifecycle transitions and cascade cleanup belong to
+ * here as named depth. The public seam is one method; the seven mapper
+ * interactions, the first-solve race, the aggregate bookkeeping, and the
+ * cache eviction are each a single-responsibility step below. Contest
+ * lifecycle transitions and cascade cleanup belong to
  * {@link ContestLifecycleServiceImpl}.
+ *
+ * <p>Preserves D-04 (AFTER_COMMIT post-judge scoring) and ADR-006 (scoring
+ * mode + penalty-keyed wrong-submission handling); the structure deepens
+ * without reopening either decision.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContestAdjudicationServiceImpl implements ContestAdjudicationService {
+
+    private static final int FIRST_SOLVE_BONUS = 10;
+    private static final int DEFAULT_PENALTY_PER_WRONG = 20;
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
@@ -58,163 +68,236 @@ public class ContestAdjudicationServiceImpl implements ContestAdjudicationServic
     private final Clock clock;
     private final ScoringStrategyResolver scoringStrategyResolver;
 
-    private static final int FIRST_SOLVE_BONUS = 10;
-
     @Override
     @Transactional
     public void applyJudgeResult(SubmissionJudgedEvent event) {
-        if (event == null || event.getSubmissionId() == null) {
-            return;
-        }
-
-        // 1. Reverse-lookup the contest_submission row that the submit pipeline created.
-        Optional<ContestSubmission> csOpt =
-                contestSubmissionMapper.findBySubmissionId(event.getSubmissionId());
+        Optional<ContestSubmission> csOpt = locateContestSubmission(event);
         if (csOpt.isEmpty()) {
-            // Submission is not part of any contest — nothing to do.
             return;
         }
         ContestSubmission cs = csOpt.get();
-        String contestId = cs.getContestId();
-        String contestProblemId = cs.getContestProblemId();
-        String participantId = cs.getParticipantId();
+
+        // The verdict is stamped before any load that can bail, matching the
+        // legacy order: even if a downstream participant/problem/contest row
+        // is missing, the contest_submission verdict still lands.
+        stampVerdict(event);
+
+        ContestParticipant participant = loadParticipant(cs.getParticipantId(), event);
+        if (participant == null) {
+            return;
+        }
+        ContestProblem contestProblem = loadContestProblem(cs.getContestProblemId(), event);
+        if (contestProblem == null) {
+            return;
+        }
+        Contest contest = loadContest(cs.getContestId(), event);
+        if (contest == null) {
+            return;
+        }
+        ScoringContext scoring = resolveScoring(contest);
         boolean accepted = event.isAccepted();
 
-        // 2. Write is_accepted on the contest_submission row (idempotent).
-        contestSubmissionMapper.markAcceptedBySubmissionId(event.getSubmissionId(), accepted);
+        countAttempt(participant);
+        if (accepted) {
+            applyAccepted(cs, contestProblem, participant, event);
+        } else {
+            // ADR-006 §2.2: wrong-submission penalty is mode-keyed. SCORE and
+            // IOI are no-ops; ICPC adds penaltyPerWrong. Default scoringMode
+            // is SCORE, so unset contests keep the legacy "no penalty" path.
+            scoring.strategy().applyWrongSubmission(participant, scoring.penaltyPerWrong());
+        }
+        advanceLastSolveTime(participant, cs, accepted);
+        persistAggregates(participant, cs);
+        rankingCacheEvictor.evictRankingCache();
 
-        // 3. Load participant. If the participant is missing, log and bail — the
-        //    listener is allowed to be lenient.
+        log.info("Applied contest scoring: contest={} user={} problem={} accepted={} score={} attempts={}",
+                cs.getContestId(), event.getUserId(), contestProblem.getProblemId(), accepted,
+                participant.getTotalScore(), participant.getAttemptCount());
+    }
+
+    // ─── Resolve step ──────────────────────────────────────────────────
+
+    /**
+     * Locate the contest_submission row the submit pipeline created for this
+     * judged event. Empty when the event is malformed or the submission is
+     * not part of any contest.
+     */
+    private Optional<ContestSubmission> locateContestSubmission(SubmissionJudgedEvent event) {
+        if (event == null || event.getSubmissionId() == null) {
+            return Optional.empty();
+        }
+        return contestSubmissionMapper.findBySubmissionId(event.getSubmissionId());
+    }
+
+    /**
+     * Stamp {@code is_accepted} on the contest_submission row (idempotent).
+     */
+    private void stampVerdict(SubmissionJudgedEvent event) {
+        contestSubmissionMapper.markAcceptedBySubmissionId(event.getSubmissionId(), event.isAccepted());
+    }
+
+    // ─── Load step ─────────────────────────────────────────────────────
+
+    private ContestParticipant loadParticipant(String participantId, SubmissionJudgedEvent event) {
         ContestParticipant participant = contestParticipantMapper.selectById(participantId);
         if (participant == null) {
             log.warn("Contest scoring: participant {} missing for submission {}",
                     participantId, event.getSubmissionId());
-            return;
         }
+        return participant;
+    }
 
-        // 4. Load contest problem to know its score / penalty.
+    private ContestProblem loadContestProblem(String contestProblemId, SubmissionJudgedEvent event) {
         ContestProblem contestProblem = contestProblemMapper.selectById(contestProblemId);
         if (contestProblem == null) {
             log.warn("Contest scoring: contest_problem {} missing for submission {}",
                     contestProblemId, event.getSubmissionId());
-            return;
         }
+        return contestProblem;
+    }
 
-        // 4b. R4: load the parent contest for scoring mode + penalty config.
-        //     ADR-006 §2.2: SCORE/ICPC/IOI branch on penalty; SCORE and IOI
-        //     skip the wrong-submission penalty, ICPC applies it.
+    private Contest loadContest(String contestId, SubmissionJudgedEvent event) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
             log.warn("Contest scoring: contest {} missing for submission {}",
                     contestId, event.getSubmissionId());
-            return;
         }
-        ScoringStrategy scoringStrategy = scoringStrategyResolver.resolveFromString(contest.getScoringMode());
-        // ADR-006 §2.1: null兜底 20（与原硬编码一致，零行为回归）
+        return contest;
+    }
+
+    // ─── Scoring policy ────────────────────────────────────────────────
+
+    /**
+     * ADR-006 scoring context for one verdict: the strategy selected from the
+     * contest's scoring mode, and the per-wrong-submission penalty (null
+     * tolerates as the legacy hardcoded default).
+     */
+    private record ScoringContext(ScoringStrategy strategy, int penaltyPerWrong) {
+    }
+
+    private ScoringContext resolveScoring(Contest contest) {
+        ScoringStrategy strategy = scoringStrategyResolver.resolveFromString(contest.getScoringMode());
         int penaltyPerWrong = contest.getPenaltyPerWrong() != null
                 ? contest.getPenaltyPerWrong()
-                : 20;
+                : DEFAULT_PENALTY_PER_WRONG;
+        return new ScoringContext(strategy, penaltyPerWrong);
+    }
 
-        // 5. Always count this submission as an attempt.
+    // ─── Aggregate bookkeeping ─────────────────────────────────────────
+
+    /**
+     * Every submission, accepted or not, counts as one attempt.
+     */
+    private void countAttempt(ContestParticipant participant) {
         int newAttempts = (participant.getAttemptCount() == null ? 0 : participant.getAttemptCount()) + 1;
         participant.setAttemptCount(newAttempts);
         participant.setTotalAttempts(newAttempts);
+    }
 
-        if (accepted) {
-            // 6a. Record a contest_problem_results row (idempotent via UK on
-            //     (participant_id, contest_problem_id)). If a row already exists,
-            //     we still increment attempts but do not double-count score.
-            Optional<ContestProblemResult> existing =
-                    contestProblemResultMapper.findByParticipantIdAndContestProblemId(participantId, contestProblemId);
-            boolean firstSolveOnThisProblem = existing.isEmpty();
-            if (firstSolveOnThisProblem) {
-                ContestProblemResult cpr = new ContestProblemResult();
-                cpr.setContestId(contestId);
-                cpr.setContestProblemId(contestProblemId);
-                cpr.setUserId(event.getUserId());
-                cpr.setParticipantId(participantId);
-                cpr.setIsSolved(true);
-                cpr.setScore(contestProblem.getScore() == null ? 100 : contestProblem.getScore());
-                cpr.setAttempts(1);
-                cpr.setFirstSolveTime(cs.getTimeFromStart());
-                cpr.setBestSubmissionId(event.getSubmissionId());
-                cpr.setTimeSpent(cs.getTimeFromStart() == null ? 0 : cs.getTimeFromStart());
-                cpr.setTimeBonus(0);
-                cpr.setIsFirstSolve(false); // updated below if confirmed first-solver
-                contestProblemResultMapper.insert(cpr);
+    /**
+     * Accepted branch: record or update the per-problem result row (idempotent
+     * via the (participant, contest_problem) unique key), then race for the
+     * first-solve bonus.
+     */
+    private void applyAccepted(ContestSubmission cs, ContestProblem contestProblem,
+                               ContestParticipant participant, SubmissionJudgedEvent event) {
+        String contestId = cs.getContestId();
+        String contestProblemId = cs.getContestProblemId();
+        String participantId = cs.getParticipantId();
 
-                // Increment contest_participants aggregate.
-                int newScore = (participant.getTotalScore() == null ? 0 : participant.getTotalScore())
-                        + cpr.getScore();
-                participant.setTotalScore(newScore);
-            } else {
-                ContestProblemResult cpr = existing.get();
-                cpr.setAttempts((cpr.getAttempts() == null ? 0 : cpr.getAttempts()) + 1);
-                cpr.setBestSubmissionId(event.getSubmissionId());
-                contestProblemResultMapper.updateById(cpr);
-            }
+        Optional<ContestProblemResult> existing =
+                contestProblemResultMapper.findByParticipantIdAndContestProblemId(participantId, contestProblemId);
+        boolean firstSolveOnThisProblem = existing.isEmpty();
+        if (firstSolveOnThisProblem) {
+            ContestProblemResult cpr = new ContestProblemResult();
+            cpr.setContestId(contestId);
+            cpr.setContestProblemId(contestProblemId);
+            cpr.setUserId(event.getUserId());
+            cpr.setParticipantId(participantId);
+            cpr.setIsSolved(true);
+            cpr.setScore(contestProblem.getScore() == null ? 100 : contestProblem.getScore());
+            cpr.setAttempts(1);
+            cpr.setFirstSolveTime(cs.getTimeFromStart());
+            cpr.setBestSubmissionId(event.getSubmissionId());
+            cpr.setTimeSpent(cs.getTimeFromStart() == null ? 0 : cs.getTimeFromStart());
+            cpr.setTimeBonus(0);
+            cpr.setIsFirstSolve(false); // updated below if confirmed first-solver
+            contestProblemResultMapper.insert(cpr);
 
-            // 6b. First-solve detection: insert into first_solve_records with the
-            //     DB unique key (contest_id, problem_id) as the atomic gate.
-            //     A DuplicateKeyException here means we are NOT the first solver.
-            boolean isFirstSolver = false;
-            try {
-                FirstSolveRecord firstSolve = new FirstSolveRecord();
-                firstSolve.setContestId(contestId);
-                firstSolve.setProblemId(contestProblem.getProblemId());
-                firstSolve.setUserId(event.getUserId());
-                firstSolve.setSolvedAt(LocalDateTime.now(clock));
-                firstSolve.setTimeSpent(cs.getTimeFromStart() == null ? 0 : cs.getTimeFromStart());
-                firstSolveRecordMapper.insert(firstSolve);
-                isFirstSolver = true;
-            } catch (DuplicateKeyException ignored) {
-                // Race: another participant solved it first. We are not the first solver.
-            }
+            addScore(participant, cpr.getScore());
+        } else {
+            ContestProblemResult cpr = existing.get();
+            cpr.setAttempts((cpr.getAttempts() == null ? 0 : cpr.getAttempts()) + 1);
+            cpr.setBestSubmissionId(event.getSubmissionId());
+            contestProblemResultMapper.updateById(cpr);
+        }
 
-            if (isFirstSolver && firstSolveOnThisProblem) {
-                // Update the CPR row's is_first_solve flag and add bonus to score.
-                Optional<ContestProblemResult> cpr =
-                        contestProblemResultMapper.findByParticipantIdAndContestProblemId(participantId, contestProblemId);
-                cpr.ifPresent(r -> {
+        if (claimFirstSolve(cs, contestProblem, event) && firstSolveOnThisProblem) {
+            applyFirstSolveBonus(participant, participantId, contestProblemId);
+        }
+    }
+
+    /**
+     * Atomically claim first-solve via the {@code first_solve_records}
+     * (contest_id, problem_id) unique key. A duplicate-key means another
+     * participant solved it first; the lost race is a no-op, never an error.
+     */
+    private boolean claimFirstSolve(ContestSubmission cs, ContestProblem contestProblem, SubmissionJudgedEvent event) {
+        try {
+            FirstSolveRecord firstSolve = new FirstSolveRecord();
+            firstSolve.setContestId(cs.getContestId());
+            firstSolve.setProblemId(contestProblem.getProblemId());
+            firstSolve.setUserId(event.getUserId());
+            firstSolve.setSolvedAt(LocalDateTime.now(clock));
+            firstSolve.setTimeSpent(cs.getTimeFromStart() == null ? 0 : cs.getTimeFromStart());
+            firstSolveRecordMapper.insert(firstSolve);
+            return true;
+        } catch (DuplicateKeyException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Flip the per-problem result's first-solve flag and award the bonus to
+     * both the result row and the participant aggregate.
+     */
+    private void applyFirstSolveBonus(ContestParticipant participant, String participantId, String contestProblemId) {
+        contestProblemResultMapper.findByParticipantIdAndContestProblemId(participantId, contestProblemId)
+                .ifPresent(r -> {
                     r.setIsFirstSolve(true);
                     r.setTimeBonus(FIRST_SOLVE_BONUS);
                     r.setScore(r.getScore() + FIRST_SOLVE_BONUS);
                     contestProblemResultMapper.updateById(r);
                 });
-                int newScore = (participant.getTotalScore() == null ? 0 : participant.getTotalScore())
-                        + FIRST_SOLVE_BONUS;
-                participant.setTotalScore(newScore);
-            }
-        } else {
-            // 6c. R4 (ADR-006 §2.2): wrong-submission penalty handling is now
-            //     mode-keyed through ScoringStrategy. SCORE and IOI strategies
-            //     are no-ops; ICPCStrategy adds penaltyPerWrong to totalPenalty.
-            //     Backward compat: the default scoringMode is SCORE in the
-            //     schema, so existing contests that haven't been explicitly
-            //     set behave like the old "no penalty on wrong" path.
-            scoringStrategy.applyWrongSubmission(participant, penaltyPerWrong);
-        }
+        addScore(participant, FIRST_SOLVE_BONUS);
+    }
 
-        // 7. lastSolveTime only advances on AC.
+    private void addScore(ContestParticipant participant, int delta) {
+        int newScore = (participant.getTotalScore() == null ? 0 : participant.getTotalScore()) + delta;
+        participant.setTotalScore(newScore);
+    }
+
+    /**
+     * lastSolveTime only advances on an accepted submission with a real time.
+     */
+    private void advanceLastSolveTime(ContestParticipant participant, ContestSubmission cs, boolean accepted) {
         if (accepted && cs.getTimeFromStart() != null) {
             participant.setLastSolveTime(cs.getTimeFromStart());
         }
+    }
 
-        // 8. Persist participant + contest aggregate counters.
+    /**
+     * Persist the participant aggregate, bump the contest submission count,
+     * and bump the contest participant count on the user's first submission
+     * for this contest.
+     */
+    private void persistAggregates(ContestParticipant participant, ContestSubmission cs) {
+        String contestId = cs.getContestId();
+        String participantId = cs.getParticipantId();
         contestParticipantMapper.updateById(participant);
         contestMapper.incrementSubmissionCount(contestId);
-        // participantCount is incremented only on the user's first submission
-        // for this contest. We use the existence of any prior submission as the
-        // signal (cheap, no extra table).
         if (contestSubmissionMapper.findByContestIdAndParticipantId(contestId, participantId).size() == 1) {
             contestMapper.incrementParticipantCount(contestId);
         }
-
-        // 9. Invalidate ranking cache so the next read sees the fresh aggregate.
-        rankingCacheEvictor.evictRankingCache();
-
-        log.info("Applied contest scoring: contest={} user={} problem={} accepted={} score={} attempts={}",
-                contestId, event.getUserId(), contestProblem.getProblemId(), accepted,
-                participant.getTotalScore(), participant.getAttemptCount());
     }
 }

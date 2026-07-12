@@ -5,6 +5,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import jakarta.validation.Validator;
@@ -37,6 +38,9 @@ class ProblemSubmissionControllerTest {
     private SubmissionService submissionService;
 
     @Mock
+    private SubmissionWritePort submissionWritePort;
+
+    @Mock
     private CodeExecutionService codeExecutionService;
 
     @Mock
@@ -48,7 +52,7 @@ class ProblemSubmissionControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        controller = new ProblemSubmissionController(submissionService, codeExecutionService, validator, currentUserProvider);
+        controller = new ProblemSubmissionController(submissionService, submissionWritePort, codeExecutionService, validator, currentUserProvider);
     }
 
     @AfterEach

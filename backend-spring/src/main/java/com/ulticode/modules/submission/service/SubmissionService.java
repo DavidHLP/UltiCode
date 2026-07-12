@@ -1,44 +1,38 @@
 package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Service interface for submission state changes and single-row reads.
+ * Read boundary for the submission state machine.
+ *
+ * <p>The write surface — Submission intake and the two verdict writers — lives
+ * behind {@link com.ulticode.modules.submission.port.SubmissionWritePort},
+ * the single seam whose implementation owns every state mutation on submission
+ * records (transaction, contest rules, outbox, fenced CAS). This interface now
+ * owns only the <em>boundary reads</em> a caller crosses just after the state
+ * boundary: {@link #findById}, {@link #findByUserId}, {@link #findByProblemId},
+ * {@link #findBest}, {@link #getSubmissionEntity}, and the static status
+ * catalog {@link #getStatuses}.
  *
  * <p>Read-side rollups (calendar dates, learning progress, submission history)
  * live behind {@link com.ulticode.modules.submission.projection.SubmissionProjection}.
- * The two interfaces share the same {@code Submission} domain but sit at
- * different seams: this one owns the <em>state machine</em> (submit, judge
- * updates, fenced writes); the projection owns the <em>view shape</em>.
+ * Returning {@link SubmissionVO} from {@code findBest} stays on this interface
+ * because the caller wants a directly usable payload; the entity-to-VO
+ * projection itself delegates to {@code SubmissionProjection} so the shaping
+ * rules live in one place.
  *
- * <p>Returning {@link SubmissionVO} from {@code submit} and {@code findBest}
- * stays on this interface because the caller has just crossed the state
- * boundary and wants a directly usable payload. The actual entity-to-VO
- * projection is delegated to {@code SubmissionProjection} so the rules
- * live in one place.
+ * @author ulticode
  */
 public interface SubmissionService {
-
-    /**
-     * Submit code for a problem.
-     * Creates a new submission with Pending status.
-     *
-     * @param userId    the user ID submitting
-     * @param createDTO the submission data
-     * @return the created submission view object
-     */
-    SubmissionVO submit(String userId, CreateSubmissionDTO createDTO);
 
     /**
      * Find a submission by its ID.
@@ -91,36 +85,4 @@ public interface SubmissionService {
      * @return list of submission status metadata
      */
     List<SubmissionStatusMeta> getStatuses();
-
-    /**
-     * Update submission result after judge processing.
-     *
-     * @param submissionId the submission ID
-     * @param status       the new status
-     * @param runtime      runtime in milliseconds
-     * @param memory       memory usage in MB
-     * @param testDetails  test case execution details
-     */
-    void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
-                                Double memory, List<Submission.TestCaseDetail> testDetails);
-
-    /**
-     * ADR-003 M3b fenced verdict write. Writes the verdict behind the
-     * generation+attempt CAS so a stale worker whose generation was bumped
-     * (rejudge / reaper) cannot overwrite the newer result. On fence mismatch
-     * the result is dropped and {@code judge.stale_result.dropped} increments.
-     *
-     * @param submissionId  submission id
-     * @param generation    generation the worker observed at acquire (fence axis 1)
-     * @param attemptId     attempt UUID held by the worker (fence axis 2)
-     * @param status        terminal verdict (typed)
-     * @param runtime       runtime in ms
-     * @param memory        memory in MB
-     * @param testDetails   test case details
-     * @return {@code true} if the verdict was written; {@code false} if the
-     *         fence rejected it (stale result dropped)
-     */
-    boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                         SubmissionStatus status, int runtime, Double memory,
-                                         List<Submission.TestCaseDetail> testDetails);
 }

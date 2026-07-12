@@ -17,7 +17,7 @@ import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
-import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,7 +62,7 @@ class ContestServiceImplTest {
     @Mock private ContestMapper contestMapper;
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestParticipantMapper participantMapper;
-    @Mock private SubmissionService submissionService;
+    @Mock private SubmissionWritePort submissionWritePort;
     @Mock private ContestLifecycleService contestLifecycleService;
     @Mock private ContestProjection contestProjection;
     @Mock private com.ulticode.modules.contest.clock.ContestClock contestClock;
@@ -83,7 +83,7 @@ class ContestServiceImplTest {
                 contestMapper,
                 contestProblemMapper,
                 participantMapper,
-                submissionService,
+                submissionWritePort,
                 contestLifecycleService,
                 contestProjection,
                 contestClock,
@@ -184,7 +184,7 @@ class ContestServiceImplTest {
                     .thenReturn(contestProblem);
             when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
-            when(submissionService.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);
@@ -227,7 +227,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_STARTED);
 
-            verify(submissionService, never()).submit(any(), any());
+            verify(submissionWritePort, never()).submit(any(), any());
         }
 
         /** R6.2 / F-07: virtual sessions are rejected once the participant
@@ -277,7 +277,7 @@ class ContestServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ENDED);
 
-            verify(submissionService, never()).submit(any(), any());
+            verify(submissionWritePort, never()).submit(any(), any());
         }
 
         /** R6.2 / F-07: virtual session within duration is accepted.
@@ -318,7 +318,7 @@ class ContestServiceImplTest {
                     .thenReturn(contestProblem);
             when(participantMapper.findByContestIdAndUserId("contest-1", REGULAR_USER_ID))
                     .thenReturn(java.util.Optional.of(participant));
-            when(submissionService.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
+            when(submissionWritePort.submit(REGULAR_USER_ID, dto)).thenReturn(submissionVO);
 
             SubmissionVO result = contestService.submitContestProblem(
                     "contest-1", 42L, REGULAR_USER_ID, dto);

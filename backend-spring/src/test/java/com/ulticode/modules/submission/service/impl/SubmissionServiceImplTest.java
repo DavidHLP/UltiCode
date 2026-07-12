@@ -65,6 +65,7 @@ class SubmissionServiceImplTest {
     @Mock private com.ulticode.modules.submission.projection.SubmissionProjection submissionProjection;
 
     private SubmissionServiceImpl submissionService;
+    private com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort;
 
     private static final String USER_ID = "user-123";
     private static final Long PROBLEM_ID = 1L;
@@ -92,7 +93,7 @@ class SubmissionServiceImplTest {
         // logic end-to-end through the facade delegate (zero behaviour
         // change vs. pre-deepening). Read-side tests (findById /
         // findByProblemId) keep using the same submissionService reference.
-        com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
+        writePort =
                 new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
                         submissionMapper, userMapper, problemFacts, objectMapper,
                         submissionProjection, performanceStats,
@@ -104,7 +105,7 @@ class SubmissionServiceImplTest {
                         null, flags, null, null, clock,
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, submissionProjection, performanceStats, writePort);
+                submissionMapper, submissionProjection, performanceStats);
         // Default projection stubs: the service delegates to SubmissionProjection
         // for the toVO / toListItemVO / toDetailVO paths. Default lenient stubs
         // return non-null VOs so tests asserting on return values keep working;
@@ -224,7 +225,7 @@ class SubmissionServiceImplTest {
             when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(), anyString(), anyString()))
                     .thenReturn("job-789");
 
-            SubmissionVO result = submissionService.submit(USER_ID, createDTO());
+            SubmissionVO result = writePort.submit(USER_ID, createDTO());
 
             assertThat(result).isNotNull();
             assertThat(result.getStatus()).isEqualTo("Pending");
@@ -238,7 +239,7 @@ class SubmissionServiceImplTest {
         @Test
         @DisplayName("null userId throws SUBMISSION_USER_ID_REQUIRED")
         void submit_nullUserId_throwsException() {
-            assertThatThrownBy(() -> submissionService.submit(null, createDTO()))
+            assertThatThrownBy(() -> writePort.submit(null, createDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.SUBMISSION_USER_ID_REQUIRED));
@@ -250,7 +251,7 @@ class SubmissionServiceImplTest {
             CreateSubmissionDTO dto = createDTO();
             dto.setCode("");
 
-            assertThatThrownBy(() -> submissionService.submit(USER_ID, dto))
+            assertThatThrownBy(() -> writePort.submit(USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.SUBMISSION_CODE_EMPTY));
@@ -262,7 +263,7 @@ class SubmissionServiceImplTest {
             CreateSubmissionDTO dto = createDTO();
             dto.setLanguage("assembly");
 
-            assertThatThrownBy(() -> submissionService.submit(USER_ID, dto))
+            assertThatThrownBy(() -> writePort.submit(USER_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED));
@@ -273,7 +274,7 @@ class SubmissionServiceImplTest {
         void submit_problemNotFound_throwsException() {
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(null);
 
-            assertThatThrownBy(() -> submissionService.submit(USER_ID, createDTO()))
+            assertThatThrownBy(() -> writePort.submit(USER_ID, createDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.PROBLEM_NOT_FOUND));
@@ -285,7 +286,7 @@ class SubmissionServiceImplTest {
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
             when(userMapper.selectById(USER_ID)).thenReturn(null);
 
-            assertThatThrownBy(() -> submissionService.submit(USER_ID, createDTO()))
+            assertThatThrownBy(() -> writePort.submit(USER_ID, createDTO()))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
@@ -454,7 +455,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
+            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
@@ -486,7 +487,7 @@ class SubmissionServiceImplTest {
                     .thenReturn(peerBests);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
+            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(argThat((Submission updated) -> {
                 assertThat(updated.getRuntimePercentile()).isEqualTo(33.3);
@@ -515,7 +516,7 @@ class SubmissionServiceImplTest {
                     .thenReturn(peerBests);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
+            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(argThat((Submission updated) -> {
                 assertThat(updated.getRuntimePercentile()).isEqualTo(0.0);
@@ -534,7 +535,7 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
 
-            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, List.of());
+            writePort.updateSubmissionResult("sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, List.of());
 
             verify(notificationDispatchService).dispatch(
                     eq(USER_ID),
@@ -561,7 +562,7 @@ class SubmissionServiceImplTest {
                             anyString(), anyString(), any(Map.class), anyBoolean());
 
             // Should not throw
-            submissionService.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
+            writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
             verify(submissionMapper).updateById(submission);
         }

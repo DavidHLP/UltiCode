@@ -37,7 +37,7 @@ create → IN_QUEUED ──(fence: stamp generation)──► outbox enqueues �
    JUDGED ──► SubmissionJudgedEvent ──► notification + standings
 ```
 
-- **Create**: `ProblemSubmissionController` → `SubmissionService` writes the row
+- **Create**: `ProblemSubmissionController` → `SubmissionWritePort` writes the row
   `IN_QUEUED` with a fresh **generation** in the same transaction as the outbox row.
 - **State machine**: `submission/fence/SubmissionStateMachine` advances
   `IN_QUEUED → JUDGING → JUDGED` (and terminal error states). `SubmissionStatus` enum.

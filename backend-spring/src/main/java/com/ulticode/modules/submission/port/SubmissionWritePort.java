@@ -43,10 +43,11 @@ import java.util.List;
  *
  * <p>Dependency category: <b>in-process</b>. The seam is real because the
  * submission state machine is the only writer and the default adapter is the
- * only provider today; the {@code SubmissionService} facade stays as a thin
- * delegate so cross-module callers ({@code ContestServiceImpl#submit},
- * {@code JudgeWorkerProcessor} verdict writes) see zero behavioural change.
- * Tests can substitute a fake.
+ * only provider today. The former {@code SubmissionService} write delegates
+ * were collapsed onto this port so cross-module write callers
+ * ({@code ContestServiceImpl#submit}, {@code DefaultJudgeAttemptExecutor}
+ * verdict writes) inject it directly; {@code SubmissionService} now owns only
+ * the read boundary. Tests can substitute a fake.
  *
  * @author ulticode
  */

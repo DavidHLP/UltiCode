@@ -27,7 +27,7 @@ import java.util.Map;
 /**
  * Judge worker that polls the Redis judge queue and processes submissions.
  *
- * <p>Wires together QueueService, CodeExecutionService, SubmissionService,
+ * <p>Wires together QueueService, CodeExecutionService, SubmissionWritePort,
  * and SubmissionResultPushPort to form the complete judging pipeline:
  *
  * <ol>

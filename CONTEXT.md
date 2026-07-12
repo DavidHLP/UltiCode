@@ -30,7 +30,7 @@
 
 - **Submission intake** — the write path that creates a Submission, writes
   the judge outbox row, and asks the contest module to record a
-  ContestSubmission (`SubmissionServiceImpl.submit`).
+  ContestSubmission (`DefaultSubmissionWritePort.submit`).
 - **Projection** — a deep module owning entity→VO projection and read-side
   aggregation for one domain, behind a small interface. Pattern:
   `ProblemProjection`, `SubmissionProjection`, `ModerationProjection`,

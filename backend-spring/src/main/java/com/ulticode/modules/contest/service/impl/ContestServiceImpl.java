@@ -23,7 +23,7 @@ import com.ulticode.modules.contest.service.ContestLifecycleService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
-import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -61,7 +61,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
-    private final SubmissionService submissionService;
+    private final SubmissionWritePort submissionWritePort;
     private final ContestLifecycleService contestLifecycleService;
     private final ContestProjection contestProjection;
     private final ContestClock contestClock;
@@ -108,7 +108,7 @@ public class ContestServiceImpl implements ContestService {
         }
 
         createDTO.setProblemId(problemId);
-        return submissionService.submit(userId, createDTO);
+        return submissionWritePort.submit(userId, createDTO);
     }
 
     // =========================================================================

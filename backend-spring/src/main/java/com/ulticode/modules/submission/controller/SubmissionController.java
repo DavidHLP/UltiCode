@@ -13,6 +13,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.*;
 public class SubmissionController {
 
     private final SubmissionService submissionService;
+    private final SubmissionWritePort submissionWritePort;
     private final SubmissionProjection submissionProjection;
     private final CurrentUserProvider currentUserProvider;
 
@@ -59,7 +61,7 @@ public class SubmissionController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionVO submission = submissionService.submit(userId, createDTO);
+        SubmissionVO submission = submissionWritePort.submit(userId, createDTO);
         return Result.success(submission);
     }
 

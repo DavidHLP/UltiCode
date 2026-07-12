@@ -94,6 +94,7 @@ class SubmissionServiceImplIT {
     private Clock clock;
 
     private SubmissionServiceImpl submissionService;
+    private com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort;
 
     private static final String USER_ID = "user-it-1";
     private static final Long PROBLEM_ID = 1L;
@@ -266,7 +267,7 @@ class SubmissionServiceImplIT {
                 new com.ulticode.modules.problem.port.ProblemFactsAdapter(
                         problemMapper,
                         session.getMapper(com.ulticode.modules.problem.mapper.ProblemLanguageMapper.class));
-        com.ulticode.modules.submission.port.DefaultSubmissionWritePort writePort =
+        writePort =
                 new com.ulticode.modules.submission.port.DefaultSubmissionWritePort(
                         submissionMapper, userMapper, problemFacts, objectMapper,
                         submissionProjection, performanceStats,
@@ -277,7 +278,7 @@ class SubmissionServiceImplIT {
                         null, flags, null, null, java.time.Clock.systemDefaultZone(),
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, submissionProjection, performanceStats, writePort);
+                submissionMapper, submissionProjection, performanceStats);
     }
 
     @AfterEach
@@ -335,7 +336,7 @@ class SubmissionServiceImplIT {
                     .thenReturn("job-it-1");
 
             // Act
-            SubmissionVO result = submissionService.submit(USER_ID, createDTO());
+            SubmissionVO result = writePort.submit(USER_ID, createDTO());
 
             // Assert: submission persisted to real MySQL
             assertThat(result).isNotNull();
@@ -373,7 +374,7 @@ class SubmissionServiceImplIT {
                     .when(queueService).enqueueJudgeJob(anyString(), anyString(), anyString(), anyString(), anyString());
 
             // Act
-            SubmissionVO result = submissionService.submit(USER_ID, createDTO());
+            SubmissionVO result = writePort.submit(USER_ID, createDTO());
 
             // Assert: submission saved with System Error status
             assertThat(result).isNotNull();

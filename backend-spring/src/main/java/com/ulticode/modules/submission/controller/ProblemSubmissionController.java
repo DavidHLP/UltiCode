@@ -12,6 +12,7 @@ import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProblemSubmissionController {
 
     private final SubmissionService submissionService;
+    private final SubmissionWritePort submissionWritePort;
     private final CodeExecutionService codeExecutionService;
     private final Validator validator;
     private final CurrentUserProvider currentUserProvider;
@@ -123,7 +125,7 @@ public class ProblemSubmissionController {
             throw new BusinessException(ErrorCode.BAD_REQUEST, message);
         }
 
-        SubmissionVO submission = submissionService.submit(userId, createDTO);
+        SubmissionVO submission = submissionWritePort.submit(userId, createDTO);
         return Result.success(submission);
     }
 

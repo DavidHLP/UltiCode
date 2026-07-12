@@ -20,9 +20,9 @@ import java.util.List;
  * {@code SubmissionServiceImpl}. Callers that only need projections (controllers
  * serving {@code /calendar}, {@code /learning-progress}, {@code /history}; the
  * read paths of {@code /submissions} and {@code /submissions/{id}}) cross this
- * seam and stay free of state-change concerns. Callers that mutate state still
- * hold a {@code SubmissionService} reference; they delegate their projection
- * work to this interface so the projection rules live in one place.
+ * seam and stay free of state-change concerns. Callers that mutate state
+ * inject {@code SubmissionWritePort}; they delegate their projection work to
+ * this interface so the projection rules live in one place.
  *
  * <p>Why a separate module and not "a helper class" or "moved methods":
  * <ul>

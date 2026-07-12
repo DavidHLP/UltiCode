@@ -13,7 +13,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.LeaseConstants;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
-    private final SubmissionService submissionService;
+    private final SubmissionWritePort submissionWritePort;
     private final SubmissionResultPushPort submissionResultPushPort;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final JudgeExecutionPipeline executionPipeline;
@@ -58,7 +58,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
      */
     private volatile ScheduledExecutorService heartbeatExecutor;
 
-    public DefaultJudgeAttemptExecutor(SubmissionService submissionService,
+    public DefaultJudgeAttemptExecutor(SubmissionWritePort submissionWritePort,
                                        SubmissionResultPushPort submissionResultPushPort,
                                        ContestSubmissionMapper contestSubmissionMapper,
                                        JudgeExecutionPipeline executionPipeline,
@@ -66,7 +66,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                        FeatureFlagsProperties featureFlags,
                                        MeterRegistry meterRegistry,
                                        UuidGenerator uuidGenerator) {
-        this.submissionService = submissionService;
+        this.submissionWritePort = submissionWritePort;
         this.submissionResultPushPort = submissionResultPushPort;
         this.contestSubmissionMapper = contestSubmissionMapper;
         this.executionPipeline = executionPipeline;
@@ -130,7 +130,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
      * lives here and the path reads as orchestrator above it.
      */
     private void transitionToJudging(String submissionId) {
-        submissionService.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
+        submissionWritePort.updateSubmissionResult(submissionId, SubmissionStatus.JUDGING, 0, null, null);
     }
 
     /**
@@ -141,7 +141,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private void applyLegacyVerdict(String submissionId, String userId, String problemId,
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
-        submissionService.updateSubmissionResult(submissionId, status,
+        submissionWritePort.updateSubmissionResult(submissionId, status,
                 pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
         notifyVerdict(userId, submissionId, problemId, status, pipelineResult);
     }
@@ -209,7 +209,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
                                     String attemptId, long generation,
                                     JudgeExecutionResult pipelineResult) {
         SubmissionStatus status = pipelineResult.status();
-        boolean written = submissionService.updateSubmissionResultFenced(
+        boolean written = submissionWritePort.updateSubmissionResultFenced(
                 submissionId, generation, attemptId, status,
                 pipelineResult.maxRuntimeMs(), pipelineResult.maxMemoryMb(), pipelineResult.testCaseDetails());
 
@@ -348,7 +348,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private void markSystemError(String submissionId, String userId, String problemId,
                                  String contestId) {
         SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-        submissionService.updateSubmissionResult(submissionId, status, 0, 0.0, null);
+        submissionWritePort.updateSubmissionResult(submissionId, status, 0, 0.0, null);
         pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);
     }
 
@@ -360,7 +360,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private void markSystemErrorFenced(String submissionId, long generation, String attemptId,
                                        String userId, String problemId, String contestId) {
         SubmissionStatus status = SubmissionStatus.SYSTEM_ERROR;
-        boolean written = submissionService.updateSubmissionResultFenced(
+        boolean written = submissionWritePort.updateSubmissionResultFenced(
                 submissionId, generation, attemptId, status, 0, 0.0, null);
         if (written) {
             pushResult(userId, submissionId, problemId, status.wireValue(), 0, 0L, contestId);

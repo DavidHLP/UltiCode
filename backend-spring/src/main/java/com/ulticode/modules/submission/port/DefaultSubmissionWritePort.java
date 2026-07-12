@@ -42,11 +42,12 @@ import java.util.Map;
  * Submission intake + the two verdict writers — see the interface javadoc for
  * why this is a deep module.
  *
- * <p>Logic moved verbatim from the deprecated {@code SubmissionServiceImpl}
- * facade. The facade stays as a thin delegate so cross-module callers
- * ({@code ContestServiceImpl#submit}, {@code JudgeWorkerProcessor} verdict
- * writes) see zero behavioural change. Every guard the facade used to inline
- * is preserved here: {@code @Transactional} on intake, ADR-003 §5
+ * <p>Logic moved verbatim from the former {@code SubmissionServiceImpl}
+ * write delegates. After the facade was collapsed, this adapter is the sole
+ * implementation of the write seam: cross-module callers
+ * ({@code ContestServiceImpl#submit}, {@code DefaultJudgeAttemptExecutor}
+ * verdict writes) inject the port directly. Every guard the facade used to
+ * inline is preserved here: {@code @Transactional} on intake, ADR-003 §5
  * {@code judge.stale_result.dropped} counter, the F4 same-CAS stats write,
  * and fire-and-forget isolation of contest-recording / achievement /
  * notification failures.

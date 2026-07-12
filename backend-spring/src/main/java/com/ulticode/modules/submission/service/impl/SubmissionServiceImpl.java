@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
@@ -13,14 +12,11 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -28,37 +24,26 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Submission service — state-machine + boundary-read facade.
+ * Submission read boundary — the state machine's read surface.
  *
- * <p><b>Deep-module boundary.</b> The write surface (Submission intake + the
- * two verdict writers) is now owned by {@link SubmissionWritePort} /
- * {@code DefaultSubmissionWritePort}; {@link #submit},
- * {@link #updateSubmissionResult} and {@link #updateSubmissionResultFenced}
- * are one-line delegates to that port. The intake's @Transactional boundary,
- * the ADR-003 fenced CAS, the F4 stats fold, the judge-outbox transactional
- * insert, contest recording, achievement triggers and the submission-result
- * notification all live behind the port.
+ * <p><b>Deep-module boundary.</b> Every state mutation (Submission intake +
+ * the two verdict writers) is owned by
+ * {@link com.ulticode.modules.submission.port.SubmissionWritePort} /
+ * {@code DefaultSubmissionWritePort}. This implementation now holds only the
+ * <em>boundary reads</em>: {@link #findById}, {@link #findByUserId},
+ * {@link #findByProblemId}, {@link #findBest}, {@link #getSubmissionEntity},
+ * and the static status catalog {@link #getStatuses}. Write callers inject
+ * {@code SubmissionWritePort} directly; nothing on this interface forwards to
+ * it anymore.
  *
- * <p>What stays on this interface (per the {@link SubmissionService} seam
- * contract): the <em>boundary reads</em> — {@link #findById},
- * {@link #findByUserId}, {@link #findByProblemId}, {@link #findBest},
- * {@link #getSubmissionEntity} — and the static status catalog
- * {@link #getStatuses}. These are the state-machine interface's read boundary
- * (a caller that just crossed the state boundary wants a directly usable
- * payload), not view-shape aggregation, which lives behind
- * {@link SubmissionProjection}. Returning {@link SubmissionVO} from
- * {@code submit} and {@code findBest} therefore stays on this interface; the
- * entity-to-VO projection itself delegates to {@code SubmissionProjection}.
- *
- * <p>The facade is preserved (not deleted) because cross-module callers still
- * inject {@link SubmissionService}: {@code ContestServiceImpl#submit} and the
- * {@code JudgeWorkerProcessor} verdict writes. Migrating those callers to
- * {@link SubmissionWritePort} + a read port is a separate flag-day; until
- * then they see zero behavioural change through this delegate.
+ * <p>These reads are the caller's immediately-usable payload right after
+ * crossing the state boundary; view-shape aggregation (calendar, learning
+ * progress, history) stays behind {@link SubmissionProjection}, and the
+ * entity-to-VO projection used by {@code findBest} delegates to
+ * {@code SubmissionProjection} so the shaping rules live in one place.
  *
  * @author ulticode
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubmissionServiceImpl implements SubmissionService {
@@ -66,16 +51,6 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionMapper submissionMapper;
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
-    /**
-     * Deep module owning the Submission intake + verdict writers. Every write
-     * method on this facade delegates to it.
-     */
-    private final SubmissionWritePort submissionWritePort;
-
-    @Override
-    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
-        return submissionWritePort.submit(userId, createDTO);
-    }
 
     @Override
     public SubmissionDetailVO findById(String id, String userId) {
@@ -155,19 +130,5 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public List<SubmissionStatusMeta> getStatuses() {
         return submissionProjection.getStatusCatalog();
-    }
-
-    @Override
-    public void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
-                                        Double memory, List<Submission.TestCaseDetail> testDetails) {
-        submissionWritePort.updateSubmissionResult(submissionId, status, runtime, memory, testDetails);
-    }
-
-    @Override
-    public boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
-                                                SubmissionStatus status, int runtime, Double memory,
-                                                List<Submission.TestCaseDetail> testDetails) {
-        return submissionWritePort.updateSubmissionResultFenced(
-                submissionId, generation, attemptId, status, runtime, memory, testDetails);
     }
 }

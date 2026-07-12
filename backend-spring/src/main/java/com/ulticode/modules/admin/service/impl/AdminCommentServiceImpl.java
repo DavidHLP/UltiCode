@@ -149,7 +149,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                     case "unflag" -> unflagComment(id, request.getType());
                     default -> throw new IllegalArgumentException("Unknown action: " + request.getAction());
                 }
-            });
+            },
+            id -> true);
 
         BulkActionResult response = new BulkActionResult();
         response.setTotal(run.total());
@@ -158,7 +159,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         response.setResults(new ArrayList<>(run.items().size()));
         for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
             response.getResults().add(new BulkActionResult.BulkActionItem(
-                outcome.id(), outcome.success(), outcome.error()));
+                outcome.id(), outcome.isSuccess(), outcome.errorOrNull()));
         }
         return response;
     }

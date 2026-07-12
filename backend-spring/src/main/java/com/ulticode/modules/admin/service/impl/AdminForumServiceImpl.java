@@ -142,7 +142,7 @@ public class AdminForumServiceImpl implements AdminForumService {
                 case "unflag" -> unflagPost(id);
                 default -> throw new IllegalArgumentException("Unknown action: " + action);
             }
-        });
+        }, id -> true);
 
         BulkActionResult response = new BulkActionResult();
         response.setTotal(run.total());
@@ -151,7 +151,7 @@ public class AdminForumServiceImpl implements AdminForumService {
         response.setResults(new ArrayList<>(run.items().size()));
         for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
             response.getResults().add(new BulkActionResult.BulkActionItem(
-                outcome.id(), outcome.success(), outcome.error()));
+                outcome.id(), outcome.isSuccess(), outcome.errorOrNull()));
         }
         return response;
     }

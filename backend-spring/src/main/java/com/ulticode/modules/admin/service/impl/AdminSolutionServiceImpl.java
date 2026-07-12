@@ -197,12 +197,12 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         List<BulkActionResult> results = new ArrayList<>(run.items().size());
         for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
-            if (outcome.success()) {
-                results.add(BulkActionResult.success(outcome.id()));
-            } else if (outcome.notFound()) {
+            if (outcome instanceof AdminBulkExecutor.NotFound) {
                 results.add(BulkActionResult.failure(outcome.id(), BulkActionResult.NOT_FOUND_MESSAGE));
+            } else if (outcome instanceof AdminBulkExecutor.Success) {
+                results.add(BulkActionResult.success(outcome.id()));
             } else {
-                results.add(BulkActionResult.failure(outcome.id(), outcome.error()));
+                results.add(BulkActionResult.failure(outcome.id(), outcome.errorOrNull()));
             }
         }
         return results;

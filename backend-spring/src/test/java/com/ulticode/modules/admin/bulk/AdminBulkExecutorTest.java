@@ -25,31 +25,36 @@ class AdminBulkExecutorTest {
         List<String> ids = List.of("a", "b", "c");
         AtomicInteger calls = new AtomicInteger();
 
-        AdminBulkExecutor.Run run = executor.run(ids, "delete", id -> calls.incrementAndGet());
+        AdminBulkExecutor.Run run = executor.run(
+            ids, "delete", id -> calls.incrementAndGet(), id -> true);
 
         assertThat(run.total()).isEqualTo(3);
         assertThat(run.successful()).isEqualTo(3);
         assertThat(run.failed()).isZero();
         assertThat(calls.get()).isEqualTo(3);
-        assertThat(run.items()).extracting(AdminBulkExecutor.ItemOutcome::success).containsOnly(true);
+        assertThat(run.items()).allMatch(AdminBulkExecutor.ItemOutcome::isSuccess);
     }
 
     @Test
     void perItemFailureIsolatesAndContinues() {
         List<String> ids = List.of("ok1", "boom", "ok2");
 
-        AdminBulkExecutor.Run run = executor.run(ids, "delete", id -> {
-            if ("boom".equals(id)) {
-                throw new IllegalStateException("kaboom");
-            }
-        });
+        AdminBulkExecutor.Run run = executor.run(
+            ids, "delete",
+            id -> {
+                if ("boom".equals(id)) {
+                    throw new IllegalStateException("kaboom");
+                }
+            },
+            id -> true);
 
         assertThat(run.successful()).isEqualTo(2);
         assertThat(run.failed()).isEqualTo(1);
         AdminBulkExecutor.ItemOutcome failure = run.items().get(1);
+        assertThat(failure).isInstanceOf(AdminBulkExecutor.Failure.class);
         assertThat(failure.id()).isEqualTo("boom");
-        assertThat(failure.success()).isFalse();
-        assertThat(failure.error()).isEqualTo("kaboom");
+        AdminBulkExecutor.Failure f = (AdminBulkExecutor.Failure) failure;
+        assertThat(f.error()).isEqualTo("kaboom");
     }
 
     @Test
@@ -57,18 +62,19 @@ class AdminBulkExecutorTest {
         List<String> ids = List.of("present", "missing");
         List<String> actionsRun = new ArrayList<>();
 
-        AdminBulkExecutor.Run run = executor.run(ids, "publish", actionsRun::add, "present"::equals);
+        AdminBulkExecutor.Run run = executor.run(
+            ids, "publish", actionsRun::add, "present"::equals);
 
         assertThat(run.successful()).isEqualTo(1);
         assertThat(run.failed()).isEqualTo(1);
-        AdminBulkExecutor.ItemOutcome notFound = run.items().get(1);
-        assertThat(notFound.notFound()).isTrue();
+        assertThat(run.items().get(1)).isInstanceOf(AdminBulkExecutor.NotFound.class);
         assertThat(actionsRun).containsExactly("present");
     }
 
     @Test
     void emptyInputProducesEmptyRun() {
-        AdminBulkExecutor.Run run = executor.run(List.of(), "delete", id -> { });
+        AdminBulkExecutor.Run run = executor.run(
+            List.of(), "delete", id -> { }, id -> true);
 
         assertThat(run.total()).isZero();
         assertThat(run.successful()).isZero();

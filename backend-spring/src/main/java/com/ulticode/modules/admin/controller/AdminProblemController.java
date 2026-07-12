@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
@@ -59,21 +58,16 @@ public class AdminProblemController {
                                HttpServletResponse response) throws IOException {
         // All shaping (format validation, size cap, CSV header/escape, date
         // stamp via the Clock seam) lives in ProblemExportService; the
-        // controller only streams the payload to the response. Format errors
-        // throw BusinessException(BAD_REQUEST) and are shaped by the global
+        // controller only sets headers and dispatches the payload to the
+        // response. Format selection is hidden inside ExportPayload.writeTo,
+        // so this method has no per-format branch. Format errors throw
+        // BusinessException(BAD_REQUEST) and are shaped by the global
         // exception handler.
         ExportPayload payload = problemExportService.export(query, format);
         response.setCharacterEncoding("UTF-8");
         response.setContentType(payload.contentType());
         response.setHeader("Content-Disposition", "attachment; filename=" + payload.filename());
-        if (payload.jsonBytes() != null) {
-            OutputStream out = response.getOutputStream();
-            out.write(payload.jsonBytes());
-            out.flush();
-        } else {
-            response.getWriter().write(payload.csvBody());
-            response.getWriter().flush();
-        }
+        payload.writeTo(response);
     }
 
     @Operation(summary = "Get problem by ID", description = "Get detailed problem information")

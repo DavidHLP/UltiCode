@@ -125,11 +125,11 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                     }
                 }
             }
-        });
+        }, id -> true);
 
         List<BulkProblemResultDTO> results = new ArrayList<>(run.items().size());
         for (AdminBulkExecutor.ItemOutcome outcome : run.items()) {
-            results.add(new BulkProblemResultDTO(outcome.id(), outcome.success(), outcome.error()));
+            results.add(new BulkProblemResultDTO(outcome.id(), outcome.isSuccess(), outcome.errorOrNull()));
         }
         return results;
     }

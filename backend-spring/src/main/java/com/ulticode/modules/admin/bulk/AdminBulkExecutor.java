@@ -21,21 +21,23 @@ import java.util.function.Predicate;
  * error-shaping policy quietly drifted per service.
  *
  * <p>This executor absorbs the loop, the try/catch boundary, the counting,
- * the logging, and an optional pre-batch existence guard behind one
- * canonical outcome type ({@link ItemOutcome}). Each service collapses to
- * a thin action switch that builds the per-item outcome; the executor does
- * everything else. New bulk actions add one {@link Consumer} rather than a
- * fresh loop.
+ * the logging, and the per-id existence check behind one canonical
+ * outcome type ({@link ItemOutcome}). Each service collapses to a thin
+ * action switch that builds the per-item outcome; the executor does
+ * everything else. New bulk actions add one {@link Consumer} rather than
+ * a fresh loop.
  *
  * <p><strong>Contract preserved per service:</strong>
  * <ul>
  *   <li>A {@link RuntimeException} thrown by the action is recorded as a
- *       failure on that item; the loop continues to the next id (no
- *       whole-batch abort). This matches the historical per-item isolation
- *       of every call site.</li>
- *   <li>The optional {@code existenceGuard} short-circuits an id to a
- *       not-found outcome <em>before</em> the action runs, preserving the
- *       solution service's single-batched pre-check (BUG-Q4 perf fix).</li>
+ *       {@link ItemOutcome.Failure} on that item; the loop continues to
+ *       the next id (no whole-batch abort). This matches the historical
+ *       per-item isolation of every call site.</li>
+ *   <li>The {@code existenceGuard} is mandatory. Callers that have not
+ *       pre-fetched an existing-ids set pass {@code id -> true}; the
+ *       solution service passes its single-batched pre-check (BUG-Q4
+ *       perf fix) so non-existent ids short-circuit to a
+ *       {@link ItemOutcome.NotFound} without running the action.</li>
  * </ul>
  *
  * <p>The executor is intentionally agnostic of the action vocabulary
@@ -52,36 +54,19 @@ public final class AdminBulkExecutor {
     /**
      * Run {@code action} against every id, isolating failures per item.
      *
-     * @param ids         the ids to act on (must be non-null)
-     * @param actionLabel human-readable action label for log lines
-     * @param action      the per-id action; may throw {@link RuntimeException}
-     * @return the aggregated run with per-item outcomes and counts
-     */
-    public Run run(List<String> ids, String actionLabel, Consumer<String> action) {
-        return run(ids, actionLabel, action, null);
-    }
-
-    /**
-     * Run {@code action} against every id with an optional pre-batch
-     * existence guard.
-     *
-     * <p>When {@code existenceGuard} is non-null and reports an id as
-     * absent, that id is recorded as a not-found outcome and the action is
-     * skipped &mdash; matching the solution service's BUG-Q4 single-query
-     * pre-check without forcing every caller to pay for it.
-     *
      * @param ids             the ids to act on (must be non-null)
      * @param actionLabel     human-readable action label for log lines
      * @param action          the per-id action; may throw {@link RuntimeException}
-     * @param existenceGuard  optional predicate returning {@code true} when
-     *                        the id exists; {@code null} disables the guard
+     * @param existenceGuard  predicate returning {@code true} when the id
+     *                        exists; pass {@code id -> true} when no
+     *                        pre-check is needed
      * @return the aggregated run with per-item outcomes and counts
      */
     public Run run(List<String> ids, String actionLabel, Consumer<String> action,
                    Predicate<String> existenceGuard) {
         Run run = new Run(ids.size());
         for (String id : ids) {
-            if (existenceGuard != null && !existenceGuard.test(id)) {
+            if (!existenceGuard.test(id)) {
                 run.add(ItemOutcome.notFound(id));
                 continue;
             }
@@ -97,29 +82,54 @@ public final class AdminBulkExecutor {
     }
 
     /**
-     * Canonical per-item outcome of one bulk action.
-     *
-     * <p>One type for every call site &mdash; the thing tests can share an
-     * expectation against regardless of which response DTO the service
-     * ultimately shapes.
+     * Canonical per-item outcome of one bulk action. Sealed hierarchy
+     * expresses the three terminal states the loop can record; the
+     * previous record-with-booleans shape leaked the "what does a
+     * not-found look like" question into every call site.
      */
-    public record ItemOutcome(String id, boolean success, boolean notFound, String error) {
+    public sealed interface ItemOutcome permits Success, NotFound, Failure {
 
-        /** Outcome for a successful action. */
-        public static ItemOutcome success(String id) {
-            return new ItemOutcome(id, true, false, null);
+        /** The id this outcome describes. */
+        String id();
+
+        /** Whether the action succeeded. */
+        default boolean isSuccess() {
+            return this instanceof Success;
         }
 
-        /** Outcome for a failed action, carrying the error message. */
-        public static ItemOutcome failure(String id, String error) {
-            return new ItemOutcome(id, false, false, error);
+        /**
+         * Error message for a failed outcome, or {@code null} for
+         * success / not-found. Callers shaping DTOs use this to avoid
+         * the instanceof-cascade on every item.
+         */
+        default String errorOrNull() {
+            return this instanceof Failure f ? f.error() : null;
+        }
+
+        /** Outcome for a successful action. */
+        static ItemOutcome success(String id) {
+            return new Success(id);
         }
 
         /** Outcome for an id that failed the existence guard. */
-        public static ItemOutcome notFound(String id) {
-            return new ItemOutcome(id, false, true, "Not found");
+        static ItemOutcome notFound(String id) {
+            return new NotFound(id);
+        }
+
+        /** Outcome for a failed action, carrying the error message. */
+        static ItemOutcome failure(String id, String error) {
+            return new Failure(id, error);
         }
     }
+
+    /** Successful per-item outcome. */
+    public record Success(String id) implements ItemOutcome { }
+
+    /** Per-item outcome for an id that the existence guard rejected. */
+    public record NotFound(String id) implements ItemOutcome { }
+
+    /** Per-item outcome for an action that threw. */
+    public record Failure(String id, String error) implements ItemOutcome { }
 
     /**
      * Aggregated result of one bulk run.
@@ -140,7 +150,7 @@ public final class AdminBulkExecutor {
 
         private void add(ItemOutcome outcome) {
             items.add(outcome);
-            if (outcome.success()) {
+            if (outcome instanceof Success) {
                 successful++;
             } else {
                 failed++;

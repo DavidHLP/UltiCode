@@ -14,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -71,11 +70,6 @@ class AdminForumServiceImplTest {
     @Mock
     private ForumFlagPolicy forumFlagPolicy;
 
-    @org.mockito.Spy
-    private final com.ulticode.modules.admin.bulk.AdminBulkExecutor bulkExecutor =
-            new com.ulticode.modules.admin.bulk.AdminBulkExecutor();
-
-    @InjectMocks
     private AdminForumServiceImpl adminForumService;
 
     private ForumPost testPost;
@@ -96,6 +90,20 @@ class AdminForumServiceImplTest {
         // Freeze clock so LocalDateTime.now(clock) is deterministic in tests
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+
+        // Manual construction matches AdminCommentServiceImplTest and
+        // AdminSolutionServiceImplTest; the executor is a thin pure module
+        // with no external dependencies, so a real instance is the right test
+        // double (not @Spy, not @Mock).
+        adminForumService = new AdminForumServiceImpl(
+                forumPostMapper,
+                auditService,
+                auditHelper,
+                clock,
+                currentUserProvider,
+                forumPostFieldToggle,
+                forumFlagPolicy,
+                new com.ulticode.modules.admin.bulk.AdminBulkExecutor());
     }
 
     @Nested

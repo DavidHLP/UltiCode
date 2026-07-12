@@ -3,106 +3,50 @@ package com.ulticode.modules.admin.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.contest.dto.CreateContestDTO;
-import com.ulticode.modules.contest.dto.UpdateContestDTO;
+import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 
 import java.util.List;
 
 /**
- * Service interface for admin contest operations.
+ * Read facade for the admin contest surface.
+ *
+ * <p>After the write side was concentrated behind
+ * {@link AdminContestMutationService}, this interface keeps the read paths
+ * the admin contest surface exposes: the paginated list, the single detail,
+ * the announcement list, and the live-ranking passthrough.
+ *
+ * <p>The list and detail reads delegate to
+ * {@link com.ulticode.modules.admin.projection.AdminContestProjection} &mdash;
+ * the ADR-0011 read module that owns every entity-to-VO shape. The
+ * announcement list and rankings reads stay here as thin mappers over the
+ * contest module. This preserves the read contract exactly; the projection
+ * decision is <em>not</em> reopened.
+ *
+ * @author ulticode
+ * @see AdminContestMutationService the write module
+ * @see com.ulticode.modules.admin.projection.AdminContestProjection the read module
  */
 public interface AdminContestService {
 
     /**
-     * Get paginated list of contests with filters.
+     * Get a paginated list of contests with filters (delegates to the projection).
      *
      * @param query the query parameters
-     * @return paginated list of contests
+     * @return paginated list of admin contest VOs
      */
     PageResult<AdminContestVO> getContests(AdminContestQueryDTO query);
 
     /**
-     * Get a contest by ID.
+     * Get a single contest by ID (delegates to the projection).
      *
      * @param id the contest ID
-     * @return the contest VO
+     * @return the admin contest VO
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@link com.ulticode.common.exception.ErrorCode#CONTEST_NOT_FOUND}
+     *         when the contest does not exist
      */
     AdminContestVO getContest(String id);
-
-    /**
-     * Create a new contest with optional problem assignment.
-     *
-     * @param dto    the contest creation data
-     * @param userId the creating admin's user ID
-     * @return the created contest VO
-     */
-    AdminContestVO createContest(CreateContestDTO dto, String userId);
-
-    /**
-     * Update an existing contest (only UPCOMING status allowed).
-     *
-     * @param id  the contest ID
-     * @param dto the update data
-     * @return the updated contest VO
-     */
-    AdminContestVO updateContest(String id, UpdateContestDTO dto);
-
-    /**
-     * Soft-delete a contest (UPCOMING or FINISHED only).
-     *
-     * @param id the contest ID
-     */
-    void deleteContest(String id);
-
-    /**
-     * Start a contest (UPCOMING -> RUNNING, requires at least one problem).
-     *
-     * @param id the contest ID
-     * @return the updated contest VO
-     */
-    AdminContestVO startContest(String id);
-
-    /**
-     * End a contest (RUNNING -> FINISHED).
-     *
-     * @param id the contest ID
-     * @return the updated contest VO
-     */
-    AdminContestVO endContest(String id);
-
-    // Announcement CRUD (D-11)
-
-    /**
-     * Create a contest announcement and push via WebSocket.
-     *
-     * @param contestId the contest ID
-     * @param title     the announcement title
-     * @param content   the announcement content
-     * @param isPinned  whether to pin the announcement
-     * @return the created announcement
-     */
-    ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned);
-
-    /**
-     * Update an existing contest announcement.
-     *
-     * @param contestId      the contest ID
-     * @param announcementId the announcement ID
-     * @param title          the new title (optional)
-     * @param content        the new content (optional)
-     * @param isPinned       the new pinned status (optional)
-     * @return the updated announcement
-     */
-    ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned);
-
-    /**
-     * Delete a contest announcement.
-     *
-     * @param contestId      the contest ID
-     * @param announcementId the announcement ID
-     */
-    void deleteAnnouncement(String contestId, String announcementId);
 
     /**
      * Get all announcements for a contest, ordered by pinned status then creation time.
@@ -117,8 +61,9 @@ public interface AdminContestService {
      *
      * @param contestId the contest ID
      * @return list of contest rankings
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@link com.ulticode.common.exception.ErrorCode#CONTEST_NOT_FOUND}
+     *         when the contest does not exist
      */
-    List<com.ulticode.modules.contest.dto.LiveRankingEntryVO> getRankings(String contestId);
-
-    com.ulticode.modules.contest.entity.ContestProblem addProblemToContest(String contestId, Long problemId, Integer score);
+    List<LiveRankingEntryVO> getRankings(String contestId);
 }

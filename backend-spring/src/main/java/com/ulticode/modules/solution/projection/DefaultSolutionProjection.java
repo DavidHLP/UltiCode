@@ -5,18 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
-import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.modules.achievement.entity.Achievement;
-import com.ulticode.modules.achievement.entity.UserAchievement;
-import com.ulticode.modules.achievement.mapper.AchievementMapper;
-import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.modules.problem.entity.ProblemTag;
-import com.ulticode.modules.problem.mapper.ProblemTagMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
@@ -24,12 +17,12 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.port.AchievementBadgeReadPort;
+import com.ulticode.modules.solution.port.ProblemTagReadPort;
+import com.ulticode.modules.solution.port.SolutionVoteReadPort;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.vote.entity.EdgeOperation;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -39,13 +32,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * The single adapter behind {@link SolutionProjection}. Injects the same read-side mappers the
- * solution read cluster used before the deepening (solution, comment, user, edge-operation,
- * problem-tag and achievement mappers), and owns the JSON/CSV tag parsing helper.
+ * The single adapter behind {@link SolutionProjection}. Cross-domain
+ * reads now go through consumer-owned ports (the {@code solution}
+ * module defines them; the {@code user}, {@code vote}, {@code problem}
+ * and {@code achievement} modules provide the adapters). No
+ * cross-module mapper is imported here.
+ *
+ * <p>Performance note: author lookups on a list page use
+ * {@link UserReadProjection#findAllById} (one batched SELECT) instead of
+ * the previous per-row {@code userMapper.selectById} N+1.
+ *
+ * @author ulticode
  */
 @Slf4j
 @Component
@@ -56,17 +56,14 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
     private final SolutionMapper solutionMapper;
     private final SolutionCommentMapper solutionCommentMapper;
-    private final UserMapper userMapper;
-    private final EdgeOperationMapper edgeOperationMapper;
-    private final ProblemTagRelationMapper problemTagRelationMapper;
-    private final ProblemTagMapper problemTagMapper;
-    private final UserAchievementMapper userAchievementMapper;
-    private final AchievementMapper achievementMapper;
+    private final UserReadProjection userReadProjection;
+    private final SolutionVoteReadPort voteReadPort;
+    private final ProblemTagReadPort problemTagReadPort;
+    private final AchievementBadgeReadPort achievementBadgeReadPort;
     private final CurrentUserProvider currentUserProvider;
 
     @Override
     public List<SolutionCommentVO> getComments(String solutionId) {
-        // Verify solution exists (mirrors the pre-refactor findById guard).
         if (solutionMapper.selectById(solutionId) == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
@@ -99,9 +96,8 @@ public class DefaultSolutionProjection implements SolutionProjection {
         vo.setUpdatedAt(comment.getUpdatedAt());
         vo.setIsFlagged(comment.getIsFlagged());
 
-        // Fetch author info
         if (comment.getUserId() != null) {
-            User author = userMapper.selectById(comment.getUserId());
+            User author = userReadProjection.findById(comment.getUserId()).orElse(null);
             if (author != null) {
                 vo.setAuthorUsername(author.getName() != null ? author.getName() : author.getUsername());
                 vo.setAuthorAvatar(author.getAvatar());
@@ -115,13 +111,11 @@ public class DefaultSolutionProjection implements SolutionProjection {
     public PageResult<SolutionListItemVO> findByProblemId(Long problemId, Integer page, Integer pageSize) {
         PaginationRequest pageRequest = PaginationRequest.of(page, pageSize);
 
-        // Build query wrapper
         LambdaQueryWrapper<Solution> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Solution::getProblemId, problemId)
                 .eq(Solution::getIsPublished, true)
                 .orderByDesc(Solution::getCreatedAt);
 
-        // Execute paginated query
         Page<Solution> solutionPage = new Page<>(pageRequest.page(), pageRequest.pageSize());
         Page<Solution> result = solutionMapper.selectPage(solutionPage, queryWrapper);
 
@@ -130,64 +124,27 @@ public class DefaultSolutionProjection implements SolutionProjection {
             return PageResult.of(Collections.emptyList(), result.getTotal(), pageRequest);
         }
 
-        // Batch-fetch all related data to eliminate N+1 queries
         List<String> solutionIds = records.stream().map(Solution::getId).toList();
         List<String> userIds = records.stream().map(Solution::getUserId).distinct().toList();
 
-        // Batch query users
-        Map<String, User> userMap = userIds.stream()
-                .map(userMapper::selectById)
-                .filter(u -> u != null)
-                .collect(Collectors.toMap(User::getId, u -> u));
+        // Batch author fetch — one round-trip, kills the per-row N+1.
+        Map<String, User> userMap = userReadProjection.findAllById(userIds);
 
-        // Batch query vote counts
+        // Batch vote counts via the consumer-owned port.
         String targetType = EdgeOperationTargetType.SOLUTION.getValue();
-        List<Map<String, Object>> likeCounts = edgeOperationMapper.countByTargetsAndOperation(
-                solutionIds, targetType, EdgeOperationType.VOTE_UP.getValue());
-        List<Map<String, Object>> dislikeCounts = edgeOperationMapper.countByTargetsAndOperation(
-                solutionIds, targetType, EdgeOperationType.VOTE_DOWN.getValue());
+        Map<String, Long> likesMap = voteReadPort.countLikesByTargets(solutionIds, targetType);
+        Map<String, Long> dislikesMap = voteReadPort.countDislikesByTargets(solutionIds, targetType);
 
-        Map<String, Long> likesMap = likeCounts.stream()
-                .collect(Collectors.toMap(
-                        m -> (String) m.get("target_id"),
-                        m -> ((Number) m.get("cnt")).longValue(),
-                        (a, b) -> a));
-        Map<String, Long> dislikesMap = dislikeCounts.stream()
-                .collect(Collectors.toMap(
-                        m -> (String) m.get("target_id"),
-                        m -> ((Number) m.get("cnt")).longValue(),
-                        (a, b) -> a));
-
-        // Batch query comment counts
         Map<String, Long> commentCounts = solutionIds.stream()
                 .collect(Collectors.toMap(
                         id -> id,
                         id -> (long) solutionCommentMapper.countBySolutionId(id)));
 
-        // Batch query viewer votes
         String currentUserId = currentUserProvider.getCurrentUserId();
-        final Map<String, Integer> viewerVoteMap;
-        if (currentUserId != null) {
-            List<Map<String, Object>> viewerVotes = edgeOperationMapper.findByOperatorAndTargets(
-                    currentUserId, solutionIds, targetType);
-            viewerVoteMap = viewerVotes.stream()
-                    .collect(Collectors.toMap(
-                            m -> (String) m.get("target_id"),
-                            m -> {
-                                String opType = (String) m.get("operation_type");
-                                if (EdgeOperationType.VOTE_UP.getValue().equals(opType)) {
-                                    return 1;
-                                } else if (EdgeOperationType.VOTE_DOWN.getValue().equals(opType)) {
-                                    return -1;
-                                }
-                                return 0;
-                            },
-                            (a, b) -> a));
-        } else {
-            viewerVoteMap = Collections.emptyMap();
-        }
+        Map<String, Integer> viewerVoteMap = currentUserId == null
+                ? Collections.emptyMap()
+                : voteReadPort.viewerVotes(currentUserId, solutionIds, targetType);
 
-        // Convert to lightweight VO
         List<SolutionListItemVO> voList = records.stream()
                 .map(s -> toListItemVO(s, userMap, likesMap, dislikesMap, commentCounts, viewerVoteMap))
                 .collect(Collectors.toList());
@@ -212,9 +169,6 @@ public class DefaultSolutionProjection implements SolutionProjection {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Convert a Solution entity to a lightweight SolutionListItemVO using pre-fetched batch data.
-     */
     private SolutionListItemVO toListItemVO(
             Solution solution,
             Map<String, User> userMap,
@@ -236,7 +190,6 @@ public class DefaultSolutionProjection implements SolutionProjection {
         vo.setPublishedAt(solution.getPublishedAt());
         vo.setIsPinned(solution.getIsPinned());
 
-        // Author info from batch-fetched user map
         User author = userMap.get(solution.getUserId());
         if (author != null) {
             SolutionListItemVO.AuthorInfo authorInfo = new SolutionListItemVO.AuthorInfo();
@@ -246,7 +199,6 @@ public class DefaultSolutionProjection implements SolutionProjection {
             vo.setAuthor(authorInfo);
         }
 
-        // Counts from batch-fetched maps
         SolutionListItemVO.Counts counts = new SolutionListItemVO.Counts();
         counts.setViews(solution.getViews());
         counts.setLikes(likesMap.getOrDefault(solution.getId(), 0L));
@@ -254,12 +206,9 @@ public class DefaultSolutionProjection implements SolutionProjection {
         counts.setComments(commentCounts.getOrDefault(solution.getId(), 0L));
         vo.setCounts(counts);
 
-        // Score
         long likes = likesMap.getOrDefault(solution.getId(), 0L);
         long dislikes = dislikesMap.getOrDefault(solution.getId(), 0L);
         vo.setScore(likes - dislikes);
-
-        // Viewer vote from batch-fetched map
         vo.setViewerVote(viewerVoteMap.getOrDefault(solution.getId(), 0));
 
         return vo;
@@ -278,24 +227,18 @@ public class DefaultSolutionProjection implements SolutionProjection {
 
         SolutionVO vo = new SolutionVO();
         BeanUtils.copyProperties(solution, vo);
-
-        // Parse tags JSON to list
         vo.setTags(parseTags(solution.getTags()));
 
-        // Fetch author info
-        User author = userMapper.selectById(solution.getUserId());
+        User author = userReadProjection.findById(solution.getUserId()).orElse(null);
         if (author != null) {
             vo.setAuthorName(author.getName() != null ? author.getName() : author.getUsername());
             vo.setAuthorAvatar(author.getAvatar());
         }
 
-        // Populate vote counts from edge_operations
         String targetId = solution.getId();
         String targetType = EdgeOperationTargetType.SOLUTION.getValue();
-        long likes = edgeOperationMapper.countByTargetAndOperation(
-                targetId, targetType, EdgeOperationType.VOTE_UP.getValue());
-        long dislikes = edgeOperationMapper.countByTargetAndOperation(
-                targetId, targetType, EdgeOperationType.VOTE_DOWN.getValue());
+        long likes = voteReadPort.countLikes(targetId, targetType);
+        long dislikes = voteReadPort.countDislikes(targetId, targetType);
         long commentCount = solutionCommentMapper.countBySolutionId(targetId);
 
         vo.setLikes(likes);
@@ -303,69 +246,37 @@ public class DefaultSolutionProjection implements SolutionProjection {
         vo.setComments(commentCount);
         vo.setScore(likes - dislikes);
 
-        // Populate current user's vote state
         if (currentUserId != null) {
-            LambdaQueryWrapper<EdgeOperation> voteWrapper = new LambdaQueryWrapper<>();
-            voteWrapper.eq(EdgeOperation::getOperatorId, currentUserId)
-                    .eq(EdgeOperation::getTargetId, targetId)
-                    .eq(EdgeOperation::getTargetType, targetType);
-            EdgeOperation userVote = edgeOperationMapper.selectOne(voteWrapper);
-            if (userVote != null) {
-                if (userVote.getOperationType() == EdgeOperationType.VOTE_UP) {
-                    vo.setUserVote(1);
-                } else if (userVote.getOperationType() == EdgeOperationType.VOTE_DOWN) {
-                    vo.setUserVote(-1);
-                } else {
-                    vo.setUserVote(0);
-                }
-            } else {
-                vo.setUserVote(0);
-            }
+            Map<String, Integer> mine = voteReadPort.viewerVotes(currentUserId,
+                    Collections.singletonList(targetId), targetType);
+            Integer my = mine.get(targetId);
+            vo.setUserVote(my == null ? 0 : my);
         }
 
-        // Populate topic name from problem tags
-        List<String> tagIds = problemTagRelationMapper.findTagIdsByProblemId(solution.getProblemId());
-        if (tagIds != null && !tagIds.isEmpty()) {
-            ProblemTag firstTag = problemTagMapper.selectById(tagIds.get(0));
-            if (firstTag != null) {
-                vo.setTopicName(firstTag.getLabel());
-            }
-        }
+        // Topic from the first tag attached to the problem.
+        vo.setTopicName(problemTagReadPort.findFirstTagLabel(solution.getProblemId()));
 
-        // Populate user badges from achievements
-        List<UserAchievement> userAchievements = userAchievementMapper.findByUserId(solution.getUserId());
-        if (userAchievements != null && !userAchievements.isEmpty()) {
-            List<String> badgeNames = userAchievements.stream()
-                    .map(ua -> {
-                        Achievement achievement = achievementMapper.selectById(ua.getAchievementId());
-                        return achievement != null ? achievement.getName() : null;
-                    })
-                    .filter(Objects::nonNull)
-                    .limit(3)
-                    .collect(Collectors.toList());
-            if (!badgeNames.isEmpty()) {
-                vo.setBadges(badgeNames);
-                vo.setFlair(badgeNames.get(0));
-            }
+        // Badges from the author.
+        List<String> badgeNames = achievementBadgeReadPort.findBadgeNames(solution.getUserId(), 3);
+        if (!badgeNames.isEmpty()) {
+            vo.setBadges(badgeNames);
+            vo.setFlair(badgeNames.get(0));
         }
 
         return vo;
     }
 
     /**
-     * Parse tags stored string back to list.
-     * Supports both new comma-separated format ("a,b,c") and legacy JSON array ("[\"a\",\"b\"]")
-     * for backward compatibility with rows written by the previous implementation.
-     *
-     * @param tagsStr the stored tags string
-     * @return list of tags (empty when blank)
+     * Parse tags stored string back to list. Supports both the new
+     * comma-separated format ("a,b,c") and the legacy JSON array
+     * ("[\"a\",\"b\"]") for backward compatibility with rows written by
+     * the previous implementation.
      */
     private List<String> parseTags(String tagsStr) {
         if (tagsStr == null || tagsStr.isBlank()) {
             return Collections.emptyList();
         }
         String trimmed = tagsStr.trim();
-        // Legacy: JSON array (best-effort parse, then fall through to comma split)
         if (trimmed.startsWith("[")) {
             try {
                 return OBJECT_MAPPER.readValue(trimmed, new TypeReference<List<String>>() {});

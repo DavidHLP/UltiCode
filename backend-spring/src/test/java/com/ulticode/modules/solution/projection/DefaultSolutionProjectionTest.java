@@ -2,12 +2,9 @@ package com.ulticode.modules.solution.projection;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.achievement.mapper.AchievementMapper;
-import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagMapper;
-import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
@@ -15,11 +12,11 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.port.AchievementBadgeReadPort;
+import com.ulticode.modules.solution.port.ProblemTagReadPort;
+import com.ulticode.modules.solution.port.SolutionVoteReadPort;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
-import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
+import com.ulticode.modules.user.projection.UserReadProjection;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,19 +29,25 @@ import org.mockito.quality.Strictness;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
 /**
- * Unit tests for the read-side projection lifted out of {@code SolutionServiceImpl}: entity-to-VO
- * enrichment ({@link DefaultSolutionProjection#toVO}), the comment read guard/ordering
- * ({@link DefaultSolutionProjection#getComments}) and the empty-page short-circuit of
- * {@link DefaultSolutionProjection#findByProblemId}.
+ * Unit tests for {@link DefaultSolutionProjection}.
+ *
+ * <p>Cross-domain reads go through consumer-owned ports, so this test
+ * only mocks the ports — never the provider mappers. That is the
+ * regression guarantee for the deepening: if anyone re-introduces a
+ * direct mapper import, this file would need to grow mocks for it.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -55,17 +58,13 @@ class DefaultSolutionProjectionTest {
     @Mock
     private SolutionCommentMapper solutionCommentMapper;
     @Mock
-    private UserMapper userMapper;
+    private UserReadProjection userReadProjection;
     @Mock
-    private EdgeOperationMapper edgeOperationMapper;
+    private SolutionVoteReadPort voteReadPort;
     @Mock
-    private ProblemTagRelationMapper problemTagRelationMapper;
+    private ProblemTagReadPort problemTagReadPort;
     @Mock
-    private ProblemTagMapper problemTagMapper;
-    @Mock
-    private UserAchievementMapper userAchievementMapper;
-    @Mock
-    private AchievementMapper achievementMapper;
+    private AchievementBadgeReadPort achievementBadgeReadPort;
     @Mock
     private CurrentUserProvider currentUserProvider;
 
@@ -76,12 +75,8 @@ class DefaultSolutionProjectionTest {
     private static final String USER_ID = "user-uuid-1";
     private static final long PROBLEM_ID = 4L;
 
-    private static final String TARGET_TYPE = EdgeOperationTargetType.SOLUTION.getValue();
-    private static final String VOTE_UP = EdgeOperationType.VOTE_UP.getValue();
-    private static final String VOTE_DOWN = EdgeOperationType.VOTE_DOWN.getValue();
-
     @Test
-    @DisplayName("toVO enriches author, vote counts, score and parses comma-separated tags")
+    @DisplayName("toVO enriches author, vote counts, score, badges and parses comma-separated tags")
     void toVO_enrichesCountsAndTags() {
         Solution solution = new Solution();
         solution.setId(SOLUTION_ID);
@@ -94,13 +89,14 @@ class DefaultSolutionProjectionTest {
         author.setId(USER_ID);
         author.setName("Alice");
         author.setAvatar("a.png");
-        when(userMapper.selectById(USER_ID)).thenReturn(author);
+        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(author));
 
-        when(edgeOperationMapper.countByTargetAndOperation(SOLUTION_ID, TARGET_TYPE, VOTE_UP)).thenReturn(3);
-        when(edgeOperationMapper.countByTargetAndOperation(SOLUTION_ID, TARGET_TYPE, VOTE_DOWN)).thenReturn(1);
+        when(voteReadPort.countLikes(eq(SOLUTION_ID), anyString())).thenReturn(3L);
+        when(voteReadPort.countDislikes(eq(SOLUTION_ID), anyString())).thenReturn(1L);
         when(solutionCommentMapper.countBySolutionId(SOLUTION_ID)).thenReturn(2L);
-        when(problemTagRelationMapper.findTagIdsByProblemId(PROBLEM_ID)).thenReturn(Collections.emptyList());
-        when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
+        when(problemTagReadPort.findFirstTagLabel(PROBLEM_ID)).thenReturn("Dynamic Programming");
+        when(achievementBadgeReadPort.findBadgeNames(USER_ID, 3))
+                .thenReturn(List.of("100-day-streak", "first-accepted"));
 
         SolutionVO vo = projection.toVO(solution);
 
@@ -110,12 +106,46 @@ class DefaultSolutionProjectionTest {
         assertEquals(2L, vo.getComments());
         assertEquals(2L, vo.getScore());
         assertEquals(List.of("dp", "array"), vo.getTags());
+        assertEquals("Dynamic Programming", vo.getTopicName());
+        assertEquals("100-day-streak", vo.getFlair());
+        assertEquals(List.of("100-day-streak", "first-accepted"), vo.getBadges());
+    }
+
+    @Test
+    @DisplayName("toVO uses UserReadProjection (no UserMapper in this test)")
+    void toVO_usesUserReadProjection() {
+        Solution solution = new Solution();
+        solution.setId(SOLUTION_ID);
+        solution.setProblemId(PROBLEM_ID);
+        solution.setUserId(USER_ID);
+        solution.setTags("");
+
+        projection.toVO(solution);
+
+        verify(userReadProjection).findById(USER_ID);
     }
 
     @Test
     @DisplayName("toVO returns null for a null entity")
     void toVO_nullEntity() {
         assertNull(projection.toVO(null));
+    }
+
+    @Test
+    @DisplayName("toVO leaves badge list null when the user has none")
+    void toVO_noBadges() {
+        Solution solution = new Solution();
+        solution.setId(SOLUTION_ID);
+        solution.setProblemId(PROBLEM_ID);
+        solution.setUserId(USER_ID);
+        solution.setTags("");
+
+        when(achievementBadgeReadPort.findBadgeNames(USER_ID, 3)).thenReturn(Collections.emptyList());
+
+        SolutionVO vo = projection.toVO(solution);
+
+        assertNull(vo.getBadges());
+        assertNull(vo.getFlair());
     }
 
     @Test
@@ -159,5 +189,65 @@ class DefaultSolutionProjectionTest {
         PageResult<SolutionListItemVO> result = projection.findByProblemId(PROBLEM_ID, 1, 20);
 
         assertEquals(0L, result.getTotal());
+    }
+
+    @Test
+    @DisplayName("findByProblemId uses one batched user fetch (kills the per-row N+1)")
+    void findByProblemId_batchedUserFetch() {
+        Solution a = new Solution();
+        a.setId("s1");
+        a.setProblemId(PROBLEM_ID);
+        a.setUserId("u1");
+        a.setIsPublished(true);
+        a.setTags("");
+        Solution b = new Solution();
+        b.setId("s2");
+        b.setProblemId(PROBLEM_ID);
+        b.setUserId("u2");
+        b.setIsPublished(true);
+        b.setTags("");
+        Page<Solution> page = new Page<>(1, 20);
+        page.setRecords(List.of(a, b));
+        page.setTotal(2L);
+        when(solutionMapper.selectPage(any(), any(Wrapper.class))).thenReturn(page);
+
+        when(userReadProjection.findAllById(any())).thenReturn(Map.of(
+                "u1", user("u1", "Alice"),
+                "u2", user("u2", "Bob")));
+        when(voteReadPort.countLikesByTargets(any(), anyString())).thenReturn(Map.of());
+        when(voteReadPort.countDislikesByTargets(any(), anyString())).thenReturn(Map.of());
+        when(currentUserProvider.getCurrentUserId()).thenReturn(null);
+
+        PageResult<SolutionListItemVO> result = projection.findByProblemId(PROBLEM_ID, 1, 20);
+
+        verify(userReadProjection).findAllById(any());
+        assertEquals(2, result.getItems().size());
+        assertEquals("Alice", result.getItems().get(0).getAuthor().getName());
+        assertEquals("Bob", result.getItems().get(1).getAuthor().getName());
+    }
+
+    @Test
+    @DisplayName("toVO with viewerId consults the vote port for the user's vote state")
+    void toVO_viewerVote() {
+        Solution solution = new Solution();
+        solution.setId(SOLUTION_ID);
+        solution.setProblemId(PROBLEM_ID);
+        solution.setUserId(USER_ID);
+        solution.setTags("");
+
+        when(voteReadPort.viewerVotes(eq("viewer-1"), any(), anyString()))
+                .thenReturn(Map.of(SOLUTION_ID, 1));
+
+        SolutionVO vo = projection.toVO(solution, "viewer-1");
+
+        assertEquals(1, vo.getUserVote());
+    }
+
+    private static User user(String id, String name) {
+        User u = new User();
+        u.setId(id);
+        u.setName(name);
+        u.setAvatar("avatar-" + id + ".png");
+        return u;
     }
 }

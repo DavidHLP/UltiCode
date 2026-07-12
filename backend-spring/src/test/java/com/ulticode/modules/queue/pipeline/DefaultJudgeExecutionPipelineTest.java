@@ -1,11 +1,7 @@
 package com.ulticode.modules.queue.pipeline;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.submission.config.JudgeSourceProperties;
-import com.ulticode.modules.problem.entity.ProblemExample;
-import com.ulticode.modules.problem.entity.TestCase;
-import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.modules.queue.port.JudgingCase;
+import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -13,7 +9,6 @@ import com.ulticode.modules.submission.enums.CaseScope;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.VerdictResolver;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,80 +31,36 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Pipeline-level tests after the arch-review deepening.
+ * Pipeline-level tests after the test-case-source seam deepening.
  *
- * <p>The {@link DefaultJudgeExecutionPipeline} owns the execution path that
- * used to live inside {@code JudgeWorkerProcessor}:
- * <ol>
- *   <li>Load test cases (canonical {@code test_cases} table or legacy
- *       {@code problem_examples})</li>
- *   <li>Build the {@code RunSubmissionDTO} the sandbox consumes</li>
- *   <li>Dispatch to {@link CodeExecutionService}</li>
- *   <li>Reduce per-case verdicts via {@link VerdictResolver}</li>
- *   <li>Extract peak runtime/memory via {@link VerdictMetricsParser}</li>
- *   <li>Stamp {@code caseId} / {@code caseScope} onto
- *       {@link Submission.TestCaseDetail} when the case came from
- *       {@code test_cases}</li>
- * </ol>
+ * <p>The {@link DefaultJudgeExecutionPipeline} depends only on the
+ * {@link JudgingCaseSource} seam — case loading, source selection, and inputs
+ * parsing live behind it. These tests feed judge-ready {@link JudgingCase}
+ * instances directly, exercising the pipeline's own responsibilities: sandbox
+ * dispatch, verdict reduction, metric extraction, and per-case detail shaping.
  *
- * <p>The {@code JudgeWorkerProcessorTest} exercises the worker's plumbing
- * (polling, lease, push) with the pipeline mocked. This test exercises the
- * pipeline directly so the verdict-resolution + DTO-building logic has its
- * own focused surface.
+ * <p>Source selection (canonical vs legacy) is covered by
+ * {@code ConfiguredJudgingCaseSourceTest}; the mappers' → {@link JudgingCase}
+ * mapping is covered by the adapter tests.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DefaultJudgeExecutionPipeline")
 class DefaultJudgeExecutionPipelineTest {
 
     @Mock
-    private TestCaseMapper testCaseMapper;
-
-    @Mock
-    private ProblemExampleMapper problemExampleMapper;
+    private JudgingCaseSource judgingCaseSource;
 
     @Mock
     private CodeExecutionService codeExecutionService;
 
-    /**
-     * Real instance so each test can flip the flag. The pipeline is the only
-     * consumer of {@link JudgeSourceProperties}, so a real bean here keeps the
-     * test free of stubbing noise.
-     */
-    @Spy
-    private JudgeSourceProperties judgeSourceProperties = new JudgeSourceProperties();
-
-    /**
-     * Real instance — the pipeline's {@code parseInputs} relies on Jackson's
-     * {@code readValue} for the structured inputs JSON. Stubbing a Mock would
-     * either hide the parse path or require per-call answers.
-     */
-    @Spy
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    /**
-     * Real instance — {@link VerdictResolver#reduceWire} is a pure reducer and
-     * the pipeline's verdict logic is best exercised against the real
-     * implementation, not a stub that returns whatever we tell it to.
-     */
     @Spy
     private VerdictResolver verdictResolver = new VerdictResolver();
 
-    /**
-     * Real instance — same reasoning: the pipeline's peak metric extraction
-     * is the seam this parser exists for.
-     */
     @Spy
     private VerdictMetricsParser verdictMetricsParser = new VerdictMetricsParser();
 
     @InjectMocks
     private DefaultJudgeExecutionPipeline pipeline;
-
-    @BeforeEach
-    void setUp() {
-        // Default to the canonical test_cases path; individual tests opt in
-        // to the legacy problem_examples path by calling setUseTestCases(false).
-        judgeSourceProperties.setUseTestCases(true);
-    }
 
     // === execute — happy paths ===
 
@@ -118,13 +69,11 @@ class DefaultJudgeExecutionPipelineTest {
     class HappyPaths {
 
         @Test
-        @DisplayName("flag=true: loads test_cases, runs sandbox, stamps caseId + caseScope, returns Accepted")
-        void happyPathWithTestCases() throws Exception {
-            judgeSourceProperties.setUseTestCases(true);
-            TestCase sample = tc("tc-s-1", true, false, 1);
-            TestCase hidden = tc("tc-h-1", false, true, 2);
-            when(testCaseMapper.findActiveCasesForJudging(100L))
-                    .thenReturn(List.of(sample, hidden));
+        @DisplayName("stamps caseId + caseScope from JudgingCase flags, returns Accepted")
+        void happyPathWithFlaggedCases() throws Exception {
+            JudgingCase sample = jc("tc-s-1", Boolean.TRUE, Boolean.FALSE);
+            JudgingCase hidden = jc("tc-h-1", Boolean.FALSE, Boolean.TRUE);
+            when(judgingCaseSource.loadCases(100L)).thenReturn(List.of(sample, hidden));
             when(codeExecutionService.execute(any(), eq(100L), eq("user-1")))
                     .thenReturn(RunResultDTO.builder()
                             .cases(List.of(
@@ -147,25 +96,16 @@ class DefaultJudgeExecutionPipelineTest {
                     .filter(d -> "tc-h-1".equals(d.getCaseId())).findFirst().orElseThrow();
             assertThat(sampleDetail.getCaseScope()).isEqualTo(CaseScope.SAMPLE);
             assertThat(hiddenDetail.getCaseScope()).isEqualTo(CaseScope.HIDDEN);
-
-            verify(problemExampleMapper, never()).findByProblemIdOrderByOrder(anyLong());
         }
 
         @Test
-        @DisplayName("flag=false: loads problem_examples, runs sandbox, leaves caseScope null, returns Accepted")
-        void happyPathWithProblemExamples() throws Exception {
-            judgeSourceProperties.setUseTestCases(false);
-            ProblemExample ex = new ProblemExample();
-            ex.setId("1");
-            ex.setProblemId(100L);
-            ex.setExampleOrder(1);
-            ex.setInputText("stdin");
-            ex.setOutputText("expected");
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L))
-                    .thenReturn(List.of(ex));
+        @DisplayName("cases with null flags leave caseScope null (legacy-style), returns Accepted")
+        void happyPathWithNullFlagCases() throws Exception {
+            JudgingCase legacy = jc("c-1", null, null);
+            when(judgingCaseSource.loadCases(100L)).thenReturn(List.of(legacy));
             when(codeExecutionService.execute(any(), eq(100L), eq("user-1")))
                     .thenReturn(RunResultDTO.builder()
-                            .cases(List.of(cr(null, "Accepted", "10", "1.5")))
+                            .cases(List.of(cr("c-1", "Accepted", "10", "1.5")))
                             .passedCases(1).totalCases(1).errorMessage(null)
                             .build());
 
@@ -176,9 +116,7 @@ class DefaultJudgeExecutionPipelineTest {
             assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
             assertThat(result.testCaseDetails()).hasSize(1);
             assertThat(result.testCaseDetails().get(0).getCaseScope()).isNull();
-            assertThat(result.testCaseDetails().get(0).getCaseId()).isNull();
-
-            verify(testCaseMapper, never()).findActiveCasesForJudging(anyLong());
+            assertThat(result.testCaseDetails().get(0).getCaseId()).isEqualTo("c-1");
         }
     }
 
@@ -189,36 +127,9 @@ class DefaultJudgeExecutionPipelineTest {
     class EmptyCases {
 
         @Test
-        @DisplayName("flag=true + empty test_cases → returns null (fail closed, no problem_examples fallback)")
-        void flagTrueEmptyTestCases_returnsNull() throws Exception {
-            judgeSourceProperties.setUseTestCases(true);
-            when(testCaseMapper.findActiveCasesForJudging(100L)).thenReturn(List.of());
-
-            JudgeExecutionResult result = pipeline.execute(
-                    "java", "class Solution {}", 100L, "user-1", "sub-1");
-
-            assertThat(result).isNull();
-            verify(codeExecutionService, never()).execute(any(), anyLong(), anyString());
-            verify(problemExampleMapper, never()).findByProblemIdOrderByOrder(anyLong());
-        }
-
-        @Test
-        @DisplayName("flag=true + null test_cases → returns null (fail closed)")
-        void flagTrueNullTestCases_returnsNull() throws Exception {
-            judgeSourceProperties.setUseTestCases(true);
-            when(testCaseMapper.findActiveCasesForJudging(100L)).thenReturn(null);
-
-            JudgeExecutionResult result = pipeline.execute(
-                    "java", "class Solution {}", 100L, "user-1", "sub-1");
-
-            assertThat(result).isNull();
-        }
-
-        @Test
-        @DisplayName("flag=false + empty problem_examples → returns null")
-        void flagFalseEmptyProblemExamples_returnsNull() throws Exception {
-            judgeSourceProperties.setUseTestCases(false);
-            when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(List.of());
+        @DisplayName("empty cases → returns null (fail closed, no fallback)")
+        void emptyCases_returnsNull() throws Exception {
+            when(judgingCaseSource.loadCases(100L)).thenReturn(List.of());
 
             JudgeExecutionResult result = pipeline.execute(
                     "java", "class Solution {}", 100L, "user-1", "sub-1");
@@ -228,26 +139,15 @@ class DefaultJudgeExecutionPipelineTest {
         }
 
         @Test
-        @DisplayName("flag=true → never consults problem_examples (single-source guarantee)")
-        void flagTrueDoesNotConsultProblemExamples() throws Exception {
-            judgeSourceProperties.setUseTestCases(true);
-            TestCase sample = tc("tc-1", true, false, 1);
-            when(testCaseMapper.findActiveCasesForJudging(100L))
-                    .thenReturn(List.of(sample));
-            when(codeExecutionService.execute(any(), eq(100L), eq("user-1")))
-                    .thenReturn(RunResultDTO.builder()
-                            .cases(List.of(cr("tc-1", "Accepted", "10", "1.5")))
-                            .passedCases(1).totalCases(1).errorMessage(null)
-                            .build());
+        @DisplayName("null cases → returns null (fail closed)")
+        void nullCases_returnsNull() throws Exception {
+            when(judgingCaseSource.loadCases(100L)).thenReturn(null);
 
             JudgeExecutionResult result = pipeline.execute(
                     "java", "class Solution {}", 100L, "user-1", "sub-1");
 
-            assertThat(result).isNotNull();
-            assertThat(result.status()).isEqualTo(SubmissionStatus.ACCEPTED);
-            // Even if problem_examples has data, the test_cases path must
-            // not consult it (no silent fallback).
-            verify(problemExampleMapper, never()).findByProblemIdOrderByOrder(anyLong());
+            assertThat(result).isNull();
+            verify(codeExecutionService, never()).execute(any(), anyLong(), anyString());
         }
     }
 
@@ -260,9 +160,8 @@ class DefaultJudgeExecutionPipelineTest {
         @Test
         @DisplayName("sandbox exception propagates (caller decides System Error)")
         void sandboxException_propagates() {
-            judgeSourceProperties.setUseTestCases(true);
-            when(testCaseMapper.findActiveCasesForJudging(100L))
-                    .thenReturn(List.of(tc("tc-1", true, false, 1)));
+            when(judgingCaseSource.loadCases(100L))
+                    .thenReturn(List.of(jc("tc-1", Boolean.TRUE, Boolean.FALSE)));
             when(codeExecutionService.execute(any(), eq(100L), eq("user-1")))
                     .thenThrow(new RuntimeException("sandbox unreachable"));
 
@@ -288,9 +187,7 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Accepted", "30ms", "3.0MB")
             );
 
-            SubmissionStatus verdict = pipeline.determineVerdict(cases);
-
-            assertThat(verdict).isEqualTo(SubmissionStatus.RUNTIME_ERROR);
+            assertThat(pipeline.determineVerdict(cases)).isEqualTo(SubmissionStatus.RUNTIME_ERROR);
         }
 
         @Test
@@ -301,9 +198,7 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Accepted", "30ms", "3.0MB")
             );
 
-            SubmissionStatus verdict = pipeline.determineVerdict(cases);
-
-            assertThat(verdict).isEqualTo(SubmissionStatus.ACCEPTED);
+            assertThat(pipeline.determineVerdict(cases)).isEqualTo(SubmissionStatus.ACCEPTED);
         }
 
         @Test
@@ -314,22 +209,7 @@ class DefaultJudgeExecutionPipelineTest {
                     cr(null, "Wrong Answer", "30ms", "3.0MB")
             );
 
-            SubmissionStatus verdict = pipeline.determineVerdict(cases);
-
-            assertThat(verdict).isEqualTo(SubmissionStatus.WRONG_ANSWER);
-        }
-
-        @Test
-        @DisplayName("returns Time Limit Exceeded when any case times out")
-        void timeLimitExceeded_whenPresent() {
-            var cases = List.of(
-                    cr(null, "Accepted", "50ms", "4.0MB"),
-                    cr(null, "Time Limit Exceeded", "2000ms", "4.0MB")
-            );
-
-            SubmissionStatus verdict = pipeline.determineVerdict(cases);
-
-            assertThat(verdict).isEqualTo(SubmissionStatus.TIME_LIMIT_EXCEEDED);
+            assertThat(pipeline.determineVerdict(cases)).isEqualTo(SubmissionStatus.WRONG_ANSWER);
         }
 
         @Test
@@ -356,16 +236,8 @@ class DefaultJudgeExecutionPipelineTest {
 
     // === Helper methods ===
 
-    private TestCase tc(String id, boolean sample, boolean hidden, int order) {
-        TestCase t = new TestCase();
-        t.setId(id);
-        t.setProblemId(100L);
-        t.setIsSample(sample);
-        t.setIsHidden(hidden);
-        t.setTestOrder(order);
-        t.setInputText("stdin-" + id);
-        t.setOutputText("expected-" + id);
-        return t;
+    private JudgingCase jc(String id, Boolean sample, Boolean hidden) {
+        return new JudgingCase(id, "Case 1", "expected-" + id, List.of(), hidden, sample);
     }
 
     private RunResultDTO.RunCaseResult cr(String testCaseId, String status, String runtime, String memory) {

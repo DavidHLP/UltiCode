@@ -9,6 +9,7 @@ import com.ulticode.modules.bookmark.entity.BookmarkFolder;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkFolderMapper;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
+import com.ulticode.modules.bookmark.projection.FolderItemCount;
 import com.ulticode.modules.bookmark.service.BookmarkService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +17,10 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -82,8 +83,9 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Override
     public List<BookmarkFolderVO> getFolders(String userId) {
         List<BookmarkFolder> folders = folderMapper.findByUserId(userId);
+        Map<String, Long> itemCounts = itemCountsByFolderIds(folders);
         return folders.stream()
-                .map(folder -> toFolderVO(folder, bookmarkMapper.countByFolderId(folder.getId())))
+                .map(folder -> toFolderVO(folder, itemCounts.getOrDefault(folder.getId(), 0L)))
                 .collect(Collectors.toList());
     }
 
@@ -267,45 +269,42 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     @Override
     public ItemFoldersVO getItemFolders(String userId, BookmarkType targetType, String targetId) {
-        List<String> folderIds = bookmarkMapper.findFolderIdsByTarget(userId, targetType.name(), targetId);
-        boolean isFavorited = !folderIds.isEmpty();
+        List<BookmarkFolder> folders = folderMapper.findByUserAndTarget(userId, targetType.name(), targetId);
 
-        List<BookmarkFolderVO> folders = new ArrayList<>();
-        if (isFavorited) {
-            folders = folderIds.stream()
-                    .map(fid -> {
-                        BookmarkFolder f = folderMapper.selectById(fid);
-                        if (f != null) {
-                            return toFolderVO(f, bookmarkMapper.countByFolderId(fid));
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        }
+        Map<String, Long> itemCounts = itemCountsByFolderIds(folders);
+        List<BookmarkFolderVO> folderVOs = folders.stream()
+                .map(folder -> toFolderVO(folder, itemCounts.getOrDefault(folder.getId(), 0L)))
+                .collect(Collectors.toList());
 
         ItemFoldersVO vo = new ItemFoldersVO();
         vo.setTargetId(targetId);
         vo.setTargetType(targetType.name());
-        vo.setIsFavorited(isFavorited);
-        vo.setFolders(folders);
+        vo.setIsFavorited(!folders.isEmpty());
+        vo.setFolders(folderVOs);
         return vo;
     }
 
     @Override
     @Transactional
     public void reorderFolders(String userId, List<String> folderIds) {
-        // Validate all folders belong to user
+        if (folderIds == null || folderIds.isEmpty()) {
+            return;
+        }
+        // Load and validate ownership in a single batch read instead of one
+        // selectById per folder (avoids a 2N read choreography on reorder).
+        List<BookmarkFolder> folders = folderMapper.selectBatchIds(folderIds);
+        Map<String, BookmarkFolder> folderById = folders.stream()
+                .collect(Collectors.toMap(BookmarkFolder::getId, Function.identity()));
         for (String folderId : folderIds) {
-            BookmarkFolder folder = folderMapper.selectById(folderId);
+            BookmarkFolder folder = folderById.get(folderId);
             if (folder == null || !folder.getUserId().equals(userId)) {
                 throw new BusinessException(ErrorCode.BOOKMARK_FOLDER_NOT_FOUND, "Folder not found: " + folderId);
             }
         }
 
-        // Update sort orders
+        // Reuse the already-loaded instances — no second fetch per folder.
         for (int i = 0; i < folderIds.size(); i++) {
-            BookmarkFolder folder = folderMapper.selectById(folderIds.get(i));
+            BookmarkFolder folder = folderById.get(folderIds.get(i));
             folder.setSortOrder(i);
             folderMapper.updateById(folder);
         }
@@ -348,6 +347,25 @@ public class BookmarkServiceImpl implements BookmarkService {
     private Integer getNextSortOrder(String folderId) {
         Integer max = bookmarkMapper.getMaxSortOrder(folderId);
         return max == null ? 0 : max + 1;
+    }
+
+    /**
+     * Resolve item counts for the given folders in a single query, returning a
+     * folder-id to count map. Folders holding no items are absent from the map;
+     * callers resolve them to {@code 0L} via {@link Map#getOrDefault}.
+     *
+     * @param folders the folders to project
+     * @return folder-id to item-count map (empty if no folders)
+     */
+    private Map<String, Long> itemCountsByFolderIds(List<BookmarkFolder> folders) {
+        if (folders.isEmpty()) {
+            return Map.of();
+        }
+        List<String> folderIds = folders.stream()
+                .map(BookmarkFolder::getId)
+                .collect(Collectors.toList());
+        return bookmarkMapper.countItemsByFolderIds(folderIds).stream()
+                .collect(Collectors.toMap(FolderItemCount::folderId, FolderItemCount::itemCount));
     }
 
     private BookmarkFolderVO toFolderVO(BookmarkFolder folder, long itemCount) {

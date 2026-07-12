@@ -10,6 +10,7 @@ import com.ulticode.modules.bookmark.entity.BookmarkFolder;
 import com.ulticode.modules.bookmark.entity.enums.BookmarkType;
 import com.ulticode.modules.bookmark.mapper.BookmarkFolderMapper;
 import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
+import com.ulticode.modules.bookmark.projection.FolderItemCount;
 import com.ulticode.modules.bookmark.service.impl.BookmarkServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -281,5 +282,74 @@ class BookmarkServiceTest {
             assertThat(vo.getId()).isEqualTo(FOLDER_ID);
             verify(folderMapper).updateById(folder);
         }
+    }
+
+    @Nested
+    @DisplayName("getFolders")
+    class GetFolders {
+
+        @Test
+        @DisplayName("counts all folders in a single batch query (no N+1)")
+        void countsFoldersInSingleBatchQuery() {
+            BookmarkFolder first = folder(FOLDER_ID, USER_ID);
+            BookmarkFolder second = folder("folder-002", USER_ID);
+            when(folderMapper.findByUserId(USER_ID)).thenReturn(List.of(first, second));
+            when(bookmarkMapper.countItemsByFolderIds(List.of(FOLDER_ID, "folder-002")))
+                    .thenReturn(List.of(
+                            new FolderItemCount(FOLDER_ID, 3L),
+                            new FolderItemCount("folder-002", 0L)));
+
+            List<?> vos = service.getFolders(USER_ID);
+
+            assertThat(vos).hasSize(2);
+            // single batch count call — never the per-folder count loop
+            verify(bookmarkMapper).countItemsByFolderIds(List.of(FOLDER_ID, "folder-002"));
+            verify(bookmarkMapper, never()).countByFolderId(anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("getItemFolders")
+    class GetItemFolders {
+
+        @Test
+        @DisplayName("reads folders + counts without per-folder lookups (no N+1)")
+        void readsFoldersAndCountsWithoutPerFolderLookups() {
+            BookmarkFolder only = folder(FOLDER_ID, USER_ID);
+            when(folderMapper.findByUserAndTarget(USER_ID, "PROBLEM", TARGET_ID))
+                    .thenReturn(List.of(only));
+            when(bookmarkMapper.countItemsByFolderIds(List.of(FOLDER_ID)))
+                    .thenReturn(List.of(new FolderItemCount(FOLDER_ID, 2L)));
+
+            var vo = service.getItemFolders(USER_ID, BookmarkType.PROBLEM, TARGET_ID);
+
+            assertThat(vo.getIsFavorited()).isTrue();
+            assertThat(vo.getFolders()).hasSize(1);
+            assertThat(vo.getFolders().get(0).getItemCount()).isEqualTo(2);
+            verify(folderMapper).findByUserAndTarget(USER_ID, "PROBLEM", TARGET_ID);
+            verify(folderMapper, never()).selectById(anyString());
+            verify(bookmarkMapper, never()).findFolderIdsByTarget(anyString(), anyString(), anyString());
+            verify(bookmarkMapper, never()).countByFolderId(anyString());
+        }
+
+        @Test
+        @DisplayName("reports not-favorited and skips the count query when no folder holds the target")
+        void noFolders_reportsNotFavorited() {
+            when(folderMapper.findByUserAndTarget(USER_ID, "PROBLEM", TARGET_ID))
+                    .thenReturn(List.of());
+
+            var vo = service.getItemFolders(USER_ID, BookmarkType.PROBLEM, TARGET_ID);
+
+            assertThat(vo.getIsFavorited()).isFalse();
+            assertThat(vo.getFolders()).isEmpty();
+            verify(bookmarkMapper, never()).countItemsByFolderIds(any());
+        }
+    }
+
+    private static BookmarkFolder folder(String id, String userId) {
+        BookmarkFolder built = new BookmarkFolder();
+        built.setId(id);
+        built.setUserId(userId);
+        return built;
     }
 }

@@ -2,6 +2,7 @@ package com.ulticode.modules.bookmark.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.bookmark.entity.Bookmark;
+import com.ulticode.modules.bookmark.projection.FolderItemCount;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -76,6 +77,23 @@ public interface BookmarkMapper extends BaseMapper<Bookmark> {
      */
     @Select("SELECT COUNT(*) FROM collection_items WHERE collection_id = #{folderId}")
     long countByFolderId(@Param("folderId") String folderId);
+
+    /**
+     * Count bookmarks for each folder in a set, in a single query.
+     *
+     * <p>Owns the per-folder count projection so the service does not loop
+     * {@link #countByFolderId(String)} once per folder (N+1 read choreography).
+     * Folders with no bookmarks are absent from the result; callers treat a
+     * missing folder as a count of {@code 0}.
+     *
+     * @param folderIds the folder IDs to project (must be non-empty)
+     * @return folder-id to item-count pairs
+     */
+    @Select("<script>SELECT collection_id AS folderId, COUNT(*) AS itemCount " +
+            "FROM collection_items WHERE collection_id IN " +
+            "<foreach collection='folderIds' item='fid' open='(' separator=',' close=')'>#{fid}</foreach> " +
+            "GROUP BY collection_id</script>")
+    List<FolderItemCount> countItemsByFolderIds(@Param("folderIds") List<String> folderIds);
 
     /**
      * Get the maximum sort order in a folder.

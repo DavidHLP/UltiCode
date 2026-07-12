@@ -53,6 +53,26 @@ public interface BookmarkFolderMapper extends BaseMapper<BookmarkFolder> {
     long countByUserId(@Param("userId") String userId);
 
     /**
+     * Find a user's folders that contain a specific target item.
+     *
+     * <p>Owns the "which folders hold this item" read so the service does not
+     * resolve folder IDs and then fetch each folder by primary key (N+1 read
+     * choreography). Ordered consistently with {@link #findByUserId(String)}.
+     *
+     * @param userId     the user ID
+     * @param targetType the target type
+     * @param targetId   the target ID
+     * @return folders containing the target, in display order
+     */
+    @Select("SELECT c.* FROM collections c WHERE c.user_id = #{userId} AND EXISTS (" +
+            "SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id " +
+            "AND ci.target_type = #{targetType} AND ci.target_id = #{targetId}) " +
+            "ORDER BY c.sort_order ASC, c.created_at ASC")
+    List<BookmarkFolder> findByUserAndTarget(@Param("userId") String userId,
+                                              @Param("targetType") String targetType,
+                                              @Param("targetId") String targetId);
+
+    /**
      * Get the maximum sort order for a user's folders.
      *
      * @param userId the user ID

@@ -12,7 +12,7 @@ paths:
 - SQL values **MUST** use bound parameters such as `#{value}`. `${value}` is forbidden for request-controlled input and allowed for identifiers only after a closed whitelist.
 - New queries **MUST** select explicit columns. When safely modifying a legacy `SELECT *`, replace it if the result mapping can be verified without unrelated churn. Never rely on accidental column order or return persistence entities as API contracts.
 - Every query **MUST** define its cardinality. A mapper expected to return one row must have a database or predicate guarantee that prevents ambiguous results.
-- Mapper return values **MUST** use a typed entity, projection, DTO, scalar, or deliberately typed collection; do not return raw `Map`/`HashMap` for a stable schema.
+- New mapper return values and safely modified contracts **MUST** use a typed entity, projection, DTO, scalar, or deliberately typed collection. Do not introduce raw `Map`/`HashMap` for a stable schema; preserve a legacy map contract when its consumers are outside the task's safe migration scope.
 - Pagination **MUST** use deterministic ordering with a stable tie-breaker. Avoid unbounded reads and large in-memory filtering.
 - Do not issue mapper calls inside loops when one set-based or batch query can express the operation.
 - Collection parameters for `IN` or batch DML **MUST** define empty-input behavior and an upper bound; chunk large inputs rather than generating unbounded SQL.

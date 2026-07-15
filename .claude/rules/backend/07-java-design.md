@@ -11,7 +11,7 @@ paths:
 - Value objects **SHOULD** be immutable and validate their invariants at construction. Do not represent a multi-field invariant as unrelated primitives across layers.
 - Retried or duplicate-prone operations **MUST** define idempotency behavior. Do not rely on a prior read followed by an unconditional write for uniqueness or single-use state.
 - Shared mutable state **MUST** have an explicit concurrency owner. Avoid static mutable fields, unbounded executors/queues, and locks that cover I/O.
-- Do not create raw threads or use `Executors` convenience factories for application workloads. Use an owned, bounded executor with meaningful thread names, rejection behavior, monitoring, and lifecycle shutdown.
+- Do not create unowned/ad hoc raw threads or use `Executors` convenience factories for application workloads. Prefer an owned, bounded executor with meaningful thread names, rejection behavior, monitoring, and lifecycle shutdown. A dedicated process-pipe/resource-adapter thread is acceptable only when it is owned, named, bounded by the operation lifecycle/timeout, and joined or shut down.
 - Custom `ThreadLocal` state **MUST** be cleared in `finally`, especially on pooled request/worker threads.
 - Acquire multiple locks in a consistent order, release them in `finally`, and verify ownership before unlocking after a timed/try-lock attempt.
 - Resource ownership **MUST** be visible: the creator closes the resource unless ownership is explicitly transferred.

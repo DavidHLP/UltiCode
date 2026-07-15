@@ -10,6 +10,7 @@ paths:
 - SQL **MUST** be compatible with the MySQL version configured by Compose; do not assume behavior from another server or version.
 - Schema changes **MUST** use a new canonical Flyway migration and follow the migration rule. Never hide schema mutation in application startup code.
 - Tables and text columns **MUST** use `utf8mb4` with the established schema/table collation; do not introduce a conflicting collation casually.
+- New table, column, index, and constraint identifiers **MUST** follow the project's lowercase naming convention and avoid MySQL reserved words; do not rely on platform-specific case handling or perpetual quoting.
 - Choose types from domain range and comparison semantics. Use exact numeric types for exact values and preserve existing identifier types.
 - `NOT NULL` requires a valid creation/backfill path. Do not add sentinel values merely to avoid modelling nullability.
 - A business key whose uniqueness is an invariant **MUST** have a database unique constraint/index; an application-side existence check alone is race-prone.

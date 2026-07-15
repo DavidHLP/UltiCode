@@ -24,6 +24,7 @@ These defaults apply unless the nearest project guide or an established local pa
 - Time-dependent logic **SHOULD** receive a `Clock` or an existing time abstraction so tests remain deterministic.
 - Money, scores requiring exact decimals, and identifiers **MUST NOT** use floating-point types.
 - Compare reference values null-safely (`Objects.equals` or a known non-null receiver) and boxed numerics with value equality, not `==`.
+- A type that overrides `equals` **MUST** provide a consistent `hashCode`. Custom `Set` elements and `Map` keys must keep equality/hash fields stable while stored in the collection.
 - Do not compare floating-point values for exact equality. Construct decimals from strings or `BigDecimal.valueOf`, never `new BigDecimal(double)`.
 - Repeated domain literals **MUST** become a named constant or enum at the narrowest shared scope; avoid one global constants dumping ground.
 - Use uppercase `L` for long literals so it cannot be confused with `1`.

@@ -9,6 +9,7 @@ paths:
 - Place new production code in the existing domain module that owns the behavior. Do not create a parallel top-level architecture for a local feature.
 - Preserve the dependency direction and roles defined by `backend-spring/AGENTS.md`; controllers, services, mappers, entities, projections, and ports are not interchangeable.
 - Cross-module dependencies **MUST** use an existing public seam or a consumer-owned port. Do not import another module's implementation or persistence internals.
+- Use the narrowest visibility compatible with framework binding/proxying and the module contract. Fields are private unless an established framework or API contract requires otherwise; classes, constructors, and methods outside an external contract **SHOULD NOT** be public or widened for test convenience.
 - One source file **SHOULD** contain one public top-level type with a matching filename. Keep helpers package-private when they are not part of the module API.
 - Role suffixes **MUST** match behavior (`Controller`, `Service`, `Mapper`, `Entity`, `DTO`, `VO`, `Projection`, `Port`, `Adapter`). Do not use a misleading suffix to bypass a boundary.
 - Do not turn `common`, `util`, or `helper` packages into dumping grounds. Shared code needs a cohesive responsibility and more than accidental reuse.

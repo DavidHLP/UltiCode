@@ -278,7 +278,7 @@ class SubmissionServiceImplIT {
                         null, flags, null, null, java.time.Clock.systemDefaultZone(),
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, submissionProjection, performanceStats);
+                submissionMapper, submissionProjection, performanceStats, writePort);
     }
 
     @AfterEach

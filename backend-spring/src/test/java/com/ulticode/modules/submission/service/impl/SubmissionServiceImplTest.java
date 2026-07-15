@@ -105,7 +105,7 @@ class SubmissionServiceImplTest {
                         null, flags, null, null, clock,
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, submissionProjection, performanceStats);
+                submissionMapper, submissionProjection, performanceStats, writePort);
         // Default projection stubs: the service delegates to SubmissionProjection
         // for the toVO / toListItemVO / toDetailVO paths. Default lenient stubs
         // return non-null VOs so tests asserting on return values keep working;

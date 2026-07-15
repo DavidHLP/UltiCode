@@ -556,6 +556,18 @@ importers:
         specifier: ^4.1.4
         version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
+  shared/i18n-completeness:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.0
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.9(@types/node@22.20.0)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(happy-dom@15.11.7)(jsdom@29.1.1)(vite@8.0.16(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+
   shared/locale-preference:
     devDependencies:
       '@types/node':

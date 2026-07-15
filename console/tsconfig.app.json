@@ -14,7 +14,8 @@
     "../shared/locale-preference/src/**/*",
     "../shared/datetime-utils/src/**/*",
     "../shared/badge-config/src/**/*",
-    "../shared/domain-types/src/**/*"
+    "../shared/domain-types/src/**/*",
+    "../shared/i18n-completeness/src/**/*"
   ],
   "exclude": [
     "src/**/__tests__/*"

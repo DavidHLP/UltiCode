@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import zhCN from '../locales/zh-CN'
+import { flattenObject } from '@/shared/i18n-completeness/src'
 
 /**
  * Known API field name mapping keys (snake_case, must be preserved).
@@ -21,20 +22,6 @@ const API_MAPPED_KEYS = new Set([
 /** Detect snake_case leaf key (e.g. `joined_at`, `ip_address`) */
 function isSnakeCase(key: string): boolean {
   return /^[a-z][a-z0-9]*_[a-z0-9_]+$/.test(key)
-}
-
-/** Flatten nested translation object to dot-notation key list */
-function flattenObject(obj: Record<string, unknown>, prefix = ''): string[] {
-  const keys: string[] = []
-  for (const [key, value] of Object.entries(obj)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      keys.push(...flattenObject(value as Record<string, unknown>, fullKey))
-    } else {
-      keys.push(fullKey)
-    }
-  }
-  return keys
 }
 
 describe('i18n naming conventions', () => {

@@ -22,6 +22,7 @@ These defaults apply unless the nearest project guide or an established local pa
 - Streams **MUST NOT** hide side effects, checked-failure handling, or complex branching. Prefer a readable loop when it is clearer.
 - Parallel streams **MUST NOT** be introduced in request, transaction, scheduler, or judge paths without measured evidence and an explicit execution model.
 - Time-dependent logic **SHOULD** receive a `Clock` or an existing time abstraction so tests remain deterministic.
+- New date/time code **MUST** use `java.time` and immutable, thread-safe `DateTimeFormatter` instances; do not share `SimpleDateFormat` across threads. Formatting patterns must use calendar/proleptic year (`y`/`u`) unless the contract explicitly requires week-based year (`Y`).
 - Money, scores requiring exact decimals, and identifiers **MUST NOT** use floating-point types.
 - Compare reference values null-safely (`Objects.equals` or a known non-null receiver) and boxed numerics with value equality, not `==`.
 - A type that overrides `equals` **MUST** provide a consistent `hashCode`. Custom `Set` elements and `Map` keys must keep equality/hash fields stable while stored in the collection.

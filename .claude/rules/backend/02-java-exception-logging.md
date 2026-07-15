@@ -6,7 +6,7 @@ paths:
 # Java exception and logging rules
 
 - Catch the narrowest exception that can be handled. Catching `Exception` is limited to explicit process or protocol boundaries that translate, clean up, or fail closed.
-- Exceptions **MUST NOT** implement routine branching inside core logic. At an input-decoding boundary, catching the parser's documented exception to reject malformed input is allowed; do not duplicate the parser's grammar with hand-written prechecks.
+- Exceptions **MUST NOT** implement routine branching inside core domain logic. At an input-decoding or compatibility boundary, catching the parser's documented exception to reject malformed input or select an explicitly supported alternate representation/fallback is allowed; do not duplicate parser grammar with hand-written prechecks or hide unexpected failures.
 - Do not catch `Throwable`, swallow an exception, return success after failure, or replace a failure with an unrelated default value.
 - Preserve the original cause when translating exceptions. Error messages **MUST** add actionable context without leaking secrets or internal-only data.
 - `InterruptedException` handling **MUST** restore the interrupt flag with `Thread.currentThread().interrupt()` unless the method immediately rethrows it.

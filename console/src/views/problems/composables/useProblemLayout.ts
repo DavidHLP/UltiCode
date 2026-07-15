@@ -1,4 +1,4 @@
-import { ref, nextTick, watch, markRaw, computed } from "vue";
+import { ref, nextTick, watch, markRaw, computed, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useHeaderStore, type HeaderGroup } from "@/stores/headerStore";
@@ -294,7 +294,7 @@ function getWideLayoutConfig(
   return { groups, layout };
 }
 
-export function useProblemLayout() {
+export function useProblemLayout(contestId: Ref<string | null>) {
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
@@ -303,15 +303,12 @@ export function useProblemLayout() {
   const currentLayout = ref<ProblemLayout>("leet");
   const lastTab = ref<string | null>(null);
 
-  // Contest context: ?contestId=... is set by the contest problem page
-  // (and virtual contest sessions share the same query). Solutions are
-  // hidden so contestants cannot read other people's editorial write-ups
-  // while the contest is live.
-  const contestId = computed(() => {
-    const v = route.query.contestId;
-    if (Array.isArray(v)) return v[0] ?? null;
-    return typeof v === "string" && v.length > 0 ? v : null;
-  });
+  // Contest context is threaded in from ProblemDetailView (which derives it
+  // once from `route.query.contestId`) — the same source the mobile layout,
+  // contest dock, and header consume, so the contest-mode signal is derived
+  // once instead of re-read from the route here. Solutions are hidden so
+  // contestants cannot read other people's editorial write-ups while the
+  // contest is live.
   const isContest = computed(() => contestId.value !== null);
 
   const getLayoutConfig = (newLayout: ProblemLayout) => {

@@ -214,7 +214,7 @@ provide(PanelComponentMapKey, panelComponentMap);
 
 // --- Layout Logic ---
 const { currentLayout, layoutConfig, handleLayoutChange, initLayout } =
-  useProblemLayout();
+  useProblemLayout(contestId);
 
 onUnmounted(() => {
   void problemHooks.emit("problem:view:unmount", { slug: slug.value });

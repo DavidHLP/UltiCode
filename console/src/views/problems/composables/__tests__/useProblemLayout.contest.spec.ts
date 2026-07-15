@@ -17,8 +17,12 @@ function readSource(path: string) {
 describe("useProblemLayout hides solutions tab in contest mode", () => {
   const source = readSource("views/problems/composables/useProblemLayout.ts");
 
-  it("treats the presence of route.query.contestId as contest context", () => {
-    expect(source).toMatch(/route\.query\.contestId/);
+  it("reads contest context from the single threaded contestId source", () => {
+    // useProblemLayout receives `contestId` as a parameter (threaded from
+    // ProblemDetailView's single derivation) instead of re-reading
+    // route.query.contestId, so the contest-mode signal matches the mobile
+    // layout and contest dock exactly.
+    expect(source).toMatch(/useProblemLayout\s*\(\s*contestId/);
     expect(source).toMatch(/const\s+isContest\s*=\s*computed/);
   });
 

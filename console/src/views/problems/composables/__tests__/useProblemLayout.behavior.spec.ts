@@ -10,11 +10,12 @@
  * ordering make them fragile to assert through the public router API.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { defineComponent, h, nextTick } from "vue";
+import { defineComponent, h, nextTick, computed } from "vue";
 import { mount, type VueWrapper } from "@vue/test-utils";
 import {
   createMemoryHistory,
   createRouter,
+  useRoute,
   type Router,
   type RouteRecordRaw,
 } from "vue-router";
@@ -56,10 +57,19 @@ async function mountLayout(path: string): Promise<MountHandle> {
 
   const TestHost = defineComponent({
     setup() {
+      // Mirror ProblemDetailView: derive `contestId` from the route once
+      // and thread it into useProblemLayout, so contest mode comes from a
+      // single source instead of being re-read inside the composable.
+      const route = useRoute();
+      const contestId = computed(() => {
+        const v = route.query.contestId;
+        if (Array.isArray(v)) return v[0] ?? null;
+        return typeof v === "string" && v.length > 0 ? v : null;
+      });
       // Expose the composable surface onto the public instance so the
       // test can drive `initLayout` exactly the way `ProblemDetailView`
       // does in production (`onMounted(() => initLayout())`).
-      const layout = useProblemLayout();
+      const layout = useProblemLayout(contestId);
       return { layout };
     },
     render() {
@@ -125,5 +135,27 @@ describe("useProblemLayout — contest context (behavioural)", () => {
       (g) => g.id === "problem-info",
     );
     expect(problemInfo!.headers.map((h) => h.id)).toEqual([1, 2, 3]);
+  });
+
+  it("removes the Solutions header reactively when entering a contest mid-session", async () => {
+    const { router, wrapper, headerStore } = await mountLayout(
+      "/problems/two-sum",
+    );
+    layoutApi(wrapper).initLayout();
+    await nextTick();
+
+    const before = headerStore.headerGroups.find((g) => g.id === "problem-info");
+    expect(before!.headers.map((h) => h.id)).toContain(2);
+
+    // Navigating from a regular problem into a contest problem must rebuild
+    // the layout so the Solutions tab disappears (the contest-safety policy
+    // reacting to the shared contest-mode signal).
+    await router.push("/problems/two-sum?contestId=contest-1");
+    await nextTick();
+    await nextTick();
+
+    const after = headerStore.headerGroups.find((g) => g.id === "problem-info");
+    expect(after!.headers.map((h) => h.id)).toEqual([1, 3]);
+    expect(after!.headers.map((h) => h.id)).not.toContain(2);
   });
 });

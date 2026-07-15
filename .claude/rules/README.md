@@ -1,68 +1,46 @@
-# UltiCode `.claude/rules/` 规则集
-
-本目录按 [Claude Code 官方规范](https://code.claude.com/docs/zh-CN/memory#%E4%BD%BF%E7%94%A8-claude/rules/-%E7%BB%84%E7%BB%87%E8%A7%84%E5%88%99) 组织。
-
-## 目录结构
-
-```
-.claude/rules/
-├── README.md                        # 本文件
-├── backend/                         # Spring Boot 后端规则
-│   ├── 01-java-programming.md
-│   ├── 02-java-exception-logging.md
-│   ├── 03-java-unit-testing.md
-│   ├── 04-java-security.md
-│   ├── 05-mysql-database.md
-│   ├── 06-java-project-structure.md
-│   ├── 07-java-design.md
-│   ├── 08-java-code-review-checklist.md
-│   └── code-review-java-spring.md   # 项目特定补充
-├── frontend/                        # Vue 3 + TypeScript 前端规则
-│   ├── 01-vue3-typescript.md
-│   ├── 02-vue-router-pinia.md
-│   └── 03-vitest-testing.md
-└── database/                        # 数据库与迁移规则
-    ├── 01-flyway-migrations.md
-    └── 02-mysql-coding.md
-```
-
-## 加载行为
-
-Claude Code 通过 YAML frontmatter 决定规则的加载时机：
-
-| 规则类型 | 加载时机 | 上下文开销 |
-|---|---|---|
-| 不带 `paths:` | 每次会话启动时无条件加载 | 高 |
-| 带 `paths:` | 仅当 Claude 处理与 glob 匹配的文件时加载 | 低（按需） |
-
-本目录的规则**全部带 `paths:`**，按需加载，节省上下文。
-
-## Frontmatter 标准格式
-
-```yaml
 ---
 paths:
-  - "**/*.java"
-  - "**/*Mapper.java"
-description: 一句话说明本规则用途
-source: 来源手册（可选）
-version: 来源版本（可选）
+  - ".claude/rules/**"
 ---
+
+# Claude Code rule maintenance
+
+This README is itself path-scoped so it is loaded only while maintaining the rule set.
+The layout follows the [Claude Code rules documentation](https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/).
+
+## Authority
+
+- Root and nested `AGENTS.md` files are the source of truth for UltiCode conventions.
+- Rules provide concise, path-triggered working context for Claude Code. They must not override or reproduce an entire project guide.
+- Implementation, executable configuration, and tests remain authoritative when documentation drifts.
+
+## Layout
+
+```text
+.claude/rules/
+├── backend/implementation.md
+├── cross-stack/contracts.md
+├── database/migrations.md
+├── docs/project-documentation.md
+├── frontend/console.md
+├── frontend/management.md
+├── operations/runtime-and-infrastructure.md
+├── security/trust-boundaries.md
+└── shared/packages.md
 ```
 
-- `paths` 支持 glob 模式（`**`、`*`、`{}` 等），多个模式分行写。
-- `description` 是必填项，Claude 在加载决策时使用。
-- `source` / `version` 仅用于溯源，工具不解析。
+## Design standard
 
-## 规则执行原则
+- Keep one topic per file and use descriptive kebab-case names; numeric prefixes do not express precedence.
+- Give every rule a narrow, repository-relative `paths` list. A rule without `paths` is loaded in every session and requires a concrete project-wide reason.
+- Use only the documented `paths` frontmatter field. Put rationale and provenance in the body when they are genuinely useful.
+- Prefer path-specific reminders that tell Claude what guide, neighboring implementation, consumers, and checks to inspect.
+- Keep rules short and verifiable. Move repeatable multi-step procedures to a skill and hard enforcement to settings or hooks.
+- Do not store generic language handbooks, dependency inventories, or facts that Claude can derive directly from source and build files.
 
-- **【强制】**：Agent 必须检查并优先修复
-- **【推荐】**：默认采用，除非项目已有明确约定
-- **【参考】**：用于设计判断、风险提示和优化建议
+## Change checklist
 
-## 添加新规则
-
-1. 选择合适的子目录（backend/frontend/database）
-2. 文件名格式：`<NN>-<主题>.md`，数字前缀表达优先级/章节
-3. frontmatter 必填 `description`；如果只对特定路径生效则必填 `paths`
-4. 规则内容保持精简（< 200 行）；超大规则用 [paths frontmatter 限定范围](https://code.claude.com/docs/zh-CN/memory#path-specific-rules)
+1. Confirm the rule has a single durable purpose and belongs in project context rather than a skill.
+2. Test its globs against representative matching and non-matching repository paths.
+3. Check for conflicts or duplication with every affected `AGENTS.md`.
+4. Keep the file well below 200 lines and review the aggregate context loaded for common edits.

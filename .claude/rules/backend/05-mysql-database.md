@@ -10,7 +10,7 @@ paths:
 
 - Follow the backend guide's annotation-based mapper style; do not add XML mappers or a second persistence abstraction.
 - SQL values **MUST** use bound parameters such as `#{value}`. `${value}` is forbidden for request-controlled input and allowed for identifiers only after a closed whitelist.
-- Queries **MUST** select explicit columns. Do not use `SELECT *`, rely on accidental column order, or return persistence entities as API contracts.
+- New queries **MUST** select explicit columns. When safely modifying a legacy `SELECT *`, replace it if the result mapping can be verified without unrelated churn. Never rely on accidental column order or return persistence entities as API contracts.
 - Every query **MUST** define its cardinality. A mapper expected to return one row must have a database or predicate guarantee that prevents ambiguous results.
 - Pagination **MUST** use deterministic ordering with a stable tie-breaker. Avoid unbounded reads and large in-memory filtering.
 - Do not issue mapper calls inside loops when one set-based or batch query can express the operation.

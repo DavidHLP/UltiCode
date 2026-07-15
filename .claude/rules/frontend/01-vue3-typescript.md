@@ -1,8 +1,11 @@
 ---
 paths:
-  - "console/src/**/*.{ts,vue}"
-  - "management/src/**/*.{ts,vue}"
-  - "shared/**/*.{ts,vue}"
+  - "console/*.{ts,mts,cts,vue}"
+  - "console/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
+  - "management/*.{ts,mts,cts,vue}"
+  - "management/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
+  - "shared/*/*.{ts,mts,cts,vue}"
+  - "shared/*/{src,test,tests,__tests__}/**/*.{ts,mts,cts,vue}"
 ---
 
 # TypeScript and Vue 3 rules

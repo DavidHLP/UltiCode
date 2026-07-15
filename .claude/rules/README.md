@@ -11,7 +11,7 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 ## Authority
 
 - Root and nested `AGENTS.md` files are the source of truth for UltiCode architecture, security invariants, contracts, and workflows.
-- Rules provide enforceable language/framework defaults and concise path-triggered working context for Claude Code. They must not override or reproduce an entire project guide.
+- Rules provide explicit language/framework guardrails and concise path-triggered working context for Claude Code. They must not override or reproduce an entire project guide.
 - Implementation, executable configuration, and tests remain authoritative when documentation drifts.
 
 ## Layout

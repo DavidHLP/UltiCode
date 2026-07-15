@@ -13,7 +13,7 @@ These defaults apply unless the nearest project guide or an established local pa
 - Code **MUST** compile on Java 17 without preview features or APIs introduced by later JDKs.
 - Types **MUST** use `UpperCamelCase`; methods, fields, and locals `lowerCamelCase`; constants `UPPER_SNAKE_CASE`; packages lowercase.
 - Names **MUST** describe domain intent. Single-letter names are limited to conventional short loop or coordinate scopes.
-- Imports **MUST** be explicit. Raw types, wildcard imports, and unchecked casts/suppressions are forbidden unless narrowly scoped with a reason.
+- New imports **MUST** be explicit; do not introduce wildcard imports. Existing wildcard imports may remain when they are outside the task scope. Raw types and new unchecked casts/suppressions are forbidden unless narrowly scoped with a reason.
 - New injected dependencies **MUST** use constructor injection and should be `private final`; do not add field injection.
 - Nullability **MUST** be handled deliberately. Return empty collections instead of `null`; do not call `Optional.get()` without a proven presence check.
 - `Optional` **SHOULD** be used for return values, not entity fields, DTO fields, parameters, or serialization contracts.

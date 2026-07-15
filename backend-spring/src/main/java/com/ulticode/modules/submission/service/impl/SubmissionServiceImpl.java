@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
@@ -13,6 +14,7 @@ import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.submission.projection.SubmissionProjection;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.submission.stats.SubmissionPerformanceStats;
@@ -24,23 +26,31 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Submission read boundary — the state machine's read surface.
+ * Submission domain facade — controller-facing seam for the submission state
+ * machine.
  *
  * <p><b>Deep-module boundary.</b> Every state mutation (Submission intake +
  * the two verdict writers) is owned by
  * {@link com.ulticode.modules.submission.port.SubmissionWritePort} /
- * {@code DefaultSubmissionWritePort}. This implementation now holds only the
- * <em>boundary reads</em>: {@link #findById}, {@link #findByUserId},
- * {@link #findByProblemId}, {@link #findBest}, {@link #getSubmissionEntity},
- * and the static status catalog {@link #getStatuses}. Write callers inject
- * {@code SubmissionWritePort} directly; nothing on this interface forwards to
- * it anymore.
+ * {@code DefaultSubmissionWritePort}. This implementation surfaces two
+ * surfaces to callers:
+ * <ul>
+ *   <li>the <em>write delegate</em> {@link #submit}, a thin facade so
+ *       in-module controllers stay on the {@code Controller → Service → Port}
+ *       path; cross-module write callers inject
+ *       {@code SubmissionWritePort} directly, which is the legitimate
+ *       cross-module consumer-seam pattern;</li>
+ *   <li>the <em>boundary reads</em> the caller crosses just after the state
+ *       boundary: {@link #findById}, {@link #findByUserId},
+ *       {@link #findByProblemId}, {@link #findBest},
+ *       {@link #getSubmissionEntity}, and the static status catalog
+ *       {@link #getStatuses}.</li>
+ * </ul>
  *
- * <p>These reads are the caller's immediately-usable payload right after
- * crossing the state boundary; view-shape aggregation (calendar, learning
- * progress, history) stays behind {@link SubmissionProjection}, and the
- * entity-to-VO projection used by {@code findBest} delegates to
- * {@code SubmissionProjection} so the shaping rules live in one place.
+ * <p>View-shape aggregation (calendar, learning progress, history) stays
+ * behind {@link SubmissionProjection}, and the entity-to-VO projection used
+ * by {@code findBest} delegates to {@code SubmissionProjection} so the
+ * shaping rules live in one place.
  *
  * @author ulticode
  */
@@ -51,6 +61,12 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionMapper submissionMapper;
     private final SubmissionProjection submissionProjection;
     private final SubmissionPerformanceStats performanceStats;
+    private final SubmissionWritePort submissionWritePort;
+
+    @Override
+    public SubmissionVO submit(String userId, CreateSubmissionDTO createDTO) {
+        return submissionWritePort.submit(userId, createDTO);
+    }
 
     @Override
     public SubmissionDetailVO findById(String id, String userId) {

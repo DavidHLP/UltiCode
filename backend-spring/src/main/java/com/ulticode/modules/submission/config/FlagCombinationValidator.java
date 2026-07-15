@@ -81,10 +81,8 @@ public class FlagCombinationValidator {
         }
 
         log.info("Feature flag combination validated: use-judge-outbox={}, use-generation-fence={}, "
-                        + "judge-queue.use-port={}, judge-queue.envelope-version={}, judge-queue.cutover-at={}, "
-                        + "use-notification-intent={}",
+                        + "judge-queue.use-port={}, judge-queue.envelope-version={}, judge-queue.cutover-at={}",
                 flags.isUseJudgeOutbox(), flags.isUseGenerationFence(),
-                jq.isUsePort(), jq.getEnvelopeVersion(), jq.getCutoverAt(),
-                flags.isUseNotificationIntent());
+                jq.isUsePort(), jq.getEnvelopeVersion(), jq.getCutoverAt());
     }
 }

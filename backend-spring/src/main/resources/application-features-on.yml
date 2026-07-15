@@ -2,7 +2,7 @@
 # shipped 才能在生产打开). features-on profile 用于 CI 矩阵 "幸福路径" 场景.
 #
 # 重要: 此 profile 不开 cutover flag (use-judge-outbox / use-generation-fence /
-# judge-queue.use-port / envelope-version=2 / use-notification-intent) — 那些
+# judge-queue.use-port / envelope-version=2) — 那些
 # 走 cutover 守门 (ADR-005 §2.6/§2.7), 不在 CI matrix 范围. 在 CI 里强制开 cutover
 # flag 会引入上游 milestone 依赖, 容易因 M3a/M3b/M3c 状态变化反复挂 CI.
 #

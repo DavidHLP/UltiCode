@@ -9,8 +9,6 @@ import com.ulticode.modules.follow.inspector.FollowInspector;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.port.UserReadPort;
 import com.ulticode.modules.follow.service.FollowService;
-import com.ulticode.modules.notification.service.NotificationDispatchService;
-import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,14 +34,12 @@ public class FollowServiceImpl implements FollowService {
     private final FollowMapper followMapper;
     private final UserReadPort userReadPort;
     private final AchievementTriggerService achievementTriggerService;
-    private final NotificationService notificationService;
-    private final NotificationDispatchService notificationDispatchService;
     /**
-     * ADR-004 M4c: typed intent dispatcher. Active when
-     * {@code app.features.use-notification-intent=true}.
+     * Notification delivery deep module — the follow path contributes only a
+     * typed {@code FollowReceivedIntent}; the dispatcher owns preference
+     * gating, channel fan-out, and ledger idempotency.
      */
     private final com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
-    private final com.ulticode.modules.submission.config.FeatureFlagsProperties featureFlags;
     /**
      * Read-side deep module. Injected so the post-mutation stats return
      * value can be served without re-implementing the count read here.
@@ -66,28 +62,14 @@ public class FollowServiceImpl implements FollowService {
             log.info("User {} followed user {}", currentUserId, targetUserId);
 
             // D-10: Only notify on first follow (idempotent insert).
-            // Q20: respect COMMUNICATION preference — opt-out users won't see this.
-            // ADR-004 M4c: when the flag is on, dispatch a typed
-            // FollowReceivedIntent (InApp + WebSocket; Email skipped per
-            // channel matrix). Otherwise fall through to the legacy path.
+            // The dispatcher enforces the COMMUNICATION preference (Q20) and
+            // fans out InApp + WebSocket (Email is skipped per the channel
+            // matrix); this path contributes only the typed intent.
             User currentUser = userReadPort.findById(currentUserId);
             try {
-                if (featureFlags.isUseNotificationIntent()) {
-                    notificationDispatcher.dispatch(
-                            com.ulticode.modules.notification.intent.FollowReceivedIntent.of(
-                                    currentUser, targetUserId));
-                } else {
-                    notificationDispatchService.dispatch(
-                        targetUserId,
-                        "FOLLOW",
-                        "COMMUNICATION",
-                        currentUser.getUsername() + " followed you",
-                        "",
-                        "/profile/" + currentUser.getUsername(),
-                        null,
-                        false
-                    );
-                }
+                notificationDispatcher.dispatch(
+                        com.ulticode.modules.notification.intent.FollowReceivedIntent.of(
+                                currentUser, targetUserId));
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {
                 log.warn("Failed to create follow notification for user {}: {}", targetUserId, e.getMessage());

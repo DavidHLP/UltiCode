@@ -247,14 +247,10 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
             }
         }
 
-        // Send submission result notification (fire-and-notify per D-11).
-        // Q20: use the dispatch service. force=true because submission result
-        // is system-originated — users opt out of category SYSTEM only via the
-        // systemEnabled flag, which we still respect (no force for SYSTEM).
-        // ADR-004 M4c: when useNotificationIntent flag is on, fan out via
-        // the typed SubmissionCompletedIntent (InApp + Email + WebSocket,
-        // failure-isolated). Otherwise the legacy path stays active.
-        // Both converge on JudgedNotificationDispatcher — single source of truth.
+        // Send submission result notification (fire-and-forget per D-11).
+        // The dispatcher enforces the SYSTEM preference (Q20) and fans out the
+        // typed SubmissionCompletedIntent to InApp + Email + WebSocket with
+        // per-channel failure isolation.
         judgedNotificationDispatcher.dispatch(submission, status, runtime, memory);
 
         // P0-1: fire a SubmissionJudgedEvent so the contest scoring listener can

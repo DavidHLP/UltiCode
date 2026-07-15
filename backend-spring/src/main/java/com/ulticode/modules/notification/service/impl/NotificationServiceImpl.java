@@ -10,9 +10,7 @@ import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.entity.NotificationPreference;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
-import com.ulticode.modules.notification.port.NotificationPushPort;
 import com.ulticode.modules.notification.service.NotificationService;
-import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,7 +56,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
-    private final NotificationPushPort notificationPushPort;
 
     @Override
     public PageResult<NotificationVO> list(String userId, NotificationQueryDTO query) {
@@ -185,36 +182,6 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationMapper.deleteById(notificationId);
         log.debug("Deleted notification {} for user {}", notificationId, userId);
-    }
-
-    @Override
-    @Transactional
-    public NotificationVO createNotification(String userId, String type, String category,
-                                              String title, String body, String link,
-                                              Map<String, Object> metadata) {
-        // Legacy path (ADR-004 M4b): the row insert is shared with the new
-        // InAppNotificationChannel; only this legacy wrapper also mirrors to
-        // the WebSocket USER_QUEUE_NOTIFICATIONS topic. The new path pushes
-        // via WebSocketNotificationChannel so failure isolation works per-channel.
-        NotificationVO vo = createNotificationRowOnly(userId, type, category, title, body, link, metadata);
-
-        // WebSocket push (fire-and-forget per D-11). The port swallows
-        // exceptions per its contract; the defensive try/catch guards against
-        // a future adapter that does not.
-        try {
-            notificationPushPort.pushToUser(userId,
-                NotificationPayload.of(
-                    vo.getId(),
-                    vo.getType(),
-                    vo.getTitle(),
-                    vo.getBody(),
-                    vo.getMetadata()
-                ));
-        } catch (Exception e) {
-            log.warn("Failed to push notification via WebSocket for user {}: {}", userId, e.getMessage());
-        }
-
-        return vo;
     }
 
     @Override

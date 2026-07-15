@@ -59,8 +59,6 @@ class SubmissionServiceImplTest {
     @Mock private QueueService queueService;
     @Mock private com.ulticode.modules.submission.port.ContestSubmissionPort contestSubmissionPort;
     @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
-    @Mock private com.ulticode.modules.notification.service.NotificationService notificationService;
-    @Mock private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
     @Mock private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     @Mock private com.ulticode.modules.submission.projection.SubmissionProjection submissionProjection;
 
@@ -76,8 +74,6 @@ class SubmissionServiceImplTest {
     void setUp() {
         // ADR-003 M3a/M3b: pass null outbox mapper + flag-off FeatureFlagsProperties
         // so the legacy submit/judge path is exercised. meterRegistry null = no-op metrics.
-        // ADR-004 M4c: pass a mock NotificationDispatcher alongside the legacy
-        // dispatch service. Flags default to false → legacy path is active.
         com.ulticode.modules.submission.config.FeatureFlagsProperties flags =
                 new com.ulticode.modules.submission.config.FeatureFlagsProperties();
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
@@ -101,7 +97,7 @@ class SubmissionServiceImplTest {
                         contestSubmissionPort,
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
-                                flags, notificationDispatcher, notificationDispatchService, problemFacts),
+                                notificationDispatcher, problemFacts),
                         null, flags, null, null, clock,
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(
@@ -457,16 +453,10 @@ class SubmissionServiceImplTest {
 
             writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());
 
-            verify(notificationDispatchService).dispatch(
-                    eq(USER_ID),
-                    eq("SUBMISSION"),
-                    eq("SYSTEM"),
-                    eq("Submission judged: Accepted"),
-                    eq(""),
-                    eq("/submissions/sub-123"),
-                    argThat(map -> map.containsKey("submissionId")
-                            && map.containsKey("isAccepted")
-                            && Boolean.TRUE.equals(map.get("isAccepted"))), eq(false));
+            verify(notificationDispatcher).dispatch(
+                    argThat((com.ulticode.modules.notification.intent.SubmissionCompletedIntent i)
+                            -> USER_ID.equals(i.userId())
+                            && i.status() == SubmissionStatus.ACCEPTED));
         }
 
         @Test
@@ -537,16 +527,9 @@ class SubmissionServiceImplTest {
 
             writePort.updateSubmissionResult("sub-123", SubmissionStatus.WRONG_ANSWER, 50, 128.0, List.of());
 
-            verify(notificationDispatchService).dispatch(
-                    eq(USER_ID),
-                    eq("SUBMISSION"),
-                    eq("SYSTEM"),
-                    eq("Submission judged: Wrong Answer"),
-                    eq(""),
-                    eq("/submissions/sub-123"),
-                    argThat(map -> map.containsKey("submissionId")
-                            && map.containsKey("isAccepted")
-                            && Boolean.FALSE.equals(map.get("isAccepted"))), eq(false));
+            verify(notificationDispatcher).dispatch(
+                    argThat((com.ulticode.modules.notification.intent.SubmissionCompletedIntent i)
+                            -> i.status() == SubmissionStatus.WRONG_ANSWER));
         }
 
         @Test
@@ -557,9 +540,8 @@ class SubmissionServiceImplTest {
             when(submissionMapper.selectById("sub-123")).thenReturn(submission);
             when(problemFacts.findDisplayFacts(PROBLEM_ID)).thenReturn(createValidProblem());
             doThrow(new RuntimeException("DB error"))
-                    .when(notificationDispatchService).dispatch(
-                            anyString(), anyString(), anyString(), anyString(),
-                            anyString(), anyString(), any(Map.class), anyBoolean());
+                    .when(notificationDispatcher).dispatch(
+                            any(com.ulticode.modules.notification.intent.SubmissionCompletedIntent.class));
 
             // Should not throw
             writePort.updateSubmissionResult("sub-123", SubmissionStatus.ACCEPTED, 100, 256.0, List.of());

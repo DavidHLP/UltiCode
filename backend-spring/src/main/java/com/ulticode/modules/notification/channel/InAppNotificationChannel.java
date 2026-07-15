@@ -22,13 +22,7 @@ import java.util.Map;
  * {@link WebSocketNotificationChannel}'s job. Splitting the responsibilities
  * keeps {@code InAppNotificationChannel} the only path that writes the
  * business notification row, and {@code WebSocketNotificationChannel} the
- * only path that pushes the real-time event. The legacy
- * {@code NotificationDispatchService → NotificationService.createNotification}
- * chain still does the row + WS push inline (via
- * {@code createNotificationRowOnly} + manual WS call in
- * {@code NotificationServiceImpl}); it is the new
- * {@code InAppNotificationChannel} that goes through
- * {@code createNotificationRowOnly} only.
+ * only path that pushes the real-time event.
  */
 @Slf4j
 @Component

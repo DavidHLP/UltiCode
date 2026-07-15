@@ -7,14 +7,10 @@ import java.util.Map;
 
 /**
  * Intent emitted when a user receives a reply to one of their comments.
- * Reserved by ADR-004 §2.1; the legacy comment-reply path still uses the
- * old {@code NotificationDispatchService} and will be migrated in a future
- * PR once the forum module is touched for cross-cutting reasons.
- *
- * <p>Channel projection is intentionally permissive (all three channels
- * support it) so the dispatcher does not silently drop events for callers
- * that start using this intent before the M4b channel implementation is
- * fully wired.
+ * Reserved by ADR-004 §2.1 — no producer constructs it yet; the forum
+ * comment-reply path will dispatch this typed intent once that module is
+ * touched. Channel projection is implemented (all three channels support
+ * it) so the dispatcher does not silently drop events for the first caller.
  */
 public record CommentReplyIntent(
         String userId,

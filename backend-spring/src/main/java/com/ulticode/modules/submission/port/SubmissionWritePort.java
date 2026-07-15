@@ -28,8 +28,8 @@ import java.util.List;
  * </ul>
  *
  * <p>Post-verdict side effects — achievement triggers, submission-result
- * notifications (legacy {@code NotificationDispatchService} or the typed
- * {@code NotificationDispatcher} behind the ADR-004 M4c intent flag), and the
+ * notifications (typed {@link com.ulticode.modules.notification.dispatcher.NotificationDispatcher}
+ * intent via {@code JudgedNotificationDispatcher}), and the
  * {@code SubmissionJudgedEvent} publish — are owned here so the notification
  * fan-out logic lives in one place instead of being duplicated across the two
  * verdict writers.

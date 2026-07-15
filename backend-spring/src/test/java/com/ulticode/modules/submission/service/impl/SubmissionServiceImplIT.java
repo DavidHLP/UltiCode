@@ -83,10 +83,6 @@ class SubmissionServiceImplIT {
     @Mock
     private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
     @Mock
-    private com.ulticode.modules.notification.service.NotificationService notificationService;
-    @Mock
-    private com.ulticode.modules.notification.service.NotificationDispatchService notificationDispatchService;
-    @Mock
     private com.ulticode.modules.notification.dispatcher.NotificationDispatcher notificationDispatcher;
     @Mock
     private SubmissionProjection submissionProjection;
@@ -274,7 +270,7 @@ class SubmissionServiceImplIT {
                         queueService, contestSubmissionPort,
                         achievementTriggerService,
                         new com.ulticode.modules.submission.dispatcher.JudgedNotificationDispatcher(
-                                flags, notificationDispatcher, notificationDispatchService, problemFacts),
+                                notificationDispatcher, problemFacts),
                         null, flags, null, null, java.time.Clock.systemDefaultZone(),
                         new com.ulticode.common.uuid.FixedUuidGenerator());
         submissionService = new SubmissionServiceImpl(

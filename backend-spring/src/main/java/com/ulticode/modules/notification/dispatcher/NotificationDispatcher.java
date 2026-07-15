@@ -120,9 +120,9 @@ public class NotificationDispatcher {
     }
 
     /**
-     * Look up the recipient preference row and apply the same DDL defaults
-     * as the legacy {@code NotificationDispatchServiceImpl}: missing row →
-     * marketing=false, others=true.
+     * Look up the recipient preference row and apply the DDL defaults:
+     * missing row → marketing=false, others=true. Admin broadcast applies
+     * the same semantics in {@code AdminNotificationServiceImpl}.
      */
     private boolean isCategoryEnabled(NotificationIntent intent) {
         return preferenceMapper.findByUserId(intent.userId())

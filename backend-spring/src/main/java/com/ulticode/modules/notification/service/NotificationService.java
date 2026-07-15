@@ -77,44 +77,10 @@ public interface NotificationService {
     void deleteNotification(String userId, String notificationId);
 
     /**
-     * Create a notification for a user. Also mirrors to the WebSocket
-     * {@code /user/queue/notifications} topic so connected sessions receive
-     * a real-time {@code NotificationPayload}. This is the legacy
-     * {@code NotificationDispatchService} entry point; the new
-     * {@code InAppNotificationChannel} (ADR-004 M4b) uses
-     * {@link #createNotificationRowOnly} instead so the WebSocket push is
-     * owned by {@code WebSocketNotificationChannel} on its own.
-     *
-     * <p><b>Does NOT consult {@code NotificationPreference}.</b> The row is
-     * persisted unconditionally. Only {@code NotificationDispatcher} /
-     * {@code NotificationDispatchService} enforce opt-out; callers that bypass
-     * dispatch (e.g. {@code AdminNotificationService} force-delivery of
-     * SECURITY/SYSTEM) must do so deliberately. Business code should dispatch,
-     * not call this directly.
-     *
-     * @param userId   the user ID
-     * @param type     the notification type
-     * @param category the notification category
-     * @param title    the notification title
-     * @param body     the notification body
-     * @param link     the notification link
-     * @param metadata additional metadata to attach to the notification
-     * @return created notification
-     */
-    NotificationVO createNotification(String userId, String type, String category,
-                                       String title, String body, String link,
-                                       Map<String, Object> metadata);
-
-    /**
-     * Insert a notification row only — no WebSocket mirror. ADR-004 M4b entry
-     * point used by {@code InAppNotificationChannel}; the WebSocket push is
-     * handled separately by {@code WebSocketNotificationChannel} so the
-     * dispatcher fan-out controls the failure-isolation boundary.
-     *
-     * <p>Behavior is otherwise identical to {@link #createNotification} — same
-     * defaults (isRead=false, id=ASSIGN_UUID, metadata JSON-serialized) — so
-     * the existing {@code notification} row shape is unchanged from the
-     * legacy path. Validation matrix (ADR-004 §4 #4): row schema unchanged.
+     * Insert a notification row only — no WebSocket mirror. Entry point used
+     * by {@code InAppNotificationChannel}; the WebSocket push is handled
+     * separately by {@code WebSocketNotificationChannel} so the dispatcher
+     * fan-out controls the failure-isolation boundary.
      *
      * <p><b>Does NOT consult {@code NotificationPreference}.</b> This is the
      * channel-internal persistence primitive invoked by

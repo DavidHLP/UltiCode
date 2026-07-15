@@ -1,8 +1,7 @@
 package com.ulticode.modules.submission.dispatcher;
 
-import com.ulticode.modules.submission.config.FeatureFlagsProperties;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
-import com.ulticode.modules.notification.service.NotificationDispatchService;
+import com.ulticode.modules.notification.intent.SubmissionCompletedIntent;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.port.ProblemFactsPort;
@@ -10,26 +9,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 /**
  * Deep module owning the submission-judged notification dispatch.
  *
- * <p>Replaces the twin {@code dispatchJudgedNotificationLegacyPath} /
- * {@code dispatchJudgedNotificationFencedPath} methods that used to live in
- * {@code DefaultSubmissionWritePort}. Both paths are 95% identical — they
- * normalise runtime / memory, parse the status enum, then dispatch either
- * the typed {@code SubmissionCompletedIntent} (when
- * {@link FeatureFlagsProperties#isUseNotificationIntent()} is on) or fall
- * back to the legacy {@code NotificationDispatchService} envelope.
- *
- * <p>After the deepening, the verdict-write port holds one seam — this
- * dispatcher — and one collaborator (it owns the flag check, the
- * problem-title lookup, the legacy-vs-intent switch, and the fire-and-forget
- * exception isolation). Both write paths in
- * {@code DefaultSubmissionWritePort} call this module through the same
- * method, so a bug fix hits every caller and the port's constructor drops
- * the two extra notification collaborators.
+ * <p>The verdict-write port holds this single seam: it normalises runtime /
+ * memory, resolves the problem title, and dispatches one typed
+ * {@link SubmissionCompletedIntent}. The {@link NotificationDispatcher} then
+ * owns the entire delivery policy — preference gating, per-channel fan-out
+ * (InApp row, Email for terminal outcomes, WebSocket push), and ledger-backed
+ * idempotency. Both write paths in {@code DefaultSubmissionWritePort} call
+ * this module through the same method, so a bug fix hits every caller.
  *
  * <p>The dispatch is fire-and-forget — failures are logged and never
  * propagated to the verdict writer, matching the ADR-004 §2.5 failure-
@@ -42,16 +31,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class JudgedNotificationDispatcher {
 
-    private final FeatureFlagsProperties featureFlags;
     private final NotificationDispatcher notificationDispatcher;
-    private final NotificationDispatchService notificationDispatchService;
     private final ProblemFactsPort problemFacts;
 
     /**
      * Dispatch the post-verdict notification. Both the legacy (unfenced) and
-     * fenced paths in {@code DefaultSubmissionWritePort} converge here, so the
-     * 95% duplication disappears and a future flag-day cleanup touches one
-     * method.
+     * fenced paths in {@code DefaultSubmissionWritePort} converge here.
      *
      * @param submission the submission entity (canonical row after the verdict
      *                   wrote; the unfenced path passes the entity it just
@@ -66,32 +51,15 @@ public class JudgedNotificationDispatcher {
             long safeElapsed = Math.max(0L, elapsedMs);
             ProblemFactsPort.ProblemDisplayFacts facts = problemFacts.findDisplayFacts(submission.getProblemId());
             String problemTitle = facts != null ? facts.title() : "";
-            if (featureFlags.isUseNotificationIntent()) {
-                notificationDispatcher.dispatch(
-                        com.ulticode.modules.notification.intent.SubmissionCompletedIntent.of(
-                                submission,
-                                status,
-                                problemTitle,
-                                safeElapsed,
-                                memBytes,
-                                null,
-                                null));
-            } else {
-                notificationDispatchService.dispatch(
-                        submission.getUserId(),
-                        "SUBMISSION",
-                        "SYSTEM",
-                        "Submission judged: " + status.wireValue(),
-                        "",
-                        "/submissions/" + submission.getId(),
-                        Map.of(
-                                "submissionId", submission.getId(),
-                                "problemId", submission.getProblemId(),
-                                "problemTitle", problemTitle,
-                                "status", status.wireValue(),
-                                "isAccepted", status == SubmissionStatus.ACCEPTED),
-                        false);
-            }
+            notificationDispatcher.dispatch(
+                    SubmissionCompletedIntent.of(
+                            submission,
+                            status,
+                            problemTitle,
+                            safeElapsed,
+                            memBytes,
+                            null,
+                            null));
         } catch (Exception e) {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());

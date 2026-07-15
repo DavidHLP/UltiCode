@@ -24,6 +24,5 @@ app:
       use-port: false
       envelope-version: 1
       cutover-at: "1970-01-01T00:00:00"
-    use-notification-intent: false
     judge-source:
       use-test-cases: false

@@ -6,17 +6,13 @@ import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
  * Push port the notification module uses to deliver a real-time
  * {@link NotificationPayload} to a user's STOMP queue.
  *
- * <p>Replaces the direct dependency {@code NotificationServiceImpl.createNotification}
- * used to have on {@code com.ulticode.modules.websocket.service.RealtimeService}.
- * Before extraction the legacy {@code createNotification} path was the
- * <em>only</em> place where the notification module reached across into the
- * websocket module — its Javadoc already self-named this port as the target
- * architecture ("the legacy wrapper mirrors to the WebSocket
- * USER_QUEUE_NOTIFICATIONS topic; the new path pushes via
- * WebSocketNotificationChannel so failure isolation works per-channel").
- * After extraction the notification module's {@code modules.websocket.*}
- * import set collapses to one remaining symbol — {@link NotificationPayload}
- * — which is the wire format and must stay shared.
+ * <p>Replaces the direct dependency the notification service previously had
+ * on {@code com.ulticode.modules.websocket.service.RealtimeService}: the
+ * WebSocket push is owned by {@code WebSocketNotificationChannel} through
+ * this port so failure isolation works per-channel. The notification
+ * module's {@code modules.websocket.*} import set collapses to one
+ * remaining symbol — {@link NotificationPayload} — the wire format that
+ * must stay shared.
  *
  * <p>The deletion test passes: removing this port would force
  * {@code NotificationServiceImpl} to re-import {@code RealtimeService}

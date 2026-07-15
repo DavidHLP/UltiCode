@@ -251,11 +251,6 @@ app:
       # inert until an operator sets this on the canary host. The M3c
       # cutover runbook specifies the exact ISO-8601 timestamp to set.
       cutover-at: ${JUDGE_QUEUE_CUTOVER_AT:1970-01-01T00:00:00}
-    # ADR-004 M4a: route notification dispatches through the
-    # NotificationDispatcher (typed intent + per-channel projection + ledger
-    # idempotency). Default false: the legacy NotificationDispatchService
-    # path remains active until M4c migrates every caller.
-    use-notification-intent: ${USE_NOTIFICATION_INTENT:false}
     # P0-1: Judge source configuration
     judge-source:
       use-test-cases: ${JUDGE_SOURCE_USE_TEST_CASES:true}

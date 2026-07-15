@@ -295,9 +295,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
      * (always delivered). For {@code MARKETING} / {@code COMMUNICATION}, users
      * who have explicitly opted out are removed. Users without a preference row
      * are resolved against the DDL defaults &mdash; marketing=false (opt-out),
-     * communication=true (opt-in) &mdash; matching {@code NotificationDispatcher} and
-     * the legacy {@code NotificationDispatchServiceImpl} so admin broadcast and
-     * event-driven dispatch apply identical preference semantics.
+     * communication=true (opt-in) &mdash; matching {@code NotificationDispatcher}
+     * so admin broadcast and event-driven dispatch apply identical preference
+     * semantics.
      */
     private List<String> filterRecipientsByPreference(List<String> userIds, String category) {
         if (userIds.isEmpty() || !PREFERENCE_GATED_CATEGORIES.contains(category)) {

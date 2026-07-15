@@ -42,14 +42,12 @@ class NotificationOwnershipTest {
     private NotificationMapper notificationMapper;
     @Mock
     private NotificationPreferenceMapper preferenceMapper;
-    @Mock
-    private NotificationPushPort notificationPushPort;
 
     private NotificationServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new NotificationServiceImpl(Clock.systemDefaultZone(), notificationMapper, preferenceMapper, notificationPushPort);
+        service = new NotificationServiceImpl(Clock.systemDefaultZone(), notificationMapper, preferenceMapper);
     }
 
     private Notification seedNotification(String ownerId) {

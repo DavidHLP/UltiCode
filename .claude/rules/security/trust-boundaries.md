@@ -2,7 +2,9 @@
 paths:
   - "backend-spring/src/main/java/**/controller/**/*.java"
   - "backend-spring/src/main/java/**/security/**/*.java"
+  - "backend-spring/src/main/java/com/ulticode/common/{annotation,aspect,audit}/**/*.java"
   - "backend-spring/src/main/java/com/ulticode/modules/{auth,user,admin}/**/*.java"
+  - "backend-spring/src/main/java/com/ulticode/modules/websocket/**/*.java"
   - "backend-spring/src/main/resources/application*.{yml,yaml,properties}"
   - "console/src/**/*.{ts,vue}"
   - "management/src/**/*.{ts,vue}"
@@ -13,10 +15,8 @@ paths:
 
 # Trust-boundary review
 
-- Re-read the root security invariants before changing authentication, authorization, tokens, cookies, WebSockets, audit identity, rendering, URLs, infrastructure exposure, or secrets.
-- Identify the untrusted input, authenticated principal, authorization decision, sensitive output, and persistence or transport boundary before editing.
-- Enforce access control on the backend even when the frontend hides an action. Derive actor identity from the authenticated context rather than request-controlled data.
-- Preserve the established cookie, token rotation, OAuth state, CSRF, and WebSocket authentication flows end to end; do not introduce a second credential path for convenience.
-- Route Markdown and KaTeX through the shared sanitization pipeline, and treat URL handling plus any HTML-rendering sink as hostile-input code.
-- Keep secrets out of source, logs, fixtures, migrations, and command output. Preserve production network isolation in Compose and deployment configuration.
-- Add negative tests for unauthenticated, unauthorized, stale or replayed credentials, malformed input, and malicious rendering payloads as relevant.
+- Read the root Security invariants before editing and list the specific invariants touched by the change.
+- Map untrusted inputs, authenticated identity, authorization decisions, sensitive outputs, and persistence or transport boundaries before choosing the fix.
+- Trace the full credential or content path with graph tools and literal searches; include framework configuration and non-code consumers that static calls miss.
+- Derive negative test cases from the mapped boundaries and the root invariants, then run the relevant subtree checks.
+- Review the final diff for alternate credential paths, bypasses, unsafe sinks, secret exposure, and configuration differences across environments.

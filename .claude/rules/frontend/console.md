@@ -9,8 +9,7 @@ paths:
 # Console application workflow
 
 - Read `console/AGENTS.md` before editing. Do not infer Console behavior from the Management application.
-- Trace the affected view through its router, store or composable, API module, request helper, shared package, and tests as applicable.
-- Preserve the Console-specific API and authentication bootstrap patterns described by its guide; reuse an existing local pattern before creating a new abstraction.
-- Check `shared/` before duplicating stable cross-application behavior, but keep Console-only behavior in Console.
-- Treat visible text, route behavior, request/response types, and sanitized rendering as boundaries that require matching tests or fixtures.
-- Run the relevant Console checks from its guide and the checks of every changed shared package. Inspect any formatter or lint rewrite before keeping it.
+- Build a change map from the affected view to routing, state or composables, API code, request infrastructure, shared packages, locales, and tests.
+- Compare with an existing Console feature that uses the same seam before introducing a new abstraction.
+- If the change might belong in `shared/`, inspect both applications and read `shared/AGENTS.md` before deciding ownership.
+- Run the checks selected from the Console and changed-package guides, then inspect any formatter or lint rewrite before keeping it.

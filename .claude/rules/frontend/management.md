@@ -9,8 +9,7 @@ paths:
 # Management application workflow
 
 - Read `management/AGENTS.md` before editing. Do not copy Console API, routing, layout, or component assumptions into the administrator application.
-- Trace a change through the admin API object, permission-aware route, view or component, locale modules, and tests as applicable.
-- Preserve backend authorization as the trust boundary; UI permission gates are usability controls, not access control.
-- Check `shared/` before duplicating durable cross-application behavior, while keeping privileged and Management-only behavior out of shared packages and Console.
-- Treat emitted API field identifiers and locale keys as one contract. Run the repository i18n-key validator whenever the affected surface can change that mapping.
-- Run the relevant Management checks from its guide and the checks of every changed shared package. Inspect any formatter or lint rewrite before keeping it.
+- Build a change map from the affected route to API code, permission metadata, layout, view or component, locales, shared packages, and tests.
+- Compare with an existing Management feature that uses the same seam before introducing a new abstraction.
+- If the change might belong in `shared/`, inspect both applications and read `shared/AGENTS.md` before deciding ownership.
+- Run the checks selected from the Management and changed-package guides, then inspect any formatter or lint rewrite before keeping it.

@@ -16,8 +16,8 @@ paths:
 
 # Cross-stack contract changes
 
-- Trace the producer from controller input through service and mapping to the response envelope, then trace every Console, Management, and shared-type consumer.
-- Preserve field names, nullability, identifiers, enum values, pagination metadata, and error semantics across the full path.
-- Update producers, shared types, application adapters, fixtures, and contract-focused tests in the same change; do not leave temporary casts or duplicate aliases as hidden compatibility layers.
-- Keep an app-specific contract local. Move a type into `shared/` only when both applications need the same stable meaning.
-- If compatibility cannot be preserved atomically, document and implement an explicit rollout boundary rather than relying on deployment order by accident.
+- Read the root guide plus every affected subtree guide before deciding where the contract is owned.
+- Use graph tracing for symbols and callers, then search serialized field and endpoint literals to find consumers that static call edges cannot reveal.
+- Create a producer-consumer matrix for each changed request, response, event, or shared type. Include mappings, fixtures, and contract-focused tests in the matrix.
+- Compare the before and after wire shape explicitly and record any compatibility boundary that cannot be updated atomically.
+- Run the verification commands from each affected guide and inspect the final diff against the matrix for omissions.

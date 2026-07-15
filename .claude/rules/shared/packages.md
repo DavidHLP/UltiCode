@@ -6,8 +6,7 @@ paths:
 # Shared package workflow
 
 - Read `shared/AGENTS.md` and the changed package's manifest and public entry point before editing.
-- Define the package's single owned seam in one sentence. Extend an existing seam when it fits; do not create a generic dumping ground.
-- Keep implementation details behind declared entry points and package exports. Inspect every Console and Management consumer before changing a public type, runtime behavior, or import path.
-- Preserve app-specific behavior at the application boundary. Shared code must not expose privileged data or force one application's API style onto the other.
-- For authentication, HTTP, Markdown, theme, or sandbox contracts, inspect the complete security or initialization pipeline and add adversarial or failure-path regressions where relevant.
-- Run scripts declared by the package and the affected consuming applications; do not assume every shared package exposes the same commands.
+- State the package responsibility in one sentence, then compare the proposed change with that responsibility before choosing the seam.
+- Use graph and import searches to inventory public entry points, declared exports, and every Console or Management consumer affected by the change.
+- Build a compatibility checklist for public types, runtime behavior, initialization order, and import paths that change.
+- Select package checks from its manifest and consuming-application checks from the relevant guides; do not assume shared packages expose identical scripts.

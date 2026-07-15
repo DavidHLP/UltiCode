@@ -24,6 +24,7 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 ├── docs/project-documentation.md
 ├── frontend/console.md
 ├── frontend/management.md
+├── operations/runtime-diagnostics.md
 ├── operations/runtime-and-infrastructure.md
 ├── security/trust-boundaries.md
 └── shared/packages.md
@@ -34,7 +35,7 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 - Keep one topic per file and use descriptive kebab-case names; numeric prefixes do not express precedence.
 - Give every rule a narrow, repository-relative `paths` list. A rule without `paths` is loaded in every session and requires a concrete project-wide reason.
 - Use only the documented `paths` frontmatter field. Put rationale and provenance in the body when they are genuinely useful.
-- Prefer path-specific reminders that tell Claude what guide, neighboring implementation, consumers, and checks to inspect.
+- Prefer Claude-specific workflow reminders that tell Claude what guide, neighboring implementation, consumers, and checks to inspect.
 - Keep rules short and verifiable. Move repeatable multi-step procedures to a skill and hard enforcement to settings or hooks.
 - Do not store generic language handbooks, dependency inventories, or facts that Claude can derive directly from source and build files.
 

@@ -33,11 +33,13 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 ## Design standard
 
 - Keep one topic per file and use descriptive kebab-case names; numeric prefixes do not express precedence.
-- Give every rule a narrow, repository-relative `paths` list. A rule without `paths` is loaded in every session and requires a concrete project-wide reason.
+- Use a narrow, repository-relative `paths` list by default. A rule without `paths` is loaded in every session and requires a concrete project-wide reason.
 - Use only the documented `paths` frontmatter field. Put rationale and provenance in the body when they are genuinely useful.
 - Prefer Claude-specific workflow reminders that tell Claude what guide, neighboring implementation, consumers, and checks to inspect.
 - Keep rules short and verifiable. Move repeatable multi-step procedures to a skill and hard enforcement to settings or hooks.
 - Do not store generic language handbooks, dependency inventories, or facts that Claude can derive directly from source and build files.
+
+`operations/runtime-diagnostics.md` is the intentional unconditional exception: Arthas commands are actions with no reliable file path to trigger a conditional rule, and the project exposes the diagnostics MCP during Claude Code sessions.
 
 ## Change checklist
 

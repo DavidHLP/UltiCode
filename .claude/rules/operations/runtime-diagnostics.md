@@ -1,12 +1,3 @@
----
-paths:
-  - ".claude/launch.json"
-  - ".claude/settings.json"
-  - "backend-spring/src/**/*.java"
-  - "infrastructure/arthas/**/*"
-  - "scripts/*arthas*.sh"
----
-
 # Runtime diagnostics guardrails
 
 - Treat attached JVM diagnostics as production-affecting even when the command appears read-only; start with the narrowest observation point.

@@ -3,6 +3,7 @@ paths:
   - "backend-spring/src/main/java/**/controller/**/*.java"
   - "backend-spring/src/main/java/**/security/**/*.java"
   - "backend-spring/src/main/java/com/ulticode/common/{annotation,aspect,audit}/**/*.java"
+  - "backend-spring/src/main/java/com/ulticode/common/util/Audit{Context,Helper}.java"
   - "backend-spring/src/main/java/com/ulticode/modules/{auth,user,admin}/**/*.java"
   - "backend-spring/src/main/java/com/ulticode/modules/websocket/**/*.java"
   - "backend-spring/src/main/resources/application*.{yml,yaml,properties}"

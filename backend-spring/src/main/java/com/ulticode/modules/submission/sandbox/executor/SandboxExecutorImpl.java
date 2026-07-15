@@ -1,7 +1,5 @@
 package com.ulticode.modules.submission.sandbox.executor;
 
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
@@ -21,9 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -90,11 +84,6 @@ import java.util.stream.Stream;
                        matchIfMissing = true)
 public class SandboxExecutorImpl implements SandboxExecutor {
 
-    // ── Output budget ────────────────────────────────────────────────────────
-    // 8 MiB envelope + 128 KiB per-case headroom, matches the pre-M2a
-    // DFORM_OUTPUT_BUDGET_BYTES (Phase 3.5 #3 fix).
-    private static final int DFORM_OUTPUT_BUDGET_BYTES = 8 * 1024 * 1024 + 128 * 1024;
-
     // Per-case soft timeout floor forwarded to the harness (its
     // per_case_timeout_ms). ADR-002 §8: the soft timeout now equals the
     // problem's per-case limit directly (no longer derived from a single
@@ -124,15 +113,18 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     private final DockerSandboxConfig config;
     private final CodeExecutionHelper helper;
     private final SandboxOutcomeClassifier outcomeClassifier;
+    private final ProcessLifecycleRunner processLifecycleRunner;
     private final SandboxResultTranslator resultTranslator;
 
     public SandboxExecutorImpl(List<LanguageProfile> all,
                                DockerSandboxConfig config,
                                CodeExecutionHelper helper,
-                               SandboxOutcomeClassifier outcomeClassifier) {
+                               SandboxOutcomeClassifier outcomeClassifier,
+                               ProcessLifecycleRunner processLifecycleRunner) {
         this.config = config;
         this.helper = helper;
         this.outcomeClassifier = outcomeClassifier;
+        this.processLifecycleRunner = processLifecycleRunner;
         this.resultTranslator = new SandboxResultTranslator(helper, outcomeClassifier);
         // Fail-fast: two profiles claiming the same language id is a
         // wiring bug, not a runtime fallback. Per ADR-002 §2.2.
@@ -294,7 +286,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     READ_ONLY_POSIX);
 
             List<String> command = buildDockerCommand(job, profile, workspace, limits);
-            return runDProcess(command, hardTimeoutSeconds(job, cases.size()), job.runId());
+            return processLifecycleRunner.run(command, hardTimeoutSeconds(job, cases.size()), job.runId());
         } catch (IOException e) {
             log.warn("D-form workspace setup failed for runId={}: {}",
                     job.runId(), e.getMessage());
@@ -369,72 +361,6 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 "--security-opt", SECCOMP_NO_NEW_PRIVS,
                 "--security-opt", "seccomp=" + resolveSeccompProfileFilePath()
         );
-    }
-
-    /**
-     * Spawn the docker process with a concurrent stdout drainer.
-     * Mirrors the pre-M2a runDProcess (Phase 3.5 #3 fix: drain the
-     * pipe in a background thread to avoid the 64 KiB Linux pipe
-     * buffer deadlock).
-     */
-    private DFormRunOutcome runDProcess(List<String> command,
-                                        int hardTimeoutSeconds,
-                                        String runId)
-            throws InterruptedException {
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
-        try {
-            Process process = pb.start();
-            ByteArrayOutputStream buf = new ByteArrayOutputStream();
-            AtomicBoolean overBudget = new AtomicBoolean(false);
-            Thread reader = new Thread(() -> {
-                try (InputStream in = process.getInputStream()) {
-                    byte[] chunk = new byte[8192];
-                    int n;
-                    while ((n = in.read(chunk)) != -1) {
-                        synchronized (buf) {
-                            if (buf.size() + n > DFORM_OUTPUT_BUDGET_BYTES) {
-                                overBudget.set(true);
-                                return; // close InputStream to unblock harness
-                            }
-                            buf.write(chunk, 0, n);
-                        }
-                    }
-                } catch (IOException ignored) {
-                    /* process closed */
-                }
-            }, "dform-stdout-" + runId);
-            reader.setDaemon(true);
-            reader.start();
-
-            long start = System.nanoTime();
-            boolean finished = process.waitFor(hardTimeoutSeconds, TimeUnit.SECONDS);
-            long elapsedMs = (System.nanoTime() - start) / 1_000_000;
-            if (!finished) {
-                process.destroyForcibly();
-                return DFormRunOutcome.timedOut(elapsedMs);
-            }
-            // Give the reader a brief grace window for last bytes.
-            reader.join(TimeUnit.SECONDS.toMillis(Math.min(2, hardTimeoutSeconds)));
-            String stdout;
-            synchronized (buf) {
-                stdout = buf.toString(StandardCharsets.UTF_8);
-                if (overBudget.get()) {
-                    stdout = stdout + "\n[truncated: D-form output exceeded "
-                            + DFORM_OUTPUT_BUDGET_BYTES + " bytes]";
-                }
-            }
-            return DFormRunOutcome.finished(elapsedMs, stdout, process.exitValue());
-        } catch (IOException e) {
-            // Surface docker daemon-side fork failures as
-            // SANDBOX_ERROR via the classifier's fork-detection helper.
-            String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            if (outcomeClassifier.looksLikeDockerDaemonForkFailure(msg)) {
-                return DFormRunOutcome.finished(0L,
-                        "Cannot fork / pids-limit reached", 137);
-            }
-            return DFormRunOutcome.error(e);
-        }
     }
 
     // ── Fork-failure detection (ADR-002 §2.5: classifier is the oracle) ───────
@@ -661,23 +587,4 @@ public class SandboxExecutorImpl implements SandboxExecutor {
         return idx >= 0 ? path.substring(0, idx) : ".";
     }
 
-    // ── Local DTO for runDProcess results ────────────────────────────────────
-
-    private record DFormRunOutcome(boolean timedOut, long elapsedMs,
-                                   String stdout, int exitCode, Throwable cause) {
-        static DFormRunOutcome finished(long elapsedMs, String stdout, int exitCode) {
-            return new DFormRunOutcome(false, elapsedMs, stdout, exitCode, null);
-        }
-        static DFormRunOutcome timedOut(long elapsedMs) {
-            return new DFormRunOutcome(true, elapsedMs, "", -1, null);
-        }
-        static DFormRunOutcome error(Throwable e) {
-            return new DFormRunOutcome(false, 0L,
-                    e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage(),
-                    -1, e);
-        }
-        static DFormRunOutcome interrupted() {
-            return new DFormRunOutcome(false, 0L, "", -1, new BusinessException(ErrorCode.SANDBOX_ERROR, "interrupted"));
-        }
-    }
 }

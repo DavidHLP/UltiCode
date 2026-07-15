@@ -71,7 +71,8 @@ public class SandboxOutcomeClassifier {
      *
      * @param exitCode the docker process exit code, or {@code -1} when the
      *                 process never produced one (e.g. {@link
-     *                 SandboxExecutorImpl.DFormRunOutcome#cause()} was set)
+     *                 com.ulticode.modules.submission.sandbox.executor.DFormRunOutcome#cause()}
+     *                 was set)
      * @param stdout   raw harness / docker stdout; <b>not</b> passed
      *                 through {@code sanitizeSandboxOutput}, so docker /
      *                 OCI runtime lines are still visible here

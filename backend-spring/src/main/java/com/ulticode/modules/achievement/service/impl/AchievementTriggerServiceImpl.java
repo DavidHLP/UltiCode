@@ -1,6 +1,7 @@
 package com.ulticode.modules.achievement.service.impl;
 
 import com.ulticode.modules.achievement.constants.AchievementType;
+import com.ulticode.modules.achievement.criteria.AchievementCriteria;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.event.AchievementCheckEvent;
@@ -21,7 +22,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -61,14 +61,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
         List<Achievement> allAchievements = achievementMapper.findAllActive();
 
         List<Achievement> matchingAchievements = allAchievements.stream()
-                .filter(a -> {
-                    Map<String, Object> criteria = a.getCriteria();
-                    if (criteria == null || !criteria.containsKey("type")) {
-                        return false;
-                    }
-                    String criteriaType = (String) criteria.get("type");
-                    return type.getValue().equals(criteriaType);
-                })
+                .filter(a -> AchievementCriteria.from(a.getCriteria()).matches(type))
                 .toList();
 
         List<String> awardedIds = new ArrayList<>();
@@ -80,14 +73,9 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
                 .collect(Collectors.toSet());
 
         for (Achievement achievement : matchingAchievements) {
-            Map<String, Object> criteria = achievement.getCriteria();
-            Object targetObj = criteria.get("target");
-            int target = 0;
-            if (targetObj instanceof Number) {
-                target = ((Number) targetObj).intValue();
-            }
+            AchievementCriteria criteria = AchievementCriteria.from(achievement.getCriteria());
 
-            if (currentValue >= target) {
+            if (criteria.isMetBy(currentValue)) {
                 if (!earnedAchievementIds.contains(achievement.getId())) {
                     UserAchievement userAchievement = new UserAchievement();
                     userAchievement.setUserId(userId);

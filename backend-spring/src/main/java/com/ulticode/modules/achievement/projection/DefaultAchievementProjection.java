@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.achievement.criteria.AchievementCounters;
+import com.ulticode.modules.achievement.criteria.AchievementCriteria;
 import com.ulticode.modules.achievement.dto.AchievementProgressDTO;
 import com.ulticode.modules.achievement.dto.AchievementProgressVO;
 import com.ulticode.modules.achievement.dto.AchievementQueryDTO;
@@ -173,11 +175,9 @@ public class DefaultAchievementProjection implements AchievementProjection {
 
     private AchievementProgressVO buildProgressVO(Achievement a, UserAchievement earned,
             long problemsSolved, long submissionsMade) {
-        String type = getTypeFromCriteria(a.getCriteria());
-        int currentValue = calculateCurrentValue(type, earned, problemsSolved, submissionsMade);
-        int target = getTargetFromCriteria(a.getCriteria());
-        int percentage = target > 0 ? Math.min(100, (currentValue * 100) / target) : 0;
-        String nextMilestone = calculateNextMilestone(type, currentValue);
+        AchievementCriteria criteria = AchievementCriteria.from(a.getCriteria());
+        AchievementCounters counters = new AchievementCounters(problemsSolved, submissionsMade);
+        int currentValue = criteria.currentValue(counters);
 
         return new AchievementProgressVO(
                 a.getId(),
@@ -187,9 +187,9 @@ public class DefaultAchievementProjection implements AchievementProjection {
                 a.getTier(),
                 a.getCategory(),
                 currentValue,
-                target,
-                percentage,
-                nextMilestone
+                criteria.target(),
+                criteria.progressPercent(currentValue),
+                criteria.nextMilestone(currentValue)
         );
     }
 
@@ -218,84 +218,11 @@ public class DefaultAchievementProjection implements AchievementProjection {
         dto.setEarned(earned != null);
         dto.setEarnedAt(earned != null ? earned.getEarnedAt() : null);
 
-        int target = 0;
-        int currentValue = 0;
-        Map<String, Object> criteria = a.getCriteria();
-        if (criteria != null) {
-            Object targetObj = criteria.get("target");
-            if (targetObj instanceof Number) {
-                target = ((Number) targetObj).intValue();
-            }
-            Object typeObj = criteria.get("type");
-            if ("problems_solved".equals(typeObj)) {
-                currentValue = (int) problemsSolved;
-            } else if ("submissions_made".equals(typeObj)) {
-                currentValue = (int) submissionsMade;
-            }
-        }
-        dto.setTarget(target);
-        dto.setProgress(currentValue);
+        AchievementCriteria criteria = AchievementCriteria.from(a.getCriteria());
+        AchievementCounters counters = new AchievementCounters(problemsSolved, submissionsMade);
+        dto.setTarget(criteria.target());
+        dto.setProgress(criteria.currentValue(counters));
         return dto;
     }
 
-    private String getTypeFromCriteria(Map<String, Object> criteria) {
-        if (criteria == null) {
-            return null;
-        }
-        return (String) criteria.get("type");
-    }
-
-    private int getTargetFromCriteria(Map<String, Object> criteria) {
-        if (criteria == null || !criteria.containsKey("target")) {
-            return 0;
-        }
-        Object targetObj = criteria.get("target");
-        if (targetObj instanceof Number) {
-            return ((Number) targetObj).intValue();
-        }
-        return 0;
-    }
-
-    private int calculateCurrentValue(String type, UserAchievement earned,
-            long problemsSolved, long submissionsMade) {
-        if (type == null) {
-            return 0;
-        }
-
-        int currentValue = switch (type) {
-            case "problems_solved" -> (int) problemsSolved;
-            case "submissions_made" -> (int) submissionsMade;
-            default -> 0;
-        };
-
-        return currentValue;
-    }
-
-    private String calculateNextMilestone(String type, int currentValue) {
-        if (type == null) {
-            return null;
-        }
-
-        return switch (type) {
-            case "problems_solved" -> {
-                int[] milestones = {1, 10, 50, 100, 200, 500};
-                for (int m : milestones) {
-                    if (currentValue < m) {
-                        yield m + " problems";
-                    }
-                }
-                yield "Max milestone reached";
-            }
-            case "submissions_made" -> {
-                int[] milestones = {1, 10, 50, 100, 500, 1000};
-                for (int m : milestones) {
-                    if (currentValue < m) {
-                        yield m + " submissions";
-                    }
-                }
-                yield "Max milestone reached";
-            }
-            default -> null;
-        };
-    }
 }

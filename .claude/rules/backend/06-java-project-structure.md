@@ -14,4 +14,6 @@ paths:
 - Do not turn `common`, `util`, or `helper` packages into dumping grounds. Shared code needs a cohesive responsibility and more than accidental reuse.
 - Configuration belongs with the feature it configures unless it is genuinely application-wide. Avoid component scanning or bean definitions that depend on package accidents.
 - New libraries **MUST** be declared in Maven with a concrete need. Do not vendor jars, duplicate an existing dependency's capability, or add a framework for one helper function.
+- Production dependencies **MUST NOT** use mutable `SNAPSHOT` versions. One group/artifact must resolve to one intentional version across the build.
+- After adding or upgrading a dependency, inspect the resolved dependency tree and verify unexpected transitive version changes rather than accepting them implicitly.
 - Generated output, local runtime state, credentials, and build artifacts **MUST NOT** be added under source packages.

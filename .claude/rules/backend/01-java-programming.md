@@ -15,6 +15,7 @@ These defaults apply unless the nearest project guide or an established local pa
 - Names **MUST** describe domain intent. Single-letter names are limited to conventional short loop or coordinate scopes.
 - New imports **MUST** be explicit; do not introduce wildcard imports. Existing wildcard imports may remain when they are outside the task scope. Raw types and new unchecked casts/suppressions are forbidden unless narrowly scoped with a reason.
 - New injected dependencies **MUST** use constructor injection and should be `private final`; do not add field injection.
+- Overridden methods **MUST** use `@Override`. Do not call deprecated APIs in new code; compatibility shims must identify the supported replacement and removal boundary.
 - Nullability **MUST** be handled deliberately. Return empty collections instead of `null`; do not call `Optional.get()` without a proven presence check.
 - `Optional` **SHOULD** be used for return values, not entity fields, DTO fields, parameters, or serialization contracts.
 - Collection ownership **MUST** be clear: copy mutable input when retaining it and do not expose internal mutable collections.
@@ -22,6 +23,19 @@ These defaults apply unless the nearest project guide or an established local pa
 - Parallel streams **MUST NOT** be introduced in request, transaction, scheduler, or judge paths without measured evidence and an explicit execution model.
 - Time-dependent logic **SHOULD** receive a `Clock` or an existing time abstraction so tests remain deterministic.
 - Money, scores requiring exact decimals, and identifiers **MUST NOT** use floating-point types.
+- Compare reference values null-safely (`Objects.equals` or a known non-null receiver) and boxed numerics with value equality, not `==`.
+- Do not compare floating-point values for exact equality. Construct decimals from strings or `BigDecimal.valueOf`, never `new BigDecimal(double)`.
+- Repeated domain literals **MUST** become a named constant or enum at the narrowest shared scope; avoid one global constants dumping ground.
+- Use uppercase `L` for long literals so it cannot be confused with `1`.
+
+## Collections and control flow
+
+- Treat `subList`, `keySet`, `values`, `entrySet`, `Arrays.asList`, and `Collections` factory results according to their view/fixed-size/immutable semantics; copy them before incompatible mutation or retention.
+- Do not add/remove collection elements inside enhanced `for`. Use an iterator, `removeIf`, or a separate result collection as appropriate.
+- Collection-to-array conversion **MUST** preserve the exact component type; prefer `toArray(Type[]::new)` or a zero-length typed array.
+- Comparators **MUST** be antisymmetric, transitive, and consistent for equal inputs. Never implement ordering with subtraction that can overflow.
+- `if`, loop, and `switch` bodies **MUST** use braces. Switch fall-through must be explicit, externally supplied switch values must be null-safe, and an intentionally exhaustive/default path must be visible.
+- Batch inputs and growing in-memory structures **MUST** have a validated upper bound or a streaming/chunking strategy.
 
 ## Maintainability
 

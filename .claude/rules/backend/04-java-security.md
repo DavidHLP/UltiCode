@@ -15,6 +15,9 @@ paths:
 - Use platform cryptography and `SecureRandom`; custom encryption, hardcoded keys/IVs, weak hashes for credentials, and predictable tokens are forbidden.
 - Regexes applied to untrusted or large input **MUST** have bounded input and avoid catastrophic backtracking patterns.
 - Error responses **MUST NOT** expose stack traces, SQL, filesystem paths, secrets, or internal topology.
+- Sensitive user data **MUST** be minimized and masked in responses, administrative views, exports, and diagnostics according to the caller's authorization.
+- Costly or externally visible actions such as email, messaging, provisioning, and submissions **MUST** define replay/idempotency behavior plus appropriate rate or quota limits.
+- User-generated content and interaction endpoints **MUST** consider spam/abuse controls, bounded payloads, and the established moderation/sanitization path.
 - Security-sensitive fallback behavior **MUST** fail closed. Do not silently disable authentication, authorization, validation, sandboxing, or secret checks.
 - Secrets **MUST** come from approved runtime configuration and must not appear in source, defaults, fixtures, migrations, logs, or exception messages.
 - Every security fix **MUST** include a regression test proving the rejected or escaped malicious case, not only the valid path.

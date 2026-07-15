@@ -53,6 +53,7 @@ The layout follows the [Claude Code rules documentation](https://code.claude.com
 - Use only the documented `paths` frontmatter field. Put rationale and provenance in the body when they are genuinely useful.
 - Prefer Claude-specific workflow reminders that tell Claude what guide, neighboring implementation, consumers, and checks to inspect.
 - Write language rules as explicit `MUST`, `MUST NOT`, and `SHOULD` constraints. Scope them to the files where Claude can apply and verify them.
+- When consolidating legacy rules, preserve concrete failure modes and project-relevant counterexamples; remove obsolete framework advice, arbitrary thresholds, and rules contradicted by current code/configuration.
 - Keep rules short and verifiable. Move repeatable multi-step procedures to a skill and hard enforcement to settings or hooks.
 - Do not store generic language handbooks or dependency inventories. Keep only rules that prevent a plausible project regression or ambiguity.
 

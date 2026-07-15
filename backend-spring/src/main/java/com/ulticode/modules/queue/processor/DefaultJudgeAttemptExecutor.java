@@ -1,7 +1,6 @@
 package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.uuid.UuidGenerator;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.queue.job.JudgeJob;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionPipeline;
 import com.ulticode.modules.queue.pipeline.JudgeExecutionResult;
@@ -9,10 +8,10 @@ import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.submission.config.FeatureFlagsProperties;
-import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.LeaseConstants;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.ContestSubmissionPort;
+import com.ulticode.modules.submission.port.SubmissionFencePort;
 import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -45,9 +44,9 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     private final SubmissionWritePort submissionWritePort;
     private final SubmissionResultPushPort submissionResultPushPort;
-    private final ContestSubmissionMapper contestSubmissionMapper;
+    private final ContestSubmissionPort contestSubmissionPort;
     private final JudgeExecutionPipeline executionPipeline;
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionFencePort submissionFencePort;
     private final FeatureFlagsProperties featureFlags;
     private final MeterRegistry meterRegistry;
     private final UuidGenerator uuidGenerator;
@@ -60,17 +59,17 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
 
     public DefaultJudgeAttemptExecutor(SubmissionWritePort submissionWritePort,
                                        SubmissionResultPushPort submissionResultPushPort,
-                                       ContestSubmissionMapper contestSubmissionMapper,
+                                       ContestSubmissionPort contestSubmissionPort,
                                        JudgeExecutionPipeline executionPipeline,
-                                       SubmissionMapper submissionMapper,
+                                       SubmissionFencePort submissionFencePort,
                                        FeatureFlagsProperties featureFlags,
                                        MeterRegistry meterRegistry,
                                        UuidGenerator uuidGenerator) {
         this.submissionWritePort = submissionWritePort;
         this.submissionResultPushPort = submissionResultPushPort;
-        this.contestSubmissionMapper = contestSubmissionMapper;
+        this.contestSubmissionPort = contestSubmissionPort;
         this.executionPipeline = executionPipeline;
-        this.submissionMapper = submissionMapper;
+        this.submissionFencePort = submissionFencePort;
         this.featureFlags = featureFlags;
         this.meterRegistry = meterRegistry;
         this.uuidGenerator = uuidGenerator;
@@ -94,7 +93,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String submissionId = job.getSubmissionId();
         String problemId = job.getProblemId();
         String userId = job.getUserId();
-        markSystemError(submissionId, userId, problemId, findContestIdBySubmissionId(submissionId));
+        markSystemError(submissionId, userId, problemId, contestSubmissionPort.findContestId(submissionId));
     }
 
     // -----------------------------------------------------------------------
@@ -119,7 +118,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
             releaseIfLeased(port, handle);
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
-            markSystemError(submissionId, userId, problemId, findContestIdBySubmissionId(submissionId));
+            markSystemError(submissionId, userId, problemId, contestSubmissionPort.findContestId(submissionId));
             releaseIfLeased(port, handle);
         }
     }
@@ -156,17 +155,17 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         String userId = job.getUserId();
         String attemptId = uuidGenerator.newId();
 
-        Submission current = submissionMapper.selectById(submissionId);
-        if (current == null) {
+        Optional<Long> observed = submissionFencePort.currentGeneration(submissionId);
+        if (observed.isEmpty()) {
             log.warn("Fenced judge: submission {} not found, abandoning", submissionId);
             releaseIfLeased(port, handle);
             return;
         }
-        long generation = current.getGeneration() != null ? current.getGeneration() : 1L;
+        long generation = observed.get();
 
-        int acquired = submissionMapper.acquireLease(
+        boolean acquired = submissionFencePort.acquireLease(
                 submissionId, attemptId, generation, LeaseConstants.LEASE_TTL_SECONDS);
-        if (acquired != 1) {
+        if (!acquired) {
             log.debug("Fenced judge: lease not acquired for submission {} gen {} (already moved)",
                     submissionId, generation);
             releaseIfLeased(port, handle);
@@ -196,7 +195,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         } catch (Exception e) {
             log.error("Failed to process fenced judge job for submission {}", submissionId, e);
             markSystemErrorFenced(submissionId, generation, attemptId, userId, problemId,
-                    findContestIdBySubmissionId(submissionId));
+                    contestSubmissionPort.findContestId(submissionId));
         }
     }
 
@@ -230,9 +229,9 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         return executor.scheduleAtFixedRate(
                 () -> {
                     try {
-                        int renewed = submissionMapper.renewLease(
+                        boolean renewed = submissionFencePort.renewLease(
                                 submissionId, attemptId, LeaseConstants.LEASE_TTL_SECONDS);
-                        if (renewed != 1) {
+                        if (!renewed) {
                             incrementLeaseMissRenew();
                             log.debug("Heartbeat renew failed for submission {} attempt {} (lease lost)",
                                     submissionId, attemptId);
@@ -289,17 +288,6 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
         }
     }
 
-    private String findContestIdBySubmissionId(String submissionId) {
-        try {
-            return contestSubmissionMapper.findBySubmissionId(submissionId)
-                    .map(cs -> cs.getContestId())
-                    .orElse(null);
-        } catch (Exception e) {
-            log.debug("No contest mapping for submission {}: {}", submissionId, e.getMessage());
-            return null;
-        }
-    }
-
     /**
      * Shared execute step of the attempt lifecycle: run the sandbox pipeline
      * for one job and lift the null-result (sandbox yielded no verdict) into
@@ -320,7 +308,7 @@ public class DefaultJudgeAttemptExecutor implements JudgeAttemptExecutor {
     private void notifyVerdict(String userId, String submissionId, String problemId,
                                SubmissionStatus status, JudgeExecutionResult result) {
         long memoryBytes = (long) (result.maxMemoryMb() * 1024 * 1024);
-        String contestId = findContestIdBySubmissionId(submissionId);
+        String contestId = contestSubmissionPort.findContestId(submissionId);
         pushResult(userId, submissionId, problemId, status.wireValue(),
                 result.maxRuntimeMs(), memoryBytes, contestId);
     }

@@ -104,4 +104,16 @@ public class ContestSubmissionAdapter implements ContestSubmissionPort {
                 .findIsVirtualBySubmissionId(submissionId)
                 .orElse(false);
     }
+
+    @Override
+    public String findContestId(String submissionId) {
+        try {
+            return contestSubmissionMapper.findBySubmissionId(submissionId)
+                    .map(ContestSubmission::getContestId)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("No contest mapping for submission {}: {}", submissionId, e.getMessage());
+            return null;
+        }
+    }
 }

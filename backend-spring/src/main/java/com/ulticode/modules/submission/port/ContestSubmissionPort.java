@@ -56,4 +56,21 @@ public interface ContestSubmissionPort {
      *         part of any contest)
      */
     boolean isVirtualParticipation(String submissionId);
+
+    /**
+     * Resolve the contest a submission belongs to, if any. Used by the judge
+     * worker to route the verdict push to the right realtime contest channel.
+     *
+     * <p><b>Supplementary / fail-soft semantics</b>, matching the rest of this
+     * port: returns {@code null} when the submission is not part of any contest
+     * <em>or</em> when the contest lookup itself fails. The contract is that
+     * this method never throws — a contest-schema hiccup must not surface as a
+     * judge-worker failure, so the caller can treat the result as a plain
+     * nullable string without its own try/catch.
+     *
+     * @param submissionId the submission id
+     * @return the owning contest id, or {@code null} if the submission is not
+     *         contest-bound or the lookup failed
+     */
+    String findContestId(String submissionId);
 }

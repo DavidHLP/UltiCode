@@ -2,7 +2,6 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
 import com.ulticode.modules.queue.job.JudgeJob;
@@ -12,6 +11,8 @@ import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.port.ContestSubmissionPort;
+import com.ulticode.modules.submission.port.SubmissionFencePort;
 import com.ulticode.modules.submission.port.SubmissionWritePort;
 import com.ulticode.modules.queue.port.SubmissionResultPushPort;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
@@ -35,6 +36,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -77,13 +79,13 @@ class JudgeWorkerProcessorTest {
     private SubmissionResultPushPort submissionResultPushPort;
 
     @Mock
-    private ContestSubmissionMapper contestSubmissionMapper;
+    private ContestSubmissionPort contestSubmissionPort;
 
     @Mock
     private JudgeExecutionPipeline executionPipeline;
 
     @Mock
-    private com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+    private SubmissionFencePort submissionFencePort;
 
     @Mock
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
@@ -162,9 +164,9 @@ class JudgeWorkerProcessorTest {
         executor = new com.ulticode.modules.queue.processor.DefaultJudgeAttemptExecutor(
                 submissionWritePort,
                 submissionResultPushPort,
-                contestSubmissionMapper,
+                contestSubmissionPort,
                 executionPipeline,
-                submissionMapper,
+                submissionFencePort,
                 featureFlags,
                 meterRegistry,
                 new com.ulticode.common.uuid.FixedUuidGenerator());
@@ -177,7 +179,7 @@ class JudgeWorkerProcessorTest {
         sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');", clock,
                 new com.ulticode.common.uuid.FixedUuidGenerator());
         lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
-        lenient().when(contestSubmissionMapper.selectOne(any())).thenReturn(null);
+        lenient().when(contestSubmissionPort.findContestId(anyString())).thenReturn(null);
     }
 
     // === getJobType ===
@@ -307,8 +309,8 @@ class JudgeWorkerProcessorTest {
             when(executionPipeline.execute(anyString(), anyString(), anyLong(), anyString(),
                     anyString()))
                     .thenReturn(buildAcceptedResult(1));
-            when(contestSubmissionMapper.findBySubmissionId(anyString()))
-                    .thenThrow(new RuntimeException("contest schema mismatch"));
+            when(contestSubmissionPort.findContestId(anyString()))
+                    .thenReturn(null);
 
             processor.processJob(sampleJob);
 
@@ -349,12 +351,9 @@ class JudgeWorkerProcessorTest {
         @DisplayName("happy path: acquires lease, executes pipeline, writes verdict via fenced CAS")
         void fencedHappyPath_acquireExecuteWrite() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            Submission current = new Submission();
-            current.setId("sub-1");
-            current.setGeneration(1L);
-            when(submissionMapper.selectById("sub-1")).thenReturn(current);
-            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
-                    .thenReturn(1);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.of(1L));
+            when(submissionFencePort.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(true);
             when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
                     eq("sub-1")))
                     .thenReturn(buildAcceptedResult(1));
@@ -364,7 +363,7 @@ class JudgeWorkerProcessorTest {
 
             processor.processJob(sampleJob);
 
-            verify(submissionMapper).acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong());
+            verify(submissionFencePort).acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong());
             verify(executionPipeline).execute(eq("javascript"), eq("console.log('hello');"),
                     eq(100L), eq("user-1"), eq("sub-1"));
             verify(submissionWritePort).updateSubmissionResultFenced(eq("sub-1"), eq(1L), anyString(),
@@ -377,11 +376,11 @@ class JudgeWorkerProcessorTest {
         @DisplayName("submission not found → silently abandons (no pipeline call, no write)")
         void fencedSubmissionNotFound_abandons() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            when(submissionMapper.selectById("sub-1")).thenReturn(null);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.empty());
 
             processor.processJob(sampleJob);
 
-            verify(submissionMapper, never()).acquireLease(anyString(), anyString(), anyLong(),
+            verify(submissionFencePort, never()).acquireLease(anyString(), anyString(), anyLong(),
                     anyLong());
             verify(executionPipeline, never()).execute(anyString(), anyString(), anyLong(),
                     anyString(), anyString());
@@ -393,12 +392,9 @@ class JudgeWorkerProcessorTest {
         @DisplayName("lease not acquired (affected=0) → silently abandons (no pipeline call)")
         void fencedLeaseLost_abandons() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            Submission current = new Submission();
-            current.setId("sub-1");
-            current.setGeneration(1L);
-            when(submissionMapper.selectById("sub-1")).thenReturn(current);
-            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
-                    .thenReturn(0);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.of(1L));
+            when(submissionFencePort.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(false);
 
             processor.processJob(sampleJob);
 
@@ -413,12 +409,9 @@ class JudgeWorkerProcessorTest {
         @DisplayName("pipeline returns null on fenced path → writes System Error via fenced CAS")
         void fencedPipelineReturnsNull_writesSystemError() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            Submission current = new Submission();
-            current.setId("sub-1");
-            current.setGeneration(1L);
-            when(submissionMapper.selectById("sub-1")).thenReturn(current);
-            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
-                    .thenReturn(1);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.of(1L));
+            when(submissionFencePort.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(true);
             when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
                     eq("sub-1")))
                     .thenReturn(null);
@@ -438,12 +431,9 @@ class JudgeWorkerProcessorTest {
         @DisplayName("fenced write rejected (fence CAS mismatch) → drops result, no push")
         void fencedWriteRejected_dropsResult() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            Submission current = new Submission();
-            current.setId("sub-1");
-            current.setGeneration(1L);
-            when(submissionMapper.selectById("sub-1")).thenReturn(current);
-            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
-                    .thenReturn(1);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.of(1L));
+            when(submissionFencePort.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(true);
             when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
                     eq("sub-1")))
                     .thenReturn(buildAcceptedResult(1));
@@ -463,12 +453,9 @@ class JudgeWorkerProcessorTest {
         @DisplayName("pipeline throws on fenced path → fenced System Error write attempted")
         void fencedPipelineException_writesSystemError() throws Exception {
             when(featureFlags.isUseGenerationFence()).thenReturn(true);
-            Submission current = new Submission();
-            current.setId("sub-1");
-            current.setGeneration(1L);
-            when(submissionMapper.selectById("sub-1")).thenReturn(current);
-            when(submissionMapper.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
-                    .thenReturn(1);
+            when(submissionFencePort.currentGeneration("sub-1")).thenReturn(Optional.of(1L));
+            when(submissionFencePort.acquireLease(eq("sub-1"), anyString(), eq(1L), anyLong()))
+                    .thenReturn(true);
             when(executionPipeline.execute(anyString(), anyString(), eq(100L), eq("user-1"),
                     eq("sub-1")))
                     .thenThrow(new RuntimeException("sandbox crash"));

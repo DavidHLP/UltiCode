@@ -83,14 +83,7 @@ public class ProblemServiceImpl implements ProblemService {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
 
-        // Check if problem is locked (premium and user doesn't have access)
-        if (Boolean.TRUE.equals(problem.getIsPremium())) {
-            if (!currentUserProvider.hasRole("ADMIN") && !currentUserProvider.hasRole("SUPER_ADMIN")) {
-                // Return limited info for premium problems without access
-                throw new BusinessException(ErrorCode.PROBLEM_PREMIUM_REQUIRED);
-            }
-        }
-
+        enforcePremiumAccess(problem);
         return toVO(problem);
     }
 
@@ -98,15 +91,21 @@ public class ProblemServiceImpl implements ProblemService {
     public ProblemVO getProblemBySlug(String slug) {
         Problem problem = findBySlug(slug)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
-
-        // Check if problem is locked (premium and user doesn't have access)
-        if (Boolean.TRUE.equals(problem.getIsPremium())) {
-            if (!currentUserProvider.hasRole("ADMIN") && !currentUserProvider.hasRole("SUPER_ADMIN")) {
-                throw new BusinessException(ErrorCode.PROBLEM_PREMIUM_REQUIRED);
-            }
-        }
-
+        enforcePremiumAccess(problem);
         return toVO(problem);
+    }
+
+    /**
+     * Single premium-access verdict shared by {@link #getProblemById} and
+     * {@link #getProblemBySlug}. Premium problems require an admin role; any
+     * other caller is refused with {@link ErrorCode#PROBLEM_PREMIUM_REQUIRED}.
+     */
+    private void enforcePremiumAccess(Problem problem) {
+        if (Boolean.TRUE.equals(problem.getIsPremium())
+                && !currentUserProvider.hasRole("ADMIN")
+                && !currentUserProvider.hasRole("SUPER_ADMIN")) {
+            throw new BusinessException(ErrorCode.PROBLEM_PREMIUM_REQUIRED);
+        }
     }
 
     @Override

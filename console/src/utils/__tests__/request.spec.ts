@@ -6,8 +6,7 @@ import type { AuthFailureStrategy } from "@/shared/http-client/src";
 // object production code installs on the HTTP client.
 const harness = vi.hoisted(() => ({
   strategy: null as AuthFailureStrategy | null,
-  authStore: { isAuthenticated: true, clearUser: vi.fn() },
-  expiredCallback: null as (() => void) | null,
+  runSessionExpired: vi.fn(),
 }));
 
 vi.mock("@/shared/http-client/src", () => ({
@@ -28,12 +27,8 @@ vi.mock("@/shared/auth-core/src", () => ({
 
 vi.mock("@/i18n/utils/locale", () => ({ getActiveLocale: () => "zh-CN" }));
 
-vi.mock("@/stores/auth", () => ({
-  useAuthStore: () => harness.authStore,
-}));
-
-vi.mock("@/contexts/AuthContext", () => ({
-  getSessionExpiredCallback: () => harness.expiredCallback,
+vi.mock("@/auth/runSessionExpired", () => ({
+  runSessionExpired: () => harness.runSessionExpired(),
 }));
 
 // Importing the module runs its top level, which calls createHttpClient and
@@ -50,26 +45,26 @@ function strategy() {
 
 describe("console request onAuthFailure strategy", () => {
   beforeEach(() => {
-    harness.authStore = { isAuthenticated: true, clearUser: vi.fn() };
-    harness.expiredCallback = vi.fn();
+    harness.runSessionExpired.mockReset();
+    harness.runSessionExpired.mockImplementation(() => undefined);
   });
 
-  it("clears the user and fires the AuthContext session-expired callback when authenticated", async () => {
-    await strategy().onAuthFailure();
-    expect(harness.authStore.clearUser).toHaveBeenCalledTimes(1);
-    expect(harness.expiredCallback).toHaveBeenCalledTimes(1);
+  it("delegates to runSessionExpired for an authenticated failure", () => {
+    strategy().onAuthFailure();
+    expect(harness.runSessionExpired).toHaveBeenCalledTimes(1);
   });
 
-  it("skips clearUser when already unauthenticated but still notifies the failure owner", async () => {
-    harness.authStore.isAuthenticated = false;
-    await strategy().onAuthFailure();
-    expect(harness.authStore.clearUser).not.toHaveBeenCalled();
-    expect(harness.expiredCallback).toHaveBeenCalledTimes(1);
+  it("is invoked exactly once per call regardless of caller state", () => {
+    strategy().onAuthFailure();
+    strategy().onAuthFailure();
+    // Two separate onAuthFailure entries still produce two helper invocations;
+    // dedupe of concurrent same-reason triggers lives in shared/auth-core and
+    // is asserted by the auth-failure module's own spec.
+    expect(harness.runSessionExpired).toHaveBeenCalledTimes(2);
   });
 
-  it("is a navigation no-op when no session-expired callback is registered", async () => {
-    harness.expiredCallback = null;
-    await expect(strategy().onAuthFailure()).resolves.toBeUndefined();
-    expect(harness.authStore.clearUser).toHaveBeenCalledTimes(1);
+  it("is a navigation no-op when runSessionExpired is a stub", () => {
+    expect(() => strategy().onAuthFailure()).not.toThrow();
+    expect(harness.runSessionExpired).toHaveBeenCalledTimes(1);
   });
 });

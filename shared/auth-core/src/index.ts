@@ -97,6 +97,7 @@ export { rawAxios } from './rawAxios';
 export {
   setOnAuthFailure,
   clearOnAuthFailure,
+  hasOnAuthFailure,
   triggerAuthFailure,
   type AuthFailureReason,
   type AuthFailureHandler,

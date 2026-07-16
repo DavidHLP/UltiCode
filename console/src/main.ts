@@ -52,8 +52,9 @@ async function bootstrap() {
 
   // Initialize auth context BEFORE auth store
   // This sets up global auth error handling
-  const { initializeAuthContext, onSessionExpired, getSessionExpiredCallback } =
-    await import("@/contexts/AuthContext");
+  const { initializeAuthContext, onSessionExpired } = await import(
+    "@/contexts/AuthContext"
+  );
   initializeAuthContext();
 
   // Setup session expired redirect to login
@@ -71,13 +72,14 @@ async function bootstrap() {
   // createRefreshAccessToken(csrfManager) as the third arg to
   // createCsrfAxiosInterceptor). When refresh itself fails (refresh
   // cookie expired, >7d idle), the shared interceptor calls
-  // onAuthFailure — we forward to the same onSessionExpired callback
-  // that the legacy 401/403 path uses. Single source of truth for
-  // "session is gone" UX.
+  // onAuthFailure. We forward through `runSessionExpired`, the same
+  // single owner the propagated-401 strategy in `utils/request.ts`
+  // delegates to, so concurrent refresh failures and a fan-in of 401s
+  // collapse to one clearUser + one navigation push.
   const { setOnAuthFailure } = await import("@/shared/auth-core/src");
+  const { runSessionExpired } = await import("@/auth/runSessionExpired");
   setOnAuthFailure(() => {
-    const cb = getSessionExpiredCallback();
-    if (cb) cb();
+    runSessionExpired();
   });
 
   // Initialize auth store AFTER auth context is ready

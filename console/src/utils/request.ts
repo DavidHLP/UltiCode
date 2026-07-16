@@ -5,11 +5,14 @@
  *
  *   - CSRF manager (auth-core singleton, refreshFromResponse-driven)
  *   - locale resolver (`x-locale` + `Accept-Language` headers)
- *   - 401 handler (clear user state, then notify the active session-expired
- *     callback registered by the AppLayout)
+ *   - 401 handler: clear user state, then run the session-expired callback
+ *     owned by `contexts/AuthContext` (registered once in `main.ts`).
  *   - dedup policy: dedupe all non-auth URLs (skip auth-critical only)
  *
- * See `/tmp/architecture-review-1783341079.html` Card 2.
+ * Failure ownership: the propagated-401 path below and the refresh-failed
+ * path (`setOnAuthFailure` in `main.ts`) both funnel through AuthContext's
+ * single session-expired callback, so there is one redirect owner instead
+ * of two parallel callback singletons.
  */
 import { csrfManager } from '@/shared/auth-core/src'
 import { createHttpClient } from '@/shared/http-client/src'
@@ -22,13 +25,6 @@ import type {
   DedupPolicy,
 } from '@/shared/http-client/src'
 
-/** Late-bound reference to the AppLayout's session-expired callback. */
-let sessionExpiredCallback: (() => void) | null = null
-
-export function setSessionExpiredCallback(cb: (() => void) | null): void {
-  sessionExpiredCallback = cb
-}
-
 const onAuthFailure: AuthFailureStrategy = {
   kind: 'clear-and-run',
   async onAuthFailure() {
@@ -37,7 +33,12 @@ const onAuthFailure: AuthFailureStrategy = {
     if (authStore.isAuthenticated) {
       authStore.clearUser()
     }
-    if (sessionExpiredCallback) sessionExpiredCallback()
+    // Single failure owner: AuthContext's session-expired callback,
+    // registered in main.ts. Both this propagated-401 path and the
+    // refresh-failed path (setOnAuthFailure in main.ts) resolve to the
+    // same callback — one redirect owner, no duplicate singletons.
+    const { getSessionExpiredCallback } = await import('@/contexts/AuthContext')
+    getSessionExpiredCallback()?.()
   },
 }
 

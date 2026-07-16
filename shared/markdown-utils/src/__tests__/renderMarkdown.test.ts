@@ -206,6 +206,25 @@ describe('renderMarkdown heading IDs (renderer/extractor parity)', () => {
     expect(renderMarkdown('## Hello\n\n## Hello')).toContain('id="hello-2"')
   })
 
+  it('sanitizes a hostile heading payload and keeps the id slug-safe', () => {
+    const payload = '## "><img src=x onerror=alert(1)>'
+    const html = renderMarkdown(payload)
+
+    // No executable markup can form: the raw <img is escaped to inert text,
+    // never emitted as a live element, and no script tag survives.
+    expect(html).not.toMatch(/<img[\s>]/i)
+    expect(html).not.toMatch(/<script[\s>]/i)
+    expect(html).toContain('&lt;img')
+
+    // The id attribute is derived from slugifyHeading, so it cannot carry
+    // quote/angle-bracket characters that would break out of the attribute.
+    const idMatch = html.match(/<h2[^>]*id="([^"]*)"/)
+    expect(idMatch, 'renderer produced no id for the hostile heading').not.toBeNull()
+    const id = idMatch![1]
+    expect(id).not.toMatch(/["'<>()=]/)
+    expect(id).toBe(slugifyHeading('"><img src=x onerror=alert(1)>'))
+  })
+
   it('still escapes raw script tags after the heading rewrite', () => {
     const html = renderMarkdown('## Hi\n\n<script>alert(1)</script>\n')
     expect(html).not.toMatch(/<script[\s>]/i)

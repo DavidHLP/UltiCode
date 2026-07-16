@@ -68,7 +68,7 @@ class ProblemListServiceTest {
     @Mock private ProblemExistencePort problemExistencePort;
     @Mock private ProblemListProjection problemListProjection;
 
-    private ProblemListService problemListService;
+    private ProblemListServiceImpl problemListService;
 
     @BeforeEach
     void setUp() {

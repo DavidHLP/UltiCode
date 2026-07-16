@@ -16,6 +16,7 @@ import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
+import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ import static org.mockito.Mockito.when;
  * <p>Verifies the architectural contract:
  * <ul>
  *   <li>Every mutation path delegates to the admin-bypass ports on
- *       {@link ProblemListService} &mdash; not to {@link ProblemListMapper}
+ *       {@link ProblemListAdminService} &mdash; not to {@link ProblemListMapper}
  *       {@code updateById} / {@code deleteById} or any
  *       {@code ProblemListProblemMapper} mutation.</li>
  *   <li>{@link AuditContext} receives both old and new value snapshots for
@@ -69,6 +70,7 @@ class AdminProblemListServiceImplTest {
 
     @Mock private ProblemListMapper problemListMapper;
     @Mock private ProblemListService problemListService;
+    @Mock private ProblemListAdminService problemListAdminService;
     @Mock private ProblemListProjection problemListProjection;
 
     private AdminProblemListServiceImpl service;
@@ -78,6 +80,7 @@ class AdminProblemListServiceImplTest {
         service = new AdminProblemListServiceImpl(
                 problemListMapper,
                 problemListService,
+                problemListAdminService,
                 problemListProjection);
     }
 
@@ -187,21 +190,21 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should load entity via mapper and project through toAdminDetailVO")
         void loadsAndProjects() {
             ProblemList entity = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(entity);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(entity);
             ProblemListDetailVO detail = new ProblemListDetailVO();
             when(problemListProjection.toAdminDetailVO(entity)).thenReturn(detail);
 
             ProblemListDetailVO result = service.getProblemList(LIST_ID);
 
             assertThat(result).isSameAs(detail);
-            verify(problemListService).findEntityById(LIST_ID);
+            verify(problemListAdminService).findEntityById(LIST_ID);
             verify(problemListProjection).toAdminDetailVO(entity);
         }
 
         @Test
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when mapper returns null")
         void notFound() {
-            when(problemListService.findEntityById(LIST_ID))
+            when(problemListAdminService.findEntityById(LIST_ID))
                     .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.getProblemList(LIST_ID))
@@ -242,9 +245,9 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should read pre-state via service, delegate mutation, and capture audit snapshot")
         void delegatesMutationToService() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
             ProblemListSummaryVO vo = createSummary();
-            when(problemListService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
+            when(problemListAdminService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
                     .thenReturn(vo);
 
             UpdateProblemListDTO dto = new UpdateProblemListDTO();
@@ -252,8 +255,8 @@ class AdminProblemListServiceImplTest {
             ProblemListSummaryVO result = service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListService).findEntityById(LIST_ID);
-            verify(problemListService).adminUpdateProblemList(LIST_ID, dto);
+            verify(problemListAdminService).findEntityById(LIST_ID);
+            verify(problemListAdminService).adminUpdateProblemList(LIST_ID, dto);
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
@@ -270,8 +273,8 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should never call problemListMapper.updateById in mutation path")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
                     .thenReturn(createSummary());
 
             UpdateProblemListDTO dto = new UpdateProblemListDTO();
@@ -284,7 +287,7 @@ class AdminProblemListServiceImplTest {
         @Test
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when service findEntityById rejects")
         void notFoundBubbles() {
-            when(problemListService.findEntityById(LIST_ID))
+            when(problemListAdminService.findEntityById(LIST_ID))
                     .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             UpdateProblemListDTO dto = new UpdateProblemListDTO();
@@ -294,7 +297,7 @@ class AdminProblemListServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
-            verify(problemListService, never()).adminUpdateProblemList(any(), any());
+            verify(problemListAdminService, never()).adminUpdateProblemList(any(), any());
         }
     }
 
@@ -308,12 +311,12 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should read entity via service, capture audit snapshot, and delegate delete")
         void delegatesMutationToService() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             service.deleteProblemList(LIST_ID, ADMIN_USER_ID);
 
-            verify(problemListService).findEntityById(LIST_ID);
-            verify(problemListService).adminDeleteProblemList(LIST_ID);
+            verify(problemListAdminService).findEntityById(LIST_ID);
+            verify(problemListAdminService).adminDeleteProblemList(LIST_ID);
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
@@ -324,7 +327,7 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should never call problemListMapper.deleteById or problemListProblemMapper directly")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             service.deleteProblemList(LIST_ID, ADMIN_USER_ID);
 
@@ -334,14 +337,14 @@ class AdminProblemListServiceImplTest {
         @Test
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when entity missing")
         void notFoundBubbles() {
-            when(problemListService.findEntityById(LIST_ID))
+            when(problemListAdminService.findEntityById(LIST_ID))
                     .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.deleteProblemList(LIST_ID, ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
-            verify(problemListService, never()).adminDeleteProblemList(any());
+            verify(problemListAdminService, never()).adminDeleteProblemList(any());
         }
     }
 
@@ -355,7 +358,7 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should validate problems, delegate replace to service, capture count in audit context")
         void delegatesReplaceToService() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
             UpdateProblemListProblemsDTO.ProblemEntry e1 = new UpdateProblemListProblemsDTO.ProblemEntry();
@@ -368,8 +371,8 @@ class AdminProblemListServiceImplTest {
 
             service.updateListProblems(LIST_ID, dto, ADMIN_USER_ID);
 
-            verify(problemListService).findEntityById(LIST_ID);
-            verify(problemListService).adminReplaceListProblems(LIST_ID, dto);
+            verify(problemListAdminService).findEntityById(LIST_ID);
+            verify(problemListAdminService).adminReplaceListProblems(LIST_ID, dto);
 
             Map<String, Object> newValues = AuditContext.getNewValues();
             assertThat(newValues).containsEntry("updatedProblems", 2);
@@ -379,7 +382,7 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should reject null problems before delegating to the seam")
         void rejectsNullProblems() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
             dto.setProblems(null);
@@ -388,14 +391,14 @@ class AdminProblemListServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.VALIDATION_FAILED));
-            verify(problemListService, never()).adminReplaceListProblems(any(), any());
+            verify(problemListAdminService, never()).adminReplaceListProblems(any(), any());
         }
 
         @Test
         @DisplayName("should never call problemListProblemMapper directly")
         void noDirectProblemMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
             dto.setProblems(Collections.emptyList());
@@ -405,7 +408,7 @@ class AdminProblemListServiceImplTest {
             // Confirm no direct interaction with the user-facing mappers — they are
             // not even injected into AdminProblemListServiceImpl after the seam
             // extraction; this assertion documents the seam contract.
-            verify(problemListService).adminReplaceListProblems(LIST_ID, dto);
+            verify(problemListAdminService).adminReplaceListProblems(LIST_ID, dto);
         }
     }
 
@@ -419,11 +422,11 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should capture pre-state, delegate mutation, capture new state in audit context")
         void delegatesAndAudits() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
             ProblemListSummaryVO vo = echoedSummary(existing);
             vo.setName("Admin Name");
             vo.setDescription("Admin Description");
-            when(problemListService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
+            when(problemListAdminService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
                     .thenReturn(vo);
 
             UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
@@ -433,7 +436,7 @@ class AdminProblemListServiceImplTest {
             ProblemListSummaryVO result = service.updateBasicInfo(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListService).adminUpdateBasicInfo(LIST_ID, dto);
+            verify(problemListAdminService).adminUpdateBasicInfo(LIST_ID, dto);
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
@@ -448,8 +451,8 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should never call problemListMapper.updateById in mutation path")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
                     .thenReturn(createSummary());
 
             UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
@@ -473,12 +476,12 @@ class AdminProblemListServiceImplTest {
             ProblemList existing = createList();
             existing.setIsPublic(false);
             existing.setIsFeatured(false);
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             ProblemListSummaryVO vo = createSummary();
             vo.setIsPublic(true);
             vo.setIsFeatured(true);
-            when(problemListService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
+            when(problemListAdminService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
                     .thenReturn(vo);
 
             UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
@@ -488,7 +491,7 @@ class AdminProblemListServiceImplTest {
             ProblemListSummaryVO result = service.updateVisibility(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListService).adminUpdateVisibility(LIST_ID, dto);
+            verify(problemListAdminService).adminUpdateVisibility(LIST_ID, dto);
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("isPublic", false);
@@ -503,8 +506,8 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should never call problemListMapper.updateById in mutation path")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
                     .thenReturn(createSummary());
 
             UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
@@ -525,9 +528,9 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should capture pre-state, delegate mutation, capture new state in audit context")
         void delegatesAndAudits() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
             ProblemListSummaryVO vo = createSummary();
-            when(problemListService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
+            when(problemListAdminService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
                     .thenReturn(vo);
 
             UpdateBannerDTO dto = new UpdateBannerDTO();
@@ -538,7 +541,7 @@ class AdminProblemListServiceImplTest {
             ProblemListSummaryVO result = service.updateBanner(LIST_ID, ADMIN_USER_ID, dto);
 
             assertThat(result).isSameAs(vo);
-            verify(problemListService).adminUpdateBanner(LIST_ID, dto);
+            verify(problemListAdminService).adminUpdateBanner(LIST_ID, dto);
 
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("bannerTag", "original-tag");
@@ -555,8 +558,8 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should never call problemListMapper.updateById in mutation path")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
-            when(problemListService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
+            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
+            when(problemListAdminService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
                     .thenReturn(createSummary());
 
             UpdateBannerDTO dto = new UpdateBannerDTO();
@@ -573,14 +576,16 @@ class AdminProblemListServiceImplTest {
     @DisplayName("AdminProblemListServiceImpl must not hold a ProblemListProblemMapper dependency")
     void architecturalInvariant_noProblemMapperDependency() throws NoSuchMethodException {
         // The seam extraction removes ProblemListProblemMapper from the admin
-        // service constructor entirely. This test pins that contract: the
-        // service surface only takes (mapper, service, projection) so callers
-        // can rely on the admin side never holding the problem-relation mapper.
+        // service constructor entirely. This test pins that contract: the admin
+        // side depends only on the page mapper, the user-facing
+        // ProblemListService (for createList), the ProblemListAdminService
+        // bypass seam, and the projection — never the problem-relation mapper.
         java.lang.reflect.Constructor<?> ctor = AdminProblemListServiceImpl.class.getDeclaredConstructors()[0];
         Class<?>[] paramTypes = ctor.getParameterTypes();
         assertThat(paramTypes).containsOnly(
                 ProblemListMapper.class,
                 ProblemListService.class,
+                ProblemListAdminService.class,
                 ProblemListProjection.class);
         assertThat(paramTypes).doesNotContain(
                 com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper.class);

@@ -8,6 +8,15 @@ import {
   type BulkCommentActionDto,
 } from '@/api/admin/comments'
 import { extractApiErrorMessage } from '@/utils/error'
+import { useAuthStore } from '@/stores/auth'
+import { PERM } from '@/constants/permissions'
+
+/**
+ * Grouping shape used by the bulk-moderation workflow. The store owns
+ * grouping because bulk dispatch is part of the moderation policy, not the
+ * view layer.
+ */
+export type CommentTypeGroup = Partial<Record<CommentType, string[]>>
 
 export const useCommentsStore = defineStore('adminComments', () => {
   const comments = ref<Comment[]>([])
@@ -104,7 +113,12 @@ export const useCommentsStore = defineStore('adminComments', () => {
     }
   }
 
-  async function bulkAction(data: BulkCommentActionDto) {
+  /**
+   * Internal transport pass-through for a single (type, action) bulk call.
+   * Not exposed on the public store surface — the deep module contracts on
+   * the {@link bulkModerate} workflow, not on the wire shape.
+   */
+  async function runBulkAction(data: BulkCommentActionDto): Promise<void> {
     loading.value = true
     error.value = null
     try {
@@ -116,6 +130,84 @@ export const useCommentsStore = defineStore('adminComments', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  /**
+   * Group rows by {@link CommentType}, preserving insertion order within
+   * each type. Exposed so the view layer can render grouped summaries
+   * without duplicating the grouping policy.
+   */
+  function groupByType(rows: Pick<Comment, 'id' | 'type'>[]): CommentTypeGroup {
+    const grouped: CommentTypeGroup = {}
+    for (const row of rows) {
+      const list = grouped[row.type] ?? []
+      list.push(row.id)
+      grouped[row.type] = list
+    }
+    return grouped
+  }
+
+  /**
+   * Bulk-moderation workflow: group rows by type and issue one bulk API
+   * call per non-empty type, then re-fetch the current view via
+   * {@link fetchComments}. Empty input is a no-op so callers can forward
+   * user selections without a pre-check. Re-throws on failure so the view
+   * layer can surface a toast.
+   */
+  async function bulkModerate(
+    rows: Pick<Comment, 'id' | 'type'>[],
+    action: 'delete' | 'unflag',
+  ): Promise<void> {
+    if (rows.length === 0) return
+    const grouped = groupByType(rows)
+    await Promise.all(
+      Object.entries(grouped).map(([type, ids]) => {
+        if (!ids || ids.length === 0) return Promise.resolve()
+        return runBulkAction({ ids, type: type as CommentType, action })
+      }),
+    )
+  }
+
+  /**
+   * Moderation policy: route the moderate permission by comment type. The
+   * store owns this so every view sees one authorization seam instead of
+   * each composable re-deriving it from auth constants.
+   */
+  function canModerate(comment: Pick<Comment, 'type'>): boolean {
+    const authStore = useAuthStore()
+    if (comment.type === 'forum') {
+      return authStore.hasPermission(
+        PERM.MODERATE_FORUM_COMMENT.action,
+        PERM.MODERATE_FORUM_COMMENT.resource,
+      )
+    }
+    if (comment.type === 'solution') {
+      return authStore.hasPermission(
+        PERM.MODERATE_SOLUTION_COMMENT.action,
+        PERM.MODERATE_SOLUTION_COMMENT.resource,
+      )
+    }
+    return false
+  }
+
+  /**
+   * Moderation policy: route the delete permission by comment type.
+   */
+  function canDelete(comment: Pick<Comment, 'type'>): boolean {
+    const authStore = useAuthStore()
+    if (comment.type === 'forum') {
+      return authStore.hasPermission(
+        PERM.DELETE_FORUM_COMMENT.action,
+        PERM.DELETE_FORUM_COMMENT.resource,
+      )
+    }
+    if (comment.type === 'solution') {
+      return authStore.hasPermission(
+        PERM.DELETE_SOLUTION_COMMENT.action,
+        PERM.DELETE_SOLUTION_COMMENT.resource,
+      )
+    }
+    return false
   }
 
   function clearError() {
@@ -141,7 +233,10 @@ export const useCommentsStore = defineStore('adminComments', () => {
     flagComment,
     unflagComment,
     deleteComment,
-    bulkAction,
+    bulkModerate,
+    canModerate,
+    canDelete,
+    groupByType,
     clearError,
     reset,
   }

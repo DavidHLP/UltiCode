@@ -22,6 +22,7 @@ import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
+import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     private final ProblemListMapper problemListMapper;
     private final ProblemListService problemListService;
+    private final ProblemListAdminService problemListAdminService;
     private final ProblemListProjection problemListProjection;
 
     @Override
@@ -90,7 +92,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     public ProblemListDetailVO getProblemList(String id) {
-        return problemListProjection.toAdminDetailVO(problemListService.findEntityById(id));
+        return problemListProjection.toAdminDetailVO(problemListAdminService.findEntityById(id));
     }
 
     @Override
@@ -102,11 +104,11 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
-        ProblemList list = problemListService.findEntityById(id);
+        ProblemList list = problemListAdminService.findEntityById(id);
 
         AuditContext.setOldValues(oldSnapshot(list));
 
-        ProblemListSummaryVO vo = problemListService.adminUpdateProblemList(id, dto);
+        ProblemListSummaryVO vo = problemListAdminService.adminUpdateProblemList(id, dto);
 
         AuditContext.setNewValues(newSnapshot(vo));
 
@@ -116,22 +118,24 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Override
     @Audited(action = AuditVocabulary.DELETE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId", entityIdFrom = "id")
     public void deleteProblemList(String id, String userId) {
-        ProblemList list = problemListService.findEntityById(id);
+        ProblemList list = problemListAdminService.findEntityById(id);
         AuditContext.setOldValues(deleteSnapshot(list));
-        problemListService.adminDeleteProblemList(id);
+        problemListAdminService.adminDeleteProblemList(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId", entityIdFrom = "id")
     public void updateListProblems(String id, UpdateProblemListProblemsDTO dto, String userId) {
-        problemListService.findEntityById(id);
+        // Validate existence (404) before the admin replace; the returned
+        // entity is unused because this operation audits only the new count.
+        problemListAdminService.findEntityById(id);
 
         if (dto.getProblems() == null) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
         }
 
-        problemListService.adminReplaceListProblems(id, dto);
+        problemListAdminService.adminReplaceListProblems(id, dto);
 
         AuditContext.setNewValues(Map.of("updatedProblems", dto.getProblems().size()));
     }
@@ -140,14 +144,14 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
-        ProblemList list = problemListService.findEntityById(id);
+        ProblemList list = problemListAdminService.findEntityById(id);
 
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("name", list.getName() != null ? list.getName() : "");
         oldValues.put("description", list.getDescription() != null ? list.getDescription() : "");
         AuditContext.setOldValues(oldValues);
 
-        ProblemListSummaryVO vo = problemListService.adminUpdateBasicInfo(id, dto);
+        ProblemListSummaryVO vo = problemListAdminService.adminUpdateBasicInfo(id, dto);
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("name", vo.getName() != null ? vo.getName() : "");
@@ -161,14 +165,14 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
-        ProblemList list = problemListService.findEntityById(id);
+        ProblemList list = problemListAdminService.findEntityById(id);
 
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("isPublic", list.getIsPublic() != null ? list.getIsPublic() : false);
         oldValues.put("isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false);
         AuditContext.setOldValues(oldValues);
 
-        ProblemListSummaryVO vo = problemListService.adminUpdateVisibility(id, dto);
+        ProblemListSummaryVO vo = problemListAdminService.adminUpdateVisibility(id, dto);
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("isPublic", vo.getIsPublic() != null ? vo.getIsPublic() : false);
@@ -182,7 +186,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
-        ProblemList list = problemListService.findEntityById(id);
+        ProblemList list = problemListAdminService.findEntityById(id);
 
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "");
@@ -190,7 +194,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         oldValues.put("bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0);
         AuditContext.setOldValues(oldValues);
 
-        ProblemListSummaryVO vo = problemListService.adminUpdateBanner(id, dto);
+        ProblemListSummaryVO vo = problemListAdminService.adminUpdateBanner(id, dto);
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("bannerTag", vo.getBannerTag() != null ? vo.getBannerTag() : "");

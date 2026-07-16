@@ -75,20 +75,20 @@ describe('useCommentModeration', () => {
   })
 
   const spyOnStore = (
-    method: 'deleteComment' | 'flagComment' | 'unflagComment' | 'bulkAction',
+    method: 'deleteComment' | 'flagComment' | 'unflagComment' | 'bulkModerate',
   ): ReturnType<typeof vi.spyOn> => {
     const store = useCommentsStore()
     return vi.spyOn(store, method)
   }
 
-  describe('permission gating (action routing)', () => {
-    it('canModerateForum reflects the FORUM_COMMENT permission', () => {
+  describe('permission gating (delegated to the store policy)', () => {
+    it('canModerateForum reflects the FORUM_COMMENT permission via the store', () => {
       mockAuth(true, false)
       const { canModerateForum } = useCommentModeration()
       expect(canModerateForum.value).toBe(true)
     })
 
-    it('canModerateSolution reflects the SOLUTION_COMMENT permission', () => {
+    it('canModerateSolution reflects the SOLUTION_COMMENT permission via the store', () => {
       mockAuth(false, true)
       const { canModerateSolution } = useCommentModeration()
       expect(canModerateSolution.value).toBe(true)
@@ -115,13 +115,13 @@ describe('useCommentModeration', () => {
       expect(canModerate(makeComment({ type: 'solution' }))).toBe(false)
     })
 
-    it('canDeleteForum reflects the DELETE:FORUM_COMMENT permission', () => {
+    it('canDeleteForum reflects the DELETE:FORUM_COMMENT permission via the store', () => {
       mockAuth(true, true, true, false)
       const { canDeleteForum } = useCommentModeration()
       expect(canDeleteForum.value).toBe(true)
     })
 
-    it('canDeleteSolution reflects the DELETE:SOLUTION_COMMENT permission', () => {
+    it('canDeleteSolution reflects the DELETE:SOLUTION_COMMENT permission via the store', () => {
       mockAuth(true, true, false, true)
       const { canDeleteSolution } = useCommentModeration()
       expect(canDeleteSolution.value).toBe(true)
@@ -142,10 +142,15 @@ describe('useCommentModeration', () => {
     })
   })
 
-  describe('selection and dialog state (action routing)', () => {
+  describe('selection and dialog state (view-local UI)', () => {
     it('confirmDelete populates selection and opens the delete dialog', () => {
-      const { confirmDelete, selectedCommentId, selectedCommentType, selectedCommentContent, deleteDialogOpen } =
-        useCommentModeration()
+      const {
+        confirmDelete,
+        selectedCommentId,
+        selectedCommentType,
+        selectedCommentContent,
+        deleteDialogOpen,
+      } = useCommentModeration()
 
       const c = makeComment({ id: 'c-42', type: 'solution', content: 'payload' })
       confirmDelete(c)
@@ -157,8 +162,13 @@ describe('useCommentModeration', () => {
     })
 
     it('openFlagDialog populates selection and opens the flag dialog', () => {
-      const { openFlagDialog, selectedCommentId, selectedCommentType, selectedCommentContent, flagDialogOpen } =
-        useCommentModeration()
+      const {
+        openFlagDialog,
+        selectedCommentId,
+        selectedCommentType,
+        selectedCommentContent,
+        flagDialogOpen,
+      } = useCommentModeration()
 
       const c = makeComment({ id: 'c-7', type: 'forum', content: 'spammy' })
       openFlagDialog(c)
@@ -280,8 +290,8 @@ describe('useCommentModeration', () => {
     })
   })
 
-  describe('bulk grouping', () => {
-    it('groupByType splits rows by CommentType', () => {
+  describe('bulk grouping (delegated to the store)', () => {
+    it('groupByType splits rows by CommentType via the store helper', () => {
       const { groupByType } = useCommentModeration()
       const grouped = groupByType([
         makeComment({ id: '1', type: 'forum' }),
@@ -308,9 +318,9 @@ describe('useCommentModeration', () => {
     })
   })
 
-  describe('bulk actions (refresh policy + bulk grouping)', () => {
-    it('bulkUnflag groups by type, dispatches one store call per group, then refreshes', async () => {
-      const bulkSpy = spyOnStore('bulkAction').mockResolvedValue(undefined)
+  describe('bulk actions (delegation + refresh policy)', () => {
+    it('bulkUnflag delegates all rows to the store in one bulkModerate call, then refreshes', async () => {
+      const bulkSpy = spyOnStore('bulkModerate').mockResolvedValue(undefined)
 
       const refresh = vi.fn().mockResolvedValue(undefined)
       const { bulkUnflag } = useCommentModeration({ refresh })
@@ -322,23 +332,21 @@ describe('useCommentModeration', () => {
       ])
 
       expect(ok).toBe(true)
-      expect(bulkSpy).toHaveBeenCalledTimes(2)
-      expect(bulkSpy).toHaveBeenCalledWith({
-        ids: ['a', 'b'],
-        type: 'forum',
-        action: 'unflag',
-      })
-      expect(bulkSpy).toHaveBeenCalledWith({
-        ids: ['c'],
-        type: 'solution',
-        action: 'unflag',
-      })
+      expect(bulkSpy).toHaveBeenCalledTimes(1)
+      expect(bulkSpy).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ id: 'a', type: 'forum' }),
+          expect.objectContaining({ id: 'b', type: 'forum' }),
+          expect.objectContaining({ id: 'c', type: 'solution' }),
+        ],
+        'unflag',
+      )
       expect(refresh).toHaveBeenCalledTimes(1)
       expect(toastSuccess).toHaveBeenCalledWith('comments.toast.bulkUnflaggedSuccessfully')
     })
 
-    it('bulkDelete dispatches delete actions grouped by type then refreshes', async () => {
-      const bulkSpy = spyOnStore('bulkAction').mockResolvedValue(undefined)
+    it('bulkDelete delegates all rows to the store in one bulkModerate call, then refreshes', async () => {
+      const bulkSpy = spyOnStore('bulkModerate').mockResolvedValue(undefined)
 
       const refresh = vi.fn().mockResolvedValue(undefined)
       const { bulkDelete } = useCommentModeration({ refresh })
@@ -349,23 +357,20 @@ describe('useCommentModeration', () => {
       ])
 
       expect(ok).toBe(true)
-      expect(bulkSpy).toHaveBeenCalledTimes(2)
-      expect(bulkSpy).toHaveBeenCalledWith({
-        ids: ['x'],
-        type: 'solution',
-        action: 'delete',
-      })
-      expect(bulkSpy).toHaveBeenCalledWith({
-        ids: ['y'],
-        type: 'forum',
-        action: 'delete',
-      })
+      expect(bulkSpy).toHaveBeenCalledTimes(1)
+      expect(bulkSpy).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ id: 'x', type: 'solution' }),
+          expect.objectContaining({ id: 'y', type: 'forum' }),
+        ],
+        'delete',
+      )
       expect(refresh).toHaveBeenCalledTimes(1)
       expect(toastSuccess).toHaveBeenCalledWith('comments.toast.bulkDeletedSuccessfully')
     })
 
     it('bulkUnflag is a no-op (returns true) when called with no rows', async () => {
-      const bulkSpy = spyOnStore('bulkAction').mockResolvedValue(undefined)
+      const bulkSpy = spyOnStore('bulkModerate').mockResolvedValue(undefined)
 
       const refresh = vi.fn().mockResolvedValue(undefined)
       const { bulkUnflag } = useCommentModeration({ refresh })
@@ -380,7 +385,7 @@ describe('useCommentModeration', () => {
 
   describe('failure state (mutation result handling)', () => {
     it('bulkUnflag returns false, toasts failure, and skips refresh on rejection', async () => {
-      spyOnStore('bulkAction').mockRejectedValue(new Error('bulk fail'))
+      spyOnStore('bulkModerate').mockRejectedValue(new Error('bulk fail'))
 
       const refresh = vi.fn().mockResolvedValue(undefined)
       const { bulkUnflag } = useCommentModeration({ refresh })
@@ -393,7 +398,7 @@ describe('useCommentModeration', () => {
     })
 
     it('bulkDelete returns false, toasts failure, and skips refresh on rejection', async () => {
-      spyOnStore('bulkAction').mockRejectedValue(new Error('bulk fail'))
+      spyOnStore('bulkModerate').mockRejectedValue(new Error('bulk fail'))
 
       const refresh = vi.fn().mockResolvedValue(undefined)
       const { bulkDelete } = useCommentModeration({ refresh })

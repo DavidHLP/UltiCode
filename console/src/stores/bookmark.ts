@@ -15,10 +15,12 @@ import {
   deleteFolder as apiDeleteFolder,
   fetchFolder,
   fetchFolders,
+  getBookmarkFolders as apiGetItemFolders,
   removeBookmark as apiRemoveBookmark,
   removeBookmarkByTarget as apiRemoveBookmarkByTarget,
   reorderFolders as apiReorderFolders,
   updateFolder as apiUpdateFolder,
+  type ItemFoldersVO,
 } from "@/api/bookmark";
 
 export const useBookmarkStore = defineStore("bookmark", () => {
@@ -65,6 +67,18 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /**
+   * Read which folders contain a given target item. The workspace owns this
+   * read so components consume it through the store seam instead of reaching
+   * past it into the transport layer.
+   */
+  async function loadItemFolders(
+    targetType: BookmarkType,
+    targetId: string,
+  ): Promise<ItemFoldersVO> {
+    return apiGetItemFolders(targetType, targetId);
   }
 
   async function loadFolderDetails(id: string) {
@@ -320,6 +334,7 @@ export const useBookmarkStore = defineStore("bookmark", () => {
     defaultFolder,
     customFolders,
     loadFolders,
+    loadItemFolders,
     loadFolderDetails,
     selectFolder,
     resetSelection,

@@ -3,15 +3,16 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 
 import { useCommentsStore } from '@/stores/admin/comments'
-import { useAuthStore } from '@/stores/auth'
-import { PERM } from '@/constants/permissions'
+import type { CommentTypeGroup } from '@/stores/admin/comments'
 import type { Comment, CommentType } from '@/api/admin/comments'
+
+// Re-export so existing imports of the grouping type from the composable
+// path keep compiling. The store owns the canonical declaration now.
+export type { CommentTypeGroup }
 
 export interface UseCommentModerationOptions {
   refresh?: () => Promise<void> | void
 }
-
-export type CommentTypeGroup = Partial<Record<CommentType, string[]>>
 
 export interface UseCommentModerationReturn {
   canModerateForum: ComputedRef<boolean>
@@ -53,42 +54,19 @@ export function useCommentModeration(
 ): UseCommentModerationReturn {
   const { t } = useI18n()
   const commentsStore = useCommentsStore()
-  const authStore = useAuthStore()
   const refresh = options.refresh
 
-  const canModerateForum = computed(() =>
-    authStore.hasPermission(
-      PERM.MODERATE_FORUM_COMMENT.action,
-      PERM.MODERATE_FORUM_COMMENT.resource,
-    ),
-  )
-  const canModerateSolution = computed(() =>
-    authStore.hasPermission(
-      PERM.MODERATE_SOLUTION_COMMENT.action,
-      PERM.MODERATE_SOLUTION_COMMENT.resource,
-    ),
-  )
-  const canDeleteForum = computed(() =>
-    authStore.hasPermission(
-      PERM.DELETE_FORUM_COMMENT.action,
-      PERM.DELETE_FORUM_COMMENT.resource,
-    ),
-  )
-  const canDeleteSolution = computed(() =>
-    authStore.hasPermission(
-      PERM.DELETE_SOLUTION_COMMENT.action,
-      PERM.DELETE_SOLUTION_COMMENT.resource,
-    ),
-  )
+  // Permission policy lives on the store; the composable only projects it
+  // into the per-type computeds the views destructure.
+  const canModerateForum = computed(() => commentsStore.canModerate({ type: 'forum' }))
+  const canModerateSolution = computed(() => commentsStore.canModerate({ type: 'solution' }))
+  const canDeleteForum = computed(() => commentsStore.canDelete({ type: 'forum' }))
+  const canDeleteSolution = computed(() => commentsStore.canDelete({ type: 'solution' }))
   function canModerate(comment: Pick<Comment, 'type'>): boolean {
-    if (comment.type === 'forum') return canModerateForum.value
-    if (comment.type === 'solution') return canModerateSolution.value
-    return false
+    return commentsStore.canModerate(comment)
   }
   function canDelete(comment: Pick<Comment, 'type'>): boolean {
-    if (comment.type === 'forum') return canDeleteForum.value
-    if (comment.type === 'solution') return canDeleteSolution.value
-    return false
+    return commentsStore.canDelete(comment)
   }
 
   const selectedCommentId = ref<string | null>(null)
@@ -156,14 +134,8 @@ export function useCommentModeration(
     }
   }
 
-  function groupByType(rows: Pick<Comment, 'id' | 'type'>[]): CommentTypeGroup {
-    const grouped: CommentTypeGroup = {}
-    for (const row of rows) {
-      const list = grouped[row.type] ?? []
-      list.push(row.id)
-      grouped[row.type] = list
-    }
-    return grouped
+  function groupByType(rows: Pick<Comment, 'id' | 'type'>[]) {
+    return commentsStore.groupByType(rows)
   }
 
   async function dispatchBulk(
@@ -173,15 +145,9 @@ export function useCommentModeration(
     failureKey: string,
   ): Promise<boolean> {
     if (rows.length === 0) return true
-    const grouped = groupByType(rows)
     bulkActionLoading.value = true
     try {
-      await Promise.all(
-        Object.entries(grouped).map(([type, ids]) => {
-          if (!ids || ids.length === 0) return Promise.resolve()
-          return commentsStore.bulkAction({ ids, type: type as CommentType, action })
-        }),
-      )
+      await commentsStore.bulkModerate(rows, action)
       if (refresh) await refresh()
       toast.success(t(successKey))
       return true

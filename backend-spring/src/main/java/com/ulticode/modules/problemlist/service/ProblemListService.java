@@ -10,7 +10,6 @@ import com.ulticode.modules.problemlist.dto.UpdateCategoryDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
-import com.ulticode.modules.problemlist.entity.ProblemList;
 
 import java.util.List;
 
@@ -161,19 +160,6 @@ public interface ProblemListService {
 
     ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto);
 
-    // ==================== Admin-bypass mutations ====================
-
-    ProblemList findEntityById(String id);
-
-    ProblemListSummaryVO adminUpdateProblemList(String id, UpdateProblemListDTO dto);
-
-    ProblemListSummaryVO adminUpdateBasicInfo(String id, UpdateBasicInfoDTO dto);
-
-    ProblemListSummaryVO adminUpdateVisibility(String id, UpdateVisibilityDTO dto);
-
-    ProblemListSummaryVO adminUpdateBanner(String id, UpdateBannerDTO dto);
-
-    void adminReplaceListProblems(String id, UpdateProblemListProblemsDTO dto);
-
-    void adminDeleteProblemList(String id);
+    // Admin-bypass mutations live on ProblemListAdminService (the narrow seam
+    // the admin module consumes) so user-facing callers never see them.
 }

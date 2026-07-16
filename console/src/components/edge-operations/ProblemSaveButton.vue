@@ -19,7 +19,6 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useBookmarkStore } from "@/stores/bookmark";
-import { getBookmarkFolders } from "@/api/bookmark";
 import {
   getUserListsForProblem,
   batchAddProblemToLists,
@@ -110,7 +109,7 @@ async function loadData() {
     // Load bookmark folders in parallel
     await bookmarkStore.loadFolders();
     const [folders, lists] = await Promise.all([
-      getBookmarkFolders(props.targetType, props.problemId.toString()),
+      bookmarkStore.loadItemFolders(props.targetType, props.problemId.toString()),
       getUserListsForProblem(props.problemId),
     ]);
 

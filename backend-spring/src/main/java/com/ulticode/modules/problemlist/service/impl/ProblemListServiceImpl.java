@@ -24,6 +24,7 @@ import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
+import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import com.ulticode.modules.problemlist.port.ProblemExistencePort;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ProblemListServiceImpl implements ProblemListService {
+public class ProblemListServiceImpl implements ProblemListService, ProblemListAdminService {
 
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;

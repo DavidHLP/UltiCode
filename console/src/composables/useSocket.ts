@@ -69,46 +69,30 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socketManager.unsubscribeFromContest(contestId);
   };
 
-  const onSubmissionResult = (
-    callback: (data: SubmissionResultPayload) => void,
-  ) => {
-    socketManager.on(NotificationEvent.SUBMISSION_RESULT, callback);
-    const unsub = () =>
-      socketManager.off(NotificationEvent.SUBMISSION_RESULT, callback);
+  // Register a typed event handler with automatic unmount cleanup so the
+  // five on* helpers below share one bind/unbind path instead of repeating
+  // the on + off + push ritual per event.
+  function bind<T>(event: NotificationEvent | string, callback: (data: T) => void) {
+    socketManager.on(event, callback);
+    const unsub = () => socketManager.off(event, callback);
     unsubscribers.push(unsub);
     return unsub;
-  };
+  }
 
-  const onContestUpdate = (callback: (data: ContestUpdatePayload) => void) => {
-    socketManager.on(NotificationEvent.CONTEST_UPDATE, callback);
-    const unsub = () =>
-      socketManager.off(NotificationEvent.CONTEST_UPDATE, callback);
-    unsubscribers.push(unsub);
-    return unsub;
-  };
+  const onSubmissionResult = (callback: (data: SubmissionResultPayload) => void) =>
+    bind(NotificationEvent.SUBMISSION_RESULT, callback);
 
-  const onBadgeEarned = (callback: (data: BadgeEarnedPayload) => void) => {
-    socketManager.on(NotificationEvent.BADGE_EARNED, callback);
-    const unsub = () =>
-      socketManager.off(NotificationEvent.BADGE_EARNED, callback);
-    unsubscribers.push(unsub);
-    return unsub;
-  };
+  const onContestUpdate = (callback: (data: ContestUpdatePayload) => void) =>
+    bind(NotificationEvent.CONTEST_UPDATE, callback);
 
-  const onNotification = (callback: (data: NotificationPayload) => void) => {
-    socketManager.on(NotificationEvent.SYSTEM_ANNOUNCEMENT, callback);
-    const unsub = () =>
-      socketManager.off(NotificationEvent.SYSTEM_ANNOUNCEMENT, callback);
-    unsubscribers.push(unsub);
-    return unsub;
-  };
+  const onBadgeEarned = (callback: (data: BadgeEarnedPayload) => void) =>
+    bind(NotificationEvent.BADGE_EARNED, callback);
 
-  const onConnectionStatus = (callback: (status: ConnectionStatus) => void) => {
-    socketManager.on("connection:status", callback);
-    const unsub = () => socketManager.off("connection:status", callback);
-    unsubscribers.push(unsub);
-    return unsub;
-  };
+  const onNotification = (callback: (data: NotificationPayload) => void) =>
+    bind(NotificationEvent.SYSTEM_ANNOUNCEMENT, callback);
+
+  const onConnectionStatus = (callback: (status: ConnectionStatus) => void) =>
+    bind("connection:status", callback);
 
   // Watch for authentication changes
   watch(

@@ -1,7 +1,6 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconDotsVertical,
   IconEye,
   IconEyeOff,
   IconPencil,
@@ -11,14 +10,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { ProblemList } from '@/api/admin/problem-lists'
 import { formatDate } from '@/lib/format/date'
 import { badge } from '@/components/ui/terminal'
@@ -216,100 +208,35 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const list = row.original
-        return createActionsDropdown(t, list, actions, canUpdate, canDelete)
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('common.edit'),
+              onSelect: () => actions.editList(list.id),
+              icon: IconPencil,
+              iconClass: 'h-4 w-4 text-[var(--accent-electric)]',
+              hidden: !canUpdate(),
+            },
+            { kind: 'separator', hidden: !canDelete() },
+            {
+              label: t('common.delete'),
+              onSelect: () => actions.deleteList(list),
+              icon: IconTrash,
+              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+              labelClass: 'text-[var(--terminal-red)]',
+              hidden: !canDelete(),
+            },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string) => string,
-  list: ProblemList,
-  actions: ProblemListActions,
-  canUpdate: () => boolean,
-  canDelete: () => boolean,
-) {
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, 'Open menu'),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () =>
-              [
-                canUpdate()
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.editList(list.id),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconPencil, { class: 'h-4 w-4 text-[var(--accent-electric)]' }),
-                            h('span', t('common.edit')),
-                          ]),
-                      },
-                    )
-                  : null,
-                canDelete()
-                  ? [
-                      h(DropdownMenuSeparator, {
-                        class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-                      }),
-                      h(
-                        DropdownMenuItem,
-                        {
-                          onClick: () => actions.deleteList(list),
-                          class: 'font-data text-xs cursor-pointer',
-                        },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                              h(
-                                'span',
-                                { class: 'text-[var(--terminal-red)]' },
-                                t('common.delete'),
-                              ),
-                            ]),
-                        },
-                      ),
-                    ]
-                  : null,
-              ].filter(Boolean),
-          },
-        ),
-      ],
-    },
-  )
 }

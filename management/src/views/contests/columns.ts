@@ -4,7 +4,6 @@ import {
   IconCalendar,
   IconCircleCheckFilled,
   IconClock,
-  IconDotsVertical,
   IconEye,
   IconLoader,
   IconPlayerPlay,
@@ -15,14 +14,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
 import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
@@ -237,135 +229,50 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const contest = row.original
-        return createActionsDropdown(t, contest, actions, canUpdate, canDelete)
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('contests.actions.viewDetails'),
+              onSelect: () => actions.viewContest(contest),
+              icon: IconEye,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+            },
+            {
+              label: t('contests.actions.startContest'),
+              onSelect: () => actions.startContest(contest),
+              icon: IconPlayerPlay,
+              iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
+              labelClass: 'text-[var(--terminal-green)]',
+              hidden: !(canUpdate() && contest.status === 'UPCOMING'),
+            },
+            {
+              label: t('contests.actions.endContest'),
+              onSelect: () => actions.endContest(contest),
+              icon: IconPlayerStop,
+              iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+              labelClass: 'text-[var(--terminal-amber)]',
+              hidden: !(canUpdate() && contest.status === 'RUNNING'),
+            },
+            { kind: 'separator' },
+            {
+              label: t('contests.actions.delete'),
+              onSelect: () => actions.startDeleteContest(contest),
+              icon: IconTrash,
+              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+              labelClass: 'text-[var(--terminal-red)]',
+              hidden: !canDelete(),
+            },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string, params?: Record<string, unknown>) => string,
-  contest: Contest,
-  actions: ContestActions,
-  canUpdate: () => boolean,
-  canDelete: () => boolean,
-) {
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, 'Open menu'),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () => [
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.viewContest(contest),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      h('span', t('contests.actions.viewDetails')),
-                    ]),
-                },
-              ),
-              canUpdate() && contest.status === 'UPCOMING'
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.startContest(contest),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconPlayerPlay, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-green)]' },
-                            t('contests.actions.startContest'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-              canUpdate() && contest.status === 'RUNNING'
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.endContest(contest),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconPlayerStop, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-amber)]' },
-                            t('contests.actions.endContest'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-              h(DropdownMenuSeparator, {
-                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-              }),
-              canDelete()
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.startDeleteContest(contest),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-red)]' },
-                            t('contests.actions.delete'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-            ],
-          },
-        ),
-      ],
-    },
-  )
 }

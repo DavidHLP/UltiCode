@@ -6,7 +6,6 @@ import {
   IconCheck,
   IconClock,
   IconCode,
-  IconDotsVertical,
   IconEye,
   IconFileText,
   IconMessage,
@@ -19,14 +18,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import {
   type ModerationQueueItem,
   type ModerationStatus,
@@ -446,156 +438,57 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const item = row.original
-        return createActionsDropdown(t, item, actions)
+        const canClaim = !item.assignedToId
+        const canAction = item.status === 'PENDING' || item.status === 'UNDER_REVIEW'
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('moderation.queue.viewDetails'),
+              onSelect: () => actions.openDrawer(item),
+              icon: IconEye,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+            },
+            {
+              label: t('moderation.queue.viewEntity'),
+              onSelect: () => actions.viewEntity(item),
+              icon: IconTournament,
+              iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+            },
+            {
+              label: t('moderation.queue.claimItem'),
+              onSelect: () => actions.claimItem(item.id),
+              icon: IconUser,
+              iconClass: 'h-4 w-4 text-[var(--terminal-purple)]',
+              hidden: !canClaim,
+            },
+            { kind: 'separator', hidden: !canAction },
+            {
+              label: t('moderation.quickResolve'),
+              onSelect: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
+              icon: IconCheck,
+              iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
+              labelClass: 'text-[var(--terminal-green)]',
+              hidden: !canAction,
+            },
+            {
+              label: t('moderation.quickDismiss'),
+              onSelect: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
+              icon: IconX,
+              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+              labelClass: 'text-[var(--terminal-red)]',
+              hidden: !canAction,
+            },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string) => string,
-  item: ModerationQueueItem,
-  actions: ModerationActions,
-) {
-  const isPending = item.status === 'PENDING'
-  const isUnderReview = item.status === 'UNDER_REVIEW'
-  const canClaim = !item.assignedToId
-  const canAction = isPending || isUnderReview
-
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, 'Open menu'),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () =>
-              [
-                // View Details
-                h(
-                  DropdownMenuItem,
-                  {
-                    onClick: () => actions.openDrawer(item),
-                    class: 'font-data text-xs cursor-pointer',
-                  },
-                  {
-                    default: () =>
-                      h('div', { class: 'flex items-center gap-2' }, [
-                        h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                        h('span', t('moderation.queue.viewDetails')),
-                      ]),
-                  },
-                ),
-                // View Entity
-                h(
-                  DropdownMenuItem,
-                  {
-                    onClick: () => actions.viewEntity(item),
-                    class: 'font-data text-xs cursor-pointer',
-                  },
-                  {
-                    default: () =>
-                      h('div', { class: 'flex items-center gap-2' }, [
-                        h(IconTournament, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                        h('span', t('moderation.queue.viewEntity')),
-                      ]),
-                  },
-                ),
-                // Claim (if not assigned)
-                canClaim
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.claimItem(item.id),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconUser, { class: 'h-4 w-4 text-[var(--terminal-purple)]' }),
-                            h('span', t('moderation.queue.claimItem')),
-                          ]),
-                      },
-                    )
-                  : null,
-                // Separator
-                canAction
-                  ? h(DropdownMenuSeparator, {
-                      class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-                    })
-                  : null,
-                // Quick Actions
-                canAction
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-green)]' },
-                              t('moderation.quickResolve'),
-                            ),
-                          ]),
-                      },
-                    )
-                  : null,
-                canAction
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-red)]' },
-                              t('moderation.quickDismiss'),
-                            ),
-                          ]),
-                      },
-                    )
-                  : null,
-              ].filter(Boolean),
-          },
-        ),
-      ],
-    },
-  )
 }

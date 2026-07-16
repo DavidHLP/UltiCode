@@ -2,7 +2,6 @@ import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCheck,
-  IconDotsVertical,
   IconEyeOff,
   IconFile,
   IconFlag,
@@ -12,14 +11,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { SolutionListItem } from '@/api/admin/solutions'
 import { formatDate } from '@/lib/format/date'
@@ -198,134 +190,52 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const solution = row.original
-        return createActionsDropdown(t, solution, actions, canUpdateSolution, canDeleteSolution)
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('solutions.actions.viewDetails'),
+              onSelect: () => actions.viewSolution(solution.id),
+              icon: IconFile,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+            },
+            solution.isFlagged
+              ? {
+                  label: t('solutions.actions.unflag'),
+                  onSelect: () => actions.unflagSolution(solution.id),
+                  icon: IconCheck,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
+                  labelClass: 'text-[var(--terminal-green)]',
+                  hidden: !canUpdateSolution(),
+                }
+              : {
+                  label: t('solutions.actions.flag'),
+                  onSelect: () => actions.openFlagDialog(solution),
+                  icon: IconFlag,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+                  labelClass: 'text-[var(--terminal-amber)]',
+                  hidden: !canUpdateSolution(),
+                },
+            { kind: 'separator' },
+            {
+              label: t('solutions.actions.delete'),
+              onSelect: () => actions.confirmDelete(solution),
+              icon: IconTrash,
+              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+              labelClass: 'text-[var(--terminal-red)]',
+              hidden: !canDeleteSolution(),
+            },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+            srLabel: t('common.open'),
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string) => string,
-  solution: SolutionListItem,
-  actions: SolutionActions,
-  canUpdateSolution: () => boolean,
-  canDeleteSolution: () => boolean,
-) {
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, t('common.open')),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () => [
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.viewSolution(solution.id),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconFile, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      t('solutions.actions.viewDetails'),
-                    ]),
-                },
-              ),
-              canUpdateSolution()
-                ? solution.isFlagged
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.unflagSolution(solution.id),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-green)]' },
-                              t('solutions.actions.unflag'),
-                            ),
-                          ]),
-                      },
-                    )
-                  : h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.openFlagDialog(solution),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-amber)]' },
-                              t('solutions.actions.flag'),
-                            ),
-                          ]),
-                      },
-                    )
-                : null,
-              h(DropdownMenuSeparator, {
-                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-              }),
-              canDeleteSolution()
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.confirmDelete(solution),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-red)]' },
-                            t('solutions.actions.delete'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-            ],
-          },
-        ),
-      ],
-    },
-  )
 }

@@ -6,7 +6,6 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconCircleCheckFilled,
-  IconDotsVertical,
   IconEye,
   IconEyeOff,
   IconFile,
@@ -25,17 +24,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { Difficulty, type Problem } from '@/api/admin/problems'
 
 function getDifficultyIcon(difficulty: Difficulty) {
@@ -259,181 +248,82 @@ export function useProblemColumns(
       header: () => t('common.actions.label'),
       cell: ({ row }) => {
         const problem = row.original
-        return h(
-          DropdownMenu,
-          {},
+        return createEntityActionsMenu([
           {
-            default: () => [
-              h(
-                DropdownMenuTrigger,
-                { asChild: true },
-                {
-                  default: () =>
-                    h(
-                      Button,
-                      { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                      {
-                        default: () => [
-                          h('span', { class: 'sr-only' }, 'Open menu'),
-                          h(IconDotsVertical, { class: 'h-4 w-4' }),
-                        ],
-                      },
-                    ),
-                },
-              ),
-              h(
-                DropdownMenuContent,
-                { align: 'end' },
-                {
-                  default: () => [
-                    h(
-                      DropdownMenuSub,
-                      {},
-                      {
-                        default: () => [
-                          h(
-                            DropdownMenuSubTrigger,
-                            { class: 'gap-2' },
-                            { default: () => [h(IconEye, { class: 'h-4 w-4' }), t('common.view')] },
-                          ),
-                          h(
-                            DropdownMenuSubContent,
-                            {},
-                            {
-                              default: () => [
-                                h(
-                                  DropdownMenuItem,
-                                  { onClick: () => actions.viewProblem(problem.id) },
-                                  {
-                                    default: () =>
-                                      h('div', { class: 'flex items-center gap-2' }, [
-                                        h(IconFile, { class: 'h-4 w-4' }),
-                                        t('problems.tabs.description'),
-                                      ]),
-                                  },
-                                ),
-                                h(
-                                  DropdownMenuItem,
-                                  { onClick: () => actions.viewProblemCode(problem.id) },
-                                  {
-                                    default: () =>
-                                      h('div', { class: 'flex items-center gap-2' }, [
-                                        h(IconBrackets, { class: 'h-4 w-4' }),
-                                        t('problems.tabs.code'),
-                                      ]),
-                                  },
-                                ),
-                                h(
-                                  DropdownMenuItem,
-                                  { onClick: () => actions.viewProblemCases(problem.id) },
-                                  {
-                                    default: () =>
-                                      h('div', { class: 'flex items-center gap-2' }, [
-                                        h(IconFlask, { class: 'h-4 w-4' }),
-                                        t('problems.tabs.testCases'),
-                                      ]),
-                                  },
-                                ),
-                                problem.isFlagged
-                                  ? h(
-                                      DropdownMenuItem,
-                                      { onClick: () => actions.viewFlagInfo(problem) },
-                                      {
-                                        default: () =>
-                                          h('div', { class: 'flex items-center gap-2' }, [
-                                            h(IconAlertTriangle, {
-                                              class: 'h-4 w-4 text-[var(--terminal-amber)]',
-                                            }),
-                                            t('problems.actions.viewFlagInfo'),
-                                          ]),
-                                      },
-                                    )
-                                  : null,
-                                h(
-                                  DropdownMenuItem,
-                                  { onClick: () => actions.openAuditDrawer(problem) },
-                                  {
-                                    default: () =>
-                                      h('div', { class: 'flex items-center gap-2' }, [
-                                        h(IconInfoCircle, {
-                                          class: 'h-4 w-4 text-[var(--terminal-cyan)]',
-                                        }),
-                                        t('audit.problemDrawer.button'),
-                                      ]),
-                                  },
-                                ),
-                              ],
-                            },
-                          ),
-                        ],
-                      },
-                    ),
-                    h(DropdownMenuSeparator, {}),
-                    canUpdateProblem.value
-                      ? h(
-                          DropdownMenuItem,
-                          {
-                            onClick: () =>
-                              problem.isFlagged
-                                ? actions.unflagProblem(problem.id)
-                                : actions.openFlagDialog(problem),
-                          },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2' }, [
-                                problem.isFlagged
-                                  ? h(IconFlagOff, { class: 'h-4 w-4 text-emerald-600' })
-                                  : h(IconFlag, { class: 'h-4 w-4 text-amber-600' }),
-                                problem.isFlagged ? t('moderation.unflag') : t('moderation.flag'),
-                              ]),
-                          },
-                        )
-                      : null,
-                    h(DropdownMenuSeparator, {}),
-                    canUpdateProblem.value
-                      ? problem.isPublished
-                        ? h(
-                            DropdownMenuItem,
-                            { onClick: () => actions.unpublishProblem(problem.id) },
-                            {
-                              default: () =>
-                                h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                                  h(IconEyeOff, { class: 'h-4 w-4' }),
-                                  t('problems.actions.unpublish'),
-                                ]),
-                            },
-                          )
-                        : h(
-                            DropdownMenuItem,
-                            { onClick: () => actions.publishProblem(problem.id) },
-                            {
-                              default: () =>
-                                h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                                  h(IconEye, { class: 'h-4 w-4' }),
-                                  t('problems.actions.publish'),
-                                ]),
-                            },
-                          )
-                      : null,
-                    canDeleteProblem.value
-                      ? h(
-                          DropdownMenuItem,
-                          { onClick: () => actions.confirmDelete(problem) },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                                h(IconTrash, { class: 'h-4 w-4' }),
-                                t('common.delete'),
-                              ]),
-                          },
-                        )
-                      : null,
-                  ],
-                },
-              ),
+            kind: 'submenu',
+            triggerLabel: t('common.view'),
+            triggerIcon: IconEye,
+            items: [
+              {
+                label: t('problems.tabs.description'),
+                onSelect: () => actions.viewProblem(problem.id),
+                icon: IconFile,
+              },
+              {
+                label: t('problems.tabs.code'),
+                onSelect: () => actions.viewProblemCode(problem.id),
+                icon: IconBrackets,
+              },
+              {
+                label: t('problems.tabs.testCases'),
+                onSelect: () => actions.viewProblemCases(problem.id),
+                icon: IconFlask,
+              },
+              {
+                label: t('problems.actions.viewFlagInfo'),
+                onSelect: () => actions.viewFlagInfo(problem),
+                icon: IconAlertTriangle,
+                iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+                hidden: !problem.isFlagged,
+              },
+              {
+                label: t('audit.problemDrawer.button'),
+                onSelect: () => actions.openAuditDrawer(problem),
+                icon: IconInfoCircle,
+                iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+              },
             ],
           },
-        )
+          { kind: 'separator' },
+          problem.isFlagged
+            ? {
+                label: t('moderation.unflag'),
+                onSelect: () => actions.unflagProblem(problem.id),
+                icon: IconFlagOff,
+                iconClass: 'h-4 w-4 text-emerald-600',
+                hidden: !canUpdateProblem.value,
+              }
+            : {
+                label: t('moderation.flag'),
+                onSelect: () => actions.openFlagDialog(problem),
+                icon: IconFlag,
+                iconClass: 'h-4 w-4 text-amber-600',
+                hidden: !canUpdateProblem.value,
+              },
+          { kind: 'separator' },
+          problem.isPublished
+            ? {
+                label: t('problems.actions.unpublish'),
+                onSelect: () => actions.unpublishProblem(problem.id),
+                icon: IconEyeOff,
+                labelClass: 'text-amber-600',
+                hidden: !canUpdateProblem.value,
+              }
+            : {
+                label: t('problems.actions.publish'),
+                onSelect: () => actions.publishProblem(problem.id),
+                icon: IconEye,
+                labelClass: 'text-emerald-600',
+                hidden: !canUpdateProblem.value,
+              },
+          {
+            label: t('common.delete'),
+            onSelect: () => actions.confirmDelete(problem),
+            icon: IconTrash,
+            labelClass: 'text-destructive',
+            hidden: !canDeleteProblem.value,
+          },
+        ])
       },
     },
   ]

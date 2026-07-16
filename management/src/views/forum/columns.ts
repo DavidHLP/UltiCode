@@ -2,7 +2,6 @@ import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCheck,
-  IconDotsVertical,
   IconFlag,
   IconTrash,
   IconUser,
@@ -13,14 +12,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge } from '@/components/ui/terminal'
 import type { ForumPost } from '@/api/admin/forum'
 import { formatDate } from '@/lib/format/date'
@@ -184,179 +176,69 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const post = row.original
-        return createActionsDropdown(t, post, actions, canModerate)
+        const canModerateRow = canModerate()
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('forum.actions.viewDetails'),
+              onSelect: () => actions.viewPostDetails(post),
+              icon: IconEye,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+            },
+            { kind: 'separator', hidden: !canModerateRow },
+            {
+              label: post.isPinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
+              onSelect: () => actions.togglePin(post),
+              icon: IconPin,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+              hidden: !canModerateRow,
+            },
+            {
+              label: post.isLocked ? t('forum.actions.unlock') : t('forum.actions.lock'),
+              onSelect: () => actions.toggleLock(post),
+              icon: IconLock,
+              iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+              hidden: !canModerateRow,
+            },
+            { kind: 'separator', hidden: !canModerateRow },
+            post.isFlagged
+              ? {
+                  label: t('forum.actions.unflag'),
+                  onSelect: () => actions.unflagPost(post.id),
+                  icon: IconCheck,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
+                  labelClass: 'text-[var(--terminal-green)]',
+                  hidden: !canModerateRow,
+                }
+              : {
+                  label: t('forum.actions.flag'),
+                  onSelect: () => actions.openFlagDialog(post),
+                  icon: IconFlag,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+                  labelClass: 'text-[var(--terminal-amber)]',
+                  hidden: !canModerateRow,
+                },
+            { kind: 'separator', hidden: !canModerateRow },
+            {
+              label: t('common.delete'),
+              onSelect: () => actions.confirmDelete(post),
+              icon: IconTrash,
+              iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+              labelClass: 'text-[var(--terminal-red)]',
+              hidden: !canModerateRow,
+            },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+            srLabel: t('common.open'),
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string) => string,
-  post: ForumPost,
-  actions: ForumPostActions,
-  canModerate: () => boolean,
-) {
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, t('common.open')),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () => [
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.viewPostDetails(post),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      h('span', t('forum.actions.viewDetails')),
-                    ]),
-                },
-              ),
-              canModerate()
-                ? h(DropdownMenuSeparator, {
-                    class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-                  })
-                : null,
-              canModerate()
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.togglePin(post),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconPin, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                          h(
-                            'span',
-                            post.isPinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-              canModerate()
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.toggleLock(post),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconLock, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                          h(
-                            'span',
-                            post.isLocked ? t('forum.actions.unlock') : t('forum.actions.lock'),
-                          ),
-                        ]),
-                    },
-                  )
-                : null,
-              canModerate()
-                ? h(DropdownMenuSeparator, {
-                    class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-                  })
-                : null,
-              canModerate()
-                ? post.isFlagged
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.unflagPost(post.id),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-green)]' },
-                              t('forum.actions.unflag'),
-                            ),
-                          ]),
-                      },
-                    )
-                  : h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.openFlagDialog(post),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-amber)]' },
-                              t('forum.actions.flag'),
-                            ),
-                          ]),
-                      },
-                    )
-                : null,
-              canModerate()
-                ? h(DropdownMenuSeparator, {
-                    class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-                  })
-                : null,
-              canModerate()
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.confirmDelete(post),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                          h('span', { class: 'text-[var(--terminal-red)]' }, t('common.delete')),
-                        ]),
-                    },
-                  )
-                : null,
-            ],
-          },
-        ),
-      ],
-    },
-  )
 }

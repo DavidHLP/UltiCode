@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconBan,
   IconCheck,
-  IconDotsVertical,
   IconLock,
   IconShield,
   IconUser,
@@ -11,14 +10,7 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
 import { formatDate } from '@/lib/format/date'
@@ -224,141 +216,56 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const user = row.original
-        return createActionsDropdown(t, user, actions, canModerateUser)
+        const canModerateRow = canModerateUser()
+        return createEntityActionsMenu(
+          [
+            {
+              label: t('users.actions.viewDetails'),
+              onSelect: () => actions.viewUser(user),
+              icon: IconUser,
+              iconClass: 'h-4 w-4 text-[var(--terminal-cyan)]',
+            },
+            {
+              label: t('users.actions.editProfile'),
+              onSelect: () => actions.editUser(user),
+              icon: IconShield,
+              iconClass: 'h-4 w-4 text-[var(--accent-electric)]',
+            },
+            {
+              label: t('users.actions.resetPassword'),
+              onSelect: () => actions.resetPassword(user),
+              icon: IconLock,
+              iconClass: 'h-4 w-4 text-[var(--terminal-amber)]',
+            },
+            { kind: 'separator' },
+            user.isBanned
+              ? {
+                  label: t('users.actions.unbanUser'),
+                  onSelect: () => actions.unbanUser(user.id),
+                  icon: IconCheck,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-green)]',
+                  labelClass: 'text-[var(--terminal-green)]',
+                  hidden: !canModerateRow,
+                }
+              : {
+                  label: t('users.actions.banUser'),
+                  onSelect: () => actions.startBanUser(user),
+                  icon: IconBan,
+                  iconClass: 'h-4 w-4 text-[var(--terminal-red)]',
+                  labelClass: 'text-[var(--terminal-red)]',
+                  hidden: !canModerateRow,
+                },
+          ],
+          {
+            triggerClass:
+              'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+            triggerIconClass: 'h-4 w-4 text-[var(--silver-400)]',
+            contentClass: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+            itemClass: 'font-data text-xs cursor-pointer',
+            separatorClass: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+          },
+        )
       },
     },
   ]
-}
-
-function createActionsDropdown(
-  t: (key: string) => string,
-  user: User,
-  actions: UserActions,
-  canModerateUser: () => boolean,
-) {
-  return h(
-    DropdownMenu,
-    {},
-    {
-      default: () => [
-        h(
-          DropdownMenuTrigger,
-          { asChild: true },
-          {
-            default: () =>
-              h(
-                Button,
-                {
-                  variant: 'ghost',
-                  size: 'icon',
-                  class:
-                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
-                },
-                {
-                  default: () => [
-                    h('span', { class: 'sr-only' }, 'Open menu'),
-                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
-                  ],
-                },
-              ),
-          },
-        ),
-        h(
-          DropdownMenuContent,
-          {
-            align: 'end',
-            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
-          },
-          {
-            default: () => [
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.viewUser(user),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconUser, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      h('span', t('users.actions.viewDetails')),
-                    ]),
-                },
-              ),
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.editUser(user),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconShield, { class: 'h-4 w-4 text-[var(--accent-electric)]' }),
-                      h('span', t('users.actions.editProfile')),
-                    ]),
-                },
-              ),
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.resetPassword(user),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconLock, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                      h('span', t('users.actions.resetPassword')),
-                    ]),
-                },
-              ),
-              h(DropdownMenuSeparator, {
-                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-              }),
-              canModerateUser()
-                ? user.isBanned
-                  ? h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.unbanUser(user.id),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-green)]' },
-                              t('users.actions.unbanUser'),
-                            ),
-                          ]),
-                      },
-                    )
-                  : h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.startBanUser(user),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconBan, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                            h(
-                              'span',
-                              { class: 'text-[var(--terminal-red)]' },
-                              t('users.actions.banUser'),
-                            ),
-                          ]),
-                      },
-                    )
-                : null,
-            ],
-          },
-        ),
-      ],
-    },
-  )
 }

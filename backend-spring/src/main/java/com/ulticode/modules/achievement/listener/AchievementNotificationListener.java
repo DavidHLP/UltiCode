@@ -5,9 +5,10 @@ import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.intent.AchievementEarnedIntent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Async listener for achievement earned events.
@@ -16,10 +17,16 @@ import org.springframework.stereotype.Service;
  * {@link AchievementEarnedIntent} to the notification delivery module. The
  * dispatcher owns the entire delivery policy: preference gating, per-channel
  * fan-out (InApp row, Email, WebSocket {@code BadgeEarnedPayload}), and
- * ledger-backed idempotency. This listener contributes only the intent — it
- * no longer branches on a rollout flag, builds a legacy envelope, or pushes
- * the WebSocket event inline (the {@code WebSocketNotificationChannel} owns
- * that leg, so there is no double-push).
+ * ledger-backed idempotency. This listener contributes only the intent.
+ *
+ * <p><b>AFTER_COMMIT.</b> The listener fires only after the awarding
+ * transaction commits, so a WebSocket/InApp delivery failure can never roll
+ * back the persisted {@code UserAchievement} row. Combined with the producer
+ * (which publishes the event but no longer pushes the badge inline), the
+ * WebSocket {@code BadgeEarnedPayload} is pushed exactly once — via this
+ * listener → dispatcher → {@code WebSocketNotificationChannel} — with no
+ * double-push. {@code fallbackExecution=true} keeps the path active for
+ * callers that award outside a transaction.
  */
 @Slf4j
 @Service
@@ -34,7 +41,7 @@ public class AchievementNotificationListener {
      * @param event the achievement earned event
      */
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onAchievementEarned(AchievementEarnedEvent event) {
         try {
             notificationDispatcher.dispatch(AchievementEarnedIntent.of(event));

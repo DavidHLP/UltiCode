@@ -178,4 +178,95 @@ class AdminNotificationServiceImplTest {
                             org.mockito.ArgumentMatchers.any());
         }
     }
+
+    @Nested
+    @DisplayName("createSystemNotification() — preference filtering on the write path")
+    class CreateSystemNotification {
+
+        private CreateSystemNotificationRequest baseRequest(List<String> userIds, String category) {
+            CreateSystemNotificationRequest r = new CreateSystemNotificationRequest();
+            r.setTarget("USERS");
+            r.setUserIds(userIds);
+            r.setCategory(category);
+            r.setType("SYSTEM");
+            r.setTitle("Announcement");
+            r.setContent("Body");
+            return r;
+        }
+
+        private com.ulticode.modules.notification.entity.NotificationPreference pref(
+                String uid, boolean marketing, boolean communication) {
+            com.ulticode.modules.notification.entity.NotificationPreference p =
+                    new com.ulticode.modules.notification.entity.NotificationPreference();
+            p.setUserId(uid);
+            p.setMarketing(marketing);
+            p.setCommunication(communication);
+            return p;
+        }
+
+        private void stubAdminAndTargets(List<String> targetIds) {
+            User admin = new User();
+            admin.setId("admin-1");
+            admin.setUsername("admin");
+            when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
+            when(userMapper.selectById("admin-1")).thenReturn(admin);
+            List<User> targets = targetIds.stream().map(id -> {
+                User u = new User();
+                u.setId(id);
+                return u;
+            }).collect(java.util.stream.Collectors.toList());
+            when(userMapper.selectList(org.mockito.ArgumentMatchers.any())).thenReturn(targets);
+            when(uuidGenerator.newId()).thenReturn("ann-1");
+        }
+
+        @SuppressWarnings("unchecked")
+        private java.util.List<com.ulticode.modules.notification.entity.Notification> captureBatch() {
+            org.mockito.ArgumentCaptor<java.util.List<com.ulticode.modules.notification.entity.Notification>> cap =
+                    org.mockito.ArgumentCaptor.forClass(java.util.List.class);
+            verify(notificationMapper).batchInsert(cap.capture());
+            return cap.getValue();
+        }
+
+        @Test
+        @DisplayName("MARKETING: opted-out recipients suppressed, opt-in kept")
+        void marketingOptOutSuppressesRecipients() {
+            stubAdminAndTargets(List.of("u1", "u2"));
+            when(preferenceMapper.selectList(org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(List.of(pref("u1", false, true), pref("u2", true, true)));
+
+            adminNotificationService.createSystemNotification(baseRequest(List.of("u1", "u2"), "MARKETING"));
+
+            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
+            // u1 opted out of MARKETING -> suppressed; only u2 is inserted.
+            assertThat(batch).hasSize(1);
+            assertThat(batch.get(0).getUserId()).isEqualTo("u2");
+        }
+
+        @Test
+        @DisplayName("SECURITY: force-delivered, preference filter bypassed")
+        void securityForceDelivered() {
+            stubAdminAndTargets(List.of("u1"));
+
+            adminNotificationService.createSystemNotification(baseRequest(List.of("u1"), "SECURITY"));
+
+            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
+            // SECURITY bypasses the preference filter even with no preference row.
+            assertThat(batch).hasSize(1);
+            assertThat(batch.get(0).getCategory()).isEqualTo("SECURITY");
+            verify(preferenceMapper, never()).selectList(org.mockito.ArgumentMatchers.any());
+        }
+
+        @Test
+        @DisplayName("COMMUNICATION with no preference row defaults to opt-in (delivered)")
+        void communicationMissingPrefDefaultsOptIn() {
+            stubAdminAndTargets(List.of("u1"));
+            when(preferenceMapper.selectList(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+            adminNotificationService.createSystemNotification(baseRequest(List.of("u1"), "COMMUNICATION"));
+
+            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
+            // No preference row -> DDL default communication=true -> delivered.
+            assertThat(batch).hasSize(1);
+        }
+    }
 }

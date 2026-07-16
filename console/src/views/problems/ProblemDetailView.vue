@@ -68,7 +68,9 @@ const contestId = computed(() => {
   if (Array.isArray(contestParam)) {
     return contestParam[0] ?? null;
   }
-  return typeof contestParam === "string" ? contestParam : null;
+  return typeof contestParam === "string" && contestParam.length > 0
+    ? contestParam
+    : null;
 });
 const { problem, runResult } = useProblemDetail(slug);
 

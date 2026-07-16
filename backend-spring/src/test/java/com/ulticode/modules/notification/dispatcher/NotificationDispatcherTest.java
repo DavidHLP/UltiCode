@@ -96,6 +96,32 @@ class NotificationDispatcherTest {
     }
 
     @Test
+    @DisplayName("ADR-004 §2.3: a failure-recording error does not poison the remaining channels")
+    void failureRecordingErrorDoesNotPoisonOthers() {
+        when(channelA.channelId()).thenReturn("a");
+        when(channelB.channelId()).thenReturn("b");
+        when(channelC.channelId()).thenReturn("c");
+        when(channelA.supports(any())).thenReturn(true);
+        when(channelB.supports(any())).thenReturn(true);
+        when(channelC.supports(any())).thenReturn(true);
+        // channelB.send throws, AND the failure-recording ledger call throws
+        // (the realistic case: the ledger itself is the broken dependency).
+        org.mockito.Mockito.doThrow(new RuntimeException("boom"))
+                .when(channelB).send(any());
+        org.mockito.Mockito.doThrow(new RuntimeException("ledger down"))
+                .when(ledgerMapper).markFailed(anyString(), eq("b"), anyString());
+
+        NotificationIntent intent = sampleIntent("user-1");
+        dispatcher.dispatch(intent);
+
+        // channelC is still dispatched despite channelB's send failure and the
+        // failure-recording path itself throwing.
+        verify(channelA).send(intent);
+        verify(channelB).send(intent);
+        verify(channelC).send(intent);
+    }
+
+    @Test
     @DisplayName("ADR-004 §4 #2: a channel that throws on supports is also tolerated")
     void channelSupportsFalseMarksSkipped() {
         when(channelA.channelId()).thenReturn("a");

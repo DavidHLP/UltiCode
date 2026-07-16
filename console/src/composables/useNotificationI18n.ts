@@ -66,7 +66,10 @@ function extractContestTitle(title: string): string {
 }
 
 function isContestReminder24h(title: string): boolean {
-  return /starts in 24 hours/i.test(title);
+  // Backend writes "starts in 24h" (reminderType="24h"). Also accept the
+  // spelled-out "24 hours" form for rows persisted before reminderType
+  // metadata became the structured source of truth.
+  return /starts in 24\s*h(ours?)?/i.test(title);
 }
 
 export interface NotificationDisplay {
@@ -121,7 +124,11 @@ export function useNotificationI18n(): {
         const contestTitle =
           readMetaString(meta, "contestTitle") ||
           extractContestTitle(notification.title);
-        const use24h = isContestReminder24h(notification.title);
+        // reminderType metadata ("24h"/"1h") is the structured source of
+        // truth; fall back to the title regex only for rows lacking metadata.
+        const reminderType = readMetaString(meta, "reminderType");
+        const use24h =
+          reminderType === "24h" || isContestReminder24h(notification.title);
         const titleKey = use24h ? `${base}.title24h` : `${base}.title1h`;
         return {
           title: contestTitle

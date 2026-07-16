@@ -79,6 +79,11 @@ class DockerProcessRunner implements ProcessLifecycleRunner {
             long elapsedMs = (System.nanoTime() - start) / 1_000_000;
             if (!finished) {
                 process.destroyForcibly();
+                // Join the stdout drainer on the timeout path too so the
+                // dform-stdout thread and its buffer do not leak after a
+                // hard timeout (07-java-design: a dedicated pipe thread must
+                // be joined or shut down, including the failure/timeout path).
+                reader.join(TimeUnit.SECONDS.toMillis(Math.min(2, hardTimeoutSeconds)));
                 return DFormRunOutcome.timedOut(elapsedMs);
             }
             // Give the reader a brief grace window for last bytes.

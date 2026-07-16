@@ -56,6 +56,11 @@ public record AchievementEarnedIntent(
     }
 
     @Override
+    public String wireType() {
+        return "ACHIEVEMENT";
+    }
+
+    @Override
     public NotificationPayload toPushPayload() {
         throw new UnsupportedOperationException(
                 "AchievementEarnedIntent must be pushed via BadgePushPort as BadgeEarnedPayload, "

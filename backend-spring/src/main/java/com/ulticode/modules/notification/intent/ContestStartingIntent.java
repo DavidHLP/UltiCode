@@ -38,6 +38,11 @@ public record ContestStartingIntent(
     }
 
     @Override
+    public String wireType() {
+        return "CONTEST_REMINDER";
+    }
+
+    @Override
     public NotificationPayload toPushPayload() {
         return NotificationPayload.of(
                 intentId(),

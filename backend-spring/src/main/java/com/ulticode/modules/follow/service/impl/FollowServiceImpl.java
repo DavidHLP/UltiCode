@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+
 /**
  * Write-path implementation of {@link FollowService}.
  *
@@ -45,6 +47,10 @@ public class FollowServiceImpl implements FollowService {
      * value can be served without re-implementing the count read here.
      */
     private final FollowInspector followInspector;
+    /**
+     * Clock anchoring the follow-notification idempotency day (D-10).
+     */
+    private final Clock clock;
 
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
@@ -69,7 +75,7 @@ public class FollowServiceImpl implements FollowService {
             try {
                 notificationDispatcher.dispatch(
                         com.ulticode.modules.notification.intent.FollowReceivedIntent.of(
-                                currentUser, targetUserId));
+                                currentUser, targetUserId, clock));
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {
                 log.warn("Failed to create follow notification for user {}: {}", targetUserId, e.getMessage());

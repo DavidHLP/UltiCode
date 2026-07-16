@@ -7,6 +7,7 @@ import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.port.UserReadPort;
 import com.ulticode.modules.notification.intent.FollowReceivedIntent;
 import com.ulticode.modules.user.entity.User;
+import java.time.Clock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,7 +61,8 @@ class FollowServiceImplTest {
             userReadPort,
             achievementTriggerService,
             notificationDispatcher,
-            followInspector
+            followInspector,
+            Clock.systemDefaultZone()
         );
 
         testUser = new User();

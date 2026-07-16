@@ -171,7 +171,7 @@ class NotificationChannelContractTest {
         User u = new User();
         u.setId("follower-1");
         u.setUsername("alice");
-        return FollowReceivedIntent.of(u, "user-1");
+        return FollowReceivedIntent.of(u, "user-1", java.time.Clock.systemDefaultZone());
     }
 
     private static NotificationIntent sampleCommentReply() {

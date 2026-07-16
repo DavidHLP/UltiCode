@@ -39,6 +39,11 @@ public record SystemAlertIntent(
     }
 
     @Override
+    public String wireType() {
+        return "SYSTEM";
+    }
+
+    @Override
     public NotificationPayload toPushPayload() {
         return NotificationPayload.of(
                 intentId(),

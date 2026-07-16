@@ -44,6 +44,11 @@ public record SubmissionCompletedIntent(
     }
 
     @Override
+    public String wireType() {
+        return "SUBMISSION";
+    }
+
+    @Override
     public NotificationPayload toPushPayload() {
         return NotificationPayload.of(
                 intentId(),

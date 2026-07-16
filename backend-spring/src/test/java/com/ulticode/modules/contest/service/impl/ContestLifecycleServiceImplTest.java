@@ -84,10 +84,6 @@ class ContestLifecycleServiceImplTest {
                 firstSolveRecordMapper, rankingCacheEvictor, clock,
                 contestClock, contestStatusPushPort, contestRankingMarkDirtyPort,
                 ratingService, notificationDispatcher);
-        // Self reference: unit test points it at the service itself (no Spring
-        // proxy); production injects a @Lazy proxy so tick/transition preserve
-        // the @Transactional semantics on batchStart/autoFinish.
-        service.setSelf(service);
     }
 
     /** P0-2: batchStartParticipants delegates to mapper and returns the count. */
@@ -133,11 +129,11 @@ class ContestLifecycleServiceImplTest {
         contest.setStartTime(NOW.minusMinutes(1)); // already past start
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of(contest));
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
+        when(contestMapper.tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
 
         service.tick(NOW);
 
-        verify(contestMapper).updateById(argThat((Contest c) -> ContestStatus.RUNNING.name().equals(c.getStatus())
-                && c.getActualStartTime() != null));
+        verify(contestMapper).tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.RUNNING),
                 any(), argThat(java.util.Objects::isNull), argThat(java.util.Objects::isNull));
         verify(contestRankingMarkDirtyPort).markDirty(CONTEST_ID);
@@ -151,11 +147,11 @@ class ContestLifecycleServiceImplTest {
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of());
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of(contest));
         when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW.minusMinutes(1)));
+        when(contestMapper.tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
 
         service.tick(NOW);
 
-        verify(contestMapper).updateById(argThat((Contest c) -> ContestStatus.FINISHED.name().equals(c.getStatus())
-                && c.getActualEndTime() != null));
+        verify(contestMapper).tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestParticipantMapper).finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED),
                 argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
@@ -173,7 +169,7 @@ class ContestLifecycleServiceImplTest {
 
         service.tick(NOW);
 
-        verify(contestMapper, never()).updateById(any(Contest.class));
+        verify(contestMapper, never()).tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort, never()).emitStatus(anyString(), any(), any(), any(), any());
     }
 
@@ -190,7 +186,11 @@ class ContestLifecycleServiceImplTest {
 
         service.tick(NOW);
 
+        // tryTransitionToRunning is invoked but the conditional UPDATE finds
+        // status != UPCOMING (affected=0), so the transition is a no-op.
+        verify(contestMapper).tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestMapper, never()).updateById(any(Contest.class));
+        verify(contestStatusPushPort, never()).emitStatus(anyString(), any(), any(), any(), any());
     }
 
     /** sendReminders: a contest in the T-24h window fans out a ContestStartingIntent with reminderType=24h. */

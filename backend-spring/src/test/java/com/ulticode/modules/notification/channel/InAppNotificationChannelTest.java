@@ -51,9 +51,9 @@ class InAppNotificationChannelTest {
         verify(notificationService).createNotificationRowOnly(
                 eq("user-1"), typeCap.capture(), eq("SYSTEM"),
                 anyString(), anyString(), anyString(), any());
-        // Type name matches the record's simpleName so the frontends can
-        // filter on the notification type column.
-        assertThat(typeCap.getValue()).isEqualTo("AchievementEarnedIntent");
+        // Type is the canonical wire-type constant (NotificationIntent.wireType),
+        // not the Java class name, so the front-end normalizeType classifies it.
+        assertThat(typeCap.getValue()).isEqualTo("ACHIEVEMENT");
     }
 
     @Test
@@ -85,8 +85,26 @@ class InAppNotificationChannelTest {
         ch.send(sampleFollow());
 
         verify(notificationService).createNotificationRowOnly(
-                eq("target-1"), eq("FollowReceivedIntent"), eq("COMMUNICATION"),
+                eq("target-1"), eq("FOLLOW"), eq("COMMUNICATION"),
                 eq("alice followed you"), eq(""), eq("/profile/alice"), anyMap());
+    }
+
+    @Test
+    void followIntentIdDedupsPerDayFollowingD10() {
+        com.ulticode.modules.user.entity.User u = new com.ulticode.modules.user.entity.User();
+        u.setId("follower-1");
+        u.setUsername("alice");
+        java.time.Clock day1 = java.time.Clock.fixed(
+                java.time.Instant.parse("2026-07-16T10:00:00Z"), java.time.ZoneOffset.UTC);
+        java.time.Clock day2 = java.time.Clock.fixed(
+                java.time.Instant.parse("2026-07-18T10:00:00Z"), java.time.ZoneOffset.UTC);
+        FollowReceivedIntent first = FollowReceivedIntent.of(u, "target-1", day1);
+        FollowReceivedIntent refollowSameDay = FollowReceivedIntent.of(u, "target-1", day1);
+        FollowReceivedIntent refollowLaterDay = FollowReceivedIntent.of(u, "target-1", day2);
+        // Same-day refollow collapses (already-delivered); a later-day
+        // refollow is a distinct intent so the ledger does not drop it.
+        assertThat(first.intentId()).isEqualTo(refollowSameDay.intentId());
+        assertThat(first.intentId()).isNotEqualTo(refollowLaterDay.intentId());
     }
 
     // --- Sample intent factories ---
@@ -108,6 +126,7 @@ class InAppNotificationChannelTest {
         com.ulticode.modules.user.entity.User u = new com.ulticode.modules.user.entity.User();
         u.setId("follower-1");
         u.setUsername("alice");
-        return new FollowReceivedIntent("target-1", "follower-1", "alice", NotificationCategory.COMMUNICATION);
+        return new FollowReceivedIntent("target-1", "follower-1", "alice",
+                java.time.LocalDate.of(2026, 7, 16), NotificationCategory.COMMUNICATION);
     }
 }

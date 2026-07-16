@@ -54,6 +54,19 @@ public sealed interface NotificationIntent
     String intentId();
 
     /**
+     * Stable wire-format type discriminator written to the
+     * {@code notification.type} column and matched by the Console/Management
+     * front-end {@code normalizeType}. Each concrete intent returns one
+     * canonical constant (e.g. {@code "SUBMISSION"}, {@code "CONTEST_REMINDER"},
+     * {@code "FOLLOW"}) so the persisted value is independent of the Java class
+     * name and survives renames. This is the single source for the {@code type}
+     * column; channels MUST NOT substitute {@code getClass().getSimpleName()},
+     * which leaks a Java identifier across the stack and breaks front-end
+     * classification.
+     */
+    String wireType();
+
+    /**
      * Project this intent to the canonical generic {@link NotificationPayload}
      * wire format used by the WebSocket channel. The default implementation is
      * an exhaustive {@code switch} on {@code this.getClass().getSimpleName()}

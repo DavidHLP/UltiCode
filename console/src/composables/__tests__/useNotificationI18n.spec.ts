@@ -249,6 +249,26 @@ describe("useNotificationI18n", () => {
       );
       expect(result.title).toBe("比赛提醒");
     });
+
+    it("uses metadata.reminderType to pick the 24h vs 1h template", () => {
+      const result24 = display(
+        makeNotification({
+          type: "CONTEST_REMINDER",
+          metadata: { contestTitle: "Cup", reminderType: "24h" },
+          title: "Contest 'Cup' starts in 24h",
+        }),
+      );
+      expect(result24.title).toBe("比赛「Cup」还有 24 小时开始");
+
+      const result1 = display(
+        makeNotification({
+          type: "CONTEST_REMINDER",
+          metadata: { contestTitle: "Cup", reminderType: "1h" },
+          title: "Contest 'Cup' starts in 1h",
+        }),
+      );
+      expect(result1.title).toBe("比赛「Cup」还有 1 小时开始");
+    });
   });
 
   describe("contest branch", () => {

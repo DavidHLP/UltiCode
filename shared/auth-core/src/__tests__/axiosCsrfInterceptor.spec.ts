@@ -7,31 +7,33 @@ import type {
 import { createCsrfAxiosInterceptor } from "../axiosCsrfInterceptor";
 import type { CsrfTokenManager } from "../csrf";
 
-vi.mock("axios", () => {
-  const mockGet = vi.fn();
-  const mockAxiosFn = vi.fn();
-  return {
-    default: Object.assign(mockAxiosFn, {
-      get: mockGet,
-      __esModule: true,
-    }),
-  };
-});
+// The production interceptor replays 401/403 retries through `rawAxios`
+// (withCredentials: true + correct baseURL baked in) rather than bare
+// `axios`. Mock that same seam — matching axiosCsrfInterceptor.401.spec.ts
+// and auth-refresh.integration.spec.ts — so retries resolve without real HTTP.
+vi.mock("../rawAxios", () => ({
+  rawAxios: {
+    get: vi.fn(),
+    request: vi.fn(),
+  },
+}));
+
+import { rawAxios } from "../rawAxios";
 
 describe("axiosCsrfInterceptor", () => {
   let mockCsrfManager: CsrfTokenManager;
-  let mockAxios: typeof import("axios").default;
   let interceptors: ReturnType<typeof createCsrfAxiosInterceptor>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(rawAxios.get).mockReset();
+    vi.mocked(rawAxios.request).mockReset();
     mockCsrfManager = {
       getToken: vi.fn(),
       setToken: vi.fn(),
       clearToken: vi.fn(),
       refreshFromResponse: vi.fn(),
     };
-    mockAxios = (await import("axios")).default;
   });
 
   describe("requestInterceptor", () => {
@@ -214,26 +216,22 @@ describe("axiosCsrfInterceptor", () => {
         config: originalConfig,
       } as AxiosError;
 
-      vi.mocked(mockAxios.get).mockResolvedValue({
+      vi.mocked(rawAxios.get).mockResolvedValue({
         data: { csrfToken: "fresh-csrf-token" },
       });
+      vi.mocked(rawAxios.request).mockResolvedValueOnce({
+        data: "retry-success",
+      } as never);
 
-      const retryResult = { data: "retry-success" };
-      vi.mocked(mockAxios).mockResolvedValueOnce(retryResult);
+      const result = await interceptors.errorInterceptor(error);
 
-      const promise = interceptors.errorInterceptor(error);
-
-      await vi.waitFor(() => {
-        expect(mockAxios.get).toHaveBeenCalledWith("/auth/me", {
-          withCredentials: true,
-        });
-      });
-
-      await promise;
-
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+      expect(rawAxios.request).toHaveBeenCalledTimes(1);
+      expect(rawAxios.request).toHaveBeenCalledWith(originalConfig);
       expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalledWith({
         csrfToken: "fresh-csrf-token",
       });
+      expect(result).toEqual({ data: "retry-success" });
     });
 
     it("should NOT retry if already retried", async () => {
@@ -255,7 +253,7 @@ describe("axiosCsrfInterceptor", () => {
       const promise = interceptors.errorInterceptor(error);
 
       await expect(promise).rejects.toBe(error);
-      expect(mockAxios.get).not.toHaveBeenCalled();
+      expect(rawAxios.get).not.toHaveBeenCalled();
     });
 
     it("should NOT retry on non-CSRF 403", async () => {
@@ -277,7 +275,7 @@ describe("axiosCsrfInterceptor", () => {
       const promise = interceptors.errorInterceptor(error);
 
       await expect(promise).rejects.toBe(error);
-      expect(mockAxios.get).not.toHaveBeenCalled();
+      expect(rawAxios.get).not.toHaveBeenCalled();
     });
 
     it("should reject if token refresh fails", async () => {
@@ -296,7 +294,7 @@ describe("axiosCsrfInterceptor", () => {
         config: originalConfig,
       } as AxiosError;
 
-      vi.mocked(mockAxios.get).mockRejectedValue(new Error("Network error"));
+      vi.mocked(rawAxios.get).mockRejectedValue(new Error("Network error"));
 
       const promise = interceptors.errorInterceptor(error);
 
@@ -333,22 +331,19 @@ describe("axiosCsrfInterceptor", () => {
         config: originalConfig,
       } as AxiosError;
 
-      vi.mocked(mockAxios.get).mockResolvedValue({
+      vi.mocked(rawAxios.get).mockResolvedValue({
         data: { csrfToken: "fresh-token" },
       });
+      vi.mocked(rawAxios.request).mockResolvedValueOnce({
+        data: "retry-response",
+      } as never);
 
-      const retryPromise = Promise.resolve({ data: "retry-response" });
-      vi.mocked(mockAxios).mockResolvedValueOnce(retryPromise as unknown);
+      const result = await interceptors.errorInterceptor(error);
 
-      const promise = interceptors.errorInterceptor(error);
-
-      await vi.waitFor(() => {
-        expect(mockAxios.get).toHaveBeenCalled();
-      });
-
-      await promise;
-
+      expect(rawAxios.get).toHaveBeenCalledWith("/auth/me");
+      expect(rawAxios.request).toHaveBeenCalledTimes(1);
       expect(mockCsrfManager.refreshFromResponse).toHaveBeenCalled();
+      expect(result).toEqual({ data: "retry-response" });
     });
   });
 });

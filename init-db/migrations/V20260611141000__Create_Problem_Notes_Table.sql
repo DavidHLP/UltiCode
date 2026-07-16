@@ -8,7 +8,11 @@
 -- 回滚:  DROP TABLE IF EXISTS `problem_notes`;
 -- ------------------------------------------------------------
 
-CREATE TABLE `problem_notes` (
+-- NOTE: problem_notes is also created by V20260602_120000__Create_All_Tables.sql
+-- (full-schema bootstrap). CREATE TABLE IF NOT EXISTS keeps this migration
+-- idempotent on a fresh migrate where the bootstrap already created the table,
+-- while remaining a no-op on databases where it previously applied.
+CREATE TABLE IF NOT EXISTS `problem_notes` (
   `id` varchar(40) NOT NULL,
   `user_id` varchar(36) NOT NULL,
   `problem_id` bigint NOT NULL,

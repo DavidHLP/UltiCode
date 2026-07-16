@@ -85,6 +85,34 @@ public interface ContestMapper extends BaseMapper<Contest> {
     int updateStatus(@Param("id") String id, @Param("status") String status);
 
     /**
+     * Atomically claim the UPCOMING → RUNNING transition. The {@code status}
+     * predicate is the concurrency invariant: under multiple replicas or
+     * retrying ticks, exactly one caller gets affected=1; the rest get 0 and
+     * must skip the transition and all of its side effects. Returns the
+     * affected-row count so the caller can gate emission, ranking, and rating.
+     *
+     * @param id  the contest ID
+     * @param now the actual start time to stamp
+     * @return 1 if this caller claimed the transition, 0 if it was already moved
+     */
+    @Update("UPDATE contests SET status = 'RUNNING', actual_start_time = #{now}, updated_at = NOW() "
+            + "WHERE id = #{id} AND status = 'UPCOMING' AND is_deleted = 0")
+    int tryTransitionToRunning(@Param("id") String id, @Param("now") LocalDateTime now);
+
+    /**
+     * Atomically claim the RUNNING → FINISHED transition. Same affected-row
+     * contract as {@link #tryTransitionToRunning}; 0 means another caller
+     * already finished the contest.
+     *
+     * @param id  the contest ID
+     * @param now the actual end time to stamp
+     * @return 1 if this caller claimed the transition, 0 if it was already moved
+     */
+    @Update("UPDATE contests SET status = 'FINISHED', actual_end_time = #{now}, updated_at = NOW() "
+            + "WHERE id = #{id} AND status = 'RUNNING' AND is_deleted = 0")
+    int tryTransitionToFinished(@Param("id") String id, @Param("now") LocalDateTime now);
+
+    /**
      * Atomically increment registered count.
      *
      * @param contestId the contest ID

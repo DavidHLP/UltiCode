@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "76a8b4c272bc434edd1eae1fe6ab96f4b2b22afc",
+  "generated_with_head": "1116f9fc4dfc37f99e5c04b7980d14d26f765f98",
   "stats": {
     "pages": 41,
     "by_type": {
@@ -20,11 +20,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-09",
       "last_commit": {
-        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
-        "short": "89c664a07",
-        "committed_at": "2026-07-05T23:22:52+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "32231aebe45677505aef3af6ccad6ab21aaac590e43e904daad4025a6a148247"
     },
@@ -35,11 +35,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-09",
       "last_commit": {
-        "sha": "89c664a07eefadd57f58ec907125defd6008836c",
-        "short": "89c664a07",
-        "committed_at": "2026-07-05T23:22:52+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): skeleton slim-down — MOC decoupling & dedup"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "8c4a438e58f8a323f9deb8da67e868748a760fc2191713b567c01e8eec9008fc"
     },
@@ -95,11 +95,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "c2d927d739792e8db3ac4a2a74bff753443022353e6046dc14a3bfa76cd1e883"
     },
@@ -110,11 +110,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f051fd62c97a36501e285eabc09a4a00a2267932d576e49c74ecef8f4ea1b8f3"
     },
@@ -125,11 +125,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "2106d1791accc771f418514bbd4515d86fa76fa2402fa65fdc6bd03e166c4360"
     },
@@ -140,11 +140,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "47e662f2d3514c9d0eedf66f64008453f1c1e2607f3c7a89e2cea9d14f4f46ff"
     },
@@ -185,11 +185,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f3548b50841168139d0f367b737e52efb9d8af9fd637279725f5ea298f12d0a6"
     },
@@ -230,11 +230,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "9b3f5e2c0616f56c93ccc6be8da4d84997a26a35142385c995f6bdb1d582e978"
     },
@@ -245,11 +245,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "666834937705ae9cc6dfad16c8f39661a83423430883ef1e0df4ed6dc42bc416"
     },
@@ -275,13 +275,13 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
-      "body_sha256": "a92993950da66a353d177fe0443118a8703e3972943b16620d2143d6b9d148ea"
+      "body_sha256": "79328e08834f9562ec44798eb79cf656dfc1a96861dd8f063260dd3ffcd5c540"
     },
     {
       "path": "wiki/entities/permission.md",
@@ -290,11 +290,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "4fbccf23e5bf126906cce7fdcf5a87f62e11cabaefb2dd3ab77d1619ccdd9168"
     },
@@ -305,11 +305,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "77ddf99da01ab93c419d0feafb83837ce04d060d37e30a90b3365d13bfce522c"
     },
@@ -335,11 +335,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "38b09e8c0b2c3108b7da3e683789c05a39635e69f07de86d0a848d876a0ee2be"
     },
@@ -350,11 +350,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-06",
       "last_commit": {
-        "sha": "7acf7c61ee44ed2e238a2a75de474722ce705413",
-        "short": "7acf7c61e",
-        "committed_at": "2026-07-06T00:43:44+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs(sandbox): codify sandbox rebuild runbook + seccomp cwd fix"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f6d3953fb6d3d472ed2f9d6db0fac0e03797c9a43d3d66eb7f2262b15da0a871"
     },
@@ -380,11 +380,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f880f95edbccf3eb31e3e63a5f07cb3c97abef3a1734f5cbed044ad632c69946"
     },
@@ -395,13 +395,13 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "b1100d53cb92046057e60e7d242e4e124eacf8b2",
+        "short": "b1100d53c",
+        "committed_at": "2026-07-13T05:56:57+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(submission): collapse the intake facade onto the write port"
       },
-      "body_sha256": "6d46cdfe0f6e8dae91dda79b367e3e826aa90fac7ab72ce33d2a2345f73dcf75"
+      "body_sha256": "25bd564344d3f6c96d030adf50e0caaa956b6f58f7a048c88080ebc3d32554c6"
     },
     {
       "path": "wiki/entities/subscription.md",
@@ -425,11 +425,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d54284dd1b150dd84dd52c40f1dc32222afb51ca",
-        "short": "d54284dd1",
-        "committed_at": "2026-06-24T23:06:19+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): add cross-links to orphan and weakly-linked pages"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "be74f1cb53581936f2e1c5b55a2d76b3a0f2cd2c66c5c11e6b165bba1ea6a2ab"
     },
@@ -440,11 +440,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "faa6dd57488bd52eae32dd08d2658d94f3cb1036425e7ae8e2536dc31b19353b"
     },
@@ -455,11 +455,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-09",
       "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "02b948bca3306aff7f04bd7a054094cfc6c1aa2c4284dc96de8d564855b2d89e"
     },
@@ -470,11 +470,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-09",
       "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "649a1da8a45e8d34da5118c1d744b83250a9a0fbf807b9e335272a9a1a2acf72"
     },
@@ -485,11 +485,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "e8128d9a0da5e1ad15500834f0d56fbfa305e363fd865577291c7668928147f6"
     },
@@ -500,11 +500,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "70ccf468236efc04d1247237994455ff17e580f8fd9bd29acf1bcf1b9cdbcd4d"
     },
@@ -515,11 +515,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "57b91ae5249bee549fe3d198f7bd01020e2e39e12d0249f0c0d410940386b919"
     },
@@ -530,11 +530,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "8c35de63fd96795d9929c1937b3be1cc328fea5db28f3826d14e86c954076413"
     },
@@ -545,11 +545,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-05",
       "last_commit": {
-        "sha": "d2ec1d1987655e43fd671bbcbbb6a9bfb4e89e94",
-        "short": "d2ec1d198",
-        "committed_at": "2026-07-05T20:41:38+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs(wiki): sync cold-start section to dev-profile metrics"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f68721ce54ce7f59f8017964b6e5ac50a59e2490fffa051076d7be92c19932b3"
     },
@@ -560,11 +560,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "41451a5da4f46869186286cd3e8196706d5d8ada",
-        "short": "41451a5da",
-        "committed_at": "2026-07-07T18:08:59+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): archive 11 ADR-numbered concept pages to wiki/archive/concepts/"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "560c6cc5064924ed63b8c37c22c019dcd1c87535ce85f2ecbc3f01c1e3c9aad9"
     },
@@ -575,11 +575,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "fc15ec3571b71380d5ae0efb920343f1cb7cfb8cf456fe97ce51c66c028de578"
     },
@@ -590,11 +590,11 @@
       "status": "living",
       "frontmatter_updated": "{{date:YYYY-MM-DD}}",
       "last_commit": {
-        "sha": "d224d662be840bb668fd05c037381c4ce4696d36",
-        "short": "d224d662b",
-        "committed_at": "2026-06-21T17:47:08+08:00",
+        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
+        "short": "f4b9a2556",
+        "committed_at": "2026-07-09T16:59:49+08:00",
         "author": "DavidHLP",
-        "subject": "docs: restructure wiki with daily-notes workflow and callout palette"
+        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
       "body_sha256": "f60091d076441e6cd33d04cf2f6cf069505a1c45c09873e55ecb9e8958099131"
     },

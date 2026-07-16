@@ -51,7 +51,7 @@ public class InAppNotificationChannel implements NotificationChannel {
         Map<String, Object> metadata = renderMetadata(intent);
         String title = renderTitle(intent);
         String body = renderBody(intent);
-        String type = intent.getClass().getSimpleName();
+        String type = intent.wireType();
         String category = intent.category().name();
         String link = renderLink(intent);
 

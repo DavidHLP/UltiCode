@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
@@ -18,6 +19,7 @@ import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -85,6 +87,14 @@ class AdminContestMutationServiceImplTest {
                 contestMapper, contestProblemMapper, contestAnnouncementMapper,
                 contestAnnouncementPushPort, contestReadPort, auditHelper, clock,
                 adminContestProjection, currentUserProvider);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // createContest/updateContest/etc. populate AuditContext ThreadLocals that
+        // the @Audited aspect would clear in production but unit tests never invoke.
+        // Without this, userId leaks into later test classes on the same Surefire thread.
+        AuditContext.clear();
     }
 
     // ----------------------------------------------------------------------

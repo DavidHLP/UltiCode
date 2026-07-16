@@ -75,12 +75,12 @@ public class NotificationDispatcher {
         if (!isCategoryEnabled(intent)) {
             log.debug("Notification suppressed by preference: user={} category={}",
                     intent.userId(), intent.category());
-            meterRegistry.counter("notification.dispatch.suppressed",
-                    "category", intent.category().name()).increment();
+            incrementCounter("notification.dispatch.suppressed",
+                    "category", intent.category().name());
             return;
         }
 
-        String intentType = intent.getClass().getSimpleName();
+        String intentType = intent.wireType();
         for (NotificationChannel channel : channels) {
             try {
                 int claimed = ledgerMapper.tryClaim(
@@ -100,22 +100,67 @@ public class NotificationDispatcher {
                 }
 
                 channel.send(intent);
-                ledgerMapper.markDelivered(intent.intentId(), channel.channelId());
-                meterRegistry.counter("notification.dispatch.delivered",
-                        "channel", channel.channelId(),
-                        "intent", intentType).increment();
-
+                markDelivered(intent, channel, intentType);
             } catch (Exception e) {
-                String reason = truncate(e.getClass().getSimpleName() + ": "
-                        + (e.getMessage() == null ? "" : e.getMessage()));
-                ledgerMapper.markFailed(intent.intentId(), channel.channelId(), reason);
-                meterRegistry.counter("notification.dispatch.failure",
-                        "channel", channel.channelId(),
-                        "intent", intentType).increment();
-                log.warn("channel {} failed for intent {}: {}",
-                        channel.channelId(), intent.intentId(), reason);
-                // Do not rethrow — failure isolation (ADR-004 §2.3).
+                // Failure isolation (ADR-004 §2.3): record the failure and let
+                // the loop continue. markFailed wraps its own ledger/counter/log
+                // calls so a broken ledger (the likely root cause) cannot escape
+                // here and poison the remaining channels.
+                markFailed(intent, channel, intentType, e);
             }
+        }
+    }
+
+    /**
+     * Record a successful delivery. The ledger write and counter increment are
+     * wrapped so a metrics or ledger hiccup after a successful {@code send}
+     * cannot abort the remaining channels (ADR-004 §2.3 failure isolation).
+     */
+    private void markDelivered(NotificationIntent intent, NotificationChannel channel, String intentType) {
+        try {
+            ledgerMapper.markDelivered(intent.intentId(), channel.channelId());
+            meterRegistry.counter("notification.dispatch.delivered",
+                    "channel", channel.channelId(),
+                    "intent", intentType).increment();
+        } catch (Exception e) {
+            log.warn("post-delivery ledger/counter update failed for intent {} channel {}: {}",
+                    intent.intentId(), channel.channelId(), e.getMessage());
+        }
+    }
+
+    /**
+     * Record a failed delivery. Wrapped so a broken ledger/meter (the likely
+     * cause of the original failure) cannot escape and poison the next channel
+     * (ADR-004 §2.3 failure isolation).
+     */
+    private void markFailed(NotificationIntent intent, NotificationChannel channel,
+                            String intentType, Exception cause) {
+        try {
+            String reason = truncate(cause.getClass().getSimpleName() + ": "
+                    + (cause.getMessage() == null ? "" : cause.getMessage()));
+            ledgerMapper.markFailed(intent.intentId(), channel.channelId(), reason);
+            meterRegistry.counter("notification.dispatch.failure",
+                    "channel", channel.channelId(),
+                    "intent", intentType).increment();
+            log.warn("channel {} failed for intent {}: {}",
+                    channel.channelId(), intent.intentId(), reason);
+        } catch (Exception secondary) {
+            // The failure-recording path itself failed (e.g. ledger down).
+            // Log both failures and continue — one channel failure must not cascade.
+            log.warn("channel {} failed for intent {} (cause={}) AND recording the failure failed: {}",
+                    channel.channelId(), intent.intentId(), cause.getMessage(), secondary.getMessage());
+        }
+    }
+
+    /**
+     * Increment a counter, swallowing a meter-registry failure so a metrics
+     * hiccup never breaks dispatch (ADR-004 §2.3 failure isolation).
+     */
+    private void incrementCounter(String name, String... tags) {
+        try {
+            meterRegistry.counter(name, tags).increment();
+        } catch (Exception e) {
+            log.debug("counter {} increment failed: {}", name, e.getMessage());
         }
     }
 

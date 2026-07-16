@@ -72,8 +72,11 @@ exactly-once user-visible delivery.
 
 ## Gotchas
 
-- Always write the ledger key **in the same transaction** as the intent; a missing
-  key means a duplicate can slip through on retry.
-- Preferences gate delivery, not creation — the intent is always recorded for audit.
+- For a claimed delivery, the ledger `tryClaim` row is written before the channel
+  fan-out so a retry sees the claim and skips; the claim is the idempotency fence
+  (there is no separate "intent + ledger same transaction" rule).
+- Preferences gate the whole delivery — an opted-out category returns before any
+  ledger or notification row is written, so a suppressed intent leaves **no** audit
+  row (matches `NotificationDispatcher.isCategoryEnabled`, ADR-004 §2.3).
 - Email ([[entities/email]]) and in-app notification are separate channels; an
   event may fan out to both.

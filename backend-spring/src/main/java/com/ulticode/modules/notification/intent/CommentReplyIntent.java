@@ -28,6 +28,11 @@ public record CommentReplyIntent(
     }
 
     @Override
+    public String wireType() {
+        return "REPLY";
+    }
+
+    @Override
     public NotificationPayload toPushPayload() {
         return NotificationPayload.of(
                 intentId(),

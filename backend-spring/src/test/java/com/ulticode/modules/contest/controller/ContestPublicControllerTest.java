@@ -5,6 +5,7 @@ import com.ulticode.common.config.MapperConfig;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.port.ContestLiveRankingReadPort;
 import com.ulticode.modules.contest.projection.ContestProjection;
+import com.ulticode.modules.contest.service.ContestParticipationService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
@@ -68,6 +69,9 @@ class ContestPublicControllerTest {
 
     @MockBean
     private RankingService rankingService;
+
+    @MockBean
+    private ContestParticipationService participationService;
 
     @MockBean
     private ContestLiveRankingReadPort liveRankingReadPort;

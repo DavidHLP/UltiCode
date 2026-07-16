@@ -19,8 +19,6 @@ import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.intent.ContestStartingIntent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,23 +66,6 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     private final RatingCalculationService ratingService;
     private final NotificationDispatcher notificationDispatcher;
-
-    /**
-     * Self reference resolved through the Spring proxy so {@link #tick} and
-     * the private transition helpers can invoke {@link #batchStartParticipants}
-     * / {@link #autoFinishVirtualParticipants} via the proxy and keep their
-     * {@code @Transactional} semantics (direct {@code this} calls bypass the
-     * proxy and silently drop the transaction). {@code @Lazy} breaks the
-     * construction-time self-dependency.
-     */
-    @Autowired
-    @Lazy
-    private ContestLifecycleService self;
-
-    /** Test seam: inject the self proxy (or a spy for unit tests). */
-    void setSelf(ContestLifecycleService self) {
-        this.self = self;
-    }
 
     @Override
     @Transactional
@@ -148,7 +129,13 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         List<Contest> upcoming = contestMapper.findByStatus(ContestStatus.UPCOMING.name());
         for (Contest contest : upcoming) {
             if (contest.getStartTime() != null && !contest.getStartTime().isAfter(now)) {
-                transitionToRunning(contest, now);
+                try {
+                    transitionToRunning(contest, now);
+                } catch (Exception e) {
+                    // Fault-isolate per contest so one transition failure does
+                    // not starve the rest of the tick's queue.
+                    log.error("transition to RUNNING failed for contest {}", contest.getId(), e);
+                }
             }
         }
 
@@ -157,7 +144,11 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         for (Contest contest : running) {
             LocalDateTime effectiveEndTime = contestClock.contestEndTime(contest).orElse(null);
             if (effectiveEndTime != null && !effectiveEndTime.isAfter(now)) {
-                transitionToFinished(contest, now);
+                try {
+                    transitionToFinished(contest, now);
+                } catch (Exception e) {
+                    log.error("transition to FINISHED failed for contest {}", contest.getId(), e);
+                }
             }
         }
 
@@ -165,7 +156,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         // virtual_end_time has passed, even if the user is offline. Fault-
         // isolated so a virtual-finish failure never blocks the next tick.
         try {
-            int finished = self.autoFinishVirtualParticipants();
+            int finished = this.autoFinishVirtualParticipants();
             if (finished > 0) {
                 log.info("R3.1: auto-finished {} expired virtual participants", finished);
             }
@@ -241,40 +232,35 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     }
 
     /**
-     * Idempotently transition a contest to RUNNING: stamp the actual start
-     * time, batch-start REGISTERED participants (P0-2), broadcast the WS
-     * status, and mark the ranking dirty so the initial leaderboard appears.
+     * Idempotently transition a contest to RUNNING via a conditional UPDATE
+     * (WHERE status=UPCOMING). The affected-row count is the concurrency
+     * invariant: 0 means another replica or an earlier tick already moved it,
+     * so this caller skips all side effects. On a successful claim the
+     * REGISTERED participants are batch-started (P0-2), the WS status is
+     * broadcast, and the ranking is marked dirty. A participant-start failure
+     * is rethrown rather than swallowed so the scheduler records the partial
+     * transition instead of proceeding to emit/markDirty on half-applied state.
      */
     private void transitionToRunning(Contest contest, LocalDateTime now) {
-        // Idempotent: skip if already RUNNING.
-        if (ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+        int transitioned = contestMapper.tryTransitionToRunning(contest.getId(), now);
+        if (transitioned == 0) {
+            log.debug("contest {} no longer UPCOMING, skip RUNNING transition", contest.getId());
             return;
         }
-        contest.setStatus(ContestStatus.RUNNING.name());
-        contest.setActualStartTime(now);
-        contestMapper.updateById(contest);
 
         // P0-2: batch-transition REGISTERED participants to STARTED so they can
-        // submit. Runs after contest.status is committed; transitions are
-        // idempotent (only REGISTERED rows are touched).
-        try {
-            int started = self.batchStartParticipants(contest.getId());
-            if (started > 0) {
-                log.info("P0-2: started {} participants for contest {}", started, contest.getId());
-            }
-        } catch (Exception e) {
-            log.warn("P0-2 batchStartParticipants failed for contest {}: {}",
-                    contest.getId(), e.getMessage());
+        // submit. Rethrows on failure — see method Javadoc.
+        int started = batchStartParticipants(contest.getId());
+        if (started > 0) {
+            log.info("P0-2: started {} participants for contest {}", started, contest.getId());
         }
 
-        // Emit WebSocket status (via ContestStatusPushPort; the adapter maps
-        // contest.entity.enums.ContestStatus.RUNNING to the wire-format enum)
+        contest.setStatus(ContestStatus.RUNNING.name());
+        contest.setActualStartTime(now);
         contestStatusPushPort.emitStatus(
                 contest.getId(),
                 ContestStatus.RUNNING,
-                contest.getActualStartTime() != null
-                        ? contest.getActualStartTime().atZone(ZoneId.systemDefault()).toInstant()
-                        : null,
+                now.atZone(ZoneId.systemDefault()).toInstant(),
                 null,
                 null
         );
@@ -286,41 +272,36 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     }
 
     /**
-     * Idempotently transition a contest to FINISHED: stamp the actual end
-     * time, close all real (non-virtual) participants (R3.1) so the rating
-     * calculation sees a stable set, broadcast the WS status, and hand off to
-     * the rating service.
+     * Idempotently transition a contest to FINISHED via a conditional UPDATE
+     * (WHERE status=RUNNING). 0 affected rows → another caller already
+     * finished it; skip. On a successful claim the real (non-virtual)
+     * participants are closed (R3.1) so rating sees a stable set, the WS
+     * status is broadcast, and rating calculation is handed off. A
+     * participant-close failure is rethrown (same rationale as RUNNING).
      */
     private void transitionToFinished(Contest contest, LocalDateTime now) {
-        // Idempotent: skip if already FINISHED.
-        if (ContestStatus.FINISHED.name().equals(contest.getStatus())) {
+        int transitioned = contestMapper.tryTransitionToFinished(contest.getId(), now);
+        if (transitioned == 0) {
+            log.debug("contest {} no longer RUNNING, skip FINISHED transition", contest.getId());
             return;
         }
-        contest.setStatus(ContestStatus.FINISHED.name());
-        contest.setActualEndTime(now);
-        contestMapper.updateById(contest);
 
         // R3.1: close all real (is_virtual=0) participants so the rating
         // calculation below sees a stable, FINISHED set. Virtual participants
         // are managed by the per-user virtual session, not the contest clock.
-        try {
-            int finished = contestParticipantMapper.finishStartedRealParticipants(contest.getId(), now);
-            if (finished > 0) {
-                log.info("R3.1: closed {} real participants for contest {}", finished, contest.getId());
-            }
-        } catch (Exception e) {
-            log.warn("R3.1 finishStartedRealParticipants failed for contest {}: {}",
-                    contest.getId(), e.getMessage());
+        // Rethrows on failure — see method Javadoc.
+        int finished = contestParticipantMapper.finishStartedRealParticipants(contest.getId(), now);
+        if (finished > 0) {
+            log.info("R3.1: closed {} real participants for contest {}", finished, contest.getId());
         }
 
-        // Emit WebSocket status (adapter maps contest.FINISHED to wire.ENDED)
+        contest.setStatus(ContestStatus.FINISHED.name());
+        contest.setActualEndTime(now);
         contestStatusPushPort.emitStatus(
                 contest.getId(),
                 ContestStatus.FINISHED,
                 null,
-                contest.getActualEndTime() != null
-                        ? contest.getActualEndTime().atZone(ZoneId.systemDefault()).toInstant()
-                        : null,
+                now.atZone(ZoneId.systemDefault()).toInstant(),
                 null
         );
 

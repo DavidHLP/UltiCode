@@ -20,6 +20,7 @@ const testState = vi.hoisted(() => ({
 
 vi.mock("vue-router", () => ({
   useRoute: () => ({ query: { contestId: testState.contestIdValue } }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock("@/stores/auth", () => ({

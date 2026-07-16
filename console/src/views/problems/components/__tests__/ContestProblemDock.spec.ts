@@ -193,6 +193,20 @@ function mountDock(status = "FINISHED") {
   }));
   const refreshParticipation = vi.fn();
   const toggleNotes = vi.fn();
+  // The dock delegates pill navigation to the injected context's
+  // goToContestProblem (see useContestProblemContext), which in turn
+  // calls useRouter().push. The vue-router mock below routes that push
+  // to mocks.routerPush, so mirror the composable's contract here
+  // rather than omitting it (otherwise the pill click throws and the
+  // push is never observed).
+  const goToContestProblem = (slug: string | null): void => {
+    if (!slug) return;
+    mocks.routerPush({
+      name: "problem-detail",
+      params: { slug },
+      query: { contestId: contest.value?.slug ?? "" },
+    });
+  };
 
   const wrapper = mount(ContestProblemDock, {
     global: {
@@ -208,6 +222,7 @@ function mountDock(status = "FINISHED") {
           problemBelongsToContest: ref(true),
           refreshParticipation,
           refreshProblems: vi.fn(),
+          goToContestProblem,
         },
         [ToggleNotesKey as unknown as symbol]: toggleNotes,
       },

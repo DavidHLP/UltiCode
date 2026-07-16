@@ -235,7 +235,10 @@ class AchievementServiceTest {
             assertEquals(1, awarded.size());
             assertEquals(ACHIEVEMENT_ID, awarded.get(0));
             verify(userAchievementMapper).insert(any(UserAchievement.class));
-            verify(badgePushPort).pushBadgeEarned(eq(USER_ID), any(BadgeEarnedPayload.class));
+            // Post-refactor: the trigger no longer pushes the badge inline — it
+            // only publishes the event; the WebSocket channel (via the listener
+            // -> dispatcher) owns the single push. Assert the trigger does NOT.
+            verify(badgePushPort, never()).pushBadgeEarned(any(), any());
             verify(eventPublisher).publishEvent(any(AchievementEarnedEvent.class));
         }
 

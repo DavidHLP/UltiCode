@@ -159,18 +159,9 @@ public final class AuditPolicy {
             entry("com.ulticode.modules.admin.service.impl.AdminContestMutationServiceImpl",
                     "deleteAnnouncement", "DELETE_CONTEST_ANNOUNCEMENT", "CONTEST_ANNOUNCEMENT", null),
 
-            // Contest (user-facing)
-            entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
-                    "createContest", "CREATE_CONTEST", "CONTEST",
-                    "user-initiated contest creation"),
-            entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
-                    "updateContest", "UPDATE_CONTEST", "CONTEST", null),
-            entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
-                    "deleteContest", "DELETE_CONTEST", "CONTEST", null),
-            entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
-                    "startContest", "UPDATE_CONTEST", "CONTEST", null),
-            entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
-                    "endContest", "UPDATE_CONTEST", "CONTEST", null),
+            // Contest (user-facing) — admin lifecycle (create/update/delete/
+            // start/end) lives in AdminContestMutationServiceImpl above; only
+            // contest-problem link management remains on ContestServiceImpl.
             entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",
                     "addProblem", "UPDATE_CONTEST", "CONTEST", null),
             entry("com.ulticode.modules.contest.service.impl.ContestServiceImpl",

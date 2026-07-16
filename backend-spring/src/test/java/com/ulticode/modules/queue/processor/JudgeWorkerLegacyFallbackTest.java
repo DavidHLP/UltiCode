@@ -1,11 +1,8 @@
 package com.ulticode.modules.queue.processor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.modules.submission.config.JudgeSourceProperties;
-import com.ulticode.modules.problem.entity.ProblemExample;
-import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
-import com.ulticode.modules.problem.mapper.TestCaseMapper;
 import com.ulticode.modules.queue.pipeline.DefaultJudgeExecutionPipeline;
+import com.ulticode.modules.queue.port.JudgingCase;
+import com.ulticode.modules.queue.port.JudgingCaseSource;
 import com.ulticode.modules.queue.port.VerdictMetricsParser;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -23,23 +20,22 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * P0-1: explicit regression guard for the {@code flag=false} legacy path
- * (now expressed at the pipeline seam after the arch-review deepening).
+ * P0-1: regression guard for the legacy (flag=false) judging path.
  *
- * <p>When {@code app.features.judge-source.use-test-cases=false} the
- * pipeline must continue to source cases from {@code problem_examples} and
- * produce {@code TestCaseDetail} rows whose {@code caseScope} and
- * {@code caseId} are both {@code null} (so the user-facing projection treats
- * them as legacy sample). This path is slated for deletion in Phase 3 but
- * must keep working unchanged until then so the rollback drill is a no-op.
+ * <p>After the test-case-source seam deepening, source selection (canonical
+ * {@code test_cases} vs legacy {@code problem_examples}) lives behind
+ * {@link JudgingCaseSource} — covered by {@code ConfiguredJudgingCaseSourceTest}
+ * — and the pipeline depends only on that seam. The legacy adapter
+ * ({@code ProblemExampleJudgingCaseSource}) emits {@link JudgingCase} rows
+ * whose {@code hidden}/{@code sample} flags are both {@code null}; this test
+ * pins the pipeline contract for those legacy rows so the rollback path stays a
+ * no-op: per-case {@code caseScope} stays unset and {@code caseId} is stamped
+ * from the seam-supplied id.
  *
  * <p>Pure Mockito unit (no Testcontainers). Marked as {@code Test} (not
  * {@code IT}) because it doesn't need the {@code *IT} Surefire rule; it is
@@ -49,12 +45,13 @@ import static org.mockito.Mockito.when;
 @DisplayName("P0-1 JudgeExecutionPipeline legacy fallback (flag=false)")
 class JudgeWorkerLegacyFallbackTest {
 
-    @Mock private TestCaseMapper testCaseMapper;
-    @Mock private ProblemExampleMapper problemExampleMapper;
+    // The pipeline's only case-loading collaborator; source selection (canonical
+    // vs legacy) is owned by ConfiguredJudgingCaseSource and covered by its own
+    // test. Wiring matches DefaultJudgeExecutionPipelineTest so @InjectMocks
+    // populates every constructor parameter (no null JudgingCaseSource).
+    @Mock private JudgingCaseSource judgingCaseSource;
     @Mock private CodeExecutionService codeExecutionService;
 
-    @Spy private JudgeSourceProperties judgeSourceProperties = new JudgeSourceProperties();
-    @Spy private ObjectMapper objectMapper = new ObjectMapper();
     @Spy private VerdictResolver verdictResolver = new VerdictResolver();
     @Spy private VerdictMetricsParser verdictMetricsParser = new VerdictMetricsParser();
 
@@ -62,17 +59,11 @@ class JudgeWorkerLegacyFallbackTest {
     private DefaultJudgeExecutionPipeline pipeline;
 
     @Test
-    @DisplayName("flag=false: legacy path produces scope-null details and never consults test_cases")
+    @DisplayName("flag=false: legacy cases (null flags) produce scope-null details via the JudgingCaseSource seam")
     void legacyFallbackLeavesScopeNull() throws Exception {
-        judgeSourceProperties.setUseTestCases(false);
-
-        ProblemExample ex = new ProblemExample();
-        ex.setId("1");
-        ex.setProblemId(100L);
-        ex.setExampleOrder(1);
-        ex.setInputText("stdin");
-        ex.setOutputText("expected");
-        when(problemExampleMapper.findByProblemIdOrderByOrder(100L)).thenReturn(List.of(ex));
+        // Legacy ProblemExampleJudgingCaseSource rows carry null hidden/sample flags.
+        JudgingCase legacyCase = new JudgingCase("1", "Case 1", "expected", List.of(), null, null);
+        when(judgingCaseSource.loadCases(100L)).thenReturn(List.of(legacyCase));
 
         RunResultDTO result = RunResultDTO.builder()
                 .cases(List.of(RunResultDTO.RunCaseResult.builder()
@@ -86,14 +77,17 @@ class JudgeWorkerLegacyFallbackTest {
 
         var executionResult = pipeline.execute("java", "class Solution {}", 100L, "u-1", "sub-legacy");
 
+        assertThat(executionResult).isNotNull();
         List<Submission.TestCaseDetail> written = executionResult.testCaseDetails();
         assertThat(written).hasSize(1);
+        // Legacy rows have no hidden/sample flag → caseScope stays null.
         assertThat(written.get(0).getCaseScope()).isNull();
-        assertThat(written.get(0).getCaseId()).isNull();
+        // caseId is stamped uniformly from the seam-supplied JudgingCase id for
+        // BOTH sources; a null caseId is no longer a "legacy submission" marker.
+        assertThat(written.get(0).getCaseId()).isEqualTo("1");
 
-        // test_cases must NOT be consulted on the rollback path.
-        verify(testCaseMapper, never()).findActiveCasesForJudging(anyLong());
-        // problem_examples IS consulted on the rollback path.
-        verify(problemExampleMapper, times(1)).findByProblemIdOrderByOrder(100L);
+        // The pipeline sources cases only through the seam; it never touches the
+        // Problem module's mappers or the source-selection flag directly.
+        verify(judgingCaseSource).loadCases(100L);
     }
 }

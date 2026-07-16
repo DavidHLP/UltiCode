@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   getSocketManager,
@@ -9,6 +9,7 @@ import {
   type BadgeEarnedPayload,
   type NotificationPayload,
 } from "@/lib/socket";
+import { bindConnectionStatus } from "@/lib/realtime/lifecycle";
 
 export interface UseSocketOptions {
   autoConnect?: boolean;
@@ -69,9 +70,8 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
     socketManager.unsubscribeFromContest(contestId);
   };
 
-  // Register a typed event handler with automatic unmount cleanup so the
-  // five on* helpers below share one bind/unbind path instead of repeating
-  // the on + off + push ritual per event.
+  // The five typed event helpers share one bind/unbind ritual so an
+  // unmount cleans every listener up.
   function bind<T>(event: NotificationEvent | string, callback: (data: T) => void) {
     socketManager.on(event, callback);
     const unsub = () => socketManager.off(event, callback);
@@ -94,30 +94,40 @@ export function useSocket(options: UseSocketOptions = {}): UseSocketReturn {
   const onConnectionStatus = (callback: (status: ConnectionStatus) => void) =>
     bind("connection:status", callback);
 
-  // Watch for authentication changes
-  watch(
-    () => authStore.isAuthenticated,
-    (isAuthenticated) => {
-      if (isAuthenticated && autoConnect) {
-        connect();
-      } else if (!isAuthenticated) {
-        disconnect();
-      }
-    },
-    { immediate: true },
-  );
+  let stopConnectionStatus: (() => void) | null = null;
+  let stopAuthWatch: (() => void) | null = null;
 
-  // Subscribe to connection status changes
+  // Mount setup
   onMounted(() => {
-    socketManager.on("connection:status", handleStatusChange);
-    // Set initial status
+    // Connection-status subscription: shared with useRealtimeChannel
+    // through `bindConnectionStatus` so both composables bind/unbind
+    // the same way.
+    stopConnectionStatus = bindConnectionStatus(handleStatusChange);
+    // Initial status snapshot
     status.value = socketManager.status;
     isConnected.value = socketManager.status === "connected";
+    // Watch for authentication changes. `autoConnect` gates the
+    // "connect on sign-in" transition; sign-out always disconnects to
+    // match the previous inline policy.
+    stopAuthWatch = watch(
+      () => authStore.isAuthenticated,
+      (isAuthenticated) => {
+        if (isAuthenticated && autoConnect) {
+          connect();
+        } else if (!isAuthenticated) {
+          disconnect();
+        }
+      },
+      { immediate: true },
+    );
   });
 
   // Cleanup on unmount
   onUnmounted(() => {
-    socketManager.off("connection:status", handleStatusChange);
+    stopConnectionStatus?.();
+    stopConnectionStatus = null;
+    stopAuthWatch?.();
+    stopAuthWatch = null;
     unsubscribers.forEach((unsub) => unsub());
   });
 

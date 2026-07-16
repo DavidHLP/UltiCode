@@ -1,10 +1,14 @@
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import {
   getSocketManager,
   NotificationEvent,
   type NotificationPayload,
 } from "@/lib/socket";
 import type { NotificationItem } from "@/types/notification";
+import {
+  bindConnectionStatus,
+  watchAuthConnectivity,
+} from "@/lib/realtime/lifecycle";
 
 /**
  * Options for {@link useRealtimeChannel}.
@@ -32,6 +36,11 @@ export interface UseRealtimeChannelOptions {
  * + a `handleNewNotification` callback and a `setupRealtimeListeners`
  * function. The store wires these into its existing selectors without
  * taking on any WS lifecycle itself.
+ *
+ * Auth-gated connectivity and connection-status subscription come from
+ * the shared `bindConnectionStatus` / `watchAuthConnectivity` helpers
+ * in `@/lib/realtime/lifecycle` so `useSocket` and this composable
+ * bind/unbind the same way.
  */
 export function useRealtimeChannel(
   options: UseRealtimeChannelOptions,
@@ -70,7 +79,9 @@ export function useRealtimeChannel(
 
     const socketManager = getSocketManager();
 
-    socketManager.on("connection:status", (status: string) => {
+    // Shared connection-status binder (same as `useSocket` uses for
+    // `handleStatusChange`).
+    bindConnectionStatus((status) => {
       realtimeConnected.value = status === "connected";
     });
 
@@ -79,20 +90,11 @@ export function useRealtimeChannel(
       handleNewNotification,
     );
 
-    watch(
-      () => isAuthenticated(),
-      (isAuth) => {
-        if (isAuth) {
-          socketManager.connect();
-        } else {
-          socketManager.disconnect();
-          if (onSignedOut) {
-            onSignedOut();
-          }
-        }
-      },
-      { immediate: true },
-    );
+    // Shared auth-gated-connectivity watcher. `watchAuthConnectivity`
+    // already calls connect/disconnect on transitions and accepts the
+    // sign-out cleanup hook. `isSetup` prevents re-running when the
+    // store calls this more than once.
+    watchAuthConnectivity(isAuthenticated, onSignedOut);
 
     isSetup.value = true;
   }

@@ -93,21 +93,42 @@ function renderItem(item: EntityActionItem, defaultItemClass?: string) {
   )
 }
 
+/**
+ * Single owner of the menu collapse policy. Drops permission/flag-hidden
+ * items, separators, and submenu triggers, filters hidden submenu children,
+ * and collapses any submenu left with no visible children. `renderNode` and
+ * `createEntityActionsMenu` consume only the resolved list, so the visibility
+ * decision lives in one pure, testable place — see architecture-review
+ * candidate 3.
+ *
+ * Before this existed, a permission-gated action at the top level fell through
+ * to `renderItem` and stayed visible and clickable across every migrated
+ * `columns.ts`.
+ */
+export function resolveVisibleMenuNodes(nodes: EntityActionNode[]): EntityActionNode[] {
+  const resolved: EntityActionNode[] = []
+  for (const node of nodes) {
+    if (node.hidden) continue
+    if (isSeparator(node)) {
+      resolved.push(node)
+      continue
+    }
+    if (isSubmenu(node)) {
+      const items = node.items.filter((i) => !i.hidden)
+      if (items.length === 0) continue
+      resolved.push({ ...node, items })
+      continue
+    }
+    resolved.push(node)
+  }
+  return resolved
+}
+
 function renderNode(node: EntityActionNode, options?: EntityActionsMenuOptions) {
   if (isSeparator(node)) {
-    if (node.hidden) return null
     return h(DropdownMenuSeparator, { class: options?.separatorClass })
   }
-  // Top-level `hidden` items and hidden submenu triggers are dropped
-  // alongside hidden separators and empty sub-menus. Without this
-  // guard, a permission-gated action at the top level fell through to
-  // `renderItem` and stayed visible and clickable across every migrated
-  // `columns.ts`.
-  if (!isSubmenu(node) && node.hidden) return null
   if (isSubmenu(node)) {
-    if (node.hidden) return null
-    const items = node.items.filter((i) => !i.hidden)
-    if (items.length === 0) return null
     return h(
       DropdownMenuSub,
       {},
@@ -128,7 +149,7 @@ function renderNode(node: EntityActionNode, options?: EntityActionsMenuOptions) 
           h(
             DropdownMenuSubContent,
             {},
-            { default: () => items.map((i) => renderItem(i, options?.itemClass)) },
+            { default: () => node.items.map((i) => renderItem(i, options?.itemClass)) },
           ),
         ],
       },
@@ -139,13 +160,15 @@ function renderNode(node: EntityActionNode, options?: EntityActionsMenuOptions) 
 
 /**
  * Build the standard admin row-action dropdown from a declarative node list.
- * Hidden items (permission/flag-gated) are dropped; empty sub-menus collapse.
+ * Visibility is resolved first by {@link resolveVisibleMenuNodes} (hidden
+ * permission/flag-gated items dropped, empty sub-menus collapsed); each
+ * surviving node is then rendered.
  */
 export function createEntityActionsMenu(
   nodes: EntityActionNode[],
   options?: EntityActionsMenuOptions,
 ) {
-  const rendered = nodes.map((n) => renderNode(n, options)).filter((node) => node !== null)
+  const rendered = resolveVisibleMenuNodes(nodes).map((n) => renderNode(n, options))
   return h(
     DropdownMenu,
     {},

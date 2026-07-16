@@ -19,10 +19,29 @@ import {
   unsaveList,
   moveListToCategory,
 } from "@/api/problem-list";
+import { useProblemListMutations } from "@/composables/useProblemListMutations";
 
+/**
+ * Problem List detail-page composable (architecture-review candidate #2).
+ *
+ * <p>Screen-specific shape (current list, problems, owner/save state,
+ * edit form, fork/delete flow) stays here. The mutation policy
+ * (HTTP call + toast + reload) concentrates in
+ * {@link useProblemListMutations} so the sidebar, the personal page, and
+ * this detail page all surface identical user feedback.
+ *
+ * <p>Two handlers stay outside the helper because they don't fit the
+ * shape:
+ * <ul>
+ *   <li>{@code handleShare} — pure clipboard write, no HTTP call.</li>
+ *   <li>{@code handleFork}'s auth-required branch — pre-call validation,
+ *       not a mutation.</li>
+ * </ul>
+ */
 export function useProblemListOperations(listId: Ref<string>) {
   const router = useRouter();
   const { t, locale } = useI18n();
+  const { run } = useProblemListMutations();
 
   const currentList = ref<ProblemList | null>(null);
   const problems = ref<Problem[]>([]);
@@ -125,129 +144,148 @@ export function useProblemListOperations(listId: Ref<string>) {
     }
 
     isForking.value = true;
-    try {
-      const newList = await forkProblemList(listId.value);
-      toast.success(t("problem.problemList.messages.forkSuccess"), {
-        description: t("problem.problemList.messages.forkSuccessDesc"),
-      });
-      router.push(`/problemset/list/${newList.id}`);
-    } catch {
-      toast.error(t("problem.problemList.messages.forkFailed"));
-    } finally {
-      isForking.value = false;
-    }
+    await run({
+      call: () => forkProblemList(listId.value),
+      onSuccess: (newList) => {
+        router.push(`/problemset/list/${newList.id}`);
+      },
+      successMessage: t("problem.problemList.messages.forkSuccess"),
+      successDescription: t("problem.problemList.messages.forkSuccessDesc"),
+      errorMessage: t("problem.problemList.messages.forkFailed"),
+      failureLabel: "fork list",
+    });
+    isForking.value = false;
   }
 
   async function handleDelete() {
     if (!currentUser || !currentList.value) return;
 
     isDeleting.value = true;
-    try {
-      await deleteProblemList(listId.value);
-      toast.success(t("problem.problemList.messages.deleteSuccess"), {
-        description: t("problem.problemList.messages.deleteSuccessDesc"),
-      });
-      router.push("/problemset");
-    } catch {
-      toast.error(t("problem.problemList.messages.deleteFailed"));
-    } finally {
-      isDeleting.value = false;
-    }
+    await run({
+      call: () => deleteProblemList(listId.value),
+      onSuccess: () => {
+        router.push("/problemset");
+      },
+      successMessage: t("problem.problemList.messages.deleteSuccess"),
+      successDescription: t("problem.problemList.messages.deleteSuccessDesc"),
+      errorMessage: t("problem.problemList.messages.deleteFailed"),
+      failureLabel: "delete list",
+    });
+    isDeleting.value = false;
   }
 
-  async function handleSaveEdit() {
-    if (!currentUser || !currentList.value) return;
+  async function handleSaveEdit(): Promise<boolean> {
+    if (!currentUser || !currentList.value) return false;
 
-    try {
-      await updateProblemList(listId.value, {
-        name: editForm.value.name,
-        description: editForm.value.description,
-        isPublic: editForm.value.isPublic,
-      });
-
-      await loadProblemList(listId.value);
-
-      toast.success(t("problem.problemList.messages.updateSuccess"), {
-        description: t("problem.problemList.messages.updateSuccessDesc"),
-      });
-      return true;
-    } catch {
-      toast.error(t("problem.problemList.messages.updateFailed"));
-      return false;
-    }
+    const result = await run({
+      call: () =>
+        updateProblemList(listId.value, {
+          name: editForm.value.name,
+          description: editForm.value.description,
+          isPublic: editForm.value.isPublic,
+        }),
+      onSuccess: async () => {
+        await loadProblemList(listId.value);
+      },
+      successMessage: t("problem.problemList.messages.updateSuccess"),
+      successDescription: t("problem.problemList.messages.updateSuccessDesc"),
+      errorMessage: t("problem.problemList.messages.updateFailed"),
+      failureLabel: "update list",
+    });
+    return result !== null;
   }
 
   async function handleToggleSave() {
     if (!currentUser || !currentList.value) return;
 
     isSaving.value = true;
-    try {
-      if (isSaved.value) {
-        await unsaveList(listId.value);
-        isSaved.value = false;
-        currentCategoryId.value = null;
-        toast.success(t("problem.problemList.messages.unsaveSuccess"));
-      } else {
-        await saveList(listId.value);
+    if (isSaved.value) {
+      const result = await run({
+        call: () => unsaveList(listId.value),
+        onSuccess: () => {
+          isSaved.value = false;
+          currentCategoryId.value = null;
+        },
+        successMessage: t("problem.problemList.messages.unsaveSuccess"),
+        errorMessage: t("problem.problemList.messages.unsaveFailed"),
+        failureLabel: "unsave list",
+      });
+      if (result === null) {
+        // Restore optimistic flag on failure so the UI mirrors server state.
         isSaved.value = true;
-        toast.success(t("problem.problemList.messages.saveSuccess"));
       }
-    } catch {
-      toast.error(
-        isSaved.value
-          ? t("problem.problemList.messages.unsaveFailed")
-          : t("problem.problemList.messages.saveFailed"),
-      );
-    } finally {
-      isSaving.value = false;
+    } else {
+      const result = await run({
+        call: () => saveList(listId.value),
+        onSuccess: () => {
+          isSaved.value = true;
+        },
+        successMessage: t("problem.problemList.messages.saveSuccess"),
+        errorMessage: t("problem.problemList.messages.saveFailed"),
+        failureLabel: "save list",
+      });
+      if (result === null) {
+        isSaved.value = false;
+      }
     }
+    isSaving.value = false;
   }
 
   async function handleMoveToCategory(categoryId: string | null) {
     if (!currentUser || !isSaved.value) return;
 
-    try {
-      await moveListToCategory(listId.value, categoryId);
-      currentCategoryId.value = categoryId;
-      toast.success(
-        categoryId
-          ? t("problem.problemList.messages.moveSuccess")
-          : t("problem.problemList.messages.removeCategorySuccess"),
-      );
-    } catch {
-      toast.error(t("problem.problemList.messages.moveFailed"));
+    const previousCategoryId = currentCategoryId.value;
+    const result = await run({
+      call: () => moveListToCategory(listId.value, categoryId),
+      onSuccess: () => {
+        currentCategoryId.value = categoryId;
+      },
+      successMessage: categoryId
+        ? t("problem.problemList.messages.moveSuccess")
+        : t("problem.problemList.messages.removeCategorySuccess"),
+      errorMessage: t("problem.problemList.messages.moveFailed"),
+      failureLabel: "move list to category",
+    });
+    if (result === null) {
+      // Roll back the local mirror when the call fails so the chip doesn't drift.
+      currentCategoryId.value = previousCategoryId;
     }
   }
 
   async function handleAddProblem(problem: Problem) {
     if (!currentUser || problemIdsInList.value.has(problem.id)) return;
 
-    try {
-      await addProblemToList(listId.value, problem.id);
-      await loadProblemList(listId.value);
-      toast.success(
-        t("problem.problemList.messages.addSuccess", { title: problem.title }),
-      );
-    } catch (e) {
-      console.error("Failed to add problem", e);
-      toast.error(t("problem.problemList.messages.addFailed"));
-    }
+    await run({
+      call: () => addProblemToList(listId.value, problem.id),
+      onSuccess: async () => {
+        await loadProblemList(listId.value);
+      },
+      successMessage: t("problem.problemList.messages.addSuccess", {
+        title: problem.title,
+      }),
+      errorMessage: t("problem.problemList.messages.addFailed"),
+      failureLabel: "add problem to list",
+    });
   }
 
   async function handleRemoveProblem(problem: Problem) {
     if (!currentUser) return;
 
-    try {
-      await removeProblemFromList(listId.value, problem.id);
-      problems.value = problems.value.filter((p) => p.id !== problem.id);
-      toast.success(
-        t("problem.problemList.messages.removeSuccess", {
-          title: problem.title,
-        }),
-      );
-    } catch (e) {
-      console.error("Failed to remove problem", e);
-      toast.error(t("problem.problemList.messages.removeFailed"));
+    const previousProblems = problems.value;
+    const result = await run({
+      call: () => removeProblemFromList(listId.value, problem.id),
+      onSuccess: () => {
+        problems.value = problems.value.filter((p) => p.id !== problem.id);
+      },
+      successMessage: t("problem.problemList.messages.removeSuccess", {
+        title: problem.title,
+      }),
+      errorMessage: t("problem.problemList.messages.removeFailed"),
+      failureLabel: "remove problem from list",
+    });
+    // Restore the local mirror when the call fails so the UI doesn't drop a row optimistically.
+    if (result === null) {
+      problems.value = previousProblems;
     }
   }
 

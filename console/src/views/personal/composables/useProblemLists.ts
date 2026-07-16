@@ -113,7 +113,7 @@ export function useProblemLists() {
         onClose();
         onSuccess(newList.id);
       },
-      successKey: "personal.messages.folderCreated",
+      successMessage: t("personal.messages.folderCreated"),
       failureLabel: "create list",
       reload: loadData,
     });
@@ -124,7 +124,7 @@ export function useProblemLists() {
     if (!currentUserId) return;
     await run({
       call: () => deleteProblemList(list.id),
-      successKey: "personal.messages.folderDeleted",
+      successMessage: t("personal.messages.folderDeleted"),
       failureLabel: "delete list",
       reload: loadData,
     });
@@ -135,7 +135,7 @@ export function useProblemLists() {
     if (!currentUserId) return;
     await run({
       call: () => unsaveList(list.id),
-      successKey: "personal.messages.bookmarkRemoved",
+      successMessage: t("personal.messages.bookmarkRemoved"),
       failureLabel: "unsave list",
       reload: loadData,
     });
@@ -146,7 +146,7 @@ export function useProblemLists() {
     if (!currentUserId) return;
     await run({
       call: () => saveList(list.id),
-      successKey: "personal.messages.bookmarkAdded",
+      successMessage: t("personal.messages.bookmarkAdded"),
       failureLabel: "save list",
       reload: loadData,
     });
@@ -160,7 +160,7 @@ export function useProblemLists() {
     if (!currentUserId) return;
     await run({
       call: () => moveListToCategory(list.id, categoryId),
-      successKey: "personal.messages.profileUpdated",
+      successMessage: t("personal.messages.profileUpdated"),
       failureLabel: "move list",
       reload: loadData,
     });
@@ -175,7 +175,7 @@ export function useProblemLists() {
     await run({
       call: () => createCategory({ name: form.name.trim() }),
       onSuccess: () => onClose(),
-      successKey: "personal.messages.folderCreated",
+      successMessage: t("personal.messages.folderCreated"),
       failureLabel: "create category",
       reload: loadData,
     });
@@ -197,7 +197,7 @@ export function useProblemLists() {
     await run({
       call: () => updateCategory(category.id, { name: newName.trim() }),
       onSuccess: () => onClose(),
-      successKey: "personal.messages.profileUpdated",
+      successMessage: t("personal.messages.profileUpdated"),
       failureLabel: "edit category",
       reload: loadData,
     });
@@ -208,7 +208,7 @@ export function useProblemLists() {
     if (!currentUserId) return;
     await run({
       call: () => deleteCategory(category.id),
-      successKey: "personal.messages.folderDeleted",
+      successMessage: t("personal.messages.folderDeleted"),
       failureLabel: "delete category",
       reload: loadData,
     });

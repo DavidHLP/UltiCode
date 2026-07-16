@@ -461,6 +461,8 @@ export default {
     folderDeleted: "Folder deleted",
     bookmarkAdded: "Added to bookmarks",
     bookmarkRemoved: "Removed from bookmarks",
+    mutationFailed: "Operation failed, please retry",
+    loadFailed: "Failed to load problem lists",
     notificationsCleared: "Notifications cleared",
     notificationsMarkedRead: "All notifications marked as read",
     notificationsUpdated: "Notification preferences updated",

@@ -406,6 +406,8 @@ export default {
     folderDeleted: "文件夹已删除",
     bookmarkAdded: "已添加到收藏",
     bookmarkRemoved: "已取消收藏",
+    mutationFailed: "操作失败,请重试",
+    loadFailed: "题单加载失败",
     notificationsCleared: "通知已清空",
     notificationsMarkedRead: "通知已全部标为已读",
     notificationsUpdated: "通知偏好已更新",

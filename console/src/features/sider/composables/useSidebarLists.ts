@@ -1,4 +1,5 @@
 import { ref, computed, onMounted } from "vue";
+import { toast } from "vue-sonner";
 import { useAuthStore } from "@/stores/auth";
 import type {
   ProblemList,
@@ -14,11 +15,22 @@ import {
   createProblemList,
 } from "@/api/problem-list";
 import { useProblemListsStore } from "@/stores/problemLists";
-import { toast } from "vue-sonner";
+import { useProblemListMutations } from "@/composables/useProblemListMutations";
 
+/**
+ * Sidebar Problem List composable (architecture-review candidate #2).
+ *
+ * <p>Screen-specific shape (sorted lists, search query) stays here. The
+ * mutation policy (HTTP call + toast + reload) concentrates in
+ * {@link useProblemListMutations}. The sidebar still ships literal
+ * English toasts because its screens have not yet been internationalised;
+ * once that lands, swap the literals for {@code t()} calls and the helper
+ * keeps working unchanged.
+ */
 export function useSidebarLists() {
   const currentUserId = useAuthStore().fetchCurrentUserId();
   const problemListsStore = useProblemListsStore();
+  const { run } = useProblemListMutations();
 
   const data = computed(() => problemListsStore.data);
   const isLoading = computed(() => problemListsStore.isLoading);
@@ -38,6 +50,8 @@ export function useSidebarLists() {
   const isCreatingCategory = ref(false);
   const createCategoryForm = ref({ name: "" });
 
+  // Synchronous validation toast stays inline: the mutation helper
+  // assumes the call already passed client-side checks.
   const handleCreateCategory = async () => {
     if (!currentUserId) return;
     if (!createCategoryForm.value.name.trim()) {
@@ -45,20 +59,21 @@ export function useSidebarLists() {
       return;
     }
     isCreatingCategory.value = true;
-    try {
-      await createCategory({
-        name: createCategoryForm.value.name.trim(),
-      });
-      toast.success("Category created successfully");
-      isCreateCategoryOpen.value = false;
-      createCategoryForm.value = { name: "" };
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to create category", e);
-      toast.error("Failed to create category");
-    } finally {
-      isCreatingCategory.value = false;
-    }
+    await run({
+      call: () =>
+        createCategory({
+          name: createCategoryForm.value.name.trim(),
+        }),
+      onSuccess: () => {
+        isCreateCategoryOpen.value = false;
+        createCategoryForm.value = { name: "" };
+      },
+      successMessage: "Category created successfully",
+      errorMessage: "Failed to create category",
+      failureLabel: "create category",
+      reload: () => loadData(true),
+    });
+    isCreatingCategory.value = false;
   };
 
   // --- Edit Category ---
@@ -80,19 +95,20 @@ export function useSidebarLists() {
       return;
     }
     isEditingCategory.value = true;
-    try {
-      await updateCategory(categoryToEdit.value.id, {
-        name: editCategoryForm.value.name.trim(),
-      });
-      toast.success("Category updated successfully");
-      isEditCategoryOpen.value = false;
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to update category", e);
-      toast.error("Failed to update category");
-    } finally {
-      isEditingCategory.value = false;
-    }
+    await run({
+      call: () =>
+        updateCategory(categoryToEdit.value!.id, {
+          name: editCategoryForm.value.name.trim(),
+        }),
+      onSuccess: () => {
+        isEditCategoryOpen.value = false;
+      },
+      successMessage: "Category updated successfully",
+      errorMessage: "Failed to update category",
+      failureLabel: "update category",
+      reload: () => loadData(true),
+    });
+    isEditingCategory.value = false;
   };
 
   // --- Delete Category ---
@@ -108,17 +124,17 @@ export function useSidebarLists() {
   const handleDeleteCategory = async () => {
     if (!currentUserId || !categoryToDelete.value) return;
     isDeletingCategory.value = true;
-    try {
-      await deleteCategory(categoryToDelete.value.id);
-      toast.success("Category deleted successfully");
-      isDeleteCategoryOpen.value = false;
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to delete category", e);
-      toast.error("Failed to delete category");
-    } finally {
-      isDeletingCategory.value = false;
-    }
+    await run({
+      call: () => deleteCategory(categoryToDelete.value!.id),
+      onSuccess: () => {
+        isDeleteCategoryOpen.value = false;
+      },
+      successMessage: "Category deleted successfully",
+      errorMessage: "Failed to delete category",
+      failureLabel: "delete category",
+      reload: () => loadData(true),
+    });
+    isDeletingCategory.value = false;
   };
 
   // --- Delete List ---
@@ -134,30 +150,30 @@ export function useSidebarLists() {
   const handleDeleteList = async () => {
     if (!listToDelete.value || !currentUserId) return;
     isDeletingList.value = true;
-    try {
-      await deleteProblemList(listToDelete.value.id);
-      toast.success(`Deleted "${listToDelete.value.name}"`);
-      isDeleteListOpen.value = false;
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to delete list", e);
-      toast.error("Failed to delete list");
-    } finally {
-      isDeletingList.value = false;
-    }
+    const target = listToDelete.value;
+    await run({
+      call: () => deleteProblemList(target.id),
+      onSuccess: () => {
+        isDeleteListOpen.value = false;
+      },
+      successMessage: `Deleted "${target.name}"`,
+      errorMessage: "Failed to delete list",
+      failureLabel: "delete list",
+      reload: () => loadData(true),
+    });
+    isDeletingList.value = false;
   };
 
   // --- Unsave List ---
   const handleUnsaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
-    try {
-      await unsaveList(list.id);
-      toast.success(`Removed "${list.name}" from saved`);
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to unsave list", e);
-      toast.error("Failed to remove from saved");
-    }
+    await run({
+      call: () => unsaveList(list.id),
+      successMessage: `Removed "${list.name}" from saved`,
+      errorMessage: "Failed to remove from saved",
+      failureLabel: "unsave list",
+      reload: () => loadData(true),
+    });
   };
 
   // --- Move List to Category ---
@@ -166,18 +182,15 @@ export function useSidebarLists() {
     categoryId: string | null,
   ) => {
     if (!currentUserId) return;
-    try {
-      await moveListToCategory(list.id, categoryId);
-      toast.success(
-        categoryId
-          ? `Moved "${list.name}" to category`
-          : `Removed "${list.name}" from category`,
-      );
-      await loadData(true);
-    } catch (e) {
-      console.error("Failed to move list", e);
-      toast.error("Failed to move list");
-    }
+    await run({
+      call: () => moveListToCategory(list.id, categoryId),
+      successMessage: categoryId
+        ? `Moved "${list.name}" to category`
+        : `Removed "${list.name}" from category`,
+      errorMessage: "Failed to move list",
+      failureLabel: "move list",
+      reload: () => loadData(true),
+    });
   };
 
   // --- Create List ---
@@ -192,23 +205,24 @@ export function useSidebarLists() {
       return;
     }
     isCreatingList.value = true;
-    try {
-      const newList = await createProblemList({
-        name: createListForm.value.name.trim(),
-        description: createListForm.value.description.trim() || undefined,
-        isPublic: createListForm.value.isPublic,
-      });
-      toast.success("Problem list created successfully");
-      isCreateListOpen.value = false;
-      createListForm.value = { name: "", description: "", isPublic: false };
-      await loadData(true);
-      window.location.href = `/problemset/list/${newList.id}`;
-    } catch (e) {
-      console.error("Failed to create list", e);
-      toast.error("Failed to create list");
-    } finally {
-      isCreatingList.value = false;
-    }
+    await run({
+      call: () =>
+        createProblemList({
+          name: createListForm.value.name.trim(),
+          description: createListForm.value.description.trim() || undefined,
+          isPublic: createListForm.value.isPublic,
+        }),
+      onSuccess: (newList) => {
+        isCreateListOpen.value = false;
+        createListForm.value = { name: "", description: "", isPublic: false };
+        window.location.href = `/problemset/list/${newList.id}`;
+      },
+      successMessage: "Problem list created successfully",
+      errorMessage: "Failed to create list",
+      failureLabel: "create list",
+      reload: () => loadData(true),
+    });
+    isCreatingList.value = false;
   };
 
   return {

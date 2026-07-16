@@ -40,6 +40,7 @@ export interface EntityActionSubmenu {
   triggerLabel: string
   triggerIcon?: Component
   triggerIconClass?: string
+  hidden?: boolean
   items: EntityActionItem[]
 }
 
@@ -97,7 +98,14 @@ function renderNode(node: EntityActionNode, options?: EntityActionsMenuOptions) 
     if (node.hidden) return null
     return h(DropdownMenuSeparator, { class: options?.separatorClass })
   }
+  // Top-level `hidden` items and hidden submenu triggers are dropped
+  // alongside hidden separators and empty sub-menus. Without this
+  // guard, a permission-gated action at the top level fell through to
+  // `renderItem` and stayed visible and clickable across every migrated
+  // `columns.ts`.
+  if (!isSubmenu(node) && node.hidden) return null
   if (isSubmenu(node)) {
+    if (node.hidden) return null
     const items = node.items.filter((i) => !i.hidden)
     if (items.length === 0) return null
     return h(

@@ -205,6 +205,14 @@ export default {
   ctaContests: "View contests",
   ctaReadDocs: "Read docs",
   ctaGithubStar: "Star on GitHub",
+  step: {
+    railLabel: "Section progress",
+    intro: "Intro",
+    practice: "Practice",
+    judge: "Workflow",
+    caseload: "Trust",
+    start: "Start",
+  },
   footer: {
     statement:
       "Turn every submission into an algorithmic method you can reuse.",

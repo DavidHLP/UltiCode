@@ -11,6 +11,32 @@
     background-size: 40px 40px;
     background-position: -1px -1px;
   }
+  .hero-3d-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.75;
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 75% 50%,
+      black 35%,
+      transparent 80%
+    );
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 75% 50%,
+      black 35%,
+      transparent 80%
+    );
+  }
+  .hero-3d-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .hero-grid > *:not(.hero-3d-backdrop) {
+    position: relative;
+    z-index: 1;
+  }
   .hero-title {
     text-wrap: balance;
   }
@@ -279,6 +305,136 @@
     outline: 3px solid var(--accent-electric);
     outline-offset: 3px;
   }
+  /* Scroll-narrative chrome inspired by vertical storytelling pages:
+   * a 1px progress bar pinned under the sticky header, and a fixed step rail
+   * on the right edge that lists the current narrative section. Both are
+   * decorative chrome and aria-hidden / aria-label gated; no functional
+   * controls live inside. */
+  .progress-bar-track {
+    position: sticky;
+    top: 4rem;
+    z-index: 40;
+    height: 2px;
+    width: 100%;
+    background: color-mix(in oklch, var(--border) 70%, transparent);
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--accent-electric);
+    transform-origin: left center;
+    transform: scaleX(0);
+    transition: transform 120ms linear;
+    will-change: transform;
+  }
+  .snap-main {
+    scroll-snap-type: y proximity;
+  }
+  .snap-section {
+    scroll-snap-align: start;
+    scroll-margin-top: 5rem;
+  }
+  .step-rail {
+    position: fixed;
+    top: 7rem;
+    right: 1.25rem;
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 12rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+  }
+  .step-rail-counter {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+  .step-rail-current {
+    font-size: 1.25rem;
+    color: var(--accent-electric);
+  }
+  .step-rail-divider {
+    color: var(--muted-foreground);
+  }
+  .step-rail-total {
+    color: var(--muted-foreground);
+  }
+  .step-rail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+    border-left: 1px solid var(--border);
+    padding-left: 0.75rem;
+  }
+  .step-rail-item {
+    display: block;
+  }
+  .step-rail-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    color: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: color var(--transition-fast);
+  }
+  .step-rail-link:hover,
+  .step-rail-link:focus-visible {
+    color: var(--foreground);
+  }
+  .step-rail-marker {
+    font-size: 0.625rem;
+    color: var(--muted-foreground);
+    transition: color var(--transition-fast);
+  }
+  .step-rail-label {
+    font-size: 0.6875rem;
+  }
+  .step-rail-item--visited .step-rail-marker {
+    color: var(--foreground);
+  }
+  .step-rail-item--active .step-rail-link,
+  .step-rail-item--active .step-rail-marker {
+    color: var(--accent-electric);
+  }
+  .step-rail-item--active::before {
+    content: "";
+    position: absolute;
+    margin-left: -0.95rem;
+    margin-top: 0.55rem;
+    width: 0.5rem;
+    height: 1px;
+    background: var(--accent-electric);
+  }
+  /* Reveal: sections fade up the first time they intersect. Reduced-motion
+   * users skip straight to the final state via the reduced-motion override
+   * below. */
+  .is-revealed {
+    opacity: 0;
+    transform: translateY(0.75rem);
+    transition:
+      opacity 600ms ease,
+      transform 600ms ease;
+    animation: reveal-up 700ms ease forwards;
+  }
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
   @media (min-width: 768px) {
     .proof-cell {
       border-top: 0;
@@ -296,9 +452,18 @@
       border-left: 1px solid var(--border);
     }
   }
+  /* Show the right-edge step rail on screens wide enough to host it
+   * without crowding the hero workbench. */
+  @media (min-width: 1280px) {
+    .step-rail {
+      display: flex;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .button,
-    .nav-link {
+    .nav-link,
+    .step-rail-link,
+    .progress-bar-fill {
       transition: none;
     }
     .button:hover,
@@ -307,6 +472,11 @@
     }
     .faq-trigger svg {
       transition: none;
+    }
+    .is-revealed {
+      opacity: 1;
+      transform: none;
+      animation: none;
     }
   }
 }

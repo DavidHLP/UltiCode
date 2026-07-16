@@ -203,6 +203,14 @@ export default {
   ctaContests: "查看竞赛",
   ctaReadDocs: "阅读文档",
   ctaGithubStar: "在 GitHub 上点亮 Star",
+  step: {
+    railLabel: "页面章节进度",
+    intro: "开篇",
+    practice: "练习",
+    judge: "评判流程",
+    caseload: "可信度",
+    start: "开始",
+  },
   footer: {
     statement: "把每次提交变成下一题还能复用的算法能力。",
     practice: "练习",

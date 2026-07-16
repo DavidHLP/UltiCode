@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "vue-i18n";
@@ -15,6 +15,8 @@ import {
 import LandingCapabilities from "./landing/LandingCapabilities.vue";
 import LandingTrust from "./landing/LandingTrust.vue";
 import LandingUseCases from "./landing/LandingUseCases.vue";
+import { useSectionObserver } from "@/composables/landing/useSectionObserver";
+import { useScrollProgress } from "@/composables/landing/useScrollProgress";
 import "@/assets/styles/landing.css";
 
 const { t } = useI18n();
@@ -61,6 +63,30 @@ const simulationTerminalText = ref<string[]>([]);
 const compiling = ref(false);
 const showSuccessMsg = ref(false);
 const timers = new Set<ReturnType<typeof setTimeout>>();
+
+const SECTIONS = [
+  { id: "intro", labelKey: "landing.step.intro" },
+  { id: "practice", labelKey: "landing.step.practice" },
+  { id: "judge", labelKey: "landing.step.judge" },
+  { id: "caseload", labelKey: "landing.step.caseload" },
+  { id: "start", labelKey: "landing.step.start" },
+] as const;
+
+const { activeId, revealed, register } = useSectionObserver();
+const scrollProgress = useScrollProgress();
+
+const introRef = ref<HTMLElement | null>(null);
+const practiceRef = ref<HTMLElement | null>(null);
+const judgeRef = ref<HTMLElement | null>(null);
+const caseloadRef = ref<HTMLElement | null>(null);
+const startRef = ref<HTMLElement | null>(null);
+
+const activeIndex = computed(() =>
+  SECTIONS.findIndex((section) => section.id === activeId.value),
+);
+const activeStepNumber = computed(() =>
+  activeIndex.value >= 0 ? activeIndex.value + 1 : 1,
+);
 
 const selectedLang = ref<keyof typeof codeSnippets>("cpp");
 const code = computed(() => codeSnippets[selectedLang.value]);
@@ -126,6 +152,24 @@ const runSimulation = () => {
 const closeMobileMenu = () => {
   mobileMenuOpen.value = false;
 };
+
+const scrollToSection = (id: string) => {
+  if (typeof document === "undefined") return;
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "start",
+  });
+};
+
+onMounted(() => {
+  register("intro", introRef.value);
+  register("practice", practiceRef.value);
+  register("judge", judgeRef.value);
+  register("caseload", caseloadRef.value);
+  register("start", startRef.value);
+});
 
 onUnmounted(() => timers.forEach(clearTimeout));
 </script>
@@ -241,11 +285,60 @@ onUnmounted(() => timers.forEach(clearTimeout));
       </nav>
     </header>
 
-    <main>
+    <div class="progress-bar-track" aria-hidden="true">
+      <div
+        class="progress-bar-fill"
+        :style="{ transform: `scaleX(${scrollProgress})` }"
+      ></div>
+    </div>
+
+    <aside
+      class="step-rail"
+      :aria-label="t('landing.step.railLabel')"
+      data-testid="step-rail"
+    >
+      <p class="step-rail-counter font-data">
+        <span class="step-rail-current">{{ String(activeStepNumber).padStart(2, "0") }}</span>
+        <span class="step-rail-divider">/</span>
+        <span class="step-rail-total">{{ String(SECTIONS.length).padStart(2, "0") }}</span>
+      </p>
+      <ol class="step-rail-list">
+        <li
+          v-for="(section, index) in SECTIONS"
+          :key="section.id"
+          class="step-rail-item"
+          :class="{
+            'step-rail-item--active': activeId === section.id,
+            'step-rail-item--visited':
+              activeIndex > index || activeId === section.id,
+          }"
+        >
+          <a
+            :href="`#${section.id}`"
+            class="step-rail-link"
+            :aria-current="activeId === section.id ? 'true' : undefined"
+            @click.prevent="scrollToSection(section.id)"
+          >
+            <span class="step-rail-marker font-data">
+              {{ String(index + 1).padStart(2, "0") }}
+            </span>
+            <span class="step-rail-label">{{ t(section.labelKey) }}</span>
+          </a>
+        </li>
+      </ol>
+    </aside>
+
+    <main class="snap-main">
       <section
-        class="hero-grid container mx-auto grid max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-24"
+        id="intro"
+        ref="introRef"
+        class="hero-grid snap-section container mx-auto relative grid max-w-6xl gap-12 px-4 py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-24"
       >
-        <div class="max-w-xl">
+        <LandingCanvas class="hero-3d-backdrop" />
+        <div
+          class="max-w-xl"
+          :class="{ 'is-revealed': revealed.has('intro') }"
+        >
           <p
             class="mb-5 font-data text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-electric)]"
           >
@@ -361,12 +454,35 @@ onUnmounted(() => timers.forEach(clearTimeout));
         </div>
       </section>
 
-      <LandingCapabilities />
-      <LandingUseCases />
-      <LandingTrust />
+      <section
+        id="practice"
+        ref="practiceRef"
+        class="snap-section"
+        aria-hidden="false"
+      >
+        <LandingCapabilities />
+      </section>
+      <section
+        id="judge"
+        ref="judgeRef"
+        class="snap-section"
+        aria-hidden="false"
+      >
+        <LandingUseCases />
+      </section>
+      <section
+        id="caseload"
+        ref="caseloadRef"
+        class="snap-section"
+        aria-hidden="false"
+      >
+        <LandingTrust />
+      </section>
 
       <section
-        class="container mx-auto max-w-4xl px-4 py-20 text-center lg:py-28"
+        id="start"
+        ref="startRef"
+        class="snap-section container mx-auto max-w-4xl px-4 py-20 text-center lg:py-28"
       >
         <ChevronDown class="mx-auto size-6 text-[var(--accent-electric)]" />
         <h2 class="mt-5 text-3xl font-black tracking-tight sm:text-5xl">

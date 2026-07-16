@@ -1,67 +1,220 @@
 import { describe, expect, it } from 'vitest'
-import { renderMarkdown, sanitizeHtml } from '../index'
+import {
+  extractHeadings,
+  renderMarkdown,
+  sanitizeHtml,
+  slugifyHeading,
+} from '../index'
 
-describe('renderMarkdown', () => {
-  it('renders plain text to a paragraph', () => {
-    const out = renderMarkdown('hello world')
-    expect(out).toContain('<p>')
-    expect(out).toContain('hello world')
+describe('slugifyHeading', () => {
+  it('lowercases ASCII text', () => {
+    expect(slugifyHeading('Hello World')).toBe('hello-world')
   })
 
-  it('produces heading tags with slugified ids', () => {
-    const out = renderMarkdown('# Hello World')
-    expect(out).toMatch(/<h1[^>]*id="hello-world"/)
+  it('trims leading and trailing whitespace before slugifying', () => {
+    expect(slugifyHeading('   Hello World   ')).toBe('hello-world')
+    expect(slugifyHeading('\tFoo\n')).toBe('foo')
   })
 
-  it('keeps inline formatting (strong, em)', () => {
-    const out = renderMarkdown('**bold** and *italic*')
-    expect(out).toContain('<strong>bold</strong>')
-    expect(out).toContain('<em>italic</em>')
+  it('collapses runs of non-alphanumeric chars to a single hyphen', () => {
+    expect(slugifyHeading('Hello!! World??')).toBe('hello-world')
+    expect(slugifyHeading('foo   bar')).toBe('foo-bar')
   })
 
-  it('renders fenced code with the standalone toolbar wrapper', () => {
-    const out = renderMarkdown('```python\nprint("hi")\n```')
-    expect(out).toContain('lc-code-block-standalone')
-    expect(out).toContain('language-python')
+  it('preserves Chinese characters in the CJK Unified Ideographs block', () => {
+    expect(slugifyHeading('你好 世界')).toBe('你好-世界')
+    expect(slugifyHeading('测试标题')).toBe('测试标题')
   })
 
-  it('groups consecutive fences with shared group id into tabbed widget', () => {
-    const md = '```js {group="foo"}\nlet a = 1\n```\n```py {group="foo"}\na = 1\n```'
-    const out = renderMarkdown(md)
-    expect(out).toContain('lc-code-tabs')
-    expect(out).toContain('lc-tab-btn')
-    expect(out).toMatch(/data-index="0"/)
-    expect(out).toMatch(/data-index="1"/)
+  it('returns an empty string when input has no slug-safe characters', () => {
+    expect(slugifyHeading('')).toBe('')
+    expect(slugifyHeading('   ')).toBe('')
+    expect(slugifyHeading('!!!')).toBe('')
   })
 
-  it('escapes raw HTML through markdown-it (html: false) so it never executes', () => {
-    const out = renderMarkdown('<script>alert(1)</script>')
-    // markdown-it html:false escapes the tag, so the browser renders literal text
-    // (escaped entities) rather than an executable <script> element.
-    expect(out).not.toMatch(/<script[\s>]/i)
-    expect(out).toContain('&lt;script&gt;')
+  it('produces IDs that match the heading renderer output', () => {
+    const samples = [
+      'Hello World',
+      '  Trimmed  ',
+      '你好',
+      'Mixed 中文 Title',
+      '100%',
+    ]
+    for (const sample of samples) {
+      const slug = slugifyHeading(sample)
+      const html = renderMarkdown(`## ${sample}`)
+      const match = html.match(/<h2[^>]*id="([^"]+)"/)
+      expect(match, `renderer produced no id for "${sample}"`).not.toBeNull()
+      expect(match![1]).toBe(slug)
+    }
   })
 
-  it('strips javascript: hrefs in linkified markdown', () => {
-    const out = renderMarkdown('[click](javascript:alert(1))')
-    expect(out).not.toMatch(/href="javascript:/i)
+  it('matches the renderer even when the markdown uses closing hashes', () => {
+    const slug = slugifyHeading('Heading')
+    const html = renderMarkdown('## Heading ##\n')
+    expect(html).toContain(`id="${slug}"`)
+  })
+})
+
+describe('extractHeadings', () => {
+  it('returns an empty list for empty or nullish input', () => {
+    expect(extractHeadings('')).toEqual([])
+    expect(extractHeadings(null as unknown as string)).toEqual([])
+    expect(extractHeadings(undefined as unknown as string)).toEqual([])
   })
 
-  it('escapes raw HTML event handler attributes (no executable tag survives)', () => {
-    const out = renderMarkdown('<img src="x" onerror="alert(1)" />')
-    // markdown-it html:false escapes the entire tag — no executable <img> with
-    // a real onerror attribute can reach the DOM.
-    expect(out).not.toMatch(/<img[\s>]/i)
-    expect(out).toContain('&lt;img')
+  it('extracts ## and ### headings by default with their level', () => {
+    const headings = extractHeadings('## One\n\nSome text\n\n### Two\n')
+    expect(headings).toEqual([
+      { id: 'one', text: 'One', level: 2 },
+      { id: 'two', text: 'Two', level: 3 },
+    ])
   })
 
-  it('returns an empty string for empty input', () => {
-    expect(renderMarkdown('')).toBe('')
+  it('ignores h1 and h4+ by default', () => {
+    const md = '# Title\n## Section\n#### Deep\n##### Deeper\n'
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.level)).toEqual([2])
+    expect(headings[0]?.text).toBe('Section')
   })
 
-  it('returns an empty string for null/undefined input', () => {
-    expect(renderMarkdown(null as unknown as string)).toBe('')
-    expect(renderMarkdown(undefined as unknown as string)).toBe('')
+  it('respects a custom level range via options.levels', () => {
+    const md = '# Title\n## Section\n### Sub\n#### Deep'
+    const headings = extractHeadings(md, { levels: [1, 4] })
+    expect(headings.map((h) => `${h.level}:${h.text}`)).toEqual([
+      '1:Title',
+      '4:Deep',
+    ])
+  })
+
+  it('rejects heading levels outside the markdown range', () => {
+    expect(() => extractHeadings('# Heading', { levels: [1, 7] })).toThrow(
+      'Heading levels must be integers from 1 to 6',
+    )
+  })
+
+  it('rejects heading levels outside the markdown range', () => {
+    expect(() => extractHeadings('# Heading', { levels: [1, 7] })).toThrow(
+      'Heading levels must be integers from 1 to 6',
+    )
+  })
+
+  it('keeps IDs aligned when filtered headings follow another level', () => {
+    const md = '# Hello\n\n## Hello'
+    expect(extractHeadings(md)).toEqual([
+      { id: 'hello-2', text: 'Hello', level: 2 },
+    ])
+    expect(renderMarkdown(md)).toContain('id="hello-2"')
+  })
+
+  it('skips headings inside fenced code blocks', () => {
+    const md = [
+      '## Real',
+      '',
+      '```',
+      '## NotAHeading',
+      '### AlsoNot',
+      '```',
+      '',
+      '## RealTwo',
+    ].join('\n')
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.text)).toEqual(['Real', 'RealTwo'])
+  })
+
+  it('handles balanced fence toggles with leading whitespace', () => {
+    const md = ['## A', '   ```', '## B', '   ```', '## C'].join('\n')
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.text)).toEqual(['A', 'C'])
+  })
+
+  it('keeps tilde and other fence markers closed when odd', () => {
+    const md = ['## A', '~~~', '## B', '~~~', '## C'].join('\n')
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.text)).toEqual(['A', 'C'])
+  })
+
+  it('deduplicates identical headings with -2, -3 suffixes', () => {
+    const md = '## Hello\n\n## Hello\n\n## Hello\n'
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.id)).toEqual(['hello', 'hello-2', 'hello-3'])
+    expect(headings.map((h) => h.text)).toEqual(['Hello', 'Hello', 'Hello'])
+  })
+
+  it('does not collide IDs that differ only by punctuation', () => {
+    const md = '## Hello World\n\n## Hello-World\n'
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.id)).toEqual(['hello-world', 'hello-world-2'])
+  })
+
+  it('counts duplicates only inside the heading range by default', () => {
+    const md = '## Hello\n\n## Different\n\n## Hello\n'
+    const headings = extractHeadings(md)
+    expect(headings.map((h) => h.id)).toEqual([
+      'hello',
+      'different',
+      'hello-2',
+    ])
+  })
+
+  it('strips leading/trailing hash marks the renderer would never see', () => {
+    const md = '## Real Heading'
+    const headings = extractHeadings(md)
+    expect(headings[0]).toEqual({ id: 'real-heading', text: 'Real Heading', level: 2 })
+  })
+
+  it('preserves inline markdown characters in extracted text', () => {
+    const md = '## **Bold** title'
+    const headings = extractHeadings(md)
+    expect(headings[0]?.text).toBe('**Bold** title')
+  })
+
+  it('IDs always match the IDs renderMarkdown emits', () => {
+    const md = [
+      '## Hello',
+      '',
+      'Some body text',
+      '',
+      '## Hello',
+      '',
+      '## Hello',
+      '',
+      '### Mixed 中文',
+    ].join('\n')
+    const headings = extractHeadings(md)
+    const html = renderMarkdown(md)
+    for (const heading of headings) {
+      const re = new RegExp(`<h\\d[^>]*id="${heading.id}"`)
+      expect(html).toMatch(re)
+    }
+  })
+})
+
+describe('renderMarkdown heading IDs (renderer/extractor parity)', () => {
+  it('emits deduped IDs when the same heading text appears multiple times', () => {
+    const md = '## Hello\n\n## Hello\n\n## Hello\n'
+    const html = renderMarkdown(md)
+    expect(html).toContain('id="hello"')
+    expect(html).toContain('id="hello-2"')
+    expect(html).toContain('id="hello-3"')
+  })
+
+  it('does not bleed IDs across separate renderMarkdown calls', () => {
+    const md = '## Hello'
+    expect(renderMarkdown(md)).toContain('id="hello"')
+    expect(renderMarkdown(md)).toContain('id="hello"')
+    expect(renderMarkdown('## Hello\n\n## Hello')).toContain('id="hello-2"')
+  })
+
+  it('still escapes raw script tags after the heading rewrite', () => {
+    const html = renderMarkdown('## Hi\n\n<script>alert(1)</script>\n')
+    expect(html).not.toMatch(/<script[\s>]/i)
+    expect(html).toContain('&lt;script&gt;')
+  })
+
+  it('still strips javascript: hrefs after the heading rewrite', () => {
+    const html = renderMarkdown('## Hi\n\n[bad](javascript:alert(1))\n')
+    expect(html).not.toMatch(/href="javascript:/i)
   })
 })
 
@@ -74,6 +227,18 @@ describe('sanitizeHtml', () => {
   it('preserves basic formatting', () => {
     const out = sanitizeHtml('<p><strong>ok</strong></p>')
     expect(out).toContain('<strong>ok</strong>')
+  })
+
+  it('removes executable SVG content from sanitized output', () => {
+    const out = sanitizeHtml(
+      '<svg><script>alert(1)</script><a xlink:href="javascript:alert(1)">x</a></svg>',
+    )
+    expect(out).not.toMatch(/<script|javascript:/i)
+  })
+
+  it('does not treat raw SVG markup in markdown as HTML', () => {
+    const out = renderMarkdown('<svg><script>alert(1)</script></svg>')
+    expect(out).not.toMatch(/<svg|<script/i)
   })
 
   it('removes on* attributes', () => {

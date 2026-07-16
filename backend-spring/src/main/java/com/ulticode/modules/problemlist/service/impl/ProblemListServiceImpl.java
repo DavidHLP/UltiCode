@@ -13,6 +13,7 @@ import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
 import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
 import com.ulticode.modules.problemlist.dto.UpdateCategoryDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListBookmark;
@@ -425,5 +426,107 @@ public class ProblemListServiceImpl implements ProblemListService {
 
         // Delete category
         problemListCategoryMapper.deleteById(categoryId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProblemList findEntityById(String id) {
+        return problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO adminUpdateProblemList(String id, UpdateProblemListDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getName, list::setName);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getDescription, list::setDescription);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsPublic, list::setIsPublic);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerIcon, list::setBannerIcon);
+        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getBannerOrder, list::setBannerOrder);
+        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsFeatured, list::setIsFeatured);
+
+        problemListMapper.updateById(list);
+
+        return problemListProjection.toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO adminUpdateBasicInfo(String id, UpdateBasicInfoDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getName, list::setName);
+        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getDescription, list::setDescription);
+
+        problemListMapper.updateById(list);
+
+        return problemListProjection.toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO adminUpdateVisibility(String id, UpdateVisibilityDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsPublic, list::setIsPublic);
+        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsFeatured, list::setIsFeatured);
+
+        problemListMapper.updateById(list);
+
+        return problemListProjection.toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO adminUpdateBanner(String id, UpdateBannerDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerIcon, list::setBannerIcon);
+        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTheme, list::setBannerTheme);
+        PartialUpdate.setIfPresent(dto, UpdateBannerDTO::getBannerOrder, list::setBannerOrder);
+
+        problemListMapper.updateById(list);
+
+        return problemListProjection.toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional
+    public void adminReplaceListProblems(String id, UpdateProblemListProblemsDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        problemListProblemMapper.deleteByListId(id);
+
+        if (dto.getProblems() == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
+        }
+
+        for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
+            ProblemListProblemRelation relation = new ProblemListProblemRelation();
+            relation.setListId(id);
+            relation.setProblemId(entry.getProblemId());
+            relation.setSortOrder(entry.getSortOrder());
+            problemListProblemMapper.insert(relation);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void adminDeleteProblemList(String id) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        problemListProblemMapper.deleteByListId(id);
+        problemListMapper.deleteById(id);
     }
 }

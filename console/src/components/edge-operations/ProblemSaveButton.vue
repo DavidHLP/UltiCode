@@ -19,11 +19,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useBookmarkStore } from "@/stores/bookmark";
-import {
-  addBookmark,
-  removeBookmarkByTarget,
-  getBookmarkFolders,
-} from "@/api/bookmark";
+import { getBookmarkFolders } from "@/api/bookmark";
 import {
   getUserListsForProblem,
   batchAddProblemToLists,
@@ -140,20 +136,18 @@ async function toggleFolder(folderId: string) {
 
   try {
     if (isInFolder) {
-      await removeBookmarkByTarget(
+      await bookmarkStore.removeBookmarkByTarget(
         folderId,
         props.targetType,
         props.problemId.toString(),
       );
       itemFolders.value = itemFolders.value.filter((id) => id !== folderId);
-      bookmarkStore.updateItemCount(folderId, -1);
     } else {
-      await addBookmark(folderId, {
+      await bookmarkStore.addBookmark(folderId, {
         targetId: props.problemId.toString(),
         targetType: props.targetType,
       });
       itemFolders.value.push(folderId);
-      bookmarkStore.updateItemCount(folderId, 1);
     }
 
     emitChange();

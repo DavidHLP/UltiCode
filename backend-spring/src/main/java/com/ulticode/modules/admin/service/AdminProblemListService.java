@@ -56,7 +56,7 @@ public interface AdminProblemListService {
      *
      * @param id the problem list ID
      */
-    void deleteProblemList(String id);
+    void deleteProblemList(String id, String userId);
 
     /**
      * Update the problems in a problem list (full replacement).
@@ -64,7 +64,7 @@ public interface AdminProblemListService {
      * @param id the problem list ID
      * @param dto the update DTO containing the new problem list
      */
-    void updateListProblems(String id, UpdateProblemListProblemsDTO dto);
+    void updateListProblems(String id, UpdateProblemListProblemsDTO dto, String userId);
 
     /**
      * Update basic info of a problem list.

@@ -1,41 +1,17 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/utils/request";
+import {
+  BookmarkType,
+  type BookmarkFolder,
+  type BookmarkFolderDetail,
+  type BookmarkItem,
+} from "@/types/bookmark";
 
-export enum BookmarkType {
-  PROBLEM = "PROBLEM",
-  SOLUTION = "SOLUTION",
-  FORUM_POST = "FORUM_POST",
-  PROBLEM_LIST = "PROBLEM_LIST",
-  SOLUTION_COMMENT = "SOLUTION_COMMENT",
-  FORUM_COMMENT = "FORUM_COMMENT",
-}
-
-export interface BookmarkFolder {
-  id: string;
-  name: string;
-  description: string | null;
-  icon: string | null;
-  color: string | null;
-  isDefault: boolean;
-  itemCount: number;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface BookmarkItem {
-  id: string;
-  targetId: string;
-  targetType: BookmarkType;
-  sortOrder: number;
-  note: string | null;
-  createdAt: string;
-  title?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface BookmarkFolderDetail extends BookmarkFolder {
-  items: BookmarkItem[];
-}
+export { BookmarkType };
+export type {
+  BookmarkFolder,
+  BookmarkFolderDetail,
+  BookmarkItem,
+} from "@/types/bookmark";
 
 /**
  * Response shape for `GET /bookmarks/item/{targetType}/{targetId}` and

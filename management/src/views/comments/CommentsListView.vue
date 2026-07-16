@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
 import { IconCheck, IconMessage, IconTrash, IconUser, IconFileText } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -14,34 +13,25 @@ import {
 } from '@/components/ui/dialog'
 
 import { useCommentsStore } from '@/stores/admin/comments'
-import { useAuthStore } from '@/stores/auth'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
+import { useCommentModeration } from '@/composables/useCommentModeration'
 import { createColumns } from './columns'
 import { renderMarkdown } from '@/shared/markdown-utils/src'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
-const authStore = useAuthStore()
 
 const typeFilter = ref<CommentType | 'all'>('all')
 const flaggedFilter = ref<string>('all')
 const deletedFilter = ref<string>('all')
 
-const selectedCommentId = ref<string | null>(null)
-const selectedCommentType = ref<CommentType | null>(null)
-const selectedCommentContent = ref<string | null>(null)
-const deleteDialogOpen = ref(false)
-const flagDialogOpen = ref(false)
-
 const detailDialogOpen = ref(false)
 const detailComment = ref<Comment | null>(null)
-
-const bulkActionLoading = ref(false)
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -51,9 +41,6 @@ onMounted(() => {
     isLoaded.value = true
   }, 100)
 })
-
-const canModerateForum = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
-const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT'))
 
 // Stats for terminal ticker
 const stats = computed(() => {
@@ -134,48 +121,27 @@ const {
   autoLoad: true,
 })
 
-function confirmDelete(comment: Comment) {
-  selectedCommentId.value = comment.id
-  selectedCommentType.value = comment.type
-  selectedCommentContent.value = comment.content
-  deleteDialogOpen.value = true
-}
-
-function openFlagDialog(comment: Comment) {
-  selectedCommentId.value = comment.id
-  selectedCommentType.value = comment.type
-  selectedCommentContent.value = comment.content
-  flagDialogOpen.value = true
-}
-
-async function handleDeleteComment(id: string | number) {
-  if (!selectedCommentType.value) return
-  await commentsStore.deleteComment(String(id), selectedCommentType.value)
-}
-
-async function handleFlagComment(id: string | number, reason?: string) {
-  if (!selectedCommentType.value) return
-  await commentsStore.flagComment(String(id), selectedCommentType.value, reason || '')
-}
-
-async function unflagComment(comment: Comment) {
-  try {
-    await commentsStore.unflagComment(comment.id, comment.type)
-    toast.success(t('comments.toast.unflaggedSuccessfully'))
-  } catch {
-    toast.error(t('comments.toast.failedToUnflag'))
-  }
-}
+const {
+  selectedCommentId,
+  selectedCommentContent,
+  deleteDialogOpen,
+  flagDialogOpen,
+  bulkDeleteDialogOpen,
+  bulkActionLoading,
+  canModerate,
+  confirmDelete,
+  openFlagDialog,
+  promptBulkDelete,
+  handleDeleteComment,
+  handleFlagComment,
+  unflagComment,
+  bulkUnflag,
+  bulkDelete,
+} = useCommentModeration({ refresh: loadComments })
 
 function viewCommentDetails(comment: Comment) {
   detailComment.value = comment
   detailDialogOpen.value = true
-}
-
-function canModerate(comment: Comment) {
-  if (comment.type === 'forum') return canModerateForum.value
-  if (comment.type === 'solution') return canModerateSolution.value
-  return false
 }
 
 const columns = createColumns(
@@ -191,69 +157,19 @@ const columns = createColumns(
 
 async function handleBulkUnflag() {
   if (selectedRows.value.length === 0) return
-
-  // Group by type for API call
-  const byType = selectedRows.value.reduce(
-    (acc, r) => {
-      if (!acc[r.type]) acc[r.type] = []
-      acc[r.type].push(r.id)
-      return acc
-    },
-    {} as Record<CommentType, string[]>,
-  )
-
-  bulkActionLoading.value = true
-  try {
-    await Promise.all(
-      Object.entries(byType).map(([type, ids]) =>
-        commentsStore.bulkAction({ ids, type: type as CommentType, action: 'unflag' }),
-      ),
-    )
-    await loadComments()
-    selectedRows.value = []
-    toast.success(t('comments.toast.bulkUnflaggedSuccessfully'))
-  } catch {
-    toast.error(t('comments.toast.failedToBulkUnflag'))
-  } finally {
-    bulkActionLoading.value = false
-  }
+  const ok = await bulkUnflag(selectedRows.value)
+  if (ok) selectedRows.value = []
 }
 
-const bulkDeleteDialogOpen = ref(false)
-
-async function handleBulkDelete() {
+function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
-  bulkDeleteDialogOpen.value = true
+  promptBulkDelete()
 }
 
 async function handleBulkDeleteConfirm() {
   if (selectedRows.value.length === 0) return
-
-  // Group by type for API call
-  const byType = selectedRows.value.reduce(
-    (acc, r) => {
-      if (!acc[r.type]) acc[r.type] = []
-      acc[r.type].push(r.id)
-      return acc
-    },
-    {} as Record<CommentType, string[]>,
-  )
-
-  bulkActionLoading.value = true
-  try {
-    await Promise.all(
-      Object.entries(byType).map(([type, ids]) =>
-        commentsStore.bulkAction({ ids, type: type as CommentType, action: 'delete' }),
-      ),
-    )
-    await loadComments()
-    selectedRows.value = []
-    toast.success(t('comments.toast.bulkDeletedSuccessfully'))
-  } catch {
-    toast.error(t('comments.toast.failedToBulkDelete'))
-  } finally {
-    bulkActionLoading.value = false
-  }
+  const ok = await bulkDelete(selectedRows.value)
+  if (ok) selectedRows.value = []
 }
 </script>
 

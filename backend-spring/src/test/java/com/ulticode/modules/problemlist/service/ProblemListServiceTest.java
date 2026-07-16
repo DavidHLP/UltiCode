@@ -5,6 +5,8 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
 import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
@@ -27,11 +29,13 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -543,6 +547,404 @@ class ProblemListServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.PROBLEM_LIST_PROBLEM_DUPLICATE));
+        }
+    }
+
+    // ==================== Admin-bypass mutation tests ====================
+
+    @Nested
+    @DisplayName("findEntityById()")
+    class FindEntityByIdTests {
+
+        @Test
+        @DisplayName("should return the entity when found")
+        void findEntityById_Found() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            ProblemList result = problemListService.findEntityById(LIST_ID);
+
+            assertThat(result).isSameAs(existing);
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void findEntityById_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> problemListService.findEntityById(LIST_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("adminUpdateProblemList()")
+    class AdminUpdateProblemListTests {
+
+        @Test
+        @DisplayName("should apply all provided fields without ownership check")
+        void adminUpdateProblemList_AppliesAllFields() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListDTO dto = new UpdateProblemListDTO();
+            dto.setName("Admin Name");
+            dto.setDescription("Admin Description");
+            dto.setIsPublic(true);
+            dto.setIsFeatured(true);
+            dto.setBannerTag("admin-tag");
+            dto.setBannerIcon("admin-icon");
+            dto.setBannerTheme("admin-theme");
+            dto.setBannerOrder(9);
+
+            ProblemListSummaryVO result = problemListService.adminUpdateProblemList(LIST_ID, dto);
+
+            assertThat(result.getName()).isEqualTo("Admin Name");
+            assertThat(result.getDescription()).isEqualTo("Admin Description");
+            assertThat(result.getIsPublic()).isTrue();
+            assertThat(result.getIsFeatured()).isTrue();
+            assertThat(result.getBannerTag()).isEqualTo("admin-tag");
+            assertThat(result.getBannerIcon()).isEqualTo("admin-icon");
+            assertThat(result.getBannerTheme()).isEqualTo("admin-theme");
+            assertThat(result.getBannerOrder()).isEqualTo(9);
+
+            ArgumentCaptor<ProblemList> captor = ArgumentCaptor.forClass(ProblemList.class);
+            verify(problemListMapper).updateById(captor.capture());
+            assertThat(captor.getValue().getAuthorId()).isEqualTo(OWNER_ID);
+        }
+
+        @Test
+        @DisplayName("should bypass ownership: admin can edit any list")
+        void adminUpdateProblemList_BypassesOwnership() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListDTO dto = new UpdateProblemListDTO();
+            dto.setName("Renamed By Admin");
+
+            ProblemListSummaryVO result = problemListService.adminUpdateProblemList(LIST_ID, dto);
+
+            assertThat(result.getName()).isEqualTo("Renamed By Admin");
+            verify(problemListMapper).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminUpdateProblemList_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            UpdateProblemListDTO dto = new UpdateProblemListDTO();
+            dto.setName("X");
+
+            assertThatThrownBy(() -> problemListService.adminUpdateProblemList(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+            verify(problemListMapper, never()).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should skip null fields in partial PATCH")
+        void adminUpdateProblemList_PartialPatch() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListDTO dto = new UpdateProblemListDTO();
+            dto.setName("Only Name");
+
+            ProblemListSummaryVO result = problemListService.adminUpdateProblemList(LIST_ID, dto);
+
+            assertThat(result.getName()).isEqualTo("Only Name");
+            ArgumentCaptor<ProblemList> captor = ArgumentCaptor.forClass(ProblemList.class);
+            verify(problemListMapper).updateById(captor.capture());
+            ProblemList updated = captor.getValue();
+            assertThat(updated.getDescription()).isEqualTo("Original Description");
+            assertThat(updated.getBannerTag()).isEqualTo("original-tag");
+            assertThat(updated.getIsPublic()).isFalse();
+            assertThat(updated.getIsFeatured()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("adminUpdateBasicInfo()")
+    class AdminUpdateBasicInfoTests {
+
+        @Test
+        @DisplayName("should apply name and description without ownership check")
+        void adminUpdateBasicInfo_Success() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
+            dto.setName("Admin Name");
+            dto.setDescription("Admin Description");
+
+            ProblemListSummaryVO result = problemListService.adminUpdateBasicInfo(LIST_ID, dto);
+
+            assertThat(result.getName()).isEqualTo("Admin Name");
+            assertThat(result.getDescription()).isEqualTo("Admin Description");
+            verify(problemListMapper).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should bypass ownership: admin can edit any list")
+        void adminUpdateBasicInfo_BypassesOwnership() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
+            dto.setName("X");
+            dto.setDescription("Y");
+
+            problemListService.adminUpdateBasicInfo(LIST_ID, dto);
+
+            verify(problemListMapper).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminUpdateBasicInfo_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
+            dto.setName("X");
+            dto.setDescription("Y");
+
+            assertThatThrownBy(() -> problemListService.adminUpdateBasicInfo(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("adminUpdateVisibility()")
+    class AdminUpdateVisibilityTests {
+
+        @Test
+        @DisplayName("should apply isPublic and isFeatured without ownership check")
+        void adminUpdateVisibility_Success() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
+            dto.setIsPublic(true);
+            dto.setIsFeatured(true);
+
+            ProblemListSummaryVO result = problemListService.adminUpdateVisibility(LIST_ID, dto);
+
+            assertThat(result.getIsPublic()).isTrue();
+            assertThat(result.getIsFeatured()).isTrue();
+            verify(problemListMapper).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should skip null visibility fields")
+        void adminUpdateVisibility_Partial() {
+            ProblemList existing = createProblemList();
+            existing.setIsFeatured(true);
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
+            dto.setIsPublic(true);
+            dto.setIsFeatured(null);
+
+            ProblemListSummaryVO result = problemListService.adminUpdateVisibility(LIST_ID, dto);
+
+            assertThat(result.getIsPublic()).isTrue();
+            assertThat(result.getIsFeatured()).isTrue();
+
+            ArgumentCaptor<ProblemList> captor = ArgumentCaptor.forClass(ProblemList.class);
+            verify(problemListMapper).updateById(captor.capture());
+            assertThat(captor.getValue().getIsFeatured()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminUpdateVisibility_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
+            dto.setIsPublic(true);
+
+            assertThatThrownBy(() -> problemListService.adminUpdateVisibility(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("adminUpdateBanner()")
+    class AdminUpdateBannerTests {
+
+        @Test
+        @DisplayName("should apply banner fields without ownership check")
+        void adminUpdateBanner_Success() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateBannerDTO dto = new UpdateBannerDTO();
+            dto.setBannerTag("admin-tag");
+            dto.setBannerTheme("admin-theme");
+            dto.setBannerOrder(7);
+
+            ProblemListSummaryVO result = problemListService.adminUpdateBanner(LIST_ID, dto);
+
+            assertThat(result.getBannerTag()).isEqualTo("admin-tag");
+            assertThat(result.getBannerTheme()).isEqualTo("admin-theme");
+            assertThat(result.getBannerOrder()).isEqualTo(7);
+            verify(problemListMapper).updateById(any(ProblemList.class));
+        }
+
+        @Test
+        @DisplayName("should skip null banner fields")
+        void adminUpdateBanner_Partial() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateBannerDTO dto = new UpdateBannerDTO();
+            dto.setBannerTag("only-tag");
+            dto.setBannerTheme(null);
+            dto.setBannerOrder(null);
+
+            ProblemListSummaryVO result = problemListService.adminUpdateBanner(LIST_ID, dto);
+
+            assertThat(result.getBannerTag()).isEqualTo("only-tag");
+            ArgumentCaptor<ProblemList> captor = ArgumentCaptor.forClass(ProblemList.class);
+            verify(problemListMapper).updateById(captor.capture());
+            ProblemList updated = captor.getValue();
+            assertThat(updated.getBannerTag()).isEqualTo("only-tag");
+            assertThat(updated.getBannerTheme()).isEqualTo("original-theme");
+            assertThat(updated.getBannerOrder()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminUpdateBanner_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            UpdateBannerDTO dto = new UpdateBannerDTO();
+            dto.setBannerTag("tag");
+
+            assertThatThrownBy(() -> problemListService.adminUpdateBanner(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("adminReplaceListProblems()")
+    class AdminReplaceListProblemsTests {
+
+        @Test
+        @DisplayName("should delete existing relations and insert all new ones")
+        void adminReplaceListProblems_Success() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
+            UpdateProblemListProblemsDTO.ProblemEntry e1 = new UpdateProblemListProblemsDTO.ProblemEntry();
+            e1.setProblemId(10L);
+            e1.setSortOrder(0);
+            UpdateProblemListProblemsDTO.ProblemEntry e2 = new UpdateProblemListProblemsDTO.ProblemEntry();
+            e2.setProblemId(11L);
+            e2.setSortOrder(1);
+            dto.setProblems(Arrays.asList(e1, e2));
+
+            problemListService.adminReplaceListProblems(LIST_ID, dto);
+
+            verify(problemListProblemMapper).deleteByListId(LIST_ID);
+            ArgumentCaptor<ProblemListProblemRelation> captor =
+                    ArgumentCaptor.forClass(ProblemListProblemRelation.class);
+            verify(problemListProblemMapper, org.mockito.Mockito.times(2)).insert(captor.capture());
+            List<ProblemListProblemRelation> inserted = captor.getAllValues();
+            assertThat(inserted).hasSize(2);
+            assertThat(inserted.get(0).getListId()).isEqualTo(LIST_ID);
+            assertThat(inserted.get(0).getProblemId()).isEqualTo(10L);
+            assertThat(inserted.get(0).getSortOrder()).isEqualTo(0);
+            assertThat(inserted.get(1).getProblemId()).isEqualTo(11L);
+            assertThat(inserted.get(1).getSortOrder()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("should clear relations when problems list is empty (full replacement)")
+        void adminReplaceListProblems_EmptyList() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
+            dto.setProblems(java.util.Collections.emptyList());
+
+            problemListService.adminReplaceListProblems(LIST_ID, dto);
+
+            verify(problemListProblemMapper).deleteByListId(LIST_ID);
+            verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
+        }
+
+        @Test
+        @DisplayName("should throw VALIDATION_FAILED when problems is null")
+        void adminReplaceListProblems_NullProblems() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
+            dto.setProblems(null);
+
+            assertThatThrownBy(() -> problemListService.adminReplaceListProblems(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.VALIDATION_FAILED));
+            verify(problemListProblemMapper).deleteByListId(LIST_ID);
+            verify(problemListProblemMapper, never()).insert(any(ProblemListProblemRelation.class));
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminReplaceListProblems_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            UpdateProblemListProblemsDTO dto = new UpdateProblemListProblemsDTO();
+            dto.setProblems(java.util.Collections.emptyList());
+
+            assertThatThrownBy(() -> problemListService.adminReplaceListProblems(LIST_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+            verify(problemListProblemMapper, never()).deleteByListId(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("adminDeleteProblemList()")
+    class AdminDeleteProblemListTests {
+
+        @Test
+        @DisplayName("should delete problem relations and the list row without ownership check")
+        void adminDeleteProblemList_Success() {
+            ProblemList existing = createProblemList();
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(existing));
+
+            problemListService.adminDeleteProblemList(LIST_ID);
+
+            verify(problemListProblemMapper).deleteByListId(LIST_ID);
+            verify(problemListMapper).deleteById(LIST_ID);
+        }
+
+        @Test
+        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when missing")
+        void adminDeleteProblemList_NotFound() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> problemListService.adminDeleteProblemList(LIST_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+            verify(problemListProblemMapper, never()).deleteByListId(any());
+            verify(problemListMapper, never()).deleteById(anyString());
         }
     }
 }

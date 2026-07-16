@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ForumPostSkeleton from "@/views/forum/components/ForumPostSkeleton.vue";
 import ThreadContent from "@/views/forum/components/ThreadContent.vue";
 import { CommentThread } from "@/components/comments";
-import { ref, watch, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowLeft, MessageSquare, Flag, List } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,11 @@ import {
 import ReportDialog from "@/components/ReportDialog.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useForumThread } from "@/composables/useForumThread";
+import { useContentNavigation } from "@/composables/useContentNavigation";
+import { extractHeadings, slugifyHeading } from "@/shared/markdown-utils/src";
 
 const { t } = useI18n();
 
-// --- Forum thread interaction module (state + mutations + transport) ---
 const {
   thread,
   isLoading,
@@ -50,11 +51,8 @@ const handleReport = () => {
   reportDialogRef.value?.open();
 };
 
-// --- Table of Contents & Scroll Spy ---
-const getPostContent = () => {
+const getPostContent = (): string => {
   if (!thread.value) return "";
-  // Prefer explicit body, then excerpt (current backend stores the full
-  // markdown under `excerpt`), then text-typed media attachments.
   if (thread.value.body) return thread.value.body;
   if (thread.value.excerpt) return thread.value.excerpt;
   if (thread.value.media) {
@@ -76,206 +74,102 @@ const getPostContent = () => {
   return "";
 };
 
-const slugifyHeading = (text: string) =>
-  text
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
+interface ForumHeading {
+  id: string;
+  text: string;
+  level: number;
+  exists: boolean;
+}
 
-const headings = computed(() => {
-  const content = getPostContent();
+const collectBoldFallbacks = (content: string): ForumHeading[] => {
   const lines = content.split("\n");
-  const result: { id: string; text: string; level: number; exists: boolean }[] =
-    [];
-  let codeBlock = false;
-  const seenIds = new Set<string>();
-
-  const pushUnique = (entry: {
-    id: string;
-    text: string;
-    level: number;
-    exists: boolean;
-  }) => {
-    let id = entry.id;
-    let suffix = 2;
-    while (seenIds.has(id)) {
-      id = `${entry.id}-${suffix++}`;
-    }
-    seenIds.add(id);
-    result.push({ ...entry, id });
-  };
-
-  // First pass: explicit ## / ### markdown headings (rendered as <h2>/<h3> by
-  // renderMarkdown, which assigns a matching `id`).
-  lines.forEach((line: string) => {
+  const out: ForumHeading[] = [];
+  const seen = new Set<string>();
+  for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith("```")) {
-      codeBlock = !codeBlock;
-      return;
+    if (!trimmed || trimmed.startsWith("```") || trimmed.startsWith("#")) {
+      continue;
     }
-    if (codeBlock) return;
-    const match = trimmed.match(/^(#{2,3})\s+(.+)$/);
-    if (match) {
-      const level = match[1].length;
-      const text = match[2].trim();
-      pushUnique({
-        id: slugifyHeading(text),
-        text,
-        level,
-        exists: true,
-      });
-    }
-  });
-
-  // Fallback pass: when there are few/zero headings, harvest bold lead-ins
-  // and short standalone bold lines so short posts still get a useful TOC.
-  if (result.length < 2) {
-    lines.forEach((line: string) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("```")) return;
-      if (trimmed.startsWith("#")) return;
-      const boldLead = trimmed.match(/^\*\*([^*][^*]*?):\*\*\s*$/);
-      if (boldLead) {
-        const text = boldLead[1].trim();
-        pushUnique({
-          id: slugifyHeading(text),
-          text,
-          level: 3,
-          exists: false,
-        });
-        return;
-      }
-      const standaloneBold = trimmed.match(/^\*\*([^*][^*]*?)\*\*\s*$/);
-      if (standaloneBold) {
-        const text = standaloneBold[1].trim();
-        if (text.length <= 40) {
-          pushUnique({
-            id: slugifyHeading(text),
-            text,
-            level: 3,
-            exists: false,
-          });
+    const boldLead = trimmed.match(/^\*\*([^*][^*]*?):\*\*\s*$/);
+    if (boldLead) {
+      const text = (boldLead[1] ?? "").trim();
+      if (text) {
+        const id = slugifyHeading(text);
+        if (!seen.has(id)) {
+          seen.add(id);
+          out.push({ id, text, level: 3, exists: false });
         }
       }
-    });
+      continue;
+    }
+    const standaloneBold = trimmed.match(/^\*\*([^*][^*]*?)\*\*\s*$/);
+    if (standaloneBold) {
+      const text = (standaloneBold[1] ?? "").trim();
+      if (text && text.length <= 40) {
+        const id = slugifyHeading(text);
+        if (!seen.has(id)) {
+          seen.add(id);
+          out.push({ id, text, level: 3, exists: false });
+        }
+      }
+    }
   }
+  return out;
+};
 
-  // Always append comments section
-  pushUnique({
+const headings = computed<ForumHeading[]>(() => {
+  const content = getPostContent();
+  const real = extractHeadings(content).map<ForumHeading>((h) => ({
+    ...h,
+    exists: true,
+  }));
+
+  // Fallback: when there are too few explicit headings, harvest bold
+  // lead-ins / standalone bold lines so short posts still get a usable TOC.
+  const fallback = real.length < 2 ? collectBoldFallbacks(content) : [];
+
+  return [...real, ...fallback, {
     id: "comments-section",
     text: t("forum.comments.title"),
     level: 2,
     exists: true,
-  });
-
-  return result;
+  }];
 });
 
-const activeHeadingId = ref<string>("");
-let spyObserver: IntersectionObserver | null = null;
-
-const setupScrollSpy = () => {
-  if (spyObserver) {
-    spyObserver.disconnect();
-  }
-
-  spyObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          activeHeadingId.value = entry.target.id;
-        }
-      });
-    },
-    {
-      root: null,
-      rootMargin: "-80px 0px -50% 0px",
-      threshold: 0.1,
-    },
-  );
-
-  headings.value.forEach((h) => {
-    const el = document.getElementById(h.id);
-    if (el) {
-      spyObserver?.observe(el);
+const {
+  wrapperRef,
+  activeHeadingId,
+  isWideLayout,
+  showMobileTOC,
+  scrollToHeading,
+} = useContentNavigation(headings, {
+  resolveFallbackElement: (heading) => {
+    const strongs = document.querySelectorAll(
+      ".markdown-view strong, .markdown-view p",
+    );
+    for (const node of Array.from(strongs)) {
+      if (
+        (node.textContent || "").trim().replace(/[:：]\s*$/, "") ===
+        heading.text
+      ) {
+        return node as HTMLElement;
+      }
     }
-  });
-};
-
-watch(
-  () => headings.value,
-  () => {
-    setTimeout(setupScrollSpy, 250);
+    return null;
   },
-  { immediate: true, deep: true },
-);
-
-// --- Responsive Layout Container Query / Resize Observer ---
-const wrapperRef = ref<HTMLElement | null>(null);
-const containerWidth = ref(0);
-const isWideLayout = computed(() => containerWidth.value >= 900);
-const showMobileTOC = ref(false);
-
-let resizeObserver: ResizeObserver | null = null;
-
-onMounted(() => {
-  setTimeout(setupScrollSpy, 500);
-
-  if (wrapperRef.value) {
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        containerWidth.value = entry.contentRect.width;
-      }
-    });
-    resizeObserver.observe(wrapperRef.value);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (spyObserver) {
-    spyObserver.disconnect();
-  }
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-const scrollToHeading = (id: string) => {
-  let el = document.getElementById(id);
-  if (!el) {
-    // Fallback entries aren't real headings; locate the matching rendered
-    // <strong> text and scroll/highlight it instead.
-    const heading = headings.value.find((h) => h.id === id);
-    if (heading && heading.exists === false) {
-      const strongs = document.querySelectorAll(
-        ".markdown-view strong, .markdown-view p",
-      );
-      for (const node of Array.from(strongs)) {
-        if (
-          (node.textContent || "").trim().replace(/[:：]\s*$/, "") ===
-          heading.text
-        ) {
-          el = node as HTMLElement;
-          break;
-        }
-      }
-    }
-  }
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    activeHeadingId.value = id;
-    if (el.tagName !== "H2" && el.tagName !== "H3") {
+  onAfterScroll: (el, heading) => {
+    if (heading && heading.exists === false && el.tagName !== "H2" && el.tagName !== "H3") {
       el.classList.add("ring-2", "ring-[var(--solarized-blue)]", "rounded-sm");
       window.setTimeout(() => {
-        el?.classList.remove(
+        el.classList.remove(
           "ring-2",
           "ring-[var(--solarized-blue)]",
           "rounded-sm",
         );
       }, 1500);
     }
-  }
-};
+  },
+});
 
 const handleMobileTOCClick = (id: string) => {
   scrollToHeading(id);

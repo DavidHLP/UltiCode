@@ -9,7 +9,6 @@ import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -21,9 +20,7 @@ import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
-import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
-import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +29,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +43,6 @@ import java.util.stream.Collectors;
 public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     private final ProblemListMapper problemListMapper;
-    private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
     private final ProblemListProjection problemListProjection;
 
@@ -57,7 +50,6 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
         LambdaQueryWrapper<ProblemList> wrapper = new LambdaQueryWrapper<>();
 
-        // Search filter
         if (StringUtils.hasText(query.getSearch())) {
             String search = "%" + query.getSearch() + "%";
             wrapper.and(w -> w
@@ -66,17 +58,14 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
                     .like(ProblemList::getDescription, search));
         }
 
-        // Featured filter
         if (query.getIsFeatured() != null) {
             wrapper.eq(ProblemList::getIsFeatured, query.getIsFeatured());
         }
 
-        // Public filter
         if (query.getIsPublic() != null) {
             wrapper.eq(ProblemList::getIsPublic, query.getIsPublic());
         }
 
-        // Sorting
         boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
         String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
         switch (sortBy) {
@@ -85,7 +74,6 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             default -> wrapper.orderBy(true, isAsc, ProblemList::getCreatedAt);
         }
 
-        // Pagination
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
         int page = pageRequest.page();
         int limit = pageRequest.pageSize();
@@ -102,9 +90,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     public ProblemListDetailVO getProblemList(String id) {
-        // Detail shaping (author / problems / tags / stats) lives on the
-        // projection so the admin service stays a write+audit module.
-        return problemListProjection.toAdminDetailVO(findByIdOrThrow(id));
+        return problemListProjection.toAdminDetailVO(problemListService.findEntityById(id));
     }
 
     @Override
@@ -116,158 +102,128 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
-        ProblemList list = findByIdOrThrow(id);
+        ProblemList list = problemListService.findEntityById(id);
 
-        AuditContext.setOldValues(java.util.Map.of(
-            "name", list.getName() != null ? list.getName() : "",
-            "description", list.getDescription() != null ? list.getDescription() : "",
-            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
-            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false,
-            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
-            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
-        ));
+        AuditContext.setOldValues(oldSnapshot(list));
 
-        // Admin bypass: update fields directly without ownership check.
-        // PartialUpdate silently skips null fields, so a PATCH with only one
-        // field still preserves the rest of the row.
-        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getName, list::setName);
-        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getDescription, list::setDescription);
-        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsPublic, list::setIsPublic);
-        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTag, list::setBannerTag);
-        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerIcon, list::setBannerIcon);
-        PartialUpdate.setIfPresentText(dto, UpdateProblemListDTO::getBannerTheme, list::setBannerTheme);
-        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getBannerOrder, list::setBannerOrder);
-        PartialUpdate.setIfPresent(dto, UpdateProblemListDTO::getIsFeatured, list::setIsFeatured);
+        ProblemListSummaryVO vo = problemListService.adminUpdateProblemList(id, dto);
 
-        problemListMapper.updateById(list);
+        AuditContext.setNewValues(newSnapshot(vo));
 
-        AuditContext.setNewValues(java.util.Map.of(
-            "name", list.getName() != null ? list.getName() : "",
-            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
-            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
-        ));
-
-        return toSummaryVO(list);
+        return vo;
     }
 
     @Override
-    @Audited(action = AuditVocabulary.DELETE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "id")
-    public void deleteProblemList(String id) {
-        ProblemList list = findByIdOrThrow(id);
-        AuditContext.setOldValues(java.util.Map.of(
-            "name", list.getName() != null ? list.getName() : "",
-            "authorId", list.getAuthorId() != null ? list.getAuthorId() : ""
-        ));
-        problemListService.deleteList(id, list.getAuthorId());
+    @Audited(action = AuditVocabulary.DELETE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId", entityIdFrom = "id")
+    public void deleteProblemList(String id, String userId) {
+        ProblemList list = problemListService.findEntityById(id);
+        AuditContext.setOldValues(deleteSnapshot(list));
+        problemListService.adminDeleteProblemList(id);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "id")
-    public void updateListProblems(String id, UpdateProblemListProblemsDTO dto) {
-        ProblemList list = findByIdOrThrow(id);
-
-        problemListProblemMapper.deleteByListId(id);
+    @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId", entityIdFrom = "id")
+    public void updateListProblems(String id, UpdateProblemListProblemsDTO dto, String userId) {
+        problemListService.findEntityById(id);
 
         if (dto.getProblems() == null) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
         }
 
-        for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
-            ProblemListProblemRelation relation = new ProblemListProblemRelation();
-            relation.setListId(id);
-            relation.setProblemId(entry.getProblemId());
-            relation.setSortOrder(entry.getSortOrder());
-            problemListProblemMapper.insert(relation);
-        }
+        problemListService.adminReplaceListProblems(id, dto);
 
-        AuditContext.setNewValues(java.util.Map.of("updatedProblems", dto.getProblems().size()));
+        AuditContext.setNewValues(Map.of("updatedProblems", dto.getProblems().size()));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
-        ProblemList list = findByIdOrThrow(id);
+        ProblemList list = problemListService.findEntityById(id);
 
-        AuditContext.setOldValues(java.util.Map.of(
-            "name", list.getName() != null ? list.getName() : "",
-            "description", list.getDescription() != null ? list.getDescription() : ""
-        ));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("name", list.getName() != null ? list.getName() : "");
+        oldValues.put("description", list.getDescription() != null ? list.getDescription() : "");
+        AuditContext.setOldValues(oldValues);
 
-        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getName, list::setName);
-        PartialUpdate.setIfPresentText(dto, UpdateBasicInfoDTO::getDescription, list::setDescription);
-        problemListMapper.updateById(list);
+        ProblemListSummaryVO vo = problemListService.adminUpdateBasicInfo(id, dto);
 
-        AuditContext.setNewValues(java.util.Map.of(
-            "name", list.getName() != null ? list.getName() : "",
-            "description", list.getDescription() != null ? list.getDescription() : ""
-        ));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("name", vo.getName() != null ? vo.getName() : "");
+        newValues.put("description", vo.getDescription() != null ? vo.getDescription() : "");
+        AuditContext.setNewValues(newValues);
 
-        return toSummaryVO(list);
+        return vo;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
-        ProblemList list = findByIdOrThrow(id);
+        ProblemList list = problemListService.findEntityById(id);
 
-        AuditContext.setOldValues(java.util.Map.of(
-            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
-            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
-        ));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("isPublic", list.getIsPublic() != null ? list.getIsPublic() : false);
+        oldValues.put("isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false);
+        AuditContext.setOldValues(oldValues);
 
-        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsPublic, list::setIsPublic);
-        PartialUpdate.setIfPresent(dto, UpdateVisibilityDTO::getIsFeatured, list::setIsFeatured);
-        problemListMapper.updateById(list);
+        ProblemListSummaryVO vo = problemListService.adminUpdateVisibility(id, dto);
 
-        AuditContext.setNewValues(java.util.Map.of(
-            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
-            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
-        ));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("isPublic", vo.getIsPublic() != null ? vo.getIsPublic() : false);
+        newValues.put("isFeatured", vo.getIsFeatured() != null ? vo.getIsFeatured() : false);
+        AuditContext.setNewValues(newValues);
 
-        return toSummaryVO(list);
+        return vo;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @Audited(action = AuditVocabulary.UPDATE_PROBLEM_LIST, entityType = AuditVocabulary.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
-        ProblemList list = findByIdOrThrow(id);
+        ProblemList list = problemListService.findEntityById(id);
 
-        AuditContext.setOldValues(java.util.Map.of(
-            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
-            "bannerTheme", list.getBannerTheme() != null ? list.getBannerTheme() : "",
-            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
-        ));
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "");
+        oldValues.put("bannerTheme", list.getBannerTheme() != null ? list.getBannerTheme() : "");
+        oldValues.put("bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0);
+        AuditContext.setOldValues(oldValues);
 
-        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTag, list::setBannerTag);
-        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerIcon, list::setBannerIcon);
-        PartialUpdate.setIfPresentText(dto, UpdateBannerDTO::getBannerTheme, list::setBannerTheme);
-        PartialUpdate.setIfPresent(dto, UpdateBannerDTO::getBannerOrder, list::setBannerOrder);
-        problemListMapper.updateById(list);
+        ProblemListSummaryVO vo = problemListService.adminUpdateBanner(id, dto);
 
-        AuditContext.setNewValues(java.util.Map.of(
-            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
-            "bannerTheme", list.getBannerTheme() != null ? list.getBannerTheme() : "",
-            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
-        ));
+        Map<String, Object> newValues = new HashMap<>();
+        newValues.put("bannerTag", vo.getBannerTag() != null ? vo.getBannerTag() : "");
+        newValues.put("bannerTheme", vo.getBannerTheme() != null ? vo.getBannerTheme() : "");
+        newValues.put("bannerOrder", vo.getBannerOrder() != null ? vo.getBannerOrder() : 0);
+        AuditContext.setNewValues(newValues);
 
-        return toSummaryVO(list);
+        return vo;
     }
 
-    private ProblemList findByIdOrThrow(String id) {
-        ProblemList list = problemListMapper.selectById(id);
-        if (list == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
-        }
-        return list;
+    private static Map<String, Object> oldSnapshot(ProblemList list) {
+        Map<String, Object> values = new HashMap<>();
+        values.put("name", list.getName() != null ? list.getName() : "");
+        values.put("description", list.getDescription() != null ? list.getDescription() : "");
+        values.put("isPublic", list.getIsPublic() != null ? list.getIsPublic() : false);
+        values.put("isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false);
+        values.put("bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "");
+        values.put("bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0);
+        return values;
     }
 
-    private ProblemListSummaryVO toSummaryVO(ProblemList list) {
-        // Delegate to the projection — entity→VO rules + author enrichment live there now.
-        // Kept as a private helper so the four write-path returns stay short.
-        return problemListProjection.toSummaryVO(list);
+    private static Map<String, Object> newSnapshot(ProblemListSummaryVO vo) {
+        Map<String, Object> values = new HashMap<>();
+        values.put("name", vo.getName() != null ? vo.getName() : "");
+        values.put("isPublic", vo.getIsPublic() != null ? vo.getIsPublic() : false);
+        values.put("isFeatured", vo.getIsFeatured() != null ? vo.getIsFeatured() : false);
+        return values;
+    }
+
+    private static Map<String, Object> deleteSnapshot(ProblemList list) {
+        Map<String, Object> values = new HashMap<>();
+        values.put("name", list.getName() != null ? list.getName() : "");
+        values.put("authorId", list.getAuthorId() != null ? list.getAuthorId() : "");
+        return values;
     }
 }

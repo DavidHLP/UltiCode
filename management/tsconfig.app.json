@@ -15,7 +15,9 @@
     "../shared/datetime-utils/src/**/*",
     "../shared/badge-config/src/**/*",
     "../shared/domain-types/src/**/*",
-    "../shared/i18n-completeness/src/**/*"
+    "../shared/i18n-completeness/src/**/*",
+    "../shared/design-system/src/**/*",
+    "../shared/design-system/src/**/*.vue"
   ],
   "exclude": [
     "src/**/__tests__/*"

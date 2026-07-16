@@ -6,7 +6,7 @@ import MarkdownView from "@/components/markdown/MarkdownView.vue";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAvatar } from "@/composables/useAvatar";
 import { Badge } from "@/components/ui/badge";
-import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, watch } from "vue";
 import { CommentThread } from "@/components/comments";
 import {
   fetchSolutionComments,
@@ -21,11 +21,13 @@ import { PostActions } from "@/components/edge-operations";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/shared/datetime-utils/src";
+import { extractHeadings } from "@/shared/markdown-utils/src";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2, Flag, List } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
+import { useContentNavigation } from "@/composables/useContentNavigation";
 import ReportDialog from "@/components/ReportDialog.vue";
 
 const props = defineProps<{
@@ -99,116 +101,22 @@ watch(
   { immediate: true, deep: true },
 );
 
-// --- Table of Contents & Scroll Spy ---
-const headings = computed(() => {
-  const content = props.item.content ?? "";
-  const lines = content.split("\n");
-  const result: { id: string; text: string; level: number }[] = [];
-  let codeBlock = false;
-
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("```")) {
-      codeBlock = !codeBlock;
-    }
-    if (codeBlock) return;
-
-    // Match ## heading or ### heading
-    const match = trimmed.match(/^(#{2,3})\s+(.+)$/);
-    if (match) {
-      const level = match[1].length;
-      const text = match[2].trim();
-      const id = text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-");
-      result.push({ id, text, level });
-    }
-  });
-
-  // Always append comments section if comments exist or is follow-up
-  result.push({
+const headings = computed(() => [
+  ...extractHeadings(props.item.content ?? ""),
+  {
     id: "comments-section",
     text: t("forum.comments.title"),
     level: 2,
-  });
-
-  return result;
-});
-
-const activeHeadingId = ref<string>("");
-let spyObserver: IntersectionObserver | null = null;
-
-const setupScrollSpy = () => {
-  if (spyObserver) {
-    spyObserver.disconnect();
-  }
-
-  spyObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          activeHeadingId.value = entry.target.id;
-        }
-      });
-    },
-    {
-      root: null,
-      rootMargin: "-80px 0px -50% 0px",
-      threshold: 0.1,
-    },
-  );
-
-  headings.value.forEach((h) => {
-    const el = document.getElementById(h.id);
-    if (el) {
-      spyObserver?.observe(el);
-    }
-  });
-};
-
-watch(
-  () => headings.value,
-  () => {
-    setTimeout(setupScrollSpy, 250);
   },
-  { immediate: true, deep: true },
-);
+]);
 
-// --- Responsive Layout Container Query / Resize Observer ---
-const wrapperRef = ref<HTMLElement | null>(null);
-const containerWidth = ref(0);
-const isWideLayout = computed(() => containerWidth.value >= 900);
-const showMobileTOC = ref(false);
-
-let resizeObserver: ResizeObserver | null = null;
-
-onMounted(() => {
-  setTimeout(setupScrollSpy, 500);
-
-  if (wrapperRef.value) {
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        containerWidth.value = entry.contentRect.width;
-      }
-    });
-    resizeObserver.observe(wrapperRef.value);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (spyObserver) {
-    spyObserver.disconnect();
-  }
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
-});
-
-const scrollToHeading = (id: string) => {
-  const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    activeHeadingId.value = id;
-  }
-};
+const {
+  wrapperRef,
+  activeHeadingId,
+  isWideLayout,
+  showMobileTOC,
+  scrollToHeading,
+} = useContentNavigation(headings);
 
 const handleMobileTOCClick = (id: string) => {
   scrollToHeading(id);

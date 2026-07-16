@@ -75,8 +75,8 @@ public class AdminProblemListController {
     @RateLimit(key = "admin:problem-list-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> deleteProblemList(@PathVariable String id) {
-        adminProblemListService.deleteProblemList(id);
+    public Result<Void> deleteProblemList(@PathVariable String id, Principal principal) {
+        adminProblemListService.deleteProblemList(id, principal.getName());
         return Result.success();
     }
 
@@ -86,8 +86,9 @@ public class AdminProblemListController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGE_PROBLEMS')")
     public Result<Void> updateListProblems(
             @PathVariable String id,
-            @Valid @RequestBody UpdateProblemListProblemsDTO dto) {
-        adminProblemListService.updateListProblems(id, dto);
+            @Valid @RequestBody UpdateProblemListProblemsDTO dto,
+            Principal principal) {
+        adminProblemListService.updateListProblems(id, dto, principal.getName());
         return Result.success();
     }
 

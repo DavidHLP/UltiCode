@@ -250,8 +250,135 @@ const groupFencesPlugin = (instance: MarkdownIt): void => {
 md.use(groupFencesPlugin)
 
 // ---------------------------------------------------------------------------
-// Heading renderer — slugify text into a stable id for scroll-spy / TOC.
+// Heading extraction — canonical slug + duplicate-aware ID derivation.
 // ---------------------------------------------------------------------------
+
+const HEADING_ID_PATTERN = /[^a-z0-9\u4e00-\u9fa5]+/g
+
+/**
+ * Slugify heading text into a stable id used both by `renderMarkdown`
+ * (for `id` attributes on rendered headings) and by `extractHeadings`
+ * (for TOC entries). The same function backs both so TOC IDs always
+ * match rendered IDs.
+ */
+export function slugifyHeading(text: string): string {
+  return String(text ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(HEADING_ID_PATTERN, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Make a base slug unique against a set of already-used ids by appending
+ * the conventional `-2`, `-3`, ... suffix. Used by both the renderer and
+ * `extractHeadings` so duplicate headings stay in sync.
+ */
+export function dedupeHeadingId(
+  baseId: string,
+  used: { has: (id: string) => boolean; add: (id: string) => void },
+): string {
+  if (!baseId) return baseId
+  if (!used.has(baseId)) {
+    used.add(baseId)
+    return baseId
+  }
+  let suffix = 2
+  let candidate = `${baseId}-${suffix}`
+  while (used.has(candidate)) {
+    suffix += 1
+    candidate = `${baseId}-${suffix}`
+  }
+  used.add(candidate)
+  return candidate
+}
+
+export interface MarkdownHeading {
+  id: string
+  text: string
+  level: number
+}
+
+export interface ExtractHeadingsOptions {
+  /** Heading levels to extract (1-6). Defaults to `[2, 3]`. */
+  levels?: number[]
+}
+
+const FENCE_LINE_PATTERN = /^\s*(```|~~~)/
+
+/**
+ * Extract `{id, text, level}` entries from a raw markdown string.
+ *
+ * - Skips headings inside fenced code blocks (``` and ~~~).
+ * - Deduplicates IDs across the document using the same
+ *   `slugifyHeading` + `dedupeHeadingId` rules as `renderMarkdown`,
+ *   so the IDs in the returned array always match the IDs rendered
+ *   into the HTML, even when the same heading text appears multiple
+ *   times.
+ */
+export function extractHeadings(
+  markdown: string,
+  options: ExtractHeadingsOptions = {},
+): MarkdownHeading[] {
+  const source = String(markdown ?? '')
+  if (!source) return []
+
+  const levels = (options.levels && options.levels.length > 0
+    ? options.levels
+    : [2, 3]
+  ).slice().sort((a, b) => a - b)
+  if (levels.some((level) => !Number.isInteger(level) || level < 1 || level > 6)) {
+    throw new RangeError('Heading levels must be integers from 1 to 6')
+  }
+  const levelSet = new Set(levels)
+
+  const lines = source.split('\n')
+  const headings: MarkdownHeading[] = []
+  const used = new Set<string>()
+  let inFence = false
+  let fenceMarker: string | null = null
+
+  for (const line of lines) {
+    const fenceMatch = line.match(FENCE_LINE_PATTERN)
+    if (fenceMatch) {
+      const marker = fenceMatch[1] ?? '```'
+      if (!inFence) {
+        inFence = true
+        fenceMarker = marker
+      } else if (fenceMarker && line.trimStart().startsWith(fenceMarker)) {
+        inFence = false
+        fenceMarker = null
+      }
+      continue
+    }
+    if (inFence) continue
+
+    const match = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/)
+    if (!match) continue
+    const level = match[1]?.length ?? 0
+
+    const rawText = (match[2] ?? '').trim()
+    if (!rawText) continue
+
+    const baseId = slugifyHeading(rawText)
+    const id = dedupeHeadingId(baseId, used)
+    if (levelSet.has(level)) {
+      headings.push({ id, text: rawText, level })
+    }
+  }
+
+  return headings
+}
+
+// ---------------------------------------------------------------------------
+// Heading renderer — slugify text into a stable id for scroll-spy / TOC.
+// Renderer dedupes IDs per render call using an env-scoped Set so the
+// emitted `id` attributes always match what `extractHeadings` returns.
+// ---------------------------------------------------------------------------
+
+interface RenderEnv {
+  __headingIds?: Set<string>
+}
 
 const defaultHeadingOpen =
   md.renderer.rules.heading_open ||
@@ -264,16 +391,24 @@ md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
   if (inlineToken && inlineToken.type === 'inline') {
     text = inlineToken.content
   }
-  const id = text
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-
-  const idAttrIdx = token.attrIndex('id')
-  if (idAttrIdx >= 0 && token.attrs) {
-    token.attrs[idAttrIdx][1] = id
-  } else {
-    token.attrPush(['id', id])
+  const baseId = slugifyHeading(text)
+  let id = baseId
+  if (baseId) {
+    const renderEnv = env as RenderEnv | undefined
+    let seen = renderEnv?.__headingIds
+    if (!seen && renderEnv) {
+      seen = new Set<string>()
+      renderEnv.__headingIds = seen
+    }
+    if (seen) {
+      id = dedupeHeadingId(baseId, seen)
+    }
+    const idAttrIdx = token.attrIndex('id')
+    if (idAttrIdx >= 0 && token.attrs) {
+      token.attrs[idAttrIdx][1] = id
+    } else {
+      token.attrPush(['id', id])
+    }
   }
   return defaultHeadingOpen(tokens, idx, options, env, self)
 }
@@ -328,5 +463,6 @@ md.renderer.rules.fence = (tokens, idx) => {
  * security invariant "`v-html` must consume sanitized markdown" lives at.
  */
 export function renderMarkdown(text: string): string {
-  return sanitizeHtml(md.render(text || ''))
+  const env: RenderEnv = { __headingIds: new Set<string>() }
+  return sanitizeHtml(md.render(text || '', env))
 }

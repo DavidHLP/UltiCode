@@ -2,7 +2,6 @@
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { toast } from 'vue-sonner'
 import {
   IconCheck,
   IconDotsVertical,
@@ -24,11 +23,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useCommentsStore } from '@/stores/admin/comments'
-import { useAuthStore } from '@/stores/auth'
-import type { Comment, CommentType } from '@/api/admin/comments'
+import type { Comment } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useCommentModeration } from '@/composables/useCommentModeration'
 import { renderInlineContent } from '@/utils/comment-renderer'
 
 const props = defineProps<{
@@ -37,16 +36,8 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
-const authStore = useAuthStore()
 
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
-const selectedCommentId = ref<string | null>(null)
-const selectedCommentType = ref<CommentType | null>(null)
-const selectedCommentContent = ref<string | null>(null)
-const deleteDialogOpen = ref(false)
-const flagDialogOpen = ref(false)
-
-const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
 
 // Stats for terminal ticker
 const stats = computed(() => {
@@ -57,8 +48,6 @@ const stats = computed(() => {
   return { total, flagged, deleted }
 })
 
-onMounted(() => loadComments())
-
 async function loadComments() {
   await commentsStore.fetchComments({
     type: 'forum',
@@ -67,6 +56,21 @@ async function loadComments() {
     limit: tablePagination.value.pageSize,
   })
 }
+
+const {
+  selectedCommentId,
+  selectedCommentContent,
+  deleteDialogOpen,
+  flagDialogOpen,
+  canModerate,
+  confirmDelete,
+  openFlagDialog,
+  handleDeleteComment,
+  handleFlagComment,
+  unflagComment,
+} = useCommentModeration({ refresh: loadComments })
+
+onMounted(() => loadComments())
 
 // Only watch pageIndex and pageSize separately to avoid deep watch issues
 watch(
@@ -77,40 +81,6 @@ watch(
   () => tablePagination.value.pageSize,
   () => loadComments(),
 )
-
-function confirmDelete(comment: Comment) {
-  selectedCommentId.value = comment.id
-  selectedCommentType.value = comment.type
-  selectedCommentContent.value = comment.content
-  deleteDialogOpen.value = true
-}
-
-function openFlagDialog(comment: Comment) {
-  selectedCommentId.value = comment.id
-  selectedCommentType.value = comment.type
-  selectedCommentContent.value = comment.content
-  flagDialogOpen.value = true
-}
-
-async function handleDeleteComment(id: string | number) {
-  if (!selectedCommentType.value) return
-  await commentsStore.deleteComment(String(id), selectedCommentType.value)
-}
-
-async function handleFlagComment(id: string | number, reason?: string) {
-  if (!selectedCommentType.value) return
-  void reason // Used by EntityActionDialog
-  await commentsStore.flagComment(String(id), selectedCommentType.value, reason || '')
-}
-
-async function unflagComment(comment: Comment) {
-  try {
-    await commentsStore.unflagComment(comment.id, comment.type)
-    toast.success(t('comments.toast.unflaggedSuccessfully'))
-  } catch {
-    toast.error(t('comments.toast.failedToUnflag'))
-  }
-}
 
 function renderStatusBadge(comment: Comment, t: (key: string) => string) {
   if (comment.isDeleted) {
@@ -240,7 +210,7 @@ const columns: ColumnDef<Comment>[] = [
       ),
     cell: ({ row }) => {
       const comment = row.original
-      if (!canModerate.value) return null
+      if (!canModerate(comment)) return null
 
       return h(
         DropdownMenu,

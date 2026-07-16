@@ -17,6 +17,20 @@
     "./components/separator/Separator.vue": {
       "import": "./src/components/separator/Separator.vue"
     },
+    "./components/skeleton": {
+      "import": "./src/components/skeleton/index.ts",
+      "types": "./src/components/skeleton/index.ts"
+    },
+    "./components/skeleton/Skeleton.vue": {
+      "import": "./src/components/skeleton/Skeleton.vue"
+    },
+    "./components/spinner": {
+      "import": "./src/components/spinner/index.ts",
+      "types": "./src/components/spinner/index.ts"
+    },
+    "./components/spinner/Spinner.vue": {
+      "import": "./src/components/spinner/Spinner.vue"
+    },
     "./utils/cn": {
       "import": "./src/utils/cn.ts",
       "types": "./src/utils/cn.ts"

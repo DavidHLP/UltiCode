@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { toast } from 'vue-sonner'
 import {
   IconArrowLeft,
   IconFlag,
@@ -17,27 +16,36 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TerminalBadge } from '@/components/ui/terminal'
 
 import { useCommentsStore } from '@/stores/admin/comments'
-import { PERM } from '@/constants/permissions'
-import { useAuthStore } from '@/stores/auth'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { renderMarkdown } from '@/shared/markdown-utils/src'
 import { useDetailWorkspace } from '@/composables/useDetailWorkspace'
+import { useCommentModeration } from '@/composables/useCommentModeration'
 
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
-const authStore = useAuthStore()
-
-const deleteDialogOpen = ref(false)
-const flagDialogOpen = ref(false)
 
 const commentId = computed(() => route.params.id as string)
 const commentType = computed((): CommentType => {
   return (route.params.type as CommentType) || 'forum'
 })
+
+const {
+  canModerate,
+  canDelete,
+  selectedCommentId,
+  selectedCommentContent,
+  deleteDialogOpen,
+  flagDialogOpen,
+  confirmDelete,
+  openFlagDialog,
+  handleDeleteComment,
+  handleFlagComment,
+  unflagComment,
+} = useCommentModeration()
 
 // Detail lifecycle (first-load skeleton, mount animation, refresh) lives in
 // the shared workspace; comments have no secondary refresh.
@@ -49,43 +57,11 @@ const { isInitialLoad, isLoaded, refresh } = useDetailWorkspace({
 })
 
 const comment = computed(() => commentsStore.currentComment)
-const canModerate = computed(() =>
-  commentType.value === 'forum'
-    ? authStore.hasPermission(
-        PERM.MODERATE_FORUM_COMMENT.action,
-        PERM.MODERATE_FORUM_COMMENT.resource,
-      )
-    : authStore.hasPermission(
-        PERM.MODERATE_SOLUTION_COMMENT.action,
-        PERM.MODERATE_SOLUTION_COMMENT.resource,
-      ),
-)
-const canDelete = computed(() =>
-  commentType.value === 'forum'
-    ? authStore.hasPermission(PERM.DELETE_FORUM_COMMENT.action, PERM.DELETE_FORUM_COMMENT.resource)
-    : authStore.hasPermission(
-        PERM.DELETE_SOLUTION_COMMENT.action,
-        PERM.DELETE_SOLUTION_COMMENT.resource,
-      ),
-)
 
-async function unflagComment() {
+async function doUnflag() {
   if (!comment.value) return
-  try {
-    await commentsStore.unflagComment(commentId.value, commentType.value)
-    toast.success(t('comments.toast.unflaggedSuccessfully'))
-    await refresh()
-  } catch {
-    toast.error(t('comments.toast.failedToUnflag'))
-  }
-}
-
-async function handleDeleteComment(id: string | number) {
-  await commentsStore.deleteComment(String(id), commentType.value)
-}
-
-async function handleFlagComment(id: string | number, reason?: string) {
-  await commentsStore.flagComment(String(id), commentType.value, reason || '')
+  await unflagComment({ id: commentId.value, type: commentType.value })
+  await refresh()
 }
 
 function handleDeleteSuccess() {
@@ -147,13 +123,13 @@ function handleFlagSuccess() {
           </div>
 
           <!-- Action Buttons -->
-          <template v-if="canModerate">
+          <template v-if="canModerate(comment)">
             <Button
               v-if="comment.isFlagged"
               variant="terminal"
               size="sm"
               class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
-              @click="unflagComment"
+              @click="doUnflag"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('comments.actions.unflag') }}</span>
@@ -163,7 +139,7 @@ function handleFlagSuccess() {
               variant="terminal"
               size="sm"
               class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
-              @click="flagDialogOpen = true"
+              @click="comment && openFlagDialog(comment)"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{ t('comments.actions.flag') }}</span>
@@ -171,11 +147,11 @@ function handleFlagSuccess() {
           </template>
 
           <Button
-            v-if="canDelete"
+            v-if="canDelete(comment)"
             variant="terminal"
             size="sm"
             class="h-8 w-8 p-0 border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
-            @click="deleteDialogOpen = true"
+            @click="comment && confirmDelete(comment)"
           >
             <IconTrash class="h-4 w-4" />
           </Button>
@@ -403,8 +379,8 @@ function handleFlagSuccess() {
     <!-- Dialogs -->
     <EntityActionDialog
       v-model:open="deleteDialogOpen"
-      :entity-id="commentId"
-      :entity-title="comment?.content || null"
+      :entity-id="selectedCommentId"
+      :entity-title="selectedCommentContent"
       action="delete"
       :title="t('comments.delete.title')"
       :description="t('comments.delete.description')"
@@ -418,7 +394,7 @@ function handleFlagSuccess() {
 
     <EntityActionDialog
       v-model:open="flagDialogOpen"
-      :entity-id="commentId"
+      :entity-id="selectedCommentId"
       action="flag"
       :title="t('comments.flag.title')"
       :description="t('comments.flag.description')"

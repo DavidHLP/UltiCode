@@ -20,7 +20,7 @@ export interface BookmarkFolder {
   updatedAt: string;
 }
 
-export interface Bookmark {
+export interface BookmarkItem {
   id: string;
   targetId: string;
   targetType: BookmarkType;
@@ -31,12 +31,13 @@ export interface Bookmark {
   metadata?: Record<string, unknown>;
 }
 
-export interface BookmarkFolderWithItems extends Omit<
-  BookmarkFolder,
-  "itemCount"
-> {
-  items: Bookmark[];
+export type Bookmark = BookmarkItem;
+
+export interface BookmarkFolderDetail extends BookmarkFolder {
+  items: BookmarkItem[];
 }
+
+export type BookmarkFolderWithItems = BookmarkFolderDetail;
 
 export interface CreateFolderInput {
   name: string;

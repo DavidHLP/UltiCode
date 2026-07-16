@@ -38,15 +38,13 @@ import {
 import BookmarkFolderList from "@/components/bookmark/BookmarkFolderList.vue";
 import CreateFolderDialog from "@/components/bookmark/CreateFolderDialog.vue";
 import { useBookmarkStore } from "@/stores/bookmark";
-import { fetchFolder, removeBookmark } from "@/api/bookmark";
-import { BookmarkType } from "@/api/bookmark";
 import { useI18n } from "vue-i18n";
-import type {
-  BookmarkFolder,
-  BookmarkFolderWithItems,
-  CreateFolderInput,
-  UpdateFolderInput,
-  Bookmark,
+import {
+  BookmarkType,
+  type BookmarkFolder,
+  type BookmarkItem,
+  type CreateFolderInput,
+  type UpdateFolderInput,
 } from "@/types/bookmark";
 import { toast } from "vue-sonner";
 import { RouterLink } from "vue-router";
@@ -75,9 +73,6 @@ interface ForumMetadata {
 const store = useBookmarkStore();
 const { t } = useI18n();
 
-const selectedFolderId = ref<string | null>(null);
-const selectedFolderDetails = ref<BookmarkFolderWithItems | null>(null);
-const isLoadingDetails = ref(false);
 const searchQuery = ref("");
 
 const showCreateDialog = ref(false);
@@ -85,51 +80,44 @@ const editingFolder = ref<BookmarkFolder | null>(null);
 const showDeleteDialog = ref(false);
 const deletingFolder = ref<BookmarkFolder | null>(null);
 
-// Computed
-const selectedFolder = computed(() =>
-  store.folders.find((f) => f.id === selectedFolderId.value),
-);
+const selectedFolder = computed(() => store.selectedFolder);
 
 const filteredItems = computed(() => {
-  if (!selectedFolderDetails.value) return [];
-  if (!searchQuery.value.trim()) return selectedFolderDetails.value.items;
+  const items = store.selectedFolderDetails?.items ?? [];
+  if (!searchQuery.value.trim()) return items;
 
   const query = searchQuery.value.toLowerCase();
-  return selectedFolderDetails.value.items.filter(
+  return items.filter(
     (item) =>
       item.title?.toLowerCase().includes(query) ||
       item.note?.toLowerCase().includes(query),
   );
 });
 
-// Methods
-async function loadFolderDetails(id: string) {
-  isLoadingDetails.value = true;
+async function handleSelectFolder(folder: BookmarkFolder) {
+  if (
+    store.selectedFolderId === folder.id &&
+    store.selectedFolderDetails?.id === folder.id
+  ) {
+    return;
+  }
+
+  searchQuery.value = "";
   try {
-    selectedFolderDetails.value = await fetchFolder(id);
+    await store.selectFolder(folder.id);
   } catch (error) {
     console.error("Failed to load folder details:", error);
     toast.error(t("personal.messages.loadFailed"));
-  } finally {
-    isLoadingDetails.value = false;
   }
 }
 
-function handleSelectFolder(folder: BookmarkFolder) {
-  if (selectedFolderId.value === folder.id) return;
-  selectedFolderId.value = folder.id;
-  searchQuery.value = "";
-  loadFolderDetails(folder.id);
-}
-
-// Auto-select first folder if none selected
 watch(
   () => store.folders,
   (folders) => {
-    if (folders.length > 0 && !selectedFolderId.value) {
+    if (folders.length > 0 && !store.selectedFolderId) {
       const firstFolder = folders[0];
       if (firstFolder) {
-        handleSelectFolder(firstFolder);
+        void handleSelectFolder(firstFolder);
       }
     }
   },
@@ -150,7 +138,7 @@ async function handleCreateFolder(data: CreateFolderInput) {
   try {
     const newFolder = await store.createFolder(data);
     toast.success(t("personal.messages.folderCreated"));
-    handleSelectFolder(newFolder);
+    await handleSelectFolder(newFolder);
   } catch (error) {
     console.error("Failed to create folder:", error);
     toast.error(t("personal.messages.saveFailed"));
@@ -161,8 +149,8 @@ async function handleUpdateFolder(id: string, data: UpdateFolderInput) {
   try {
     await store.updateFolder(id, data);
     toast.success(t("personal.messages.profileUpdated"));
-    if (selectedFolderId.value === id) {
-      loadFolderDetails(id);
+    if (store.selectedFolderId === id) {
+      await store.loadFolderDetails(id);
     }
   } catch (error) {
     console.error("Failed to update folder:", error);
@@ -176,10 +164,6 @@ async function confirmDelete() {
   try {
     await store.removeFolder(deletingFolder.value.id);
     toast.success(t("personal.messages.folderDeleted"));
-    if (selectedFolderId.value === deletingFolder.value.id) {
-      selectedFolderId.value = null;
-      selectedFolderDetails.value = null;
-    }
   } catch (error) {
     console.error("Failed to delete folder:", error);
     toast.error(t("personal.messages.saveFailed"));
@@ -190,14 +174,10 @@ async function confirmDelete() {
 }
 
 async function handleRemoveItem(bookmarkId: string) {
-  if (!selectedFolderId.value) return;
+  if (!store.selectedFolderId) return;
   try {
-    await removeBookmark(selectedFolderId.value, bookmarkId);
+    await store.removeBookmark(store.selectedFolderId, bookmarkId);
     toast.success(t("personal.messages.bookmarkRemoved"));
-    // Refresh
-    loadFolderDetails(selectedFolderId.value);
-    // Optionally refresh folder list count
-    store.loadFolders();
   } catch (error) {
     console.error("Failed to remove item", error);
     toast.error(t("personal.messages.saveFailed"));
@@ -225,7 +205,7 @@ function getItemIcon(type: BookmarkType) {
   }
 }
 
-function getItemUrl(item: Bookmark) {
+function getItemUrl(item: BookmarkItem) {
   switch (item.targetType) {
     case BookmarkType.FORUM_POST:
       return { name: "forum-thread", params: { postId: item.targetId } };
@@ -254,12 +234,15 @@ function getItemUrl(item: Bookmark) {
   }
 }
 
-function getForumMetadata(item: Bookmark): ForumMetadata | undefined {
+function getForumMetadata(item: BookmarkItem): ForumMetadata | undefined {
   return item.metadata as unknown as ForumMetadata;
 }
 
 onMounted(() => {
-  store.loadFolders(true);
+  void store.loadFolders(true).catch((error) => {
+    console.error("Failed to load bookmark folders:", error);
+    toast.error(t("personal.messages.loadFailed"));
+  });
 });
 </script>
 
@@ -298,7 +281,7 @@ onMounted(() => {
           <BookmarkFolderList
             v-else
             :folders="store.folders"
-            :selected-id="selectedFolderId ?? undefined"
+            :selected-id="store.selectedFolderId ?? undefined"
             @select="handleSelectFolder"
             @edit="handleEditFolder"
             @delete="handleDeleteFolder"
@@ -340,7 +323,7 @@ onMounted(() => {
           >
             <CardContent class="p-0">
               <div
-                v-if="isLoadingDetails"
+                v-if="store.isLoadingDetails"
                 class="flex flex-col items-center justify-center py-20 gap-4"
               >
                 <Loader2 class="h-10 w-10 animate-spin text-primary" />
@@ -349,7 +332,10 @@ onMounted(() => {
                 </p>
               </div>
 
-              <div v-else-if="!selectedFolderDetails" class="py-24 text-center">
+              <div
+                v-else-if="!store.selectedFolderDetails"
+                class="py-24 text-center"
+              >
                 <div
                   class="bg-muted/50 w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
                 >
@@ -361,7 +347,7 @@ onMounted(() => {
               </div>
 
               <div
-                v-else-if="selectedFolderDetails.items.length === 0"
+                v-else-if="store.selectedFolderDetails.items.length === 0"
                 class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 m-4"
               >
                 <div
@@ -417,11 +403,7 @@ onMounted(() => {
                             variant="secondary"
                             class="text-2xs font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
                           >
-                            {{
-                              t(
-                                `bookmark.itemTypes.${item.targetType}`,
-                              )
-                            }}
+                            {{ t(`bookmark.itemTypes.${item.targetType}`) }}
                           </Badge>
 
                           <template v-if="item.metadata">

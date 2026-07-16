@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.policy.impl;
 
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
@@ -46,7 +46,7 @@ class ForumPostFieldToggleImplTest {
     private ForumPostMapper forumPostMapper;
 
     @Mock
-    private AuditHelper auditHelper;
+    private AuditRecorder auditRecorder;
 
     @InjectMocks
     private ForumPostFieldToggleImpl policy;
@@ -69,7 +69,7 @@ class ForumPostFieldToggleImplTest {
 
         policy.toggle("post-1", FieldToggle.PIN);
 
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("PIN_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -89,7 +89,7 @@ class ForumPostFieldToggleImplTest {
 
         policy.toggle("post-1", FieldToggle.UNPIN);
 
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("UNPIN_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -108,7 +108,7 @@ class ForumPostFieldToggleImplTest {
 
         policy.toggle("post-1", FieldToggle.LOCK);
 
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("LOCK_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -128,7 +128,7 @@ class ForumPostFieldToggleImplTest {
 
         policy.toggle("post-1", FieldToggle.UNLOCK);
 
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("UNLOCK_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -147,7 +147,7 @@ class ForumPostFieldToggleImplTest {
 
         policy.toggle("post-1", FieldToggle.PIN);
 
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             anyString(),
             anyString(),
             eq("post-1"),
@@ -167,7 +167,7 @@ class ForumPostFieldToggleImplTest {
             .isInstanceOf(BusinessException.class)
             .extracting("code").isEqualTo(ErrorCode.NOT_FOUND.getCode());
 
-        verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
+        verify(auditRecorder, never()).recordForUser(anyString(), anyString(), anyString(),
             anyString(), anyMap(), anyMap());
         verify(forumPostMapper, never()).updateById(any(ForumPost.class));
     }

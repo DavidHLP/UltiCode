@@ -6,7 +6,6 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
@@ -83,7 +82,6 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final ContestAnnouncementPushPort contestAnnouncementPushPort;
     private final AdminContestReadPort contestReadPort;
-    private final AuditHelper auditHelper;
     private final Clock clock;
     private final AdminContestProjection adminContestProjection;
     private final CurrentUserProvider currentUserProvider;

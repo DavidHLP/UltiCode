@@ -3,8 +3,8 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
 import com.ulticode.modules.admin.bulk.AdminBulkExecutor;
 import com.ulticode.modules.admin.dto.AuditLogVO;
@@ -55,7 +55,7 @@ public class AdminForumServiceImpl implements AdminForumService {
 
     private final ForumPostMapper forumPostMapper;
     private final AuditService auditService;
-    private final AuditHelper auditHelper;
+    private final AuditRecorder auditRecorder;
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
     private final ForumPostFieldToggle forumPostFieldToggle;
@@ -101,8 +101,11 @@ public class AdminForumServiceImpl implements AdminForumService {
         newValues.put("deletedAt", LocalDateTime.now(clock));
         newValues.put("deletedBy", performerId);
         // Audit FIRST: if audit fails we roll back the soft delete (audit
-        // integrity beats delete throughput).
-        auditHelper.logForUser(
+        // integrity beats delete throughput). Architecture-review candidate #5:
+        // bulk-style write (pre-fetched entity, audit-before-persist) crosses
+        // the deep audit seam via AuditRecorder rather than the deprecated
+        // AuditHelper shim.
+        auditRecorder.recordForUser(
             AuditVocabulary.DELETE_FORUM_POST,
             AuditVocabulary.ENTITY_FORUM_POST,
             id,

@@ -18,9 +18,20 @@ import {
   deleteCategory,
   moveListToCategory,
 } from "@/api/problem-list";
+import { useProblemListMutations } from "@/composables/useProblemListMutations";
 
+/**
+ * Personal-page Problem List composable (architecture-review candidate #2).
+ *
+ * <p>Screen-specific shape (sorted lists, search query) stays here. The
+ * mutation policy (HTTP call + toast + reload) concentrates in
+ * {@link useProblemListMutations} so all three console composables
+ * (this, the sidebar, the detail) emit identical user feedback on
+ * success and failure.
+ */
 export function useProblemLists() {
   const { t } = useI18n();
+  const { run } = useProblemListMutations();
   const loading = ref(true);
   const currentUserId = useAuthStore().fetchCurrentUserId();
   const searchQuery = ref("");
@@ -91,59 +102,54 @@ export function useProblemLists() {
     onClose: () => void,
   ) => {
     if (!currentUserId || !form.name.trim()) return;
-    try {
-      const newList = await createProblemList({
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
-        isPublic: form.isPublic,
-      });
-      toast.success(t("personal.messages.folderCreated"));
-      onClose();
-      onSuccess(newList.id);
-      await loadData();
-    } catch (e) {
-      console.error("Failed to create problem list", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () =>
+        createProblemList({
+          name: form.name.trim(),
+          description: form.description.trim() || undefined,
+          isPublic: form.isPublic,
+        }),
+      onSuccess: (newList) => {
+        onClose();
+        onSuccess(newList.id);
+      },
+      successKey: "personal.messages.folderCreated",
+      failureLabel: "create list",
+      reload: loadData,
+    });
   };
 
   // --- Delete List ---
   const handleDeleteList = async (list: ProblemList) => {
     if (!currentUserId) return;
-    try {
-      await deleteProblemList(list.id);
-      toast.success(t("personal.messages.folderDeleted"));
-      await loadData();
-    } catch (e) {
-      console.error("Failed to delete problem list", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => deleteProblemList(list.id),
+      successKey: "personal.messages.folderDeleted",
+      failureLabel: "delete list",
+      reload: loadData,
+    });
   };
 
   // --- Unsave List ---
   const handleUnsaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
-    try {
-      await unsaveList(list.id);
-      toast.success(t("personal.messages.bookmarkRemoved"));
-      await loadData();
-    } catch (e) {
-      console.error("Failed to unsave list", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => unsaveList(list.id),
+      successKey: "personal.messages.bookmarkRemoved",
+      failureLabel: "unsave list",
+      reload: loadData,
+    });
   };
 
   // --- Save Featured List ---
   const handleSaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
-    try {
-      await saveList(list.id);
-      toast.success(t("personal.messages.bookmarkAdded"));
-      await loadData();
-    } catch (e) {
-      console.error("Failed to save list", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => saveList(list.id),
+      successKey: "personal.messages.bookmarkAdded",
+      failureLabel: "save list",
+      reload: loadData,
+    });
   };
 
   // --- Move List to Category ---
@@ -152,14 +158,12 @@ export function useProblemLists() {
     categoryId: string | null,
   ) => {
     if (!currentUserId) return;
-    try {
-      await moveListToCategory(list.id, categoryId);
-      toast.success(t("personal.messages.profileUpdated"));
-      await loadData();
-    } catch (e) {
-      console.error("Failed to move list", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => moveListToCategory(list.id, categoryId),
+      successKey: "personal.messages.profileUpdated",
+      failureLabel: "move list",
+      reload: loadData,
+    });
   };
 
   // --- Create Category ---
@@ -168,20 +172,19 @@ export function useProblemLists() {
     onClose: () => void,
   ) => {
     if (!currentUserId || !form.name.trim()) return;
-    try {
-      await createCategory({
-        name: form.name.trim(),
-      });
-      toast.success(t("personal.messages.folderCreated"));
-      onClose();
-      await loadData();
-    } catch (e) {
-      console.error("Failed to create category", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => createCategory({ name: form.name.trim() }),
+      onSuccess: () => onClose(),
+      successKey: "personal.messages.folderCreated",
+      failureLabel: "create category",
+      reload: loadData,
+    });
   };
 
   // --- Edit Category ---
+  // The synchronous validation toast stays inline: the mutation helper
+  // assumes the call already passed client-side checks. Failing before
+  // the HTTP call is a UI concern, not a mutation concern.
   const handleEditCategory = async (
     category: ProblemListCategory,
     newName: string,
@@ -191,30 +194,24 @@ export function useProblemLists() {
       toast.error(t("personal.problemLists.dialogs.newName"));
       return;
     }
-    try {
-      await updateCategory(category.id, {
-        name: newName.trim(),
-      });
-      toast.success(t("personal.messages.profileUpdated"));
-      onClose();
-      await loadData();
-    } catch (e) {
-      console.error("Failed to update category", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => updateCategory(category.id, { name: newName.trim() }),
+      onSuccess: () => onClose(),
+      successKey: "personal.messages.profileUpdated",
+      failureLabel: "edit category",
+      reload: loadData,
+    });
   };
 
   // --- Delete Category ---
   const handleDeleteCategory = async (category: ProblemListCategory) => {
     if (!currentUserId) return;
-    try {
-      await deleteCategory(category.id);
-      toast.success(t("personal.messages.folderDeleted"));
-      await loadData();
-    } catch (e) {
-      console.error("Failed to delete category", e);
-      toast.error(t("personal.messages.saveFailed"));
-    }
+    await run({
+      call: () => deleteCategory(category.id),
+      successKey: "personal.messages.folderDeleted",
+      failureLabel: "delete category",
+      reload: loadData,
+    });
   };
 
   onMounted(loadData);

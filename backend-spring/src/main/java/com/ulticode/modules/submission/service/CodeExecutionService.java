@@ -12,6 +12,7 @@ import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
 import com.ulticode.modules.submission.util.OJSignatureParser;
+import com.ulticode.modules.submission.port.JudgingLanguageSupport;
 import com.ulticode.modules.submission.port.ProblemFactsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,12 @@ public class CodeExecutionService {
     private final ProblemFactsPort problemFacts;
     private final UuidGenerator uuidGenerator;
     /**
+     * Architecture-review candidate #1: the executable-language set
+     * now crosses the {@link JudgingLanguageSupport} seam rather than
+     * the submission-internal {@link CodeExecutionHelper} constants.
+     */
+    private final JudgingLanguageSupport languageSupport;
+    /**
      * M2a-round-2 fix (codex review F2): defaults were hard-coded to
      * 2s / 256 MiB which silently regressed both /run and /submit
      * timeouts versus the pre-M2a code that read
@@ -75,13 +82,15 @@ public class CodeExecutionService {
                 : request.getLanguage().toLowerCase().trim();
 
         // CR fix (Phase 5.5 #1): validate against the actual
-        // executable language set (DFORM_SUPPORTED_LANGUAGES), not
-        // the API-advertised SUPPORTED_LANGUAGES. After Form A was
-        // deleted, the dispatcher can only run java + python.
-        if (!CodeExecutionHelper.DFORM_SUPPORTED_LANGUAGES.contains(language)) {
+        // executable language set, not the API-advertised
+        // advertisedLanguages(). After Form A was deleted, the
+        // dispatcher can only run java + python (plus cpp).
+        // Architecture-review candidate #1: cross the
+        // JudgingLanguageSupport seam.
+        if (!languageSupport.isExecutable(language)) {
             throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED,
                     "Unsupported language: " + language + ". Supported: "
-                            + CodeExecutionHelper.DFORM_SUPPORTED_LANGUAGES);
+                            + languageSupport.executableLanguages());
         }
 
         List<RunSubmissionDTO.RunTestCase> testCases = request.getTestCases();

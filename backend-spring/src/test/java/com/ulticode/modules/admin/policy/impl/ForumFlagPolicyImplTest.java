@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.policy.impl;
 
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +46,7 @@ class ForumFlagPolicyImplTest {
     private ForumPostMapper forumPostMapper;
 
     @Mock
-    private AuditHelper auditHelper;
+    private AuditRecorder auditRecorder;
 
     @Mock
     private Clock clock;
@@ -83,7 +83,7 @@ class ForumFlagPolicyImplTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> newValuesCaptor =
             (ArgumentCaptor<Map<String, Object>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(Map.class);
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("FLAG_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -112,7 +112,7 @@ class ForumFlagPolicyImplTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> newValuesCaptor =
             (ArgumentCaptor<Map<String, Object>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(Map.class);
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("FLAG_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -137,7 +137,7 @@ class ForumFlagPolicyImplTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> newValuesCaptor =
             (ArgumentCaptor<Map<String, Object>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(Map.class);
-        verify(auditHelper).logForUser(
+        verify(auditRecorder).recordForUser(
             eq("UNFLAG_POST"),
             eq("FORUM_POST"),
             eq("post-1"),
@@ -165,7 +165,7 @@ class ForumFlagPolicyImplTest {
             .isInstanceOf(BusinessException.class)
             .extracting("code").isEqualTo(ErrorCode.NOT_FOUND.getCode());
 
-        verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
+        verify(auditRecorder, never()).recordForUser(anyString(), anyString(), anyString(),
             anyString(), anyMap(), anyMap());
         verify(forumPostMapper, never()).updateById(any(ForumPost.class));
     }

@@ -96,7 +96,8 @@ class DefaultProblemProjectionTest {
                 problemMapper, problemDetailMapper, problemExampleMapper,
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
                 submissionMapper, solutionMapper, edgeOperationsService,
-                edgeOperationMapper, new ObjectMapper(), currentUserProvider);
+                edgeOperationMapper, new ObjectMapper(), currentUserProvider,
+                new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport());
     }
 
     // ------------------------------------------------------------------

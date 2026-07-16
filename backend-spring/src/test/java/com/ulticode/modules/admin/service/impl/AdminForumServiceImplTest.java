@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle;
 import com.ulticode.modules.admin.policy.ForumPostFieldToggle.FieldToggle;
@@ -60,7 +60,7 @@ class AdminForumServiceImplTest {
     @Mock
     private AuditService auditService;
     @Mock
-    private AuditHelper auditHelper;
+    private AuditRecorder auditRecorder;
     @Mock
     private Clock clock;
     @Mock
@@ -98,7 +98,7 @@ class AdminForumServiceImplTest {
         adminForumService = new AdminForumServiceImpl(
                 forumPostMapper,
                 auditService,
-                auditHelper,
+                auditRecorder,
                 clock,
                 currentUserProvider,
                 forumPostFieldToggle,
@@ -151,7 +151,7 @@ class AdminForumServiceImplTest {
 
             adminForumService.deletePost("post-1");
 
-            verify(auditHelper).logForUser(
+            verify(auditRecorder).recordForUser(
                     eq(AuditVocabulary.DELETE_FORUM_POST),
                     eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
@@ -186,7 +186,7 @@ class AdminForumServiceImplTest {
 
             org.mockito.ArgumentCaptor<Map<String, Object>> newValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
-            verify(auditHelper).logForUser(
+            verify(auditRecorder).recordForUser(
                     eq(AuditVocabulary.DELETE_FORUM_POST),
                     eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),
@@ -213,7 +213,7 @@ class AdminForumServiceImplTest {
 
             org.mockito.ArgumentCaptor<Map<String, Object>> oldValuesCaptor =
                     org.mockito.ArgumentCaptor.forClass(Map.class);
-            verify(auditHelper).logForUser(
+            verify(auditRecorder).recordForUser(
                     eq(AuditVocabulary.DELETE_FORUM_POST),
                     eq(AuditVocabulary.ENTITY_FORUM_POST),
                     eq("post-1"),

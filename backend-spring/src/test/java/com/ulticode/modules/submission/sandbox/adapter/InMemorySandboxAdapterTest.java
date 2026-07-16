@@ -1,6 +1,8 @@
 package com.ulticode.modules.submission.sandbox.adapter;
 
 import com.ulticode.modules.submission.enums.SubmissionStatus;
+import com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport;
+import com.ulticode.modules.submission.port.JudgingLanguageSupport;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
@@ -24,7 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("InMemorySandboxAdapter (ADR-002 §2.3)")
 class InMemorySandboxAdapterTest {
 
-    private final InMemorySandboxAdapter adapter = new InMemorySandboxAdapter();
+    private final JudgingLanguageSupport languageSupport = new DefaultJudgingLanguageSupport();
+    private final InMemorySandboxAdapter adapter = new InMemorySandboxAdapter(languageSupport);
 
     private static SandboxJob job(String language, String code) {
         return new SandboxJob(

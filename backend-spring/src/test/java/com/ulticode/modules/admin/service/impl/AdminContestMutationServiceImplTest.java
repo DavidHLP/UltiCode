@@ -4,7 +4,6 @@ import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
 import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
@@ -74,7 +73,6 @@ class AdminContestMutationServiceImplTest {
     @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
     @Mock private ContestAnnouncementPushPort contestAnnouncementPushPort;
     @Mock private AdminContestReadPort contestReadPort;
-    @Mock private AuditHelper auditHelper;
     private final Clock clock = Clock.systemUTC();
     @Mock private AdminContestProjection adminContestProjection;
     @Mock private CurrentUserProvider currentUserProvider;
@@ -85,7 +83,7 @@ class AdminContestMutationServiceImplTest {
     void setUp() {
         service = new AdminContestMutationServiceImpl(
                 contestMapper, contestProblemMapper, contestAnnouncementMapper,
-                contestAnnouncementPushPort, contestReadPort, auditHelper, clock,
+                contestAnnouncementPushPort, contestReadPort, clock,
                 adminContestProjection, currentUserProvider);
     }
 

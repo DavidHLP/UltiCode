@@ -82,7 +82,9 @@ class CodeExecutionServiceTest {
         // that pass problemId=null).
         codeExecutionService = new CodeExecutionService(
                 sandboxExecutor, helper, verdictResolver, problemFacts,
-                new com.ulticode.common.uuid.FixedUuidGenerator(), sandboxConfig);
+                new com.ulticode.common.uuid.FixedUuidGenerator(),
+                new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport(),
+                sandboxConfig);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {

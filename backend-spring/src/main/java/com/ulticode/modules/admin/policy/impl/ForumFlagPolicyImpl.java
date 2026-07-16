@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.policy.impl;
 
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
 import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
@@ -21,6 +21,12 @@ import java.util.Map;
  * via the injected {@link Clock}, mirroring the prior inline behaviour in
  * {@code AdminForumServiceImpl.flagPost} / {@code unflagPost}.
  *
+ * <p><b>Audit seam (architecture-review candidate #5):</b> the policy emits
+ * audit entries through {@link AuditRecorder} — the deep audit module's port
+ * — rather than the deprecated {@code AuditHelper}. Cross-process shape stays
+ * identical to {@code @Audited} methods; the proxy aspect is just bypassed
+ * because policy classes are not transactional service entry points.
+ *
  * @author ulticode
  */
 @Slf4j
@@ -38,7 +44,7 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
     private static final String ACTION_UNFLAG_POST = "UNFLAG_POST";
 
     private final ForumPostMapper forumPostMapper;
-    private final AuditHelper auditHelper;
+    private final AuditRecorder auditRecorder;
     private final Clock clock;
 
     /**
@@ -53,7 +59,7 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
         ForumPost post = loadOrThrow(postId);
         String normalisedReason = reason != null ? reason : "";
 
-        auditHelper.logForUser(
+        auditRecorder.recordForUser(
             ACTION_FLAG_POST,
             ENTITY_FORUM_POST,
             postId,
@@ -85,7 +91,7 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
     public void unflag(String postId) {
         ForumPost post = loadOrThrow(postId);
 
-        auditHelper.logForUser(
+        auditRecorder.recordForUser(
             ACTION_UNFLAG_POST,
             ENTITY_FORUM_POST,
             postId,

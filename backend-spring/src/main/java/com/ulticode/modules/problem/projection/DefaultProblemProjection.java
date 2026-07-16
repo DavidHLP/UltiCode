@@ -30,7 +30,7 @@ import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.service.CodeExecutionHelper;
+import com.ulticode.modules.submission.port.JudgingLanguageSupport;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +73,7 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final EdgeOperationMapper edgeOperationMapper;
     private final ObjectMapper objectMapper;
     private final CurrentUserProvider currentUserProvider;
+    private final JudgingLanguageSupport languageSupport;
 
     // ------------------------------------------------------------------
     // toVO projection
@@ -504,7 +505,7 @@ public class DefaultProblemProjection implements ProblemProjection {
             return Collections.emptyList();
         }
 
-        Set<String> supported = CodeExecutionHelper.SUPPORTED_LANGUAGES;
+        Set<String> supported = languageSupport.advertisedLanguages();
         return languages.stream()
                 .filter(lang -> supported.contains(lang.getValue().toLowerCase().trim()))
                 .map(lang -> {

@@ -6,7 +6,8 @@ import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxExecutor;
 import com.ulticode.modules.submission.sandbox.SandboxJob;
 import com.ulticode.modules.submission.sandbox.TestCase;
-import com.ulticode.modules.submission.service.CodeExecutionHelper;
+import com.ulticode.modules.submission.port.JudgingLanguageSupport;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
@@ -77,6 +78,7 @@ import java.util.regex.Pattern;
  * </ul>
  */
 @Service
+@RequiredArgsConstructor
 @ConditionalOnProperty(name = "sandbox.executor",
                        havingValue = "inmemory",
                        matchIfMissing = false)
@@ -87,6 +89,8 @@ public class InMemorySandboxAdapter implements SandboxExecutor {
     private static final Pattern VERDICT_MARKER =
             Pattern.compile("(?:^|\\s)(?://|#)\\s*verdict\\s*:\\s*([A-Z_]+)",
                     Pattern.CASE_INSENSITIVE);
+
+    private final JudgingLanguageSupport languageSupport;
 
     @Override
     public RunCaseResult run(SandboxJob job, TestCase testCase) {
@@ -118,13 +122,15 @@ public class InMemorySandboxAdapter implements SandboxExecutor {
         // ACCEPTED, which let unit tests pass for requests that
         // production would correctly reject.
         //
-        // We mirror CodeExecutionHelper.SUPPORTED_LANGUAGES — the
-        // set of ids the production executor has a
-        // (potentially-disabled) LanguageProfile for. The 3 stub
-        // profiles (JavaScript / C / C++) are excluded by default
-        // but still present at the languageId level, so the
+        // We mirror the production language catalog via
+        // JudgingLanguageSupport — the set of ids the production
+        // executor has a (potentially-disabled) LanguageProfile for.
+        // The 3 stub profiles (JavaScript / C / C++) are excluded by
+        // default but still present at the languageId level, so the
         // known-set check happens here before the routing layer.
-        if (!CodeExecutionHelper.SUPPORTED_LANGUAGES.contains(job.languageId())) {
+        // Architecture-review candidate #1: cross this seam rather
+        // than importing the submission-internal CodeExecutionHelper.
+        if (!languageSupport.isAdvertised(job.languageId())) {
             return RunCaseResult.rejected(SubmissionStatus.SANDBOX_ERROR,
                     "InMemorySandboxAdapter: D-form harness not implemented for language: "
                             + job.languageId(),

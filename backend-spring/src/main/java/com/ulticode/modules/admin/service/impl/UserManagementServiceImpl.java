@@ -3,11 +3,11 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
@@ -65,7 +65,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-    private final AuditHelper auditHelper;
+    private final AuditRecorder auditRecorder;
     /**
      * Read-side deep module used to compose the post-write VO. After ADR-0011
      * Stage 2 the entity&rarr;VO shaping + stats / permissions enrichment
@@ -338,7 +338,7 @@ public class UserManagementServiceImpl implements UserManagementService {
                 User user = userMapper.selectById(id);
                 int deleted = userMapper.deleteById(id);
                 if (deleted > 0) {
-                    auditHelper.logForUser(
+                    auditRecorder.recordForUser(
                         AuditVocabulary.DELETE_USER,
                         AuditVocabulary.ENTITY_USER,
                         id,

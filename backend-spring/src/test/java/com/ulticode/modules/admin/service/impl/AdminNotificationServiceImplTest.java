@@ -7,9 +7,10 @@ import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.projection.AdminNotificationProjection;
+import com.ulticode.modules.notification.dispatcher.AnnouncementBroadcaster;
 import com.ulticode.modules.notification.entity.Notification;
+import com.ulticode.modules.notification.entity.enums.NotificationCategory;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
-import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +53,12 @@ import com.ulticode.common.auth.CurrentUserProvider;
 class AdminNotificationServiceImplTest {
 
     @Mock private NotificationMapper notificationMapper;
-    @Mock private NotificationPreferenceMapper preferenceMapper;
     @Mock private UserMapper userMapper;
     @Mock private AdminNotificationProjection adminNotificationProjection;
     @Mock private UuidGenerator uuidGenerator;
     @Mock
     private CurrentUserProvider currentUserProvider;
+    @Mock private AnnouncementBroadcaster announcementBroadcaster;
 
     private AdminNotificationServiceImpl adminNotificationService;
 
@@ -67,8 +68,8 @@ class AdminNotificationServiceImplTest {
         // service code only reads Clock.instant() / getZone() through it.
         Clock clock = Clock.systemUTC();
         adminNotificationService = new AdminNotificationServiceImpl(
-                notificationMapper, preferenceMapper, userMapper, clock,
-                uuidGenerator, adminNotificationProjection, currentUserProvider);
+                notificationMapper, userMapper, clock,
+                adminNotificationProjection, currentUserProvider, announcementBroadcaster);
     }
 
     private AdminNotificationVO makeVO(String id, String announcementId) {
@@ -180,7 +181,7 @@ class AdminNotificationServiceImplTest {
     }
 
     @Nested
-    @DisplayName("createSystemNotification() — preference filtering on the write path")
+    @DisplayName("createSystemNotification() — delegates fan-out to AnnouncementBroadcaster")
     class CreateSystemNotification {
 
         private CreateSystemNotificationRequest baseRequest(List<String> userIds, String category) {
@@ -194,79 +195,167 @@ class AdminNotificationServiceImplTest {
             return r;
         }
 
-        private com.ulticode.modules.notification.entity.NotificationPreference pref(
-                String uid, boolean marketing, boolean communication) {
-            com.ulticode.modules.notification.entity.NotificationPreference p =
-                    new com.ulticode.modules.notification.entity.NotificationPreference();
-            p.setUserId(uid);
-            p.setMarketing(marketing);
-            p.setCommunication(communication);
-            return p;
-        }
-
-        private void stubAdminAndTargets(List<String> targetIds) {
+        private void stubAdmin() {
             User admin = new User();
             admin.setId("admin-1");
             admin.setUsername("admin");
             when(currentUserProvider.getCurrentUserId()).thenReturn("admin-1");
             when(userMapper.selectById("admin-1")).thenReturn(admin);
-            List<User> targets = targetIds.stream().map(id -> {
-                User u = new User();
-                u.setId(id);
-                return u;
-            }).collect(java.util.stream.Collectors.toList());
-            when(userMapper.selectList(org.mockito.ArgumentMatchers.any())).thenReturn(targets);
-            when(uuidGenerator.newId()).thenReturn("ann-1");
         }
 
-        @SuppressWarnings("unchecked")
-        private java.util.List<com.ulticode.modules.notification.entity.Notification> captureBatch() {
-            org.mockito.ArgumentCaptor<java.util.List<com.ulticode.modules.notification.entity.Notification>> cap =
-                    org.mockito.ArgumentCaptor.forClass(java.util.List.class);
-            verify(notificationMapper).batchInsert(cap.capture());
-            return cap.getValue();
+        private AnnouncementBroadcaster.Outcome outcome(int delivered,
+                                                        int suppressed,
+                                                        int totalTargets,
+                                                        String representativeId) {
+            return new AnnouncementBroadcaster.Outcome(
+                    "ann-1", representativeId, delivered, suppressed, totalTargets);
+        }
+
+        private Notification stubRepresentativeRow(String id) {
+            Notification row = new Notification();
+            row.setId(id);
+            row.setTitle("Announcement");
+            row.setType("SYSTEM");
+            row.setCategory("SYSTEM");
+            row.setAnnouncementId("ann-1");
+            return row;
         }
 
         @Test
-        @DisplayName("MARKETING: opted-out recipients suppressed, opt-in kept")
-        void marketingOptOutSuppressesRecipients() {
-            stubAdminAndTargets(List.of("u1", "u2"));
-            when(preferenceMapper.selectList(org.mockito.ArgumentMatchers.any()))
-                    .thenReturn(List.of(pref("u1", false, true), pref("u2", true, true)));
+        @DisplayName("calls the broadcaster with parsed enum + producer metadata and returns the projection-shaped VO")
+        void delegatesToBroadcaster() {
+            stubAdmin();
+            when(announcementBroadcaster.broadcast(
+                    org.mockito.ArgumentMatchers.eq("Announcement"),
+                    org.mockito.ArgumentMatchers.eq("Body"),
+                    org.mockito.ArgumentMatchers.eq("SYSTEM"),
+                    org.mockito.ArgumentMatchers.eq(NotificationCategory.SYSTEM),
+                    org.mockito.ArgumentMatchers.eq("USERS"),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.isNull()))
+                    .thenReturn(outcome(2, 0, 2, "row-1"));
+            when(notificationMapper.selectById("row-1")).thenReturn(stubRepresentativeRow("row-1"));
+            AdminNotificationVO expectedVo = makeVO("row-1", "ann-1");
+            when(adminNotificationProjection.toAdminVO(org.mockito.ArgumentMatchers.any(Notification.class)))
+                    .thenReturn(expectedVo);
+
+            AdminNotificationVO result = adminNotificationService.createSystemNotification(
+                    baseRequest(List.of("u1", "u2"), "SYSTEM"));
+
+            assertThat(result).isSameAs(expectedVo);
+            verify(announcementBroadcaster).broadcast(
+                    org.mockito.ArgumentMatchers.eq("Announcement"),
+                    org.mockito.ArgumentMatchers.eq("Body"),
+                    org.mockito.ArgumentMatchers.eq("SYSTEM"),
+                    org.mockito.ArgumentMatchers.eq(NotificationCategory.SYSTEM),
+                    org.mockito.ArgumentMatchers.eq("USERS"),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.isNull());
+            verify(adminNotificationProjection).toAdminVO(org.mockito.ArgumentMatchers.any(Notification.class));
+        }
+
+        @Test
+        @DisplayName("MARKETING: opted-out recipients counted as suppressed in audit-context payload")
+        void marketingAuditContextCountsSuppressed() {
+            stubAdmin();
+            when(announcementBroadcaster.broadcast(
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.any(NotificationCategory.class),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(outcome(1, 1, 2, "row-1"));
+            when(notificationMapper.selectById("row-1")).thenReturn(stubRepresentativeRow("row-1"));
+            when(adminNotificationProjection.toAdminVO(org.mockito.ArgumentMatchers.any(Notification.class)))
+                    .thenReturn(makeVO("row-1", "ann-1"));
 
             adminNotificationService.createSystemNotification(baseRequest(List.of("u1", "u2"), "MARKETING"));
 
-            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
-            // u1 opted out of MARKETING -> suppressed; only u2 is inserted.
-            assertThat(batch).hasSize(1);
-            assertThat(batch.get(0).getUserId()).isEqualTo("u2");
+            Map<String, Object> newValues = com.ulticode.common.util.AuditContext.getNewValues();
+            assertThat(newValues).containsEntry("targetCount", 1)
+                    .containsEntry("suppressedCount", 1);
+            com.ulticode.common.util.AuditContext.clear();
         }
 
         @Test
-        @DisplayName("SECURITY: force-delivered, preference filter bypassed")
-        void securityForceDelivered() {
-            stubAdminAndTargets(List.of("u1"));
+        @DisplayName("SECURITY: force-delivered, audit-context payload reflects zero suppressed")
+        void securityAuditContextZeroSuppressed() {
+            stubAdmin();
+            when(announcementBroadcaster.broadcast(
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.any(NotificationCategory.class),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(outcome(1, 0, 1, "row-1"));
+            when(notificationMapper.selectById("row-1")).thenReturn(stubRepresentativeRow("row-1"));
+            when(adminNotificationProjection.toAdminVO(org.mockito.ArgumentMatchers.any(Notification.class)))
+                    .thenReturn(makeVO("row-1", "ann-1"));
 
             adminNotificationService.createSystemNotification(baseRequest(List.of("u1"), "SECURITY"));
 
-            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
-            // SECURITY bypasses the preference filter even with no preference row.
-            assertThat(batch).hasSize(1);
-            assertThat(batch.get(0).getCategory()).isEqualTo("SECURITY");
-            verify(preferenceMapper, never()).selectList(org.mockito.ArgumentMatchers.any());
+            Map<String, Object> newValues = com.ulticode.common.util.AuditContext.getNewValues();
+            assertThat(newValues).containsEntry("targetCount", 1)
+                    .containsEntry("suppressedCount", 0);
+            com.ulticode.common.util.AuditContext.clear();
         }
 
         @Test
-        @DisplayName("COMMUNICATION with no preference row defaults to opt-in (delivered)")
-        void communicationMissingPrefDefaultsOptIn() {
-            stubAdminAndTargets(List.of("u1"));
-            when(preferenceMapper.selectList(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+        @DisplayName("no recipients: broadcaster IllegalArgumentException → BusinessException BAD_REQUEST")
+        void broadcasterExceptionMapsToBadRequest() {
+            stubAdmin();
+            when(announcementBroadcaster.broadcast(
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.any(NotificationCategory.class),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenThrow(new IllegalArgumentException("No target users found"));
 
-            adminNotificationService.createSystemNotification(baseRequest(List.of("u1"), "COMMUNICATION"));
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> adminNotificationService.createSystemNotification(baseRequest(List.of(), "SYSTEM")))
+                    .isInstanceOf(com.ulticode.common.exception.BusinessException.class);
+        }
 
-            java.util.List<com.ulticode.modules.notification.entity.Notification> batch = captureBatch();
-            // No preference row -> DDL default communication=true -> delivered.
-            assertThat(batch).hasSize(1);
+        @Test
+        @DisplayName("every recipient opted out: returns the announcement-shaped VO and pins entityId to the announcement")
+        void everyRecipientOptedOutFallsBackToAnnouncementVo() {
+            stubAdmin();
+            when(announcementBroadcaster.broadcast(
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.any(NotificationCategory.class),
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.anyList(),
+                    org.mockito.ArgumentMatchers.anyMap(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(outcome(0, 2, 2, "ann-1"));
+            AdminNotificationVO announcementVo = makeVO("ann-1", "ann-1");
+            when(adminNotificationProjection.buildAnnouncementVO(
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.eq("MARKETING"),
+                    org.mockito.ArgumentMatchers.eq("ann-1")))
+                    .thenReturn(announcementVo);
+
+            AdminNotificationVO result = adminNotificationService.createSystemNotification(
+                    baseRequest(List.of("u1", "u2"), "MARKETING"));
+
+            assertThat(result).isSameAs(announcementVo);
+            String entityId = com.ulticode.common.util.AuditContext.getEntityId();
+            assertThat(entityId).isEqualTo("ann-1");
+            com.ulticode.common.util.AuditContext.clear();
         }
     }
 }

@@ -5,7 +5,13 @@
  * compile-time union so the template cannot drift from the locale file.
  */
 
-export type Tone = 'electric' | 'green' | 'amber' | 'purple' | 'cyan' | 'red';
+export type Tone =
+  | 'electric'
+  | 'green'
+  | 'amber'
+  | 'magenta'
+  | 'cyan'
+  | 'red';
 
 export type CapabilityKey =
   | 'editor'

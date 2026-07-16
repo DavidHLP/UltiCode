@@ -21,7 +21,7 @@ const capabilities: ReadonlyArray<{
   { key: 'editor', tone: 'electric', icon: Code2 },
   { key: 'judge', tone: 'green', icon: ListChecks },
   { key: 'contest', tone: 'amber', icon: Trophy },
-  { key: 'lists', tone: 'purple', icon: BookOpen },
+  { key: 'lists', tone: 'magenta', icon: BookOpen },
   { key: 'solutions', tone: 'cyan', icon: MessageSquare },
   { key: 'community', tone: 'red', icon: Users },
 ];
@@ -59,11 +59,11 @@ const pipelineSteps: ReadonlyArray<'source' | 'compile' | 'run' | 'accepted'> =
     </div>
   </section>
 
-  <section class="judge-section text-white" aria-labelledby="features-title">
+  <section class="judge-section" aria-labelledby="features-title">
     <div class="container mx-auto max-w-6xl px-4 py-20 lg:py-28">
       <div class="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-end">
         <div>
-          <p class="section-eyebrow text-[var(--terminal-cyan)]">
+          <p class="section-eyebrow">
             {{ t('landing.feature.eyebrow') }}
           </p>
           <h2 id="features-title" class="mt-3 text-3xl font-black sm:text-5xl">
@@ -84,7 +84,7 @@ const pipelineSteps: ReadonlyArray<'source' | 'compile' | 'run' | 'accepted'> =
         </div>
       </div>
       <div
-        class="mt-12 grid border border-white/20 sm:grid-cols-2 lg:grid-cols-3"
+        class="judge-grid mt-12 grid border sm:grid-cols-2 lg:grid-cols-3"
       >
         <article
           v-for="item in capabilities"
@@ -96,13 +96,13 @@ const pipelineSteps: ReadonlyArray<'source' | 'compile' | 'run' | 'accepted'> =
             class="size-6"
             :data-tone="item.tone"
           />
-          <p class="mt-8 font-data text-xs text-white/50">
+          <p class="feature-cell-command mt-8 font-data text-xs">
             {{ t(`landing.feature.${item.key}.command`) }}
           </p>
           <h3 class="mt-2 text-xl font-bold">
             {{ t(`landing.feature.${item.key}.title`) }}
           </h3>
-          <p class="mt-3 text-sm leading-6 text-white/65">
+          <p class="feature-cell-desc mt-3 text-sm leading-6">
             {{ t(`landing.feature.${item.key}.desc`) }}
           </p>
         </article>

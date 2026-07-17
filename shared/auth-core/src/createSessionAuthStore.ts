@@ -94,12 +94,14 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
 
     initializationPromise = (async () => {
       try {
+        // fetchUser swallows transport/auth failures itself (returns null →
+        // guest), so this catch is only a backstop around the cookie-presence
+        // check. Either way we land in guest mode and mark ready.
         if (transport.hasSessionCookie()) {
           await fetchUser()
         }
       } catch {
-        // Backend unavailable or not authenticated — still mark ready so the
-        // app functions in guest mode.
+        // Unexpected throw from the cookie check — fall through to guest mode.
       } finally {
         status.value = 'ready'
         initializationPromise = null
@@ -141,13 +143,21 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
     }
   }
 
-  async function login(credentials: unknown): Promise<void> {
+  /**
+   * Shared login/register body: set loading, run the auth step, trust its
+   * returned user (no /auth/me re-fetch), persist any CSRF token, then ready.
+   * On failure record the error (and rethrow) so callers can react.
+   */
+  async function runAuthFlow(
+    step: () => Promise<{ user: U; csrfToken?: string }>,
+    invalidResponseLabel: string,
+  ): Promise<void> {
     status.value = 'loading'
     error.value = null
     try {
-      const { user: fetchedUser, csrfToken } = await transport.login(credentials)
+      const { user: fetchedUser, csrfToken } = await step()
       if (!fetchedUser) {
-        throw new Error('Invalid login response')
+        throw new Error(invalidResponseLabel)
       }
       if (csrfToken) {
         transport.refreshCsrf({ csrfToken })
@@ -161,24 +171,12 @@ export function createSessionAuthStore<U>(transport: SessionAuthTransport<U>): S
     }
   }
 
+  async function login(credentials: unknown): Promise<void> {
+    await runAuthFlow(() => transport.login(credentials), 'Invalid login response')
+  }
+
   async function register(data: unknown): Promise<void> {
-    status.value = 'loading'
-    error.value = null
-    try {
-      const { user: fetchedUser, csrfToken } = await transport.register(data)
-      if (!fetchedUser) {
-        throw new Error('Invalid register response')
-      }
-      if (csrfToken) {
-        transport.refreshCsrf({ csrfToken })
-      }
-      user.value = fetchedUser
-      status.value = 'ready'
-    } catch (err) {
-      status.value = 'error'
-      error.value = err instanceof Error ? err : new Error(String(err))
-      throw err
-    }
+    await runAuthFlow(() => transport.register(data), 'Invalid register response')
   }
 
   async function logout(): Promise<void> {

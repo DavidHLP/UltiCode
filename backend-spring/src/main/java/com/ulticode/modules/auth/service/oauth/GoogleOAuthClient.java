@@ -1,7 +1,6 @@
 package com.ulticode.modules.auth.service.oauth;
 
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,22 +66,26 @@ public class GoogleOAuthClient implements OAuthClient {
         String basicAuth = Base64.getEncoder().encodeToString(
             (google.getClientId() + ":" + google.getClientSecret()).getBytes(StandardCharsets.UTF_8));
 
-        String tokenRequestBody = "code=" + code +
+        // `code` arrives from the OAuth callback query string, so it is untrusted
+        // and must be form-encoded like redirect_uri — otherwise a crafted code
+        // can inject extra form parameters into the token request.
+        String tokenRequestBody = "code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
             "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) +
             "&grant_type=authorization_code";
 
-        String tokenResponse;
-        try (HttpResponse resp = HttpRequest.post(google.getTokenUrl())
+        String tokenResponse = OAuthHttp.executeForBody(HttpRequest.post(google.getTokenUrl())
             .header("Content-Type", "application/x-www-form-urlencoded")
             .header("Authorization", "Basic " + basicAuth)
-            .body(tokenRequestBody)
-            .execute()) {
-            tokenResponse = resp.body();
-        }
+            .body(tokenRequestBody), PROVIDER_NAME, "token exchange");
 
         try {
             JsonNode tokenNode = objectMapper.readTree(tokenResponse);
-            return new OAuthTokenResponse(tokenNode.get("access_token").asText());
+            String accessToken = tokenNode.path("access_token").asText(null);
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "Google token exchange did not return access_token");
+            }
+            return new OAuthTokenResponse(accessToken);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse Google token response", e);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "OAuth token exchange failed", e);
@@ -93,20 +96,20 @@ public class GoogleOAuthClient implements OAuthClient {
     public OAuthUserInfo fetchUserInfo(String accessToken) {
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
 
-        String userResponse;
-        try (HttpResponse resp = HttpRequest.get(google.getUserUrl())
-            .header("Authorization", "Bearer " + accessToken)
-            .execute()) {
-            userResponse = resp.body();
-        }
+        String userResponse = OAuthHttp.executeForBody(HttpRequest.get(google.getUserUrl())
+            .header("Authorization", "Bearer " + accessToken), PROVIDER_NAME, "user info");
 
         try {
             JsonNode userNode = objectMapper.readTree(userResponse);
-            String googleId = userNode.get("id").asText();
-            String email = userNode.get("email").asText();
+            String googleId = userNode.path("id").asText(null);
+            if (googleId == null || googleId.isBlank()) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "Google user info did not return id");
+            }
+            String email = userNode.path("email").asText(null);
             String name = userNode.has("name") && !userNode.get("name").isNull()
                     ? userNode.get("name").asText()
-                    : email.split("@")[0];
+                    : (email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : googleId);
             String avatar = userNode.has("picture") ? userNode.get("picture").asText() : null;
 
             return new OAuthUserInfo(googleId, name, email, avatar);

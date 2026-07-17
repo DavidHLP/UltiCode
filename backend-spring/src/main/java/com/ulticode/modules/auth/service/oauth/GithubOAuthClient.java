@@ -1,7 +1,6 @@
 package com.ulticode.modules.auth.service.oauth;
 
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -65,21 +64,25 @@ public class GithubOAuthClient implements OAuthClient {
         String basicAuth = Base64.getEncoder().encodeToString(
             (github.getClientId() + ":" + github.getClientSecret()).getBytes(StandardCharsets.UTF_8));
 
-        String tokenRequestBody = "code=" + code +
+        // `code` arrives from the OAuth callback query string, so it is untrusted
+        // and must be form-encoded like redirect_uri — otherwise a crafted code
+        // can inject extra form parameters into the token request.
+        String tokenRequestBody = "code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
             "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
 
-        String tokenResponse;
-        try (HttpResponse resp = HttpRequest.post(github.getTokenUrl())
+        String tokenResponse = OAuthHttp.executeForBody(HttpRequest.post(github.getTokenUrl())
             .header("Accept", "application/json")
             .header("Authorization", "Basic " + basicAuth)
-            .body(tokenRequestBody)
-            .execute()) {
-            tokenResponse = resp.body();
-        }
+            .body(tokenRequestBody), PROVIDER_NAME, "token exchange");
 
         try {
             JsonNode tokenNode = objectMapper.readTree(tokenResponse);
-            return new OAuthTokenResponse(tokenNode.get("access_token").asText());
+            String accessToken = tokenNode.path("access_token").asText(null);
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "GitHub token exchange did not return access_token");
+            }
+            return new OAuthTokenResponse(accessToken);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse GitHub token response", e);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "OAuth token exchange failed", e);
@@ -90,19 +93,19 @@ public class GithubOAuthClient implements OAuthClient {
     public OAuthUserInfo fetchUserInfo(String accessToken) {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
 
-        String userResponse;
-        try (HttpResponse resp = HttpRequest.get(github.getUserUrl())
-            .header("Authorization", "Bearer " + accessToken)
-            .execute()) {
-            userResponse = resp.body();
-        }
+        String userResponse = OAuthHttp.executeForBody(HttpRequest.get(github.getUserUrl())
+            .header("Authorization", "Bearer " + accessToken), PROVIDER_NAME, "user info");
 
         try {
             JsonNode userNode = objectMapper.readTree(userResponse);
-            String githubId = userNode.get("id").asText();
+            String githubId = userNode.path("id").asText(null);
+            if (githubId == null || githubId.isBlank()) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "GitHub user info did not return id");
+            }
             String name = userNode.has("name") && !userNode.get("name").isNull()
                     ? userNode.get("name").asText()
-                    : userNode.get("login").asText();
+                    : userNode.path("login").asText();
             String email = userNode.has("email") && !userNode.get("email").isNull()
                     ? userNode.get("email").asText() : null;
             String avatar = userNode.has("avatar_url") ? userNode.get("avatar_url").asText() : null;

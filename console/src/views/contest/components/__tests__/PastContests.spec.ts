@@ -10,6 +10,10 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock("@/i18n/utils/locale", () => ({
+  getActiveLocale: () => "en-US",
+}));
+
 describe("PastContests", () => {
   it("uses theme-aware terminal colors for the current page", () => {
     const wrapper = mount(PastContests, {

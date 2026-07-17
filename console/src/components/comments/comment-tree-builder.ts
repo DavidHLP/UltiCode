@@ -1,5 +1,5 @@
 import type { Comment, SolutionComment, ForumComment } from "@/types/comment";
-import { formatRelativeTime } from "@/shared/datetime-utils/src";
+import { formatRelativeTime } from "@/utils/datetime";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 
 interface BuildTreeOptions {

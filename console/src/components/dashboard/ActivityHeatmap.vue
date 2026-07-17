@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { HeatmapPoint } from "@/types/userStats";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/utils/datetime";
 
 const props = defineProps<{
   data: HeatmapPoint[];
@@ -69,15 +70,6 @@ const levelLabels = [
   "6-9 submissions",
   "10+ submissions",
 ];
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function getActivityCount(level: number): string {
   return levelLabels[level] || "No activity";

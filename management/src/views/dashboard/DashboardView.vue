@@ -12,6 +12,7 @@ import DashboardTimeline, {
 import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 import { IconUsers, IconFileText, IconTrophy, IconFlag } from '@tabler/icons-vue'
 import { ChartMetric, ChartPeriod } from '@/api/admin/dashboard'
+import { formatTime24, formatWeekdayShortDate } from '@/lib/format/date'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -22,21 +23,9 @@ const loading = ref(true)
 
 // Current time display
 const currentTime = ref(new Date())
-const formattedTime = computed(() => {
-  return currentTime.value.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-})
+const formattedTime = computed(() => formatTime24(currentTime.value))
 
-const formattedDate = computed(() => {
-  return currentTime.value.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
-})
+const formattedDate = computed(() => formatWeekdayShortDate(currentTime.value))
 
 // Update time every minute
 let timeInterval: ReturnType<typeof setInterval>

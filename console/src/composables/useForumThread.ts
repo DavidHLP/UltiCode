@@ -14,7 +14,7 @@ import {
 } from "@/api/forum";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useAvatar } from "@/composables/useAvatar";
-import { formatRelativeTime } from "@/shared/datetime-utils/src";
+import { formatRelativeTime } from "@/utils/datetime";
 
 /**
  * Forum thread interaction module — owns the thread read/write state machine

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, PlayCircle, Users } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
-import { formatDateTime } from "@/shared/datetime-utils/src";
+import { formatDateTime } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{

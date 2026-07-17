@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatPenaltyTime } from "@/shared/datetime-utils/src";
+import { formatPenaltyTime } from "@/utils/datetime";
 import { useI18n } from "vue-i18n";
 import type { ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
 

@@ -28,6 +28,10 @@ vi.mock("vue-i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock("@/i18n/utils/locale", () => ({
+  getActiveLocale: () => "en-US",
+}));
+
 vi.mock("vue-sonner", () => ({
   toast: {
     error: toastErrorMock,

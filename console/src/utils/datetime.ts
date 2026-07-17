@@ -10,6 +10,8 @@ import {
   formatRelativeTime as _formatRelativeTime,
   formatTime as _formatTime,
   formatShortDate as _formatShortDate,
+  formatTime24 as _formatTime24,
+  formatWeekdayShortDate as _formatWeekdayShortDate,
   formatPenaltyTime,
   getDurationMinutes,
 } from "@/shared/datetime-utils/src";
@@ -50,6 +52,20 @@ export function formatShortDate(
   locale?: string,
 ): string {
   return _formatShortDate(date, locale ?? getActiveLocale());
+}
+
+export function formatTime24(
+  date: string | Date | null | undefined,
+  locale?: string,
+): string {
+  return _formatTime24(date, locale ?? getActiveLocale());
+}
+
+export function formatWeekdayShortDate(
+  date: string | Date | null | undefined,
+  locale?: string,
+): string {
+  return _formatWeekdayShortDate(date, locale ?? getActiveLocale());
 }
 
 export { formatPenaltyTime, getDurationMinutes };

@@ -68,7 +68,7 @@ export function formatRelativeTime(
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
 
-  const rtf = new Intl.RelativeTimeFormat(locale ?? 'en-US', { numeric: 'auto' })
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
 
   if (diffSecs < 60) return rtf.format(-diffSecs, 'second')
   if (diffMins < 60) return rtf.format(-diffMins, 'minute')
@@ -109,6 +109,41 @@ export function formatShortDate(
   const dateObj = typeof date === 'string' ? new Date(date) : date
   if (isNaN(dateObj.getTime())) return '-'
   return dateObj.toLocaleDateString(locale ?? undefined, {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+/**
+ * Format a date to a 24-hour clock time string (e.g., "14:30").
+ * Locale controls digit rendering; the 24-hour cycle is fixed.
+ */
+export function formatTime24(
+  date: string | Date | null | undefined,
+  locale?: string,
+): string {
+  if (!date) return '-'
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(dateObj.getTime())) return '-'
+  return dateObj.toLocaleTimeString(locale ?? undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+/**
+ * Format a date to a weekday + short date string (e.g., "Mon, Jan 15").
+ */
+export function formatWeekdayShortDate(
+  date: string | Date | null | undefined,
+  locale?: string,
+): string {
+  if (!date) return '-'
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(dateObj.getTime())) return '-'
+  return dateObj.toLocaleDateString(locale ?? undefined, {
+    weekday: 'short',
     month: 'short',
     day: 'numeric',
   })

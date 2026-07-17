@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import ContestStatusBadge, { type ContestUiStatus } from './ContestStatusBadge.vue'
 import ContestTimer from './ContestTimer.vue'
+import { formatDateTime } from '@/lib/format/date'
 
 export interface ContestCardData {
   id: string
@@ -55,19 +56,7 @@ const canRegister = computed(() => {
 })
 
 // Format start time for display
-const formattedStartTime = computed(() => {
-  const date =
-    typeof props.contest.startTime === 'string'
-      ? new Date(props.contest.startTime)
-      : props.contest.startTime
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-})
+const formattedStartTime = computed(() => formatDateTime(props.contest.startTime))
 
 function handleClick() {
   emit('click', props.contest)

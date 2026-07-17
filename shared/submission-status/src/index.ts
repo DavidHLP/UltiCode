@@ -1,14 +1,16 @@
 /**
  * submission-status — the single source of truth linking sandbox verdicts
- * to badge colors.
+ * to badge colors, presentation categories, and state classifiers.
  *
  * History: badge-config previously owned a SUBMISSION_STATUS_COLOR_MAP keyed
  * by UPPERCASE_UNDERSCORE while sandbox-types/DFormVerdict used 'Title Case
  * Space' values. They were unlinked — adding a verdict could silently render
- * a colorless badge. This module is now the sole owner of the verdict→color
- * truth; the legacy map was removed once all UI callers migrated here.
+ * a colorless badge. This module is now the sole owner of the verdict→color,
+ * →category, →icon-key, and →i18n-key truth; the legacy map was removed once
+ * all UI callers migrated here.
  *
- * Architecture review candidate #8 — shared-package contract test.
+ * Architecture review candidates #5 and #8 — shared-package contract test,
+ * state classification, and centralization.
  */
 
 import type { DFormVerdict } from '@ulticode/sandbox-types'
@@ -35,12 +37,96 @@ export const VERDICT_TO_STATUS_KEY: Record<DFormVerdict, string> = {
 }
 
 /**
- * Complete color map keyed by verdict — covers every DFormVerdict value.
+ * State classification — every verdict settles into one of two states so
+ * consumers can ask "is this still moving?" without re-implementing the
+ * membership list at each surface. State and responsibility are kept on
+ * separate axes (see VERDICT_IS_INFRA below) so a verdict can be both
+ * settled and infrastructure-attributable.
  *
- * The original SUBMISSION_STATUS_COLOR_MAP was missing four verdicts
- * (Output Limit Exceeded, Presentation Error, System Error, Sandbox Error).
- * This map fills those gaps so no verdict ever renders without a color.
+ *   - 'final'    — verdict will not change without a new submission
+ *                  (Accepted, WA, TLE/MLE/OLE, Runtime/Compile/Presentation
+ *                  Error, System Error, Sandbox Error)
+ *   - 'pending'  — verdict may change as judging progresses (Judging, Pending)
+ *
+ * Every DFormVerdict has an entry — if you add a verdict to the union,
+ * TypeScript forces you to classify it here too.
  */
+export type VerdictState = 'final' | 'pending'
+
+export const VERDICT_STATE: Record<DFormVerdict, VerdictState> = {
+  Accepted: 'final',
+  'Wrong Answer': 'final',
+  'Time Limit Exceeded': 'final',
+  'Memory Limit Exceeded': 'final',
+  'Output Limit Exceeded': 'final',
+  'Runtime Error': 'final',
+  'Compile Error': 'final',
+  'Presentation Error': 'final',
+  'System Error': 'final',
+  'Sandbox Error': 'final',
+  Judging: 'pending',
+  Pending: 'pending',
+}
+
+/**
+ * Responsibility classification — true when the verdict indicates a sandbox /
+ * platform failure rather than a user-attributable error. Surfaces can use
+ * this to render an "infrastructure issue" badge without polluting
+ * user-attributable error styling. Every DFormVerdict has an entry — if you
+ * add a verdict to the union, TypeScript forces you to classify it here too.
+ */
+export const VERDICT_IS_INFRA: Record<DFormVerdict, boolean> = {
+  Accepted: false,
+  'Wrong Answer': false,
+  'Time Limit Exceeded': false,
+  'Memory Limit Exceeded': false,
+  'Output Limit Exceeded': false,
+  'Runtime Error': false,
+  'Compile Error': false,
+  'Presentation Error': false,
+  'System Error': true,
+  'Sandbox Error': true,
+  Judging: false,
+  Pending: false,
+}
+
+/**
+ * Stable icon-key per verdict. Returns a small framework-agnostic token that
+ * each surface maps to its own icon set (e.g. lucide-vue-next). Centralizing
+ * the verdict→icon mapping here stops every surface from hand-rolling a
+ * 12-arm switch that can silently drift (e.g. collapsing every non-Accepted
+ * verdict to a single "Clock" icon — the historical bug).
+ */
+export type VerdictIconKey =
+  | 'success'
+  | 'error'
+  | 'warning'
+  | 'pending'
+  | 'neutral'
+
+export const VERDICT_ICON_KEY: Record<DFormVerdict, VerdictIconKey> = {
+  Accepted: 'success',
+  'Wrong Answer': 'error',
+  'Time Limit Exceeded': 'error',
+  'Memory Limit Exceeded': 'error',
+  'Output Limit Exceeded': 'error',
+  'Runtime Error': 'error',
+  'Compile Error': 'error',
+  'Presentation Error': 'warning',
+  'System Error': 'neutral',
+  'Sandbox Error': 'neutral',
+  Judging: 'pending',
+  Pending: 'pending',
+}
+
+/**
+ * Get the icon-key for a verdict. Falls back to 'neutral' for forward
+ * compatibility with verdicts that have not been classified yet.
+ */
+export function getVerdictIconKey(verdict: DFormVerdict): VerdictIconKey {
+  return VERDICT_ICON_KEY[verdict] ?? 'neutral'
+}
+
 /**
  * Map a D-form verdict (Title Case) to its full i18n key path
  * (`submission.status.<camelCase>`). Every DFormVerdict has an entry — if you
@@ -91,6 +177,32 @@ export function getVerdictColor(verdict: DFormVerdict): SemanticColor {
 }
 
 /**
+ * True when the verdict will not change without a new submission.
+ * Composed from VERDICT_STATE so the membership list lives in one place.
+ * Note: a verdict can be both final AND infrastructure-attributable (see
+ * `isInfra`) — the two axes are independent.
+ */
+export function isFinal(verdict: DFormVerdict): boolean {
+  return VERDICT_STATE[verdict] === 'final'
+}
+
+/**
+ * True when the verdict may change as judging progresses (Judging, Pending).
+ */
+export function isPending(verdict: DFormVerdict): boolean {
+  return VERDICT_STATE[verdict] === 'pending'
+}
+
+/**
+ * True when the verdict indicates a sandbox / platform failure — not the
+ * user's fault. Surfaces can use this to render an "infrastructure issue"
+ * badge without polluting user-attributable error styling.
+ */
+export function isInfra(verdict: DFormVerdict): boolean {
+  return VERDICT_IS_INFRA[verdict] === true
+}
+
+/**
  * Get the UPPERCASE status key for a verdict — the key to use when
  * looking up colors in the legacy SUBMISSION_STATUS_COLOR_MAP.
  */
@@ -119,14 +231,41 @@ export function normalizeStatusKey(status: string): string {
 }
 
 /**
- * Get the badge color for a submission status string in any casing. This is the
- * UI-facing entry point — it replaces the legacy per-app
- * SUBMISSION_STATUS_COLOR_MAP[normalized] lookups. Covers all 12 verdicts;
- * unknown statuses fall back to 'neutral'.
+ * UI-facing entry point for the verdict→color truth. Accepts an untyped
+ * status string (backend payloads arrive in mixed casings and shapes) and
+ * resolves it to a SemanticColor via the same single source of truth that
+ * `getVerdictColor` uses. Unknown statuses fall back to 'neutral'.
+ *
+ * The `getStatusColor` / `getVerdictColor` duality is intentional:
+ * `getVerdictColor` is the typed, compile-time-safe entry; `getStatusColor`
+ * is the untyped boundary that absorbs whatever the backend sends. They
+ * share the same verdict→color map; do not re-implement either side.
  */
 export function getStatusColor(status: string): SemanticColor {
   const verdict = STATUS_KEY_TO_VERDICT.get(normalizeStatusKey(status))
   return verdict ? getVerdictColor(verdict) : 'neutral'
+}
+
+/**
+ * UI-facing entry point for verdict→icon-key. Accepts an untyped status
+ * string (mixed casing); unknown statuses fall back to 'neutral'. Mirrors
+ * the `getStatusColor` / `getVerdictIconKey` duality for the same boundary
+ * reason — backends send strings, surfaces need a framework-agnostic key.
+ */
+export function getStatusIconKey(status: string): VerdictIconKey {
+  const verdict = STATUS_KEY_TO_VERDICT.get(normalizeStatusKey(status))
+  return verdict ? getVerdictIconKey(verdict) : 'neutral'
+}
+
+/**
+ * UI-facing entry point for verdict state. Accepts an untyped status
+ * string (mixed casing); unknown statuses are conservatively classified as
+ * 'final' so callers default to displaying a settled verdict rather than
+ * a perpetual pending spinner.
+ */
+export function getStatusState(status: string): VerdictState {
+  const verdict = STATUS_KEY_TO_VERDICT.get(normalizeStatusKey(status))
+  return verdict ? VERDICT_STATE[verdict] : 'final'
 }
 
 /**

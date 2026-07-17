@@ -38,8 +38,8 @@ const emit = defineEmits<{
       <IconGripVertical class="h-4 w-4 text-muted-foreground cursor-grab" />
       <span class="text-sm font-medium flex-1">
         #{{ index + 1 }}
-        <Badge v-if="testCase.is_sample" variant="secondary" class="ml-1 text-2xs"> Sample </Badge>
-        <Badge v-if="testCase.is_hidden" variant="outline" class="ml-1 text-2xs"> Hidden </Badge>
+        <Badge v-if="testCase.isSample" variant="secondary" class="ml-1 text-2xs"> Sample </Badge>
+        <Badge v-if="testCase.isHidden" variant="outline" class="ml-1 text-2xs"> Hidden </Badge>
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -50,10 +50,10 @@ const emit = defineEmits<{
         <DropdownMenuContent align="end">
           <DropdownMenuItem @click.stop="emit('edit', testCase)">Edit</DropdownMenuItem>
           <DropdownMenuItem @click.stop="emit('toggleSample', testCase)">
-            {{ testCase.is_sample ? 'Mark as Hidden' : 'Mark as Sample' }}
+            {{ testCase.isSample ? 'Mark as Hidden' : 'Mark as Sample' }}
           </DropdownMenuItem>
           <DropdownMenuItem @click.stop="emit('toggleHidden', testCase)">
-            {{ testCase.is_hidden ? 'Make Visible' : 'Make Hidden' }}
+            {{ testCase.isHidden ? 'Make Visible' : 'Make Hidden' }}
           </DropdownMenuItem>
           <DropdownMenuItem
             class="text-destructive focus:text-destructive"

@@ -34,13 +34,13 @@ const testCases = ref<TestCase[]>([])
 const loading = ref(false)
 const expanded = ref(true)
 
-const hiddenCases = computed(() => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample))
+const hiddenCases = computed(() => testCases.value.filter((tc) => tc.isHidden && !tc.isSample))
 
 async function loadHiddenCases() {
   loading.value = true
   try {
     const response = await testCasesApi.getTestCases(props.problemId, {
-      is_hidden: true,
+      isHidden: true,
       limit: 1000,
     })
     testCases.value = response.items
@@ -106,8 +106,8 @@ onMounted(() => {
             >
               <div class="flex items-center justify-between text-xs text-muted-foreground">
                 <span class="font-mono">#{{ idx + 1 }}</span>
-                <span v-if="tc.test_order !== undefined" class="font-mono">
-                  order: {{ tc.test_order }}
+                <span v-if="tc.testOrder !== undefined" class="font-mono">
+                  order: {{ tc.testOrder }}
                 </span>
               </div>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -117,7 +117,7 @@ onMounted(() => {
                   </div>
                   <pre
                     class="font-mono text-xs bg-muted px-2 py-1 rounded overflow-x-auto whitespace-pre-wrap break-all"
-                  ><code>{{ tc.input_text }}</code></pre>
+                  ><code>{{ tc.inputText }}</code></pre>
                 </div>
                 <div>
                   <div class="text-xs font-medium text-muted-foreground mb-1">
@@ -125,7 +125,7 @@ onMounted(() => {
                   </div>
                   <pre
                     class="font-mono text-xs bg-muted px-2 py-1 rounded overflow-x-auto whitespace-pre-wrap break-all"
-                  ><code>{{ tc.output_text }}</code></pre>
+                  ><code>{{ tc.outputText }}</code></pre>
                 </div>
               </div>
               <div v-if="tc.explanation" class="text-xs text-muted-foreground">

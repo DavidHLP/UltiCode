@@ -23,10 +23,10 @@ export function useTestCases(problemId: () => string) {
   const importing = ref(false)
 
   const formData = ref<CreateTestCaseDto>({
-    input_text: '',
-    output_text: '',
-    is_sample: false,
-    is_hidden: true,
+    inputText: '',
+    outputText: '',
+    isSample: false,
+    isHidden: true,
     explanation: '',
   })
 
@@ -35,9 +35,9 @@ export function useTestCases(problemId: () => string) {
     return testCases.value.find((tc) => tc.id === activeId.value) ?? null
   })
 
-  const sampleCount = computed(() => testCases.value.filter((tc) => tc.is_sample).length)
+  const sampleCount = computed(() => testCases.value.filter((tc) => tc.isSample).length)
   const hiddenCount = computed(
-    () => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample).length,
+    () => testCases.value.filter((tc) => tc.isHidden && !tc.isSample).length,
   )
 
   async function loadTestCases() {
@@ -63,10 +63,10 @@ export function useTestCases(problemId: () => string) {
   function openCreateDialog() {
     editingTestCase.value = null
     formData.value = {
-      input_text: '',
-      output_text: '',
-      is_sample: false,
-      is_hidden: true,
+      inputText: '',
+      outputText: '',
+      isSample: false,
+      isHidden: true,
       explanation: '',
     }
     editDialogOpen.value = true
@@ -75,10 +75,10 @@ export function useTestCases(problemId: () => string) {
   function openEditDialog(testCase: TestCase) {
     editingTestCase.value = testCase
     formData.value = {
-      input_text: testCase.input_text,
-      output_text: testCase.output_text,
-      is_sample: testCase.is_sample,
-      is_hidden: testCase.is_hidden,
+      inputText: testCase.inputText,
+      outputText: testCase.outputText,
+      isSample: testCase.isSample,
+      isHidden: testCase.isHidden,
       explanation: testCase.explanation ?? '',
       constraints: testCase.constraints,
     }
@@ -86,7 +86,7 @@ export function useTestCases(problemId: () => string) {
   }
 
   async function saveTestCase() {
-    if (!formData.value.input_text.trim() || !formData.value.output_text.trim()) {
+    if (!formData.value.inputText.trim() || !formData.value.outputText.trim()) {
       toast.error(t('testCases.validation.inputOutputRequired'))
       return
     }
@@ -129,9 +129,9 @@ export function useTestCases(problemId: () => string) {
   async function toggleSample(testCase: TestCase) {
     try {
       await testCasesApi.updateTestCase(problemId(), testCase.id, {
-        is_sample: !testCase.is_sample,
+        isSample: !testCase.isSample,
       })
-      testCase.is_sample = !testCase.is_sample
+      testCase.isSample = !testCase.isSample
     } catch (error) {
       console.error('Failed to toggle sample:', error)
       toast.error(t('testCases.toast.updateFailed'))
@@ -141,9 +141,9 @@ export function useTestCases(problemId: () => string) {
   async function toggleHidden(testCase: TestCase) {
     try {
       await testCasesApi.updateTestCase(problemId(), testCase.id, {
-        is_hidden: !testCase.is_hidden,
+        isHidden: !testCase.isHidden,
       })
-      testCase.is_hidden = !testCase.is_hidden
+      testCase.isHidden = !testCase.isHidden
     } catch (error) {
       console.error('Failed to toggle hidden:', error)
       toast.error(t('testCases.toast.updateFailed'))
@@ -177,13 +177,22 @@ export function useTestCases(problemId: () => string) {
       try {
         const parsed = JSON.parse(importText.value)
         if (Array.isArray(parsed)) {
-          testCasesToImport = parsed.map((tc) => ({
-            input_text: tc.input_text ?? tc.input ?? '',
-            output_text: tc.output_text ?? tc.output ?? '',
-            is_sample: tc.is_sample ?? false,
-            is_hidden: tc.is_hidden ?? true,
-            explanation: tc.explanation,
-          }))
+          // Accept both camelCase (current export) and legacy snake_case / loose
+          // {input,output} pastes so admins can re-import a previously exported
+          // file or hand-written cases. Every emitted case always carries both
+          // flags so the backend @NotNull isSample XOR isHidden invariant holds.
+          testCasesToImport = parsed.map(
+            (tc: Record<string, unknown>): BulkImportTestCaseDto => ({
+              inputText: String(tc.inputText ?? tc.input_text ?? tc.input ?? ''),
+              outputText: String(tc.outputText ?? tc.output_text ?? tc.output ?? ''),
+              // Coerce through comparison so the result is boolean (not unknown)
+              // and the defaults match the wire invariant: a case is SAMPLE only
+              // when explicitly so, and HIDDEN unless explicitly marked visible.
+              isSample: (tc.isSample ?? tc.is_sample) === true,
+              isHidden: (tc.isHidden ?? tc.is_hidden) !== false,
+              explanation: tc.explanation != null ? String(tc.explanation) : undefined,
+            }),
+          )
         }
       } catch {
         const lines = importText.value.split('\n').filter((l) => l.trim())
@@ -194,9 +203,10 @@ export function useTestCases(problemId: () => string) {
           if (line.startsWith('---') || line.startsWith('===')) {
             if (currentInput && currentOutput) {
               testCasesToImport.push({
-                input_text: currentInput.trim(),
-                output_text: currentOutput.trim(),
-                is_hidden: true,
+                inputText: currentInput.trim(),
+                outputText: currentOutput.trim(),
+                isSample: false,
+                isHidden: true,
               })
             }
             currentInput = ''
@@ -220,9 +230,10 @@ export function useTestCases(problemId: () => string) {
         }
         if (currentInput && currentOutput) {
           testCasesToImport.push({
-            input_text: currentInput.trim(),
-            output_text: currentOutput.trim(),
-            is_hidden: true,
+            inputText: currentInput.trim(),
+            outputText: currentOutput.trim(),
+            isSample: false,
+            isHidden: true,
           })
         }
       }
@@ -231,8 +242,8 @@ export function useTestCases(problemId: () => string) {
         return
       }
       await testCasesApi.bulkImportTestCases(problemId(), {
-        test_cases: testCasesToImport,
-        replace_existing: replaceExisting.value,
+        testCases: testCasesToImport,
+        replaceExisting: replaceExisting.value,
       })
       toast.success(t('testCases.toast.importSuccess', { count: testCasesToImport.length }))
       importDialogOpen.value = false

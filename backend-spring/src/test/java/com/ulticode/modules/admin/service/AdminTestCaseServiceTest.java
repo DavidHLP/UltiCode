@@ -1,0 +1,269 @@
+package com.ulticode.modules.admin.service;
+
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.admin.dto.testcase.BulkImportResponse;
+import com.ulticode.modules.admin.dto.testcase.BulkImportTestCasesDTO;
+import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
+import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
+import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.entity.TestCase;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Unit tests for {@link AdminTestCaseService}.
+ *
+ * <p>The test-case authoring seam is security-sensitive (hidden judge data), so
+ * every write path is covered: create, partial update, delete, bulk import
+ * (append vs replace), reorder (with duplicate-id rejection), export, and the
+ * JSON-input validation guard. Mappers are mocked; a real {@link ObjectMapper}
+ * exercises the validation parser.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+@DisplayName("AdminTestCaseService")
+class AdminTestCaseServiceTest {
+
+    private static final Long PROBLEM_ID = 1L;
+
+    @Mock private TestCaseMapper testCaseMapper;
+    @Mock private ProblemMapper problemMapper;
+    @Mock private UuidGenerator uuidGenerator;
+
+    private AdminTestCaseService service;
+
+    @BeforeEach
+    void setUp() {
+        Clock clock = Clock.fixed(Instant.parse("2026-07-17T00:00:00Z"), ZoneOffset.UTC);
+        service = new AdminTestCaseService(testCaseMapper, problemMapper, new ObjectMapper(),
+                clock, uuidGenerator);
+        when(uuidGenerator.newId()).thenReturn("test-uuid");
+    }
+
+    private void problemExists() {
+        when(problemMapper.selectById(PROBLEM_ID)).thenReturn(new Problem());
+    }
+
+    private CreateTestCaseDTO newCase(String input, String output) {
+        CreateTestCaseDTO dto = new CreateTestCaseDTO();
+        dto.setIsSample(false);
+        dto.setIsHidden(true);
+        dto.setInputText(input);
+        dto.setOutputText(output);
+        return dto;
+    }
+
+    private TestCase existingCase(String id) {
+        TestCase tc = new TestCase();
+        tc.setId(id);
+        tc.setProblemId(PROBLEM_ID);
+        return tc;
+    }
+
+    @Nested
+    @DisplayName("createTestCase")
+    class Create {
+
+        @Test
+        @DisplayName("inserts a new test case when the problem exists")
+        void createsTestCase() {
+            problemExists();
+            CreateTestCaseDTO dto = newCase("1\n", "1\n");
+
+            TestCase created = service.createTestCase(PROBLEM_ID, dto);
+
+            assertThat(created.getProblemId()).isEqualTo(PROBLEM_ID);
+            assertThat(created.getIsHidden()).isTrue();
+            assertThat(created.getTestOrder()).isZero();
+            assertThat(created.getId()).isEqualTo("test-uuid".replace("-", ""));
+            verify(testCaseMapper).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("throws PROBLEM_NOT_FOUND when the owning problem is missing")
+        void rejectsMissingProblem() {
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(null);
+
+            assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, newCase("a", "b")))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("rejects malformed inputs JSON before any write")
+        void rejectsInvalidInputsJson() {
+            problemExists();
+            CreateTestCaseDTO dto = newCase("1\n", "1\n");
+            dto.setInputs("{not valid json");
+
+            assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkImportTestCases")
+    class BulkImport {
+
+        @Test
+        @DisplayName("append mode inserts every case and never deletes (replaceExisting=null)")
+        void appendsWithoutDeleting() {
+            problemExists();
+            BulkImportTestCasesDTO dto = new BulkImportTestCasesDTO();
+            dto.setTestCases(List.of(newCase("1\n", "1\n"), newCase("2\n", "2\n")));
+
+            BulkImportResponse response = service.bulkImportTestCases(PROBLEM_ID, dto);
+
+            assertThat(response.getCount()).isEqualTo(2);
+            verify(testCaseMapper, never()).delete(any());
+            verify(testCaseMapper, times(2)).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("replace mode deletes existing cases before insert within the same call")
+        void replacesExistingBeforeInsert() {
+            problemExists();
+            BulkImportTestCasesDTO dto = new BulkImportTestCasesDTO();
+            dto.setReplaceExisting(true);
+            dto.setTestCases(List.of(newCase("1\n", "1\n")));
+
+            BulkImportResponse response = service.bulkImportTestCases(PROBLEM_ID, dto);
+
+            assertThat(response.getCount()).isEqualTo(1);
+            verify(testCaseMapper).delete(any());
+            verify(testCaseMapper).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("throws PROBLEM_NOT_FOUND when the owning problem is missing")
+        void rejectsMissingProblem() {
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(null);
+            BulkImportTestCasesDTO dto = new BulkImportTestCasesDTO();
+            dto.setTestCases(List.of(newCase("1\n", "1\n")));
+
+            assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
+            verify(testCaseMapper, never()).delete(any());
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("reorderTestCases")
+    class Reorder {
+
+        @Test
+        @DisplayName("assigns sequential test_order by list index")
+        void reordersByIndex() {
+            problemExists();
+            when(testCaseMapper.selectById("a")).thenReturn(existingCase("a"));
+            when(testCaseMapper.selectById("b")).thenReturn(existingCase("b"));
+
+            service.reorderTestCases(PROBLEM_ID, List.of("a", "b"));
+
+            verify(testCaseMapper, times(2)).updateById(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("rejects duplicate ids with BAD_REQUEST")
+        void rejectsDuplicateIds() {
+            problemExists();
+
+            assertThatThrownBy(() -> service.reorderTestCases(PROBLEM_ID, List.of("a", "a")))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.BAD_REQUEST);
+            verify(testCaseMapper, never()).updateById(any(TestCase.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("updateTestCase / deleteTestCase / export")
+    class MutationsAndExport {
+
+        @Test
+        @DisplayName("partial update applies only supplied fields")
+        void partialUpdate() {
+            problemExists();
+            TestCase existing = existingCase("a");
+            existing.setIsHidden(true);
+            when(testCaseMapper.selectById("a")).thenReturn(existing);
+
+            UpdateTestCaseDTO dto = new UpdateTestCaseDTO();
+            dto.setIsHidden(false);
+
+            TestCase updated = service.updateTestCase(PROBLEM_ID, "a", dto);
+
+            assertThat(updated.getIsHidden()).isFalse();
+            verify(testCaseMapper).updateById(existing);
+        }
+
+        @Test
+        @DisplayName("delete removes the resolved case")
+        void deletesCase() {
+            problemExists();
+            when(testCaseMapper.selectById("a")).thenReturn(existingCase("a"));
+
+            service.deleteTestCase(PROBLEM_ID, "a");
+
+            verify(testCaseMapper).deleteById("a");
+        }
+
+        @Test
+        @DisplayName("getTestCase throws TEST_CASE_NOT_FOUND when the id belongs to another problem")
+        void rejectsCrossProblemCase() {
+            problemExists();
+            TestCase other = existingCase("a");
+            other.setProblemId(999L);
+            when(testCaseMapper.selectById("a")).thenReturn(other);
+
+            assertThatThrownBy(() -> service.getTestCase(PROBLEM_ID, "a"))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("export returns cases ordered by test_order")
+        void exportsOrdered() {
+            problemExists();
+            TestCase first = existingCase("a");
+            first.setTestOrder(0);
+            TestCase second = existingCase("b");
+            second.setTestOrder(1);
+            when(testCaseMapper.selectList(any())).thenReturn(List.of(first, second));
+
+            List<TestCase> exported = service.exportTestCases(PROBLEM_ID);
+
+            assertThat(exported).hasSize(2);
+            assertThat(exported.get(0).getId()).isEqualTo("a");
+        }
+    }
+}

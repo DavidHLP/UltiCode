@@ -17,7 +17,6 @@ vi.mock('@/api/admin/test-cases', async () => {
       updateTestCase: vi.fn(),
       deleteTestCase: vi.fn(),
       bulkImportTestCases: vi.fn(),
-      exportTestCases: vi.fn(),
       exportTestCasesAsFile: vi.fn(),
       reorderTestCases: vi.fn(),
     },
@@ -35,15 +34,15 @@ const i18n = createI18n({
 
 const fakeCase = (overrides: Partial<TestCase> = {}): TestCase => ({
   id: 'tc-1',
-  problem_id: 'p-1',
-  is_sample: false,
-  is_hidden: true,
-  test_order: 1,
-  input_text: '1\n',
-  output_text: '1\n',
+  problemId: 1,
+  isSample: false,
+  isHidden: true,
+  testOrder: 1,
+  inputText: '1\n',
+  outputText: '1\n',
   explanation: '',
-  created_at: '2026-06-14T00:00:00Z',
-  updated_at: '2026-06-14T00:00:00Z',
+  createdAt: '2026-06-14T00:00:00Z',
+  updatedAt: '2026-06-14T00:00:00Z',
   ...overrides,
 })
 
@@ -110,9 +109,9 @@ describe('HiddenTestCasesEditor — admin API contract (task #10 P0-1)', () => {
       page: 1,
       limit: 1000,
       items: [
-        fakeCase({ id: 'a', is_sample: true, is_hidden: false }),
-        fakeCase({ id: 'b', is_sample: false, is_hidden: true }),
-        fakeCase({ id: 'c', is_sample: false, is_hidden: true }),
+        fakeCase({ id: 'a', isSample: true, isHidden: false }),
+        fakeCase({ id: 'b', isSample: false, isHidden: true }),
+        fakeCase({ id: 'c', isSample: false, isHidden: true }),
       ],
     })
     const wrapper = mountEditor()

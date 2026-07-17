@@ -1,22 +1,32 @@
 import { apiGet, apiPost, apiPut, apiDelete, apiDownload } from '@/utils/request'
 
+/**
+ * Test-case wire contract.
+ *
+ * The backend serves camelCase JSON (Spring Boot default Jackson, no
+ * snake_case naming strategy — see JacksonConfig + shared/domain-types). These
+ * DTO shapes mirror {@code com.ulticode.modules.problem.entity.TestCase} and
+ * the admin DTOs field-for-field so a request/response mismatch is a
+ * compile-time error, not a runtime 400.
+ */
 export interface TestCase {
   id: string
-  problem_id: string
-  is_sample: boolean
-  is_hidden: boolean
-  test_order: number
-  input_text: string
-  output_text: string
+  problemId: number
+  isSample: boolean
+  isHidden: boolean
+  testOrder: number
+  inputText: string
+  outputText: string
+  inputs?: string
   explanation?: string
-  constraints?: Record<string, unknown>
-  created_at: string
-  updated_at: string
+  constraints?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface TestCaseQueryParams {
-  is_sample?: boolean
-  is_hidden?: boolean
+  isSample?: boolean
+  isHidden?: boolean
   page?: number
   limit?: number
 }
@@ -29,36 +39,36 @@ export interface TestCasesResponse {
 }
 
 export interface CreateTestCaseDto {
-  is_sample?: boolean
-  is_hidden?: boolean
-  test_order?: number
-  input_text: string
-  output_text: string
+  isSample?: boolean
+  isHidden?: boolean
+  testOrder?: number
+  inputText: string
+  outputText: string
   explanation?: string
-  constraints?: Record<string, unknown>
+  constraints?: string
 }
 
 export interface UpdateTestCaseDto {
-  is_sample?: boolean
-  is_hidden?: boolean
-  test_order?: number
-  input_text?: string
-  output_text?: string
+  isSample?: boolean
+  isHidden?: boolean
+  testOrder?: number
+  inputText?: string
+  outputText?: string
   explanation?: string
-  constraints?: Record<string, unknown>
+  constraints?: string
 }
 
 export interface BulkImportTestCaseDto {
-  input_text: string
-  output_text: string
-  is_sample?: boolean
-  is_hidden?: boolean
+  inputText: string
+  outputText: string
+  isSample?: boolean
+  isHidden?: boolean
   explanation?: string
 }
 
 export interface BulkImportTestCasesDto {
-  replace_existing?: boolean
-  test_cases: BulkImportTestCaseDto[]
+  replaceExisting?: boolean
+  testCases: BulkImportTestCaseDto[]
 }
 
 export interface BulkImportResponse {
@@ -67,20 +77,17 @@ export interface BulkImportResponse {
 
 export const testCasesApi = {
   async getTestCases(problemId: string, params?: TestCaseQueryParams): Promise<TestCasesResponse> {
-    const response = await apiGet<TestCasesResponse>(`/admin/problems/${problemId}/test-cases`, {
+    return await apiGet<TestCasesResponse>(`/admin/problems/${problemId}/test-cases`, {
       params,
     })
-    return response
   },
 
   async getTestCase(problemId: string, testCaseId: string): Promise<TestCase> {
-    const response = await apiGet<TestCase>(`/admin/problems/${problemId}/test-cases/${testCaseId}`)
-    return response
+    return await apiGet<TestCase>(`/admin/problems/${problemId}/test-cases/${testCaseId}`)
   },
 
   async createTestCase(problemId: string, data: CreateTestCaseDto): Promise<TestCase> {
-    const response = await apiPost<TestCase>(`/admin/problems/${problemId}/test-cases`, data)
-    return response
+    return await apiPost<TestCase>(`/admin/problems/${problemId}/test-cases`, data)
   },
 
   async updateTestCase(
@@ -88,22 +95,21 @@ export const testCasesApi = {
     testCaseId: string,
     data: UpdateTestCaseDto,
   ): Promise<TestCase> {
-    const response = await apiPut<TestCase>(
+    return await apiPut<TestCase>(
       `/admin/problems/${problemId}/test-cases/${testCaseId}`,
       data,
     )
-    return response
   },
 
   async deleteTestCase(problemId: string, testCaseId: string): Promise<void> {
     await apiDelete(`/admin/problems/${problemId}/test-cases/${testCaseId}`)
   },
 
-  async exportTestCases(problemId: string): Promise<TestCase[]> {
-    const response = await apiGet<TestCase[]>(`/admin/problems/${problemId}/test-cases/export`)
-    return response
-  },
-
+  /**
+   * Download every test case for a problem as a JSON file. The endpoint returns
+   * an octet-stream (not the {@code Result<T>} envelope), so it must go through
+   * {@link apiDownload} rather than {@link apiGet}.
+   */
   async exportTestCasesAsFile(problemId: string): Promise<void> {
     const date = new Date().toISOString().split('T')[0]
     await apiDownload(
@@ -116,19 +122,14 @@ export const testCasesApi = {
     problemId: string,
     data: BulkImportTestCasesDto,
   ): Promise<BulkImportResponse> {
-    const response = await apiPost<BulkImportResponse>(
+    return await apiPost<BulkImportResponse>(
       `/admin/problems/${problemId}/test-cases/bulk`,
       data,
     )
-    return response
   },
 
-  async reorderTestCases(problemId: string, testCaseIds: string[]): Promise<{ success: boolean }> {
-    const response = await apiPut<{ success: boolean }>(
-      `/admin/problems/${problemId}/test-cases/reorder`,
-      { testCaseIds },
-    )
-    return response
+  async reorderTestCases(problemId: string, testCaseIds: string[]): Promise<void> {
+    await apiPut<void>(`/admin/problems/${problemId}/test-cases/reorder`, testCaseIds)
   },
 }
 
@@ -150,12 +151,15 @@ export const testCasesApi = {
 export type CaseScope = 'SAMPLE' | 'HIDDEN'
 
 /**
- * Convert a ({@code is_sample}, {@code is_hidden}) flag pair into the canonical
+ * Convert an ({@code isSample}, {@code isHidden}) flag pair into the canonical
  * {@link CaseScope}. Returns SAMPLE for legacy/undefined pairs so existing
  * test case rows stay queryable in the UI.
  */
 export function mapFlagsToCaseScope(
-  isSample: boolean | null | undefined,
+  // isSample is accepted for call-site symmetry with mapCaseScopeToFlags; scope
+  // is derived from isHidden alone so legacy null/is_sample=false rows resolve
+  // to SAMPLE (leading underscore marks it intentionally unused).
+  _isSample: boolean | null | undefined,
   isHidden: boolean | null | undefined,
 ): CaseScope {
   if (isHidden === true) {
@@ -166,16 +170,16 @@ export function mapFlagsToCaseScope(
 }
 
 /**
- * Convert a {@link CaseScope} into the ({@code is_sample}, {@code is_hidden})
+ * Convert a {@link CaseScope} into the ({@code isSample}, {@code isHidden})
  * flag pair to send to the backend. Always emits both booleans so the wire
  * contract satisfies the backend XOR filter.
  */
-export function mapCaseScopeToFlags(scope: CaseScope): { is_sample: boolean; is_hidden: boolean } {
+export function mapCaseScopeToFlags(scope: CaseScope): { isSample: boolean; isHidden: boolean } {
   switch (scope) {
     case 'HIDDEN':
-      return { is_sample: false, is_hidden: true }
+      return { isSample: false, isHidden: true }
     case 'SAMPLE':
     default:
-      return { is_sample: true, is_hidden: false }
+      return { isSample: true, isHidden: false }
   }
 }

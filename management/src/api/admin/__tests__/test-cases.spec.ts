@@ -3,13 +3,13 @@ import { mapFlagsToCaseScope, mapCaseScopeToFlags, type CaseScope } from '../tes
 
 describe('test-cases case scope mapping', () => {
   describe('mapFlagsToCaseScope', () => {
-    it('returns HIDDEN when is_hidden is true regardless of is_sample', () => {
+    it('returns HIDDEN when isHidden is true regardless of isSample', () => {
       expect(mapFlagsToCaseScope(false, true)).toBe('HIDDEN')
       expect(mapFlagsToCaseScope(undefined, true)).toBe('HIDDEN')
       expect(mapFlagsToCaseScope(null, true)).toBe('HIDDEN')
     })
 
-    it('returns SAMPLE when is_hidden is false (or null/undefined) and is_sample is true', () => {
+    it('returns SAMPLE when isHidden is false (or null/undefined) and isSample is true', () => {
       expect(mapFlagsToCaseScope(true, false)).toBe('SAMPLE')
       expect(mapFlagsToCaseScope(true, undefined)).toBe('SAMPLE')
       expect(mapFlagsToCaseScope(true, null)).toBe('SAMPLE')
@@ -25,15 +25,15 @@ describe('test-cases case scope mapping', () => {
   describe('mapCaseScopeToFlags', () => {
     it('emits HIDDEN as (isSample=false, isHidden=true)', () => {
       expect(mapCaseScopeToFlags('HIDDEN')).toEqual({
-        is_sample: false,
-        is_hidden: true,
+        isSample: false,
+        isHidden: true,
       })
     })
 
     it('emits SAMPLE as (isSample=true, isHidden=false)', () => {
       expect(mapCaseScopeToFlags('SAMPLE')).toEqual({
-        is_sample: true,
-        is_hidden: false,
+        isSample: true,
+        isHidden: false,
       })
     })
   })
@@ -41,7 +41,7 @@ describe('test-cases case scope mapping', () => {
   describe('round-trip idempotency', () => {
     it.each<CaseScope>(['SAMPLE', 'HIDDEN'])('%s → flags → scope is stable', (scope) => {
       const flags = mapCaseScopeToFlags(scope)
-      const roundTrip = mapFlagsToCaseScope(flags.is_sample, flags.is_hidden)
+      const roundTrip = mapFlagsToCaseScope(flags.isSample, flags.isHidden)
       expect(roundTrip).toBe(scope)
     })
 
@@ -53,7 +53,7 @@ describe('test-cases case scope mapping', () => {
       for (const [isSample, isHidden] of combos) {
         const scope = mapFlagsToCaseScope(isSample, isHidden)
         const back = mapCaseScopeToFlags(scope)
-        expect(back).toEqual({ is_sample: isSample, is_hidden: isHidden })
+        expect(back).toEqual({ isSample, isHidden })
       }
     })
   })

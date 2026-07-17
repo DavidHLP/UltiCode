@@ -7,6 +7,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.util.PartialUpdate;
+import com.ulticode.modules.admin.dto.testcase.BulkImportResponse;
+import com.ulticode.modules.admin.dto.testcase.BulkImportTestCasesDTO;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.problem.entity.TestCase;
@@ -39,11 +41,16 @@ public class AdminTestCaseService {
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
 
-    public PageResult<TestCase> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
-                                               Integer page, Integer limit) {
+    /** Fail fast with PROBLEM_NOT_FOUND when the owning problem does not exist. */
+    private void requireProblem(Long problemId) {
         if (problemMapper.selectById(problemId) == null) {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
         }
+    }
+
+    public PageResult<TestCase> listTestCases(Long problemId, Boolean isSample, Boolean isHidden,
+                                               Integer page, Integer limit) {
+        requireProblem(problemId);
 
         LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TestCase::getProblemId, problemId);
@@ -68,9 +75,7 @@ public class AdminTestCaseService {
     }
 
     public TestCase getTestCase(Long problemId, String testCaseId) {
-        if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
-        }
+        requireProblem(problemId);
         TestCase testCase = testCaseMapper.selectById(testCaseId);
         if (testCase == null || !testCase.getProblemId().equals(problemId)) {
             throw new BusinessException(ErrorCode.TEST_CASE_NOT_FOUND);
@@ -91,9 +96,16 @@ public class AdminTestCaseService {
 
     @Transactional
     public TestCase createTestCase(Long problemId, CreateTestCaseDTO dto) {
-        if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
-        }
+        requireProblem(problemId);
+        return persistNewTestCase(problemId, dto);
+    }
+
+    /**
+     * Build and insert a single test case. Caller is responsible for confirming
+     * the owning problem exists; bulk import checks once for the whole batch
+     * rather than re-querying on every item.
+     */
+    private TestCase persistNewTestCase(Long problemId, CreateTestCaseDTO dto) {
         validateInputsJson(dto.getInputs());
 
         TestCase testCase = new TestCase();
@@ -143,24 +155,36 @@ public class AdminTestCaseService {
         log.info("Test case deleted: {} for problem {}", testCaseId, problemId);
     }
 
+    /**
+     * Bulk-import test cases. When {@code replaceExisting} is true, every existing
+     * test case for the problem is deleted within this transaction before the new
+     * batch is inserted, so a failed import never leaves the problem with a mix of
+     * old and partial-new cases.
+     */
     @Transactional
-    public List<TestCase> bulkImportTestCases(Long problemId, List<CreateTestCaseDTO> dtos) {
-        if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+    public BulkImportResponse bulkImportTestCases(Long problemId, BulkImportTestCasesDTO dto) {
+        requireProblem(problemId);
+
+        boolean replace = Boolean.TRUE.equals(dto.getReplaceExisting());
+        if (replace) {
+            LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(TestCase::getProblemId, problemId);
+            testCaseMapper.delete(wrapper);
         }
-        List<TestCase> created = new ArrayList<>();
-        for (CreateTestCaseDTO dto : dtos) {
-            created.add(createTestCase(problemId, dto));
+
+        List<CreateTestCaseDTO> dtos = dto.getTestCases();
+        List<TestCase> created = new ArrayList<>(dtos.size());
+        for (CreateTestCaseDTO createDto : dtos) {
+            created.add(persistNewTestCase(problemId, createDto));
         }
-        log.info("Bulk imported {} test cases for problem {}", created.size(), problemId);
-        return created;
+        log.info("Bulk imported {} test cases for problem {} (replace={})",
+                created.size(), problemId, replace);
+        return new BulkImportResponse(created.size());
     }
 
     @Transactional
     public void reorderTestCases(Long problemId, List<String> testCaseIds) {
-        if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
-        }
+        requireProblem(problemId);
         Set<String> uniqueIds = new HashSet<>(testCaseIds);
         if (uniqueIds.size() != testCaseIds.size()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Duplicate test case IDs");
@@ -175,9 +199,7 @@ public class AdminTestCaseService {
     }
 
     public List<TestCase> exportTestCases(Long problemId) {
-        if (problemMapper.selectById(problemId) == null) {
-            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
-        }
+        requireProblem(problemId);
         LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(TestCase::getProblemId, problemId);
         wrapper.orderByAsc(TestCase::getTestOrder);

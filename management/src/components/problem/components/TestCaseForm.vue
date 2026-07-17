@@ -45,7 +45,7 @@ const emit = defineEmits<{
  * filter and never carries a half-defined state.
  */
 const caseScope = computed<CaseScope>({
-  get: () => mapFlagsToCaseScope(props.formData.is_sample, props.formData.is_hidden),
+  get: () => mapFlagsToCaseScope(props.formData.isSample, props.formData.isHidden),
   set: (scope: CaseScope) => {
     emit('update:formData', {
       ...props.formData,
@@ -113,9 +113,9 @@ const caseScope = computed<CaseScope>({
             >{{ t('testCases.input') }} *</Label
           >
           <Textarea
-            :model-value="formData.input_text"
+            :model-value="formData.inputText"
             @update:model-value="
-              emit('update:formData', { ...formData, input_text: $event as string })
+              emit('update:formData', { ...formData, inputText: $event as string })
             "
             :placeholder="t('testCases.inputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"
@@ -127,9 +127,9 @@ const caseScope = computed<CaseScope>({
             >{{ t('testCases.output') }} *</Label
           >
           <Textarea
-            :model-value="formData.output_text"
+            :model-value="formData.outputText"
             @update:model-value="
-              emit('update:formData', { ...formData, output_text: $event as string })
+              emit('update:formData', { ...formData, outputText: $event as string })
             "
             :placeholder="t('testCases.outputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"

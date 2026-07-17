@@ -3,6 +3,8 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.testcase.BulkImportResponse;
+import com.ulticode.modules.admin.dto.testcase.BulkImportTestCasesDTO;
 import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
 import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.admin.service.AdminTestCaseService;
@@ -84,14 +86,15 @@ public class AdminTestCaseController {
         return Result.success();
     }
 
-    @Operation(summary = "Bulk import test cases", description = "Create multiple test cases at once")
+    @Operation(summary = "Bulk import test cases",
+            description = "Create multiple test cases at once; when replaceExisting is true the existing cases are deleted first")
     @RateLimit(key = "admin:testcase-bulk", limit = 10, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<TestCase>> bulkImportTestCases(
+    public Result<BulkImportResponse> bulkImportTestCases(
             @PathVariable Long problemId,
-            @Valid @RequestBody @Size(min = 1, max = 500, message = "List must contain 1-500 items") List<CreateTestCaseDTO> dtos) {
-        return Result.success(adminTestCaseService.bulkImportTestCases(problemId, dtos));
+            @Valid @RequestBody BulkImportTestCasesDTO dto) {
+        return Result.success(adminTestCaseService.bulkImportTestCases(problemId, dto));
     }
 
     @Operation(summary = "Reorder test cases", description = "Update test case order by ID list")

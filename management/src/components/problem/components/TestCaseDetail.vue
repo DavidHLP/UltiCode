@@ -26,14 +26,14 @@ const emit = defineEmits<{
           <div class="flex items-center gap-2">
             <Label class="text-xs">Sample</Label>
             <Switch
-              :checked="testCase.is_sample"
+              :checked="testCase.isSample"
               @update:checked="emit('toggle-sample', testCase)"
             />
           </div>
           <div class="flex items-center gap-2">
             <Label class="text-xs">Hidden</Label>
             <Switch
-              :checked="testCase.is_hidden"
+              :checked="testCase.isHidden"
               @update:checked="emit('toggle-hidden', testCase)"
             />
           </div>
@@ -44,7 +44,7 @@ const emit = defineEmits<{
         <div>
           <Label class="text-sm text-muted-foreground mb-1 block">Input</Label>
           <Textarea
-            :model-value="testCase.input_text"
+            :model-value="testCase.inputText"
             readonly
             class="font-mono text-sm bg-muted min-h-[100px]"
           />
@@ -52,7 +52,7 @@ const emit = defineEmits<{
         <div>
           <Label class="text-sm text-muted-foreground mb-1 block">Output</Label>
           <Textarea
-            :model-value="testCase.output_text"
+            :model-value="testCase.outputText"
             readonly
             class="font-mono text-sm bg-muted min-h-[100px]"
           />

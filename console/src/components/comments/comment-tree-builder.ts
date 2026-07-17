@@ -53,43 +53,24 @@ const mapToComment = (
   };
 };
 
-// Normalizes flat lists and nested replies into a consistent tree structure
+/**
+ * Shape the backend's nested comment thread into the render tree.
+ *
+ * The forum thread projection (`DefaultForumCommentProjection.buildCommentTree`)
+ * already assembles `replies` server-side and carries `parentId` on every node,
+ * so we trust that nesting directly instead of flattening and rebuilding from
+ * `parentId` (which was a redundant round-trip once the backend owned the tree).
+ */
 export const buildCommentTree = (
   comments: ForumComment[],
   options?: BuildTreeOptions,
 ): Comment[] => {
-  const nodes = new Map<string, Comment>();
-  const roots: Comment[] = [];
-
-  const flatten = (item: ForumComment, parentId?: string): ForumComment[] => {
-    const current: ForumComment = {
-      ...item,
-      parentId: item.parentId ?? parentId,
-    };
-    const nested =
-      item.replies?.flatMap((reply) => flatten(reply, item.id)) ?? [];
-    return [current, ...nested];
+  const toNode = (input: ForumComment): Comment => {
+    const node = mapToComment(input, options);
+    node.children = (input.replies ?? []).map(toNode);
+    return node;
   };
-
-  const normalized = comments.flatMap((comment) => flatten(comment));
-
-  normalized.forEach((comment) => {
-    nodes.set(comment.id, mapToComment(comment, options));
-  });
-
-  normalized.forEach((comment) => {
-    const current = nodes.get(comment.id);
-    if (!current) return;
-
-    if (comment.parentId && nodes.has(comment.parentId)) {
-      const parent = nodes.get(comment.parentId)!;
-      parent.children = [...(parent.children ?? []), current];
-    } else {
-      roots.push(current);
-    }
-  });
-
-  return roots;
+  return comments.map(toNode);
 };
 
 const mapSolutionComment = (

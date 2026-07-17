@@ -39,7 +39,7 @@ describe("comment-tree-builder", () => {
     });
   });
 
-  it("keeps flat forum replies attached to rendered root comments", () => {
+  it("trusts nested forum replies verbatim across multiple levels", () => {
     const comments: ForumComment[] = [
       {
         id: "root",
@@ -47,14 +47,26 @@ describe("comment-tree-builder", () => {
         authorId: "u1",
         authorUsername: "alice",
         createdAt: "2026-06-01T00:00:00Z",
-      },
-      {
-        id: "child",
-        parentId: "root",
-        body: "child comment",
-        authorId: "u2",
-        authorUsername: "bob",
-        createdAt: "2026-06-01T00:01:00Z",
+        replies: [
+          {
+            id: "child",
+            parentId: "root",
+            body: "child comment",
+            authorId: "u2",
+            authorUsername: "bob",
+            createdAt: "2026-06-01T00:01:00Z",
+            replies: [
+              {
+                id: "grandchild",
+                parentId: "child",
+                body: "grandchild comment",
+                authorId: "u3",
+                authorUsername: "carol",
+                createdAt: "2026-06-01T00:02:00Z",
+              },
+            ],
+          },
+        ],
       },
     ];
 
@@ -62,6 +74,9 @@ describe("comment-tree-builder", () => {
 
     expect(tree).toHaveLength(1);
     expect(tree[0].children?.map((child) => child.id)).toEqual(["child"]);
+    expect(tree[0].children?.[0].children?.map((c) => c.id)).toEqual([
+      "grandchild",
+    ]);
   });
 
   it("keeps solution replies attached to rendered root comments", () => {

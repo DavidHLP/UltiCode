@@ -50,7 +50,7 @@ describe("LandingLucaView", () => {
 
   it("renders the four brand word-art words", () => {
     const wrapper = mountView();
-    const words = wrapper.findAll(".luca-word").map((w) => w.text());
+    const words = wrapper.findAll(".luca-word-text").map((w) => w.text());
 
     expect(words).toEqual([
       "landingLuca.hero.words.code",
@@ -164,5 +164,45 @@ describe("LandingLucaView", () => {
   it("renders a scroll progress indicator", () => {
     const wrapper = mountView();
     expect(wrapper.find(".luca-progress").exists()).toBe(true);
+  });
+
+  it("renders the problem section eyebrow and title", () => {
+    const wrapper = mountView();
+    expect(wrapper.find(".luca-problem .luca-eyebrow").text()).toBe("landingLuca.problem.eyebrow");
+    expect(wrapper.find(".luca-problem .luca-section-title").exists()).toBe(true);
+  });
+
+  it("renders three solution orbit labels", () => {
+    const wrapper = mountView();
+    expect(wrapper.findAll(".luca-solution-orbit")).toHaveLength(3);
+  });
+
+  it("renders the five-step experience flow in order", () => {
+    const wrapper = mountView();
+    expect(wrapper.findAll(".luca-flow-step")).toHaveLength(5);
+    expect(wrapper.findAll(".luca-flow-index").map((e) => e.text())).toEqual(["01", "02", "03", "04", "05"]);
+  });
+
+  it("renders the about statement", () => {
+    const wrapper = mountView();
+    expect(wrapper.find(".luca-about-statement").exists()).toBe(true);
+  });
+
+  it("does not pollute pinned landing selectors", () => {
+    const wrapper = mountView();
+    expect(wrapper.findAll(".luca-work-card")).toHaveLength(4);
+    expect(wrapper.findAll(".luca-word-text")).toHaveLength(4);
+    expect(wrapper.findAll(".luca-work-index")).toHaveLength(4);
+  });
+
+  it("mounts the world scene as a page-wide layer outside the hero section", () => {
+    const wrapper = mountView();
+    const scene = wrapper.find(".luca-hero-scene");
+    expect(scene.exists()).toBe(true);
+    // The scrollytelling world canvas is a sibling of <main>, not clipped to
+    // .luca-hero — and the hero CTA still lives inside the hero section.
+    expect(scene.element.closest(".luca-hero")).toBeNull();
+    expect(scene.element.closest(".luca-root")).not.toBeNull();
+    expect(wrapper.find(".luca-hero .luca-hero-cta").exists()).toBe(true);
   });
 });

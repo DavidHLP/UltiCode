@@ -39,6 +39,52 @@ export default {
       "题库、竞赛、题解和讨论共享同一条反馈链,你不用在工具之间来回切换,只关注下一行代码。",
     signal: "WRITE → JUDGE → REVIEW",
   },
+  problem: {
+    eyebrow: "问题所在",
+    title: "刷题不等于进步,提交不等于反馈。",
+    body: "很多平台把题目堆在一起,评测只给一个对错。你不知道错在哪一步,也不知道下一次该怎么改。",
+    fragments: {
+      one: "只给 AC / WA",
+      two: "题解与代码割裂",
+      three: "竞赛与练习断层",
+      four: "反馈没有沉淀",
+    },
+  },
+  solution: {
+    eyebrow: "UltiCode 的做法",
+    title: "把评测放回中心,让每一步都有依据。",
+    body: "读题、编码、提交、评测、复盘共享同一条链路。一次提交连着题解、连着讨论、连着你的成长记录。",
+    core: "可信判定",
+    orbits: {
+      editor: { label: "在线编辑", desc: "在题目上下文里写代码" },
+      judge: { label: "隔离评测", desc: "明确的 verdict 与子任务结果" },
+      community: { label: "题解讨论", desc: "把每一次判定沉淀为知识" },
+    },
+  },
+  experience: {
+    eyebrow: "完整闭环",
+    title: "一道题的完整路径",
+    body: "五步走完,从读题到复盘,每一步都在 UltiCode 内完成。",
+    cta: "试走一遍",
+    steps: {
+      read: { label: "读题", desc: "题面、约束、样例,集中在同一视图。" },
+      code: { label: "编码", desc: "在题目上下文里编写,C++ / Python / JavaScript。" },
+      submit: { label: "提交", desc: "一键进入隔离评测队列。" },
+      judge: { label: "评测", desc: "编译、运行,返回分阶段 verdict。" },
+      review: { label: "复盘", desc: "对照题解与讨论,沉淀下一次的思路。" },
+    },
+  },
+  about: {
+    eyebrow: "关于 UltiCode",
+    statement: "我们做的是一台安静的判题机。",
+    body1: "UltiCode 不喧哗。它把读题、编码、评测、复盘接成一条可重复的路径,让能力在一次次判定里积累。",
+    body2: "题库、竞赛、题解与讨论围绕同一条反馈链组织,而不是彼此隔绝的工具。",
+    principles: {
+      one: "结果有依据",
+      two: "反馈可沉淀",
+      three: "工具不割裂",
+    },
+  },
   work: {
     eyebrow: "已开放的能力",
     title: "今天就能用的入口",

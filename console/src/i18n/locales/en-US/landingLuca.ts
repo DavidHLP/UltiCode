@@ -40,6 +40,52 @@ export default {
       "Problems, contests, editorials, and discussion share one feedback loop, so you focus on the next line of code instead of switching tools.",
     signal: "WRITE → JUDGE → REVIEW",
   },
+  problem: {
+    eyebrow: "The gap",
+    title: "Grinding problems isn't progress. A verdict isn't feedback.",
+    body: "Most platforms stack problems and return a single AC or WA. You don't see which step failed or what to change next.",
+    fragments: {
+      one: "Only AC / WA",
+      two: "Editorial detached from code",
+      three: "Contests disconnected from practice",
+      four: "Feedback goes nowhere",
+    },
+  },
+  solution: {
+    eyebrow: "How UltiCode works",
+    title: "Put judging at the center. Make every step accountable.",
+    body: "Reading, coding, submitting, judging, and reviewing share one chain. A submission links to the editorial, the discussion, and your own growth record.",
+    core: "Trustworthy verdict",
+    orbits: {
+      editor: { label: "Inline editor", desc: "Write code in the problem's context" },
+      judge: { label: "Isolated judge", desc: "Clear verdicts and subtask results" },
+      community: { label: "Editorials & talk", desc: "Turn each verdict into lasting knowledge" },
+    },
+  },
+  experience: {
+    eyebrow: "One closed loop",
+    title: "The full life of one problem",
+    body: "Five steps, from reading to review, all inside UltiCode.",
+    cta: "Try the loop",
+    steps: {
+      read: { label: "Read", desc: "Statement, constraints, and samples in one view." },
+      code: { label: "Code", desc: "Write in the problem's context — C++ / Python / JavaScript." },
+      submit: { label: "Submit", desc: "One click into the isolated judge queue." },
+      judge: { label: "Judge", desc: "Compile, run, and return a staged verdict." },
+      review: { label: "Review", desc: "Compare against editorials and discussion." },
+    },
+  },
+  about: {
+    eyebrow: "About UltiCode",
+    statement: "We build a quiet judge.",
+    body1: "UltiCode doesn't shout. It stitches reading, coding, judging, and reviewing into a repeatable path, so skill compounds one verdict at a time.",
+    body2: "Problems, contests, editorials, and discussion are organized around one feedback chain, not split across disconnected tools.",
+    principles: {
+      one: "Results with evidence",
+      two: "Feedback that lasts",
+      three: "Tools that don't fragment",
+    },
+  },
   work: {
     eyebrow: "Available now",
     title: "Doors you can walk through today",

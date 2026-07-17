@@ -11,11 +11,16 @@ import LucaWork from "./landing-luca/LucaWork.vue";
 import LucaCapabilities from "./landing-luca/LucaCapabilities.vue";
 import LucaAwards from "./landing-luca/LucaAwards.vue";
 import LucaContact from "./landing-luca/LucaContact.vue";
+import LucaProblem from "./landing-luca/LucaProblem.vue";
+import LucaSolution from "./landing-luca/LucaSolution.vue";
+import LucaExperience from "./landing-luca/LucaExperience.vue";
+import LucaAbout from "./landing-luca/LucaAbout.vue";
 import LucaScrollProgress from "./landing-luca/LucaScrollProgress.vue";
 import LucaHeroScene from "./landing-luca/LucaHeroScene.vue";
 import { useLucaPortal } from "@/composables/landing/useLucaPortal";
 import { useLucaReveal } from "@/composables/landing/useLucaReveal";
 import { useLucaCursor } from "@/composables/landing/useLucaCursor";
+import { useLucaScroll } from "@/composables/landing/useLucaScroll";
 import "@/assets/styles/landing-luca.css";
 
 const TWO_SUM_SLUG = "two-sum";
@@ -28,12 +33,15 @@ const authStore = useAuthStore();
 
 const rootRef = ref<HTMLElement | null>(null);
 const cursorRef = ref<HTMLElement | null>(null);
+const heroRef = ref<HTMLElement | null>(null);
+const worldProgress = ref(-1);
 
 const portal = useLucaPortal();
 const showPortal = ref(!portal.entered.value);
 const menuOpen = ref(false);
 let dismissTimer: ReturnType<typeof setTimeout> | undefined;
 
+useLucaScroll({ locked: showPortal, world: rootRef, worldProgress });
 useLucaReveal(rootRef);
 const cursor = useLucaCursor(cursorRef);
 
@@ -99,9 +107,10 @@ onMounted(() => {
       @talk="goToSeedProblem"
     />
 
+    <LucaHeroScene :active="!showPortal" :world-progress="worldProgress" />
+
     <main id="luca-main">
-      <section class="luca-hero" aria-label="UltiCode">
-        <LucaHeroScene :active="!showPortal" />
+      <section class="luca-hero" ref="heroRef" aria-label="UltiCode">
         <div class="luca-hero-content">
           <p class="luca-hero-eyebrow" data-luca-reveal>
             {{ t("landingLuca.hero.eyebrow") }}
@@ -118,10 +127,14 @@ onMounted(() => {
         </div>
       </section>
 
+      <LucaProblem />
+      <LucaSolution />
       <LucaManifesto />
+      <LucaExperience @primary="goToSeedProblem" />
       <LucaWork />
-      <LucaAwards />
       <LucaCapabilities />
+      <LucaAwards />
+      <LucaAbout />
       <LucaContact @primary="goToSeedProblem" />
     </main>
 

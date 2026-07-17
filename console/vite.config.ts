@@ -117,6 +117,15 @@ export default defineConfig({
       { find: /^vue-i18n$/, replacement: fileURLToPath(new URL('./node_modules/vue-i18n', import.meta.url)) },
       { find: /^reka-ui$/, replacement: fileURLToPath(new URL('./node_modules/reka-ui', import.meta.url)) },
     ],
+    // Force a single vue copy at runtime. The lockfile resolves the app's
+    // direct `vue` to 3.5.34 but many transitive peers (@floating-ui/vue,
+    // @tanstack/*, @unovis/vue, vue-sonner, vee-validate, …) to 3.5.38.
+    // `@vitejs/plugin-vue` resolves vue for SFC compilation, but transitive
+    // packages still import their own peer vue; without dedupe vite serves
+    // both copies, so components compiled against one runtime render under the
+    // other and slot/refs lose their owner context (e.g. vue-sonner's
+    // <Toaster> "ref cannot be used on hoisted vnodes").
+    dedupe: ["vue", "@vue/runtime-core"],
   },
   server: {
     port: 9002,

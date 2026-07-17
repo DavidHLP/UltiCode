@@ -19,6 +19,7 @@
     font-family: var(--uc-font-ui);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    isolation: isolate;
   }
   /* Hide the system cursor only on precise pointers that also get the
    * decorative follow dot; touch keeps the native cursor. */
@@ -301,17 +302,13 @@
     padding: 7rem clamp(1.25rem, 4vw, 2.5rem) 2.5rem;
     isolation: isolate;
     overflow: hidden;
-    background: radial-gradient(
-        ellipse at 50% 60%,
-        #0b0e1a 0%,
-        #05060a 55%,
-        #02030a 100%
-      );
   }
   .luca-hero-scene {
-    position: absolute;
+    /* Fixed full-page world canvas. z-index:-1 + .luca-root isolation => paints above root's dark bg, below in-flow section content. z-index:0 would COVER content (positioned z-0 paints after in-flow). */
+    position: fixed;
     inset: 0;
-    z-index: 0;
+    z-index: -1;
+    pointer-events: none;
   }
   .luca-hero-scene-canvas {
     width: 100%;
@@ -333,9 +330,14 @@
   .luca-wordstack {
     display: flex;
     flex-direction: column;
+    gap: clamp(0.15rem, 0.5vw, 0.35rem);
     line-height: 0.82;
   }
   .luca-word {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: clamp(0.6rem, 1.4vw, 1.4rem);
     font-family: var(--uc-font-data);
     font-weight: 800;
     font-size: clamp(3.25rem, 17vw, 16rem);
@@ -347,9 +349,27 @@
       color 250ms ease;
     will-change: transform;
   }
+  .luca-word-index {
+    font-family: var(--uc-font-data);
+    font-weight: 700;
+    font-size: clamp(0.6875rem, 0.85vw, 0.8125rem);
+    letter-spacing: 0.28em;
+    color: var(--muted-foreground);
+    align-self: flex-start;
+    margin-top: 0.6em;
+    line-height: 1;
+    /* Numeric labels stay readable in both latin and CJK contexts. */
+    font-variant-numeric: tabular-nums;
+  }
   /* Stagger words horizontally to echo aboutluca's offset stack. */
   .luca-word:nth-child(2) {
     align-self: flex-end;
+    color: var(--accent-electric);
+    text-shadow:
+      0 0 28px color-mix(in srgb, var(--accent-electric) 45%, transparent),
+      0 0 64px color-mix(in srgb, var(--accent-electric) 22%, transparent);
+  }
+  .luca-word:nth-child(2) .luca-word-index {
     color: var(--accent-electric);
   }
   .luca-word:nth-child(3) {
@@ -407,7 +427,21 @@
 
   /* ---------- sections / reveal ---------- */
   .luca-section {
+    position: relative;
     padding: clamp(4.5rem, 13vh, 9rem) clamp(1.25rem, 4vw, 2.5rem);
+  }
+  .luca-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in srgb, var(--background) 72%, transparent) 0%,
+      color-mix(in srgb, var(--background) 38%, transparent) 45%,
+      transparent 75%
+    );
   }
   .luca-eyebrow {
     font-family: var(--uc-font-data);
@@ -921,6 +955,9 @@
        * motion, but freeze any pointer-induced transforms here. */
       transform: none;
     }
+    .luca-section::before {
+      opacity: 0.85;
+    }
     .luca-line-inner {
       transform: translateY(0);
     }
@@ -962,4 +999,148 @@
       transform: translateX(calc(-100% / 3));
     }
   }
+
+  /* ---------- hero cinematic accents ----------
+   * The WebGL scene owns the heavy lifting (metaballs + embers + god-rays).
+   * The CSS layer adds vignette, chromatic edge, and a slow ambient pulse
+   * so the typography reads as part of the same light field.
+   */
+  .luca-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        ellipse at 50% 35%,
+        transparent 0%,
+        transparent 55%,
+        color-mix(in srgb, var(--background) 65%, transparent) 100%
+      );
+    mix-blend-mode: multiply;
+  }
+  .luca-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    /* Two-layer chromatic edge: a thin warm highlight at the top rim and
+     * a deep electric bleed at the bottom — keeps the dark mode from
+     * collapsing into pure black at the gutters. */
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--accent-electric) 8%, transparent) 0%,
+        transparent 30%,
+        transparent 70%,
+        color-mix(in srgb, var(--accent-electric) 5%, transparent) 100%
+      );
+    mix-blend-mode: screen;
+    animation: luca-hero-breathe 12s ease-in-out infinite;
+  }
+  /* Subtle scan-line grain across the hero — sells the "field of light"
+   * quality without committing to a full postprocess pass. */
+  .luca-hero-scene-canvas {
+    filter:
+      contrast(1.05)
+      saturate(1.08);
+  }
+
+  @keyframes luca-hero-breathe {
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  /* Slow drift behind the word-art — vertical bob with horizontal sway. */
+  @keyframes luca-hero-sway {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0.4rem, -0.3rem, 0);
+    }
+  }
+  .luca-hero-content {
+    animation: luca-hero-sway 9s ease-in-out infinite;
+  }
+
+  /* Editorial hairline running under the hero — anchors the typography
+   * to the page rhythm without competing with the word-art. */
+  .luca-hero-rule {
+    margin-top: clamp(1.25rem, 3vh, 2rem);
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--accent-electric) 60%, transparent) 35%,
+      color-mix(in srgb, var(--accent-electric) 30%, transparent) 65%,
+      transparent 100%
+    );
+    opacity: 0.6;
+  }
+
+  /* Problem — floating fragments, wrap on small screens */
+  .luca-problem-field { margin-top: 3rem; display: flex; flex-wrap: wrap; gap: clamp(0.75rem, 2vw, 1.5rem); }
+  .luca-problem-fragment {
+    font-family: var(--uc-font-data);
+    font-size: clamp(0.8rem, 1.4vw, 1rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    padding: 0.6rem 1.1rem;
+    border: 1px solid var(--border);
+    background: var(--background);
+    border-radius: 999px;
+  }
+  .luca-problem-fragment.is-accent { color: var(--accent-electric); border-color: var(--accent-electric); }
+
+  /* Solution — core pill + 3 orbits */
+  .luca-solution-diagram { margin-top: 3rem; display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+  .luca-solution-core {
+    font-family: var(--uc-font-data);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--accent-electric);
+    padding: 0.7rem 1.6rem;
+    border-radius: 999px;
+  }
+  .luca-solution-orbits { display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%; max-width: 36rem; }
+  @media (min-width: 768px) { .luca-solution-orbits { grid-template-columns: repeat(3, 1fr); } }
+  .luca-solution-orbit { display: flex; flex-direction: column; gap: 0.4rem; padding: 1rem; border: 1px solid var(--border); border-radius: 0.5rem; }
+  .luca-solution-orbit-label { font-family: var(--uc-font-data); letter-spacing: 0.14em; text-transform: uppercase; color: var(--foreground); }
+  .luca-solution-orbit-desc { font-size: 0.9rem; line-height: 1.55; color: var(--muted-foreground); }
+
+  /* Experience — 5-step flow */
+  .luca-flow { list-style: none; margin: 3rem 0 0; padding: 0; border-top: 1px solid var(--border); }
+  .luca-flow-step {
+    display: grid; grid-template-columns: 4rem 1fr 2rem; align-items: center;
+    gap: 1rem; padding: clamp(1.25rem, 3vh, 1.75rem) 0; border-bottom: 1px solid var(--border);
+  }
+  .luca-flow-index { font-family: var(--uc-font-data); font-size: 0.875rem; letter-spacing: 0.18em; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+  .luca-flow-content { display: flex; flex-direction: column; gap: 0.3rem; }
+  .luca-flow-label { font-family: var(--uc-font-data); letter-spacing: 0.12em; text-transform: uppercase; color: var(--foreground); }
+  .luca-flow-desc { font-size: 0.9rem; line-height: 1.5; color: var(--muted-foreground); max-width: 42ch; }
+  .luca-flow-link { font-family: var(--uc-font-data); font-size: 1.25rem; color: var(--accent-electric); justify-self: end; }
+  .luca-flow-cta {
+    margin-top: 2.5rem; background: var(--accent-electric); color: #fff; border: 0;
+    font-family: var(--uc-font-data); letter-spacing: 0.16em; text-transform: uppercase;
+    padding: 1rem 2rem; border-radius: 999px; cursor: pointer;
+  }
+
+  /* About — editorial 2-col */
+  .luca-about-grid { margin-top: 2rem; display: grid; grid-template-columns: 1fr; gap: 2rem; }
+  @media (min-width: 768px) { .luca-about-grid { grid-template-columns: 1.1fr 1fr; align-items: start; } }
+  .luca-about-statement { font-weight: 800; font-size: clamp(1.75rem, 4.5vw, 3rem); line-height: 1.05; letter-spacing: -0.03em; max-width: 16ch; }
+  .luca-about-body { display: flex; flex-direction: column; gap: 1rem; }
+  .luca-about-principles { list-style: none; margin: 3rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+  .luca-about-principle { font-family: var(--uc-font-data); font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-foreground); }
 }

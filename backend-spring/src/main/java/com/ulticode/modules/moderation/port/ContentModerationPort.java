@@ -5,8 +5,8 @@ package com.ulticode.modules.moderation.port;
  * moderation state machine from the five content-provider mappers
  * (forum post, forum comment, solution, solution comment, problem).
  *
- * <p>Before this port, {@link DefaultModerationWritePort} injected all
- * five content mappers directly and inlined a switch-on-entity-type
+ * <p>Before this port, {@link com.ulticode.modules.moderation.service.impl.ModerationServiceImpl}
+ * injected all five content mappers directly and inlined a switch-on-entity-type
  * in both {@code resolveAuthorId} and {@code updateContentFlagStatus}.
  * This port lifts those two operations behind a single seam so the
  * state machine depends on one interface, not five mapper types.

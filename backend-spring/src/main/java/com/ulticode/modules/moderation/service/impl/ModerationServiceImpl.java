@@ -1,8 +1,8 @@
 package com.ulticode.modules.moderation.service.impl;
 
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.moderation.dto.AppealVO;
 import com.ulticode.modules.moderation.dto.BatchActionResultVO;
 import com.ulticode.modules.moderation.dto.BatchModerationActionDTO;
@@ -12,32 +12,57 @@ import com.ulticode.modules.moderation.dto.ModerationQueueVO;
 import com.ulticode.modules.moderation.dto.PerformModerationActionDTO;
 import com.ulticode.modules.moderation.dto.ReviewAppealDTO;
 import com.ulticode.modules.moderation.entity.Appeal;
+import com.ulticode.modules.moderation.entity.ModerationAction;
+import com.ulticode.modules.moderation.entity.ModerationQueue;
+import com.ulticode.modules.moderation.entity.Report;
+import com.ulticode.modules.moderation.entity.UserBan;
+import com.ulticode.modules.moderation.entity.UserWarning;
+import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
 import com.ulticode.modules.moderation.mapper.AppealMapper;
-import com.ulticode.modules.moderation.port.ModerationWritePort;
+import com.ulticode.modules.moderation.mapper.ModerationActionMapper;
+import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
+import com.ulticode.modules.moderation.mapper.ReportMapper;
+import com.ulticode.modules.moderation.mapper.UserBanMapper;
+import com.ulticode.modules.moderation.mapper.UserWarningMapper;
+import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
+import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.mapper.UserMapper;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Thin delegate facade over {@link ModerationWritePort}.
+ * The moderation state machine — every queue mutation, the report intake, the appeal lifecycle,
+ * and the action-sink side effects the {@link ModerationActionHandler} strategies invoke.
  *
- * <p>The moderation state machine — every queue mutation, the report intake,
- * the appeal lifecycle, and the action-sink callbacks the
- * {@link ModerationActionHandler} strategies invoke — now lives behind
- * {@link ModerationWritePort} (see its javadoc for why it is a deep module).
- * This service forwards the eight write paths verbatim and keeps only the
- * authorisation-guarded {@code getAppeal} read, which is a read-with-a-guard
- * rather than a state change and so stays on the facade next to the caller.
+ * <p>This module owns the full write invariant directly: the
+ * {@code PENDING → UNDER_REVIEW → RESOLVED / DISMISSED / APPEAL_PENDING} queue transitions, the
+ * appeal decision flow, the action-record-on-every-mutation rule, and the warning / ban /
+ * content-flag side effects dispatched by the strategy handlers. The state machine previously sat
+ * behind a one-adapter {@code ModerationWritePort} seam that the service forwarded to verbatim;
+ * that seam fronted the service's own logic (eight pure-delegate write paths) and carried no second
+ * provider, so it was removed and the logic absorbed here. The guards join the transitions they
+ * protect instead of being split across a facade and an adapter.
  *
- * <p>Behaviour is unchanged: {@code ModerationController} and any cross-module
- * caller depending on {@link ModerationService} see the same contract. The
- * {@code @Transactional} boundaries move with the write paths onto the port
- * adapter ({@code DefaultModerationWritePort}); this facade adds no
- * transaction of its own.
+ * <p>Reads live on {@link ModerationProjection}; controllers and cross-module callers depend on
+ * {@link ModerationService} for writes and for the authorisation-guarded appeal lookup
+ * ({@code getAppeal}). The {@code @Transactional} boundaries sit on the proxy-reached write methods
+ * below; {@code batchAction} reuses {@code performAction} internally exactly as before (the
+ * per-item loop shares the batch transaction and captures failures rather than rolling back).
+ *
+ * <p>The action-sink methods ({@link #createUserWarning}, {@link #createUserBan},
+ * {@link #updateContentFlagStatus}) are package-private: only {@link ModerationActionHandler}
+ * reaches them, through {@link ModerationActionHandler.ActionContext}, so they stay off the public
+ * service contract while remaining callable from the strategy handlers in this package.
  *
  * @author ulticode
  */
@@ -46,50 +71,219 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ModerationServiceImpl implements ModerationService {
 
-    private final ModerationWritePort moderationWritePort;
-    private final ModerationProjection moderationProjection;
+    private final ModerationQueueMapper queueMapper;
+    private final ModerationActionMapper actionMapper;
+    private final ReportMapper reportMapper;
     private final AppealMapper appealMapper;
+    private final UserWarningMapper warningMapper;
+    private final UserBanMapper banMapper;
+    private final UserMapper userMapper;
+    private final ContentModerationPort contentModerationPort;
+    private final ModerationProjection moderationProjection;
+    private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
 
     // ==================== Queue Operations ====================
 
     @Override
+    @Transactional
     public ModerationQueueVO claimItem(String id, String moderatorId) {
-        return moderationWritePort.claimItem(id, moderatorId);
+        // Use atomic conditional update to prevent race condition
+        int updated = queueMapper.assignToModeratorIfUnassigned(id, moderatorId);
+        if (updated == 0) {
+            // Check why it failed
+            ModerationQueue item = queueMapper.selectById(id);
+            if (item == null) {
+                throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            }
+            if (item.getAssignedToId() != null && !item.getAssignedToId().equals(moderatorId)) {
+                throw new BusinessException(ErrorCode.MODERATION_ALREADY_ASSIGNED);
+            }
+            // If already assigned to current moderator, consider it success
+        }
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
+    @Transactional
     public ModerationQueueVO assignItem(String id, String moderatorId, String assignedTo) {
-        return moderationWritePort.assignItem(id, moderatorId, assignedTo);
+        ModerationQueue item = queueMapper.selectById(id);
+        if (item == null) {
+            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        }
+
+        // Verify the target moderator exists
+        User targetModerator = userMapper.selectById(assignedTo);
+        if (targetModerator == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        queueMapper.assignToModerator(id, assignedTo);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
+    @Transactional
     public ModerationQueueVO unassignItem(String id, String moderatorId) {
-        return moderationWritePort.unassignItem(id, moderatorId);
+        ModerationQueue item = queueMapper.selectById(id);
+        if (item == null) {
+            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        }
+
+        queueMapper.unassign(id);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
+    @Transactional
     public ModerationQueueVO performAction(String id, PerformModerationActionDTO dto, String moderatorId) {
-        return moderationWritePort.performAction(id, dto, moderatorId);
+        ModerationQueue item = queueMapper.selectById(id);
+        if (item == null) {
+            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        }
+
+        ModerationActionType actionType = dto.getAction();
+
+        // Create moderation action record
+        ModerationAction moderationAction = new ModerationAction();
+        moderationAction.setQueueId(id);
+        moderationAction.setAction(actionType.name());
+        moderationAction.setPerformedById(moderatorId);
+        moderationAction.setNote(dto.getNote());
+        moderationAction.setDurationDays(dto.getDurationDays());
+        actionMapper.insert(moderationAction);
+
+        // Update queue item based on action via strategy handler
+        LocalDateTime now = LocalDateTime.now(clock);
+        item.setReviewedById(moderatorId);
+        item.setReviewedAt(now);
+        item.setResolution(actionType.name());
+        item.setResolutionNote(dto.getNote());
+
+        ModerationActionHandler handler = ModerationActionHandler.from(actionType);
+        ModerationActionHandler.ActionContext context =
+                new ModerationActionHandler.ActionContext(this, id, moderationAction.getId());
+        handler.perform(context, item, moderatorId, dto.getNote(), dto.getDurationDays(), now);
+
+        queueMapper.updateById(item);
+
+        // Update related reports
+        updateReportsStatus(id, actionType == ModerationActionType.DISMISSED ? "DISMISSED" : "RESOLVED");
+
+        log.info("Moderation action {} performed on queue item {} by moderator {}", actionType, id, moderatorId);
+        return moderationProjection.queueItemById(id);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public BatchActionResultVO batchAction(BatchModerationActionDTO dto, String moderatorId) {
-        return moderationWritePort.batchAction(dto, moderatorId);
+        List<BatchActionResultVO.BatchError> errors = new ArrayList<>();
+        int successCount = 0;
+
+        for (String queueId : dto.getQueueIds()) {
+            try {
+                PerformModerationActionDTO actionDto = new PerformModerationActionDTO();
+                actionDto.setAction(dto.getAction());
+                actionDto.setNote(dto.getNote());
+                actionDto.setDurationDays(dto.getDurationDays());
+
+                performAction(queueId, actionDto, moderatorId);
+                successCount++;
+            } catch (BusinessException e) {
+                log.warn("Batch action failed for queue {}: {}", queueId, e.getMessage());
+                errors.add(new BatchActionResultVO.BatchError(queueId, e.getMessage()));
+            } catch (Exception e) {
+                log.error("Batch action failed for queue item {}", queueId, e);
+                errors.add(new BatchActionResultVO.BatchError(queueId, "Processing failed. Please try again."));
+            }
+        }
+
+        // Always return BatchActionResultVO so callers receive per-item error details,
+        // even when every item fails. Caller inspects successCount/errors to decide UX.
+        return new BatchActionResultVO(successCount, errors.size(), errors);
     }
 
     // ==================== Report Operations ====================
 
     @Override
+    @Transactional
     public void createReport(CreateReportDTO dto, String reporterId) {
-        moderationWritePort.createReport(dto, reporterId);
+        Report report = new Report();
+        report.setReporterId(reporterId);
+        report.setEntityType(dto.getEntityType());
+        report.setEntityId(dto.getEntityId());
+        report.setCategory(dto.getCategory().toUpperCase());
+        report.setReason(dto.getReason());
+        report.setEvidence(dto.getEvidence());
+        report.setStatus("PENDING");
+
+        try {
+            reportMapper.insert(report);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.MODERATION_ALREADY_REPORTED);
+        }
+
+        // Resolve author ID from entity
+        String authorId = resolveAuthorId(dto.getEntityType(), dto.getEntityId());
+
+        // Update or create moderation queue item
+        ModerationQueue queueItem = queueMapper.findByEntity(dto.getEntityType(), dto.getEntityId());
+        if (queueItem == null) {
+            queueItem = new ModerationQueue();
+            queueItem.setEntityType(dto.getEntityType());
+            queueItem.setEntityId(dto.getEntityId());
+            queueItem.setAuthorId(authorId);
+            queueItem.setPriority(1);
+            queueItem.setStatus("PENDING");
+            queueItem.setReportCount(1);
+            queueItem.setPrimaryCategory(dto.getCategory().toUpperCase());
+            queueMapper.insert(queueItem);
+        } else {
+            queueItem.setReportCount(queueItem.getReportCount() + 1);
+            queueMapper.updateById(queueItem);
+        }
+
+        // Link report to queue
+        report.setQueueId(queueItem.getId());
+        reportMapper.updateById(report);
+
+        log.info("Report created by user {} for entity {}/{}", reporterId, dto.getEntityType(), dto.getEntityId());
     }
 
     // ==================== Appeal Operations ====================
 
     @Override
+    @Transactional
     public AppealVO createAppeal(CreateAppealDTO dto, String appellantId) {
-        return moderationWritePort.createAppeal(dto, appellantId);
+        ModerationQueue queueItem = queueMapper.selectById(dto.getQueueId());
+        if (queueItem == null) {
+            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        }
+
+        // Only the author of the content can appeal
+        if (!queueItem.getAuthorId().equals(appellantId)) {
+            throw new BusinessException(ErrorCode.MODERATION_NOT_AUTHOR);
+        }
+
+        // Check if queue item is in appealable state
+        if (!"RESOLVED".equals(queueItem.getStatus())) {
+            throw new BusinessException(ErrorCode.MODERATION_CANNOT_APPEAL);
+        }
+
+        Appeal appeal = new Appeal();
+        appeal.setQueueId(dto.getQueueId());
+        appeal.setAppellantId(appellantId);
+        appeal.setReason(dto.getReason());
+        appeal.setEvidence(dto.getEvidence());
+        appeal.setStatus("PENDING");
+        appealMapper.insert(appeal);
+
+        // Update queue item status
+        queueItem.setStatus("APPEAL_PENDING");
+        queueMapper.updateById(queueItem);
+
+        log.info("Appeal created by user {} for queue item {}", appellantId, dto.getQueueId());
+        return moderationProjection.toAppealVO(appeal);
     }
 
     @Override
@@ -114,7 +308,105 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
+    @Transactional
     public AppealVO reviewAppeal(String id, ReviewAppealDTO dto, String moderatorId) {
-        return moderationWritePort.reviewAppeal(id, dto, moderatorId);
+        Appeal appeal = appealMapper.selectById(id);
+        if (appeal == null) {
+            throw new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND);
+        }
+
+        if (!"PENDING".equals(appeal.getStatus()) && !"UNDER_REVIEW".equals(appeal.getStatus())) {
+            throw new BusinessException(ErrorCode.MODERATION_APPEAL_ALREADY_REVIEWED);
+        }
+
+        String decision = dto.getDecision().toUpperCase();
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        appeal.setStatus(decision);
+        appeal.setReviewedById(moderatorId);
+        appeal.setReviewedAt(now);
+        appeal.setResponse(dto.getResponse());
+        appealMapper.updateById(appeal);
+
+        // Create action record
+        ModerationAction action = new ModerationAction();
+        action.setQueueId(appeal.getQueueId());
+        action.setAction("APPEAL_" + decision);
+        action.setPerformedById(moderatorId);
+        action.setNote(dto.getResponse());
+        actionMapper.insert(action);
+
+        // Update queue item
+        ModerationQueue queueItem = queueMapper.selectById(appeal.getQueueId());
+        if (queueItem != null) {
+            if ("APPROVED".equals(decision)) {
+                // Restore the content or revert the action
+                queueItem.setStatus("RESOLVED");
+                queueItem.setResolution("APPEAL_APPROVED");
+            } else {
+                queueItem.setStatus("RESOLVED");
+                queueItem.setResolution("APPEAL_REJECTED");
+            }
+            queueMapper.updateById(queueItem);
+        }
+
+        log.info("Appeal {} {} by moderator {}", id, decision, moderatorId);
+        return moderationProjection.toAppealVO(appeal);
+    }
+
+    // ==================== Action-sink callbacks (ModerationActionHandler strategies) ====================
+
+    void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
+        UserWarning warning = new UserWarning();
+        warning.setUserId(userId);
+        warning.setQueueId(queueId);
+        warning.setReason(reason != null ? reason : "No reason provided");
+        warning.setCategory(category != null ? category : "OTHER");
+        warning.setActionId(actionId);
+        warning.setExpiresAt(LocalDateTime.now(clock).plusDays(90));
+        warningMapper.insert(warning);
+    }
+
+    void createUserBan(String userId, String queueId, String reason, String category, String bannedById,
+                       String actionId, Integer durationDays, boolean isPermanent) {
+        UserBan ban = new UserBan();
+        ban.setUserId(userId);
+        ban.setQueueId(queueId);
+        ban.setReason(reason != null ? reason : "No reason provided");
+        ban.setCategory(category);
+        ban.setBannedById(bannedById);
+        ban.setActionId(actionId);
+        ban.setIsPermanent(isPermanent);
+        LocalDateTime now = LocalDateTime.now(clock);
+        ban.setStartedAt(now);
+        if (!isPermanent && durationDays != null) {
+            ban.setEndsAt(now.plusDays(durationDays));
+        }
+        banMapper.insert(ban);
+
+        // Update user's ban status
+        User user = userMapper.selectById(userId);
+        if (user != null) {
+            user.setIsBanned(true);
+            if (!isPermanent && durationDays != null) {
+                user.setBannedUntil(now.plusDays(durationDays));
+            }
+            user.setBannedReason(reason);
+            userMapper.updateById(user);
+        }
+    }
+
+    void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
+        contentModerationPort.updateFlagStatus(entityType, entityId, isFlagged, reason);
+    }
+
+    // ==================== Private Helper Methods ====================
+
+    private String resolveAuthorId(String entityType, String entityId) {
+        return contentModerationPort.resolveAuthorId(entityType, entityId);
+    }
+
+    private void updateReportsStatus(String queueId, String status) {
+        reportMapper.updateStatusByQueueId(queueId, status);
     }
 }

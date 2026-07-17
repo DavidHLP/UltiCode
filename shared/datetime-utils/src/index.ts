@@ -7,6 +7,19 @@
  */
 
 /**
+ * Coerce a date input to a Date, or null if missing/invalid.
+ * Shared guard used by every locale formatter below.
+ */
+export function coerceDate(
+  date: string | Date | null | undefined,
+): Date | null {
+  if (!date) return null
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(dateObj.getTime())) return null
+  return dateObj
+}
+
+/**
  * Format a date to locale date string.
  * @param date - Date string, Date object, or null/undefined
  * @param locale - Locale string (default: browser locale)
@@ -17,9 +30,8 @@ export function formatDate(
   locale?: string,
   options: Intl.DateTimeFormatOptions = {},
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleDateString(locale ?? undefined, {
     year: 'numeric',
     month: 'short',
@@ -36,9 +48,8 @@ export function formatDateTime(
   locale?: string,
   options: Intl.DateTimeFormatOptions = {},
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleString(locale ?? undefined, {
     year: 'numeric',
     month: 'short',
@@ -57,9 +68,8 @@ export function formatRelativeTime(
   date: string | Date | null | undefined,
   locale?: string,
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
 
   const now = new Date()
   const diffMs = now.getTime() - dateObj.getTime()
@@ -89,9 +99,8 @@ export function formatTime(
   date: string | Date | null | undefined,
   locale?: string,
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleTimeString(locale ?? undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -105,9 +114,8 @@ export function formatShortDate(
   date: string | Date | null | undefined,
   locale?: string,
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleDateString(locale ?? undefined, {
     month: 'short',
     day: 'numeric',
@@ -122,9 +130,8 @@ export function formatTime24(
   date: string | Date | null | undefined,
   locale?: string,
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleTimeString(locale ?? undefined, {
     hour: '2-digit',
     minute: '2-digit',
@@ -139,9 +146,8 @@ export function formatWeekdayShortDate(
   date: string | Date | null | undefined,
   locale?: string,
 ): string {
-  if (!date) return '-'
-  const dateObj = typeof date === 'string' ? new Date(date) : date
-  if (isNaN(dateObj.getTime())) return '-'
+  const dateObj = coerceDate(date)
+  if (!dateObj) return '-'
   return dateObj.toLocaleDateString(locale ?? undefined, {
     weekday: 'short',
     month: 'short',

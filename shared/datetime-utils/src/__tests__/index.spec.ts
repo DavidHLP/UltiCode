@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  coerceDate,
   formatRelativeTime,
   formatTime24,
   formatWeekdayShortDate,
@@ -75,5 +76,23 @@ describe('formatDate guards', () => {
   it('returns a dash for null or invalid input', () => {
     expect(formatDate(null, 'en-US')).toBe('-')
     expect(formatDate('invalid', 'en-US')).toBe('-')
+  })
+})
+
+describe('coerceDate', () => {
+  it('parses a string and passes a Date through untouched', () => {
+    const fromString = coerceDate('2026-07-17T12:00:00Z')
+    expect(fromString).toBeInstanceOf(Date)
+    expect(fromString!.toISOString()).toBe('2026-07-17T12:00:00.000Z')
+
+    const input = new Date('2026-07-17T12:00:00Z')
+    expect(coerceDate(input)).toBe(input)
+  })
+
+  it('returns null for missing or invalid input', () => {
+    expect(coerceDate(null)).toBeNull()
+    expect(coerceDate(undefined)).toBeNull()
+    expect(coerceDate('')).toBeNull()
+    expect(coerceDate('not-a-date')).toBeNull()
   })
 })

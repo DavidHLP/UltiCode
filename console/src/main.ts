@@ -28,7 +28,7 @@ bootstrapApp({
   initTheme,
   applyTypographyDensity,
   rootComponent: App,
-  plugins: [createPinia(), i18n],
+  preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {
     // Initialize auth context BEFORE auth store; sets up global auth error
     // handling and the session-expired redirect. Use the imported router

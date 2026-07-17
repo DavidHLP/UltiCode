@@ -28,7 +28,7 @@ function makeOptions(
     initTheme: vi.fn(),
     applyTypographyDensity: vi.fn(),
     rootComponent: {} as never,
-    plugins: [{ install: vi.fn(), name: "pinia" }, { install: vi.fn(), name: "i18n" }],
+    preAuthPlugins: [{ install: vi.fn(), name: "pinia" }, { install: vi.fn(), name: "i18n" }],
     preAuthInit: vi.fn(async () => {}),
     registerAuthFailureHandler: vi.fn(),
     onAuthFailure: vi.fn(async () => {}),

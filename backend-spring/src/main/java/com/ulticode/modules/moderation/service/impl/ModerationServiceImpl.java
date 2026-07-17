@@ -175,8 +175,12 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public BatchActionResultVO batchAction(BatchModerationActionDTO dto, String moderatorId) {
+        // Single shared transaction for the batch: performAction is invoked in-process
+        // (no proxy), so a per-item failure is caught here without marking the
+        // transaction rollback-only. Successful items commit together; failures are
+        // reported per item rather than aborting the whole batch.
         List<BatchActionResultVO.BatchError> errors = new ArrayList<>();
         int successCount = 0;
 

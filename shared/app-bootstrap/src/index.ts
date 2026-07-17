@@ -43,11 +43,13 @@ export interface AppBootstrapOptions {
   /** Root component passed to `createApp`. */
   rootComponent: Component;
   /**
-   * Plugins installed before auth initialization, in order. Pinia MUST be first
-   * (the auth store depends on it) — the app is responsible for that ordering
-   * within the array because Pinia/i18n are app-owned.
+   * Plugins installed before auth initialization, in array order (Pinia and
+   * i18n). The auth store depends on Pinia, so every plugin here is installed
+   * before {@link AppBootstrapOptions.initializeAuth} runs; the order within the
+   * array is the app's own concern and does not affect the pre-auth-plugins →
+   * auth-init → router sequence this module owns.
    */
-  plugins: Plugin[];
+  preAuthPlugins: Plugin[];
   /** App-specific step run after plugins, before the auth-failure handler. */
   preAuthInit?: (ctx: BootstrapContext) => Promise<void> | void;
   /** Registers the single auth-failure owner (shared auth-core `setOnAuthFailure`). */
@@ -83,7 +85,7 @@ export async function bootstrapApp(
   options.applyTypographyDensity(options.density);
 
   const app = createApp(options.rootComponent);
-  for (const plugin of options.plugins) {
+  for (const plugin of options.preAuthPlugins) {
     app.use(plugin);
   }
 

@@ -23,7 +23,7 @@ bootstrapApp({
   initTheme,
   applyTypographyDensity,
   rootComponent: App,
-  plugins: [createPinia(), i18n],
+  preAuthPlugins: [createPinia(), i18n],
   async preAuthInit() {
     // Initialize locale from stored preference on startup so
     // document.documentElement.lang is set before any component mounts and

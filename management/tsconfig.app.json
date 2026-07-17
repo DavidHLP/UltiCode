@@ -17,7 +17,8 @@
     "../shared/domain-types/src/**/*",
     "../shared/i18n-completeness/src/**/*",
     "../shared/design-system/src/**/*",
-    "../shared/design-system/src/**/*.vue"
+    "../shared/design-system/src/**/*.vue",
+    "../shared/app-bootstrap/src/**/*"
   ],
   "exclude": [
     "src/**/__tests__/*"

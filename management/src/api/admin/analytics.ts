@@ -1,29 +1,5 @@
 import { apiGet } from '@/utils/request'
 
-export enum AnalyticsReportType {
-  USER_ACTIVITY = 'user_activity',
-  PROBLEM_COMPLETION = 'problem_completion',
-  CONTEST_PARTICIPATION = 'contest_participation',
-  REVENUE = 'revenue',
-  PERFORMANCE = 'performance',
-}
-
-export enum AnalyticsPeriod {
-  DAY = 'day',
-  WEEK = 'week',
-  MONTH = 'month',
-  QUARTER = 'quarter',
-  YEAR = 'year',
-}
-
-export interface AnalyticsQueryParams {
-  reportType: AnalyticsReportType
-  period?: AnalyticsPeriod
-  days?: number
-  startDate?: string
-  endDate?: string
-}
-
 export interface UserActivityReport {
   activeUsersDaily: Array<{ date: string; count: number }>
   activeUsersWeekly: Array<{ week: string; count: number }>
@@ -143,19 +119,7 @@ export interface PerformanceReport {
   cacheHitRate: number
 }
 
-export type AnalyticsReport =
-  | UserActivityReport
-  | ProblemCompletionReport
-  | ContestParticipationReport
-  | RevenueReport
-  | PerformanceReport
-
 export const analyticsApi = {
-  async getReport<T extends AnalyticsReport>(params: AnalyticsQueryParams): Promise<T> {
-    const response = await apiGet<T>('/admin/analytics', { params })
-    return response
-  },
-
   async getUserActivity(params: {
     days?: number
     startDate?: string

@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Facade implementation of {@link AdminAnalyticsService}. A thin
@@ -85,43 +83,40 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     }
 
     @Override
-    public Map<String, Object> getAnalyticsOverview(Integer days) {
+    public AnalyticsOverviewVO getAnalyticsOverview(Integer days) {
         int daysToAnalyze = days != null && days > 0 ? days : 30;
         LocalDateTime startDate = LocalDateTime.now(clock).minusDays(daysToAnalyze);
-
-        Map<String, Object> overview = new LinkedHashMap<>();
 
         // User metrics
         long totalUsers = adminAnalyticsPort.countAllUsers();
         long activeUsers = adminAnalyticsPort.countDistinctSubmittersInRange(
                 startDate, LocalDateTime.now(clock).plusDays(1));
-        overview.put("totalUsers", totalUsers);
-        overview.put("activeUsers", activeUsers);
 
         // Submission metrics
         long totalSubmissions = adminAnalyticsPort.countSubmissionsInRange(startDate);
         long acceptedSubmissions = adminAnalyticsPort.countAcceptedSubmissionsInRange(startDate);
-
-        overview.put("totalSubmissions", totalSubmissions);
-        overview.put("acceptedSubmissions", acceptedSubmissions);
-        overview.put("acceptanceRate", totalSubmissions > 0
-                ? Math.round(acceptedSubmissions * 100.0 / totalSubmissions * 100.0) / 100.0 : 0.0);
+        double acceptanceRate = totalSubmissions > 0
+                ? Math.round(acceptedSubmissions * 100.0 / totalSubmissions * 100.0) / 100.0 : 0.0;
 
         // Contest metrics
         long totalContests = adminAnalyticsPort.countContestsInRange(startDate);
-        overview.put("totalContests", totalContests);
 
         // Subscription metrics
         long activeSubscriptions = adminAnalyticsPort.countActiveSubscriptions();
-        overview.put("activeSubscriptions", activeSubscriptions);
 
         // System metrics (JVM/OS sampling lives in SystemResourceReporter)
         SystemResourceReporter.SystemMetrics systemMetrics = systemResourceReporter.sampleSystemMetrics();
-        overview.put("systemUptimeSeconds", systemMetrics.systemUptimeSeconds());
-        overview.put("memoryUsagePercent", systemMetrics.memoryUsagePercent());
 
-        overview.put("periodDays", daysToAnalyze);
-
-        return overview;
+        return new AnalyticsOverviewVO(
+                totalUsers,
+                activeUsers,
+                totalSubmissions,
+                acceptedSubmissions,
+                acceptanceRate,
+                totalContests,
+                activeSubscriptions,
+                systemMetrics.systemUptimeSeconds(),
+                systemMetrics.memoryUsagePercent(),
+                daysToAnalyze);
     }
 }

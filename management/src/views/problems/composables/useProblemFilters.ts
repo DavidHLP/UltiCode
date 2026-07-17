@@ -4,6 +4,28 @@ import { useDebounceFn } from '@vueuse/core'
 import { Difficulty } from '@/api/admin/problems'
 import type { PaginationState } from '@/composables/useDataTable'
 
+const DIFFICULTIES: readonly Difficulty[] = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
+
+/** Publish-status wire values accepted by the problems query. */
+type PublishStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+
+/**
+ * Type guard that narrows a free-form (e.g. URL-derived) string to
+ * {@link Difficulty} without an `as` cast, so a malformed or crafted query
+ * value cannot be forwarded to the API as a typed lie.
+ */
+function isDifficulty(value: string): value is Difficulty {
+  return DIFFICULTIES.some((d) => d === value)
+}
+
+/**
+ * Type guard that narrows a free-form string to a publish-status wire value
+ * without an `as` cast.
+ */
+function isProblemStatus(value: string): value is PublishStatus {
+  return value === 'DRAFT' || value === 'PUBLISHED' || value === 'ARCHIVED'
+}
+
 export interface ProblemFilterState {
   searchQuery: Ref<string>
   difficultyFilter: Ref<string>
@@ -106,11 +128,13 @@ export function useProblemFilters() {
   function buildFilterParams(tablePagination: PaginationState) {
     return {
       difficulty:
-        difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
-      publishStatus:
-        statusFilter.value === 'all'
+        difficultyFilter.value === 'all' || !isDifficulty(difficultyFilter.value)
           ? undefined
-          : (statusFilter.value as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'),
+          : difficultyFilter.value,
+      publishStatus:
+        statusFilter.value === 'all' || !isProblemStatus(statusFilter.value)
+          ? undefined
+          : statusFilter.value,
       isPublished:
         publishedFilter.value === 'all'
           ? undefined
@@ -129,11 +153,13 @@ export function useProblemFilters() {
     return {
       search: searchQuery.value || undefined,
       difficulty:
-        difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
-      publishStatus:
-        statusFilter.value === 'all'
+        difficultyFilter.value === 'all' || !isDifficulty(difficultyFilter.value)
           ? undefined
-          : (statusFilter.value as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'),
+          : difficultyFilter.value,
+      publishStatus:
+        statusFilter.value === 'all' || !isProblemStatus(statusFilter.value)
+          ? undefined
+          : statusFilter.value,
       isPublished:
         publishedFilter.value === 'all'
           ? undefined

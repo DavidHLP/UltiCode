@@ -139,14 +139,22 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
+  // Monotonic sequence for the list fetch so a stale response can never
+  // overwrite a fresher one when two fetchProblems calls overlap (the view and
+  // useDataTable can both trigger reloads; only the newest result is applied).
+  let lastFetchSeq = 0
+
   async function fetchProblems(params: ProblemQueryParams = {}) {
+    const seq = ++lastFetchSeq
     loading.value = true
     error.value = null
     try {
       const pageResult = await problemsApi.getProblems(params)
+      if (seq !== lastFetchSeq) return
       problems.value = pageResult.items
       total.value = pageResult.total
     } catch (err: unknown) {
+      if (seq !== lastFetchSeq) return
       // Ignore cancellation errors from debounced requests - not a real error
       if (err instanceof ApiError && err.code === -1 && err.message === 'Request canceled') {
         return
@@ -154,7 +162,9 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       error.value = extractErrorMessage(err)
       console.error('Failed to fetch problems:', err)
     } finally {
-      loading.value = false
+      if (seq === lastFetchSeq) {
+        loading.value = false
+      }
     }
   }
 

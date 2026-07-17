@@ -210,17 +210,15 @@ onMounted(() => {
   }, 100)
 })
 
-// Watch filters for data reload
-watch([difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder], () => {
+// Reload when the Problem-specific toolbar filters change. sortBy/sortOrder and
+// pagination are intentionally NOT watched here: useDataTable already owns
+// reload for its `filters` ({sortBy, sortOrder}) and `tablePagination`, so
+// adding them here would fire a second concurrent fetch on every sort/page
+// change. Keeping this watcher scoped to difficulty/status/published makes
+// useDataTable the single owner of sort + pagination reload.
+watch([difficultyFilter, statusFilter, publishedFilter], () => {
   loadProblems()
 })
-
-// Watch pagination for data reload
-watch(
-  () => tablePagination.value,
-  () => loadProblems(),
-  { deep: true },
-)
 </script>
 
 <template>

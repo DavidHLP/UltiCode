@@ -5,16 +5,22 @@
  *
  *   - CSRF manager (auth-core singleton, refreshFromResponse-driven)
  *   - locale resolver (`x-locale` + `Accept-Language` headers)
- *   - 401 handler: clear user state then `router.push('/login')`
+ *   - 401 handler: delegated to `runSessionExpired`, the single owner for the
+ *     session-expired side-effect sequence (store cleanup + login redirect).
+ *     See `management/src/auth/runSessionExpired.ts`.
  *   - dedup policy: dedupe GET only — never dedup state-changing methods
  *   - apiUpload + apiDownload (only management ships these)
  *
- * See `/tmp/architecture-review-1783341079.html` Card 2.
+ * Failure ownership: the propagated-401 path below and the refresh-failed
+ * path (`setOnAuthFailure` in `main.ts`) both call `runSessionExpired`, so
+ * there is one owner instead of two parallel clearUser + push paths.
+ * Concurrent same-reason triggers collapse to a single invocation inside
+ * `shared/auth-core/src/auth-failure.ts`.
  */
 import { csrfManager } from '@/shared/auth-core/src'
 import { createHttpClient } from '@/shared/http-client/src'
 import { getActiveLocale, i18n } from '@/i18n'
-import router from '@/router'
+import { runSessionExpired } from '@/auth/runSessionExpired'
 
 import type {
   ApiResponse,
@@ -24,17 +30,9 @@ import type {
 } from '@/shared/http-client/src'
 
 const onAuthFailure: AuthFailureStrategy = {
-  kind: 'redirect-login',
-  onAuthFailure(path: string) {
-    void import('@/stores/auth').then(({ useAuthStore }) => {
-      const authStore = useAuthStore()
-      if (authStore.isAuthenticated) {
-        authStore.clearUser()
-      }
-    })
-    if (router.currentRoute.value.name !== 'login') {
-      router.push(path)
-    }
+  kind: 'clear-and-run',
+  onAuthFailure() {
+    runSessionExpired()
   },
 }
 

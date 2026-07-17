@@ -24,6 +24,11 @@ import {
   DataTableToolbar,
   type ColumnDef,
 } from "@/components/common/data-table";
+import type { SemanticColor } from "@/shared/badge-config/src";
+import {
+  getStatusColor,
+  getStatusLabelI18nKey,
+} from "@/shared/submission-status/src";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -101,44 +106,30 @@ const getStatusIcon = (status: SubmissionRecord["status"]) => {
   }
 };
 
-const getStatusColorClass = (status: SubmissionRecord["status"]) => {
-  switch (status) {
-    case "Accepted":
-      return "text-[var(--terminal-green)] bg-[var(--terminal-green)]/10 border-[var(--terminal-green)]/20";
-    case "Wrong Answer":
-    case "Runtime Error":
-    case "Compile Error":
-    case "System Error":
-      return "text-[var(--terminal-red)] bg-[var(--terminal-red)]/10 border-[var(--terminal-red)]/20";
-    case "Time Limit Exceeded":
-    case "Memory Limit Exceeded":
-    case "Output Limit Exceeded":
-    case "Presentation Error":
-      return "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20";
-    case "Judging":
-    case "Pending":
-      return "text-[var(--terminal-cyan)] bg-[var(--terminal-cyan)]/10 border-[var(--terminal-cyan)]/20";
-    default:
-      return "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20";
-  }
+// Single SemanticColor → badge-token map for this surface, fed by the shared
+// verdict→color truth so verdicts (TLE, System Error, Judging, …) no longer
+// disagree with the submissions table. Covers every verdict incl. Sandbox
+// Error (neutral); unknown statuses fall back to neutral.
+const SEMANTIC_COLOR_CLASS: Record<SemanticColor, string> = {
+  success:
+    "text-[var(--terminal-green)] bg-[var(--terminal-green)]/10 border-[var(--terminal-green)]/20",
+  warning:
+    "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20",
+  error:
+    "text-[var(--terminal-red)] bg-[var(--terminal-red)]/10 border-[var(--terminal-red)]/20",
+  info: "text-[var(--terminal-cyan)] bg-[var(--terminal-cyan)]/10 border-[var(--terminal-cyan)]/20",
+  purple:
+    "text-[var(--terminal-purple)] bg-[var(--terminal-purple)]/10 border-[var(--terminal-purple)]/20",
+  electric:
+    "text-[var(--accent-electric)] bg-[var(--accent-electric)]/10 border-[var(--accent-electric)]/20",
+  neutral: "text-muted-foreground bg-muted border-muted-foreground/20",
 };
 
+const getStatusColorClass = (status: SubmissionRecord["status"]) =>
+  SEMANTIC_COLOR_CLASS[getStatusColor(status)];
+
 const getSubmissionLabel = (status: string): string => {
-  const normalized = status.toUpperCase().replace(/\s+/g, "_");
-  const map: Record<string, string> = {
-    ACCEPTED: "submission.status.accepted",
-    WRONG_ANSWER: "submission.status.wrongAnswer",
-    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
-    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
-    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
-    RUNTIME_ERROR: "submission.status.runtimeError",
-    COMPILE_ERROR: "submission.status.compileError",
-    PRESENTATION_ERROR: "submission.status.presentationError",
-    SYSTEM_ERROR: "submission.status.systemError",
-    JUDGING: "submission.status.judging",
-    PENDING: "submission.status.pending",
-  };
-  const key = map[normalized];
+  const key = getStatusLabelI18nKey(status);
   return key ? t(key) : status;
 };
 

@@ -3,6 +3,11 @@ import type { RecentActivity } from "@/types/userStats";
 import { cn } from "@/lib/utils";
 import { CheckCircle, MessageSquare, FileText, Clock } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
+import type { SemanticColor } from "@/shared/badge-config/src";
+import {
+  getStatusColor,
+  getStatusLabelI18nKey,
+} from "@/shared/submission-status/src";
 
 defineProps<{
   activities: RecentActivity[];
@@ -12,21 +17,7 @@ defineProps<{
 const { t } = useI18n();
 
 const getSubmissionLabel = (status: string): string => {
-  const normalized = status.toUpperCase().replace(/\s+/g, "_");
-  const map: Record<string, string> = {
-    ACCEPTED: "submission.status.accepted",
-    WRONG_ANSWER: "submission.status.wrongAnswer",
-    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
-    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
-    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
-    RUNTIME_ERROR: "submission.status.runtimeError",
-    COMPILE_ERROR: "submission.status.compileError",
-    PRESENTATION_ERROR: "submission.status.presentationError",
-    SYSTEM_ERROR: "submission.status.systemError",
-    JUDGING: "submission.status.judging",
-    PENDING: "submission.status.pending",
-  };
-  const key = map[normalized];
+  const key = getStatusLabelI18nKey(status);
   return key ? t(key) : status;
 };
 
@@ -37,13 +28,22 @@ const iconMap = {
   comment: MessageSquare,
 };
 
-const statusColors: Record<string, string> = {
-  Accepted: "text-[oklch(0.6444_0.1508_118.6)]",
-  "Wrong Answer": "text-[oklch(0.5863_0.2064_27.1)]",
-  "Time Limit Exceeded": "text-[oklch(0.6545_0.1340_85.7)]",
-  "Runtime Error": "text-[oklch(0.5863_0.2064_27.1)]",
-  "Compile Error": "text-[oklch(0.5863_0.2064_27.1)]",
+// Single SemanticColor → text-class map for this surface, fed by the shared
+// verdict→color truth. Covers every verdict (incl. Sandbox Error → neutral),
+// so no status ever resolves to class="undefined" (the previous statusColors
+// map had only 5 entries and no fallback).
+const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
+  success: "text-[oklch(0.6444_0.1508_118.6)]",
+  warning: "text-[oklch(0.6545_0.1340_85.7)]",
+  error: "text-[oklch(0.5863_0.2064_27.1)]",
+  info: "text-[oklch(0.6149_0.1394_244.9)]",
+  purple: "text-[oklch(0.5924_0.2025_355.9)]",
+  electric: "text-[oklch(0.6149_0.1394_244.9)]",
+  neutral: "text-muted-foreground",
 };
+
+const getStatusTextClass = (status: string | undefined): string =>
+  SEMANTIC_TEXT_CLASS[getStatusColor(status ?? "")];
 
 const typeColors: Record<string, string> = {
   submission: "text-[oklch(0.6149_0.1394_244.9)]",
@@ -95,7 +95,7 @@ function formatTime(dateStr: string): string {
               cn(
                 'h-4 w-4',
                 activity.type === 'submission'
-                  ? statusColors[activity.status || ''] || 'text-gray-500'
+                  ? getStatusTextClass(activity.status)
                   : typeColors[activity.type],
               )
             "
@@ -107,7 +107,10 @@ function formatTime(dateStr: string): string {
           <p class="truncate text-sm font-medium">{{ activity.title }}</p>
           <div class="flex items-center gap-2 text-xs text-muted-foreground">
             <span class="capitalize">{{ activity.type }}</span>
-            <span v-if="activity.status" :class="statusColors[activity.status]">
+            <span
+              v-if="activity.status"
+              :class="getStatusTextClass(activity.status)"
+            >
               {{ getSubmissionLabel(activity.status) }}
             </span>
           </div>

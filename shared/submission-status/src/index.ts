@@ -41,6 +41,32 @@ export const VERDICT_TO_STATUS_KEY: Record<DFormVerdict, string> = {
  * (Output Limit Exceeded, Presentation Error, System Error, Sandbox Error).
  * This map fills those gaps so no verdict ever renders without a color.
  */
+/**
+ * Map a D-form verdict (Title Case) to its full i18n key path
+ * (`submission.status.<camelCase>`). Every DFormVerdict has an entry — if you
+ * add a verdict to the union, TypeScript forces you to add it here too.
+ *
+ * The label text itself stays in each application's i18n bundles; this map is
+ * only the single source of truth for WHICH verdicts exist and what their
+ * canonical key path is, so surfaces never again hand-roll an incomplete copy
+ * that omits a status (the historical "Sandbox Error renders raw English"
+ * regression came from exactly such duplicated, fallback-less maps).
+ */
+export const VERDICT_TO_LABEL_I18N_KEY: Record<DFormVerdict, string> = {
+  Accepted: 'submission.status.accepted',
+  'Wrong Answer': 'submission.status.wrongAnswer',
+  'Time Limit Exceeded': 'submission.status.timeLimitExceeded',
+  'Memory Limit Exceeded': 'submission.status.memoryLimitExceeded',
+  'Output Limit Exceeded': 'submission.status.outputLimitExceeded',
+  'Runtime Error': 'submission.status.runtimeError',
+  'Compile Error': 'submission.status.compileError',
+  'Presentation Error': 'submission.status.presentationError',
+  'System Error': 'submission.status.systemError',
+  'Sandbox Error': 'submission.status.sandboxError',
+  Judging: 'submission.status.judging',
+  Pending: 'submission.status.pending',
+}
+
 export const VERDICT_COLOR_MAP: Record<DFormVerdict, SemanticColor> = {
   Accepted: 'success',
   'Wrong Answer': 'error',
@@ -101,4 +127,26 @@ export function normalizeStatusKey(status: string): string {
 export function getStatusColor(status: string): SemanticColor {
   const verdict = STATUS_KEY_TO_VERDICT.get(normalizeStatusKey(status))
   return verdict ? getVerdictColor(verdict) : 'neutral'
+}
+
+/**
+ * Reverse lookup — UPPERCASE status key → i18n label key, derived from
+ * VERDICT_TO_LABEL_I18N_KEY so the label map stays the single source of truth.
+ */
+const STATUS_KEY_TO_LABEL_I18N_KEY = new Map<string, string>(
+  (Object.entries(VERDICT_TO_LABEL_I18N_KEY) as [DFormVerdict, string][]).map(
+    ([verdict, labelKey]) => [normalizeStatusKey(verdict), labelKey],
+  ),
+)
+
+/**
+ * Resolve a submission status string (any casing) to its full i18n label key
+ * path, or `null` when the status is not a known verdict. Returning `null`
+ * (rather than throwing) lets the caller preserve its prior fallback for
+ * forward-compatibility with not-yet-mapped statuses — typically
+ * `key ? t(key) : status`. This replaces the per-surface status→label maps
+ * that previously omitted statuses such as 'Sandbox Error'.
+ */
+export function getStatusLabelI18nKey(status: string): string | null {
+  return STATUS_KEY_TO_LABEL_I18N_KEY.get(normalizeStatusKey(status)) ?? null
 }

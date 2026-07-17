@@ -21,6 +21,11 @@ import {
   hasDisplayValue,
   hasResultDetails,
 } from "./testResultDisplay";
+import type { SemanticColor } from "@/shared/badge-config/src";
+import {
+  getStatusColor,
+  getStatusLabelI18nKey,
+} from "@/shared/submission-status/src";
 
 const props = defineProps<{
   runResult: ProblemRunResult | null;
@@ -68,76 +73,32 @@ const hasActiveResultDetails = computed(
 const verdictLabel = computed(() => {
   const verdict = props.runResult?.verdict;
   if (!verdict) return t("problem.layout.noVerdict");
-  const normalized = verdict.toUpperCase().replace(/\s+/g, "_");
-  const map: Record<string, string> = {
-    ACCEPTED: "submission.status.accepted",
-    WRONG_ANSWER: "submission.status.wrongAnswer",
-    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
-    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
-    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
-    RUNTIME_ERROR: "submission.status.runtimeError",
-    COMPILE_ERROR: "submission.status.compileError",
-    PRESENTATION_ERROR: "submission.status.presentationError",
-    SYSTEM_ERROR: "submission.status.systemError",
-    JUDGING: "submission.status.judging",
-    PENDING: "submission.status.pending",
-  };
-  const key = map[normalized];
+  const key = getStatusLabelI18nKey(verdict);
   return key ? t(key) : verdict;
 });
+
+// Single SemanticColor → text-class map for this surface, fed by the shared
+// verdict→color truth so TLE, Runtime Error, System Error, etc. no longer
+// disagree with the submissions table. Covers every verdict incl. Sandbox
+// Error (neutral); unknown statuses fall back to muted.
+const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
+  success: "text-[var(--terminal-green)]",
+  warning: "text-[var(--terminal-amber)]",
+  error: "text-[var(--terminal-red)]",
+  info: "text-[var(--accent-electric)]",
+  purple: "text-[var(--terminal-purple)]",
+  electric: "text-[var(--accent-electric)]",
+  neutral: "text-muted-foreground",
+};
 
 const verdictClass = computed(() => {
   const verdict = props.runResult?.verdict;
   if (!verdict) return "text-muted-foreground";
-  switch (verdict) {
-    case "Accepted":
-      return "text-[var(--terminal-green)]";
-    case "Wrong Answer":
-      return "text-[var(--terminal-red)]";
-    case "Runtime Error":
-      return "text-[var(--terminal-amber)]";
-    case "Time Limit Exceeded":
-      return "text-[var(--accent-electric)]";
-    case "Memory Limit Exceeded":
-    case "Output Limit Exceeded":
-    case "Presentation Error":
-      return "text-[var(--terminal-amber)]";
-    case "Compile Error":
-      return "text-[var(--terminal-red)]";
-    case "System Error":
-      return "text-[var(--terminal-red)]";
-    case "Judging":
-      return "text-[var(--accent-electric)]";
-    default:
-      return "text-muted-foreground";
-  }
+  return SEMANTIC_TEXT_CLASS[getStatusColor(verdict)];
 });
 
-const caseStatusIconClass = (status: ProblemCaseResultDetail["status"]) => {
-  switch (status) {
-    case "Accepted":
-      return "text-[var(--terminal-green)]";
-    case "Wrong Answer":
-      return "text-[var(--terminal-red)]";
-    case "Runtime Error":
-      return "text-[var(--terminal-amber)]";
-    case "Time Limit Exceeded":
-      return "text-[var(--accent-electric)]";
-    case "Memory Limit Exceeded":
-    case "Output Limit Exceeded":
-    case "Presentation Error":
-      return "text-[var(--terminal-amber)]";
-    case "Compile Error":
-      return "text-[var(--terminal-red)]";
-    case "System Error":
-      return "text-[var(--terminal-red)]";
-    case "Judging":
-    case "Pending":
-      return "text-muted-foreground";
-    default:
-      return "text-muted-foreground";
-  }
-};
+const caseStatusIconClass = (status: ProblemCaseResultDetail["status"]) =>
+  SEMANTIC_TEXT_CLASS[getStatusColor(status)];
 
 const isFailureStatus = (status: ProblemCaseResultDetail["status"]) =>
   [

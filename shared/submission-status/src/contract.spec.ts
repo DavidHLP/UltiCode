@@ -3,10 +3,12 @@ import type { DFormVerdict } from '@ulticode/sandbox-types'
 import {
   VERDICT_TO_STATUS_KEY,
   VERDICT_COLOR_MAP,
+  VERDICT_TO_LABEL_I18N_KEY,
   getVerdictColor,
   verdictToStatusKey,
   normalizeStatusKey,
   getStatusColor,
+  getStatusLabelI18nKey,
 } from './index'
 
 /**
@@ -146,5 +148,67 @@ describe('submission-status contract', () => {
       const keys = Object.values(VERDICT_TO_STATUS_KEY)
       expect(new Set(keys).size).toBe(keys.length)
     })
+  })
+
+  describe('VERDICT_TO_LABEL_I18N_KEY — every verdict has an i18n label key', () => {
+    it.each(ALL_VERDICTS)('should map %s to a non-empty i18n key path', (verdict) => {
+      const key = VERDICT_TO_LABEL_I18N_KEY[verdict]
+      expect(key).toBeDefined()
+      expect(key.length).toBeGreaterThan(0)
+      // Full key path under the shared submission.status.* namespace.
+      expect(key).toMatch(/^submission\.status\.[a-zA-Z]+$/)
+    })
+
+    it('should map Sandbox Error (the historical regression) to a key', () => {
+      expect(VERDICT_TO_LABEL_I18N_KEY['Sandbox Error']).toBe(
+        'submission.status.sandboxError',
+      )
+    })
+
+    it('VERDICT_TO_LABEL_I18N_KEY should have exactly 12 entries', () => {
+      expect(Object.keys(VERDICT_TO_LABEL_I18N_KEY)).toHaveLength(12)
+    })
+
+    it('all label keys should be unique', () => {
+      const keys = Object.values(VERDICT_TO_LABEL_I18N_KEY)
+      expect(new Set(keys).size).toBe(keys.length)
+    })
+  })
+
+  describe('getStatusLabelI18nKey', () => {
+    it('should accept any casing and return the label key', () => {
+      expect(getStatusLabelI18nKey('Accepted')).toBe('submission.status.accepted')
+      expect(getStatusLabelI18nKey('accepted')).toBe('submission.status.accepted')
+      expect(getStatusLabelI18nKey('Sandbox Error')).toBe(
+        'submission.status.sandboxError',
+      )
+      expect(getStatusLabelI18nKey('SANDBOX_ERROR')).toBe(
+        'submission.status.sandboxError',
+      )
+      expect(getStatusLabelI18nKey('wrong_answer')).toBe(
+        'submission.status.wrongAnswer',
+      )
+    })
+
+    it('should return null for unknown statuses', () => {
+      expect(getStatusLabelI18nKey('UNKNOWN_STATUS')).toBeNull()
+      expect(getStatusLabelI18nKey('')).toBeNull()
+    })
+  })
+
+  describe('every supported status resolves to both a label key and a color', () => {
+    // Regression guard: a future verdict must not silently render a raw
+    // English label or a colorless badge. If this fails, add the verdict to
+    // VERDICT_TO_LABEL_I18N_KEY and VERDICT_COLOR_MAP.
+    it.each(ALL_VERDICTS)(
+      'should resolve %s to a non-empty label key and a color',
+      (verdict) => {
+        expect(getStatusLabelI18nKey(verdict)).not.toBeNull()
+        expect(getStatusLabelI18nKey(verdict)!.length).toBeGreaterThan(0)
+        expect(['success', 'warning', 'error', 'info', 'purple', 'electric', 'neutral']).toContain(
+          getStatusColor(verdict),
+        )
+      },
+    )
   })
 })

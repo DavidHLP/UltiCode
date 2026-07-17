@@ -8,6 +8,7 @@ export type SubmissionStatusKey =
   | "Compile Error"
   | "Presentation Error"
   | "System Error"
+  | "Sandbox Error"
   | "Judging"
   | "Pending";
 

@@ -25,7 +25,10 @@ import {
   EmptyMedia,
 } from "@/components/ui/empty";
 import { SemanticBadge } from "@/components/ui/terminal";
-import { getStatusColor } from "@/shared/submission-status/src";
+import {
+  getStatusColor,
+  getStatusLabelI18nKey,
+} from "@/shared/submission-status/src";
 
 const props = defineProps<{
   submissions: SubmissionRecord[];
@@ -41,21 +44,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 function getSubmissionLabel(status: string): string {
-  const normalized = status.toUpperCase().replace(/\s+/g, "_");
-  const map: Record<string, string> = {
-    ACCEPTED: "submission.status.accepted",
-    WRONG_ANSWER: "submission.status.wrongAnswer",
-    TIME_LIMIT_EXCEEDED: "submission.status.timeLimitExceeded",
-    MEMORY_LIMIT_EXCEEDED: "submission.status.memoryLimitExceeded",
-    OUTPUT_LIMIT_EXCEEDED: "submission.status.outputLimitExceeded",
-    RUNTIME_ERROR: "submission.status.runtimeError",
-    COMPILE_ERROR: "submission.status.compileError",
-    PRESENTATION_ERROR: "submission.status.presentationError",
-    SYSTEM_ERROR: "submission.status.systemError",
-    JUDGING: "submission.status.judging",
-    PENDING: "submission.status.pending",
-  };
-  const key = map[normalized];
+  const key = getStatusLabelI18nKey(status);
   return key ? t(key) : status;
 }
 

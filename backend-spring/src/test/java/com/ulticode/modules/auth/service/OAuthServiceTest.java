@@ -9,6 +9,7 @@ import com.ulticode.modules.auth.session.OAuthStatePort;
 import com.ulticode.modules.auth.service.oauth.GithubOAuthClient;
 import com.ulticode.modules.auth.service.oauth.GoogleOAuthClient;
 import com.ulticode.modules.auth.service.oauth.OAuthClient;
+import com.ulticode.modules.auth.service.oauth.OAuthHttp;
 import com.ulticode.modules.auth.service.oauth.OAuthTokenResponse;
 import com.ulticode.modules.auth.service.oauth.OAuthUserInfo;
 import com.ulticode.modules.user.entity.User;
@@ -362,7 +363,7 @@ class OAuthServiceTest {
         @DisplayName("duplicate client for the same provider name fails fast on wire")
         void duplicateClient_failsFast() {
             OAuthClient anotherGithub = new GithubOAuthClient(
-                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper());
+                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper(), new OAuthHttp());
             OAuthService dup = new OAuthService(
                 oauthProperties, accountPort, authSessionPort, oauthStatePort,
                 List.of(githubClient, anotherGithub), clock);
@@ -380,10 +381,10 @@ class OAuthServiceTest {
             // produce the expected provider keys. Guards against accidental
             // rename of the provider-name contract.
             assertThat(new GithubOAuthClient(
-                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper()).getProviderName())
+                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper(), new OAuthHttp()).getProviderName())
                 .isEqualTo("github");
             assertThat(new GoogleOAuthClient(
-                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper()).getProviderName())
+                oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper(), new OAuthHttp()).getProviderName())
                 .isEqualTo("google");
         }
     }

@@ -29,6 +29,13 @@ import java.util.Base64;
  * <p>The state-cookie + Redis atomic-consume lifecycle stays in
  * {@code OAuthService}; this adapter only handles the HTTP-level
  * provider mechanics.
+ *
+ * <p>Provider-specific request shape (URL, headers, body) is constructed
+ * here and delegated to the injected {@link OAuthHttpTransport}, which
+ * owns the cross-provider execution policy (bounded timeouts, 2xx status
+ * gate, body extraction). Swapping the transport for a deterministic
+ * fake in tests exercises this adapter without standing up a real HTTP
+ * server.
  */
 @Slf4j
 @Component
@@ -39,6 +46,7 @@ public class GithubOAuthClient implements OAuthClient {
 
     private final OAuthProperties oauthProperties;
     private final ObjectMapper objectMapper;
+    private final OAuthHttpTransport transport;
 
     @Override
     public String getProviderName() {
@@ -70,7 +78,7 @@ public class GithubOAuthClient implements OAuthClient {
         String tokenRequestBody = "code=" + URLEncoder.encode(code, StandardCharsets.UTF_8) +
             "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
 
-        String tokenResponse = OAuthHttp.executeForBody(HttpRequest.post(github.getTokenUrl())
+        String tokenResponse = transport.executeForBody(HttpRequest.post(github.getTokenUrl())
             .header("Accept", "application/json")
             .header("Authorization", "Basic " + basicAuth)
             .body(tokenRequestBody), PROVIDER_NAME, "token exchange");
@@ -93,7 +101,7 @@ public class GithubOAuthClient implements OAuthClient {
     public OAuthUserInfo fetchUserInfo(String accessToken) {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
 
-        String userResponse = OAuthHttp.executeForBody(HttpRequest.get(github.getUserUrl())
+        String userResponse = transport.executeForBody(HttpRequest.get(github.getUserUrl())
             .header("Authorization", "Bearer " + accessToken), PROVIDER_NAME, "user info");
 
         try {

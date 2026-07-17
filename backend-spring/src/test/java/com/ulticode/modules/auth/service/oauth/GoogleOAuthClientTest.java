@@ -39,7 +39,7 @@ class GoogleOAuthClientTest {
         google.setUserUrl(server.url("/userinfo").toString());
         google.setAuthorizeUrl("https://accounts.google.com/o/oauth2/v2/auth");
         google.setScopes("openid email profile");
-        client = new GoogleOAuthClient(props, new ObjectMapper());
+        client = new GoogleOAuthClient(props, new ObjectMapper(), new OAuthHttp());
     }
 
     @AfterEach

@@ -40,7 +40,7 @@ class GithubOAuthClientTest {
         github.setUserUrl(server.url("/user").toString());
         github.setAuthorizeUrl("https://github.com/login/oauth/authorize");
         github.setScopes("read:user");
-        client = new GithubOAuthClient(props, new ObjectMapper());
+        client = new GithubOAuthClient(props, new ObjectMapper(), new OAuthHttp());
     }
 
     @AfterEach

@@ -95,10 +95,7 @@ export const testCasesApi = {
     testCaseId: string,
     data: UpdateTestCaseDto,
   ): Promise<TestCase> {
-    return await apiPut<TestCase>(
-      `/admin/problems/${problemId}/test-cases/${testCaseId}`,
-      data,
-    )
+    return await apiPut<TestCase>(`/admin/problems/${problemId}/test-cases/${testCaseId}`, data)
   },
 
   async deleteTestCase(problemId: string, testCaseId: string): Promise<void> {
@@ -122,10 +119,7 @@ export const testCasesApi = {
     problemId: string,
     data: BulkImportTestCasesDto,
   ): Promise<BulkImportResponse> {
-    return await apiPost<BulkImportResponse>(
-      `/admin/problems/${problemId}/test-cases/bulk`,
-      data,
-    )
+    return await apiPost<BulkImportResponse>(`/admin/problems/${problemId}/test-cases/bulk`, data)
   },
 
   async reorderTestCases(problemId: string, testCaseIds: string[]): Promise<void> {
@@ -182,4 +176,23 @@ export function mapCaseScopeToFlags(scope: CaseScope): { isSample: boolean; isHi
     default:
       return { isSample: true, isHidden: false }
   }
+}
+
+/**
+ * True when the given flag pair is well-formed (isSample XOR isHidden).
+ *
+ * <p>Used by the bulk import parser and any other free-form input path
+ * to reject ambiguous dto candidates before they reach the backend.
+ * The backend will reject the same pairs at validation, but catching
+ * them client-side gives a useful error message and avoids a
+ * round-trip.
+ *
+ * <p>This is the local canonical truth &mdash; {@link mapFlagsToCaseScope}
+ * deliberately tolerates legacy null-flag rows; this helper does not.
+ */
+export function isValidCaseScopeFlags(flags: {
+  isSample: boolean
+  isHidden: boolean
+}): boolean {
+  return flags.isSample !== flags.isHidden
 }

@@ -25,6 +25,7 @@ import type { SemanticColor } from "@/shared/badge-config/src";
 import {
   getStatusColor,
   getStatusLabelI18nKey,
+  isFinal,
 } from "@/shared/submission-status/src";
 
 const props = defineProps<{
@@ -85,7 +86,11 @@ const SEMANTIC_TEXT_CLASS: Record<SemanticColor, string> = {
   success: "text-[var(--terminal-green)]",
   warning: "text-[var(--terminal-amber)]",
   error: "text-[var(--terminal-red)]",
-  info: "text-[var(--accent-electric)]",
+  // `info` and `electric` previously collapsed to the same CSS class — the
+  // shared verdict map does not currently emit `info`, but if a future verdict
+  // maps to it we want a visibly distinct token rather than silently
+  // shadowing `electric`.
+  info: "text-[var(--terminal-cyan)]",
   purple: "text-[var(--terminal-purple)]",
   electric: "text-[var(--accent-electric)]",
   neutral: "text-muted-foreground",
@@ -100,17 +105,12 @@ const verdictClass = computed(() => {
 const caseStatusIconClass = (status: ProblemCaseResultDetail["status"]) =>
   SEMANTIC_TEXT_CLASS[getStatusColor(status)];
 
+// `isFailureStatus` resolves to true for every settled, non-Accepted verdict.
+// Built on the shared `isFinal` classifier so the membership list lives in
+// one place (shared/submission-status) — adding a new verdict automatically
+// participates without touching this surface.
 const isFailureStatus = (status: ProblemCaseResultDetail["status"]) =>
-  [
-    "Wrong Answer",
-    "Runtime Error",
-    "Time Limit Exceeded",
-    "Memory Limit Exceeded",
-    "Output Limit Exceeded",
-    "Compile Error",
-    "Presentation Error",
-    "System Error",
-  ].includes(status);
+  status !== "Accepted" && isFinal(status);
 
 const selectCase = (label: string) => {
   activeCaseLabel.value = label;

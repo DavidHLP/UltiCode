@@ -28,6 +28,8 @@ export default {
     outputLimitExceeded: "Output size exceeded the limit",
     presentationError: "Output format is incorrect",
     systemError: "A system error occurred. Please try again.",
+    sandboxError:
+      "The judging sandbox could not run your code. This is not your fault — please retry.",
   },
 
   // Status suggestions
@@ -40,9 +42,13 @@ export default {
       "Try using a more efficient algorithm or data structure.",
     memoryLimitExceeded:
       "Reduce memory usage and avoid creating large data structures.",
+    outputLimitExceeded: "Reduce output size or trim debug prints.",
     runtimeError:
       "Check for array out of bounds, null pointers, or division by zero.",
     compileError: "Check for syntax errors and missing imports.",
+    presentationError: "Match the exact output format (whitespace, newlines).",
+    systemError: "Retry the submission — this is not your code's fault.",
+    sandboxError: "Retry the submission — the sandbox failed to execute.",
   },
 
   // Details

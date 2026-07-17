@@ -28,6 +28,7 @@ export default {
     outputLimitExceeded: "输出数据量超过限制",
     presentationError: "输出格式不正确",
     systemError: "判题系统出现问题，请重新提交",
+    sandboxError: "判题沙箱无法运行你的代码，并非代码问题，请重试。",
   },
 
   // Status suggestions
@@ -36,8 +37,12 @@ export default {
     wrongAnswer: "检查边界情况，仔细阅读题目要求。",
     timeLimitExceeded: "尝试使用更高效的算法或数据结构。",
     memoryLimitExceeded: "减少内存使用，避免创建大型数据结构。",
+    outputLimitExceeded: "减少输出量或移除调试打印。",
     runtimeError: "检查数组越界、空指针或除零错误。",
     compileError: "检查语法错误和缺少的导入。",
+    presentationError: "匹配精确的输出格式（包括换行和空格）。",
+    systemError: "重新提交即可，并非代码问题。",
+    sandboxError: "重新提交即可，沙箱执行失败。",
   },
 
   // Details

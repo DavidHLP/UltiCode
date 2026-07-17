@@ -5,7 +5,10 @@ import type {
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
-import { getStatusLabelI18nKey } from "@/shared/submission-status/src";
+import {
+  getStatusLabelI18nKey,
+  isPending as isPendingStatus,
+} from "@/shared/submission-status/src";
 
 export interface NormalizedDistributionPoint {
   i: number;
@@ -122,6 +125,7 @@ export function useSubmissionDetail(
       COMPILE_ERROR: "submission.statusDescriptions.compileError",
       PRESENTATION_ERROR: "submission.statusDescriptions.presentationError",
       SYSTEM_ERROR: "submission.statusDescriptions.systemError",
+      SANDBOX_ERROR: "submission.statusDescriptions.sandboxError",
       JUDGING: "submission.statusDescriptions.judging",
       PENDING: "submission.statusDescriptions.pending",
     };
@@ -137,8 +141,14 @@ export function useSubmissionDetail(
       WRONG_ANSWER: "submission.statusSuggestions.wrongAnswer",
       TIME_LIMIT_EXCEEDED: "submission.statusSuggestions.timeLimitExceeded",
       MEMORY_LIMIT_EXCEEDED: "submission.statusSuggestions.memoryLimitExceeded",
+      OUTPUT_LIMIT_EXCEEDED: "submission.statusSuggestions.outputLimitExceeded",
       RUNTIME_ERROR: "submission.statusSuggestions.runtimeError",
       COMPILE_ERROR: "submission.statusSuggestions.compileError",
+      PRESENTATION_ERROR: "submission.statusSuggestions.presentationError",
+      SYSTEM_ERROR: "submission.statusSuggestions.systemError",
+      SANDBOX_ERROR: "submission.statusSuggestions.sandboxError",
+      JUDGING: "submission.statusSuggestions.judging",
+      PENDING: "submission.statusSuggestions.pending",
     };
     const key = map[normalized];
     return key ? t(key) : (statusMeta.value?.suggestion ?? "");
@@ -166,8 +176,9 @@ export function useSubmissionDetail(
   const isCompileError = computed(
     () => submission()?.status === "Compile Error",
   );
+  // Membership lives in shared/submission-status (single source of truth).
   const isPending = computed(() =>
-    ["Pending", "Judging"].includes(submission()?.status ?? ""),
+    submission() ? isPendingStatus(submission()!.status) : false,
   );
   const isStuck = computed(() => submission()?.status === "System Error");
 

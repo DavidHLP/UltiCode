@@ -48,10 +48,6 @@ function getSubmissionLabel(status: string): string {
   return key ? t(key) : status;
 }
 
-const decoratedSubmissions = computed(() => {
-  return props.submissions;
-});
-
 const handleSelect = (submission: SubmissionRecord) => {
   emit("select", submission);
 };
@@ -91,7 +87,7 @@ const showLoginPrompt = computed(
     <template v-else>
       <Table>
         <TableCaption>{{
-          decoratedSubmissions.length === 0
+          props.submissions.length === 0
             ? t("problem.submissions.noSubmissionsDesc")
             : ""
         }}</TableCaption>
@@ -114,9 +110,9 @@ const showLoginPrompt = computed(
         </TableHeader>
 
         <TableBody>
-          <template v-if="decoratedSubmissions.length">
+          <template v-if="props.submissions.length">
             <TableRow
-              v-for="submission in decoratedSubmissions"
+              v-for="submission in props.submissions"
               :key="submission.id"
               class="cursor-pointer transition-colors hover:bg-muted/50"
               @click="handleSelect(submission)"
@@ -161,13 +157,13 @@ const showLoginPrompt = computed(
             </TableCell>
           </TableRow>
         </TableBody>
-        <TableFooter v-if="decoratedSubmissions.length">
+        <TableFooter v-if="props.submissions.length">
           <TableRow>
             <TableCell colspan="4" class="text-sm font-medium">
               {{ t("personal.profile.totalProblems") }}
             </TableCell>
             <TableCell class="text-center font-bold">
-              {{ decoratedSubmissions.length }}
+              {{ props.submissions.length }}
             </TableCell>
           </TableRow>
         </TableFooter>

@@ -8,7 +8,9 @@ import { formatDate } from "@/utils/datetime";
 import {
   CheckCircle2,
   XCircle,
+  AlertTriangle,
   Clock,
+  Info,
   ChevronRight,
   ExternalLink,
   Loader2,
@@ -27,8 +29,27 @@ import {
 import type { SemanticColor } from "@/shared/badge-config/src";
 import {
   getStatusColor,
+  getStatusIconKey,
   getStatusLabelI18nKey,
 } from "@/shared/submission-status/src";
+import type { VerdictIconKey } from "@/shared/submission-status/src";
+
+/**
+ * Stable verdict→icon map for this surface. The verdict→icon-key mapping
+ * lives in shared/submission-status (the single source of truth); the
+ * icon-key → lucide-vue-next component mapping is local because the icon
+ * set is a framework choice that does not belong in the shared seam.
+ */
+const ICON_BY_KEY: Record<VerdictIconKey, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  pending: Clock,
+  neutral: Info,
+};
+
+const getStatusIcon = (status: SubmissionRecord["status"]) =>
+  ICON_BY_KEY[getStatusIconKey(status)];
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -83,28 +104,6 @@ const columns = computed<ColumnDef[]>(() => [
     headerClass: "w-10",
   },
 ]);
-
-const getStatusIcon = (status: SubmissionRecord["status"]) => {
-  switch (status) {
-    case "Accepted":
-      return CheckCircle2;
-    case "Wrong Answer":
-    case "Runtime Error":
-    case "Compile Error":
-    case "System Error":
-      return XCircle;
-    case "Time Limit Exceeded":
-    case "Memory Limit Exceeded":
-    case "Output Limit Exceeded":
-    case "Presentation Error":
-      return Clock;
-    case "Judging":
-    case "Pending":
-      return Clock;
-    default:
-      return Clock;
-  }
-};
 
 // Single SemanticColor → badge-token map for this surface, fed by the shared
 // verdict→color truth so verdicts (TLE, System Error, Judging, …) no longer

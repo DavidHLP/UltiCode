@@ -19,7 +19,6 @@ import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
-import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
@@ -57,7 +56,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     private static final int MAX_RECENT_POSTS = 50;
 
     private final ForumPostMapper postMapper;
-    private final ForumCommentService forumCommentService;
+    private final ForumCommentProjection commentProjection;
     private final ForumCommentMapper commentMapper;
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
@@ -139,7 +138,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         comments.forEach(c -> authorIds.add(c.getAuthorId()));
         if (post.getUserId() != null) authorIds.add(post.getUserId());
         authorIds.forEach(aid -> userReadProjection.findById(aid).ifPresent(u -> authorMap.put(aid, u)));
-        thread.setComments(forumCommentService.buildCommentTree(comments, authorMap));
+        thread.setComments(commentProjection.buildCommentTree(comments, authorMap));
         return thread;
     }
 

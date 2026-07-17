@@ -6,6 +6,7 @@ import com.ulticode.modules.forum.entity.ForumComment;
 import com.ulticode.modules.forum.lifecycle.ForumUserLifecyclePort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.modules.forum.projection.ForumCommentProjection;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,6 +52,8 @@ class ForumCommentServiceImplTest {
     @Mock
     private UserReadProjection userReadProjection;
     @Mock
+    private ForumCommentProjection commentProjection;
+    @Mock
     private Clock clock;
 
     @InjectMocks
@@ -79,6 +82,17 @@ class ForumCommentServiceImplTest {
         when(commentMapper.updateById(any(ForumComment.class))).thenReturn(1);
         when(commentMapper.markAsEdited(COMMENT_ID)).thenReturn(1);
         when(userReadProjection.findById(AUTHOR_ID)).thenReturn(Optional.empty());
+        // VO shaping is delegated to the projection; echo the entity's fields so
+        // the assertion still verifies the impl set editedAt on the in-memory
+        // entity it hands to the projection (the actual regression).
+        when(commentProjection.toCommentVO(any(ForumComment.class), any())).thenAnswer(invocation -> {
+            ForumComment shaped = invocation.getArgument(0);
+            ForumCommentVO echoed = new ForumCommentVO();
+            echoed.setBody(shaped.getBody());
+            echoed.setCreatedAt(shaped.getCreatedAt());
+            echoed.setEditedAt(shaped.getEditedAt());
+            return echoed;
+        });
 
         UpdateCommentDTO dto = new UpdateCommentDTO();
         dto.setBody("new body");

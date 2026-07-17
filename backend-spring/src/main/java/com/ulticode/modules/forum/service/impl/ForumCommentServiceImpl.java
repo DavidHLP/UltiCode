@@ -11,6 +11,7 @@ import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.lifecycle.ForumUserLifecyclePort;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.modules.forum.projection.ForumCommentProjection;
 import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.projection.UserReadProjection;
@@ -22,9 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of ForumCommentService.
@@ -39,6 +38,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
     private final ForumPostMapper postMapper;
     private final ForumUserLifecyclePort forumUserLifecycle;
     private final UserReadProjection userReadProjection;
+    private final ForumCommentProjection commentProjection;
     private final Clock clock;
 
     @Override
@@ -72,7 +72,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         Map<String, User> authorMap = new HashMap<>();
         userReadProjection.findById(userId).ifPresent(user -> authorMap.put(userId, user));
 
-        return convertToCommentVO(comment, authorMap);
+        return commentProjection.toCommentVO(comment, authorMap);
     }
 
     @Override
@@ -90,7 +90,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
 
         comment.setBody(dto.getBody());
         comment.setMarkdown(dto.getBody());
-        // Sync editedAt to in-memory object so convertToCommentVO returns the new
+        // Sync editedAt to in-memory object so the projection VO returns the new
         // timestamp instead of the pre-existing null. markAsEdited below only
         // updates the DB; the memory copy needs the explicit set for VO mapping.
         comment.setEditedAt(LocalDateTime.now(clock));
@@ -100,7 +100,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         Map<String, User> authorMap = new HashMap<>();
         userReadProjection.findById(comment.getAuthorId()).ifPresent(user -> authorMap.put(comment.getAuthorId(), user));
 
-        return convertToCommentVO(comment, authorMap);
+        return commentProjection.toCommentVO(comment, authorMap);
     }
 
     @Override
@@ -117,67 +117,5 @@ public class ForumCommentServiceImpl implements ForumCommentService {
         }
 
         commentMapper.softDelete(id, userId);
-    }
-
-    @Override
-    public ForumCommentVO convertToCommentVO(ForumComment comment, Map<String, User> authorMap) {
-        ForumCommentVO vo = new ForumCommentVO();
-        vo.setId(comment.getId());
-        vo.setPostId(comment.getPostId());
-        vo.setParentId(comment.getParentId());
-        vo.setAuthorId(comment.getAuthorId());
-
-        User author = authorMap.get(comment.getAuthorId());
-        if (author != null) {
-            vo.setAuthorUsername(author.getUsername());
-            vo.setAuthorAvatar(author.getAvatar());
-        }
-
-        vo.setBody(comment.getBody());
-        vo.setMarkdown(comment.getMarkdown());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setEditedAt(comment.getEditedAt());
-        vo.setIsPinned(comment.getIsPinned());
-        vo.setIsLocked(comment.getIsLocked());
-        vo.setIsFlagged(comment.getIsFlagged());
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        return vo;
-    }
-
-    @Override
-    public List<ForumCommentVO> buildCommentTree(
-            List<? extends ForumComment> comments,
-            Map<String, User> authorMap) {
-
-        List<ForumComment> topLevel = comments.stream()
-                .filter(c -> c.getParentId() == null)
-                .collect(Collectors.toList());
-
-        return topLevel.stream()
-                .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
-                    List<ForumCommentVO> replies = findReplies(c.getId(), comments, authorMap);
-                    if (!replies.isEmpty()) {
-                        vo.setReplies(replies);
-                    }
-                    return vo;
-                })
-                .collect(Collectors.toList());
-    }
-
-    private List<ForumCommentVO> findReplies(
-            String parentId,
-            List<? extends ForumComment> allComments,
-            Map<String, User> authorMap) {
-
-        return allComments.stream()
-                .filter(c -> parentId.equals(c.getParentId()))
-                .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
-                    vo.setReplies(findReplies(c.getId(), allComments, authorMap));
-                    return vo;
-                })
-                .collect(Collectors.toList());
     }
 }

@@ -8,7 +8,6 @@ import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
-import com.ulticode.modules.forum.service.ForumCommentService;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +40,7 @@ class DefaultForumReadProjectionTest {
 
     @Mock private ForumPostMapper postMapper;
     @Mock private ForumCommentMapper commentMapper;
-    @Mock private ForumCommentService forumCommentService;
+    @Mock private ForumCommentProjection commentProjection;
     @Mock private ForumCommunityMapper communityMapper;
     @Mock private ForumCommunityMemberMapper memberMapper;
     @Mock private ForumTagMapper tagMapper;

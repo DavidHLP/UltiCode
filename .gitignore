@@ -1,17 +1,256 @@
-# ====================================================================
-# 1. 编译产物与构建目录 (Compiled Output)
-# ====================================================================
-/dist/
-/build/
-/target/
-/bin/
-/out/
+# =====================================================================
+# 反选法（白名单机制） .gitignore
+# =====================================================================
+# 设计理念：
+#   1. `*` 全局拒绝所有文件（无论层级）
+#   2. `!*/` 放行所有目录，允许 Git 递归遍历
+#   3. `!path/**` 逐棵放行需要跟踪的目录树
+#   4. 白名单目录内用常规黑名单排除构建产物
+#
+# 优势：新生成的临时文件 / 缓存不会被误 `git add`；
+#       新目录必须显式注册才能进入版本控制，不会漏审。
+# =====================================================================
+
+
+# =====================================================================
+# 1. 全局默认拒绝 + 目录放行
+# =====================================================================
+*
+!*/
+
+# =====================================================================
+# 2. 项目根目录文件
+# =====================================================================
+!/.gitignore
+!/.gitlab-ci.yml
+!/.gitleaks.toml
+!/.mcp.json
+!/AGENTS.md
+!/CLAUDE.md
+!/CONTEXT.md
+!/LICENSE
+!/README.md
+!/arthas.properties
+!/package.json
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
+!/pitstop.yaml
+!/ecosystem.config.cjs
+!/docker-compose.yml
+!/docker-compose.dev.yml
+!/docker-compose.prod.yml
+!/docker-compose.ci.yml
+!/.env.example
+!/.env.test.example
+
+# =====================================================================
+# 3. 后端 (Spring Boot / Java 17)
+# =====================================================================
+!backend-spring/**
+backend-spring/target/
+backend-spring/arthas-output/
+backend-spring/*.jar
+backend-spring/*.class
+backend-spring/.settings/
+backend-spring/.classpath
+backend-spring/.factorypath
+backend-spring/.project
+backend-spring/*.iml
+
+# =====================================================================
+# 4. 用户端前端 (Vue 3 / console)
+# =====================================================================
+!console/**
+console/dist/
+console/node_modules/
+console/*.local
+
+# =====================================================================
+# 5. 管理端前端 (Vue 3 / management)
+# =====================================================================
+!management/**
+management/dist/
+management/node_modules/
+management/*.local
+
+# =====================================================================
+# 6. 共享包 (shared/)
+# =====================================================================
+!shared/**
+shared/*/node_modules/
+
+# =====================================================================
+# 7. 数据库迁移 (init-db/)
+# =====================================================================
+!init-db/**
+init-db/target/
+init-db/project-local-repo/
+
+# =====================================================================
+# 8. 基础设施与 Docker 沙箱
+# =====================================================================
+!docker/**
+docker/sandbox/harness-staging/
+!infrastructure/**
+
+# =====================================================================
+# 9. 开发与运维脚本
+# =====================================================================
+!scripts/**
+
+# =====================================================================
+# 10. 文档 / Wiki (Obsidian 知识库)
+# =====================================================================
+!wiki/**
+
+# =====================================================================
+# 11. 静态资源（截图等）
+# =====================================================================
+!assets/**
+
+# =====================================================================
+# 12. 工具链（Arthas 等）
+# =====================================================================
+!tools/**
+
+# =====================================================================
+# 13. AI 工具配置（团队共享，纳入版本控制）
+# =====================================================================
+!.claude/**
+.claude/memory/
+.claude/reviews/
+.claude/PRPs/
+.claude/.arthas/
+.claude/settings.local.json
+.claude/worktrees/
+
+!.codex/**
+!.cursor/**
+!.github/**
+!.rtk/**
+!.serena/**
+
+# =====================================================================
+# 14. 环境变量与密钥
+# =====================================================================
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+# =====================================================================
+# 15. 依赖目录
+# =====================================================================
 node_modules/
 **/node_modules/
-/backend/
-/console/node_modules/
-/management/node_modules/
-/shared/node_modules/
+
+# =====================================================================
+# 16. 日志
+# =====================================================================
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# =====================================================================
+# 17. AI 会话缓存 / 运行时状态（无需跟踪）
+# =====================================================================
+.omo/
+.codebase-memory/
+.codegraph
+.vfox/
+.vfox.toml
+.tool-versions
+.zcode/
+.reports/
+
+# =====================================================================
+# 18. IDE / 编辑器
+# =====================================================================
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+*.swp
+*.swo
+*~
+.c9/
+.settings/
+.classpath
+.project
+.factorypath
+*.launch
+*.sublime-workspace
+
+# =====================================================================
+# 19. 操作系统与临时文件
+# =====================================================================
+.DS_Store
+Thumbs.db
+.temp
+.tmp
+*.pid
+*.pid.lock
+*.seed
+worktrees/
+.worktrees/
+
+# =====================================================================
+# 19b. 前端构建 / 测试缓存（pnpm + Vite + vitest）— 必须显式列入
+#     反选法下，console/** / management/** / shared/** 已被放行；这些
+#     工具默认产物不在目录命名约定内，需要逐棵点名。
+# =====================================================================
+console/.vite/
+console/.cache/
+console/.vitest/
+console/coverage/
+console/.eslintcache
+console/.stylelintcache
+console/.tsbuildinfo
+console/dist-ssr/
+
+management/.vite/
+management/.cache/
+management/.vitest/
+management/coverage/
+management/.eslintcache
+management/.stylelintcache
+management/.tsbuildinfo
+management/dist-ssr/
+
+shared/*/dist/
+shared/*/coverage/
+shared/*/.vite/
+shared/*/.vitest/
+shared/*/.tsbuildinfo
+
+# =====================================================================
+# 19c. Obsidian vault volatile state（防止多开发者工作区布局冲突）
+# =====================================================================
+wiki/.obsidian/workspace.json
+wiki/.obsidian/workspace-mobile.json
+wiki/.obsidian/cache/
+
+# =====================================================================
+# 19d. 运行时临时状态（与 AGENTS.md 的 .scratch 约定对齐）
+# =====================================================================
+**/.scratch/
+**/*.heapsnapshot
+**/*.heap
+**/perf-*.json
+
+# =====================================================================
+# 20. 测试覆盖率报告
+# =====================================================================
+coverage/
+.htmlcov/
+.nyc_output
+
+# =====================================================================
+# 21. Maven / 构建缓存
+# =====================================================================
 .gradle/
 *.class
 *.jar
@@ -19,149 +258,31 @@ node_modules/
 *.war
 *.ear
 
-# ====================================================================
-# 2. 语言特定规则 (Language Specific)
-# ====================================================================
+# =====================================================================
+# 22. 编译器 / 构建缓存（出现在白名单目录内时需显式忽略）
+# =====================================================================
+*.tsbuildinfo
+dist-ssr/
+.eslintcache
+.stylelintcache
+.vite-inspect
+*.local
+*.log.gz
+.help.md
 
-# --- Python ---
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-venv/
-ENV/
-env/
-# Flyway CLI (auto-downloaded by setup.sh)
-db-manager/flyway/
+# =====================================================================
+# 23. 杂项
+# =====================================================================
+mempalace.yaml
+entities.json
+.antigravitycli
+.playwright-mcp
 .pytest_cache/
 .mypy_cache/
 .tox/
 *.egg-info/
-.python-version
-
-# --- Java / Spring Boot ---
-.help.md
-/logs/
-*.log.gz
-/db/
-# 忽略 Maven 生成的单元测试报告
-**/target/surefire-reports/
-# init-db 的构建产物 (Maven 本地仓库缓存)
-init-db/target/
-init-db/project-local-repo/
-
-# --- Vue 3 / Frontend ---
-dist-ssr/
-*.local
-.eslintcache
-.stylelintcache
-.vite-inspect
-# vue-tsc incremental build cache (replaces the stale `.tsbuildinfo`
-# pattern that only matched the flat-package layout; vue-tsc 2.x writes
-# `*.tsbuildinfo` next to each tsconfig.json).
-*.tsbuildinfo
-**/tsconfig.tsbuildinfo
-**/tsconfig.*.tsbuildinfo
-# 环境变量文件（含敏感信息，禁止进入 Git）
-.env
-.env.*
-!.env.example
-!.env.test.example
-
-# ====================================================================
-# 3. 日志与调试 (Logs & Debug)
-# ====================================================================
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# ====================================================================
-# 4. 操作系统与临时文件 (OS & Temp)
-# ====================================================================
-.DS_Store
-Thumbs.db
-.temp
-.tmp
-.worktrees/
-worktrees/
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Node.js 诊断报告
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# ====================================================================
-# 5. IDE 与 编辑器 (IDEs and Editors)
-# ====================================================================
-
-# --- General ---
-.idea/
-*.iws
-*.iml
-*.ipr
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-.nb-configuration.xml
-
-# --- VSCode ---
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# --- AI Tools ---
-.claude/PRPs/
-.claude/memory/
-.claude/reviews/
-# codebase-memory-mcp local code graph index cache (regeneratable, ties to HEAD)
-.codebase-memory/
-# .claude/settings.json is COMMITTED (team-shared statusLine config).
-# .claude/settings.local.json holds per-user MCP / hooks / permissions and is
-# covered by the user-global gitignore, but we mirror the rule here for teams
-# where the global ignore isn't installed.
-.claude/settings.local.json
-.claude/.arthas/
-.zcode/
-# ====================================================================
-# 6. 测试与覆盖率 (Tests & Coverage)
-# ====================================================================
-/coverage
-/.nyc_output
-htmlcov/
-.noserc
-.fluentd.conf
-
-.playwright-mcp
-
-# MemPalace per-project files (issue #185)
-mempalace.yaml
-entities.json
-.antigravitycli
-.vscode
-
-
-# Phase 2 D-form harness pre-compile staging dir (regenerated by harness/build.sh)
-docker/sandbox/harness-staging/
-
-# OhMyOpenCode local plans / state
-.omo/
-
-# Local JDK toolchain managers (vfox / asdf / sdkman) — per-developer state, not project config.
-# Project Java version is governed by AGENTS.md / backend-spring pom.xml <java.version>.
-.vfox/
-.vfox.toml
-.tool-versions
-
-.agents
-.factory
+*.py[cod]
+__pycache__/
+venv/
+.env/
+.venv/

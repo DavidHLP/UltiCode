@@ -24,7 +24,9 @@ const { t } = useI18n();
       {{ t("landingLuca.portalStatus") }}
     </p>
     <p class="luca-portal-counter" aria-hidden="true">
-      {{ String(progress).padStart(3, "0") }}
+      <slot name="counter">
+        {{ String(progress).padStart(3, "0") }}
+      </slot>
     </p>
     <p class="luca-portal-hint">{{ t("landingLuca.portalHint") }}</p>
     <button

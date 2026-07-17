@@ -9,7 +9,9 @@ import LucaWordStack from "./landing-luca/LucaWordStack.vue";
 import LucaManifesto from "./landing-luca/LucaManifesto.vue";
 import LucaWork from "./landing-luca/LucaWork.vue";
 import LucaCapabilities from "./landing-luca/LucaCapabilities.vue";
+import LucaAwards from "./landing-luca/LucaAwards.vue";
 import LucaContact from "./landing-luca/LucaContact.vue";
+import LucaScrollProgress from "./landing-luca/LucaScrollProgress.vue";
 import { useLucaPortal } from "@/composables/landing/useLucaPortal";
 import { useLucaReveal } from "@/composables/landing/useLucaReveal";
 import { useLucaCursor } from "@/composables/landing/useLucaCursor";
@@ -17,6 +19,7 @@ import "@/assets/styles/landing-luca.css";
 
 const TWO_SUM_SLUG = "two-sum";
 const PORTOR_LEAVE_MS = 600;
+const PORTAL_COUNTER_TOTAL = 24;
 
 const { t } = useI18n();
 const router = useRouter();
@@ -37,6 +40,12 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// "000 / 024" → "018 / 024" so the counter matches the reference's N-of-M feel.
+const counterDisplay = () => {
+  const mapped = Math.round((portal.progress.value / 100) * PORTAL_COUNTER_TOTAL);
+  return `${String(mapped).padStart(3, "0")} / ${String(PORTAL_COUNTER_TOTAL).padStart(3, "0")}`;
+};
 
 const goToSeedProblem = () =>
   router.push(
@@ -80,6 +89,8 @@ onMounted(() => {
   >
     <a href="#luca-main" class="luca-skip">{{ t("landingLuca.nav.skipToContent") }}</a>
 
+    <LucaScrollProgress />
+
     <LucaNav
       :menu-open="menuOpen"
       @toggle-menu="menuOpen = !menuOpen"
@@ -105,6 +116,7 @@ onMounted(() => {
 
       <LucaManifesto />
       <LucaWork />
+      <LucaAwards />
       <LucaCapabilities />
       <LucaContact @primary="goToSeedProblem" />
     </main>
@@ -142,6 +154,10 @@ onMounted(() => {
       :leaving="portal.entered.value"
       @enter="handleEnter"
       @skip="handleSkip"
-    />
+    >
+      <template #counter>
+        {{ counterDisplay() }}
+      </template>
+    </LucaPortal>
   </div>
 </template>

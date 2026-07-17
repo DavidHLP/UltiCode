@@ -64,7 +64,7 @@ describe("LandingLucaView", () => {
     const wrapper = mountView();
     const counter = wrapper.find(".luca-portal-counter");
 
-    expect(counter.text()).toBe("000");
+    expect(counter.text()).toBe("000 / 024");
     expect(wrapper.find(".luca-portal-enter").exists()).toBe(true);
   });
 
@@ -75,7 +75,7 @@ describe("LandingLucaView", () => {
     expect(enter.attributes("tabindex")).toBe("-1");
 
     await wrapper.find(".luca-portal-skip").trigger("click");
-    expect(wrapper.find(".luca-portal-counter").text()).toBe("100");
+    expect(wrapper.find(".luca-portal-counter").text()).toBe("024 / 024");
     expect(wrapper.find(".luca-portal-enter").attributes("tabindex")).toBe("0");
   });
 
@@ -144,5 +144,25 @@ describe("LandingLucaView", () => {
       "/problemset",
       "/contest-list",
     ]);
+  });
+
+  it("numbers each work card with a three-digit index", () => {
+    const wrapper = mountView();
+    const indexes = wrapper.findAll(".luca-work-index").map((el) => el.text());
+
+    expect(indexes).toEqual(["001", "002", "003", "004"]);
+  });
+
+  it("renders the awards marquee with a localized set of badges", () => {
+    const wrapper = mountView();
+    const awards = wrapper.findAll(".luca-award-label");
+
+    expect(awards.length).toBeGreaterThanOrEqual(6);
+    expect(wrapper.find(".luca-awards-track").exists()).toBe(true);
+  });
+
+  it("renders a scroll progress indicator", () => {
+    const wrapper = mountView();
+    expect(wrapper.find(".luca-progress").exists()).toBe(true);
   });
 });

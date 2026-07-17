@@ -596,6 +596,198 @@
     color: var(--foreground);
   }
 
+  /* ---------- scroll progress ---------- */
+  .luca-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 70;
+    width: 100vw;
+    height: 2px;
+    background: var(--accent-electric);
+    transform-origin: left center;
+    transform: scaleX(0);
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  /* ---------- awards marquee ---------- */
+  .luca-awards {
+    /* Awards strip wants a tighter vertical rhythm than the editorial
+     * sections; clamp() keeps the bounds predictable across viewports. */
+    padding-top: clamp(3rem, 9vh, 6rem);
+    padding-bottom: clamp(3rem, 9vh, 6rem);
+  }
+  .luca-awards-track {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow: hidden;
+    /* Edge mask so the marquee fades out at the gutters instead of hard
+     * clipping the badges — matches the reference's "soft scroll" feel. */
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 8%,
+      #000 92%,
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 8%,
+      #000 92%,
+      transparent
+    );
+  }
+  .luca-awards-row {
+    display: flex;
+    gap: 1rem;
+    width: max-content;
+    animation: luca-awards-scroll 38s linear infinite;
+  }
+  .luca-awards-row--reverse {
+    animation-direction: reverse;
+    animation-duration: 46s;
+    opacity: 0.6;
+  }
+  .luca-award {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    white-space: nowrap;
+    transition:
+      color 200ms ease,
+      border-color 200ms ease,
+      transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-award:hover {
+    color: var(--accent-electric);
+    border-color: var(--accent-electric);
+    transform: translateY(-2px);
+  }
+  .luca-award--ghost {
+    color: var(--muted-foreground);
+    border-color: var(--border);
+    background: transparent;
+  }
+  .luca-award-badge {
+    width: 1.6rem;
+    height: 1.6rem;
+    flex-shrink: 0;
+  }
+  .luca-award-label {
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- work list (numbered) ---------- */
+  .luca-work-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+  }
+  .luca-work-row-wrap {
+    display: contents;
+  }
+  .luca-work-card {
+    display: grid;
+    grid-template-columns: 4rem 5.5rem 1fr 2rem;
+    align-items: center;
+    gap: clamp(1rem, 2vw, 1.75rem);
+    padding: clamp(1.5rem, 3.5vh, 2.25rem) 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    transition: padding-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-work-card:hover,
+  .luca-work-card:focus-visible {
+    padding-left: 0.75rem;
+  }
+  .luca-work-index {
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: 0.875rem;
+    letter-spacing: 0.18em;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+  .luca-work-preview {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 5.5rem;
+    height: 4.5rem;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    color: #fff;
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+    transform: translateZ(0);
+    transition: transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-work-card:hover .luca-work-preview,
+  .luca-work-card:focus-visible .luca-work-preview {
+    transform: translateY(-3px) scale(1.02);
+  }
+  .luca-work-preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.06) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+  .luca-work-preview-glyph {
+    position: relative;
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: 0.06em;
+  }
+  .luca-work-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .luca-work-arrow {
+    font-family: var(--uc-font-data);
+    font-size: 1.5rem;
+    transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    justify-self: end;
+  }
+  .luca-work-card:hover .luca-work-arrow,
+  .luca-work-card:focus-visible .luca-work-arrow {
+    transform: translateX(0.5rem);
+  }
+  @media (max-width: 640px) {
+    .luca-work-card {
+      grid-template-columns: 3rem 4rem 1fr 1.5rem;
+      gap: 0.75rem;
+    }
+    .luca-work-preview {
+      width: 4rem;
+      height: 3.25rem;
+    }
+    .luca-work-desc {
+      display: none;
+    }
+  }
+
   /* ---------- footer ---------- */
   .luca-footer {
     display: flex;
@@ -674,7 +866,7 @@
   }
   @media (min-width: 1024px) {
     .luca-work-card {
-      grid-template-columns: 8rem 1fr auto;
+      grid-template-columns: 6rem 7rem 1fr 2.5rem;
     }
   }
 
@@ -688,7 +880,9 @@
     .luca-work-card,
     .luca-work-arrow,
     .luca-cursor,
-    .luca-portal-enter {
+    .luca-portal-enter,
+    .luca-awards-row,
+    .luca-progress {
       transition: none !important;
       animation: none !important;
     }
@@ -721,6 +915,16 @@
     to {
       opacity: 0;
       transform: scale(1.02);
+    }
+  }
+  /* Translate the row by exactly one third of its width so the loop seams
+   * are invisible at every viewport width. */
+  @keyframes luca-awards-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% / 3));
     }
   }
 }

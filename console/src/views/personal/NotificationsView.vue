@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
 import { computed, onMounted, ref, watch } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
@@ -35,6 +35,7 @@ import {
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
 import { useNotificationI18n } from "@/composables/useNotificationI18n";
+import { useNotificationNavigation } from "@/composables/useNotificationNavigation";
 import {
   Sheet,
   SheetContent,
@@ -45,9 +46,9 @@ import {
 import NotificationPreferencesPanel from "@/components/notification/NotificationPreferencesPanel.vue";
 
 const { t, locale } = useI18n();
-const router = useRouter();
 const notificationStore = useNotificationStore();
 const { display: localizedNotification } = useNotificationI18n();
+const { open: openNotification } = useNotificationNavigation();
 const hasUser = ref(false);
 const currentPage = ref(1);
 const pageSize = 20;
@@ -166,14 +167,9 @@ async function handleMarkAsRead(notification: NotificationItem) {
 }
 
 async function handleNotificationClick(notification: NotificationItem) {
-  await handleMarkAsRead(notification);
-  if (notification.link) {
-    if (notification.link.startsWith("http")) {
-      window.open(notification.link, "_blank", "noopener,noreferrer");
-      return;
-    }
-    router.push(notification.link);
-  }
+  // Delegates mark-as-read + safe link classification to the inbox workflow,
+  // shared with the notification badge so both adapters apply one policy.
+  await openNotification(notification);
 }
 
 async function handleDelete(notificationId: string) {

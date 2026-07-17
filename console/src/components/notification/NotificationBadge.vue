@@ -5,6 +5,8 @@ import { useI18n } from "vue-i18n";
 import { useNotificationStore } from "@/stores/notification";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationI18n } from "@/composables/useNotificationI18n";
+import { useNotificationNavigation } from "@/composables/useNotificationNavigation";
+import type { NotificationItem } from "@/types/notification";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -25,6 +27,7 @@ const notificationStore = useNotificationStore();
 const router = useRouter();
 const authStore = useAuthStore();
 const { display: localizedNotification } = useNotificationI18n();
+const { open: openNotification } = useNotificationNavigation();
 
 const isOpen = ref(false);
 const isLoadingList = ref(false);
@@ -33,12 +36,9 @@ let loadRequestId = 0;
 
 async function refreshList() {
   if (!authStore.isAuthenticated) {
-    notificationStore.$patch({
-      notifications: [],
-      total: 0,
-      page: 1,
-      totalPages: 1,
-    });
+    // The feed owns mutations: clear local cache through the store action
+    // rather than patching state directly from the presentation layer.
+    notificationStore.resetLocalState();
     hasLoadedList.value = true;
     return;
   }
@@ -80,6 +80,23 @@ const hasUnread = computed(() => notificationStore.unreadCount > 0);
 
 function goToNotifications() {
   router.push("/personal/notifications");
+}
+
+async function handleClick(notification: NotificationItem) {
+  if (notification.link) {
+    // Delegates mark-as-read + safe link classification to the inbox workflow.
+    await openNotification(notification);
+    return;
+  }
+  // No deep link: keep read-state consistent, then send to the full inbox.
+  if (!notification.isRead) {
+    try {
+      await notificationStore.markAsRead(notification.id, true);
+    } catch {
+      // best-effort; navigation proceeds
+    }
+  }
+  goToNotifications();
 }
 </script>
 
@@ -126,11 +143,12 @@ function goToNotifications() {
           {{ t("notification.noNotifications") }}
         </div>
         <div v-else class="px-1 py-1">
-          <RouterLink
+          <button
             v-for="notification in notificationStore.notifications.slice(0, 5)"
             :key="notification.id"
-            :to="notification.link || '/personal/notifications'"
-            class="group block rounded-none px-3 py-2.5 transition-colors hover:bg-muted/70"
+            type="button"
+            class="group block w-full rounded-none px-3 py-2.5 text-left transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            @click="handleClick(notification)"
           >
             <div class="flex items-start gap-2.5">
               <span
@@ -150,7 +168,7 @@ function goToNotifications() {
                 </p>
               </div>
             </div>
-          </RouterLink>
+          </button>
         </div>
       </div>
       <div class="border-t px-1 py-1">

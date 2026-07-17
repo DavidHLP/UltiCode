@@ -155,6 +155,19 @@ export function useNotificationFeed() {
     unreadCount.value = 0;
   }
 
+  /**
+   * Clear the local notification cache without a server call. Used by
+   * presentation adapters when the user is unauthenticated, so they do not
+   * mutate feed state directly (e.g. via `$patch`) — the feed owns mutations.
+   */
+  function resetLocalState() {
+    notifications.value = [];
+    total.value = 0;
+    page.value = 1;
+    totalPages.value = 1;
+    unreadCount.value = 0;
+  }
+
   return {
     // state
     notifications,
@@ -174,6 +187,7 @@ export function useNotificationFeed() {
     removeNotification,
     clearError,
     resetUnreadCount,
+    resetLocalState,
   };
 }
 

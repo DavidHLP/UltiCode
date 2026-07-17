@@ -72,6 +72,7 @@ export const useNotificationStore = defineStore("notification", () => {
   const clearAll = feed.clearAll;
   const removeNotification = feed.removeNotification;
   const clearError = feed.clearError;
+  const resetLocalState = feed.resetLocalState;
 
   return {
     // state
@@ -94,5 +95,6 @@ export const useNotificationStore = defineStore("notification", () => {
     clearAll,
     removeNotification,
     clearError,
+    resetLocalState,
   };
 });

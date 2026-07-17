@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.bootstrap;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -12,62 +12,64 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * The runner now owns only its development identity policy and delegates account materialization
+ * to {@link AdministratorProvisioner}; these tests lock the delegation and the refusal paths. The
+ * provisioner invariant itself is covered by {@link AdministratorProvisionerTest}.
+ */
 @ExtendWith(MockitoExtension.class)
 class DevUserBootstrapRunnerTest {
 
   @Mock private UserMapper userMapper;
-  @Mock private PasswordEncoder passwordEncoder;
   @Mock private ConfigurableApplicationContext applicationContext;
+  @Mock private AdministratorProvisioner provisioner;
 
   @Test
-  void createsDocumentedDevelopmentAdministrator() {
+  void delegatesCreationWhenNoAccountExists() {
     MockEnvironment environment = developmentEnvironment();
     when(userMapper.selectOne(any())).thenReturn(null);
     when(userMapper.selectCount(any())).thenReturn(0L);
-    when(passwordEncoder.encode("admin123")).thenReturn("encoded-admin123");
 
     runner(environment).run(mock(ApplicationArguments.class));
 
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(userMapper).insert(captor.capture());
-    User user = captor.getValue();
-    assertThat(user.getUsername()).isEqualTo("admin");
-    assertThat(user.getPassword()).isEqualTo("encoded-admin123");
-    assertThat(user.getRole()).isEqualTo("ADMIN");
-    assertThat(user.getIsActive()).isTrue();
-    assertThat(user.getIsBanned()).isFalse();
+    verify(provisioner)
+        .createAdministrator(
+            eq("admin"),
+            eq("Development Administrator"),
+            eq("admin@localhost.test"),
+            eq("admin123"),
+            eq("ADMIN"));
+    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
     verify(applicationContext).close();
   }
 
   @Test
-  void restoresAnExistingDisabledAdministrator() {
+  void delegatesRestorationWhenAccountExists() {
     MockEnvironment environment = developmentEnvironment();
     User existing = new User();
     existing.setId("admin-id");
     existing.setUsername("admin");
-    existing.setIsActive(false);
-    existing.setIsBanned(true);
-    existing.setBannedReason("Disabled seed account");
     when(userMapper.selectOne(any())).thenReturn(existing);
     when(userMapper.selectCount(any())).thenReturn(0L);
-    when(passwordEncoder.encode("admin123")).thenReturn("encoded-admin123");
 
     runner(environment).run(mock(ApplicationArguments.class));
 
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(userMapper).updateById(captor.capture());
-    assertThat(captor.getValue().getIsActive()).isTrue();
-    assertThat(captor.getValue().getIsBanned()).isFalse();
-    assertThat(captor.getValue().getBannedReason()).isNull();
-    verify(userMapper, never()).insert(any(User.class));
+    verify(provisioner)
+        .restoreAdministrator(
+            eq(existing),
+            eq("Development Administrator"),
+            eq("admin@localhost.test"),
+            eq("admin123"),
+            eq("ADMIN"));
+    verify(provisioner, never())
+        .createAdministrator(any(), any(), any(), any(), any());
+    verify(applicationContext).close();
   }
 
   @Test
@@ -79,13 +81,39 @@ class DevUserBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("dev profile");
 
-    verify(userMapper, never()).insert(any(User.class));
-    verify(userMapper, never()).updateById(any(User.class));
+    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void refusesWhenEmailBelongsToAnotherAccount() {
+    MockEnvironment environment = developmentEnvironment();
+    when(userMapper.selectOne(any())).thenReturn(null);
+    when(userMapper.selectCount(any())).thenReturn(1L);
+
+    assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("DEV_SEED_ADMIN_EMAIL");
+
+    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void refusesUnsupportedRole() {
+    MockEnvironment environment = developmentEnvironment();
+    environment.setProperty("DEV_SEED_ADMIN_ROLE", "GUEST");
+
+    assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("DEV_SEED_ADMIN_ROLE");
+
+    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
   }
 
   private DevUserBootstrapRunner runner(MockEnvironment environment) {
-    return new DevUserBootstrapRunner(
-        userMapper, passwordEncoder, environment, applicationContext);
+    return new DevUserBootstrapRunner(userMapper, environment, applicationContext, provisioner);
   }
 
   private MockEnvironment developmentEnvironment() {

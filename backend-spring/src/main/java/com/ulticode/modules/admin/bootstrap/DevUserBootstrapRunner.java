@@ -1,10 +1,8 @@
 package com.ulticode.modules.admin.bootstrap;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import java.time.LocalDateTime;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +13,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,7 +20,10 @@ import org.springframework.stereotype.Component;
  *
  * <p>This runner is unavailable outside the dev profile and must also be explicitly enabled. It
  * exists separately from the production-safe administrator bootstrap because local credentials are
- * intentionally easy to remember.
+ * intentionally easy to remember. Account materialization (id, encoded password, account state, join
+ * timestamp, ban-clearing on restore) is delegated to {@link AdministratorProvisioner}; this runner
+ * owns only its development identity policy (role whitelist, email-conflict refusal) and the CLI-only
+ * context shutdown.
  */
 @Slf4j
 @Component
@@ -33,11 +33,12 @@ import org.springframework.stereotype.Component;
 public class DevUserBootstrapRunner implements ApplicationRunner {
 
   private static final Set<String> ALLOWED_ROLES = Set.of("ADMIN", "SUPER_ADMIN");
+  private static final String DEVELOPMENT_DISPLAY_NAME = "Development Administrator";
 
   private final UserMapper userMapper;
-  private final PasswordEncoder passwordEncoder;
   private final Environment environment;
   private final ConfigurableApplicationContext applicationContext;
+  private final AdministratorProvisioner provisioner;
 
   @Override
   public void run(ApplicationArguments args) {
@@ -66,30 +67,12 @@ public class DevUserBootstrapRunner implements ApplicationRunner {
       throw new IllegalStateException("DEV_SEED_ADMIN_EMAIL is already used by another account");
     }
 
-    boolean existing = user != null;
-    if (!existing) {
-      user = new User();
-      user.setId(IdUtil.fastSimpleUUID());
-      user.setUsername(username);
-      user.setJoinedAt(LocalDateTime.now());
-      user.setIsDeleted(0);
-    }
-
-    user.setName("Development Administrator");
-    user.setEmail(email);
-    user.setPassword(passwordEncoder.encode(password));
-    user.setRole(role);
-    user.setIsActive(true);
-    user.setIsBanned(false);
-    user.setBannedUntil(null);
-    user.setBannedReason(null);
-
-    if (existing) {
-      userMapper.updateById(user);
-      log.info("Restored development administrator account: {}", username);
-    } else {
-      userMapper.insert(user);
+    if (user == null) {
+      provisioner.createAdministrator(username, DEVELOPMENT_DISPLAY_NAME, email, password, role);
       log.info("Created development administrator account: {}", username);
+    } else {
+      provisioner.restoreAdministrator(user, DEVELOPMENT_DISPLAY_NAME, email, password, role);
+      log.info("Restored development administrator account: {}", username);
     }
     applicationContext.close();
   }

@@ -1,10 +1,8 @@
 package com.ulticode.modules.admin.bootstrap;
 
-import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +11,16 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Explicit one-time administrator bootstrap command.
  *
  * <p>Run the application as a non-web process with APP_BOOTSTRAP_ADMIN_ENABLED=true. The command
- * refuses to run when any active administrator already exists and never logs the password.
+ * refuses to run when any active administrator already exists and never logs the password. Account
+ * materialization (id, encoded password, account state, join timestamp) is delegated to
+ * {@link AdministratorProvisioner}; this runner owns only its production identity policy
+ * (credential strength and conflict refusal) and the CLI-only context shutdown.
  */
 @Slf4j
 @Component
@@ -34,9 +34,9 @@ public class AdminBootstrapRunner implements ApplicationRunner {
       Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{16,}$");
 
   private final UserMapper userMapper;
-  private final PasswordEncoder passwordEncoder;
   private final Environment environment;
   private final ConfigurableApplicationContext applicationContext;
+  private final AdministratorProvisioner provisioner;
 
   @Override
   public void run(ApplicationArguments args) {
@@ -71,18 +71,7 @@ public class AdminBootstrapRunner implements ApplicationRunner {
       throw new IllegalStateException("Bootstrap username or email already exists; overwrite refused");
     }
 
-    User user = new User();
-    user.setId(IdUtil.fastSimpleUUID());
-    user.setUsername(username);
-    user.setName(username);
-    user.setEmail(email);
-    user.setPassword(passwordEncoder.encode(password));
-    user.setRole("SUPER_ADMIN");
-    user.setIsActive(true);
-    user.setIsBanned(false);
-    user.setIsDeleted(0);
-    user.setJoinedAt(LocalDateTime.now());
-    userMapper.insert(user);
+    provisioner.createAdministrator(username, username, email, password, "SUPER_ADMIN");
 
     log.info("Created bootstrap SUPER_ADMIN account: {}", username);
     applicationContext.close();

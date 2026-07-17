@@ -12,6 +12,7 @@ import LucaCapabilities from "./landing-luca/LucaCapabilities.vue";
 import LucaAwards from "./landing-luca/LucaAwards.vue";
 import LucaContact from "./landing-luca/LucaContact.vue";
 import LucaScrollProgress from "./landing-luca/LucaScrollProgress.vue";
+import LucaHeroScene from "./landing-luca/LucaHeroScene.vue";
 import { useLucaPortal } from "@/composables/landing/useLucaPortal";
 import { useLucaReveal } from "@/composables/landing/useLucaReveal";
 import { useLucaCursor } from "@/composables/landing/useLucaCursor";
@@ -100,17 +101,20 @@ onMounted(() => {
 
     <main id="luca-main">
       <section class="luca-hero" aria-label="UltiCode">
-        <p class="luca-hero-eyebrow" data-luca-reveal>
-          {{ t("landingLuca.hero.eyebrow") }}
-        </p>
-        <LucaWordStack />
-        <div class="luca-hero-foot">
-          <p class="luca-hero-tagline" data-luca-reveal>
-            {{ t("landingLuca.hero.roleLine") }}
+        <LucaHeroScene :active="!showPortal" />
+        <div class="luca-hero-content">
+          <p class="luca-hero-eyebrow" data-luca-reveal>
+            {{ t("landingLuca.hero.eyebrow") }}
           </p>
-          <button type="button" class="luca-hero-cta" @click="goToSeedProblem">
-            {{ t("landingLuca.hero.cta") }} →
-          </button>
+          <LucaWordStack />
+          <div class="luca-hero-foot">
+            <p class="luca-hero-tagline" data-luca-reveal>
+              {{ t("landingLuca.hero.roleLine") }}
+            </p>
+            <button type="button" class="luca-hero-cta" @click="goToSeedProblem">
+              {{ t("landingLuca.hero.cta") }} →
+            </button>
+          </div>
         </div>
       </section>
 

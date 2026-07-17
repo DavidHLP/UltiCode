@@ -299,6 +299,36 @@
     flex-direction: column;
     justify-content: flex-end;
     padding: 7rem clamp(1.25rem, 4vw, 2.5rem) 2.5rem;
+    isolation: isolate;
+    overflow: hidden;
+    background: radial-gradient(
+        ellipse at 50% 60%,
+        #0b0e1a 0%,
+        #05060a 55%,
+        #02030a 100%
+      );
+  }
+  .luca-hero-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .luca-hero-scene-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .luca-hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    flex: 1;
+    pointer-events: none;
+  }
+  .luca-hero-content > * {
+    pointer-events: auto;
   }
   .luca-wordstack {
     display: flex;
@@ -885,6 +915,11 @@
     .luca-progress {
       transition: none !important;
       animation: none !important;
+    }
+    .luca-hero-scene {
+      /* The component itself bails out of the rAF loop under reduced
+       * motion, but freeze any pointer-induced transforms here. */
+      transform: none;
     }
     .luca-line-inner {
       transform: translateY(0);

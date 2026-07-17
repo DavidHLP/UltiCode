@@ -2,7 +2,7 @@ package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.admin.port.AdminUserStatsReadPort;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -10,11 +10,11 @@ import org.springframework.stereotype.Component;
 /**
  * Production adapter for {@link AdminUserStatsReadPort}.
  *
- * <p>Backed by {@code SubmissionMapper} + {@code SolutionMapper}. Coerces
- * the nullable {@code Long}/{@code Integer} mapper returns to primitives so
- * the port interface stays null-free — the only place in the admin module
- * that touches these two mappers. Tests substitute a fixture by providing
- * another bean of the port interface; admin never sees the mappers.
+ * <p>Backed by {@link SubmissionUserStatsPort} + {@code SolutionMapper}. Coerces
+ * the nullable {@code Long}/{@code Integer} returns to primitives so
+ * the port interface stays null-free — the admin module depends on the
+ * submission read port, not the submission mapper. Tests substitute a fixture
+ * by providing another bean of the port interface.
  *
  * @author ulticode
  */
@@ -22,19 +22,19 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AdminUserStatsReadAdapter implements AdminUserStatsReadPort {
 
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionUserStatsPort submissionUserStats;
     private final SubmissionStreakCalculator submissionStreakCalculator;
     private final SolutionMapper solutionMapper;
 
     @Override
     public long countSubmissionsByUserId(String userId) {
-        Long n = submissionMapper.countByUserId(userId);
+        Long n = submissionUserStats.countByUserId(userId);
         return n == null ? 0L : n;
     }
 
     @Override
     public long countAcceptedProblemsByUserId(String userId) {
-        Long n = submissionMapper.countAcceptedProblemsByUserId(userId);
+        Long n = submissionUserStats.countAcceptedProblemsByUserId(userId);
         return n == null ? 0L : n;
     }
 

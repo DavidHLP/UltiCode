@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class AdminUserStatsReadAdapterTest {
 
     @Mock
-    private SubmissionMapper submissionMapper;
+    private SubmissionUserStatsPort submissionUserStats;
 
     @Mock
     private SubmissionStreakCalculator submissionStreakCalculator;
@@ -45,8 +45,8 @@ class AdminUserStatsReadAdapterTest {
         @DisplayName("all mapper nulls yield zero stats")
         void allNull_yieldsZero() {
             String userId = "user-123";
-            when(submissionMapper.countByUserId(userId)).thenReturn(null);
-            when(submissionMapper.countAcceptedProblemsByUserId(userId)).thenReturn(null);
+            when(submissionUserStats.countByUserId(userId)).thenReturn(null);
+            when(submissionUserStats.countAcceptedProblemsByUserId(userId)).thenReturn(null);
             when(submissionStreakCalculator.computeStreak(userId)).thenReturn(0);
             when(solutionMapper.countByUserId(userId)).thenReturn(null);
 
@@ -65,8 +65,8 @@ class AdminUserStatsReadAdapterTest {
         @DisplayName("mapper values are returned as primitives")
         void values_passedThrough() {
             String userId = "user-456";
-            when(submissionMapper.countByUserId(userId)).thenReturn(42L);
-            when(submissionMapper.countAcceptedProblemsByUserId(userId)).thenReturn(17L);
+            when(submissionUserStats.countByUserId(userId)).thenReturn(42L);
+            when(submissionUserStats.countAcceptedProblemsByUserId(userId)).thenReturn(17L);
             when(submissionStreakCalculator.computeStreak(userId)).thenReturn(9);
             when(solutionMapper.countByUserId(userId)).thenReturn(5L);
 

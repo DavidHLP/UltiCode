@@ -16,7 +16,7 @@ import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *
  * <p>Behaviour is byte-for-byte identical to the read paths previously inlined
  * in {@code AchievementServiceImpl}; the only change is locality (see
- * ADR-0005). The {@link SubmissionMapper} dependency &mdash; used solely by
+ * ADR-0005). The {@link SubmissionUserStatsPort} dependency &mdash; used solely by
  * the progress counters &mdash; moved here from the service; the service's
  * unused {@code ContestParticipantMapper} field was dropped entirely.</p>
  */
@@ -43,7 +43,7 @@ public class DefaultAchievementProjection implements AchievementProjection {
 
     private final AchievementMapper achievementMapper;
     private final UserAchievementMapper userAchievementMapper;
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionUserStatsPort submissionUserStats;
 
     @Override
     public AchievementVO getById(String id) {
@@ -101,8 +101,8 @@ public class DefaultAchievementProjection implements AchievementProjection {
                 .collect(Collectors.toMap(UserAchievement::getAchievementId, ua -> ua));
 
         // Pre-fetch current counts for progress calculation
-        long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(userId);
-        long submissionsMade = submissionMapper.countByUserId(userId);
+        long problemsSolved = submissionUserStats.countAcceptedProblemsByUserId(userId);
+        long submissionsMade = submissionUserStats.countByUserId(userId);
 
         return achievements.stream()
                 .map(a -> buildProgressVO(a, earnedMap.get(a.getId()), problemsSolved, submissionsMade))
@@ -118,8 +118,8 @@ public class DefaultAchievementProjection implements AchievementProjection {
                 .collect(Collectors.toMap(UserAchievement::getAchievementId, ua -> ua));
 
         // Pre-fetch current counts for progress calculation (mirror getUserProgress)
-        long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(userId);
-        long submissionsMade = submissionMapper.countByUserId(userId);
+        long problemsSolved = submissionUserStats.countAcceptedProblemsByUserId(userId);
+        long submissionsMade = submissionUserStats.countByUserId(userId);
 
         return achievements.stream()
                 .map(a -> buildProgressDTO(a, earnedMap, problemsSolved, submissionsMade))

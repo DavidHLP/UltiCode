@@ -1,7 +1,7 @@
 package com.ulticode.modules.user.projection;
 
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionActivityAnalyticsPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
     private final Clock clock;
     private final UserMapper userMapper;
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionActivityAnalyticsPort submissionActivityAnalytics;
 
     @Override
     public UserActivityReportVO loadUserActivityReport(Integer days) {
@@ -54,7 +54,7 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
         List<UserActivityReportVO.DailyActiveUsers> dailyActiveUsers = new ArrayList<>();
         LocalDateTime overallStart = LocalDateTime.now(clock).minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
         LocalDateTime overallEnd = LocalDateTime.now(clock).plusDays(1).withHour(0).withMinute(0).withSecond(0);
-        List<Map<String, Object>> dailyCounts = submissionMapper.countDailyActiveUsers(overallStart, overallEnd);
+        List<Map<String, Object>> dailyCounts = submissionActivityAnalytics.countDailyActiveUsers(overallStart, overallEnd);
         for (Map<String, Object> row : dailyCounts) {
             dailyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
                     row.get("date").toString(),
@@ -65,7 +65,7 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
         // Weekly active users - single aggregation query replacing per-week N+1 loop
         List<UserActivityReportVO.DailyActiveUsers> weeklyActiveUsers = new ArrayList<>();
-        List<Map<String, Object>> weeklyCounts = submissionMapper.countWeeklyActiveUsers(startDate);
+        List<Map<String, Object>> weeklyCounts = submissionActivityAnalytics.countWeeklyActiveUsers(startDate);
         for (Map<String, Object> row : weeklyCounts) {
             String weekStart = row.get("week_start") != null
                     ? row.get("week_start").toString()
@@ -84,7 +84,7 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
         // Peak active hours - single aggregation query replacing 24 individual COUNT queries
         List<UserActivityReportVO.PeakActiveHour> peakHours = new ArrayList<>();
-        List<Map<String, Object>> hourCounts = submissionMapper.countActiveUsersByHour(LocalDateTime.now(clock).minusDays(30));
+        List<Map<String, Object>> hourCounts = submissionActivityAnalytics.countActiveUsersByHour(LocalDateTime.now(clock).minusDays(30));
         for (Map<String, Object> row : hourCounts) {
             int hour = ((Number) row.get("hour")).intValue();
             int count = ((Number) row.get("count")).intValue();
@@ -95,7 +95,7 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
         // Top active users - single aggregation query replacing load-all + Java groupBy + N user lookups
         List<UserActivityReportVO.TopActiveUser> topUsers = new ArrayList<>();
-        List<Map<String, Object>> topUserCounts = submissionMapper.findTopActiveUsers(startDate, 10);
+        List<Map<String, Object>> topUserCounts = submissionActivityAnalytics.findTopActiveUsers(startDate, 10);
         for (Map<String, Object> row : topUserCounts) {
             String userId = row.get("user_id").toString();
             int count = ((Number) row.get("submission_count")).intValue();
@@ -134,13 +134,13 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
         LocalDateTime dayNStart = dayNDate.withHour(0).withMinute(0).withSecond(0);
         LocalDateTime dayNEnd = dayNStart.plusDays(1);
 
-        long day0DistinctUsers = submissionMapper.countDistinctUsersInRange(day0Start, day0End);
+        long day0DistinctUsers = submissionActivityAnalytics.countDistinctUsersInRange(day0Start, day0End);
 
         if (day0DistinctUsers == 0) {
             return 0.0;
         }
 
-        long dayNDistinctUsers = submissionMapper.countDistinctUsersInRange(dayNStart, dayNEnd);
+        long dayNDistinctUsers = submissionActivityAnalytics.countDistinctUsersInRange(dayNStart, dayNEnd);
 
         // Approximate retention: ratio of distinct active users on day N vs day 0
         return Math.min(dayNDistinctUsers * 100.0 / day0DistinctUsers, 100.0);

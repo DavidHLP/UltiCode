@@ -7,7 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
@@ -54,7 +54,7 @@ class DefaultUserReadProjectionTest {
     @Mock
     private UserMapper userMapper;
     @Mock
-    private SubmissionMapper submissionMapper;
+    private SubmissionUserStatsPort submissionUserStats;
     @Mock
     private ProblemMapper problemMapper;
     @Mock
@@ -284,7 +284,7 @@ class DefaultUserReadProjectionTest {
             when(problemTagRelationMapper.findTagStatsByUserId("user-123")).thenReturn(List.of(
                     Map.of("tagName", "动态规划", "tagSlug", "dynamic-programming", "count", 4L),
                     Map.of("tagName", "数组", "tagSlug", "array", "count", 2)));
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(6L);
+            when(submissionUserStats.countAcceptedProblemsByUserId("user-123")).thenReturn(6L);
 
             UserSkillsDTO result = userReadProjection.getUserSkillsById("user-123");
 
@@ -298,7 +298,7 @@ class DefaultUserReadProjectionTest {
         void getUserSkillsById_handlesNoTagStats() {
             when(userMapper.selectById("user-123")).thenReturn(testUser);
             when(problemTagRelationMapper.findTagStatsByUserId("user-123")).thenReturn(null);
-            when(submissionMapper.countAcceptedProblemsByUserId("user-123")).thenReturn(null);
+            when(submissionUserStats.countAcceptedProblemsByUserId("user-123")).thenReturn(null);
 
             UserSkillsDTO result = userReadProjection.getUserSkillsById("user-123");
 

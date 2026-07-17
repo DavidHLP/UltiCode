@@ -11,7 +11,7 @@ import com.ulticode.modules.follow.port.FollowCountPort;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import com.ulticode.modules.submission.stats.SubmissionStreakCalculator;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
 import com.ulticode.modules.user.dto.ProfileVO;
@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 public class DefaultUserReadProjection implements UserReadProjection {
 
     private final UserMapper userMapper;
-    private final SubmissionMapper submissionMapper;
+    private final SubmissionUserStatsPort submissionUserStats;
     private final SubmissionStreakCalculator submissionStreakCalculator;
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
@@ -152,7 +152,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
         UserStatsDTO stats = new UserStatsDTO();
 
         // Get solved counts by difficulty
-        List<DifficultyCountDTO> solvedByDifficulty = submissionMapper.countAcceptedProblemsByDifficulty(id);
+        List<DifficultyCountDTO> solvedByDifficulty = submissionUserStats.countAcceptedProblemsByDifficulty(id);
         Map<String, UserStatsDTO.DifficultyStats> statsMap = new HashMap<>();
 
         // Initialize with zero counts for all difficulties
@@ -191,7 +191,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
 
         // Get heatmap data for current year
         int currentYear = Year.now().getValue();
-        List<SubmissionDateCountDTO> heatmapData = submissionMapper.findSubmissionCountsByDate(id, currentYear);
+        List<SubmissionDateCountDTO> heatmapData = submissionUserStats.findSubmissionCountsByDate(id, currentYear);
 
         // Find max submissions for level calculation
         int maxCount = heatmapData.stream()
@@ -212,15 +212,15 @@ public class DefaultUserReadProjection implements UserReadProjection {
         stats.setHeatmap(heatmap);
 
         // Get global rank from global_rankings
-        Integer globalRank = submissionMapper.findGlobalRankByUserId(id);
+        Integer globalRank = submissionUserStats.findGlobalRankByUserId(id);
         stats.setGlobalRank(globalRank);
 
         // Get acceptance rate
-        Double acceptanceRate = submissionMapper.calculateAcceptanceRateByUserId(id);
+        Double acceptanceRate = submissionUserStats.calculateAcceptanceRateByUserId(id);
         stats.setAcceptanceRate(acceptanceRate);
 
         // Get total submission count
-        Long submissionCount = submissionMapper.countTotalSubmissionsByUserId(id);
+        Long submissionCount = submissionUserStats.countTotalSubmissionsByUserId(id);
         stats.setSubmissionCount(submissionCount);
 
         return stats;
@@ -286,7 +286,7 @@ public class DefaultUserReadProjection implements UserReadProjection {
         skillsDTO.setSkills(skills);
 
         // Calculate total solved (reuse existing logic from getUserStatsById)
-        Long totalSolved = submissionMapper.countAcceptedProblemsByUserId(id);
+        Long totalSolved = submissionUserStats.countAcceptedProblemsByUserId(id);
         skillsDTO.setTotalSolved(totalSolved != null ? totalSolved.intValue() : 0);
 
         return skillsDTO;

@@ -12,7 +12,7 @@ import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.SubmissionUserStatsPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class AchievementProjectionTest {
     private UserAchievementMapper userAchievementMapper;
 
     @Mock
-    private SubmissionMapper submissionMapper;
+    private SubmissionUserStatsPort submissionUserStats;
 
     @InjectMocks
     private DefaultAchievementProjection projection;
@@ -98,8 +98,8 @@ class AchievementProjectionTest {
             Achievement a = createAchievementWithCriteria("ps", "problems_solved", 10);
             when(achievementMapper.findAllActive()).thenReturn(List.of(a));
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(7L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(20L);
+            when(submissionUserStats.countAcceptedProblemsByUserId(USER_ID)).thenReturn(7L);
+            when(submissionUserStats.countByUserId(USER_ID)).thenReturn(20L);
 
             List<AchievementProgressDTO> result = projection.getUserAchievements(USER_ID);
 
@@ -108,7 +108,7 @@ class AchievementProjectionTest {
                     "progress must equal countAcceptedProblemsByUserId for problems_solved criteria");
             assertEquals(10, result.get(0).getTarget());
             assertFalse(result.get(0).getEarned());
-            verify(submissionMapper).countAcceptedProblemsByUserId(USER_ID);
+            verify(submissionUserStats).countAcceptedProblemsByUserId(USER_ID);
         }
 
         @Test
@@ -117,8 +117,8 @@ class AchievementProjectionTest {
             Achievement a = createAchievementWithCriteria("sm", "submissions_made", 100);
             when(achievementMapper.findAllActive()).thenReturn(List.of(a));
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(3L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(42L);
+            when(submissionUserStats.countAcceptedProblemsByUserId(USER_ID)).thenReturn(3L);
+            when(submissionUserStats.countByUserId(USER_ID)).thenReturn(42L);
 
             List<AchievementProgressDTO> result = projection.getUserAchievements(USER_ID);
 
@@ -139,8 +139,8 @@ class AchievementProjectionTest {
             a.setCriteria(null);
             when(achievementMapper.findAllActive()).thenReturn(List.of(a));
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of());
-            when(submissionMapper.countAcceptedProblemsByUserId(USER_ID)).thenReturn(0L);
-            when(submissionMapper.countByUserId(USER_ID)).thenReturn(0L);
+            when(submissionUserStats.countAcceptedProblemsByUserId(USER_ID)).thenReturn(0L);
+            when(submissionUserStats.countByUserId(USER_ID)).thenReturn(0L);
 
             List<AchievementProgressDTO> result = projection.getUserAchievements(USER_ID);
 

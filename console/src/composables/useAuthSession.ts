@@ -1,10 +1,6 @@
-import { ref } from "vue";
-import type { LoginRequest, RegisterRequest, User } from "@/types/auth";
-import type { LoginResponse } from "@/shared/auth-core/src/types";
+import type { User } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager } from "@/shared/auth-core/src";
-
-const isDevelopment = import.meta.env.DEV;
+import { createSessionAuthStore, csrfManager } from "@/shared/auth-core/src";
 
 /**
  * Detect whether the browser has a `csrf_token` cookie set.
@@ -29,252 +25,30 @@ function hasCsrfCookie(): boolean {
 /**
  * Authentication session composable.
  *
- * Owns the side-effecting auth flows (fetch / login / register / logout /
- * ensureUser / loadPermissions / initialize) and the concurrent-init
- * dedup promise. The dedup is **internal** — it is never exposed on the
- * composable's return shape. Callers that need to await the bootstrap
- * barrier use `initializationPromise` exposed by `useAuthStore`,
- * which is a thin computed wrapper over the same internal promise.
+ * Thin console-side transport adapter over the shared
+ * {@link createSessionAuthStore} policy. The status machine, dedup init,
+ * CSRF-cookie gate, and clear/reset teardown live in `shared/auth-core`; this
+ * wrapper only binds the console `request` helper endpoints and the
+ * console-specific CSRF-cookie sentinel. The store reads the returned refs and
+ * layers its own computed selectors on top.
  */
 export function useAuthSession() {
-  // Reactive state — the store reads these refs through its selector
-  // surface and may attach its own computed/aliases on top.
-  const user = ref<User | null>(null);
-  const status = ref<"idle" | "loading" | "ready" | "error">("idle");
-  const error = ref<Error | null>(null);
-  const permissions = ref<Set<string>>(new Set());
-
-  // Private: prevents duplicate initialization calls. Not exposed.
-  let initializationPromise: Promise<void> | null = null;
-
-  /**
-   * Initialize the auth session.
-   *
-   * Concurrent callers receive the same in-flight promise so /auth/me
-   * fires exactly once even when bootstrap and the router guard race.
-   */
-  async function initialize(): Promise<void> {
-    if (status.value === "ready") {
-      return;
-    }
-
-    if (initializationPromise) {
-      return initializationPromise;
-    }
-
-    status.value = "loading";
-    error.value = null;
-
-    initializationPromise = (async () => {
-      try {
-        const hasCsrf = hasCsrfCookie();
-        if (hasCsrf) {
-          await fetchUser();
-        }
-      } catch {
-        // Backend unavailable or not authenticated - still mark as ready
-        // App will function in guest mode
-      } finally {
-        status.value = "ready";
-        initializationPromise = null;
-      }
-    })();
-
-    return initializationPromise;
-  }
-
-  /**
-   * Public accessor for the in-flight init promise.
-   *
-   * Returns the currently-running `initialize()` promise so callers
-   * (notably the router guard) can `await` the bootstrap barrier, or
-   * `null` when no init is in progress. The underlying dedup promise
-   * itself stays module-private — this accessor is the only sanctioned
-   * bridge to the store / router.
-   */
-  function whenInitialized(): Promise<void> | null {
-    return initializationPromise;
-  }
-
-  /**
-   * Ensure user information is loaded.
-   */
-  async function ensureUser(): Promise<User | null> {
-    if (user.value) {
-      return user.value;
-    }
-
-    try {
-      return await fetchUser();
-    } catch {
-      if (isDevelopment) {
-        console.debug(
-          "[Auth] ensureUser() - fetch failed, user not authenticated",
-        );
-      }
-      return null;
-    }
-  }
-
-  /**
-   * Fetch current user from /auth/me endpoint
-   */
-  async function fetchUser(): Promise<User | null> {
-    try {
-      const response = await apiGet<{ user: User; csrfToken?: string }>(
-        "/auth/me",
-        { skipErrorHandler: true },
-      );
-
-      if (!response?.user) {
-        console.error("[Auth] Invalid /auth/me response:", response);
-        throw new Error("Invalid user response from /auth/me");
-      }
-
-      user.value = response.user;
-
-      if (response.csrfToken) {
-        csrfManager.refreshFromResponse(response);
-      }
-
-      return response.user;
-    } catch {
-      user.value = null;
-      return null;
-    }
-  }
-
-  /**
-   * Login with username and password.
-   */
-  async function login(credentials: LoginRequest): Promise<void> {
-    status.value = "loading";
-    error.value = null;
-
-    try {
-      const { user: fetchedUser, csrfToken } = await apiPost<LoginResponse>(
-        "/auth/login",
-        credentials,
-      );
-
-      if (!fetchedUser) {
-        throw new Error("Invalid login response");
-      }
-
-      if (csrfToken) {
-        csrfManager.refreshFromResponse({ csrfToken });
-      }
-
-      user.value = fetchedUser;
-      status.value = "ready";
-    } catch (err) {
-      status.value = "error";
-      error.value = err instanceof Error ? err : new Error(String(err));
-      throw err;
-    }
-  }
-
-  /**
-   * Register a new user account.
-   */
-  async function register(data: RegisterRequest): Promise<void> {
-    status.value = "loading";
-    error.value = null;
-
-    try {
-      const { user: fetchedUser, csrfToken } = await apiPost<LoginResponse>(
-        "/auth/register",
-        data,
-      );
-
-      if (!fetchedUser) {
-        throw new Error("Invalid register response");
-      }
-
-      if (csrfToken) {
-        csrfManager.refreshFromResponse({ csrfToken });
-      }
-
-      user.value = fetchedUser;
-      status.value = "ready";
-    } catch (err) {
-      status.value = "error";
-      error.value = err instanceof Error ? err : new Error(String(err));
-      throw err;
-    }
-  }
-
-  /**
-   * Logout current user
-   */
-  async function logout(): Promise<void> {
-    status.value = "loading";
-
-    try {
-      await apiPost<void>("/auth/logout");
-    } catch (err) {
-      console.error("[Auth] Logout error:", err);
-    } finally {
-      clearUser();
-    }
-  }
-
-  /**
-   * Clear all authentication state
-   */
-  function clearUser(): void {
-    user.value = null;
-    permissions.value.clear();
-    csrfManager.clearToken();
-    status.value = "ready";
-    error.value = null;
-  }
-
-  /**
-   * Reset the session to initial state
-   */
-  function reset(): void {
-    user.value = null;
-    status.value = "idle";
-    error.value = null;
-    initializationPromise = null;
-    csrfManager.clearToken();
-  }
-
-  /**
-   * Load permissions for the current user
-   */
-  async function loadPermissions(): Promise<void> {
-    try {
-      const response = await apiGet<string[]>("/auth/permissions", {
+  return createSessionAuthStore<User>({
+    fetchCurrentUser: () =>
+      apiGet<{ user: User; csrfToken?: string }>("/auth/me", {
         skipErrorHandler: true,
-      });
-      permissions.value = new Set(response || []);
-    } catch {
-      permissions.value.clear();
-    }
-  }
-
-  return {
-    // state refs
-    user,
-    status,
-    error,
-    permissions,
-    // actions
-    initialize,
-    ensureUser,
-    fetchUser,
-    login,
-    register,
-    logout,
-    clearUser,
-    reset,
-    loadPermissions,
-    // dedup accessor — store bridges this to its public
-    // initializationPromise computed.
-    whenInitialized,
-  };
+      }),
+    login: (credentials) =>
+      apiPost<{ user: User; csrfToken?: string }>("/auth/login", credentials),
+    register: (data) =>
+      apiPost<{ user: User; csrfToken?: string }>("/auth/register", data),
+    logout: () => apiPost<void>("/auth/logout"),
+    loadPermissions: () =>
+      apiGet<string[]>("/auth/permissions", { skipErrorHandler: true }),
+    hasSessionCookie: hasCsrfCookie,
+    refreshCsrf: (response) => csrfManager.refreshFromResponse(response),
+    clearCsrf: () => csrfManager.clearToken(),
+  });
 }
 
 export type AuthSession = ReturnType<typeof useAuthSession>;

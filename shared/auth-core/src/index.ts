@@ -139,3 +139,14 @@ export {
   type AuthStoreAdapter,
   type AuthStoreInternals,
 } from './createAuthStore'
+
+// Status-machine session store factory — owns the reusable idle/loading/ready/
+// error session policy (dedup init, CSRF-cookie gate, throw-on-auth-error) that
+// the console app previously carried as a bespoke 280-line composable. Apps pass
+// a transport adapter; the policy lives once. See architecture-review candidate #2.
+export {
+  createSessionAuthStore,
+  type SessionAuthStore,
+  type SessionAuthTransport,
+  type SessionStatus,
+} from './createSessionAuthStore'

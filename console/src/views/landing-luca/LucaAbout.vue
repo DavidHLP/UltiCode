@@ -6,7 +6,7 @@ const principles = ["one", "two", "three"] as const;
 </script>
 
 <template>
-  <section class="luca-section luca-about" aria-labelledby="luca-about-title">
+  <section class="luca-section luca-about luca-beat" aria-labelledby="luca-about-title">
     <p class="luca-eyebrow">{{ t("landingLuca.about.eyebrow") }}</p>
     <div class="luca-about-grid">
       <h2 id="luca-about-title" class="luca-about-statement">

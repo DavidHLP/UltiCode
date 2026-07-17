@@ -205,4 +205,14 @@ describe("LandingLucaView", () => {
     expect(scene.element.closest(".luca-root")).not.toBeNull();
     expect(wrapper.find(".luca-hero .luca-hero-cta").exists()).toBe(true);
   });
+
+  it("marks the eight narrative beats for scroll pinning", () => {
+    const wrapper = mountView();
+    // Hero and Contact are intentionally not beats; the eight middle narrative
+    // sections carry .luca-beat so useLucaBeat can pin each while the world
+    // canvas plays its matching 3D beat.
+    expect(wrapper.findAll(".luca-beat")).toHaveLength(8);
+    expect(wrapper.find(".luca-hero.luca-beat").exists()).toBe(false);
+    expect(wrapper.find(".luca-contact.luca-beat").exists()).toBe(false);
+  });
 });

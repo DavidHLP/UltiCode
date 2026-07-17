@@ -25,7 +25,7 @@ const steps: ReadonlyArray<FlowStep> = [
 </script>
 
 <template>
-  <section class="luca-section luca-experience" aria-labelledby="luca-experience-title">
+  <section class="luca-section luca-experience luca-beat" aria-labelledby="luca-experience-title">
     <p class="luca-eyebrow">{{ t("landingLuca.experience.eyebrow") }}</p>
     <h2 id="luca-experience-title" class="luca-section-title" data-luca-reveal>
       {{ t("landingLuca.experience.title") }}

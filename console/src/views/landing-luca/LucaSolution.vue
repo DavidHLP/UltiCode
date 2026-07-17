@@ -6,7 +6,7 @@ const orbits = ["editor", "judge", "community"] as const;
 </script>
 
 <template>
-  <section class="luca-section luca-solution" aria-labelledby="luca-solution-title">
+  <section class="luca-section luca-solution luca-beat" aria-labelledby="luca-solution-title">
     <p class="luca-eyebrow">{{ t("landingLuca.solution.eyebrow") }}</p>
     <h2 id="luca-solution-title" class="luca-section-title" data-luca-reveal>
       {{ t("landingLuca.solution.title") }}

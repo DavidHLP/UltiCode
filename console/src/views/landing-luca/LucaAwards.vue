@@ -37,7 +37,7 @@ const loop = computed(() => [...AWARD_KEYS, ...AWARD_KEYS, ...AWARD_KEYS]);
 
 <template>
   <section
-    class="luca-section luca-awards"
+    class="luca-section luca-awards luca-beat"
     aria-labelledby="luca-awards-title"
   >
     <p class="luca-eyebrow">{{ t("landingLuca.awards.eyebrow") }}</p>

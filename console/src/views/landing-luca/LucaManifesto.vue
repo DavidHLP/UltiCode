@@ -5,7 +5,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <section class="luca-section" aria-labelledby="luca-manifesto-title">
+  <section class="luca-section luca-beat" aria-labelledby="luca-manifesto-title">
     <p class="luca-eyebrow">{{ t("landingLuca.manifesto.eyebrow") }}</p>
     <h2
       id="luca-manifesto-title"

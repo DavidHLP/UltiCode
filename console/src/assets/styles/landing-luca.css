@@ -443,6 +443,32 @@
       transparent 75%
     );
   }
+
+  /* Scrollytelling beat panels — composed with .luca-section (sections carry
+   * BOTH classes) so the ::before scrim still paints; beats own the layout. */
+  .luca-beat {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: clamp(1.5rem, 4vh, 3rem);
+    max-width: 46rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* Alternate alignment so adjacent beats don't read as one centered column */
+  .luca-beat:nth-child(even) {
+    align-items: flex-end;
+    text-align: right;
+  }
+  @media (max-width: 768px) {
+    .luca-beat {
+      min-height: auto;
+      align-items: stretch;
+      text-align: left;
+    }
+  }
   .luca-eyebrow {
     font-family: var(--uc-font-data);
     font-size: 0.6875rem;

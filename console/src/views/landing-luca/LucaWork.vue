@@ -41,7 +41,7 @@ const items: ReadonlyArray<WorkItem> = [
 </script>
 
 <template>
-  <section class="luca-section" aria-labelledby="luca-work-title">
+  <section class="luca-section luca-beat" aria-labelledby="luca-work-title">
     <p class="luca-eyebrow">{{ t("landingLuca.work.eyebrow") }}</p>
     <h2
       id="luca-work-title"

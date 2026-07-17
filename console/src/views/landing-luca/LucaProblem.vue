@@ -6,7 +6,7 @@ const fragments = ["one", "two", "three", "four"] as const;
 </script>
 
 <template>
-  <section class="luca-section luca-problem" aria-labelledby="luca-problem-title">
+  <section class="luca-section luca-problem luca-beat" aria-labelledby="luca-problem-title">
     <p class="luca-eyebrow">{{ t("landingLuca.problem.eyebrow") }}</p>
     <h2 id="luca-problem-title" class="luca-section-title" data-luca-reveal>
       {{ t("landingLuca.problem.title") }}

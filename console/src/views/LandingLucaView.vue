@@ -21,6 +21,7 @@ import { useLucaPortal } from "@/composables/landing/useLucaPortal";
 import { useLucaReveal } from "@/composables/landing/useLucaReveal";
 import { useLucaCursor } from "@/composables/landing/useLucaCursor";
 import { useLucaScroll } from "@/composables/landing/useLucaScroll";
+import { useLucaBeat } from "@/composables/landing/useLucaBeat";
 import "@/assets/styles/landing-luca.css";
 
 const TWO_SUM_SLUG = "two-sum";
@@ -43,6 +44,7 @@ let dismissTimer: ReturnType<typeof setTimeout> | undefined;
 
 useLucaScroll({ locked: showPortal, world: rootRef, worldProgress });
 useLucaReveal(rootRef);
+useLucaBeat(rootRef);
 const cursor = useLucaCursor(cursorRef);
 
 const prefersReducedMotion = () =>

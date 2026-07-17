@@ -7,7 +7,7 @@ const pillars = ["editor", "judge", "contest", "community"] as const;
 </script>
 
 <template>
-  <section class="luca-section" aria-labelledby="luca-capabilities-title">
+  <section class="luca-section luca-beat" aria-labelledby="luca-capabilities-title">
     <p class="luca-eyebrow">{{ t("landingLuca.capabilities.eyebrow") }}</p>
     <h2
       id="luca-capabilities-title"

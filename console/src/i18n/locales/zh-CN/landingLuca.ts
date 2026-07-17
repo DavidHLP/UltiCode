@@ -33,27 +33,25 @@ export default {
   manifesto: {
     eyebrow: "为什么是 UltiCode",
     lead: "不靠猜,用结果说话。",
-    body1:
-      "从读题、实现,到隔离评测给出明确 verdict,每一步都围绕一次可信的判定。失败有阶段,通过有依据。",
-    body2:
-      "题库、竞赛、题解和讨论共享同一条反馈链,你不用在工具之间来回切换,只关注下一行代码。",
+    body1: "一次提交,一次判定。失败有阶段,通过有依据。",
+    body2: "读、写、评、复盘,走在同一条路上。",
     signal: "WRITE → JUDGE → REVIEW",
   },
   problem: {
-    eyebrow: "问题所在",
-    title: "刷题不等于进步,提交不等于反馈。",
-    body: "很多平台把题目堆在一起,评测只给一个对错。你不知道错在哪一步,也不知道下一次该怎么改。",
+    eyebrow: "困境",
+    title: "你写。你猜。你等。",
+    body: "题目堆在一起,评测只丢一个对错。错在哪一步、下一步改什么,没人告诉你。",
     fragments: {
-      one: "只给 AC / WA",
-      two: "题解与代码割裂",
-      three: "竞赛与练习断层",
-      four: "反馈没有沉淀",
+      one: "迟缓",
+      two: "割裂",
+      three: "盲目",
+      four: "无声",
     },
   },
   solution: {
-    eyebrow: "UltiCode 的做法",
-    title: "把评测放回中心,让每一步都有依据。",
-    body: "读题、编码、提交、评测、复盘共享同一条链路。一次提交连着题解、连着讨论、连着你的成长记录。",
+    eyebrow: "回路",
+    title: "一条回路。读、写、评、复盘。",
+    body: "读题、编码、提交、评测、复盘共享一条链。一次提交,连着题解、讨论和你的成长。",
     core: "可信判定",
     orbits: {
       editor: { label: "在线编辑", desc: "在题目上下文里写代码" },
@@ -62,13 +60,13 @@ export default {
     },
   },
   experience: {
-    eyebrow: "完整闭环",
-    title: "一道题的完整路径",
-    body: "五步走完,从读题到复盘,每一步都在 UltiCode 内完成。",
+    eyebrow: "路径",
+    title: "一道题的一生",
+    body: "五步,从读题到复盘,都在 UltiCode 内完成。",
     cta: "试走一遍",
     steps: {
-      read: { label: "读题", desc: "题面、约束、样例,集中在同一视图。" },
-      code: { label: "编码", desc: "在题目上下文里编写,C++ / Python / JavaScript。" },
+      read: { label: "读题", desc: "题面、约束、样例,同一视图。" },
+      code: { label: "编码", desc: "题目上下文里编写,C++ / Python / JavaScript。" },
       submit: { label: "提交", desc: "一键进入隔离评测队列。" },
       judge: { label: "评测", desc: "编译、运行,返回分阶段 verdict。" },
       review: { label: "复盘", desc: "对照题解与讨论,沉淀下一次的思路。" },
@@ -77,8 +75,8 @@ export default {
   about: {
     eyebrow: "关于 UltiCode",
     statement: "我们做的是一台安静的判题机。",
-    body1: "UltiCode 不喧哗。它把读题、编码、评测、复盘接成一条可重复的路径,让能力在一次次判定里积累。",
-    body2: "题库、竞赛、题解与讨论围绕同一条反馈链组织,而不是彼此隔绝的工具。",
+    body1: "UltiCode 不喧哗。它把读、写、评、复盘接成一条可重复的路,让能力在一次次判定里积累。",
+    body2: "题库、竞赛、题解与讨论,围同一条反馈链组织,而非彼此隔绝的工具。",
     principles: {
       one: "结果有依据",
       two: "反馈可沉淀",
@@ -86,40 +84,40 @@ export default {
     },
   },
   work: {
-    eyebrow: "已开放的能力",
-    title: "今天就能用的入口",
-    subtitle: "不画大饼。下列每一项都能从产品导航直接进入。",
+    eyebrow: "入口",
+    title: "门,今天开着",
+    subtitle: "下列每一项,都能从导航直接走进。",
     viewAll: "查看题库",
     items: {
       twosum: {
         tag: "示例题",
         title: "两数之和",
-        desc: "数组与哈希表。从一道经典题开始,体验完整提交与评测闭环。",
+        desc: "数组与哈希表。从一道经典题开始,走完提交与评测。",
         glyph: "01",
       },
       editor: {
         tag: "EDIT",
-        title: "在线代码编辑器",
-        desc: "在题目上下文里编写和调整解答,预置 C++、Python、JavaScript。",
-        glyph: "</>",
+        title: "在线编辑器",
+        desc: "题目上下文里编写与调整,C++、Python、JavaScript。",
+        glyph: "‹/›",
       },
       judge: {
         tag: "JUDGE",
         title: "隔离评测",
-        desc: "编译、运行并返回明确 verdict,帮助定位失败阶段。",
+        desc: "编译、运行,返回明确 verdict,定位失败阶段。",
         glyph: "✓/✗",
       },
       contest: {
         tag: "CONTEST",
         title: "限时竞赛",
-        desc: "在统一规则与时间窗口内提交,并查看比赛排名。",
+        desc: "统一规则与时间窗口内提交,查看排名。",
         glyph: "◷",
       },
     },
   },
   capabilities: {
-    eyebrow: "一条训练路径",
-    title: "四个支柱,同一闭环",
+    eyebrow: "支柱",
+    title: "四个支柱,同一回路",
     pillars: {
       editor: { label: "EDITOR", desc: "题目内编写与调整" },
       judge: { label: "JUDGE", desc: "隔离运行与 verdict" },
@@ -128,8 +126,8 @@ export default {
     },
   },
   awards: {
-    eyebrow: "外部认可",
-    title: "奖项与认可",
+    eyebrow: "被看见",
+    title: "被看见",
     label: "奖项列表",
     items: {
       siteOfDay2024: "2024 年度最佳网站",
@@ -143,7 +141,7 @@ export default {
   contact: {
     eyebrow: "开始",
     title: "下一次通过,从这一题开始",
-    desc: "创建免费账户,保存提交、参加竞赛,并与其他解题者一起复盘算法。",
+    desc: "创建免费账户,保存提交、参加竞赛,与他人一起复盘算法。",
     cta: "免费开始",
     ctaSecondary: "浏览题库",
   },

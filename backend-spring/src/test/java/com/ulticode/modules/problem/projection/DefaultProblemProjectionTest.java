@@ -19,7 +19,7 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,7 +77,7 @@ class DefaultProblemProjectionTest {
     @Mock
     private ProblemTagRelationMapper problemTagRelationMapper;
     @Mock
-    private SubmissionMapper submissionMapper;
+    private ProblemSubmissionStatsPort problemSubmissionStats;
     @Mock
     private SolutionMapper solutionMapper;
     @Mock
@@ -95,7 +95,7 @@ class DefaultProblemProjectionTest {
         projection = new DefaultProblemProjection(
                 problemMapper, problemDetailMapper, problemExampleMapper,
                 problemLanguageMapper, problemTagMapper, problemTagRelationMapper,
-                submissionMapper, solutionMapper, edgeOperationsService,
+                problemSubmissionStats, solutionMapper, edgeOperationsService,
                 edgeOperationMapper, new ObjectMapper(), currentUserProvider,
                 new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport());
     }

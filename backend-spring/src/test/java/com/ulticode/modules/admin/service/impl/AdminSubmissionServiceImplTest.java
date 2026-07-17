@@ -3,7 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.submission.policy.RejudgePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class AdminSubmissionServiceImplTest {
 
     @Mock
-    private SubmissionMapper submissionMapper;
+    private AdminSubmissionReadPort submissionReadPort;
 
     @Mock
     private RejudgePolicy rejudgePolicy;
@@ -50,7 +50,7 @@ class AdminSubmissionServiceImplTest {
         // actually touches — submissionMapper (lookup) + rejudgePolicy
         // (strategy dispatch). QueueService / FeatureFlags moved into the
         // policy's strategies.
-        adminSubmissionService = new AdminSubmissionServiceImpl(submissionMapper, rejudgePolicy);
+        adminSubmissionService = new AdminSubmissionServiceImpl(submissionReadPort, rejudgePolicy);
     }
 
     private Submission createValidSubmission() {
@@ -72,7 +72,7 @@ class AdminSubmissionServiceImplTest {
         @Test
         @DisplayName("non-existent submission returns success=false without delegating")
         void rejudge_nonExistent_returnsNotFoundAndSkipsPolicy() {
-            when(submissionMapper.selectById("nonexistent")).thenReturn(null);
+            when(submissionReadPort.findById("nonexistent")).thenReturn(null);
 
             RejudgeResult result = adminSubmissionService.rejudge("nonexistent", false);
 
@@ -86,7 +86,7 @@ class AdminSubmissionServiceImplTest {
         @DisplayName("delegates to the policy with oldStatus captured and returns its result")
         void rejudge_existingSubmission_delegatesToPolicy() {
             Submission submission = createValidSubmission();
-            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(submissionReadPort.findById("sub-123")).thenReturn(submission);
             RejudgeResult policyResult = new RejudgeResult();
             policyResult.setSubmissionId("sub-123");
             policyResult.setSuccess(true);
@@ -113,7 +113,7 @@ class AdminSubmissionServiceImplTest {
         @DisplayName("size>50 cap is enforced upstream by @Size on BatchRejudgeRequest")
         void batchRejudge_exceeds50_isNoLongerEnforcedAtServiceLayer() {
             List<String> ids = java.util.Collections.nCopies(51, "sub-id");
-            when(submissionMapper.selectById("sub-id")).thenReturn(null);
+            when(submissionReadPort.findById("sub-id")).thenReturn(null);
 
             BatchRejudgeResponse response = adminSubmissionService.batchRejudge(ids, false);
 
@@ -130,8 +130,8 @@ class AdminSubmissionServiceImplTest {
             Submission sub2 = createValidSubmission();
             sub2.setId("sub-2");
 
-            when(submissionMapper.selectById("sub-1")).thenReturn(sub1);
-            when(submissionMapper.selectById("sub-2")).thenReturn(sub2);
+            when(submissionReadPort.findById("sub-1")).thenReturn(sub1);
+            when(submissionReadPort.findById("sub-2")).thenReturn(sub2);
             when(rejudgePolicy.rejudge(any(Submission.class), any(RejudgeResult.class)))
                 .thenAnswer(inv -> {
                     RejudgeResult r = inv.getArgument(1);
@@ -163,7 +163,7 @@ class AdminSubmissionServiceImplTest {
         @DisplayName("batch with 50 IDs is accepted (boundary)")
         void batchRejudge_exactly50_isAccepted() {
             List<String> ids = java.util.Collections.nCopies(50, "sub-id");
-            when(submissionMapper.selectById("sub-id")).thenReturn(null);
+            when(submissionReadPort.findById("sub-id")).thenReturn(null);
 
             BatchRejudgeResponse response = adminSubmissionService.batchRejudge(ids, false);
 
@@ -175,7 +175,7 @@ class AdminSubmissionServiceImplTest {
         @Test
         @DisplayName("no longer silently returns total=0 for null/empty (now 400 upstream)")
         void nullList_doesNotSilentlyReturn_zeroCounts() {
-            when(submissionMapper.selectById("a")).thenReturn(null);
+            when(submissionReadPort.findById("a")).thenReturn(null);
             BatchRejudgeResponse response = adminSubmissionService.batchRejudge(List.of("a"), false);
 
             assertThat(response.getTotal()).isEqualTo(1);

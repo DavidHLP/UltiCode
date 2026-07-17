@@ -8,8 +8,9 @@ import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.submission.dto.ProblemDifficultyCompletion;
+import com.ulticode.modules.submission.dto.ProblemTrend;
+import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -46,7 +47,7 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
     private final ProblemMapper problemMapper;
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
-    private final SubmissionMapper submissionMapper;
+    private final ProblemSubmissionStatsPort problemSubmissionStats;
     private final Clock clock;
 
     @Override
@@ -57,16 +58,11 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
         ProblemCompletionReportVO report = new ProblemCompletionReportVO();
 
         // Total attempts
-        LambdaQueryWrapper<Submission> allWrapper = new LambdaQueryWrapper<>();
-        allWrapper.ge(Submission::getCreatedAt, startDate);
-        long totalAttempts = submissionMapper.selectCount(allWrapper);
+        long totalAttempts = problemSubmissionStats.countCreatedSince(startDate);
         report.setTotalAttempts(totalAttempts);
 
         // Successful attempts (Accepted status)
-        LambdaQueryWrapper<Submission> acceptedWrapper = new LambdaQueryWrapper<>();
-        acceptedWrapper.ge(Submission::getCreatedAt, startDate)
-                .eq(Submission::getStatus, "Accepted");
-        long successfulAttempts = submissionMapper.selectCount(acceptedWrapper);
+        long successfulAttempts = problemSubmissionStats.countAcceptedSince(startDate);
         report.setSuccessfulAttempts(successfulAttempts);
 
         // Overall completion rate
@@ -75,13 +71,13 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
 
         // By difficulty - single aggregation query replacing per-difficulty per-problem N+1 loop
         List<ProblemCompletionReportVO.DifficultyStats> byDifficulty = new ArrayList<>();
-        List<Map<String, Object>> diffStats = submissionMapper.countProblemCompletionByDifficulty();
-        Map<String, Map<String, Object>> diffMap = diffStats.stream()
-                .collect(Collectors.toMap(row -> row.get("difficulty").toString(), row -> row));
+        List<ProblemDifficultyCompletion> diffStats = problemSubmissionStats.countProblemCompletionByDifficulty();
+        Map<String, ProblemDifficultyCompletion> diffMap = diffStats.stream()
+                .collect(Collectors.toMap(ProblemDifficultyCompletion::getDifficulty, row -> row));
         for (String difficulty : Arrays.asList("EASY", "MEDIUM", "HARD")) {
-            Map<String, Object> stats = diffMap.get(difficulty);
-            int totalProblems = stats != null ? ((Number) stats.get("total_problems")).intValue() : 0;
-            int solvedProblems = stats != null ? ((Number) stats.get("solved_problems")).intValue() : 0;
+            ProblemDifficultyCompletion stats = diffMap.get(difficulty);
+            int totalProblems = stats != null && stats.getTotalProblems() != null ? stats.getTotalProblems().intValue() : 0;
+            int solvedProblems = stats != null && stats.getSolvedProblems() != null ? stats.getSolvedProblems().intValue() : 0;
             double rate = totalProblems > 0 ? (solvedProblems * 100.0 / totalProblems) : 0.0;
             byDifficulty.add(new ProblemCompletionReportVO.DifficultyStats(difficulty, totalProblems, solvedProblems, rate));
         }
@@ -105,10 +101,7 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
                     int solvedProblems = 0;
 
                     for (ProblemTagRelation relation : relations) {
-                        LambdaQueryWrapper<Submission> subWrapper = new LambdaQueryWrapper<>();
-                        subWrapper.eq(Submission::getProblemId, relation.getProblemId())
-                                .eq(Submission::getStatus, "Accepted");
-                        if (submissionMapper.selectCount(subWrapper) > 0) {
+                        if (problemSubmissionStats.countAcceptedByProblemId(relation.getProblemId()) > 0) {
                             solvedProblems++;
                         }
                     }
@@ -122,11 +115,11 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
 
         // Trending problems - single aggregation query replacing load-all + Java groupBy + N lookups
         List<ProblemCompletionReportVO.TrendingProblem> trendingProblems = new ArrayList<>();
-        List<Map<String, Object>> trendingData = submissionMapper.findTrendingProblems(startDate, 10);
-        for (Map<String, Object> row : trendingData) {
-            long problemId = ((Number) row.get("problem_id")).longValue();
-            int attemptCount = ((Number) row.get("attempt_count")).intValue();
-            int acceptedCount = ((Number) row.get("accepted_count")).intValue();
+        List<ProblemTrend> trendingData = problemSubmissionStats.findTrendingProblems(startDate, 10);
+        for (ProblemTrend row : trendingData) {
+            long problemId = row.getProblemId();
+            int attemptCount = row.getAttemptCount() != null ? row.getAttemptCount().intValue() : 0;
+            int acceptedCount = row.getAcceptedCount() != null ? row.getAcceptedCount().intValue() : 0;
             double rate = attemptCount > 0 ? (acceptedCount * 100.0 / attemptCount) : 0.0;
             Problem problem = problemMapper.selectById(problemId);
             trendingProblems.add(new ProblemCompletionReportVO.TrendingProblem(
@@ -146,15 +139,8 @@ public class DefaultProblemAnalyticsProjection implements ProblemAnalyticsProjec
         List<ProblemCompletionReportVO.HardestProblem> hardestProblems = publishedProblems.stream()
                 .limit(10)
                 .map(problem -> {
-                    long attemptsForProblem = submissionMapper.selectCount(
-                            new LambdaQueryWrapper<Submission>()
-                                    .eq(Submission::getProblemId, problem.getId())
-                    );
-                    long acceptedCount = submissionMapper.selectCount(
-                            new LambdaQueryWrapper<Submission>()
-                                    .eq(Submission::getProblemId, problem.getId())
-                                    .eq(Submission::getStatus, "Accepted")
-                    );
+                    long attemptsForProblem = problemSubmissionStats.countByProblemId(problem.getId());
+                    long acceptedCount = problemSubmissionStats.countAcceptedByProblemId(problem.getId());
                     double rate = attemptsForProblem > 0 ? (acceptedCount * 100.0 / attemptsForProblem) : 0.0;
                     return new ProblemCompletionReportVO.HardestProblem(
                             problem.getId().toString(),

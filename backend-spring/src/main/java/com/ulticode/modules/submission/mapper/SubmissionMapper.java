@@ -3,12 +3,18 @@ package com.ulticode.modules.submission.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.modules.submission.dto.DailyActiveUserCount;
+import com.ulticode.modules.submission.dto.HourlyActiveUserCount;
 import com.ulticode.modules.submission.dto.LanguageCountDTO;
+import com.ulticode.modules.submission.dto.ProblemDifficultyCompletion;
+import com.ulticode.modules.submission.dto.ProblemTrend;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.StatusCountDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
+import com.ulticode.modules.submission.dto.TopActiveUserCount;
 import com.ulticode.modules.submission.dto.UserBestStats;
+import com.ulticode.modules.submission.dto.WeeklyActiveUserCount;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
@@ -330,14 +336,14 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @param startDate start of analysis period
      * @return list of rows with yearweek, week_start, count
      */
-    @Select("SELECT YEARWEEK(created_at, 3) as yearweek, "
+    @Select("SELECT YEARWEEK(created_at, 3) as year_week, "
             + "ANY_VALUE(DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))) as week_start, "
             + "COUNT(DISTINCT user_id) as count "
             + "FROM submissions "
             + "WHERE created_at >= #{startDate} "
             + "GROUP BY YEARWEEK(created_at, 3) "
-            + "ORDER BY yearweek")
-    List<Map<String, Object>> countWeeklyActiveUsers(@Param("startDate") LocalDateTime startDate);
+            + "ORDER BY year_week")
+    List<WeeklyActiveUserCount> countWeeklyActiveUsers(@Param("startDate") LocalDateTime startDate);
 
     /**
      * Peak active hours aggregation (replaces 24 individual COUNT queries).
@@ -351,7 +357,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "WHERE created_at >= #{startDate} "
             + "GROUP BY HOUR(created_at) "
             + "ORDER BY hour")
-    List<Map<String, Object>> countActiveUsersByHour(@Param("startDate") LocalDateTime startDate);
+    List<HourlyActiveUserCount> countActiveUsersByHour(@Param("startDate") LocalDateTime startDate);
 
     /**
      * Top active users by submission count (replaces load-all + Java groupBy + N user lookups).
@@ -367,7 +373,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "GROUP BY user_id "
             + "ORDER BY submission_count DESC "
             + "LIMIT #{limit}")
-    List<Map<String, Object>> findTopActiveUsers(
+    List<TopActiveUserCount> findTopActiveUsers(
             @Param("startDate") LocalDateTime startDate,
             @Param("limit") int limit);
 
@@ -384,7 +390,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "LEFT JOIN submissions s ON s.problem_id = p.id AND s.status = 'Accepted' "
             + "WHERE p.is_deleted = false AND p.difficulty IS NOT NULL "
             + "GROUP BY UPPER(p.difficulty)")
-    List<Map<String, Object>> countProblemCompletionByDifficulty();
+    List<ProblemDifficultyCompletion> countProblemCompletionByDifficulty();
 
     /**
      * Trending problems (replaces load-all + Java groupBy + N problem lookups).
@@ -402,7 +408,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "GROUP BY problem_id "
             + "ORDER BY attempt_count DESC "
             + "LIMIT #{limit}")
-    List<Map<String, Object>> findTrendingProblems(
+    List<ProblemTrend> findTrendingProblems(
             @Param("startDate") LocalDateTime startDate,
             @Param("limit") int limit);
 
@@ -435,7 +441,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "FROM submissions "
             + "WHERE created_at >= #{startDate} AND created_at < #{endDate} "
             + "GROUP BY DATE(created_at) ORDER BY date")
-    List<Map<String, Object>> countDailyActiveUsers(
+    List<DailyActiveUserCount> countDailyActiveUsers(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 

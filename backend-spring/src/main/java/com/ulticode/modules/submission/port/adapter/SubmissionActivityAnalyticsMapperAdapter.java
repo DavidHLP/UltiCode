@@ -1,5 +1,9 @@
 package com.ulticode.modules.submission.port.adapter;
 
+import com.ulticode.modules.submission.dto.DailyActiveUserCount;
+import com.ulticode.modules.submission.dto.HourlyActiveUserCount;
+import com.ulticode.modules.submission.dto.TopActiveUserCount;
+import com.ulticode.modules.submission.dto.WeeklyActiveUserCount;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.port.SubmissionActivityAnalyticsPort;
 import lombok.RequiredArgsConstructor;
@@ -7,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Production adapter for {@link SubmissionActivityAnalyticsPort}, backed by
@@ -21,22 +24,22 @@ public class SubmissionActivityAnalyticsMapperAdapter implements SubmissionActiv
     private final SubmissionMapper submissionMapper;
 
     @Override
-    public List<Map<String, Object>> countDailyActiveUsers(LocalDateTime startDate, LocalDateTime endDate) {
+    public List<DailyActiveUserCount> countDailyActiveUsers(LocalDateTime startDate, LocalDateTime endDate) {
         return submissionMapper.countDailyActiveUsers(startDate, endDate);
     }
 
     @Override
-    public List<Map<String, Object>> countWeeklyActiveUsers(LocalDateTime startDate) {
+    public List<WeeklyActiveUserCount> countWeeklyActiveUsers(LocalDateTime startDate) {
         return submissionMapper.countWeeklyActiveUsers(startDate);
     }
 
     @Override
-    public List<Map<String, Object>> countActiveUsersByHour(LocalDateTime startDate) {
+    public List<HourlyActiveUserCount> countActiveUsersByHour(LocalDateTime startDate) {
         return submissionMapper.countActiveUsersByHour(startDate);
     }
 
     @Override
-    public List<Map<String, Object>> findTopActiveUsers(LocalDateTime startDate, int limit) {
+    public List<TopActiveUserCount> findTopActiveUsers(LocalDateTime startDate, int limit) {
         return submissionMapper.findTopActiveUsers(startDate, limit);
     }
 

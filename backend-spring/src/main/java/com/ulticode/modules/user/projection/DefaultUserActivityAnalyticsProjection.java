@@ -1,6 +1,10 @@
 package com.ulticode.modules.user.projection;
 
 import com.ulticode.modules.admin.dto.UserActivityReportVO;
+import com.ulticode.modules.submission.dto.DailyActiveUserCount;
+import com.ulticode.modules.submission.dto.HourlyActiveUserCount;
+import com.ulticode.modules.submission.dto.TopActiveUserCount;
+import com.ulticode.modules.submission.dto.WeeklyActiveUserCount;
 import com.ulticode.modules.submission.port.SubmissionActivityAnalyticsPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
@@ -12,7 +16,6 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -54,23 +57,23 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
         List<UserActivityReportVO.DailyActiveUsers> dailyActiveUsers = new ArrayList<>();
         LocalDateTime overallStart = LocalDateTime.now(clock).minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
         LocalDateTime overallEnd = LocalDateTime.now(clock).plusDays(1).withHour(0).withMinute(0).withSecond(0);
-        List<Map<String, Object>> dailyCounts = submissionActivityAnalytics.countDailyActiveUsers(overallStart, overallEnd);
-        for (Map<String, Object> row : dailyCounts) {
+        List<DailyActiveUserCount> dailyCounts = submissionActivityAnalytics.countDailyActiveUsers(overallStart, overallEnd);
+        for (DailyActiveUserCount row : dailyCounts) {
             dailyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
-                    row.get("date").toString(),
-                    ((Number) row.get("count")).intValue()
+                    row.getDate(),
+                    row.getCount() != null ? row.getCount().intValue() : 0
             ));
         }
         report.setActiveUsersDaily(dailyActiveUsers);
 
         // Weekly active users - single aggregation query replacing per-week N+1 loop
         List<UserActivityReportVO.DailyActiveUsers> weeklyActiveUsers = new ArrayList<>();
-        List<Map<String, Object>> weeklyCounts = submissionActivityAnalytics.countWeeklyActiveUsers(startDate);
-        for (Map<String, Object> row : weeklyCounts) {
-            String weekStart = row.get("week_start") != null
-                    ? row.get("week_start").toString()
-                    : row.get("yearweek").toString();
-            int count = ((Number) row.get("count")).intValue();
+        List<WeeklyActiveUserCount> weeklyCounts = submissionActivityAnalytics.countWeeklyActiveUsers(startDate);
+        for (WeeklyActiveUserCount row : weeklyCounts) {
+            String weekStart = row.getWeekStart() != null
+                    ? row.getWeekStart()
+                    : String.valueOf(row.getYearWeek());
+            int count = row.getCount() != null ? row.getCount().intValue() : 0;
             weeklyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(weekStart, count));
         }
         report.setActiveUsersWeekly(weeklyActiveUsers);
@@ -84,10 +87,10 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
         // Peak active hours - single aggregation query replacing 24 individual COUNT queries
         List<UserActivityReportVO.PeakActiveHour> peakHours = new ArrayList<>();
-        List<Map<String, Object>> hourCounts = submissionActivityAnalytics.countActiveUsersByHour(LocalDateTime.now(clock).minusDays(30));
-        for (Map<String, Object> row : hourCounts) {
-            int hour = ((Number) row.get("hour")).intValue();
-            int count = ((Number) row.get("count")).intValue();
+        List<HourlyActiveUserCount> hourCounts = submissionActivityAnalytics.countActiveUsersByHour(LocalDateTime.now(clock).minusDays(30));
+        for (HourlyActiveUserCount row : hourCounts) {
+            int hour = row.getHour() != null ? row.getHour() : 0;
+            int count = row.getCount() != null ? row.getCount().intValue() : 0;
             peakHours.add(new UserActivityReportVO.PeakActiveHour(hour, count));
         }
         peakHours.sort((a, b) -> Long.compare(b.getCount(), a.getCount()));
@@ -95,10 +98,10 @@ public class DefaultUserActivityAnalyticsProjection implements UserActivityAnaly
 
         // Top active users - single aggregation query replacing load-all + Java groupBy + N user lookups
         List<UserActivityReportVO.TopActiveUser> topUsers = new ArrayList<>();
-        List<Map<String, Object>> topUserCounts = submissionActivityAnalytics.findTopActiveUsers(startDate, 10);
-        for (Map<String, Object> row : topUserCounts) {
-            String userId = row.get("user_id").toString();
-            int count = ((Number) row.get("submission_count")).intValue();
+        List<TopActiveUserCount> topUserCounts = submissionActivityAnalytics.findTopActiveUsers(startDate, 10);
+        for (TopActiveUserCount row : topUserCounts) {
+            String userId = row.getUserId();
+            int count = row.getSubmissionCount() != null ? row.getSubmissionCount().intValue() : 0;
             User user = userMapper.selectById(userId);
             topUsers.add(new UserActivityReportVO.TopActiveUser(
                     userId,

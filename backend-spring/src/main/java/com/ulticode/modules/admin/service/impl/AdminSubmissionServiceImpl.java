@@ -5,8 +5,8 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
+import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.policy.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
-    private final SubmissionMapper submissionMapper;
+    private final AdminSubmissionReadPort submissionReadPort;
     /**
      * C2 / architecture-review #3: the rejudge policy owns strategy
      * selection (fenced vs legacy) behind one {@link RejudgePolicy#rejudge}
@@ -46,7 +46,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     @Override
     @Audited(action = AuditVocabulary.REQUEUE_SUBMISSION, entityType = AuditVocabulary.ENTITY_SUBMISSION, userIdFrom = "id")
     public RejudgeResult rejudge(String id, boolean notifyUser) {
-        Submission submission = submissionMapper.selectById(id);
+        Submission submission = submissionReadPort.findById(id);
         if (submission == null) {
             RejudgeResult result = new RejudgeResult();
             result.setSubmissionId(id);

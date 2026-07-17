@@ -1,7 +1,12 @@
 package com.ulticode.modules.admin.port;
 
+import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.dto.AdminSubmissionQueryDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.port.SubmissionAnalyticsPort;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Typed read port the admin module uses to query the submission module.
@@ -28,4 +33,20 @@ public interface AdminSubmissionReadPort extends SubmissionAnalyticsPort {
      * Count all submissions across the system.
      */
     long countAll();
+
+    /**
+     * Paginated submission search. The {@link AdminSubmissionQueryDTO} carries
+     * the filter/sort fields; the port resolves the search-term user/problem
+     * id pre-fetch and the wrapper build so callers never touch the mapper.
+     */
+    PageResult<Submission> searchSubmissions(AdminSubmissionQueryDTO query, int page, int pageSize);
+
+    /** Submissions created at or after {@code from}. */
+    long countCreatedSince(LocalDateTime from);
+
+    /** Submissions currently in {@code status}. */
+    long countByStatus(String status);
+
+    /** Distinct submission language codes observed in the store. */
+    List<String> findDistinctLanguages();
 }

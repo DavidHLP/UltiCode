@@ -28,9 +28,8 @@ import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.port.JudgingLanguageSupport;
+import com.ulticode.modules.submission.port.ProblemSubmissionStatsPort;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +66,7 @@ public class DefaultProblemProjection implements ProblemProjection {
     private final ProblemLanguageMapper problemLanguageMapper;
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
-    private final SubmissionMapper submissionMapper;
+    private final ProblemSubmissionStatsPort problemSubmissionStats;
     private final SolutionMapper solutionMapper;
     private final EdgeOperationInspector edgeOperationInspector;
     private final EdgeOperationMapper edgeOperationMapper;
@@ -346,9 +345,7 @@ public class DefaultProblemProjection implements ProblemProjection {
         response.setUpdatedAt(problem.getUpdatedAt());
 
         // Real stats from database
-        Long submissionCount = submissionMapper.selectCount(
-                new LambdaQueryWrapper<Submission>()
-                        .eq(Submission::getProblemId, problem.getId()));
+        long submissionCount = problemSubmissionStats.countByProblemId(problem.getId());
         response.setSubmissionCount(submissionCount);
 
         Long solutionCount = solutionMapper.selectCount(

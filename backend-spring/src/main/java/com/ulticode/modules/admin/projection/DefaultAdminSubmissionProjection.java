@@ -1,7 +1,5 @@
 package com.ulticode.modules.admin.projection;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -16,13 +14,11 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -55,7 +51,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultAdminSubmissionProjection implements AdminSubmissionProjection {
 
-    private final SubmissionMapper submissionMapper;
     private final AdminSubmissionReadPort submissionReadPort;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
@@ -69,84 +64,17 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
     public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
         PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
 
-        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-
-        // Search filter — resolve at DB level by pre-fetching matching user/problem IDs
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = query.getSearch();
-
-            // Find user IDs matching the search term
-            List<String> matchingUserIds = userMapper.selectList(
-                    new LambdaQueryWrapper<User>().like(User::getUsername, search)
-            ).stream().map(User::getId).collect(Collectors.toList());
-
-            // Find problem IDs matching the search term
-            List<Long> matchingProblemIds = problemMapper.selectList(
-                    new LambdaQueryWrapper<Problem>().like(Problem::getTitle, search)
-            ).stream().map(Problem::getId).collect(Collectors.toList());
-
-            wrapper.and(w -> {
-                w.like(Submission::getId, search)
-                        .or().eq(Submission::getLanguage, search);
-                if (!matchingUserIds.isEmpty()) {
-                    w.or().in(Submission::getUserId, matchingUserIds);
-                }
-                if (!matchingProblemIds.isEmpty()) {
-                    w.or().in(Submission::getProblemId, matchingProblemIds);
-                }
-            });
-        }
-
-        // User ID filter
-        if (StringUtils.hasText(query.getUserId())) {
-            wrapper.eq(Submission::getUserId, query.getUserId());
-        }
-
-        // Problem ID filter
-        if (query.getProblemId() != null) {
-            wrapper.eq(Submission::getProblemId, query.getProblemId());
-        }
-
-        // Status filter
-        if (StringUtils.hasText(query.getStatus())) {
-            wrapper.eq(Submission::getStatus, query.getStatus());
-        }
-
-        // Language filter
-        if (StringUtils.hasText(query.getLanguage())) {
-            wrapper.eq(Submission::getLanguage, query.getLanguage());
-        }
-
-        // Date range filter
-        if (query.getStartDate() != null) {
-            wrapper.ge(Submission::getCreatedAt, query.getStartDate());
-        }
-        if (query.getEndDate() != null) {
-            wrapper.le(Submission::getCreatedAt, query.getEndDate());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "createdAt" -> wrapper.orderBy(true, isAsc, Submission::getCreatedAt);
-            case "runtime" -> wrapper.orderBy(true, isAsc, Submission::getRuntime);
-            case "memory" -> wrapper.orderBy(true, isAsc, Submission::getMemory);
-            case "status" -> wrapper.orderBy(true, isAsc, Submission::getStatus);
-            default -> wrapper.orderBy(true, isAsc, Submission::getCreatedAt);
-        }
-
-        Page<Submission> pageResult = new Page<>(pageRequest.page(), pageRequest.pageSize());
-        Page<Submission> result = submissionMapper.selectPage(pageResult, wrapper);
+        PageResult<Submission> result = submissionReadPort.searchSubmissions(
+                query, pageRequest.page(), pageRequest.pageSize());
 
         // Batch-load users and problems to avoid N+1 queries (WR-05)
         Map<String, User> userMap = new HashMap<>();
         Map<Long, Problem> problemMap = new HashMap<>();
-        if (!result.getRecords().isEmpty()) {
-            Set<String> userIds = result.getRecords().stream()
+        if (!result.getItems().isEmpty()) {
+            Set<String> userIds = result.getItems().stream()
                     .map(Submission::getUserId)
                     .collect(Collectors.toSet());
-            Set<Long> problemIds = result.getRecords().stream()
+            Set<Long> problemIds = result.getItems().stream()
                     .map(Submission::getProblemId)
                     .collect(Collectors.toSet());
 
@@ -163,7 +91,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
         // Enrich with user and problem information using batch-loaded maps
         Map<String, User> finalUserMap = userMap;
         Map<Long, Problem> finalProblemMap = problemMap;
-        List<AdminSubmissionVO> vos = result.getRecords().stream()
+        List<AdminSubmissionVO> vos = result.getItems().stream()
                 .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
                 .collect(Collectors.toList());
 
@@ -181,7 +109,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public AdminSubmissionVO getSubmission(String id) {
-        Submission submission = submissionMapper.selectById(id);
+        Submission submission = submissionReadPort.findById(id);
         if (submission == null) {
             throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
@@ -221,16 +149,10 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
         // Last 24 hours
         LocalDateTime yesterday = LocalDateTime.now(clock).minusHours(24);
-        Long last24h = submissionMapper.selectCount(
-                new LambdaQueryWrapper<Submission>().ge(Submission::getCreatedAt, yesterday)
-        );
-        stats.setLast24h(last24h);
+        stats.setLast24h(submissionReadPort.countCreatedSince(yesterday));
 
         // Pending count
-        Long pending = submissionMapper.selectCount(
-                new LambdaQueryWrapper<Submission>().eq(Submission::getStatus, "Pending")
-        );
-        stats.setPending(pending);
+        stats.setPending(submissionReadPort.countByStatus("Pending"));
 
         return stats;
     }
@@ -259,7 +181,7 @@ public class DefaultAdminSubmissionProjection implements AdminSubmissionProjecti
 
     @Override
     public List<LanguageOption> getLanguages() {
-        return submissionMapper.findDistinctLanguages().stream()
+        return submissionReadPort.findDistinctLanguages().stream()
             .map(code -> {
                 LanguageOption opt = new LanguageOption();
                 opt.setKey(code);

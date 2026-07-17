@@ -56,7 +56,7 @@ export default {
         tag: "EDIT",
         title: "Online editor",
         desc: "Write and refine a solution beside the problem, with C++, Python, and JavaScript preloaded.",
-        glyph: "{}",
+        glyph: "</>",
       },
       judge: {
         tag: "JUDGE",

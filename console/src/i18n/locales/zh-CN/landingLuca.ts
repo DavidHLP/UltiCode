@@ -55,7 +55,7 @@ export default {
         tag: "EDIT",
         title: "在线代码编辑器",
         desc: "在题目上下文里编写和调整解答,预置 C++、Python、JavaScript。",
-        glyph: "{}",
+        glyph: "</>",
       },
       judge: {
         tag: "JUDGE",

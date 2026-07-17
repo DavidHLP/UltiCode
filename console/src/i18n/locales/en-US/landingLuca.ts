@@ -1,0 +1,99 @@
+export default {
+  loading: "Loading",
+  enter: "Enter UltiCode",
+  skipLoader: "Skip intro",
+  portalHint: "Judge · Contests · Editorials",
+  portalStatus: "Preparing the page",
+  nav: {
+    primaryNav: "Primary navigation",
+    mobileNav: "Mobile navigation",
+    skipToContent: "Skip to content",
+    home: "Home",
+    problems: "Problems",
+    contests: "Contests",
+    community: "Community",
+    talk: "Start for free",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+  },
+  hero: {
+    eyebrow: "COMPETITIVE PROGRAMMING PLATFORM",
+    brand: "ULTICODE",
+    tagline: "Write the idea. Let the code prove it.",
+    roleLine:
+      "Start with one problem and turn every submission into real skill through instant judging.",
+    cta: "Start for free",
+    ctaSecondary: "Try a problem",
+    words: {
+      code: "CODE",
+      judge: "JUDGE",
+      compete: "COMPETE",
+      learn: "LEARN",
+    },
+  },
+  manifesto: {
+    eyebrow: "Why UltiCode",
+    lead: "No guessing. Results talk.",
+    body1:
+      "From reading the prompt to an isolated verdict, every step serves one trustworthy judgement. Failures have a stage; passes have evidence.",
+    body2:
+      "Problems, contests, editorials, and discussion share one feedback loop, so you focus on the next line of code instead of switching tools.",
+    signal: "WRITE → JUDGE → REVIEW",
+  },
+  work: {
+    eyebrow: "Available now",
+    title: "Doors you can walk through today",
+    subtitle: "Nothing aspirational. Each item below is reachable from the product navigation.",
+    viewAll: "Browse problems",
+    items: {
+      twosum: {
+        tag: "Sample",
+        title: "Two Sum",
+        desc: "Array and hash table. Start with a classic and run the full submit-and-judge loop.",
+      },
+      editor: {
+        tag: "EDIT",
+        title: "Online editor",
+        desc: "Write and refine a solution beside the problem, with C++, Python, and JavaScript preloaded.",
+      },
+      judge: {
+        tag: "JUDGE",
+        title: "Isolated judging",
+        desc: "Compile, run, and return a clear verdict that identifies the failing stage.",
+      },
+      contest: {
+        tag: "CONTEST",
+        title: "Timed contests",
+        desc: "Submit under the same rules and time window, then inspect the ranking.",
+      },
+    },
+  },
+  capabilities: {
+    eyebrow: "One practice path",
+    title: "Four pillars, one loop",
+    pillars: {
+      editor: { label: "EDITOR", desc: "Write and refine in context" },
+      judge: { label: "JUDGE", desc: "Isolated run and verdict" },
+      contest: { label: "CONTEST", desc: "Timed events and ranking" },
+      community: { label: "COMMUNITY", desc: "Solutions, comments, review" },
+    },
+  },
+  contact: {
+    eyebrow: "Start",
+    title: "Your next accepted solution starts here",
+    desc: "Create a free account to save submissions, enter contests, and review algorithms with other solvers.",
+    cta: "Start for free",
+    ctaSecondary: "Browse problems",
+  },
+  social: {
+    label: "External links",
+    github: "GitHub",
+    docs: "Documentation",
+    community: "Developer community",
+  },
+  footer: {
+    builtWith: "Built with Vue 3 and Spring Boot",
+    copyright: "© 2026 UltiCode Project · Apache License 2.0",
+    rights: "ICP filing pending · 备案申请中",
+  },
+} as const;

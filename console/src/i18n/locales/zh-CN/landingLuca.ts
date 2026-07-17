@@ -1,0 +1,98 @@
+export default {
+  loading: "加载中",
+  enter: "进入 UltiCode",
+  skipLoader: "跳过加载",
+  portalHint: "在线判题 · 竞赛 · 题解",
+  portalStatus: "正在准备页面",
+  nav: {
+    primaryNav: "主导航",
+    mobileNav: "移动端导航",
+    skipToContent: "跳到正文",
+    home: "首页",
+    problems: "题库",
+    contests: "竞赛",
+    community: "社区",
+    talk: "免费开始",
+    openMenu: "打开菜单",
+    closeMenu: "关闭菜单",
+  },
+  hero: {
+    eyebrow: "COMPETITIVE PROGRAMMING PLATFORM",
+    brand: "ULTICODE",
+    tagline: "写下思路,交给代码证明。",
+    roleLine: "一道题开始,在即时评测里把每次提交变成算法能力。",
+    cta: "免费开始",
+    ctaSecondary: "先试一道题",
+    words: {
+      code: "CODE",
+      judge: "JUDGE",
+      compete: "COMPETE",
+      learn: "LEARN",
+    },
+  },
+  manifesto: {
+    eyebrow: "为什么是 UltiCode",
+    lead: "不靠猜,用结果说话。",
+    body1:
+      "从读题、实现,到隔离评测给出明确 verdict,每一步都围绕一次可信的判定。失败有阶段,通过有依据。",
+    body2:
+      "题库、竞赛、题解和讨论共享同一条反馈链,你不用在工具之间来回切换,只关注下一行代码。",
+    signal: "WRITE → JUDGE → REVIEW",
+  },
+  work: {
+    eyebrow: "已开放的能力",
+    title: "今天就能用的入口",
+    subtitle: "不画大饼。下列每一项都能从产品导航直接进入。",
+    viewAll: "查看题库",
+    items: {
+      twosum: {
+        tag: "示例题",
+        title: "两数之和",
+        desc: "数组与哈希表。从一道经典题开始,体验完整提交与评测闭环。",
+      },
+      editor: {
+        tag: "EDIT",
+        title: "在线代码编辑器",
+        desc: "在题目上下文里编写和调整解答,预置 C++、Python、JavaScript。",
+      },
+      judge: {
+        tag: "JUDGE",
+        title: "隔离评测",
+        desc: "编译、运行并返回明确 verdict,帮助定位失败阶段。",
+      },
+      contest: {
+        tag: "CONTEST",
+        title: "限时竞赛",
+        desc: "在统一规则与时间窗口内提交,并查看比赛排名。",
+      },
+    },
+  },
+  capabilities: {
+    eyebrow: "一条训练路径",
+    title: "四个支柱,同一闭环",
+    pillars: {
+      editor: { label: "EDITOR", desc: "题目内编写与调整" },
+      judge: { label: "JUDGE", desc: "隔离运行与 verdict" },
+      contest: { label: "CONTEST", desc: "限时竞赛与排名" },
+      community: { label: "COMMUNITY", desc: "题解、评论与复盘" },
+    },
+  },
+  contact: {
+    eyebrow: "开始",
+    title: "下一次通过,从这一题开始",
+    desc: "创建免费账户,保存提交、参加竞赛,并与其他解题者一起复盘算法。",
+    cta: "免费开始",
+    ctaSecondary: "浏览题库",
+  },
+  social: {
+    label: "外部链接",
+    github: "GitHub",
+    docs: "项目文档",
+    community: "开发者社区",
+  },
+  footer: {
+    builtWith: "用 Vue 3 与 Spring Boot 构建",
+    copyright: "© 2026 UltiCode 项目 · Apache License 2.0",
+    rights: "ICP 备案申请中 · ICP filing pending",
+  },
+} as const;

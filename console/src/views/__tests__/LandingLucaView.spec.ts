@@ -1,0 +1,148 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import LandingLucaView from "../LandingLucaView.vue";
+
+const push = vi.fn();
+
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push }),
+}));
+
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({ isAuthenticated: false }),
+}));
+
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}));
+
+const routeHref = (to: { name?: string; params?: Record<string, string> }) => {
+  const params = to.params ? "/" + Object.values(to.params).join("/") : "";
+  return `/${to.name ?? ""}${params}`;
+};
+
+const mountView = () =>
+  mount(LandingLucaView, {
+    global: {
+      stubs: {
+        RouterLink: {
+          props: ["to"],
+          template: '<a :href="routeHref(to)"><slot /></a>',
+          methods: { routeHref },
+        },
+      },
+    },
+  });
+
+describe("LandingLucaView", () => {
+  beforeEach(() => {
+    push.mockClear();
+    window.sessionStorage.clear();
+    try {
+      window.sessionStorage.removeItem("luca-entered");
+    } catch {
+      /* ignore */
+    }
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders the four brand word-art words", () => {
+    const wrapper = mountView();
+    const words = wrapper.findAll(".luca-word").map((w) => w.text());
+
+    expect(words).toEqual([
+      "landingLuca.hero.words.code",
+      "landingLuca.hero.words.judge",
+      "landingLuca.hero.words.compete",
+      "landingLuca.hero.words.learn",
+    ]);
+  });
+
+  it("shows the loading portal counter and ENTER control", () => {
+    const wrapper = mountView();
+    const counter = wrapper.find(".luca-portal-counter");
+
+    expect(counter.text()).toBe("000");
+    expect(wrapper.find(".luca-portal-enter").exists()).toBe(true);
+  });
+
+  it("reveals ENTER and fills the counter after skipping", async () => {
+    const wrapper = mountView();
+    const enter = wrapper.find(".luca-portal-enter");
+
+    expect(enter.attributes("tabindex")).toBe("-1");
+
+    await wrapper.find(".luca-portal-skip").trigger("click");
+    expect(wrapper.find(".luca-portal-counter").text()).toBe("100");
+    expect(wrapper.find(".luca-portal-enter").attributes("tabindex")).toBe("0");
+  });
+
+  it("marks the portal as leaving once ENTER is activated", async () => {
+    const wrapper = mountView();
+    await wrapper.find(".luca-portal-skip").trigger("click");
+    await wrapper.find(".luca-portal-enter").trigger("click");
+
+    expect(wrapper.find(".luca-portal.is-leaving").exists()).toBe(true);
+  });
+
+  it("routes the hero CTA straight into the seeded problem", async () => {
+    const wrapper = mountView();
+    await wrapper.find(".luca-hero-cta").trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "problem-detail",
+      params: { slug: "two-sum" },
+    });
+  });
+
+  it("routes the contact CTA straight into the seeded problem", async () => {
+    const wrapper = mountView();
+    await wrapper.find(".luca-contact-cta").trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "problem-detail",
+      params: { slug: "two-sum" },
+    });
+  });
+
+  it("routes the nav talk button into the seeded problem", async () => {
+    const wrapper = mountView();
+    await wrapper.find(".luca-talk").trigger("click");
+
+    expect(push).toHaveBeenCalledWith({
+      name: "problem-detail",
+      params: { slug: "two-sum" },
+    });
+  });
+
+  it("opens the mobile menu with the four primary destinations", async () => {
+    const wrapper = mountView();
+    expect(wrapper.find(".luca-menu").exists()).toBe(false);
+
+    await wrapper.find(".luca-burger").trigger("click");
+    const menuLinks = wrapper.findAll(".luca-menu-link");
+
+    expect(menuLinks).toHaveLength(4);
+  });
+
+  it("exposes a skip link to main content for keyboard users", () => {
+    const wrapper = mountView();
+
+    expect(wrapper.find(".luca-skip").attributes("href")).toBe("#luca-main");
+    expect(wrapper.find("#luca-main").exists()).toBe(true);
+  });
+
+  it("links every work card to a real product surface", () => {
+    const wrapper = mountView();
+    const hrefs = wrapper.findAll(".luca-work-card").map((c) => c.attributes("href"));
+
+    expect(hrefs).toEqual([
+      "/problem-detail/two-sum",
+      "/problemset",
+      "/problemset",
+      "/contest-list",
+    ]);
+  });
+});

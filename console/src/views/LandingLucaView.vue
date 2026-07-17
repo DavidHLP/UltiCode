@@ -1,0 +1,147 @@
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { useAuthStore } from "@/stores/auth";
+import LucaPortal from "./landing-luca/LucaPortal.vue";
+import LucaNav from "./landing-luca/LucaNav.vue";
+import LucaWordStack from "./landing-luca/LucaWordStack.vue";
+import LucaManifesto from "./landing-luca/LucaManifesto.vue";
+import LucaWork from "./landing-luca/LucaWork.vue";
+import LucaCapabilities from "./landing-luca/LucaCapabilities.vue";
+import LucaContact from "./landing-luca/LucaContact.vue";
+import { useLucaPortal } from "@/composables/landing/useLucaPortal";
+import { useLucaReveal } from "@/composables/landing/useLucaReveal";
+import { useLucaCursor } from "@/composables/landing/useLucaCursor";
+import "@/assets/styles/landing-luca.css";
+
+const TWO_SUM_SLUG = "two-sum";
+const PORTOR_LEAVE_MS = 600;
+
+const { t } = useI18n();
+const router = useRouter();
+const authStore = useAuthStore();
+
+const rootRef = ref<HTMLElement | null>(null);
+const cursorRef = ref<HTMLElement | null>(null);
+
+const portal = useLucaPortal();
+const showPortal = ref(!portal.entered.value);
+const menuOpen = ref(false);
+let dismissTimer: ReturnType<typeof setTimeout> | undefined;
+
+useLucaReveal(rootRef);
+const cursor = useLucaCursor(cursorRef);
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const goToSeedProblem = () =>
+  router.push(
+    authStore.isAuthenticated
+      ? { name: "forum-home" }
+      : { name: "problem-detail", params: { slug: TWO_SUM_SLUG } },
+  );
+
+const handleEnter = () => {
+  portal.enter();
+  // Let the exit animation play before unmounting; under reduced-motion the
+  // CSS animation is disabled, so remove the portal on the next frame.
+  const delay = prefersReducedMotion() ? 0 : PORTOR_LEAVE_MS;
+  dismissTimer = setTimeout(() => {
+    showPortal.value = false;
+  }, delay);
+};
+
+onBeforeUnmount(() => {
+  if (dismissTimer) clearTimeout(dismissTimer);
+});
+
+const handleSkip = () => {
+  portal.skip();
+};
+
+onMounted(() => {
+  // Reveal hero immediately so the word-art is never hidden behind the
+  // intersection threshold on first paint.
+  rootRef.value
+    ?.querySelectorAll<HTMLElement>(".luca-hero [data-luca-reveal], .luca-hero .luca-line")
+    .forEach((el) => el.classList.add("is-revealed"));
+});
+</script>
+
+<template>
+  <div
+    ref="rootRef"
+    class="luca-root"
+    :class="{ 'luca-cursor-enabled': cursor.active.value }"
+  >
+    <a href="#luca-main" class="luca-skip">{{ t("landingLuca.nav.skipToContent") }}</a>
+
+    <LucaNav
+      :menu-open="menuOpen"
+      @toggle-menu="menuOpen = !menuOpen"
+      @close-menu="menuOpen = false"
+      @talk="goToSeedProblem"
+    />
+
+    <main id="luca-main">
+      <section class="luca-hero" aria-label="UltiCode">
+        <p class="luca-hero-eyebrow" data-luca-reveal>
+          {{ t("landingLuca.hero.eyebrow") }}
+        </p>
+        <LucaWordStack />
+        <div class="luca-hero-foot">
+          <p class="luca-hero-tagline" data-luca-reveal>
+            {{ t("landingLuca.hero.roleLine") }}
+          </p>
+          <button type="button" class="luca-hero-cta" @click="goToSeedProblem">
+            {{ t("landingLuca.hero.cta") }} →
+          </button>
+        </div>
+      </section>
+
+      <LucaManifesto />
+      <LucaWork />
+      <LucaCapabilities />
+      <LucaContact @primary="goToSeedProblem" />
+    </main>
+
+    <footer class="luca-footer">
+      <span>{{ t("landingLuca.footer.builtWith") }}</span>
+      <nav class="luca-footer-links" :aria-label="t('landingLuca.social.label')">
+        <a
+          href="https://github.com/ulticode/ulticode"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="luca-footer-link"
+          >{{ t("landingLuca.social.github") }}</a
+        >
+        <a
+          href="https://ulticode.dev/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="luca-footer-link"
+          >{{ t("landingLuca.social.docs") }}</a
+        >
+        <RouterLink :to="{ name: 'forum-home' }" class="luca-footer-link">{{
+          t("landingLuca.social.community")
+        }}</RouterLink>
+      </nav>
+      <span>{{ t("landingLuca.footer.copyright") }}</span>
+    </footer>
+
+    <div ref="cursorRef" class="luca-cursor" aria-hidden="true"></div>
+
+    <LucaPortal
+      v-if="showPortal"
+      :progress="portal.progress.value"
+      :ready="portal.ready.value"
+      :leaving="portal.entered.value"
+      @enter="handleEnter"
+      @skip="handleSkip"
+    />
+  </div>
+</template>

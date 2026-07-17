@@ -1,0 +1,726 @@
+/* aboutluca-inspired landing styles.
+ *
+ * Lifted into its own sheet per frontend-rules.md ("no scoped CSS unless
+ * justified"). Token-only: every color/font comes from the shared theme so
+ * the page follows the dark/light theme automatically. Wrapped in
+ * @layer components so Tailwind utilities always win the cascade.
+ *
+ * Design language: loading portal → giant typographic word-art → minimal
+ * editorial layout → vertical scroll narrative. Animations degrade fully
+ * under prefers-reduced-motion (content stays visible). */
+@layer components {
+  /* ---------- root ---------- */
+  .luca-root {
+    position: relative;
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--foreground);
+    overflow-x: clip;
+    font-family: var(--uc-font-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Hide the system cursor only on precise pointers that also get the
+   * decorative follow dot; touch keeps the native cursor. */
+  @media (hover: hover) and (pointer: fine) {
+    .luca-root.luca-cursor-enabled,
+    .luca-root.luca-cursor-enabled * {
+      cursor: none;
+    }
+    .luca-root.luca-cursor-enabled a,
+    .luca-root.luca-cursor-enabled button,
+    .luca-root.luca-cursor-enabled [role="button"] {
+      cursor: none;
+    }
+  }
+
+  /* ---------- skip link ---------- */
+  .luca-skip {
+    position: absolute;
+    left: 1rem;
+    top: -3rem;
+    z-index: 100;
+    padding: 0.6rem 1rem;
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    transition: top 150ms ease;
+  }
+  .luca-skip:focus-visible {
+    top: 1rem;
+  }
+
+  /* ---------- loading portal ---------- */
+  .luca-portal {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.5rem, 6vh, 3rem);
+    background: var(--background);
+    color: var(--foreground);
+  }
+  .luca-portal.is-leaving {
+    pointer-events: none;
+    animation: luca-portal-out 600ms cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  }
+  .luca-portal-status {
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .luca-portal-counter {
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: clamp(4rem, 18vw, 12rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .luca-portal-hint {
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .luca-portal-enter {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid var(--foreground);
+    background: transparent;
+    padding: 0.9rem 2rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--foreground);
+    opacity: 0;
+    transform: translateY(0.75rem);
+    transition:
+      opacity 400ms ease,
+      transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background 200ms ease,
+      color 200ms ease;
+  }
+  .luca-portal-enter.is-ready {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .luca-portal-enter:hover,
+  .luca-portal-enter:focus-visible {
+    background: var(--foreground);
+    color: var(--background);
+  }
+  .luca-portal-skip {
+    position: absolute;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .luca-portal-skip:hover,
+  .luca-portal-skip:focus-visible {
+    color: var(--foreground);
+  }
+
+  /* ---------- nav ---------- */
+  .luca-nav {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem clamp(1.25rem, 4vw, 2.5rem);
+    mix-blend-mode: difference;
+    color: var(--foreground);
+  }
+  /* difference blend needs a light counter-color; flip via currentColor so
+   * the wordmark stays legible over both dark and light hero backgrounds. */
+  .luca-brandmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: 0.9375rem;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+  .luca-brandmark-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: currentColor;
+  }
+  .luca-nav-links {
+    display: none;
+    align-items: center;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+  }
+  .luca-nav-link {
+    position: relative;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 0.85;
+    transition: opacity 200ms ease;
+  }
+  .luca-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.35rem;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-nav-link:hover,
+  .luca-nav-link:focus-visible {
+    opacity: 1;
+  }
+  .luca-nav-link:hover::after,
+  .luca-nav-link:focus-visible::after,
+  .luca-nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+  .luca-talk {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid #fff;
+    padding: 0.6rem 1.1rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #fff;
+    transition:
+      background 200ms ease,
+      color 200ms ease;
+  }
+  .luca-talk:hover,
+  .luca-talk:focus-visible {
+    background: #fff;
+    color: #000;
+  }
+  .luca-burger {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0.4rem;
+    background: transparent;
+    border: 0;
+    color: #fff;
+  }
+  .luca-burger span {
+    display: block;
+    width: 26px;
+    height: 2px;
+    background: currentColor;
+    transition: transform 250ms ease, opacity 200ms ease;
+  }
+  .luca-burger[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .luca-burger[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+  }
+  .luca-burger[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* ---------- mobile overlay menu ---------- */
+  .luca-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem clamp(1.25rem, 8vw, 3rem);
+    background: var(--background);
+    color: var(--foreground);
+  }
+  .luca-menu-link {
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: clamp(2rem, 11vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    opacity: 0.92;
+    transition: color 200ms ease, opacity 200ms ease, padding-left 250ms ease;
+  }
+  .luca-menu-link:hover,
+  .luca-menu-link:focus-visible {
+    color: var(--accent-electric);
+    opacity: 1;
+    padding-left: 0.5rem;
+  }
+  .luca-menu-cta {
+    margin-top: 2rem;
+    align-self: flex-start;
+    border: 1px solid var(--foreground);
+    padding: 0.9rem 1.6rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--foreground);
+  }
+
+  /* ---------- hero word-art ---------- */
+  .luca-hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 7rem clamp(1.25rem, 4vw, 2.5rem) 2.5rem;
+  }
+  .luca-wordstack {
+    display: flex;
+    flex-direction: column;
+    line-height: 0.82;
+  }
+  .luca-word {
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: clamp(3.25rem, 17vw, 16rem);
+    letter-spacing: -0.045em;
+    line-height: 0.82;
+    color: var(--foreground);
+    text-transform: uppercase;
+    transition: transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 250ms ease;
+    will-change: transform;
+  }
+  /* Stagger words horizontally to echo aboutluca's offset stack. */
+  .luca-word:nth-child(2) {
+    align-self: flex-end;
+    color: var(--accent-electric);
+  }
+  .luca-word:nth-child(3) {
+    padding-left: clamp(1rem, 12vw, 8rem);
+  }
+  .luca-word:nth-child(4) {
+    align-self: flex-end;
+    opacity: 0.32;
+  }
+  .luca-word:hover {
+    color: var(--accent-electric);
+  }
+  .luca-hero-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: clamp(1.5rem, 5vh, 3rem);
+  }
+  .luca-hero-tagline {
+    max-width: 34ch;
+    font-size: clamp(0.95rem, 1.6vw, 1.125rem);
+    line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+  .luca-hero-eyebrow {
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent-electric);
+    margin-bottom: 0.75rem;
+  }
+  .luca-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid var(--foreground);
+    padding: 0.95rem 1.6rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--foreground);
+    transition: background 200ms ease, color 200ms ease;
+  }
+  .luca-hero-cta:hover,
+  .luca-hero-cta:focus-visible {
+    background: var(--accent-electric);
+    border-color: var(--accent-electric);
+    color: #fff;
+  }
+
+  /* ---------- sections / reveal ---------- */
+  .luca-section {
+    padding: clamp(4.5rem, 13vh, 9rem) clamp(1.25rem, 4vw, 2.5rem);
+  }
+  .luca-eyebrow {
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 1.25rem;
+  }
+  .luca-section-title {
+    font-weight: 800;
+    font-size: clamp(2rem, 5.5vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  /* line-mask reveal: the inner line translates up out of a clip wrapper. */
+  .luca-line {
+    display: block;
+    overflow: hidden;
+  }
+  .luca-line-inner {
+    display: block;
+    transform: translateY(110%);
+    transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .is-revealed .luca-line-inner,
+  .luca-line.is-revealed .luca-line-inner {
+    transform: translateY(0);
+  }
+  /* generic fade-rise reveal */
+  [data-luca-reveal] {
+    opacity: 0;
+    transform: translateY(1.5rem);
+    transition: opacity 700ms ease, transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  [data-luca-reveal].is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .luca-stagger > * {
+    opacity: 0;
+    transform: translateY(1.5rem);
+    transition: opacity 600ms ease, transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-stagger.is-revealed > * {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .luca-stagger.is-revealed > *:nth-child(2) {
+    transition-delay: 80ms;
+  }
+  .luca-stagger.is-revealed > *:nth-child(3) {
+    transition-delay: 160ms;
+  }
+  .luca-stagger.is-revealed > *:nth-child(4) {
+    transition-delay: 240ms;
+  }
+
+  /* ---------- manifesto ---------- */
+  .luca-manifesto-lead {
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    max-width: 18ch;
+  }
+  .luca-manifesto-body {
+    margin-top: 2rem;
+    max-width: 52ch;
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+    line-height: 1.7;
+    color: var(--muted-foreground);
+  }
+  .luca-manifesto-signal {
+    margin-top: 3rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    color: var(--accent-electric);
+  }
+
+  /* ---------- work grid ---------- */
+  .luca-work-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--border);
+  }
+  .luca-work-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    padding: clamp(1.75rem, 4vh, 2.75rem) 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    transition: padding-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-work-card:hover,
+  .luca-work-card:focus-visible {
+    padding-left: 1rem;
+  }
+  .luca-work-tag {
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    color: var(--accent-electric);
+    min-width: 5.5rem;
+  }
+  .luca-work-title {
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.5vw, 2.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .luca-work-desc {
+    margin-top: 0.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+    max-width: 42ch;
+  }
+  .luca-work-arrow {
+    font-family: var(--uc-font-data);
+    font-size: 1.5rem;
+    transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .luca-work-card:hover .luca-work-arrow,
+  .luca-work-card:focus-visible .luca-work-arrow {
+    transform: translateX(0.5rem);
+  }
+
+  /* ---------- capability pillars ---------- */
+  .luca-pillars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+  }
+  .luca-pillar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: clamp(1.5rem, 4vh, 2.5rem);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .luca-pillar-index {
+    font-family: var(--uc-font-data);
+    font-size: 0.6875rem;
+    letter-spacing: 0.18em;
+    color: var(--muted-foreground);
+  }
+  .luca-pillar-label {
+    font-family: var(--uc-font-data);
+    font-weight: 800;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+  }
+  .luca-pillar-desc {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--muted-foreground);
+  }
+
+  /* ---------- contact ---------- */
+  .luca-contact {
+    text-align: center;
+  }
+  .luca-contact-title {
+    font-weight: 800;
+    font-size: clamp(2.5rem, 9vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+  }
+  .luca-contact-desc {
+    margin: 1.5rem auto 0;
+    max-width: 46ch;
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+    line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+  .luca-contact-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 2.5rem;
+    padding: 1.1rem 2.2rem;
+    background: var(--accent-electric);
+    color: #fff;
+    font-family: var(--uc-font-data);
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .luca-contact-cta:hover,
+  .luca-contact-cta:focus-visible {
+    transform: translateY(-3px);
+  }
+  .luca-contact-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .luca-contact-secondary:hover,
+  .luca-contact-secondary:focus-visible {
+    color: var(--foreground);
+  }
+
+  /* ---------- footer ---------- */
+  .luca-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 2.5rem clamp(1.25rem, 4vw, 2.5rem);
+    border-top: 1px solid var(--border);
+    font-family: var(--uc-font-data);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: var(--muted-foreground);
+  }
+  .luca-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+  .luca-footer-link {
+    color: var(--muted-foreground);
+    transition: color 200ms ease;
+  }
+  .luca-footer-link:hover,
+  .luca-footer-link:focus-visible {
+    color: var(--foreground);
+  }
+
+  /* ---------- decorative cursor ---------- */
+  .luca-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 95;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--accent-electric);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: width 200ms ease, height 200ms ease, opacity 200ms ease;
+    mix-blend-mode: difference;
+    opacity: 0;
+  }
+  .luca-cursor.is-active {
+    opacity: 1;
+  }
+  .luca-cursor.is-hover {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* ---------- focus ring (shared) ---------- */
+  .luca-root :is(a, button):focus-visible {
+    outline: 2px solid var(--accent-electric);
+    outline-offset: 3px;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (min-width: 768px) {
+    .luca-nav-links {
+      display: flex;
+    }
+    .luca-talk {
+      display: inline-flex;
+    }
+    .luca-burger {
+      display: none;
+    }
+    .luca-work-grid {
+      grid-template-columns: 1fr;
+    }
+    .luca-pillars {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  @media (min-width: 1024px) {
+    .luca-work-card {
+      grid-template-columns: 8rem 1fr auto;
+    }
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .luca-portal.is-leaving,
+    .luca-word,
+    .luca-line-inner,
+    [data-luca-reveal],
+    .luca-stagger > *,
+    .luca-work-card,
+    .luca-work-arrow,
+    .luca-cursor,
+    .luca-portal-enter {
+      transition: none !important;
+      animation: none !important;
+    }
+    .luca-line-inner {
+      transform: translateY(0);
+    }
+    [data-luca-reveal],
+    .luca-stagger > * {
+      opacity: 1;
+      transform: none;
+    }
+    .luca-portal-enter {
+      opacity: 1;
+      transform: none;
+    }
+    .luca-root.luca-cursor-enabled,
+    .luca-root.luca-cursor-enabled * {
+      cursor: auto;
+    }
+    .luca-cursor {
+      display: none;
+    }
+  }
+
+  /* ---------- keyframes ---------- */
+  @keyframes luca-portal-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.02);
+    }
+  }
+}

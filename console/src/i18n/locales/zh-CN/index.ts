@@ -14,6 +14,7 @@ import shortcuts from "./shortcuts";
 import achievement from "./achievement";
 import notification from "./notification";
 import landing from "./landing";
+import landingLuca from "./landingLuca";
 
 export default {
   common,
@@ -32,4 +33,5 @@ export default {
   achievement,
   notification,
   landing,
+  landingLuca,
 } as const;

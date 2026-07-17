@@ -278,6 +278,13 @@ const router = createRouter({
     {
       path: "/",
       name: "landing",
+      component: () => import("../views/LandingLucaView.vue"),
+    },
+    {
+      // The product-marketing landing (workbench demo, capabilities, FAQ) is
+      // kept reachable at /home so the aboutluca-style intro can own "/".
+      path: "/home",
+      name: "home",
       component: () => import("../views/LandingView.vue"),
     },
     forumCreateRoute,

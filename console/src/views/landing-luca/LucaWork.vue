@@ -17,25 +17,27 @@ const items: ReadonlyArray<WorkItem> = [
     key: "twosum",
     index: "001",
     to: { name: "problem-detail", params: { slug: TWO_SUM_SLUG } },
-    previewPalette: ["#5b8def", "#8a5cf6", "#22d3ee"],
+    // Monochrome specimen swatches — neutral ramps keep the white glyph
+    // legible and obey the brutalist field (no hue).
+    previewPalette: ["#3f3f3f", "#1c1c1c", "#000000"],
   },
   {
     key: "editor",
     index: "002",
     to: { name: "problemset" },
-    previewPalette: ["#22d3ee", "#0ea5e9", "#1e293b"],
+    previewPalette: ["#2e2e2e", "#141414", "#000000"],
   },
   {
     key: "judge",
     index: "003",
     to: { name: "problemset" },
-    previewPalette: ["#f59e0b", "#ef4444", "#7c3aed"],
+    previewPalette: ["#4a4a4a", "#222222", "#000000"],
   },
   {
     key: "contest",
     index: "004",
     to: { name: "contest-list" },
-    previewPalette: ["#10b981", "#06b6d4", "#6366f1"],
+    previewPalette: ["#353535", "#0f0f0f", "#000000"],
   },
 ];
 </script>

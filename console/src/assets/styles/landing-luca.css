@@ -11,6 +11,15 @@
 @layer components {
   /* ---------- root ---------- */
   .luca-root {
+    /* Brutalist monochrome scope: pin the shared theme tokens to a pure
+     * black/white field for this landing only. We still consume tokens
+     * (no data-theme writes — theme ownership stays with shared/theme); the
+     * override is a purely local cascade on .luca-root that beats :root. */
+    --background: #000000;
+    --foreground: #ffffff;
+    --muted-foreground: #8c8c8c;
+    --border: #1a1a1a;
+    --accent-electric: #ffffff;
     position: relative;
     min-height: 100vh;
     background: var(--background);
@@ -270,12 +279,12 @@
     line-height: 1.05;
     letter-spacing: -0.02em;
     color: var(--foreground);
-    opacity: 0.92;
+    opacity: 0.5;
     transition: color 200ms ease, opacity 200ms ease, padding-left 250ms ease;
   }
   .luca-menu-link:hover,
   .luca-menu-link:focus-visible {
-    color: var(--accent-electric);
+    color: var(--foreground);
     opacity: 1;
     padding-left: 0.5rem;
   }
@@ -364,13 +373,15 @@
   /* Stagger words horizontally to echo aboutluca's offset stack. */
   .luca-word:nth-child(2) {
     align-self: flex-end;
-    color: var(--accent-electric);
-    text-shadow:
-      0 0 28px color-mix(in srgb, var(--accent-electric) 45%, transparent),
-      0 0 64px color-mix(in srgb, var(--accent-electric) 22%, transparent);
+    /* Brutalist outline fill: transparent glyphs with a hairline stroke so
+     * the staggered word reads as accent through form, not color. Hover
+     * below fills it solid for an outline→solid interaction. */
+    color: transparent;
+    -webkit-text-stroke: 1px var(--foreground);
+    text-shadow: none;
   }
   .luca-word:nth-child(2) .luca-word-index {
-    color: var(--accent-electric);
+    color: var(--foreground);
   }
   .luca-word:nth-child(3) {
     padding-left: clamp(1rem, 12vw, 8rem);
@@ -381,6 +392,7 @@
   }
   .luca-word:hover {
     color: var(--accent-electric);
+    transform: translateX(0.5rem);
   }
   .luca-hero-foot {
     display: flex;
@@ -401,7 +413,7 @@
     font-size: 0.6875rem;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: var(--accent-electric);
+    color: var(--muted-foreground);
     margin-bottom: 0.75rem;
   }
   .luca-hero-cta {
@@ -422,7 +434,9 @@
   .luca-hero-cta:focus-visible {
     background: var(--accent-electric);
     border-color: var(--accent-electric);
-    color: #fff;
+    /* Accent collapses to white under brutalist monochrome, so the inverted
+     * surface must take the page background (black) for its text. */
+    color: var(--background);
   }
 
   /* ---------- sections / reveal ---------- */
@@ -574,7 +588,7 @@
     font-family: var(--uc-font-data);
     font-size: 0.6875rem;
     letter-spacing: 0.18em;
-    color: var(--accent-electric);
+    color: var(--muted-foreground);
     min-width: 5.5rem;
   }
   .luca-work-title {
@@ -658,7 +672,7 @@
     margin-top: 2.5rem;
     padding: 1.1rem 2.2rem;
     background: var(--accent-electric);
-    color: #fff;
+    color: var(--background);
     font-family: var(--uc-font-data);
     font-size: 0.875rem;
     font-weight: 700;
@@ -819,7 +833,8 @@
     justify-content: center;
     width: 5.5rem;
     height: 4.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0;
+    border: 1px solid var(--border);
     overflow: hidden;
     color: #fff;
     text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
@@ -1069,9 +1084,7 @@
   /* Subtle scan-line grain across the hero — sells the "field of light"
    * quality without committing to a full postprocess pass. */
   .luca-hero-scene-canvas {
-    filter:
-      contrast(1.05)
-      saturate(1.08);
+    filter: contrast(1.05);
   }
 
   @keyframes luca-hero-breathe {
@@ -1134,10 +1147,10 @@
     font-family: var(--uc-font-data);
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #fff;
+    color: var(--background);
     background: var(--accent-electric);
     padding: 0.7rem 1.6rem;
-    border-radius: 999px;
+    border-radius: 0;
   }
   .luca-solution-orbits { display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%; max-width: 36rem; }
   @media (min-width: 768px) { .luca-solution-orbits { grid-template-columns: repeat(3, 1fr); } }
@@ -1157,9 +1170,9 @@
   .luca-flow-desc { font-size: 0.9rem; line-height: 1.5; color: var(--muted-foreground); max-width: 42ch; }
   .luca-flow-link { font-family: var(--uc-font-data); font-size: 1.25rem; color: var(--accent-electric); justify-self: end; }
   .luca-flow-cta {
-    margin-top: 2.5rem; background: var(--accent-electric); color: #fff; border: 0;
+    margin-top: 2.5rem; background: var(--accent-electric); color: var(--background); border: 0;
     font-family: var(--uc-font-data); letter-spacing: 0.16em; text-transform: uppercase;
-    padding: 1rem 2rem; border-radius: 999px; cursor: pointer;
+    padding: 1rem 2rem; border-radius: 0; cursor: pointer;
   }
 
   /* About — editorial 2-col */

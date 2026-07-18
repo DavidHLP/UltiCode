@@ -14,7 +14,7 @@ const indexes = ["00", "01", "02", "03"] as const;
 </script>
 
 <template>
-  <h1 class="luca-wordstack" aria-label="UltiCode — Code, Judge, Compete, Learn">
+  <h1 class="luca-wordstack" aria-label="UltiCode — Form, Lattice, Anatomy, Horizon">
     <span
       v-for="(word, i) in words"
       :key="word"

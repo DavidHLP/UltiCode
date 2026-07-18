@@ -1,8 +1,10 @@
 package com.ulticode.modules.forum.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.forum.dto.ForumPostVO;
+import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMemberMapper;
@@ -54,23 +56,26 @@ class DefaultForumReadProjectionTest {
 
     @Test
     @DisplayName("findAllPosts clamps page=0 without throwing")
+    @SuppressWarnings("unchecked")
     void findAllPosts_clampsPageZero() {
-        when(postMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(postMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+        IPage<ForumPost> emptyPage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
+        when(postMapper.selectPage(any(IPage.class), any(LambdaQueryWrapper.class))).thenReturn(emptyPage);
 
         PageResult<ForumPostVO> result =
                 forumReadProjection.findAllPosts(null, "new", 0, 20);
 
         assertThat(result).isNotNull();
-        assertThat(result.getPage()).isEqualTo(0);
+        // safePage = max(1, page) so response always reflects a valid page.
+        assertThat(result.getPage()).isEqualTo(1);
         assertThat(result.getItems()).isEmpty();
     }
 
     @Test
     @DisplayName("findAllPosts clamps pageSize=0 without throwing")
+    @SuppressWarnings("unchecked")
     void findAllPosts_clampsPageSizeZero() {
-        when(postMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(postMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+        IPage<ForumPost> emptyPage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
+        when(postMapper.selectPage(any(IPage.class), any(LambdaQueryWrapper.class))).thenReturn(emptyPage);
 
         PageResult<ForumPostVO> result =
                 forumReadProjection.findAllPosts(null, "new", 1, 0);
@@ -81,9 +86,10 @@ class DefaultForumReadProjectionTest {
 
     @Test
     @DisplayName("findAllPosts clamps negative page without throwing")
+    @SuppressWarnings("unchecked")
     void findAllPosts_clampsNegativePage() {
-        when(postMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(postMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
+        IPage<ForumPost> emptyPage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
+        when(postMapper.selectPage(any(IPage.class), any(LambdaQueryWrapper.class))).thenReturn(emptyPage);
 
         PageResult<ForumPostVO> result =
                 forumReadProjection.findAllPosts(null, "new", -5, 20);

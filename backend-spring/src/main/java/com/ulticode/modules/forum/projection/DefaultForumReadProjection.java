@@ -1,6 +1,8 @@
 package com.ulticode.modules.forum.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -80,14 +82,13 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     @Override
     public PageResult<ForumPostVO> findAllPosts(String userId, String sortBy, int page, int pageSize) {
         int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS));
-        int offset = Math.max(0, (page - 1) * limit);
+        int safePage = Math.max(1, page);
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
                 .eq(ForumPost::getIsDeleted, false);
         applySortBy(wrapper, sortBy);
-        long total = postMapper.selectCount(
-                new LambdaQueryWrapper<ForumPost>().eq(ForumPost::getIsDeleted, false));
-        List<ForumPost> posts = postMapper.selectList(wrapper.last("LIMIT " + limit + " OFFSET " + offset));
-        return assemblePage(posts, userId, total, page, limit);
+        IPage<ForumPost> pageResult = postMapper.selectPage(
+                new Page<>(safePage, limit), wrapper);
+        return assemblePage(pageResult.getRecords(), userId, pageResult.getTotal(), safePage, limit);
     }
 
     // ---------- My posts (2 overloads) ----------
@@ -154,14 +155,14 @@ public class DefaultForumReadProjection implements ForumReadProjection {
         ForumCommunity c = communityMapper.findBySlug(slug);
         if (c == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
         int limit = Math.max(1, Math.min(pageSize, 50));
-        int offset = Math.max(0, (page - 1) * limit);
-        long total = postMapper.countByCommunityId(c.getId());
+        int safePage = Math.max(1, page);
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
                 .eq(ForumPost::getCommunityId, c.getId())
-                .eq(ForumPost::getIsDeleted, false)
-                .orderByDesc(ForumPost::getCreatedAt)
-                .last("LIMIT " + limit + " OFFSET " + offset);
-        List<ForumPost> posts = postMapper.selectList(wrapper);
+                .eq(ForumPost::getIsDeleted, false);
+        applySortBy(wrapper, sortBy);
+        IPage<ForumPost> pageResult = postMapper.selectPage(
+                new Page<>(safePage, limit), wrapper);
+        List<ForumPost> posts = pageResult.getRecords();
         Map<String, ForumCommunity> cm = Map.of(c.getId(), c);
         Map<String, User> am = batchLoadAuthors(posts);
         Map<String, Long> commentCounts = batchLoadCommentCounts(posts);
@@ -171,7 +172,7 @@ public class DefaultForumReadProjection implements ForumReadProjection {
                         cm.get(p.getCommunityId()),
                         commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
+        return PageResult.of(items, pageResult.getTotal(), safePage, limit);
     }
 
     // ---------- Communities + tags + filters ----------
@@ -205,9 +206,10 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     @Override
     public List<QuickFilterDTO> getQuickFilters() {
         return List.of(
-                new QuickFilterDTO("Hot", "hot"),
-                new QuickFilterDTO("New", "new"),
-                new QuickFilterDTO("Top", "top"));
+                new QuickFilterDTO("hot"),
+                new QuickFilterDTO("new"),
+                new QuickFilterDTO("top"),
+                new QuickFilterDTO("controversial"));
     }
 
     // ---------- convertToPostVO overloads — delegate to assembler (interface contract preserved) ----------
@@ -309,15 +311,57 @@ public class DefaultForumReadProjection implements ForumReadProjection {
                 .collect(Collectors.toMap(ForumCommunity::getId, fc -> fc));
     }
 
+    /**
+     * Apply a sort key to the post query. The ordering chosen here is the
+     * single source of truth for "hot vs top" semantics — both used to map to
+     * {@code views DESC} and were indistinguishable.
+     *
+     * <p>Current signals (no denormalized score column exists on
+     * {@code forum_posts}; live score lives in the vote edges and is merged
+     * into the VO at read time, not queryable in SQL):
+     * <ul>
+     *   <li>{@code new} — by creation time, newest first.</li>
+     *   <li>{@code hot} — recent engagement: views, then recency.</li>
+     *   <li>{@code top} — all-time cumulative reach: impressions, then views.</li>
+     *   <li>{@code controversial} — placeholder awaiting a vote-distribution
+     *       column; currently maps to the same signal as {@code hot}. A TODO
+     *       notes the future migration to surface high-vote + high-downvote
+     *       posts.</li>
+     * </ul>
+     *
+     * <p>Every branch appends {@code id DESC} as a stable tie-breaker so
+     * {@code LIMIT/OFFSET} pagination does not skip or duplicate rows when
+     * the primary key has duplicates (UUID v4 collisions are rare but the
+     * tie-breaker also guards against seed-data id collision during tests).
+     *
+     * <p>Unknown values throw {@link ErrorCode#FORUM_INVALID_SORT} so a typo
+     * or a frontend addition without a backend case is surfaced instead of
+     * silently coerced to {@code new}.
+     */
     private void applySortBy(LambdaQueryWrapper<ForumPost> wrapper, String sortBy) {
-        if (sortBy == null || sortBy.isEmpty() || "new".equals(sortBy)) {
+        // Normalise once: callers (including hand-typed URLs and bookmarked
+        // pre-i18n values) may use any case; the contract is the value, not
+        // its spelling.
+        String normalisedSortBy = sortBy == null ? "" : sortBy.toLowerCase();
+        if (normalisedSortBy.isEmpty() || "new".equals(normalisedSortBy)) {
             wrapper.orderByDesc(ForumPost::getCreatedAt);
-        } else if ("hot".equals(sortBy)) {
-            wrapper.orderByDesc(ForumPost::getViews);
-        } else if ("top".equals(sortBy)) {
-            wrapper.orderByDesc(ForumPost::getViews);
+        } else if ("hot".equals(normalisedSortBy)) {
+            wrapper.orderByDesc(ForumPost::getViews)
+                    .orderByDesc(ForumPost::getCreatedAt);
+        } else if ("top".equals(normalisedSortBy)) {
+            wrapper.orderByDesc(ForumPost::getImpressions)
+                    .orderByDesc(ForumPost::getViews);
+        } else if ("controversial".equals(normalisedSortBy)) {
+            // TODO: replace with vote-distribution ordering once a denormalized
+            // score/upvotes/downvotes column is added to forum_posts (currently
+            // live in vote edges, not queryable in SQL). Until then, mirror the
+            // hot signal so the option is functional rather than invalid.
+            wrapper.orderByDesc(ForumPost::getViews)
+                    .orderByDesc(ForumPost::getCreatedAt);
         } else {
-            wrapper.orderByDesc(ForumPost::getCreatedAt);
+            throw new BusinessException(ErrorCode.FORUM_INVALID_SORT);
         }
+        // Stable tie-breaker for every branch.
+        wrapper.orderByDesc(ForumPost::getId);
     }
 }

@@ -10,7 +10,7 @@
       <span class="text-xs text-muted-foreground">
         {{ draftStatus }}
       </span>
-      <Button size="sm" class="ml-4 gap-2" @click="handlePublish">
+      <Button size="sm" class="ml-4 gap-2" @click="publish">
         <SendHorizonal class="h-4 w-4" />
         {{
           isEditMode
@@ -138,340 +138,60 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from "@/stores/auth";
-import { computed, onMounted, ref, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { useDebounceFn } from "@vueuse/core";
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { SendHorizonal, Tag, X, ArrowLeft, Check } from "lucide-vue-next";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ApiError } from "@/utils/request";
-import { toast } from "vue-sonner";
-import { fetchSolutionTopics } from "@/api/topic";
-import {
-  createSolution,
-  fetchSolution,
-  updateSolution,
-  fetchUserSolutions,
-} from "@/api/solution";
-import { fetchProblemById } from "@/api/problem";
-import { fetchSubmission, fetchBestSubmission } from "@/api/submission";
-import type { SubmissionRecord } from "@/types/submission";
-import type { SolutionTopic } from "@/types/topic";
 import { useI18n } from "vue-i18n";
 
 import { MarkdownEdit, MarkdownView } from "@/components/markdown";
+import { useSolutionAuthoring } from "@/composables/useSolutionAuthoring";
 
 const router = useRouter();
-const route = useRoute();
 const { t } = useI18n();
 
-const language = ref<string>("java");
-const title = ref("");
-
-// Default template content
-const defaultTemplate = `# ${t("solution.template.approach")}
-
-> ${t("solution.template.approachHint")}
-
-# ${t("solution.template.solution")}
-
-> ${t("solution.template.solutionHint")}
-
-# ${t("solution.template.complexity")}
-
-- ${t("solution.template.timeComplexity")}: $O(*)$
-- ${t("solution.template.spaceComplexity")}: $O(*)$
-
-# ${t("solution.template.code")}
-
-\`\`\`java {group="solution"}
-class Solution {
-   public int[] twoSum(int[] nums, int target) {
-       for (int i = 0; i < nums.length; i++) {
-           for (int j = i + 1; j < nums.length; j++) {
-               if (nums[i] + nums[j] == target) {
-                   return new int[] { i, j };
-               }
-           }
-       }
-       return new int[] {};
-   }
-}
-\`\`\`
-`;
-
-const editorContent = ref<string>("");
-const dynamicTemplate = ref<string>(defaultTemplate);
-
-const resolvedProblemId = ref<string>("");
-const resolvedProblemSlug = ref<string>("");
-const isEditMode = ref(false);
-const solutionId = ref<string>("");
-
-onMounted(async () => {
-  if (route.name === "solution-edit" && route.params.id) {
-    isEditMode.value = true;
-    solutionId.value = route.params.id as string;
-    await loadSolution(solutionId.value);
-  } else {
-    // Creation flow
-    resolvedProblemId.value = route.params.id as string; // might be in route params if coming from /problem/:id/solution/create
-    await initCreationFlow();
-  }
-
-  loadTopics();
-});
-
-const loadSolution = async (id: string) => {
-  try {
-    const solution = await fetchSolution(id);
-    title.value = solution.title;
-    editorContent.value = solution.content ?? "";
-    dynamicTemplate.value = solution.content ?? ""; // Pre-fill editor
-    language.value = solution.language;
-    if (solution.tags) {
-      selectedTopicIds.value = solution.tags;
-    }
-    resolvedProblemId.value = solution.problem_id.toString();
-
-    // Fetch problem slug
-    if (resolvedProblemId.value) {
-      const problem = await fetchProblemById(resolvedProblemId.value);
-      resolvedProblemSlug.value = problem.slug;
-    }
-  } catch (error) {
-    console.error("Failed to load solution", error);
-    toast.error(t("solution.messages.loadFailed"));
-    router.back();
-  }
-};
-
-const initCreationFlow = async () => {
-  const submissionId = route.query.submissionId as string;
-  let submissionToUse: SubmissionRecord | null = null;
-  let initialMd = defaultTemplate;
-
-  if (submissionId) {
-    try {
-      submissionToUse = await fetchSubmission(submissionId);
-    } catch (error) {
-      console.error("Failed to fetch submission", error);
-      toast.error(t("solution.messages.fetchSubmissionFailed"));
-      router.back();
-      return;
-    }
-  } else if (resolvedProblemId.value) {
-    // Try to fetch best submission only if we have a problem ID
-    try {
-      const best = await fetchBestSubmission(resolvedProblemId.value);
-      if (best && best.status === "Accepted") {
-        submissionToUse = best;
-      }
-    } catch {}
-  }
-
-  if (submissionToUse) {
-    if (submissionToUse.status !== "Accepted") {
-      if (submissionId) {
-        toast.error(t("solution.messages.acceptedRequired"));
-        router.push({
-          name: "problem-detail",
-          params: {
-            slug:
-              resolvedProblemSlug.value ||
-              submissionToUse.problem_id.toString(),
-            tab: "solution",
-          },
-        });
-        return;
-      }
-    } else {
-      if (!resolvedProblemId.value) {
-        resolvedProblemId.value = submissionToUse.problem_id.toString();
-      }
-
-      const lang = submissionToUse.language.toLowerCase();
-      language.value = lang;
-      const code = submissionToUse.code;
-      initialMd = `# ${t("solution.template.approach")}
-
-> ${t("solution.template.approachHint")}
-
-# ${t("solution.template.solution")}
-
-> ${t("solution.template.solutionHint")}
-
-# ${t("solution.template.complexity")}
-
-- ${t("solution.template.timeComplexity")}: $O(*)$
-- ${t("solution.template.spaceComplexity")}: $O(*)$
-
-# ${t("solution.template.code")}
-
-\`\`\`${lang} {group="solution"}
-${code}
-\`\`\`
-`;
-    }
-  }
-
-  editorContent.value = initialMd;
-  dynamicTemplate.value = initialMd;
-
-  if (resolvedProblemId.value) {
-    try {
-      const problem = await fetchProblemById(resolvedProblemId.value);
-      resolvedProblemSlug.value = problem.slug;
-    } catch (error) {
-      console.error("Failed to fetch problem detail", error);
-    }
-  }
-};
-
-// Watch logic for isDark is handled inside MarkdownEdit now
-// Editor instance management is also inside MarkdownEdit
-
-// Topic Logic
-const topicOptions = ref<SolutionTopic[]>([]);
-const selectedTopicIds = ref<string[]>([]);
-const selectedTopics = computed(() =>
-  topicOptions.value.filter((topic) =>
-    selectedTopicIds.value.includes(topic.id),
-  ),
-);
+// UI-only state for the topic-picker popover; everything else is owned by
+// the authoring composable.
 const showTopicPicker = ref<boolean>(false);
-const isLoadingTopics = ref(false);
-const topicLoadError = ref<string | null>(null);
 
-const loadTopics = async () => {
-  isLoadingTopics.value = true;
-  topicLoadError.value = null;
-  try {
-    const { topics } = await fetchSolutionTopics();
-    topicOptions.value = topics;
-    if (!selectedTopicIds.value.length && topics.length && !isEditMode.value) {
-      // Only auto-select first topic in create mode
-      selectedTopicIds.value = [topics[0]!.id];
-    }
-  } catch (error) {
-    console.error("Failed to load solution topics", error);
-    topicLoadError.value = t("solution.messages.loadTopicsFailed");
-  } finally {
-    isLoadingTopics.value = false;
-  }
-};
-
-const isDraftSaved = ref(true);
-const draftStatus = computed(() =>
-  isDraftSaved.value
-    ? t("solution.editor.draftSaved")
-    : t("solution.editor.editingDraft"),
-);
-
-const markDraftSaved = useDebounceFn(() => {
-  isDraftSaved.value = true;
-}, 800);
-
-watch([title, editorContent, selectedTopicIds], () => {
-  isDraftSaved.value = false;
-  markDraftSaved();
-});
-
-const toggleTopic = (topicId: string) => {
-  if (selectedTopicIds.value.includes(topicId)) {
-    selectedTopicIds.value = selectedTopicIds.value.filter(
-      (item) => item !== topicId,
-    );
-  } else {
-    selectedTopicIds.value = [...selectedTopicIds.value, topicId];
-  }
-};
-
-const removeTopic = (topicId: string) => {
-  selectedTopicIds.value = selectedTopicIds.value.filter(
-    (item) => item !== topicId,
-  );
-};
-
-const handlePublish = async () => {
-  if (!title.value.trim()) {
-    toast.error(t("solution.messages.enterTitle"));
-    return;
-  }
-  if (!editorContent.value.trim()) {
-    toast.error(t("solution.messages.enterContent"));
-    return;
-  }
-
-  isDraftSaved.value = false;
-  try {
-    if (isEditMode.value) {
-      await updateSolution(solutionId.value, {
-        title: title.value,
-        content: editorContent.value,
-        language: language.value,
-        tags: selectedTopicIds.value,
-      });
-      toast.success(t("solution.messages.updateSuccess"));
-    } else {
-      await createSolution(resolvedProblemId.value, {
-        title: title.value,
-        content: editorContent.value,
-        language: language.value,
-        tags: selectedTopicIds.value,
-      });
-      toast.success(t("solution.messages.publishSuccess"));
-    }
-
-    // Release draft saved status
-    isDraftSaved.value = true;
-
-    // Redirect to problem detail page or appropriate page
-    if (resolvedProblemSlug.value) {
+const {
+  title,
+  editorContent,
+  dynamicTemplate,
+  isEditMode,
+  draftStatus,
+  topicOptions,
+  selectedTopicIds,
+  selectedTopics,
+  isLoadingTopics,
+  topicLoadError,
+  init,
+  toggleTopic,
+  removeTopic,
+  publish,
+} = useSolutionAuthoring({
+  onPublishSuccess: ({ problemSlug }) => {
+    if (problemSlug) {
       router.push({
         name: "problem-detail",
-        params: {
-          slug: resolvedProblemSlug.value,
-          tab: "solution",
-        },
+        params: { slug: problemSlug, tab: "solution" },
       });
     } else {
       router.back();
     }
-  } catch (error: unknown) {
-    console.error("Failed to publish/update solution", error);
-    let message = t("solution.messages.publishFailed");
-    if (error instanceof ApiError) {
-      message = error.message || message;
-    }
-    if (
-      !isEditMode.value &&
-      message.toLowerCase().includes("already exists") &&
-      resolvedProblemId.value
-    ) {
-      const userId = useAuthStore().fetchCurrentUserId();
-      if (userId) {
-        try {
-          const response = await fetchUserSolutions(
-            userId,
-            resolvedProblemId.value,
-          );
-          const existing = response.items[0];
-          if (existing) {
-            toast.info(t("solution.messages.alreadyExists"));
-            router.push({ name: "solution-edit", params: { id: existing.id } });
-            return;
-          }
-        } catch (fetchError) {
-          console.error("Failed to fetch existing solution", fetchError);
-        }
-      }
-    }
-    toast.error(message);
-    isDraftSaved.value = true;
-  }
-};
+  },
+  onGateFailure: ({ problemSlug }) => {
+    router.push({
+      name: "problem-detail",
+      params: { slug: problemSlug ?? "", tab: "solution" },
+    });
+  },
+});
+
+onMounted(() => {
+  void init();
+});
 
 const handleGoBack = () => {
   router.back();

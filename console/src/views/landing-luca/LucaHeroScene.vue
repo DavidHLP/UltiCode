@@ -53,25 +53,33 @@ const isMobileTier =
 const STAR_COUNT = isMobileTier ? 320 : 700;
 const SHARD_COUNT = 6;
 
-// Camera path — one entry per act boundary. Position dollies from a mid
-// hero distance → a macro push-in → a wide pivot witness → a distant outro.
-// Look stays on the device center so the scroll reads as one unbroken move.
+// Camera framing is derived, not authored. Each act anchor is solved from the
+// device's measured bounding sphere (center C, radius R) and the live frustum,
+// so the subject is never cropped on either viewport axis; only the framing
+// multipliers and the penetration profile are design parameters.
 interface Waypoint {
   p: number;
   pos: readonly [number, number, number];
 }
-const WAYPOINTS: readonly Waypoint[] = [
-  { p: 0.0, pos: [0, 0.3, 5.6] },
-  { p: 0.2, pos: [0, 0.25, 5.4] },
-  { p: 0.32, pos: [1.7, 0.45, 2.7] },
-  { p: 0.46, pos: [-1.5, 0.65, 2.4] },
-  { p: 0.6, pos: [0, 0.9, 3.2] },
-  { p: 0.72, pos: [0, 1.25, 4.8] },
-  { p: 0.8, pos: [0, 0.6, 6.4] },
-  { p: 1.0, pos: [0, 0.2, 9.0] },
-];
-const LOOK = [0, 0, 0] as const;
-const HERO_POS = WAYPOINTS[0].pos;
+
+// Fit distance: the camera-Z at which a sphere of `radius` fills the smaller
+// frustum axis with `margin` headroom. Max of the horizontal/vertical solves
+// guarantees no crop regardless of aspect.
+const fitDistance = (
+  radius: number,
+  fovDeg: number,
+  aspect: number,
+  margin: number,
+): number => {
+  const halfH = Math.tan(((fovDeg * Math.PI) / 180) / 2);
+  const halfW = halfH * aspect;
+  return (
+    Math.max(
+      radius / Math.max(halfH, 1e-4),
+      radius / Math.max(halfW, 1e-4),
+    ) * margin
+  );
+};
 
 // Smoothstep easing helpers shared by the camera path and per-act morphs.
 const band = (pp: number, lo: number, hi: number): number => {
@@ -117,25 +125,13 @@ const start = async () => {
 
   const THREE = await import("three");
 
-  // Persistent scratch vectors — allocated once and captured by the tick
-  // closure so the camera path never creates garbage per frame.
-  const curPos = new THREE.Vector3(HERO_POS[0], HERO_POS[1], HERO_POS[2]);
-  const tmpPos = new THREE.Vector3();
-
   const rect = root.getBoundingClientRect();
   const scene = new THREE.Scene();
   // Black fog so far geometry recedes into the page background — sells the
   // "infinite black field" without a second draw pass.
   scene.fog = new THREE.FogExp2(0x000000, 0.055);
 
-  const camera = new THREE.PerspectiveCamera(
-    50,
-    rect.width / Math.max(rect.height, 1),
-    0.1,
-    100,
-  );
-  camera.position.set(HERO_POS[0], HERO_POS[1], HERO_POS[2]);
-  camera.lookAt(LOOK[0], LOOK[1], LOOK[2]);
+  const CAMERA_FOV = 50;
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -284,6 +280,94 @@ const start = async () => {
   const stars = new THREE.Points(starGeo, starMat);
   scene.add(stars);
 
+  // ---- Geometry-derived framing origin + subject bounds ----------------
+  // Measure the device (cage / mid / nucleus / ring / shards) in its rest
+  // pose. Stars are parented to the scene, not the device, so the backdrop
+  // never inflates the subject sphere. C is the framing target; R is the
+  // baseline extent — every camera anchor below is a function of the two,
+  // recomputed against the live frustum so nothing crops and nothing is
+  // hardcoded. Animated overshoots (the Act III explode) are baked in as
+  // documented multipliers rather than measured live, which would jitter.
+  device.updateWorldMatrix(true, true);
+  const subjectBounds = new THREE.Box3().setFromObject(device);
+  const C = subjectBounds.isEmpty()
+    ? new THREE.Vector3(0, 0, 0)
+    : subjectBounds.getCenter(new THREE.Vector3());
+  const R = (() => {
+    // True enclosing-sphere radius = max rest-pose vertex distance from C.
+    // Box3.getBoundingSphere would use the box diagonal and over-frame; the
+    // device is sparse wireframe, so measure the real extent instead.
+    let maxR = 0;
+    const v = new THREE.Vector3();
+    type Geometrized = THREE.Object3D & { geometry?: THREE.BufferGeometry };
+    device.traverse((obj) => {
+      const attr = (obj as Geometrized).geometry?.getAttribute("position");
+      if (!attr) return;
+      for (let i = 0; i < attr.count; i++) {
+        v.fromArray(attr.array, i * attr.itemSize);
+        obj.localToWorld(v);
+        const d = v.distanceTo(C);
+        if (d > maxR) maxR = d;
+      }
+    });
+    return Math.max(maxR, 1e-3);
+  })();
+
+  // ---- Camera + derived waypoint path ----------------------------------
+  const camera = new THREE.PerspectiveCamera(
+    CAMERA_FOV,
+    rect.width / Math.max(rect.height, 1),
+    0.1,
+    100,
+  );
+
+  // Offset from the framing origin C. Multipliers of R are the framing design
+  // parameters; the resulting distance is always solved from R + the frustum.
+  const anchor = (
+    x: number,
+    y: number,
+    z: number,
+  ): readonly [number, number, number] => [C.x + x, C.y + y, C.z + z];
+  // Penetration profile: orbit (rho, theta, yEye) in units of R so the camera
+  // slips through the cage shell (R*0.69) and onto the nucleus (R*0.22).
+  const penetrate = (rho: number, theta: number, yEye: number) =>
+    anchor(Math.sin(theta) * rho, yEye, Math.cos(theta) * rho);
+
+  const computeWaypoints = (): Waypoint[] => {
+    const fit = (radius: number, margin: number) =>
+      fitDistance(radius, camera.fov, camera.aspect, margin);
+    return [
+      // Act I — the totality: whole silhouette, loose headroom.
+      { p: 0.0, pos: anchor(0, R * 0.1, fit(R, 1.22)) },
+      { p: 0.2, pos: anchor(0, R * 0.08, fit(R, 1.18)) },
+      // Act II — penetration: orbit the outer shell, then dive inside it.
+      { p: 0.32, pos: penetrate(R * 0.95, 0.8, R * 0.18) },
+      { p: 0.46, pos: penetrate(R * 0.42, -0.7, R * 0.12) },
+      { p: 0.6, pos: anchor(0, R * 0.3, fit(R, 1.25)) },
+      // Act III — the split: rise to witness the explode. Frame the true
+      // peak extent — shards reach shardBaseRadius + explode delta in world
+      // units — rather than an R-multiplier, so the explode never crops even
+      // if the rest geometry is later resized and R shrinks.
+      {
+        p: 0.72,
+        pos: anchor(0, R * 0.55, fit(Math.max(R, shardBaseRadius + 1.7), 1.28)),
+      },
+      { p: 0.8, pos: anchor(R * 0.15, R * 0.2, fit(R * 1.2, 1.5)) },
+      // Act IV — the horizon: distant, low, profile.
+      { p: 1.0, pos: anchor(R * 1.1, R * 0.06, fit(R * 1.05, 2.2)) },
+    ];
+  };
+
+  let waypoints = computeWaypoints();
+  const startPos = waypoints[0].pos;
+
+  // Persistent scratch vectors — allocated once and captured by the tick
+  // closure so the camera path creates no garbage per frame.
+  const curPos = new THREE.Vector3(startPos[0], startPos[1], startPos[2]);
+  const tmpPos = new THREE.Vector3();
+  camera.position.set(startPos[0], startPos[1], startPos[2]);
+  camera.lookAt(C.x, C.y, C.z);
+
   // ---- Interaction + sizing ---------------------------------------------
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   const onPointerMove = (event: PointerEvent) => {
@@ -297,6 +381,8 @@ const start = async () => {
     camera.aspect = r.width / Math.max(r.height, 1);
     camera.updateProjectionMatrix();
     renderer.setSize(r.width, r.height, false);
+    // Re-derive the path: fit distance depends on the new aspect ratio.
+    waypoints = computeWaypoints();
   };
 
   const ro = new ResizeObserver(onResize);
@@ -316,7 +402,7 @@ const start = async () => {
 
     // ---- Camera path ----------------------------------------------------
     if (p >= 0) {
-      const wp = WAYPOINTS;
+      const wp = waypoints;
       let i = 0;
       while (i < wp.length - 2 && p > wp[i + 1].p) i++;
       const a = wp[i];
@@ -331,14 +417,15 @@ const start = async () => {
       );
       curPos.lerp(tmpPos, 0.09);
     } else {
-      curPos.lerp(tmpPos.set(HERO_POS[0], HERO_POS[1], HERO_POS[2]), 0.04);
+      const h = waypoints[0].pos;
+      curPos.lerp(tmpPos.set(h[0], h[1], h[2]), 0.04);
     }
     camera.position.set(
       curPos.x + pointer.x * 0.6,
       curPos.y - pointer.y * 0.3,
       curPos.z,
     );
-    camera.lookAt(LOOK[0], LOOK[1], LOOK[2]);
+    camera.lookAt(C.x, C.y, C.z);
 
     if (!reduced) {
       pointer.x += (pointer.tx - pointer.x) * 0.04;

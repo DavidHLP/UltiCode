@@ -8,15 +8,15 @@
 @layer components {
   /* ---------- root ---------- */
   .luca-root {
-    /* Brutalist monochrome scope: pin the shared theme tokens to a pure
-     * black/white field for this landing only. We consume tokens (no
-     * data-theme writes — theme ownership stays with shared/theme); the
-     * override is a purely local cascade on .luca-root that beats :root. */
-    --background: #000000;
-    --foreground: #ffffff;
-    --muted-foreground: #8c8c8c;
-    --border: #1a1a1a;
-    --accent-electric: #ffffff;
+    /* Brutalist monochrome scope: pin the shared theme tokens to a Solarized
+     * base03 field for this landing only. We consume tokens (no data-theme
+     * writes — theme ownership stays with shared/theme); the override is a
+     * purely local cascade on .luca-root that beats :root. */
+    --background: #002b36;
+    --foreground: #eee8d5;
+    --muted-foreground: #586e75;
+    --border: #073642;
+    --accent-electric: #2aa198;
     position: relative;
     min-height: 100vh;
     background: var(--background);

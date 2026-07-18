@@ -8,10 +8,11 @@
  * the 3D and the typography move as a single system. Every state visibly
  * mutates the device — no two consecutive beats share a state.
  *
- * Brutalist monochrome: white/grey wireframe on a pure black field (the page
- * background paints through the alpha canvas). No postprocessing — bloom/glow
- * is faked with additive-blended lines and radial-gradient sprites so the
- * <40-draw-call / <30k-triangle budget holds on integrated GPUs.
+ * Brutalist monochrome: warm base2 wireframe + cyan glow on a Solarized base03
+ * field (the page background paints through the alpha canvas). No
+ * postprocessing — bloom/glow is faked with additive-blended lines and
+ * radial-gradient sprites so the <40-draw-call / <30k-triangle budget holds on
+ * integrated GPUs.
  *
  * All nine state-specific objects (inner core + halo, snap grid plane, axis
  * line, split halves, portal plane, four corner sub-icosahedra, tick ring +
@@ -117,6 +118,17 @@ const fitDistance = (
   );
 };
 
+// Frame-rate-independent exponential damping. `rate` is in 1/s; higher = snappier.
+// Equivalent to "ease per frame" only when dt is the implied frame time, so the
+// same rate produces identical visible motion at 30 / 60 / 120 fps. Used for
+// every morph channel, the topology presence envelopes, and pointer parallax.
+const damp = (
+  cur: number,
+  target: number,
+  rate: number,
+  dt: number,
+): number => cur + (target - cur) * (1 - Math.exp(-rate * dt));
+
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const rootRef = ref<HTMLElement | null>(null);
 const supportsWebGL = ref(true);
@@ -163,9 +175,22 @@ const start = async () => {
 
   const THREE = await import("three");
 
+  // Solarized dark palette (canonical hex). Neutrals + single cyan accent —
+  // referenced by every material/sprite/vertex-color below so the scene reads
+  // as one Solarized system.
+  const SOLARIZED = {
+    base03: 0x002b36,
+    base02: 0x073642,
+    base01: 0x586e75,
+    base1: 0x93a1a1,
+    base2: 0xeee8d5,
+    base3: 0xfdf6e3,
+    cyan: 0x2aa198,
+  } as const;
+
   const rect = root.getBoundingClientRect();
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x000000, 0.055);
+  scene.fog = new THREE.FogExp2(SOLARIZED.base03, 0.055);
 
   const CAMERA_FOV = 50;
 
@@ -192,9 +217,9 @@ const start = async () => {
     const ctx = c.getContext("2d");
     if (ctx) {
       const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, `rgba(255,255,255,${innerAlpha})`);
-      g.addColorStop(0.4, "rgba(255,255,255,0.25)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
+      g.addColorStop(0, `rgba(42,161,152,${innerAlpha})`);
+      g.addColorStop(0.4, "rgba(42,161,152,0.25)");
+      g.addColorStop(1, "rgba(42,161,152,0)");
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, 128, 128);
     }
@@ -221,7 +246,7 @@ const start = async () => {
   const polyGeo = new THREE.IcosahedronGeometry(1.4, 1);
   const polyWireGeo = new THREE.WireframeGeometry(polyGeo);
   const wireMat = new THREE.LineBasicMaterial({
-    color: new THREE.Color(0xffffff),
+    color: SOLARIZED.base2,
     transparent: true,
     opacity: 0.85,
   });
@@ -239,7 +264,7 @@ const start = async () => {
 
   // Split halves (opened 05) — built once, slid apart by `openBlend`.
   const halfMat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
+    color: SOLARIZED.base2,
     transparent: true,
     opacity: 0.9,
   });
@@ -257,17 +282,17 @@ const start = async () => {
   rightHalf.visible = false;
   device.add(rightHalf);
 
-  // The constant anchor: a tiny white point at the world origin. Hides only in
-  // the cracked beat (the core sphere takes its place).
+  // The constant anchor: a tiny base3 (brightest) point at the world origin.
+  // Hides only in the cracked beat (the core sphere takes its place).
   const anchorGeo = new THREE.IcosahedronGeometry(0.05, 0);
-  const anchorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const anchorMat = new THREE.MeshBasicMaterial({ color: SOLARIZED.base3 });
   const anchor = new THREE.Mesh(anchorGeo, anchorMat);
   scene.add(anchor);
 
   // ---- Cracked (02): inner core sphere + halo sprite -------------------
   const coreGeo = new THREE.IcosahedronGeometry(0.25, 1);
   const coreMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: SOLARIZED.cyan,
     transparent: true,
     opacity: 0,
   });
@@ -292,7 +317,7 @@ const start = async () => {
     new THREE.BufferAttribute(Float32Array.from(bgGridPts), 3),
   );
   const bgGridMat = new THREE.LineBasicMaterial({
-    color: 0x3a3a3a,
+    color: SOLARIZED.base02,
     transparent: true,
     opacity: 0,
   });
@@ -304,7 +329,7 @@ const start = async () => {
   const axisGeo = new THREE.BufferGeometry();
   axisGeo.setAttribute("position", new THREE.BufferAttribute(axisPts, 3));
   const axisMat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
+    color: SOLARIZED.cyan,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -321,9 +346,9 @@ const start = async () => {
   const pctx = portalTexCanvas.getContext("2d");
   if (pctx) {
     const g = pctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-    g.addColorStop(0, "rgba(255,255,255,0.55)");
-    g.addColorStop(0.5, "rgba(255,255,255,0.12)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
+    g.addColorStop(0, "rgba(42,161,152,0.55)");
+    g.addColorStop(0.5, "rgba(42,161,152,0.12)");
+    g.addColorStop(1, "rgba(42,161,152,0)");
     pctx.fillStyle = g;
     pctx.fillRect(0, 0, 128, 128);
   }
@@ -346,7 +371,7 @@ const start = async () => {
   const cornerMats: THREE.MeshBasicMaterial[] = [];
   for (let i = 0; i < 4; i++) {
     const m = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: SOLARIZED.base2,
       transparent: true,
       opacity: 0,
       wireframe: true,
@@ -402,7 +427,7 @@ const start = async () => {
   const dialGeo = new THREE.BufferGeometry();
   dialGeo.setAttribute("position", new THREE.BufferAttribute(dialPts, 3));
   const dialMat = new THREE.LineBasicMaterial({
-    color: 0x2a2a2a,
+    color: SOLARIZED.base02,
     transparent: true,
     opacity: 0,
   });
@@ -423,7 +448,7 @@ const start = async () => {
   arcGeo.setAttribute("position", new THREE.BufferAttribute(arcPts, 3));
   arcGeo.setDrawRange(0, 0);
   const arcMat = new THREE.LineBasicMaterial({
-    color: 0xffffff,
+    color: SOLARIZED.cyan,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -449,7 +474,7 @@ const start = async () => {
     new THREE.BufferAttribute(starPositions, 3),
   );
   const starMat = new THREE.PointsMaterial({
-    color: 0xffffff,
+    color: SOLARIZED.base1,
     size: 0.05,
     sizeAttenuation: true,
     transparent: true,
@@ -473,7 +498,7 @@ const start = async () => {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(particleLive, 3));
     const mat = new THREE.PointsMaterial({
-      color: 0xffffff,
+      color: SOLARIZED.cyan,
       size: 0.06,
       sizeAttenuation: true,
       transparent: true,
@@ -522,15 +547,73 @@ const start = async () => {
   camera.lookAt(C.x, C.y, C.z);
 
   // ---- Eased morph state -------------------------------------------------
-  // One live packet; each frame eases toward `targets()` then drives the THREE
+  // One live packet; each frame eases toward the per-state targets (written
+  // into `tgtBuf` by `applyTargets()`) then drives the THREE
   // objects. Channels that need per-state geometry (snap/broken/jitter/magnetic)
   // are applied in the per-vertex wireframe step.
-  const ease = 0.12;
+  //
+  // Per-channel damping rates (1/s). Higher = snappier. Grouped so fades land
+  // first, blends next, scales next, rotations last — every channel arrives
+  // together instead of one snapping while another trails.
+  const RATES: Record<keyof MorphTargets, number> = {
+    // Opacity / visibility — fast so fades never smear.
+    wireOpacity: 10,
+    starOpacity: 10,
+    anchorVis: 9,
+    coreVis: 10,
+    coreLight: 10,
+    bgGrid: 10,
+    axisVis: 10,
+    portalVis: 10,
+    dialOpacity: 10,
+    tickRing: 10,
+    tickLit: 11,
+    // Color / topology blends.
+    wireGrey: 7,
+    snapBlend: 7,
+    brokenBlend: 7,
+    openBlend: 7,
+    quartet: 7,
+    magnetic: 6,
+    jitter: 7,
+    // Scale channels.
+    scaleX: 6,
+    scaleY: 6,
+    scaleZ: 6,
+    anchorScale: 5,
+    // Rotation / orbit — slowest, so leans and orbits glide.
+    rotX: 4,
+    rotY: 4,
+    rotZ: 4,
+    orbitRate: 3.5,
+    idleSpin: 4,
+  };
+  const MORPH_KEYS = Object.keys(PRISTINE) as Array<keyof MorphTargets>;
   const morph: MorphTargets = { ...PRISTINE };
+  // Reusable target buffer — written in place by applyTargets() every frame so
+  // the damping loop never allocates a fresh MorphTargets object per tick.
+  const tgtBuf: MorphTargets = { ...PRISTINE };
 
-  // Reverse-harmony state (beat 09). When harmonyMode is on, targets() returns
-  // pristine for the broken beat; reverseT (0→1 over 2.5s via gsap) blends the
-  // transition so the return reads as a deliberate easing, not a flip.
+  // Topology presence envelopes (scale-rate damping, target = the matching
+  // morph channel). Used to grow-in / shrink-out the toggleable objects
+  // (core, axis, portal, halves, corners, grid, dial/ticks/arc) AND to
+  // cross-fade the main polyhedron ↔ split halves ↔ four corners. Defined
+  // once here so the tick closure never allocates.
+  const aux = {
+    main: 1, // main polyhedron (1) ↔ halves/corners (0)
+    half: 0, // split halves envelope (opened 05)
+    corner: 0, // four corners envelope (quarteted 06)
+    core: 0, // inner core sphere (cracked 02)
+    axis: 0, // axis line + glow (axed 04)
+    portal: 0, // portal plane (opened 05)
+    grid: 0, // bg grid plane (snapped 03)
+    ring: 0, // dial + ticks + arc (timed 07)
+  };
+
+  // Reverse-harmony state (beat 09). When harmonyMode is on, applyTargets()
+  // writes pristine into tgtBuf for the broken beat; reverseT (0→1 over 2.5s
+  // via gsap) blends the transition so the return reads as a deliberate
+  // easing, not a flip.
   let harmonyMode = false;
   let reverseActive = false;
   let reverseT = 0;
@@ -549,102 +632,103 @@ const start = async () => {
 
   // Compute the per-state morph TARGETS for the current beat. Every beat
   // overrides a handful of PRISTINE fields; the rest stay neutral. This switch
-  // is the literal 9-state choreography table.
-  const targets = (
+  // is the literal 9-state choreography table. Writes the result into the
+  // shared `tgtBuf` (reset to PRISTINE first) so the damping loop never
+  // allocates a fresh MorphTargets object per tick.
+  const applyTargets = (
     state: LucaState,
     p: number,
     fragment: string | null,
-  ): MorphTargets => {
-    const t: MorphTargets = { ...PRISTINE };
+  ): void => {
+    Object.assign(tgtBuf, PRISTINE);
     switch (state) {
       case "squashed":
         // Device squash + full-opacity wireframe; jitter channel drives the
         // per-vertex high-frequency micro-jitter.
-        t.scaleX = 1.15;
-        t.scaleY = 1.15;
-        t.scaleZ = 0.6;
-        t.wireOpacity = 1;
-        t.jitter = 1;
+        tgtBuf.scaleX = 1.15;
+        tgtBuf.scaleY = 1.15;
+        tgtBuf.scaleZ = 0.6;
+        tgtBuf.wireOpacity = 1;
+        tgtBuf.jitter = 1;
         break;
       case "cracked":
         // Outer wireframe fades to grey; the core sphere + halo replace the
         // origin anchor; a slow counter-rotation reads as "frictionless core".
-        t.wireOpacity = 0.18;
-        t.wireGrey = 1;
-        t.anchorVis = 0;
-        t.coreVis = 1;
-        t.coreLight = 1;
-        t.idleSpin = 0.06;
+        tgtBuf.wireOpacity = 0.18;
+        tgtBuf.wireGrey = 1;
+        tgtBuf.anchorVis = 0;
+        tgtBuf.coreVis = 1;
+        tgtBuf.coreLight = 1;
+        tgtBuf.idleSpin = 0.06;
         break;
       case "snapped":
         // Wireframe eases onto a 0.125 grid; a faint background grid plane
         // appears at z=-3. (The 200ms click-pulse fires on enter.)
-        t.snapBlend = 1;
-        t.bgGrid = 0.5;
-        t.wireOpacity = 0.9;
-        t.idleSpin = 0.25;
+        tgtBuf.snapBlend = 1;
+        tgtBuf.bgGrid = 0.5;
+        tgtBuf.wireOpacity = 0.9;
+        tgtBuf.idleSpin = 0.25;
         break;
       case "axed":
         // A glowing axis line through the origin; the polyhedron orbits it
         // while the camera holds.
-        t.axisVis = 1;
-        t.wireOpacity = 0.7;
-        t.orbitRate = 0.5;
-        t.idleSpin = 0;
+        tgtBuf.axisVis = 1;
+        tgtBuf.wireOpacity = 0.7;
+        tgtBuf.orbitRate = 0.5;
+        tgtBuf.idleSpin = 0;
         break;
       case "opened":
         // Polyhedron hides; the two baked halves slide apart (∓0.8); a soft
         // portal plane glows behind the gap.
-        t.openBlend = 1;
-        t.portalVis = 1;
-        t.wireOpacity = 0;
-        t.idleSpin = 0;
+        tgtBuf.openBlend = 1;
+        tgtBuf.portalVis = 1;
+        tgtBuf.wireOpacity = 0;
+        tgtBuf.idleSpin = 0;
         break;
       case "quarteted":
         // Main polyhedron hides; four sub-icosahedra fly to the canvas corners.
         // The active pillar returns to center + flares (handled per-frame).
-        t.quartet = 1;
-        t.wireOpacity = 0;
-        t.idleSpin = 0;
+        tgtBuf.quartet = 1;
+        tgtBuf.wireOpacity = 0;
+        tgtBuf.idleSpin = 0;
         break;
       case "timed":
         // A dial + 12 ticks light up sequentially as the beat's local scrub
         // goes 0→1; a progress arc traces from 2021 to the current tick.
-        t.tickRing = 1;
-        t.dialOpacity = 0.45;
-        t.tickLit = p;
-        t.wireOpacity = 0.22;
-        t.idleSpin = 0.1;
+        tgtBuf.tickRing = 1;
+        tgtBuf.dialOpacity = 0.45;
+        tgtBuf.tickLit = p;
+        tgtBuf.wireOpacity = 0.22;
+        tgtBuf.idleSpin = 0.1;
         break;
       case "still":
         // Everything stops and fades; only the origin point remains, breathing.
-        t.starOpacity = 0;
-        t.idleSpin = 0;
-        t.wireOpacity = 0;
-        t.anchorVis = 1;
-        t.brokenBlend = 0;
+        tgtBuf.starOpacity = 0;
+        tgtBuf.idleSpin = 0;
+        tgtBuf.wireOpacity = 0;
+        tgtBuf.anchorVis = 1;
+        tgtBuf.brokenBlend = 0;
         break;
       case "broken":
         if (harmonyMode) {
           // Ease from the broken shape back to pristine over the reverse tween.
           const b = reverseActive ? reverseT : 1;
-          t.brokenBlend = lerp(1, 0, b);
-          t.rotX = lerp(0.2, 0, b);
-          t.rotZ = lerp(-0.15, 0, b);
-          t.magnetic = lerp(1, 0, b);
-          t.wireOpacity = 0.85;
+          tgtBuf.brokenBlend = lerp(1, 0, b);
+          tgtBuf.rotX = lerp(0.2, 0, b);
+          tgtBuf.rotZ = lerp(-0.15, 0, b);
+          tgtBuf.magnetic = lerp(1, 0, b);
+          tgtBuf.wireOpacity = 0.85;
         } else {
           // Asymmetric lean + seeded vertex offsets + magnetic pointer pull.
-          t.brokenBlend = 1;
-          t.rotX = 0.2;
-          t.rotZ = -0.15;
-          t.magnetic = 1;
-          t.wireOpacity = 0.85;
+          tgtBuf.brokenBlend = 1;
+          tgtBuf.rotX = 0.2;
+          tgtBuf.rotZ = -0.15;
+          tgtBuf.magnetic = 1;
+          tgtBuf.wireOpacity = 0.85;
         }
         break;
     }
     void fragment;
-    return t;
   };
 
   // ---- State-enter effects ----------------------------------------------
@@ -752,6 +836,9 @@ const start = async () => {
   const startTime = performance.now();
   let rafId = 0;
   let orbitAngle = 0;
+  // Last rotation mode (orbit / idle / none) so we can re-seed orbitAngle from
+  // the live polyhedron.rotation.y on a mode change and avoid a handoff snap.
+  let lastMode: "none" | "orbit" | "idle" = "none";
 
   // Reusable scratch vectors (avoid per-frame allocation).
   const ndcToWorld = (
@@ -781,22 +868,47 @@ const start = async () => {
       rafId = requestAnimationFrame(tick);
       return;
     }
-    const dt = Math.min(0.05, (now - (lastNow || now)) / 1000);
+    const dt = Math.min(1 / 30, (now - (lastNow || now)) / 1000);
     lastNow = now;
     const elapsed = (now - startTime) / 1000;
-    const tgt = targets(curState, curProgress, curFragment);
-    const E = ease;
+    applyTargets(curState, curProgress, curFragment);
 
     // Explode ramp (manual, ~700ms): particles expand from origin to field.
     if (explodeActive) {
       explodeT = Math.min(1, (now - explodeStart) / 700);
     }
 
-    // Ease every live channel toward its per-state target.
-    const chase = (key: keyof MorphTargets): void => {
-      morph[key] = morph[key] + (tgt[key] - morph[key]) * E;
-    };
-    (Object.keys(morph) as Array<keyof MorphTargets>).forEach((k) => chase(k));
+    // Frame-rate-independent damping toward per-state targets. Each channel
+    // uses its own RATES entry (1/s) so fades, blends, scales, and rotations
+    // arrive together instead of one snapping while another trails. Uses the
+    // hoisted MORPH_KEYS list and reads tgtBuf in place — no per-frame keys
+    // array, arrow, or target object is allocated.
+    for (let i = 0; i < MORPH_KEYS.length; i++) {
+      const k = MORPH_KEYS[i];
+      morph[k] = damp(morph[k], tgtBuf[k], RATES[k], dt);
+    }
+
+    // Topology presence envelopes (scale-rate damping). Each toggleable
+    // object's scale tracks its envelope, and its material opacity is the
+    // matching morph channel multiplied by the envelope — so newly-shown
+    // objects brighten-then-grow while hidden ones dim-then-shrink, with
+    // overlap rather than a binary cut. The main polyhedron cross-fades
+    // continuously against the split halves and the four corners.
+    const mainTarget =
+      (1 - morph.openBlend) * (1 - morph.quartet) * (explodeActive ? 0 : 1);
+    aux.main = damp(aux.main, mainTarget, 6, dt);
+    aux.half = damp(aux.half, morph.openBlend, 6, dt);
+    aux.corner = damp(aux.corner, morph.quartet, 6, dt);
+    aux.core = damp(aux.core, morph.coreVis > 0.01 ? 1 : 0, 6, dt);
+    aux.axis = damp(aux.axis, morph.axisVis > 0.01 ? 1 : 0, 6, dt);
+    aux.portal = damp(aux.portal, morph.portalVis > 0.01 ? 1 : 0, 6, dt);
+    aux.grid = damp(aux.grid, morph.bgGrid > 0.01 ? 1 : 0, 6, dt);
+    aux.ring = damp(
+      aux.ring,
+      morph.tickRing > 0.01 || morph.dialOpacity > 0.01 ? 1 : 0,
+      6,
+      dt,
+    );
 
     // ---- Apply morph to the device group --------------------------------
     device.scale.set(
@@ -806,57 +918,73 @@ const start = async () => {
     );
     device.rotation.set(morph.rotX, morph.rotY, morph.rotZ);
 
-    // Wireframe color: white (0) ↔ grey #888 (1).
+    // Wireframe color: base2 bright ↔ base01 dim (Solarized neutrals).
     wireMat.color.setRGB(
-      1 - morph.wireGrey * (1 - 0x88 / 0xff),
-      1 - morph.wireGrey * (1 - 0x88 / 0xff),
-      1 - morph.wireGrey * (1 - 0x88 / 0xff),
+      0xee / 0xff + morph.wireGrey * (0x58 / 0xff - 0xee / 0xff),
+      0xe8 / 0xff + morph.wireGrey * (0x6e / 0xff - 0xe8 / 0xff),
+      0xd5 / 0xff + morph.wireGrey * (0x75 / 0xff - 0xd5 / 0xff),
     );
 
-    // Main polyhedron visibility: hidden while doors are open, during the
-    // quarteted corner spread, or mid-explode.
-    const mainVisible =
-      morph.openBlend < 0.5 && morph.quartet < 0.5 && !explodeActive;
-    polyhedron.visible = mainVisible;
-    wireMat.opacity = morph.wireOpacity;
+    // Main polyhedron: cross-fades against the split halves (opened) and the
+    // four corners (quarteted) via aux.main — shrinks + fades simultaneously
+    // so the body morphs between topologies, never a binary cut. The wireframe
+    // fade-out on explode rides the same envelope.
+    polyhedron.scale.setScalar(aux.main);
+    polyhedron.visible = aux.main > 0.01;
+    wireMat.opacity = morph.wireOpacity * aux.main;
 
     // Anchor (constant origin point; breathing in still).
-    anchor.visible = morph.anchorVis > 0.02;
+    anchor.visible = morph.anchorVis > 0.01;
     const breath = curState === "still" ? Math.sin(elapsed * Math.PI / 2) * 0.15 + 1 : 1;
     anchor.scale.setScalar(morph.anchorScale * breath * morph.anchorVis);
 
-    // Cracked core + halo.
-    coreMat.opacity = morph.coreVis;
-    coreSphere.visible = morph.coreVis > 0.02;
+    // Cracked core + halo — grow-in / shrink-out with the core envelope.
+    coreSphere.scale.setScalar(aux.core);
+    coreMat.opacity = morph.coreVis * aux.core;
+    coreSphere.visible = morph.coreVis * aux.core > 0.01;
     coreSphere.rotation.y = -elapsed * 0.3;
-    (coreHalo.material as THREE.SpriteMaterial).opacity = morph.coreLight * 0.9;
-    coreHalo.visible = morph.coreLight > 0.02;
+    const coreHaloMat = coreHalo.material as THREE.SpriteMaterial;
+    coreHaloMat.opacity = morph.coreLight * 0.9 * aux.core;
+    coreHalo.scale.setScalar(1.6 * aux.core);
+    coreHalo.visible = morph.coreLight * aux.core > 0.01;
 
-    // Snapped background grid.
-    bgGridMat.opacity = morph.bgGrid;
+    // Snapped background grid — blooms in from the origin.
+    bgGrid.scale.setScalar(aux.grid);
+    bgGridMat.opacity = morph.bgGrid * aux.grid;
 
-    // Axed axis line + central glow.
-    axisMat.opacity = morph.axisVis;
-    axisLine.visible = morph.axisVis > 0.02;
-    (axisGlow.material as THREE.SpriteMaterial).opacity = morph.axisVis * 0.7;
-    axisGlow.visible = morph.axisVis > 0.02;
+    // Axed axis line + central glow — draws in from the center.
+    axisLine.scale.setScalar(aux.axis);
+    axisMat.opacity = morph.axisVis * aux.axis;
+    axisLine.visible = morph.axisVis * aux.axis > 0.01;
+    const axisGlowMat = axisGlow.material as THREE.SpriteMaterial;
+    axisGlowMat.opacity = morph.axisVis * 0.7 * aux.axis;
+    axisGlow.scale.setScalar(1.2 * aux.axis);
+    axisGlow.visible = morph.axisVis * aux.axis > 0.01;
 
-    // Opened halves + portal.
-    const door = morph.openBlend > 0.02;
-    leftHalf.visible = door;
-    rightHalf.visible = door;
-    const slide = 0.8 * morph.openBlend;
+    // Opened halves + portal — halves grow from 0 while sliding apart and the
+    // main polyhedron shrinks (cross-fade, overlap not sequence). Portal plane
+    // blooms in behind the gap.
+    const slide = 0.8 * aux.half;
     leftHalf.position.x = -slide;
     rightHalf.position.x = slide;
-    portalMat.opacity = morph.portalVis;
-    portalPlane.visible = morph.portalVis > 0.02;
+    leftHalf.scale.setScalar(aux.half);
+    rightHalf.scale.setScalar(aux.half);
+    halfMat.opacity = 0.9 * aux.half;
+    const halfVis = aux.half > 0.01;
+    leftHalf.visible = halfVis;
+    rightHalf.visible = halfVis;
+    portalPlane.scale.setScalar(aux.portal);
+    portalMat.opacity = morph.portalVis * aux.portal;
+    portalPlane.visible = morph.portalVis * aux.portal > 0.01;
 
     // Stars (fade to 0 in still).
     starMat.opacity = morph.starOpacity;
 
     // ---- Per-vertex wireframe update (snap / broken / jitter / magnetic) -
     // Only touches the main polyhedron geometry; halves/corners have their own.
-    if (mainVisible) {
+    // Runs while the polyhedron is still fading in/out so its deformation stays
+    // live during the cross-fade.
+    if (polyhedron.visible) {
       let cx = 0;
       let cy = 0;
       if (morph.magnetic > 0.01) {
@@ -917,20 +1045,34 @@ const start = async () => {
       attr.needsUpdate = true;
 
       // Idle spin / orbit on the polyhedron itself (device holds scale + lean).
-      if (morph.orbitRate > 0.01) {
+      // Unified under one accumulator: on any mode change we re-seed orbitAngle
+      // from the live rotation.y so idle↔orbit transitions are continuous
+      // (orbitRate and idleSpin damping already glide the angular SPEED).
+      const mode =
+        morph.orbitRate > 0.01 ? "orbit" : morph.idleSpin > 0.01 ? "idle" : "none";
+      if (mode !== "none" && mode !== lastMode) {
+        orbitAngle = polyhedron.rotation.y;
+      }
+      lastMode = mode;
+      if (mode === "orbit") {
         orbitAngle += dt * morph.orbitRate;
         polyhedron.rotation.y = orbitAngle;
         polyhedron.rotation.x = 0;
-      } else if (morph.idleSpin > 0.01) {
+      } else if (mode === "idle") {
+        orbitAngle += dt * 0.12 * morph.idleSpin;
+        polyhedron.rotation.y = orbitAngle;
         polyhedron.rotation.x = Math.sin(elapsed * 0.1) * 0.12 * morph.idleSpin;
-        polyhedron.rotation.y = elapsed * 0.12 * morph.idleSpin;
       }
     }
 
     // ---- Quarteted: four corner sub-icosahedra --------------------------
-    const quartetOn = morph.quartet > 0.02;
-    if (quartetOn) {
+    // Corner scale + opacity multiply by aux.corner so the four bodies grow-in
+    // as the main polyhedron shrinks (cross-fade), then shrink-out on exit.
+    // Per-pillar focus (center return + flare + dim-others) damps with dt so
+    // the focus hand-off glides at any frame rate.
+    if (aux.corner > 0.01) {
       camera.updateMatrixWorld(true);
+      const env = aux.corner;
       for (let i = 0; i < 4; i++) {
         const [nx, ny] = PILLAR_NDC[i];
         ndcToWorld(nx, ny, scratch);
@@ -938,36 +1080,45 @@ const start = async () => {
         const key = PILLAR_KEYS[i];
         const focused = curFragment === key;
         const otherDimmed = curFragment !== null && !focused;
-        const targetScale = focused ? 1.8 : otherDimmed ? 0.7 : 1;
-        const targetOpacity = focused ? 1 : otherDimmed ? 0.3 : 0.85 * morph.quartet;
+        const targetScale = (focused ? 1.8 : otherDimmed ? 0.7 : 1) * env;
+        const targetOpacity = (focused ? 1 : otherDimmed ? 0.3 : 0.85) * env;
         // Focused pillar returns to center + flares.
         const tx = focused ? 0 : scratch.x;
         const ty = focused ? 0 : scratch.y + bob;
         const tz = focused ? 0.4 : scratch.z;
-        corners[i].visible = true;
-        corners[i].position.x += (tx - corners[i].position.x) * E;
-        corners[i].position.y += (ty - corners[i].position.y) * E;
-        corners[i].position.z += (tz - corners[i].position.z) * E;
-        const s = corners[i].scale.x + (targetScale - corners[i].scale.x) * E;
+        corners[i].position.x = damp(corners[i].position.x, tx, 7, dt);
+        corners[i].position.y = damp(corners[i].position.y, ty, 7, dt);
+        corners[i].position.z = damp(corners[i].position.z, tz, 7, dt);
+        const s = damp(corners[i].scale.x, targetScale, 7, dt);
         corners[i].scale.setScalar(s);
-        cornerMats[i].opacity += (targetOpacity - cornerMats[i].opacity) * E;
+        const o = damp(cornerMats[i].opacity, targetOpacity, 10, dt);
+        cornerMats[i].opacity = o;
+        corners[i].visible = o > 0.01;
       }
     } else {
       for (let i = 0; i < 4; i++) {
         corners[i].visible = false;
         cornerMats[i].opacity = 0;
+        corners[i].scale.setScalar(0);
       }
     }
 
     // ---- Timed: tick colors + dial + progress arc -----------------------
-    const tickOpacity = morph.tickRing;
+    // Ring blooms in from the origin (aux.ring drives scale); each element's
+    // opacity is its morph channel multiplied by the envelope.
+    const ringEnv = aux.ring;
+    const tickOpacity = morph.tickRing * ringEnv;
+    const dialOpacity = morph.dialOpacity * ringEnv;
+    dial.scale.setScalar(ringEnv);
+    tickMarks.scale.setScalar(ringEnv);
+    arc.scale.setScalar(ringEnv);
     tickMat.opacity = tickOpacity;
-    dialMat.opacity = morph.dialOpacity;
+    dialMat.opacity = dialOpacity;
     arcMat.opacity = tickOpacity;
-    tickMarks.visible = tickOpacity > 0.02;
-    dial.visible = morph.dialOpacity > 0.02;
-    arc.visible = tickOpacity > 0.02;
-    if (tickOpacity > 0.02) {
+    tickMarks.visible = tickOpacity > 0.01;
+    dial.visible = dialOpacity > 0.01;
+    arc.visible = tickOpacity > 0.01;
+    if (tickOpacity > 0.01) {
       const litF = morph.tickLit * TICK_COUNT;
       const colAttr = tickGeo.getAttribute("color") as THREE.BufferAttribute;
       const colArr = colAttr.array as Float32Array;
@@ -976,14 +1127,19 @@ const start = async () => {
         // sequentially with a soft leading edge.
         const local = Math.max(0, Math.min(1, litF - i));
         const ramp = local >= 0.8 ? 1 : local / 0.8;
-        const c = 0.12 + ramp * 0.88;
+        // Keep the original ramp shape (0.12 → 1.0) but retint endpoints:
+        // dim end = Solarized base02, bright end = Solarized cyan.
+        const t = 0.12 + ramp * 0.88;
+        const cr = 0x07 / 0xff + t * (0x2a / 0xff - 0x07 / 0xff);
+        const cg = 0x36 / 0xff + t * (0xa1 / 0xff - 0x36 / 0xff);
+        const cb = 0x42 / 0xff + t * (0x98 / 0xff - 0x42 / 0xff);
         const o = i * 6;
-        colArr[o] = c;
-        colArr[o + 1] = c;
-        colArr[o + 2] = c;
-        colArr[o + 3] = c;
-        colArr[o + 4] = c;
-        colArr[o + 5] = c;
+        colArr[o] = cr;
+        colArr[o + 1] = cg;
+        colArr[o + 2] = cb;
+        colArr[o + 3] = cr;
+        colArr[o + 4] = cg;
+        colArr[o + 5] = cb;
       }
       colAttr.needsUpdate = true;
       const segCount = Math.max(0, Math.min(ARC_SEG + 1, Math.ceil(litF / TICK_COUNT * ARC_SEG) + 1));
@@ -1008,9 +1164,10 @@ const start = async () => {
     }
 
     // ---- Camera parallax (pointer) --------------------------------------
+    // Damped with dt so the parallax glide is identical at any frame rate.
     if (!reduced) {
-      pointer.x += (pointer.tx - pointer.x) * 0.04;
-      pointer.y += (pointer.ty - pointer.y) * 0.04;
+      pointer.x = damp(pointer.x, pointer.tx, 2.5, dt);
+      pointer.y = damp(pointer.y, pointer.ty, 2.5, dt);
       camera.position.x = C.x + pointer.x * 0.6;
       camera.position.y = C.y + R * 0.08 - pointer.y * 0.3;
       camera.lookAt(C.x, C.y, C.z);
@@ -1025,8 +1182,8 @@ const start = async () => {
 
   if (reduced) {
     // One static frame: apply the initial beat's targets once and render.
-    const tgt = targets(curState, curProgress, curFragment);
-    Object.assign(morph, tgt);
+    applyTargets(curState, curProgress, curFragment);
+    Object.assign(morph, tgtBuf);
     device.scale.set(morph.scaleX, morph.scaleY, morph.scaleZ);
     device.rotation.set(morph.rotX, morph.rotY, morph.rotZ);
     wireMat.opacity = morph.wireOpacity;

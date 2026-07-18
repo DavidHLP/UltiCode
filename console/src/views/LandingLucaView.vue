@@ -5,27 +5,21 @@ import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import LucaPortal from "./landing-luca/LucaPortal.vue";
 import LucaNav from "./landing-luca/LucaNav.vue";
-import LucaWordStack from "./landing-luca/LucaWordStack.vue";
-import LucaManifesto from "./landing-luca/LucaManifesto.vue";
-import LucaWork from "./landing-luca/LucaWork.vue";
-import LucaCapabilities from "./landing-luca/LucaCapabilities.vue";
-import LucaAwards from "./landing-luca/LucaAwards.vue";
-import LucaContact from "./landing-luca/LucaContact.vue";
-import LucaProblem from "./landing-luca/LucaProblem.vue";
-import LucaSolution from "./landing-luca/LucaSolution.vue";
-import LucaExperience from "./landing-luca/LucaExperience.vue";
-import LucaAbout from "./landing-luca/LucaAbout.vue";
-import LucaScrollProgress from "./landing-luca/LucaScrollProgress.vue";
-import LucaHeroScene from "./landing-luca/LucaHeroScene.vue";
+import LucaScene from "./landing-luca/LucaScene.vue";
+import LucaBeat from "./landing-luca/beats/LucaBeat.vue";
+import LucaBeatEntrance from "./landing-luca/beats/LucaBeatEntrance.vue";
+import LucaBeatAnatomy from "./landing-luca/beats/LucaBeatAnatomy.vue";
+import LucaBeatRecords from "./landing-luca/beats/LucaBeatRecords.vue";
+import LucaBeatBroken from "./landing-luca/beats/LucaBeatBroken.vue";
+import { LUCA_BEATS, LUCA_BEAT_TOTAL } from "./landing-luca/beats/lucaBeats";
 import { useLucaPortal } from "@/composables/landing/useLucaPortal";
 import { useLucaReveal } from "@/composables/landing/useLucaReveal";
-import { useLucaCursor } from "@/composables/landing/useLucaCursor";
 import { useLucaScroll } from "@/composables/landing/useLucaScroll";
-import { useLucaBeat } from "@/composables/landing/useLucaBeat";
+import { useLucaStage } from "@/composables/landing/useLucaStage";
 import "@/assets/styles/landing-luca.css";
 
 const TWO_SUM_SLUG = "two-sum";
-const PORTOR_LEAVE_MS = 600;
+const PORTAL_LEAVE_MS = 600;
 const PORTAL_COUNTER_TOTAL = 24;
 
 const { t } = useI18n();
@@ -33,19 +27,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const rootRef = ref<HTMLElement | null>(null);
-const cursorRef = ref<HTMLElement | null>(null);
-const heroRef = ref<HTMLElement | null>(null);
-const worldProgress = ref(-1);
-
 const portal = useLucaPortal();
 const showPortal = ref(!portal.entered.value);
 const menuOpen = ref(false);
 let dismissTimer: ReturnType<typeof setTimeout> | undefined;
 
-useLucaScroll({ locked: showPortal, world: rootRef, worldProgress });
+// Stage bus: owns state / progress / fragment / reverse-explode command and
+// provides them to the 3D scene + the interactive beats.
+useLucaStage(rootRef);
+
+useLucaScroll({ locked: showPortal });
 useLucaReveal(rootRef);
-useLucaBeat(rootRef);
-const cursor = useLucaCursor(cursorRef);
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -69,7 +61,7 @@ const handleEnter = () => {
   portal.enter();
   // Let the exit animation play before unmounting; under reduced-motion the
   // CSS animation is disabled, so remove the portal on the next frame.
-  const delay = prefersReducedMotion() ? 0 : PORTOR_LEAVE_MS;
+  const delay = prefersReducedMotion() ? 0 : PORTAL_LEAVE_MS;
   dismissTimer = setTimeout(() => {
     showPortal.value = false;
   }, delay);
@@ -84,23 +76,17 @@ const handleSkip = () => {
 };
 
 onMounted(() => {
-  // Reveal hero immediately so the word-art is never hidden behind the
-  // intersection threshold on first paint.
+  // Reveal the first beat immediately so the headline is never hidden behind
+  // the intersection threshold on first paint.
   rootRef.value
-    ?.querySelectorAll<HTMLElement>(".luca-hero [data-luca-reveal], .luca-hero .luca-line")
-    .forEach((el) => el.classList.add("is-revealed"));
+    ?.querySelector<HTMLElement>(".luca-beat [data-luca-reveal]")
+    ?.classList.add("is-revealed");
 });
 </script>
 
 <template>
-  <div
-    ref="rootRef"
-    class="luca-root"
-    :class="{ 'luca-cursor-enabled': cursor.active.value }"
-  >
+  <div ref="rootRef" class="luca-root" :class="{ 'luca-menu-open': menuOpen }">
     <a href="#luca-main" class="luca-skip">{{ t("landingLuca.nav.skipToContent") }}</a>
-
-    <LucaScrollProgress />
 
     <LucaNav
       :menu-open="menuOpen"
@@ -109,35 +95,45 @@ onMounted(() => {
       @talk="goToSeedProblem"
     />
 
-    <LucaHeroScene :active="!showPortal" :world-progress="worldProgress" />
+    <LucaScene :active="!showPortal" />
 
     <main id="luca-main">
-      <section class="luca-hero" ref="heroRef" aria-label="UltiCode">
-        <div class="luca-hero-content">
-          <p class="luca-hero-eyebrow" data-luca-reveal>
-            {{ t("landingLuca.hero.eyebrow") }}
-          </p>
-          <LucaWordStack />
-          <div class="luca-hero-foot">
-            <p class="luca-hero-tagline" data-luca-reveal>
-              {{ t("landingLuca.hero.roleLine") }}
-            </p>
-            <button type="button" class="luca-hero-cta" @click="goToSeedProblem">
-              {{ t("landingLuca.hero.cta") }} →
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <LucaProblem />
-      <LucaSolution />
-      <LucaManifesto />
-      <LucaExperience @primary="goToSeedProblem" />
-      <LucaWork />
-      <LucaCapabilities />
-      <LucaAwards />
-      <LucaAbout />
-      <LucaContact @primary="goToSeedProblem" />
+      <template v-for="(beat, index) in LUCA_BEATS" :key="beat.state">
+        <LucaBeatEntrance
+          v-if="beat.state === 'opened'"
+          :n="index + 1"
+          :total="LUCA_BEAT_TOTAL"
+          :align="beat.align"
+        />
+        <LucaBeatAnatomy
+          v-else-if="beat.state === 'quarteted'"
+          :n="index + 1"
+          :total="LUCA_BEAT_TOTAL"
+          :align="beat.align"
+        />
+        <LucaBeatRecords
+          v-else-if="beat.state === 'timed'"
+          :n="index + 1"
+          :total="LUCA_BEAT_TOTAL"
+          :align="beat.align"
+        />
+        <LucaBeatBroken
+          v-else-if="beat.state === 'broken'"
+          :n="index + 1"
+          :total="LUCA_BEAT_TOTAL"
+          :align="beat.align"
+        />
+        <LucaBeat
+          v-else
+          :state="beat.state"
+          :n="index + 1"
+          :total="LUCA_BEAT_TOTAL"
+          :align="beat.align"
+          :eyebrow="t(`landingLuca.beats.${beat.state}.eyebrow`)"
+          :title="t(`landingLuca.beats.${beat.state}.title`)"
+          :subline="t(`landingLuca.beats.${beat.state}.subline`)"
+        />
+      </template>
     </main>
 
     <footer class="luca-footer">
@@ -163,8 +159,6 @@ onMounted(() => {
       </nav>
       <span>{{ t("landingLuca.footer.copyright") }}</span>
     </footer>
-
-    <div ref="cursorRef" class="luca-cursor" aria-hidden="true"></div>
 
     <LucaPortal
       v-if="showPortal"

@@ -34,6 +34,18 @@ const mountView = () =>
     },
   });
 
+const BEAT_STATES = [
+  "squashed",
+  "cracked",
+  "snapped",
+  "axed",
+  "opened",
+  "quarteted",
+  "timed",
+  "still",
+  "broken",
+] as const;
+
 describe("LandingLucaView", () => {
   beforeEach(() => {
     push.mockClear();
@@ -46,18 +58,6 @@ describe("LandingLucaView", () => {
   });
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it("renders the four brand word-art words", () => {
-    const wrapper = mountView();
-    const words = wrapper.findAll(".luca-word-text").map((w) => w.text());
-
-    expect(words).toEqual([
-      "landingLuca.hero.words.code",
-      "landingLuca.hero.words.judge",
-      "landingLuca.hero.words.compete",
-      "landingLuca.hero.words.learn",
-    ]);
   });
 
   it("shows the loading portal counter and ENTER control", () => {
@@ -87,26 +87,6 @@ describe("LandingLucaView", () => {
     expect(wrapper.find(".luca-portal.is-leaving").exists()).toBe(true);
   });
 
-  it("routes the hero CTA straight into the seeded problem", async () => {
-    const wrapper = mountView();
-    await wrapper.find(".luca-hero-cta").trigger("click");
-
-    expect(push).toHaveBeenCalledWith({
-      name: "problem-detail",
-      params: { slug: "two-sum" },
-    });
-  });
-
-  it("routes the contact CTA straight into the seeded problem", async () => {
-    const wrapper = mountView();
-    await wrapper.find(".luca-contact-cta").trigger("click");
-
-    expect(push).toHaveBeenCalledWith({
-      name: "problem-detail",
-      params: { slug: "two-sum" },
-    });
-  });
-
   it("routes the nav talk button into the seeded problem", async () => {
     const wrapper = mountView();
     await wrapper.find(".luca-talk").trigger("click");
@@ -134,85 +114,45 @@ describe("LandingLucaView", () => {
     expect(wrapper.find("#luca-main").exists()).toBe(true);
   });
 
-  it("links every work card to a real product surface", () => {
+  it("mounts the 3D stage as a page-wide layer inside the root", () => {
     const wrapper = mountView();
-    const hrefs = wrapper.findAll(".luca-work-card").map((c) => c.attributes("href"));
+    const stage = wrapper.find(".luca-stage");
+    expect(stage.exists()).toBe(true);
+    expect(stage.element.closest(".luca-root")).not.toBeNull();
+  });
 
-    expect(hrefs).toEqual([
-      "/problem-detail/two-sum",
-      "/problemset",
-      "/problemset",
-      "/contest-list",
+  it("renders all nine narrative beats with a 0N / 09 counter", () => {
+    const wrapper = mountView();
+    const beats = wrapper.findAll(".luca-beat");
+    expect(beats).toHaveLength(9);
+
+    const counters = wrapper.findAll(".luca-beat-counter").map((e) => e.text());
+    expect(counters).toEqual([
+      "01 / 09",
+      "02 / 09",
+      "03 / 09",
+      "04 / 09",
+      "05 / 09",
+      "06 / 09",
+      "07 / 09",
+      "08 / 09",
+      "09 / 09",
     ]);
   });
 
-  it("numbers each work card with a three-digit index", () => {
+  it("renders each beat's headline + sub-line in scroll order", () => {
     const wrapper = mountView();
-    const indexes = wrapper.findAll(".luca-work-index").map((el) => el.text());
+    const titles = wrapper.findAll(".luca-beat-title").map((e) => e.text());
+    expect(titles).toEqual(BEAT_STATES.map((s) => `landingLuca.beats.${s}.title`));
 
-    expect(indexes).toEqual(["001", "002", "003", "004"]);
+    const sublines = wrapper.findAll(".luca-beat-subline").map((e) => e.text());
+    expect(sublines).toEqual(BEAT_STATES.map((s) => `landingLuca.beats.${s}.subline`));
   });
 
-  it("renders the awards marquee with a localized set of badges", () => {
+  it("tags every beat with its polyhedron-state class", () => {
     const wrapper = mountView();
-    const awards = wrapper.findAll(".luca-award-label");
-
-    expect(awards.length).toBeGreaterThanOrEqual(6);
-    expect(wrapper.find(".luca-awards-track").exists()).toBe(true);
-  });
-
-  it("renders a scroll progress indicator", () => {
-    const wrapper = mountView();
-    expect(wrapper.find(".luca-progress").exists()).toBe(true);
-  });
-
-  it("renders the problem section eyebrow and title", () => {
-    const wrapper = mountView();
-    expect(wrapper.find(".luca-problem .luca-eyebrow").text()).toBe("landingLuca.problem.eyebrow");
-    expect(wrapper.find(".luca-problem .luca-section-title").exists()).toBe(true);
-  });
-
-  it("renders three solution orbit labels", () => {
-    const wrapper = mountView();
-    expect(wrapper.findAll(".luca-solution-orbit")).toHaveLength(3);
-  });
-
-  it("renders the five-step experience flow in order", () => {
-    const wrapper = mountView();
-    expect(wrapper.findAll(".luca-flow-step")).toHaveLength(5);
-    expect(wrapper.findAll(".luca-flow-index").map((e) => e.text())).toEqual(["01", "02", "03", "04", "05"]);
-  });
-
-  it("renders the about statement", () => {
-    const wrapper = mountView();
-    expect(wrapper.find(".luca-about-statement").exists()).toBe(true);
-  });
-
-  it("does not pollute pinned landing selectors", () => {
-    const wrapper = mountView();
-    expect(wrapper.findAll(".luca-work-card")).toHaveLength(4);
-    expect(wrapper.findAll(".luca-word-text")).toHaveLength(4);
-    expect(wrapper.findAll(".luca-work-index")).toHaveLength(4);
-  });
-
-  it("mounts the world scene as a page-wide layer outside the hero section", () => {
-    const wrapper = mountView();
-    const scene = wrapper.find(".luca-hero-scene");
-    expect(scene.exists()).toBe(true);
-    // The scrollytelling world canvas is a sibling of <main>, not clipped to
-    // .luca-hero — and the hero CTA still lives inside the hero section.
-    expect(scene.element.closest(".luca-hero")).toBeNull();
-    expect(scene.element.closest(".luca-root")).not.toBeNull();
-    expect(wrapper.find(".luca-hero .luca-hero-cta").exists()).toBe(true);
-  });
-
-  it("marks the eight narrative beats for scroll pinning", () => {
-    const wrapper = mountView();
-    // Hero and Contact are intentionally not beats; the eight middle narrative
-    // sections carry .luca-beat so useLucaBeat can pin each while the world
-    // canvas plays its matching 3D beat.
-    expect(wrapper.findAll(".luca-beat")).toHaveLength(8);
-    expect(wrapper.find(".luca-hero.luca-beat").exists()).toBe(false);
-    expect(wrapper.find(".luca-contact.luca-beat").exists()).toBe(false);
+    BEAT_STATES.forEach((state) => {
+      expect(wrapper.find(`.luca-beat-${state}`).exists()).toBe(true);
+    });
   });
 });

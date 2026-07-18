@@ -64,4 +64,21 @@ public interface JudgeQueue {
      * @param reason short diagnostic, written to the outbox {@code last_error}
      */
     void nack(JudgeJobHandle handle, String reason);
+
+    /**
+     * Operationally meaningful depth of the underlying broker for
+     * monitoring. For the Redisson Streams adapter this is the
+     * consumer-group pending total (XPENDING) — entries delivered but
+     * not yet acked, i.e. in-flight or awaiting reclaim by the unacked
+     * reaper. For the in-memory test adapter this is the sum of the
+     * ready and pending-ack mirrors.
+     *
+     * <p>The queue inspector consumes this when
+     * {@code app.features.judge-queue.use-port=true} so monitoring
+     * sees the Stream-backed depth in the same VO shape as the legacy
+     * {@code RQueue.size()} path.
+     *
+     * @return the broker-side depth; never negative
+     */
+    long pendingDepth();
 }

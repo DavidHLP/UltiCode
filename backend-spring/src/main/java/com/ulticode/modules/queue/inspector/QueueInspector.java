@@ -1,6 +1,7 @@
 package com.ulticode.modules.queue.inspector;
 
 import com.ulticode.modules.queue.dto.JobStatusDTO;
+import com.ulticode.modules.queue.dto.QueueHealthSnapshotDTO;
 import com.ulticode.modules.queue.dto.QueueStatsDTO;
 
 /**
@@ -55,4 +56,30 @@ public interface QueueInspector {
      *         {@code QUEUE_NOT_FOUND} when the queue name is unknown
      */
     long getQueueSize(String queueName);
+
+    /**
+     * Read a monitoring-oriented health snapshot of one queue.
+     *
+     * <p>Unlike {@link #getQueueStats(String)} (which throws on an
+     * unknown queue) this method is built for the monitoring health
+     * check: it translates any Redis/Redisson probe failure into a
+     * snapshot carrying {@link com.ulticode.modules.queue.dto.ProbeStatus#PROBE_FAILED}
+     * so the caller can fail closed (surface unhealthy) rather than
+     * fold the failure into a misleading zero depth.
+     *
+     * <p>For the judge queue under
+     * {@code app.features.judge-queue.use-port=true}, the waiting depth
+     * is sourced from the Stream backend (XPENDING total) so monitoring
+     * sees one VO shape regardless of backend.
+     *
+     * @param queueName the queue name (must match a known constant in
+     *                  {@code QueueConstants})
+     * @return a non-null snapshot. The {@code probeStatus} field is the
+     *         only authoritative signal when the broker is unreachable;
+     *         the depth fields are informational only in that case
+     * @throws com.ulticode.common.exception.BusinessException with
+     *         {@code QUEUE_NOT_FOUND} when the queue name is unknown
+     *         (this is a programming error, not a probe failure)
+     */
+    QueueHealthSnapshotDTO getQueueHealthSnapshot(String queueName);
 }

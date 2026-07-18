@@ -181,12 +181,22 @@ public class RedissonStreamsJudgeQueueAdapter implements JudgeQueue {
 
     /**
      * Pending entries count (XPENDING). Used by the unacked reaper to
-     * drive the {@code judge.streams.pending} gauge.
+     * drive the {@code judge.streams.pending} gauge, and by the queue
+     * inspector (via the {@link com.ulticode.modules.queue.port.JudgeQueue#pendingDepth()}
+     * port method) to normalize monitoring depth across backends.
      */
     public long pendingCount() {
         RStream<String, String> stream = redissonClient.getStream(streamKey);
         PendingResult info = stream.getPendingInfo(groupName);
         return info == null ? 0L : info.getTotal();
+    }
+
+    @Override
+    public long pendingDepth() {
+        // Same XPENDING total as pendingCount(); the port method exists so
+        // monitoring can read the Stream-backed depth through the JudgeQueue
+        // seam without downcasting to the concrete adapter.
+        return pendingCount();
     }
 
     /**

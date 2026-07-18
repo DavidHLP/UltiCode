@@ -4,7 +4,10 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.dto.JobStatusDTO;
+import com.ulticode.modules.queue.dto.ProbeStatus;
+import com.ulticode.modules.queue.dto.QueueHealthSnapshotDTO;
 import com.ulticode.modules.queue.dto.QueueStatsDTO;
+import com.ulticode.modules.queue.port.JudgeQueue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,10 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RQueue;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,7 +33,8 @@ import static org.mockito.Mockito.when;
  * Unit tests for {@link DefaultQueueInspector}. The read module
  * is the new home for queue status, queue stats, and queue size
  * lookups; tests here mirror what {@code QueueServiceTest} used to
- * cover for those three methods.
+ * cover for those three methods, plus the monitoring-oriented
+ * {@link QueueInspector#getQueueHealthSnapshot(String)} contract.
  */
 @ExtendWith(MockitoExtension.class)
 class DefaultQueueInspectorTest {
@@ -47,14 +51,19 @@ class DefaultQueueInspectorTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private RedisTemplate<String, Object> jobStatusRedisTemplate;
 
+    @Mock
+    private JudgeQueue judgeQueuePort;
+
     private DefaultQueueInspector queueInspector;
 
     private static final String JOB_ID = "test-job-id";
 
     @BeforeEach
     void setUp() {
+        // Legacy backend by default: no JudgeQueue port bean.
         queueInspector = new DefaultQueueInspector(
-                judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate);
+                judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
+                Optional.empty());
     }
 
     @Nested
@@ -161,6 +170,116 @@ class DefaultQueueInspectorTest {
             BusinessException exception = assertThrows(BusinessException.class,
                     () -> queueInspector.getQueueSize("unknown_queue"));
             assertEquals(ErrorCode.QUEUE_NOT_FOUND, exception.getErrorCode());
+        }
+    }
+
+    @Nested
+    @DisplayName("getQueueHealthSnapshot Tests")
+    class GetQueueHealthSnapshotTests {
+
+        @Test
+        @DisplayName("legacy backend: should report RQueue.size() as waitingDepth with OK status")
+        void shouldReportRQueueSizeAsWaitingDepth() {
+            // Arrange
+            when(judgeQueue.size()).thenReturn(7);
+
+            // Act
+            QueueHealthSnapshotDTO snapshot =
+                    queueInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE);
+
+            // Assert
+            assertNotNull(snapshot);
+            assertEquals(QueueConstants.JUDGE_QUEUE, snapshot.getQueueName());
+            assertEquals(7L, snapshot.getWaitingDepth());
+            assertEquals(ProbeStatus.OK, snapshot.getProbeStatus());
+        }
+
+        @Test
+        @DisplayName("legacy backend: should translate Redis failure into PROBE_FAILED (never zero-then-OK)")
+        void shouldTranslateRQueueFailureIntoProbeFailed() {
+            // Arrange — RQueue.size() throws (e.g. Redis down)
+            when(judgeQueue.size()).thenThrow(new RuntimeException("Redis connection refused"));
+
+            // Act
+            QueueHealthSnapshotDTO snapshot =
+                    queueInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE);
+
+            // Assert
+            assertNotNull(snapshot);
+            assertEquals(ProbeStatus.PROBE_FAILED, snapshot.getProbeStatus());
+            // The depth is informational only when the probe failed; callers MUST
+            // consult probeStatus, not the depth, for health decisions.
+            assertEquals(0L, snapshot.getWaitingDepth());
+        }
+
+        @Test
+        @DisplayName("unknown queue: should surface QUEUE_NOT_FOUND (programming error, not probe failure)")
+        void shouldSurfaceQueueNotFoundForUnknownQueue() {
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> queueInspector.getQueueHealthSnapshot("no_such_queue"));
+            assertEquals(ErrorCode.QUEUE_NOT_FOUND, ex.getErrorCode());
+        }
+
+        @Test
+        @DisplayName("Stream backend (use-port=true): judge_queue depth comes from JudgeQueue.pendingDepth()")
+        void streamBackendShouldSourceJudgeDepthFromPort() {
+            // Rebuild the inspector with the JudgeQueue port present, mimicking
+            // app.features.judge-queue.use-port=true.
+            DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
+                    judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
+                    Optional.of(judgeQueuePort));
+            when(judgeQueuePort.pendingDepth()).thenReturn(42L);
+
+            QueueHealthSnapshotDTO snapshot =
+                    streamBackedInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE);
+
+            assertNotNull(snapshot);
+            assertEquals(42L, snapshot.getWaitingDepth());
+            assertEquals(ProbeStatus.OK, snapshot.getProbeStatus());
+        }
+
+        @Test
+        @DisplayName("Stream backend: a port probe failure surfaces as PROBE_FAILED")
+        void streamBackendFailureSurfacesAsProbeFailed() {
+            DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
+                    judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
+                    Optional.of(judgeQueuePort));
+            when(judgeQueuePort.pendingDepth()).thenThrow(new RuntimeException("STREAM key missing"));
+
+            QueueHealthSnapshotDTO snapshot =
+                    streamBackedInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE);
+
+            assertEquals(ProbeStatus.PROBE_FAILED, snapshot.getProbeStatus());
+            assertEquals(0L, snapshot.getWaitingDepth());
+        }
+
+        @Test
+        @DisplayName("Stream backend: non-judge queues still read their RQueue (no Stream fallback)")
+        void streamBackendNonJudgeQueuesStillUseRQueue() {
+            DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
+                    judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
+                    Optional.of(judgeQueuePort));
+            when(emailQueue.size()).thenReturn(3);
+
+            QueueHealthSnapshotDTO snapshot =
+                    streamBackedInspector.getQueueHealthSnapshot(QueueConstants.EMAIL_QUEUE);
+
+            assertEquals(3L, snapshot.getWaitingDepth());
+            assertEquals(ProbeStatus.OK, snapshot.getProbeStatus());
+        }
+
+        @Test
+        @DisplayName("Snapshot defers failed/completed aggregates to zero (bounded SCAN is a follow-up)")
+        void snapshotDefersFailedAndCompletedAggregates() {
+            when(judgeQueue.size()).thenReturn(5);
+
+            QueueHealthSnapshotDTO snapshot =
+                    queueInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE);
+
+            assertEquals(0L, snapshot.getFailedCount(),
+                    "failedCount is intentionally zero until a bounded SCAN over queue:job:* is wired");
+            assertEquals(0L, snapshot.getCompletedCount(),
+                    "completedCount is intentionally zero until a bounded SCAN over queue:job:* is wired");
         }
     }
 }

@@ -206,6 +206,22 @@ class AdminContestMutationServiceImplTest {
             verify(contestMapper).insert(captor.capture());
             assertThat(captor.getValue().getSlug()).isEqualTo("custom-slug");
         }
+
+        @Test
+        @DisplayName("trims surrounding whitespace from a provided DTO slug before persisting it")
+        void dtoSlugWithWhitespace_isTrimmed() {
+            CreateContestDTO dto = buildCreateDto("Weekly #21", LocalDateTime.of(2026, 7, 1, 10, 0),
+                    180, false, null);
+            dto.setSlug("  custom-slug  ");
+            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
+
+            service.createContest(dto, ADMIN_USER_ID);
+
+            verify(adminContestProjection, never()).generateSlug(anyString());
+            ArgumentCaptor<Contest> captor = ArgumentCaptor.forClass(Contest.class);
+            verify(contestMapper).insert(captor.capture());
+            assertThat(captor.getValue().getSlug()).isEqualTo("custom-slug");
+        }
     }
 
     // ----------------------------------------------------------------------

@@ -22,6 +22,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.testcontainers.containers.GenericContainer;
@@ -31,7 +32,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -119,9 +119,14 @@ class QueueMonitoringTruthIT {
         // Unconfigured RedisTemplate — safe because status tracking is off.
         RedisTemplate<String, Object> jobStatusRedisTemplate = new RedisTemplate<>();
 
+        // Legacy backend: no JudgeQueue bean, so the provider resolves to null.
+        @SuppressWarnings("unchecked")
+        ObjectProvider<com.ulticode.modules.queue.port.JudgeQueue> judgeQueueProvider =
+                Mockito.mock(ObjectProvider.class);
+
         QueueInspector queueInspector = new DefaultQueueInspector(
                 judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
-                Optional.empty());
+                judgeQueueProvider);
 
         queueService = new QueueServiceImpl(
                 Clock.systemUTC(), new FixedUuidGenerator(),

@@ -17,11 +17,11 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RQueue;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -54,16 +54,20 @@ class DefaultQueueInspectorTest {
     @Mock
     private JudgeQueue judgeQueuePort;
 
+    @Mock
+    private ObjectProvider<JudgeQueue> judgeQueueProvider;
+
     private DefaultQueueInspector queueInspector;
 
     private static final String JOB_ID = "test-job-id";
 
     @BeforeEach
     void setUp() {
-        // Legacy backend by default: no JudgeQueue port bean.
+        // Legacy backend by default: provider resolves to null (no JudgeQueue bean).
+        // Mockito returns null from the unstubbed getIfAvailable() call.
         queueInspector = new DefaultQueueInspector(
                 judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
-                Optional.empty());
+                judgeQueueProvider);
     }
 
     @Nested
@@ -227,7 +231,8 @@ class DefaultQueueInspectorTest {
             // app.features.judge-queue.use-port=true.
             DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
                     judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
-                    Optional.of(judgeQueuePort));
+                    judgeQueueProvider);
+            when(judgeQueueProvider.getIfAvailable()).thenReturn(judgeQueuePort);
             when(judgeQueuePort.pendingDepth()).thenReturn(42L);
 
             QueueHealthSnapshotDTO snapshot =
@@ -243,7 +248,8 @@ class DefaultQueueInspectorTest {
         void streamBackendFailureSurfacesAsProbeFailed() {
             DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
                     judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
-                    Optional.of(judgeQueuePort));
+                    judgeQueueProvider);
+            when(judgeQueueProvider.getIfAvailable()).thenReturn(judgeQueuePort);
             when(judgeQueuePort.pendingDepth()).thenThrow(new RuntimeException("STREAM key missing"));
 
             QueueHealthSnapshotDTO snapshot =
@@ -256,9 +262,12 @@ class DefaultQueueInspectorTest {
         @Test
         @DisplayName("Stream backend: non-judge queues still read their RQueue (no Stream fallback)")
         void streamBackendNonJudgeQueuesStillUseRQueue() {
+            // Provider intentionally not stubbed: the EMAIL_QUEUE path never
+            // consults it (the JUDGE_QUEUE guard short-circuits), so stubbing
+            // getIfAvailable() would trip UnnecessaryStubbingException.
             DefaultQueueInspector streamBackedInspector = new DefaultQueueInspector(
                     judgeQueue, emailQueue, notificationQueue, jobStatusRedisTemplate,
-                    Optional.of(judgeQueuePort));
+                    judgeQueueProvider);
             when(emailQueue.size()).thenReturn(3);
 
             QueueHealthSnapshotDTO snapshot =

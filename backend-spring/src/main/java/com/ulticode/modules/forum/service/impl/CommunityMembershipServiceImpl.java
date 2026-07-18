@@ -55,8 +55,9 @@ public class CommunityMembershipServiceImpl implements CommunityMembershipServic
         try {
             memberMapper.insert(membership);
         } catch (DuplicateKeyException ex) {
-            // 并发:UNIQUE(community_id, user_id) 已被另一请求插入。
-            // 收敛到「当前已是成员」的成功状态,不对 member 计数二次自增。
+            // Concurrency: the UNIQUE(community_id, user_id) constraint means another
+            // concurrent request already inserted this membership. Converge to the
+            // "already a member" success state without double-incrementing the counter.
             log.warn("Converging on existing membership after duplicate-key collision: community={}, user={}",
                     communityId, userId);
             return;

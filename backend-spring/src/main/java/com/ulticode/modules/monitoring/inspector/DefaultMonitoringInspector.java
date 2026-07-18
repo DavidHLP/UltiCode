@@ -34,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -179,7 +180,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
             // Get connection pool info
             ResultSet rs = stmt.executeQuery(
                     "SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Max_used_connections')");
-            Map<String, Integer> stats = new java.util.HashMap<>();
+            Map<String, Integer> stats = new HashMap<>();
             while (rs.next()) {
                 stats.put(rs.getString("Variable_name"), rs.getInt("Value"));
             }
@@ -213,8 +214,8 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
         List<QueueStatsVO> queues = new ArrayList<>();
 
         for (String queueName : KNOWN_QUEUE_NAMES) {
-            QueueHealthSnapshotDTO snapshot = readQueueSnapshot(queueName);
-            queues.add(adaptSnapshot(queueName, snapshot));
+            QueueHealthSnapshotDTO snapshot = readQueueHealthSnapshot(queueName);
+            queues.add(toQueueStatsVO(queueName, snapshot));
         }
 
         return queues;
@@ -469,7 +470,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * a synthetic PROBE_FAILED so the dashboard still renders the row
      * with zeros and the health check still flips unhealthy.
      */
-    private QueueHealthSnapshotDTO readQueueSnapshot(String queueName) {
+    private QueueHealthSnapshotDTO readQueueHealthSnapshot(String queueName) {
         try {
             return queueInspector.getQueueHealthSnapshot(queueName);
         } catch (Exception e) {
@@ -499,7 +500,7 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
      * {@link #checkQueues()} so the failure cannot be mistaken for
      * an empty-but-healthy queue.
      */
-    private QueueStatsVO adaptSnapshot(String queueName, QueueHealthSnapshotDTO snapshot) {
+    private QueueStatsVO toQueueStatsVO(String queueName, QueueHealthSnapshotDTO snapshot) {
         return QueueStatsVO.builder()
                 .name(queueName)
                 .waiting(snapshot.getWaitingDepth())

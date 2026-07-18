@@ -11,10 +11,9 @@ import com.ulticode.modules.queue.port.JudgeQueue;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RQueue;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /**
  * Default adapter for {@link QueueInspector}. Side-effect free:
@@ -51,11 +50,11 @@ public class DefaultQueueInspector implements QueueInspector {
 
     /**
      * Present only when
-     * {@code app.features.judge-queue.use-port=true}. Empty
-     * {@link Optional} in the legacy mode; the inspector then reports
-     * {@code RQueue.size()} for the judge queue.
+     * {@code app.features.judge-queue.use-port=true}. Resolves to null
+     * via {@link ObjectProvider#getIfAvailable()} in the legacy mode; the
+     * inspector then reports {@code RQueue.size()} for the judge queue.
      */
-    private final Optional<JudgeQueue> judgeQueuePort;
+    private final ObjectProvider<JudgeQueue> judgeQueueProvider;
 
     @Override
     public JobStatusDTO getJobStatus(String jobId) {
@@ -99,7 +98,7 @@ public class DefaultQueueInspector implements QueueInspector {
 
         // For the judge queue under use-port=true, RQueue.size() reads zero
         // (no writer) — source the depth from the Stream backend instead.
-        if (QueueConstants.JUDGE_QUEUE.equals(queueName) && judgeQueuePort.isPresent()) {
+        if (QueueConstants.JUDGE_QUEUE.equals(queueName) && judgeQueueProvider.getIfAvailable() != null) {
             return probeStreamBackedJudgeQueue();
         }
 
@@ -133,8 +132,16 @@ public class DefaultQueueInspector implements QueueInspector {
      * port, translating any failure into {@link ProbeStatus#PROBE_FAILED}.
      */
     private QueueHealthSnapshotDTO probeStreamBackedJudgeQueue() {
+        JudgeQueue judgeQueue = judgeQueueProvider.getIfAvailable();
+        if (judgeQueue == null) {
+            // The provider resolved null between the caller's presence check
+            // and here (should not happen for a singleton bean, but fail closed
+            // like any other probe failure rather than dereferencing null).
+            log.warn("JudgeQueue provider resolved null during judge_queue stream probe");
+            return baseSnapshot(QueueConstants.JUDGE_QUEUE, 0L, ProbeStatus.PROBE_FAILED);
+        }
         try {
-            long depth = judgeQueuePort.orElseThrow().pendingDepth();
+            long depth = judgeQueue.pendingDepth();
             return baseSnapshot(QueueConstants.JUDGE_QUEUE, depth, ProbeStatus.OK);
         } catch (Exception e) {
             // broad catch: Stream probe failure (Redis down, group missing,

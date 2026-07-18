@@ -77,8 +77,21 @@ export function parseSizeToBytes(sizeStr: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Defaults — used only to seed the ref before the first load lands. The
-// backend supplies the authoritative defaults via GET /admin/settings/all.
+// UI placeholder seed for the refs before the first load() resolves.
+//
+// This is NOT a source of truth. The backend supplies the authoritative
+// values via GET /admin/settings/all, and load() overwrites both refs
+// before the SettingsView surfaces any component — SettingsView wraps its
+// tab content in an opacity-0 container that only flips to opacity-100
+// after isLoaded is set in onMounted (after load() resolves), and the
+// tab body itself is hidden behind `v-if="loading"` during the fetch.
+//
+// The values exist solely so the refs carry a complete AllSettings shape
+// (TypeScript forbids undefined fields on the typed ref) and so that, if a
+// component ever briefly reads a slice before load lands, it sees
+// non-surprising empty/conservative defaults rather than broken renders.
+// Treat any divergence between these and the backend's defaults as a
+// backend-owned correction, not a bug here.
 // ---------------------------------------------------------------------------
 
 function defaultAllSettings(): AllSettings {

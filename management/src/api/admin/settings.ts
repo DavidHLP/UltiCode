@@ -156,29 +156,97 @@ interface FeatureWire {
 
 interface AllSettingsWire extends GeneralWire, EmailWire, RateLimitWire, UploadWire, FeatureWire {}
 
-function generalToWire(s: Partial<SystemSettings>): Partial<GeneralWire> {
-  const out: Partial<GeneralWire> = {}
-  if (s.maintenance_mode !== undefined) out.maintenanceMode = s.maintenance_mode
-  if (s.maintenance_message !== undefined) out.maintenanceMessage = s.maintenance_message
-  if (s.enable_registrations !== undefined) out.enableRegistrations = s.enable_registrations
-  if (s.site_name !== undefined) out.siteName = s.site_name
-  if (s.site_description !== undefined) out.siteDescription = s.site_description
-  if (s.require_email_verification !== undefined) {
-    out.requireEmailVerification = s.require_email_verification
+// ============================================================================
+// Declarative snake/camel boundary.
+//
+// Each category declares a single { wireKey: dtoKey } table; the generic
+// toWire/fromWire pair below walks the table to rename keys. Adding a field
+// to a category is now one line in its table instead of a freshly
+// hand-written adapter pair. The tables are the only place the snake/camel
+// pairing is spelled out.
+//
+// `toWire` only emits keys whose dto value is defined (PATCH semantics —
+// partial slices must not carry undefined wire keys). `fromWire` emits every
+// mapped key (GET responses always carry the full category slice).
+// ============================================================================
+
+type FieldMapping = Readonly<Record<string, string>>
+
+const GENERAL_MAPPING = {
+  maintenanceMode: 'maintenance_mode',
+  maintenanceMessage: 'maintenance_message',
+  enableRegistrations: 'enable_registrations',
+  siteName: 'site_name',
+  siteDescription: 'site_description',
+  requireEmailVerification: 'require_email_verification',
+} satisfies FieldMapping
+
+const EMAIL_MAPPING = {
+  smtpHost: 'smtp_host',
+  smtpPort: 'smtp_port',
+  smtpUser: 'smtp_user',
+  smtpPassword: 'smtp_password',
+  smtpFrom: 'smtp_from',
+  smtpFromName: 'smtp_from_name',
+  smtpSecure: 'smtp_secure',
+} satisfies FieldMapping
+
+const RATE_LIMIT_MAPPING = {
+  rateLimitApi: 'rate_limit_api',
+  rateLimitSubmission: 'rate_limit_submission',
+  rateLimitAuth: 'rate_limit_auth',
+  rateLimitUpload: 'rate_limit_upload',
+} satisfies FieldMapping
+
+const UPLOAD_MAPPING = {
+  uploadMaxSize: 'upload_max_size',
+  uploadAllowedTypes: 'upload_allowed_types',
+  uploadMaxFiles: 'upload_max_files',
+} satisfies FieldMapping
+
+const FEATURE_MAPPING = {
+  featureContest: 'feature_contest',
+  featureForum: 'feature_forum',
+  featureSolutions: 'feature_solutions',
+  featureSubscriptions: 'feature_subscriptions',
+  featureAchievements: 'feature_achievements',
+  featureNotifications: 'feature_notifications',
+  featureBookmarks: 'feature_bookmarks',
+  featureProblemLists: 'feature_problem_lists',
+} satisfies FieldMapping
+
+/**
+ * Rename a partial dto's snake_case keys to camelCase wire keys, dropping
+ * any key whose value is undefined. The projection is structurally safe
+ * because {mapping} enumerates the exact field set of both shapes.
+ */
+function toWire<W, D>(dto: Partial<D>, mapping: FieldMapping): Partial<W> {
+  const source = dto as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+  for (const [wireKey, dtoKey] of Object.entries(mapping)) {
+    const value = source[dtoKey]
+    if (value !== undefined) out[wireKey] = value
   }
-  return out
+  return out as Partial<W>
 }
 
-function generalFromWire(w: GeneralWire): SystemSettings {
-  return {
-    maintenance_mode: w.maintenanceMode,
-    maintenance_message: w.maintenanceMessage,
-    enable_registrations: w.enableRegistrations,
-    site_name: w.siteName,
-    site_description: w.siteDescription,
-    require_email_verification: w.requireEmailVerification,
+/** Rename a full wire object's camelCase keys to snake_case dto keys. */
+function fromWire<W, D>(wire: W, mapping: FieldMapping): D {
+  const source = wire as Record<string, unknown>
+  const out: Record<string, unknown> = {}
+  for (const [wireKey, dtoKey] of Object.entries(mapping)) {
+    out[dtoKey] = source[wireKey]
   }
+  return out as D
 }
+
+// Per-category bindings so call sites stay one-word. Each closing arrow
+// carries its category's mapping so the settingsApi object reads as before.
+
+const generalToWire = (dto: Partial<SystemSettings>): Partial<GeneralWire> =>
+  toWire<GeneralWire, SystemSettings>(dto, GENERAL_MAPPING)
+const generalFromWire = (wire: GeneralWire): SystemSettings =>
+  fromWire<GeneralWire, SystemSettings>(wire, GENERAL_MAPPING)
 
 /**
  * Email wire adapter. The password field carries the backend's
@@ -187,94 +255,33 @@ function generalFromWire(w: GeneralWire): SystemSettings {
  * stored secret. We collapse empty/undefined to the mask as well so a
  * half-cleared form can never wipe the credential.
  */
-function emailToWire(s: Partial<EmailSettings>): Partial<EmailWire> {
-  const out: Partial<EmailWire> = {}
-  if (s.smtp_host !== undefined) out.smtpHost = s.smtp_host
-  if (s.smtp_port !== undefined) out.smtpPort = s.smtp_port
-  if (s.smtp_user !== undefined) out.smtpUser = s.smtp_user
-  if (s.smtp_password !== undefined) {
+function emailToWire(dto: Partial<EmailSettings>): Partial<EmailWire> {
+  const out = toWire<EmailWire, EmailSettings>(dto, EMAIL_MAPPING)
+  if (out.smtpPassword !== undefined) {
     out.smtpPassword =
-      s.smtp_password && s.smtp_password !== SMTP_PASSWORD_MASK
-        ? s.smtp_password
+      out.smtpPassword && out.smtpPassword !== SMTP_PASSWORD_MASK
+        ? out.smtpPassword
         : SMTP_PASSWORD_MASK
   }
-  if (s.smtp_from !== undefined) out.smtpFrom = s.smtp_from
-  if (s.smtp_from_name !== undefined) out.smtpFromName = s.smtp_from_name
-  if (s.smtp_secure !== undefined) out.smtpSecure = s.smtp_secure
   return out
 }
+const emailFromWire = (wire: EmailWire): EmailSettings =>
+  fromWire<EmailWire, EmailSettings>(wire, EMAIL_MAPPING)
 
-function emailFromWire(w: EmailWire): EmailSettings {
-  return {
-    smtp_host: w.smtpHost,
-    smtp_port: w.smtpPort,
-    smtp_user: w.smtpUser,
-    smtp_password: w.smtpPassword,
-    smtp_from: w.smtpFrom,
-    smtp_from_name: w.smtpFromName,
-    smtp_secure: w.smtpSecure,
-  }
-}
+const rateLimitToWire = (dto: Partial<RateLimitSettings>): Partial<RateLimitWire> =>
+  toWire<RateLimitWire, RateLimitSettings>(dto, RATE_LIMIT_MAPPING)
+const rateLimitFromWire = (wire: RateLimitWire): RateLimitSettings =>
+  fromWire<RateLimitWire, RateLimitSettings>(wire, RATE_LIMIT_MAPPING)
 
-function rateLimitToWire(s: Partial<RateLimitSettings>): Partial<RateLimitWire> {
-  const out: Partial<RateLimitWire> = {}
-  if (s.rate_limit_api !== undefined) out.rateLimitApi = s.rate_limit_api
-  if (s.rate_limit_submission !== undefined) out.rateLimitSubmission = s.rate_limit_submission
-  if (s.rate_limit_auth !== undefined) out.rateLimitAuth = s.rate_limit_auth
-  if (s.rate_limit_upload !== undefined) out.rateLimitUpload = s.rate_limit_upload
-  return out
-}
+const uploadToWire = (dto: Partial<UploadSettings>): Partial<UploadWire> =>
+  toWire<UploadWire, UploadSettings>(dto, UPLOAD_MAPPING)
+const uploadFromWire = (wire: UploadWire): UploadSettings =>
+  fromWire<UploadWire, UploadSettings>(wire, UPLOAD_MAPPING)
 
-function rateLimitFromWire(w: RateLimitWire): RateLimitSettings {
-  return {
-    rate_limit_api: w.rateLimitApi,
-    rate_limit_submission: w.rateLimitSubmission,
-    rate_limit_auth: w.rateLimitAuth,
-    rate_limit_upload: w.rateLimitUpload,
-  }
-}
-
-function uploadToWire(s: Partial<UploadSettings>): Partial<UploadWire> {
-  const out: Partial<UploadWire> = {}
-  if (s.upload_max_size !== undefined) out.uploadMaxSize = s.upload_max_size
-  if (s.upload_allowed_types !== undefined) out.uploadAllowedTypes = s.upload_allowed_types
-  if (s.upload_max_files !== undefined) out.uploadMaxFiles = s.upload_max_files
-  return out
-}
-
-function uploadFromWire(w: UploadWire): UploadSettings {
-  return {
-    upload_max_size: w.uploadMaxSize,
-    upload_allowed_types: w.uploadAllowedTypes,
-    upload_max_files: w.uploadMaxFiles,
-  }
-}
-
-function featureToWire(s: Partial<FeatureToggles>): Partial<FeatureWire> {
-  const out: Partial<FeatureWire> = {}
-  if (s.feature_contest !== undefined) out.featureContest = s.feature_contest
-  if (s.feature_forum !== undefined) out.featureForum = s.feature_forum
-  if (s.feature_solutions !== undefined) out.featureSolutions = s.feature_solutions
-  if (s.feature_subscriptions !== undefined) out.featureSubscriptions = s.feature_subscriptions
-  if (s.feature_achievements !== undefined) out.featureAchievements = s.feature_achievements
-  if (s.feature_notifications !== undefined) out.featureNotifications = s.feature_notifications
-  if (s.feature_bookmarks !== undefined) out.featureBookmarks = s.feature_bookmarks
-  if (s.feature_problem_lists !== undefined) out.featureProblemLists = s.feature_problem_lists
-  return out
-}
-
-function featureFromWire(w: FeatureWire): FeatureToggles {
-  return {
-    feature_contest: w.featureContest,
-    feature_forum: w.featureForum,
-    feature_solutions: w.featureSolutions,
-    feature_subscriptions: w.featureSubscriptions,
-    feature_achievements: w.featureAchievements,
-    feature_notifications: w.featureNotifications,
-    feature_bookmarks: w.featureBookmarks,
-    feature_problem_lists: w.featureProblemLists,
-  }
-}
+const featureToWire = (dto: Partial<FeatureToggles>): Partial<FeatureWire> =>
+  toWire<FeatureWire, FeatureToggles>(dto, FEATURE_MAPPING)
+const featureFromWire = (wire: FeatureWire): FeatureToggles =>
+  fromWire<FeatureWire, FeatureToggles>(wire, FEATURE_MAPPING)
 
 function allFromWire(w: AllSettingsWire): AllSettings {
   return {

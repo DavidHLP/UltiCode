@@ -3,6 +3,7 @@ package com.ulticode.modules.forum.projection;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -13,8 +14,9 @@ import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,14 +25,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
 
 /**
  * Regression tests for {@code DefaultForumReadProjection.applySortBy}, exercised
@@ -41,7 +40,6 @@ import static org.mockito.Mockito.when;
  * if either regresses.
  */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultForumReadProjectionSortTest {
 
     @Mock private ForumPostMapper postMapper;
@@ -59,17 +57,6 @@ class DefaultForumReadProjectionSortTest {
     /** Last wrapper passed to {@code selectPage}; captured via a doAnswer stub. */
     private LambdaQueryWrapper<ForumPost> lastWrapper;
 
-    @SuppressWarnings("unchecked")
-    @BeforeEach
-    void stubEmptyPage() {
-        IPage<ForumPost> emptyPage = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
-        when(postMapper.selectPage(any(IPage.class), any(LambdaQueryWrapper.class))).thenReturn(emptyPage);
-        doAnswer(invocation -> {
-            lastWrapper = invocation.getArgument(1);
-            return emptyPage;
-        }).when(postMapper).selectPage(any(IPage.class), any(LambdaQueryWrapper.class));
-    }
-
     /**
      * Bootstrap the MyBatis-Plus lambda cache so {@code
      * LambdaQueryWrapper.getSqlSegment()} can resolve column references.
@@ -81,12 +68,10 @@ class DefaultForumReadProjectionSortTest {
         try {
             Class<?> assistantClass = Class.forName(
                     "com.baomidou.mybatisplus.core.MybatisMapperBuilderAssistant");
-            org.apache.ibatis.builder.MapperBuilderAssistant assistant =
-                    (org.apache.ibatis.builder.MapperBuilderAssistant) assistantClass
-                            .getDeclaredConstructor(
-                                    org.apache.ibatis.session.Configuration.class,
-                                    String.class)
-                            .newInstance(new org.apache.ibatis.session.Configuration(), "");
+            MapperBuilderAssistant assistant =
+                    (MapperBuilderAssistant) assistantClass
+                            .getDeclaredConstructor(Configuration.class, String.class)
+                            .newInstance(new Configuration(), "");
             TableInfoHelper.initTableInfo(assistant, ForumPost.class);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException(
@@ -95,6 +80,13 @@ class DefaultForumReadProjectionSortTest {
     }
 
     private String sqlFor(String sortBy) {
+        // Stub per-test (strict stubs): only the tests that drive findAllPosts
+        // pay for it, and the unknown-sortBy case never reaches selectPage.
+        IPage<ForumPost> emptyPage = new Page<>();
+        doAnswer(invocation -> {
+            lastWrapper = invocation.getArgument(1);
+            return emptyPage;
+        }).when(postMapper).selectPage(any(IPage.class), any(LambdaQueryWrapper.class));
         lastWrapper = null;
         projection.findAllPosts(null, sortBy, 1, 20);
         assertThat(lastWrapper).as("selectPage was not called for sortBy=%s", sortBy).isNotNull();
@@ -149,6 +141,17 @@ class DefaultForumReadProjectionSortTest {
         String sql = sqlFor("controversial");
         assertThat(sql).contains("ORDER BY");
         assertThat(sql).contains("ID DESC");
+    }
+
+    @Test
+    @DisplayName("controversial currently mirrors hot (placeholder) — TODO: diverge once vote columns exist")
+    void controversialCurrentlyMirrorsHotPlaceholder() {
+        // Spec 3.8: controversial is an accepted placeholder. Today it reuses
+        // the hot signal because forum_posts has no score/upvotes/downvotes
+        // column. This test pins the *current* degenerate behavior so the
+        // placeholder is explicit; when a vote-distribution column lands,
+        // flip this assertion to isNotEqualTo(...) to lock the divergence.
+        assertThat(sqlFor("controversial")).isEqualTo(sqlFor("hot"));
     }
 
     @Test

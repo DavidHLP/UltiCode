@@ -81,14 +81,12 @@ public class DefaultForumReadProjection implements ForumReadProjection {
 
     @Override
     public PageResult<ForumPostVO> findAllPosts(String userId, String sortBy, int page, int pageSize) {
-        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS));
-        int safePage = Math.max(1, page);
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
                 .eq(ForumPost::getIsDeleted, false);
         applySortBy(wrapper, sortBy);
-        IPage<ForumPost> pageResult = postMapper.selectPage(
-                new Page<>(safePage, limit), wrapper);
-        return assemblePage(pageResult.getRecords(), userId, pageResult.getTotal(), safePage, limit);
+        IPage<ForumPost> pageResult = paginate(wrapper, page, pageSize, MAX_RECENT_POSTS);
+        return assemblePage(pageResult.getRecords(), userId, pageResult.getTotal(),
+                (int) pageResult.getCurrent(), (int) pageResult.getSize());
     }
 
     // ---------- My posts (2 overloads) ----------
@@ -100,13 +98,14 @@ public class DefaultForumReadProjection implements ForumReadProjection {
 
     @Override
     public PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize) {
-        int limit = Math.max(1, Math.min(pageSize, MAX_RECENT_POSTS));
-        int offset = Math.max(0, (page - 1) * limit);
-        long total = postMapper.countByUserId(userId);
-        List<ForumPost> posts = postMapper.findByUserId(userId);
-        // Manual pagination since findByUserId returns full list
-        List<ForumPost> paged = posts.stream().skip(offset).limit(limit).collect(Collectors.toList());
-        return assemblePage(paged, userId, total, page, limit);
+        LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
+                .eq(ForumPost::getUserId, userId)
+                .eq(ForumPost::getIsDeleted, false)
+                .orderByDesc(ForumPost::getCreatedAt)
+                .orderByDesc(ForumPost::getId);
+        IPage<ForumPost> pageResult = paginate(wrapper, page, pageSize, MAX_RECENT_POSTS);
+        return assemblePage(pageResult.getRecords(), userId, pageResult.getTotal(),
+                (int) pageResult.getCurrent(), (int) pageResult.getSize());
     }
 
     // ---------- Single post ----------
@@ -154,14 +153,11 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     public PageResult<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId, int page, int pageSize) {
         ForumCommunity c = communityMapper.findBySlug(slug);
         if (c == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
-        int limit = Math.max(1, Math.min(pageSize, 50));
-        int safePage = Math.max(1, page);
         LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<ForumPost>()
                 .eq(ForumPost::getCommunityId, c.getId())
                 .eq(ForumPost::getIsDeleted, false);
         applySortBy(wrapper, sortBy);
-        IPage<ForumPost> pageResult = postMapper.selectPage(
-                new Page<>(safePage, limit), wrapper);
+        IPage<ForumPost> pageResult = paginate(wrapper, page, pageSize, 50);
         List<ForumPost> posts = pageResult.getRecords();
         Map<String, ForumCommunity> cm = Map.of(c.getId(), c);
         Map<String, User> am = batchLoadAuthors(posts);
@@ -172,7 +168,8 @@ public class DefaultForumReadProjection implements ForumReadProjection {
                         cm.get(p.getCommunityId()),
                         commentCounts.getOrDefault(p.getId(), 0L)))
                 .collect(Collectors.toList());
-        return PageResult.of(items, pageResult.getTotal(), safePage, limit);
+        return PageResult.of(items, pageResult.getTotal(),
+                (int) pageResult.getCurrent(), (int) pageResult.getSize());
     }
 
     // ---------- Communities + tags + filters ----------
@@ -205,6 +202,11 @@ public class DefaultForumReadProjection implements ForumReadProjection {
 
     @Override
     public List<QuickFilterDTO> getQuickFilters() {
+        // Wire contract: QuickFilterDTO carries only `value` (the i18n key).
+        // Producer = this endpoint; consumers = console ForumFeedView (overwrites
+        // `label` with t('forum.sort.${value}')) and management (no consumer —
+        // grep management/src for QuickFilterDTO returns zero hits). The legacy
+        // `label` field was removed because it was never read off the wire.
         return List.of(
                 new QuickFilterDTO("hot"),
                 new QuickFilterDTO("new"),
@@ -282,6 +284,21 @@ public class DefaultForumReadProjection implements ForumReadProjection {
     }
 
     // ---------- Private helpers ----------
+
+    /**
+     * Run a {@link LambdaQueryWrapper} through MyBatis-Plus bound-parameter
+     * pagination so the configured {@code PaginationInnerInterceptor} owns
+     * LIMIT/OFFSET (no string-concatenated SQL). The returned {@link IPage}
+     * carries the clamped {@code current}/{@code size} so callers echo a valid
+     * (always {@code >= 1}) page back to clients — every frontend consumer of
+     * {@code PageResult.page} must treat it as 1-based and never 0/negative.
+     */
+    private IPage<ForumPost> paginate(LambdaQueryWrapper<ForumPost> wrapper,
+                                      int page, int pageSize, int maxLimit) {
+        int limit = Math.max(1, Math.min(pageSize, maxLimit));
+        int safePage = Math.max(1, page);
+        return postMapper.selectPage(new Page<>(safePage, limit), wrapper);
+    }
 
     /**
      * Batch assemble a page of posts: authors + communities + comment counts are

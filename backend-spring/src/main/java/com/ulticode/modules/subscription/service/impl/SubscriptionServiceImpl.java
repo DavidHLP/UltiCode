@@ -209,7 +209,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscriptionMapper.cancelById(id);
 
         // Fetch updated subscription
-        subscription = subscriptionMapper.selectById(id);
+        subscription = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
         subscription.setCancelledAt(LocalDateTime.now(clock));
 
         log.info("Subscription cancelled: {}", id);
@@ -268,8 +269,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private Subscription loadAndMarkExpired(Subscription subscription) {
         if (premiumAccessPolicy.hasExpired(subscription)
                 && SubscriptionStatus.ACTIVE.getValue().equals(subscription.getStatus())) {
-            subscriptionMapper.updateStatus(subscription.getId(), SubscriptionStatus.EXPIRED.getValue());
-            subscription.setStatus(SubscriptionStatus.EXPIRED.getValue());
+            int updated = subscriptionMapper.updateStatus(subscription.getId(), SubscriptionStatus.EXPIRED.getValue());
+            // Only flip the in-memory status when the row actually transitioned;
+            // a concurrent transition or hard delete (updated == 0) must not make
+            // the returned DTO diverge from the persisted row.
+            if (updated > 0) {
+                subscription.setStatus(SubscriptionStatus.EXPIRED.getValue());
+            }
         }
         return subscription;
     }

@@ -54,13 +54,14 @@ public class CommunityMembershipServiceImpl implements CommunityMembershipServic
         membership.setJoinedAt(LocalDateTime.now(clock));
         try {
             memberMapper.insert(membership);
-            communityMapper.incrementMembers(communityId);
         } catch (DuplicateKeyException ex) {
             // 并发:UNIQUE(community_id, user_id) 已被另一请求插入。
             // 收敛到「当前已是成员」的成功状态,不对 member 计数二次自增。
             log.warn("Converging on existing membership after duplicate-key collision: community={}, user={}",
                     communityId, userId);
+            return;
         }
+        communityMapper.incrementMembers(communityId);
     }
 
     @Override

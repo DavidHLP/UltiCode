@@ -133,6 +133,7 @@ describe("useSolutionAuthoring", () => {
       const authoring = useSolutionAuthoring({
         onGateFailure,
         onPublishSuccess,
+        onCollisionRecovery: vi.fn(),
       });
       await authoring.init();
 
@@ -167,6 +168,7 @@ describe("useSolutionAuthoring", () => {
       const authoring = useSolutionAuthoring({
         onGateFailure,
         onPublishSuccess: vi.fn(),
+        onCollisionRecovery: vi.fn(),
       });
       await authoring.init();
 
@@ -181,7 +183,7 @@ describe("useSolutionAuthoring", () => {
   });
 
   describe('publish "already exists" collision recovery', () => {
-    it("redirects to the existing solution edit route via router.push", async () => {
+    it("invokes onCollisionRecovery with the resolved existing solution id", async () => {
       // Configure create-from-problem so the composable has a problemId and
       // is in create mode, then drive publish() directly. init() is avoided
       // to keep the collision assertion isolated from best-submission fetches.
@@ -207,9 +209,11 @@ describe("useSolutionAuthoring", () => {
       });
 
       const onPublishSuccess = vi.fn();
+      const onCollisionRecovery = vi.fn();
       const authoring = useSolutionAuthoring({
         onPublishSuccess,
         onGateFailure: vi.fn(),
+        onCollisionRecovery,
       });
       // Set the create-mode state publish() reads; skip the init() fetches.
       authoring.resolvedProblemId.value = "123";
@@ -219,13 +223,16 @@ describe("useSolutionAuthoring", () => {
 
       await authoring.publish();
 
-      // Collision recovery informs the user and redirects to the edit route
-      // of the existing solution — this is the documented invariant.
+      // Collision recovery informs the user and delegates the redirect to the
+      // adapter — the composable no longer hardcodes the solution-edit route.
       expect(toast.info).toHaveBeenCalledWith("solution.messages.alreadyExists");
-      expect(mockRouter.push).toHaveBeenCalledWith({
-        name: "solution-edit",
-        params: { id: "sol-99" },
+      expect(onCollisionRecovery).toHaveBeenCalledTimes(1);
+      expect(onCollisionRecovery).toHaveBeenCalledWith({
+        solutionId: "sol-99",
+        problemSlug: null,
       });
+      // The composable must not navigate on its own — the view owns the route.
+      expect(mockRouter.push).not.toHaveBeenCalled();
       // Happy-path adapter must NOT fire when the collision path took over.
       expect(onPublishSuccess).not.toHaveBeenCalled();
       // The generic error toast is bypassed because recovery succeeded.
@@ -238,9 +245,11 @@ describe("useSolutionAuthoring", () => {
       );
       vi.mocked(fetchUserSolutions).mockResolvedValue({ items: [], total: 0 });
 
+      const onCollisionRecovery = vi.fn();
       const authoring = useSolutionAuthoring({
         onPublishSuccess: vi.fn(),
         onGateFailure: vi.fn(),
+        onCollisionRecovery,
       });
       authoring.resolvedProblemId.value = "55";
       authoring.isEditMode.value = false;
@@ -249,8 +258,42 @@ describe("useSolutionAuthoring", () => {
 
       await authoring.publish();
 
+      expect(onCollisionRecovery).not.toHaveBeenCalled();
       expect(mockRouter.push).not.toHaveBeenCalled();
       expect(toast.error).toHaveBeenCalledWith("already exists");
+    });
+  });
+
+  describe("unknown-route failure surfacing", () => {
+    it("sets initError and leaves refs empty instead of silently rendering", async () => {
+      // A route that does not match any authoring record must not leave the
+      // view to render against uninitialized refs — init() short-circuits to
+      // an explicit initError state.
+      setRoute("something-else", { slug: "two-sum" });
+      vi.mocked(fetchSolutionTopics).mockResolvedValue({ topics: [] });
+
+      const authoring = useSolutionAuthoring({
+        onPublishSuccess: vi.fn(),
+        onGateFailure: vi.fn(),
+        onCollisionRecovery: vi.fn(),
+      });
+
+      expect(authoring.initError.value).toBeNull();
+      await authoring.init();
+
+      // initError is set to the i18n key (passthrough mock returns the key).
+      expect(authoring.initError.value).toBe("solution.messages.unknownRoute");
+      // Editor / topic refs stay at their initial empty values — no silent
+      // partial render.
+      expect(authoring.title.value).toBe("");
+      expect(authoring.editorContent.value).toBe("");
+      expect(authoring.topicOptions.value).toEqual([]);
+      // Topics must not be loaded for an unresolvable route.
+      expect(fetchSolutionTopics).not.toHaveBeenCalled();
+      // No navigation / toasts fire from the unknown-route path.
+      expect(mockRouter.push).not.toHaveBeenCalled();
+      expect(mockRouter.back).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
     });
   });
 });

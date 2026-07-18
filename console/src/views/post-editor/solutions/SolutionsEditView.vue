@@ -22,7 +22,19 @@
 
     <!-- 主体内容 -->
     <main class="flex flex-1 overflow-hidden">
-      <div class="flex w-full flex-col overflow-hidden">
+      <!-- Unresolvable-route failure: surface an explicit error instead of
+           rendering the editor against uninitialized (empty) refs. -->
+      <div
+        v-if="initError"
+        class="flex w-full flex-col items-center justify-center gap-3 px-6 py-12 text-center"
+      >
+        <p class="text-sm text-destructive">{{ initError }}</p>
+        <Button variant="ghost" size="sm" class="gap-2" @click="handleGoBack">
+          <ArrowLeft class="h-4 w-4" />
+          {{ t("solution.editor.back") }}
+        </Button>
+      </div>
+      <div v-else class="flex w-full flex-col overflow-hidden">
         <!-- 标题和话题区域 -->
         <div class="flex flex-shrink-0 flex-col gap-3 px-4 py-3">
           <div class="rounded-none border bg-card p-3">
@@ -160,6 +172,7 @@ const {
   editorContent,
   dynamicTemplate,
   isEditMode,
+  initError,
   draftStatus,
   topicOptions,
   selectedTopicIds,
@@ -185,6 +198,12 @@ const {
     router.push({
       name: "problem-detail",
       params: { slug: problemSlug ?? "", tab: "solution" },
+    });
+  },
+  onCollisionRecovery: ({ solutionId }) => {
+    router.push({
+      name: "solution-edit",
+      params: { id: solutionId },
     });
   },
 });

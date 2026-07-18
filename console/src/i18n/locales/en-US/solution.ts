@@ -25,6 +25,8 @@ export default {
   },
   messages: {
     loadFailed: "Failed to load solution",
+    unknownRoute:
+      "This page could not be opened. The route is unrecognized — use the problem page to start editing a solution.",
     fetchSubmissionFailed: "Failed to fetch submission.",
     acceptedRequired:
       "You must have an Accepted submission to create a solution.",

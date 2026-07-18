@@ -38,11 +38,13 @@ import type { SolutionTopic } from "@/types/topic";
  * the default vs submission-code skeletons, topic state with mode-aware
  * auto-select, draft-saved debounce, and {@link publish} centralizing
  * create/update plus the "already exists" collision recovery. The view
- * destructures the returned handles; navigation policy for the happy path and
- * the Accepted gate is delegated via {@link SolutionAuthoringOptions} so the
- * composable stays free of the {@code problem-detail} route name while the
- * generic {@code router.back()} / collision {@code solution-edit} redirects
- * stay internal.
+ * destructures the returned handles; navigation policy for the happy path, the
+ * Accepted gate, and collision recovery is delegated via
+ * {@link SolutionAuthoringOptions} so the composable stays free of the
+ * {@code problem-detail} and {@code solution-edit} route names, while the
+ * generic {@code router.back()} redirects stay internal. An unresolvable route
+ * surfaces as {@link SolutionAuthoringHandle.initError} so the view can render
+ * an explicit failure state instead of a silent empty editor.
  *
  * <p>Precedent: {@link useForumThread} is the same shape extracted for the
  * parallel UGC domain.
@@ -95,12 +97,29 @@ export interface SolutionAuthoringOptions {
    * redirect target (typically {@code problem-detail}).
    */
   onGateFailure: (ctx: { problemSlug: string | null }) => void;
+  /**
+   * Fired when create-publish hits the "already exists" collision and the
+   * composable resolves the user's existing solution for the problem. The view
+   * owns the redirect target (typically {@code solution-edit} for the resolved
+   * id) so the {@code solution-edit} route name stays out of the composable.
+   */
+  onCollisionRecovery: (ctx: {
+    solutionId: string;
+    problemSlug: string | null;
+  }) => void;
 }
 
 export interface SolutionAuthoringHandle {
   // --- mode ---
   mode: AuthoringMode | null;
   isEditMode: Ref<boolean>;
+  /**
+   * Set when {@link init} cannot resolve the route to a known authoring mode
+   * (or the mode is missing required params). The view MUST surface this
+   * explicitly (banner / redirect) rather than render against empty refs.
+   * {@code null} once a valid mode has begun initializing.
+   */
+  initError: Ref<string | null>;
   // --- editor state ---
   title: Ref<string>;
   editorContent: Ref<string>;
@@ -149,6 +168,11 @@ export function useSolutionAuthoring(
   const { t } = useI18n();
 
   const mode = resolveAuthoringMode(route);
+
+  // --- Init failure (unknown route) ---
+  // Surfaces an explicit user-visible error instead of rendering the editor
+  // against uninitialized refs when resolveAuthoringMode returns null.
+  const initError = ref<string | null>(null);
 
   const title = ref("");
   const editorContent = ref("");
@@ -442,9 +466,9 @@ ${code}
             const existing = response.items[0];
             if (existing) {
               toast.info(t("solution.messages.alreadyExists"));
-              router.push({
-                name: "solution-edit",
-                params: { id: existing.id },
+              options.onCollisionRecovery({
+                solutionId: existing.id,
+                problemSlug: resolvedProblemSlug.value || null,
               });
               return;
             }
@@ -460,11 +484,18 @@ ${code}
 
   // --- Dispatch ---
   async function init(): Promise<void> {
-    if (mode?.kind === "edit") {
+    if (!mode) {
+      // Unknown / unresolvable route — surface an explicit failure rather than
+      // rendering the editor against uninitialized (empty) refs. The view owns
+      // how this is presented (banner / redirect) via initError.
+      initError.value = t("solution.messages.unknownRoute");
+      return;
+    }
+    if (mode.kind === "edit") {
       await initEdit(mode.solutionId);
-    } else if (mode?.kind === "create-from-submission") {
+    } else if (mode.kind === "create-from-submission") {
       await initCreateFromSubmission(mode.submissionId);
-    } else if (mode?.kind === "create-from-problem") {
+    } else if (mode.kind === "create-from-problem") {
       await initCreateFromProblem(mode.problemId);
     }
     await loadTopics();
@@ -473,6 +504,7 @@ ${code}
   return {
     mode,
     isEditMode,
+    initError,
     title,
     editorContent,
     dynamicTemplate,

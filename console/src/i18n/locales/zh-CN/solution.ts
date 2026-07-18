@@ -25,6 +25,7 @@ export default {
   },
   messages: {
     loadFailed: "加载题解失败",
+    unknownRoute: "无法打开此页面。路由未被识别——请通过题目页面进入题解编辑。",
     fetchSubmissionFailed: "获取提交记录失败",
     acceptedRequired: "你必须有一个“已通过”的提交才能创建题解。",
     loadTopicsFailed: "加载话题失败",

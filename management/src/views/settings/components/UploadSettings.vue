@@ -5,50 +5,31 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconUpload } from '@tabler/icons-vue'
-import type { AllSettings } from '@/api/admin/settings'
+import type { UploadSettings } from '@/api/admin/settings'
+import {
+  formatBytes,
+  parseSizeToBytes,
+} from '@/stores/admin/system-settings'
 
 const { t } = useI18n()
 
 const props = defineProps<{
-  settings: AllSettings
+  settings: UploadSettings
 }>()
 
 const emit = defineEmits<{
-  'update:settings': [value: AllSettings]
+  'update:settings': [patch: Partial<UploadSettings>]
 }>()
-
-function formatBytes(bytes: string): string {
-  const value = parseInt(bytes, 10)
-  if (isNaN(value)) return '0 B'
-  if (value < 1024) return `${value} B`
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
-  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`
-  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`
-}
-
-function parseSizeToBytes(sizeStr: string): string {
-  const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)?$/i)
-  if (!match || !match[1]) return sizeStr
-  const value = parseFloat(match[1])
-  const unit = (match[2] || 'B').toUpperCase()
-  const multipliers: Record<string, number> = {
-    B: 1,
-    KB: 1024,
-    MB: 1024 * 1024,
-    GB: 1024 * 1024 * 1024,
-  }
-  return String(Math.round(value * (multipliers[unit] || 1)))
-}
 
 const uploadSizeReadable = computed({
   get: () => formatBytes(props.settings.upload_max_size),
   set: (val: string) => {
-    emit('update:settings', { ...props.settings, upload_max_size: parseSizeToBytes(val) })
+    emit('update:settings', { upload_max_size: parseSizeToBytes(val) })
   },
 })
 
-function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K]) {
-  emit('update:settings', { ...props.settings, [key]: value })
+function updateField<K extends keyof UploadSettings>(key: K, value: UploadSettings[K]) {
+  emit('update:settings', { [key]: value })
 }
 </script>
 

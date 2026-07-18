@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconSettings, IconUsers, IconServer } from '@tabler/icons-vue'
-import type { AllSettings } from '@/api/admin/settings'
+import type { SystemSettings } from '@/api/admin/settings'
 import { useTheme } from '@/shared/theme/src'
 import { Sun, Moon, Laptop } from 'lucide-vue-next'
 
@@ -17,16 +17,16 @@ const { theme: themeRef, setTheme } = useTheme()
 // expose the value as a `ComputedRef` to match the project convention.
 const theme = computed(() => themeRef.value)
 
-const props = defineProps<{
-  settings: AllSettings
+defineProps<{
+  settings: SystemSettings
 }>()
 
 const emit = defineEmits<{
-  'update:settings': [value: AllSettings]
+  'update:settings': [patch: Partial<SystemSettings>]
 }>()
 
-function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K]) {
-  emit('update:settings', { ...props.settings, [key]: value })
+function updateField<K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) {
+  emit('update:settings', { [key]: value })
 }
 </script>
 

@@ -13,14 +13,13 @@ import { Button } from '@/components/ui/button'
 import { Stepper, StepperItem, StepperTrigger, StepperSeparator } from '@/components/ui/stepper'
 import { toast } from 'vue-sonner'
 import { IconLoader, IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-vue'
-import { useContestsStore } from '@/stores/admin/contests'
-import { ContestType } from '@/api/admin/contests'
 
 import StepBasicInfo from './StepBasicInfo.vue'
 import StepScoringRule from './StepScoringRule.vue'
 import StepSchedule from './StepSchedule.vue'
 import StepProblems from './StepProblems.vue'
 import StepReview from './StepReview.vue'
+import { useContestAuthoring } from './useContestAuthoring'
 
 const props = defineProps<{
   open: boolean
@@ -31,10 +30,35 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
-const contestsStore = useContestsStore()
 const { t } = useI18n()
+
+// The authoring module owns the draft, per-step validators, actions, and
+// submission orchestration. The shell is reduced to a stepper driver plus a
+// thin submit handler that translates the composable's promise into the
+// dialog's open/success events.
+const {
+  basicInfoSlice,
+  scoringRuleSlice,
+  scheduleSlice,
+  problemsSlice,
+  reviewSlice,
+  basicInfoValid,
+  scoringRuleValid,
+  scheduleValid,
+  problemsValid,
+  reviewValid,
+  submitting,
+  patchBasicInfo,
+  setScoringRuleId,
+  patchSchedule,
+  addProblem,
+  removeProblem,
+  setProblemScore,
+  reset,
+  submit,
+} = useContestAuthoring()
+
 const currentStep = ref(1)
-const loading = ref(false)
 
 const steps = [
   { step: 1, title: 'Basics' },
@@ -44,114 +68,45 @@ const steps = [
   { step: 5, title: 'Review' },
 ] as const
 
-const formData = ref({
-  title: '',
-  slug: '',
-  description: '',
-  contestType: ContestType.ICPC,
-  scoringRuleId: '',
-  startTime: '',
-  duration: 120,
-  isPublished: false,
-  selectedProblems: [] as {
-    id: string
-    title: string
-    difficulty: string
-    slug: string
-    score?: number
-  }[],
-})
-
-const isStepValid = computed(() => {
+const isStepValid = computed<boolean>(() => {
   switch (currentStep.value) {
     case 1:
-      return !!formData.value.title.trim()
+      return basicInfoValid.value
     case 2:
-      return true // Scoring rule selection is optional (will use default)
+      return scoringRuleValid.value
     case 3:
-      return !!formData.value.startTime && formData.value.duration > 0
+      return scheduleValid.value
     case 4:
-      return true
+      return problemsValid.value
     case 5:
-      return true
+      return reviewValid.value
     default:
       return false
   }
 })
 
-function nextStep() {
-  if (currentStep.value < steps.length) {
-    currentStep.value++
-  }
+function nextStep(): void {
+  if (currentStep.value < steps.length) currentStep.value++
 }
 
-function prevStep() {
-  if (currentStep.value > 1) {
-    currentStep.value--
-  }
+function prevStep(): void {
+  if (currentStep.value > 1) currentStep.value--
 }
 
-/**
- * Convert datetime-local format (YYYY-MM-DDTHH:MM) to ISO 8601 format
- * Returns null if the date is invalid
- */
-function toISO8601(datetimeLocal: string): string | null {
-  if (!datetimeLocal) return null
-
-  // Parse the datetime-local format
-  const date = new Date(datetimeLocal)
-
-  // Check if the date is valid
-  if (isNaN(date.getTime())) {
-    return null
-  }
-
-  return date.toISOString()
+function handleScore(payload: { problemId: string; score: number }): void {
+  setProblemScore(payload.problemId, payload.score)
 }
 
-async function handleSubmit() {
-  loading.value = true
+async function handleSubmit(): Promise<void> {
   try {
-    // Convert startTime to ISO 8601 format
-    const startTimeISO = toISO8601(formData.value.startTime)
-    if (!startTimeISO) {
-      toast.error(t('contests.toast.invalidStartTime'))
-      loading.value = false
-      return
-    }
-
-    await contestsStore.createContest({
-      title: formData.value.title,
-      description: formData.value.description,
-      contestType: formData.value.contestType,
-      startTime: startTimeISO,
-      duration: formData.value.duration,
-      isPublished: formData.value.isPublished,
-      problemIds: formData.value.selectedProblems.map((p) => Number(p.id)),
-      scoringRuleId: formData.value.scoringRuleId || undefined,
-    })
-
+    await submit()
     toast.success(t('contests.toast.createdSuccessfully'))
     emit('update:open', false)
     emit('success')
-
-    // Reset form
-    formData.value = {
-      title: '',
-      slug: '',
-      description: '',
-      contestType: ContestType.ICPC,
-      scoringRuleId: '',
-      startTime: '',
-      duration: 120,
-      isPublished: false,
-      selectedProblems: [],
-    }
+    reset()
     currentStep.value = 1
   } catch {
     toast.error(t('contests.toast.failedToCreate'))
-  } finally {
-    loading.value = false
   }
 }
 </script>
@@ -213,13 +168,35 @@ async function handleSubmit() {
           </Stepper>
         </div>
 
-        <!-- Step Content -->
+        <!--
+          Step Content. `v-show` keeps every step mounted so the scoring-rule
+          selector's on-mount default-pick behavior fires exactly once when
+          the dialog opens (preserving the pre-refactor policy).
+        -->
         <div class="mt-4">
-          <StepBasicInfo v-show="currentStep === 1" v-model:formData="formData" />
-          <StepScoringRule v-show="currentStep === 2" v-model:formData="formData" />
-          <StepSchedule v-show="currentStep === 3" v-model:formData="formData" />
-          <StepProblems v-show="currentStep === 4" v-model:formData="formData" />
-          <StepReview v-show="currentStep === 5" v-model:formData="formData" />
+          <StepBasicInfo
+            v-show="currentStep === 1"
+            :slice="basicInfoSlice"
+            @patch="patchBasicInfo"
+          />
+          <StepScoringRule
+            v-show="currentStep === 2"
+            :slice="scoringRuleSlice"
+            @select="setScoringRuleId"
+          />
+          <StepSchedule
+            v-show="currentStep === 3"
+            :slice="scheduleSlice"
+            @patch="patchSchedule"
+          />
+          <StepProblems
+            v-show="currentStep === 4"
+            :slice="problemsSlice"
+            @add="addProblem"
+            @remove="removeProblem"
+            @score="handleScore"
+          />
+          <StepReview v-show="currentStep === 5" :slice="reviewSlice" />
         </div>
       </div>
 
@@ -233,7 +210,7 @@ async function handleSubmit() {
           size="sm"
           class="font-data text-xs border-[var(--silver-300)]"
           @click="prevStep"
-          :disabled="currentStep === 1 || loading"
+          :disabled="currentStep === 1 || submitting"
         >
           <IconArrowLeft class="mr-1.5 h-3.5 w-3.5" />
           {{ t('contests.wizard.previous') }}
@@ -257,9 +234,9 @@ async function handleSubmit() {
           size="sm"
           class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
           @click="handleSubmit"
-          :disabled="!isStepValid || loading"
+          :disabled="!isStepValid || submitting"
         >
-          <IconLoader v-if="loading" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          <IconLoader v-if="submitting" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
           <IconCheck v-else class="mr-1.5 h-3.5 w-3.5" />
           {{ t('contests.wizard.submit') }}
         </Button>

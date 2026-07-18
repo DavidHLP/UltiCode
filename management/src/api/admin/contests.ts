@@ -83,6 +83,15 @@ export interface ContestQueryParams {
 
 export interface CreateContestDto {
   title: string
+  /**
+   * URL-friendly identifier. Validated by the backend
+   * (`CreateContestDTO.java` ~line 55: lowercase letters, digits, hyphens).
+   * Note: as of this writing the backend service regenerates the slug from
+   * the title and ignores the supplied value; the field is declared here so
+   * the frontend contract matches the backend DTO and future persistence
+   * shaping can flow it through without further type drift.
+   */
+  slug?: string
   description?: string
   contestType?: ContestType
   startTime: string

@@ -1,23 +1,9 @@
 <script setup lang="ts">
 import ScoringRuleSelector from '../components/ScoringRuleSelector.vue'
+import type { ScoringRuleSlice } from './useContestAuthoring'
 
-const props = defineProps<{
-  formData: {
-    scoringRuleId?: string
-    [key: string]: unknown
-  }
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:formData', value: unknown): void
-}>()
-
-function updateField(field: string, value: string) {
-  emit('update:formData', {
-    ...props.formData,
-    [field]: value,
-  })
-}
+defineProps<{ slice: ScoringRuleSlice }>()
+const emit = defineEmits<{ (e: 'select', value: string): void }>()
 </script>
 
 <template>
@@ -27,10 +13,15 @@ function updateField(field: string, value: string) {
       <span class="terminal-comment">scoring_config</span>
     </div>
 
-    <!-- Scoring Rule Selector -->
+    <!--
+      Scoring rule selector. The selector continues to own its on-mount
+      default-pick behavior; the authoring module simply accepts whatever
+      value flows out via `update:modelValue`. No new default policy is
+      introduced at the wizard level.
+    -->
     <ScoringRuleSelector
-      :model-value="formData.scoringRuleId"
-      @update:model-value="updateField('scoringRuleId', $event)"
+      :model-value="slice.scoringRuleId"
+      @update:model-value="emit('select', $event)"
     />
   </div>
 </template>

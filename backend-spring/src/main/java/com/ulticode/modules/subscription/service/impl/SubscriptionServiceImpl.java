@@ -11,10 +11,10 @@ import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
 import com.ulticode.modules.subscription.entity.Subscription;
 import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
-import com.ulticode.modules.subscription.projection.SubscriptionReadProjection;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +25,11 @@ import java.util.Optional;
 /**
  * Implementation of {@link SubscriptionService}.
  *
- * <p>Read-side verdict logic now lives in {@link PremiumAccessPolicy}
- * (pure, no mutation) and read-side DTO shaping lives in
- * {@link SubscriptionReadProjection}. The service retains the write paths
- * (create / update status / cancel) and orchestrates the policy calls.
+ * <p>Read-side verdict logic lives in {@link PremiumAccessPolicy}
+ * (pure, no mutation) and entity&rarr;{@link SubscriptionDTO} shaping is owned
+ * by the private {@link #toDTO(Subscription)} helper below. The service keeps
+ * the write paths (create / update status / cancel) and orchestrates the
+ * policy calls; the entity never escapes this boundary.
  *
  * <p><b>EXPIRED transition policy</b>: the {@code hasPremiumAccess} query
  * method used to call {@code subscriptionMapper.updateStatus(... EXPIRED ...)}
@@ -58,7 +59,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final Clock clock;
     private final CurrentUserProvider currentUserProvider;
     private final PremiumAccessPolicy premiumAccessPolicy;
-    private final SubscriptionReadProjection subscriptionReadProjection;
 
     @Override
     public SubscriptionCheckResultDTO hasPremiumAccess(String userId, String userRole) {
@@ -107,15 +107,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public Optional<Subscription> getActiveSubscription(String userId) {
+    public SubscriptionDTO getActiveSubscription(String userId) {
         if (userId == null || userId.isBlank()) {
-            return Optional.empty();
+            return null;
         }
         Subscription subscription = subscriptionMapper.findActiveByUserId(userId);
         if (subscription == null) {
-            return Optional.empty();
+            return null;
         }
-        return Optional.of(loadAndMarkExpired(subscription));
+        return toDTO(loadAndMarkExpired(subscription));
     }
 
     @Override
@@ -129,7 +129,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (subscription != null) {
             subscription = loadAndMarkExpired(subscription);
         }
-        return subscriptionReadProjection.toDTO(subscription);
+        return toDTO(subscription);
     }
 
     @Override
@@ -209,7 +209,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscriptionMapper.cancelById(id);
 
         // Fetch updated subscription
-        subscription = findById(id).orElseThrow();
+        subscription = subscriptionMapper.selectById(id);
         subscription.setCancelledAt(LocalDateTime.now(clock));
 
         log.info("Subscription cancelled: {}", id);
@@ -218,16 +218,35 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public Optional<Subscription> findById(String id) {
+    public SubscriptionDTO getSubscriptionById(String id) {
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+        return toDTO(subscriptionMapper.selectById(id));
+    }
+
+    /**
+     * Project a {@link Subscription} entity into its DTO, or {@code null}.
+     *
+     * <p>The copy excludes entity columns not present on the DTO
+     * ({@code startedAt}, {@code deletedAt}, {@code isDeleted}) because
+     * {@link BeanUtils#copyProperties(Object, Object)} only writes
+     * matching-named properties.
+     */
+    private SubscriptionDTO toDTO(Subscription entity) {
+        if (entity == null) {
+            return null;
+        }
+        SubscriptionDTO dto = new SubscriptionDTO();
+        BeanUtils.copyProperties(entity, dto);
+        return dto;
+    }
+
+    private Optional<Subscription> findById(String id) {
         if (id == null || id.isBlank()) {
             return Optional.empty();
         }
         return Optional.ofNullable(subscriptionMapper.selectById(id));
-    }
-
-    @Override
-    public SubscriptionDTO toDTO(Subscription subscription) {
-        return subscriptionReadProjection.toDTO(subscription);
     }
 
     /**

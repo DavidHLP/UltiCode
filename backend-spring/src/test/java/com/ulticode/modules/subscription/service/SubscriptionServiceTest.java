@@ -10,7 +10,6 @@ import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
 import com.ulticode.modules.subscription.entity.Subscription;
 import com.ulticode.modules.subscription.mapper.SubscriptionMapper;
-import com.ulticode.modules.subscription.projection.SubscriptionReadProjection;
 import com.ulticode.modules.subscription.service.impl.SubscriptionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +23,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,8 +46,6 @@ class SubscriptionServiceTest {
     private CurrentUserProvider currentUserProvider;
     @Mock
     private PremiumAccessPolicy premiumAccessPolicy;
-    @Mock
-    private SubscriptionReadProjection subscriptionReadProjection;
 
     @InjectMocks
     private SubscriptionServiceImpl subscriptionService;
@@ -99,28 +95,6 @@ class SubscriptionServiceTest {
                     }
                     LocalDateTime expiresAt = s.getExpiresAt();
                     return expiresAt != null && expiresAt.isBefore(LocalDateTime.now(clock));
-                });
-
-        // Default projection behaviour: BeanUtils.copyProperties of the input.
-        // Tests that need to assert on the DTO shape override this stub.
-        lenient().when(subscriptionReadProjection.toDTO(nullable(Subscription.class)))
-                .thenAnswer(invocation -> {
-                    Subscription src = invocation.getArgument(0);
-                    if (src == null) {
-                        return null;
-                    }
-                    SubscriptionDTO dto = new SubscriptionDTO();
-                    dto.setId(src.getId());
-                    dto.setUserId(src.getUserId());
-                    dto.setPlan(src.getPlan());
-                    dto.setStatus(src.getStatus());
-                    dto.setExpiresAt(src.getExpiresAt());
-                    dto.setCancelledAt(src.getCancelledAt());
-                    dto.setTransactionId(src.getTransactionId());
-                    dto.setAutoRenew(src.getAutoRenew());
-                    dto.setCreatedAt(src.getCreatedAt());
-                    dto.setUpdatedAt(src.getUpdatedAt());
-                    return dto;
                 });
     }
 
@@ -264,51 +238,51 @@ class SubscriptionServiceTest {
     class GetActiveSubscriptionTests {
 
         @Test
-        @DisplayName("should return active subscription when found")
-        void shouldReturnActiveSubscriptionWhenFound() {
+        @DisplayName("should return active subscription DTO when found")
+        void shouldReturnActiveSubscriptionDtoWhenFound() {
             // Arrange
             Subscription subscription = createTestSubscription();
             when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(subscription);
 
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+            SubscriptionDTO result = subscriptionService.getActiveSubscription(USER_ID);
 
             // Assert
-            assertTrue(result.isPresent());
-            assertEquals(SUBSCRIPTION_ID, result.get().getId());
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTION_ID, result.getId());
         }
 
         @Test
-        @DisplayName("should return empty when no active subscription")
-        void shouldReturnEmptyWhenNoActiveSubscription() {
+        @DisplayName("should return null when no active subscription")
+        void shouldReturnNullWhenNoActiveSubscription() {
             // Arrange
             when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(null);
 
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+            SubscriptionDTO result = subscriptionService.getActiveSubscription(USER_ID);
 
             // Assert
-            assertFalse(result.isPresent());
+            assertNull(result);
         }
 
         @Test
-        @DisplayName("should return empty for null userId")
-        void shouldReturnEmptyForNullUserId() {
+        @DisplayName("should return null for null userId")
+        void shouldReturnNullForNullUserId() {
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription(null);
+            SubscriptionDTO result = subscriptionService.getActiveSubscription(null);
 
             // Assert
-            assertFalse(result.isPresent());
+            assertNull(result);
         }
 
         @Test
-        @DisplayName("should return empty for blank userId")
-        void shouldReturnEmptyForBlankUserId() {
+        @DisplayName("should return null for blank userId")
+        void shouldReturnNullForBlankUserId() {
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription("   ");
+            SubscriptionDTO result = subscriptionService.getActiveSubscription("   ");
 
             // Assert
-            assertFalse(result.isPresent());
+            assertNull(result);
         }
 
         @Test
@@ -320,11 +294,11 @@ class SubscriptionServiceTest {
             when(subscriptionMapper.updateStatus(any(), any())).thenReturn(1);
 
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+            SubscriptionDTO result = subscriptionService.getActiveSubscription(USER_ID);
 
             // Assert: the load-for-update path now persists the EXPIRED status
-            assertTrue(result.isPresent());
-            assertEquals(SubscriptionStatus.EXPIRED.getValue(), result.get().getStatus());
+            assertNotNull(result);
+            assertEquals(SubscriptionStatus.EXPIRED.getValue(), result.getStatus());
             verify(subscriptionMapper).updateStatus(SUBSCRIPTION_ID, SubscriptionStatus.EXPIRED.getValue());
         }
 
@@ -336,11 +310,11 @@ class SubscriptionServiceTest {
             when(subscriptionMapper.findActiveByUserId(USER_ID)).thenReturn(active);
 
             // Act
-            Optional<Subscription> result = subscriptionService.getActiveSubscription(USER_ID);
+            SubscriptionDTO result = subscriptionService.getActiveSubscription(USER_ID);
 
             // Assert
-            assertTrue(result.isPresent());
-            assertEquals(SubscriptionStatus.ACTIVE.getValue(), result.get().getStatus());
+            assertNotNull(result);
+            assertEquals(SubscriptionStatus.ACTIVE.getValue(), result.getStatus());
             verify(subscriptionMapper, never()).updateStatus(any(), any());
         }
     }
@@ -535,93 +509,89 @@ class SubscriptionServiceTest {
         }
     }
 
-    // ==================== findById Tests ====================
+    // ==================== getSubscriptionById Tests ====================
 
     @Nested
-    @DisplayName("findById")
-    class FindByIdTests {
+    @DisplayName("getSubscriptionById")
+    class GetSubscriptionByIdTests {
 
         @Test
-        @DisplayName("should return subscription when found")
-        void shouldReturnSubscriptionWhenFound() {
+        @DisplayName("should return subscription DTO when found")
+        void shouldReturnSubscriptionDtoWhenFound() {
             // Arrange
             Subscription subscription = createTestSubscription();
             when(subscriptionMapper.selectById(SUBSCRIPTION_ID)).thenReturn(subscription);
 
             // Act
-            Optional<Subscription> result = subscriptionService.findById(SUBSCRIPTION_ID);
+            SubscriptionDTO result = subscriptionService.getSubscriptionById(SUBSCRIPTION_ID);
 
             // Assert
-            assertTrue(result.isPresent());
-            assertEquals(SUBSCRIPTION_ID, result.get().getId());
+            assertNotNull(result);
+            assertEquals(SUBSCRIPTION_ID, result.getId());
         }
 
         @Test
-        @DisplayName("should return empty when not found")
-        void shouldReturnEmptyWhenNotFound() {
+        @DisplayName("should copy every persisted field onto the DTO (real projection)")
+        void shouldCopyEveryPersistedFieldOntoDto() {
+            // Arrange: a row carrying every DTO-visible field. This locks the
+            // BeanUtils copy against silent field-name drift between entity
+            // and DTO (the previous test mocked the projection away).
+            LocalDateTime now = LocalDateTime.now();
+            Subscription subscription = createTestSubscription();
+            subscription.setCancelledAt(now.minusHours(1));
+            subscription.setTransactionId("tx-123");
+            subscription.setCreatedAt(now);
+            subscription.setUpdatedAt(now);
+            when(subscriptionMapper.selectById(SUBSCRIPTION_ID)).thenReturn(subscription);
+
+            // Act
+            SubscriptionDTO result = subscriptionService.getSubscriptionById(SUBSCRIPTION_ID);
+
+            // Assert
+            assertNotNull(result);
+            assertEquals(subscription.getId(), result.getId());
+            assertEquals(subscription.getUserId(), result.getUserId());
+            assertEquals(subscription.getPlan(), result.getPlan());
+            assertEquals(subscription.getStatus(), result.getStatus());
+            assertEquals(subscription.getExpiresAt(), result.getExpiresAt());
+            assertEquals(subscription.getCancelledAt(), result.getCancelledAt());
+            assertEquals(subscription.getTransactionId(), result.getTransactionId());
+            assertEquals(subscription.getAutoRenew(), result.getAutoRenew());
+            assertEquals(subscription.getCreatedAt(), result.getCreatedAt());
+            assertEquals(subscription.getUpdatedAt(), result.getUpdatedAt());
+        }
+
+        @Test
+        @DisplayName("should return null when not found")
+        void shouldReturnNullWhenNotFound() {
             // Arrange
             when(subscriptionMapper.selectById(SUBSCRIPTION_ID)).thenReturn(null);
 
             // Act
-            Optional<Subscription> result = subscriptionService.findById(SUBSCRIPTION_ID);
+            SubscriptionDTO result = subscriptionService.getSubscriptionById(SUBSCRIPTION_ID);
 
             // Assert
-            assertFalse(result.isPresent());
+            assertNull(result);
         }
 
         @Test
-        @DisplayName("should return empty for null id")
-        void shouldReturnEmptyForNullId() {
+        @DisplayName("should return null for null id")
+        void shouldReturnNullForNullId() {
             // Act
-            Optional<Subscription> result = subscriptionService.findById(null);
+            SubscriptionDTO result = subscriptionService.getSubscriptionById(null);
 
             // Assert
-            assertFalse(result.isPresent());
+            assertNull(result);
         }
 
         @Test
-        @DisplayName("should return empty for blank id")
-        void shouldReturnEmptyForBlankId() {
+        @DisplayName("should return null for blank id")
+        void shouldReturnNullForBlankId() {
             // Act
-            Optional<Subscription> result = subscriptionService.findById("   ");
+            SubscriptionDTO result = subscriptionService.getSubscriptionById("   ");
 
             // Assert
-            assertFalse(result.isPresent());
-        }
-    }
-
-    // ==================== toDTO Tests ====================
-
-    @Nested
-    @DisplayName("toDTO")
-    class ToDTOTests {
-
-        @Test
-        @DisplayName("should convert entity to DTO")
-        void shouldConvertEntityToDTO() {
-            // Arrange
-            Subscription subscription = createTestSubscription();
-
-            // Act
-            SubscriptionDTO dto = subscriptionService.toDTO(subscription);
-
-            // Assert
-            assertNotNull(dto);
-            assertEquals(subscription.getId(), dto.getId());
-            assertEquals(subscription.getUserId(), dto.getUserId());
-            assertEquals(subscription.getPlan(), dto.getPlan());
-            assertEquals(subscription.getStatus(), dto.getStatus());
-            assertEquals(subscription.getExpiresAt(), dto.getExpiresAt());
-        }
-
-        @Test
-        @DisplayName("should return null for null entity")
-        void shouldReturnNullForNullEntity() {
-            // Act
-            SubscriptionDTO dto = subscriptionService.toDTO(null);
-
-            // Assert
-            assertNull(dto);
+            assertNull(result);
         }
     }
 

@@ -5,41 +5,26 @@ import { formatDateTimeByLocale } from '@/i18n/utils'
 import { IconCalculator } from '@tabler/icons-vue'
 import { badge, DIFFICULTY_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
+import type { ReviewSlice } from './useContestAuthoring'
 
-const props = defineProps<{
-  formData: {
-    title: string
-    slug: string
-    contestType: string
-    scoringRuleId?: string
-    startTime: string
-    duration: number
-    isPublished: boolean
-    selectedProblems?: {
-      id: string
-      title: string
-      difficulty: string
-      score?: number
-    }[]
-    [key: string]: unknown
-  }
-}>()
+const props = defineProps<{ slice: ReviewSlice }>()
 
 const { t } = useI18n()
 
 const scoringRule = ref<ScoringRule | null>(null)
 const loadingRule = ref(false)
 
-// Fetch scoring rule details when scoring_rule_id changes
+// Fetch scoring rule details when scoringRuleId changes. The authoring
+// module owns the rule id; this component only renders the resolved rule.
 async function fetchScoringRule() {
-  if (!props.formData.scoringRuleId) {
+  if (!props.slice.scoringRuleId) {
     scoringRule.value = null
     return
   }
 
   loadingRule.value = true
   try {
-    scoringRule.value = await scoringRulesApi.getById(props.formData.scoringRuleId)
+    scoringRule.value = await scoringRulesApi.getById(props.slice.scoringRuleId)
   } catch {
     scoringRule.value = null
   } finally {
@@ -47,11 +32,11 @@ async function fetchScoringRule() {
   }
 }
 
-watch(() => props.formData.scoringRuleId, fetchScoringRule, { immediate: true })
+watch(() => props.slice.scoringRuleId, fetchScoringRule, { immediate: true })
 
 const formattedDate = computed(() => {
-  if (!props.formData.startTime) return t('contests.scheduleStep.notSet')
-  return formatDateTimeByLocale(props.formData.startTime)
+  if (!props.slice.startTimeLocal) return t('contests.scheduleStep.notSet')
+  return formatDateTimeByLocale(props.slice.startTimeLocal)
 })
 
 function renderDifficultyBadge(difficulty: string) {
@@ -85,16 +70,16 @@ function renderTypeBadge(type: string) {
         <div class="p-4 space-y-3">
           <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
             <span class="terminal-label">{{ t('contests.basics.title') }}</span>
-            <p class="font-medium text-sm text-[var(--foreground)]">{{ formData.title }}</p>
+            <p class="font-medium text-sm text-[var(--foreground)]">{{ slice.title }}</p>
           </div>
           <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
             <span class="terminal-label">{{ t('contests.basics.slug') }}</span>
-            <p class="font-data text-sm text-[var(--terminal-cyan)]">{{ formData.slug }}</p>
+            <p class="font-data text-sm text-[var(--terminal-cyan)]">{{ slice.slug }}</p>
           </div>
           <div>
             <span class="terminal-label">{{ t('contests.basics.type') }}</span>
             <p>
-              <component :is="renderTypeBadge(formData.contestType)" />
+              <component :is="renderTypeBadge(slice.contestType)" />
             </p>
           </div>
         </div>
@@ -119,7 +104,7 @@ function renderTypeBadge(type: string) {
           <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
             <span class="terminal-label">{{ t('contests.reviewStep.duration') }}</span>
             <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
-              {{ formData.duration }} {{ t('common.minutes') }}
+              {{ slice.duration }} {{ t('common.minutes') }}
             </p>
           </div>
           <div>
@@ -127,7 +112,7 @@ function renderTypeBadge(type: string) {
             <p>
               <component
                 :is="
-                  formData.isPublished
+                  slice.isPublished
                     ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' })
                     : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })
                 "
@@ -200,7 +185,7 @@ function renderTypeBadge(type: string) {
         <span class="terminal-comment">
           {{
             t('contests.reviewStep.problemsCount', {
-              count: formData.selectedProblems?.length || 0,
+              count: slice.problems.length,
             })
           }}
         </span>
@@ -208,7 +193,7 @@ function renderTypeBadge(type: string) {
       <div class="p-4">
         <div class="space-y-2">
           <div
-            v-for="(problem, index) in formData.selectedProblems || []"
+            v-for="(problem, index) in slice.problems"
             :key="problem.id"
             class="flex items-center justify-between border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] py-2 last:border-0"
           >
@@ -225,7 +210,7 @@ function renderTypeBadge(type: string) {
               {{ problem.score }} {{ t('contests.drawer.pts') }}
             </span>
           </div>
-          <div v-if="!formData.selectedProblems?.length" class="py-4 text-center">
+          <div v-if="slice.problems.length === 0" class="py-4 text-center">
             <span class="terminal-comment">{{ t('contests.reviewStep.noProblemsSelected') }}</span>
           </div>
         </div>

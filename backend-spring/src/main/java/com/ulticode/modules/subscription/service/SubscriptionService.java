@@ -3,12 +3,14 @@ package com.ulticode.modules.subscription.service;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionCheckResultDTO;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
-import com.ulticode.modules.subscription.entity.Subscription;
-
-import java.util.Optional;
 
 /**
  * Service interface for subscription operations.
+ *
+ * <p>Read paths return {@link SubscriptionDTO} directly so the entity never
+ * escapes the service boundary. Read-side premium/expiry verdicts live in
+ * {@link com.ulticode.modules.subscription.PremiumAccessPolicy}; entity&rarr;DTO
+ * shaping is owned by the service implementation.
  */
 public interface SubscriptionService {
 
@@ -31,17 +33,21 @@ public interface SubscriptionService {
     boolean hasPremiumAccess();
 
     /**
-     * Get the active subscription for a user.
+     * Get a user's active subscription projected to its DTO.
+     *
+     * <p>The load path applies the lazy ACTIVE&rarr;EXPIRED transition before
+     * projecting, so callers always observe a status consistent with the
+     * configured expiry.
      *
      * @param userId the user ID
-     * @return the active subscription or empty
+     * @return the active subscription DTO, or {@code null} if there is none
      */
-    Optional<Subscription> getActiveSubscription(String userId);
+    SubscriptionDTO getActiveSubscription(String userId);
 
     /**
      * Get the current user's subscription status.
      *
-     * @return the subscription DTO or null if no active subscription
+     * @return the subscription DTO or {@code null} if no active subscription
      */
     SubscriptionDTO getCurrentUserSubscription();
 
@@ -74,18 +80,10 @@ public interface SubscriptionService {
     SubscriptionDTO cancelSubscription(String id, String userId);
 
     /**
-     * Find subscription by ID.
+     * Find a subscription by id and project it to its DTO.
      *
      * @param id the subscription ID
-     * @return the subscription or empty
+     * @return the subscription DTO, or {@code null} if no such subscription exists
      */
-    Optional<Subscription> findById(String id);
-
-    /**
-     * Convert entity to DTO.
-     *
-     * @param subscription the entity
-     * @return the DTO
-     */
-    SubscriptionDTO toDTO(Subscription subscription);
+    SubscriptionDTO getSubscriptionById(String id);
 }

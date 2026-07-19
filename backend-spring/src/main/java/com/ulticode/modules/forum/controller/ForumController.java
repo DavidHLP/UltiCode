@@ -19,8 +19,10 @@ import com.ulticode.modules.forum.dto.ForumTagVO;
 import com.ulticode.modules.forum.dto.QuickFilterDTO;
 import com.ulticode.modules.forum.dto.UpdateCommentDTO;
 import com.ulticode.modules.forum.dto.UpdatePostDTO;
-import com.ulticode.modules.forum.port.ForumWritePort;
 import com.ulticode.modules.forum.projection.ForumReadProjection;
+import com.ulticode.modules.forum.service.CommunityMembershipService;
+import com.ulticode.modules.forum.service.ForumCommentService;
+import com.ulticode.modules.forum.service.ForumPostService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,9 +43,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Forum HTTP endpoints. Binds reads to {@link ForumReadProjection} and
- * writes to {@link ForumWritePort} — both deep modules that replaced the
- * shallow {@code ForumService} facade.
+ * Forum HTTP endpoints. Reads bind to {@link ForumReadProjection}; writes
+ * delegate to {@link ForumPostService}, {@link ForumCommentService}, and
+ * {@link CommunityMembershipService} — each owning its invariants behind its
+ * own transactional / ban-check proxy methods.
  */
 @Tag(name = "Forum", description = "Forum management endpoints")
 @RestController
@@ -53,7 +56,9 @@ import java.util.List;
 public class ForumController {
 
     private final ForumReadProjection forumReadProjection;
-    private final ForumWritePort forumWritePort;
+    private final ForumPostService forumPostService;
+    private final ForumCommentService forumCommentService;
+    private final CommunityMembershipService communityMembershipService;
     private final CurrentUserProvider currentUserProvider;
 
     @Operation(summary = "Get all posts", description = "Get all forum posts with sorting and pagination")
@@ -91,7 +96,7 @@ public class ForumController {
     @RateLimit(key = "forum:create-post", limit = 20, period = 60)
     @PostMapping("/posts")
     public Result<ForumPostVO> createPost(@Valid @RequestBody CreatePostDTO dto) {
-        return Result.success(forumWritePort.createPost(dto, getCurrentUserIdOrThrow()));
+        return Result.success(forumPostService.createPost(dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Update post", description = "Update an existing post")
@@ -101,7 +106,7 @@ public class ForumController {
     public Result<ForumPostVO> updatePost(
             @Parameter(description = "Post ID") @PathVariable String id,
             @Valid @RequestBody UpdatePostDTO dto) {
-        return Result.success(forumWritePort.updatePost(id, dto, getCurrentUserIdOrThrow()));
+        return Result.success(forumPostService.updatePost(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Delete post", description = "Delete a post")
@@ -109,7 +114,7 @@ public class ForumController {
     @RateLimit(key = "forum:delete-post", limit = 20, period = 60)
     @DeleteMapping("/posts/{id}")
     public Result<Void> deletePost(@Parameter(description = "Post ID") @PathVariable String id) {
-        forumWritePort.deletePost(id, getCurrentUserIdOrThrow());
+        forumPostService.deletePost(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
@@ -124,7 +129,7 @@ public class ForumController {
     @RateLimit(key = "forum:share", limit = 20, period = 60)
     @PostMapping("/posts/{id}/share")
     public Result<Void> recordShare(@Parameter(description = "Post ID") @PathVariable String id) {
-        forumWritePort.recordShare(id);
+        forumPostService.recordShare(id);
         return Result.success();
     }
 
@@ -132,7 +137,7 @@ public class ForumController {
     @RateLimit(key = "forum:view", limit = 20, period = 60)
     @PostMapping("/posts/{id}/view")
     public Result<Void> recordView(@Parameter(description = "Post ID") @PathVariable String id) {
-        forumWritePort.recordView(id);
+        forumPostService.recordView(id);
         return Result.success();
     }
 
@@ -143,7 +148,7 @@ public class ForumController {
     public Result<ForumCommentVO> createComment(
             @Parameter(description = "Post ID") @PathVariable String id,
             @Valid @RequestBody CreateCommentDTO dto) {
-        return Result.success(forumWritePort.createComment(id, dto, getCurrentUserIdOrThrow()));
+        return Result.success(forumCommentService.createComment(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Update comment", description = "Update an existing comment")
@@ -153,7 +158,7 @@ public class ForumController {
     public Result<ForumCommentVO> updateComment(
             @Parameter(description = "Comment ID") @PathVariable String id,
             @Valid @RequestBody UpdateCommentDTO dto) {
-        return Result.success(forumWritePort.updateComment(id, dto, getCurrentUserIdOrThrow()));
+        return Result.success(forumCommentService.updateComment(id, dto, getCurrentUserIdOrThrow()));
     }
 
     @Operation(summary = "Delete comment", description = "Delete a comment")
@@ -161,7 +166,7 @@ public class ForumController {
     @RateLimit(key = "forum:delete-comment", limit = 20, period = 60)
     @DeleteMapping("/comments/{id}")
     public Result<Void> deleteComment(@Parameter(description = "Comment ID") @PathVariable String id) {
-        forumWritePort.deleteComment(id, getCurrentUserIdOrThrow());
+        forumCommentService.deleteComment(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
@@ -199,7 +204,7 @@ public class ForumController {
     @RateLimit(key = "forum:join-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/join")
     public Result<Void> joinCommunity(@Parameter(description = "Community ID") @PathVariable String id) {
-        forumWritePort.joinCommunity(id, getCurrentUserIdOrThrow());
+        communityMembershipService.joinCommunity(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 
@@ -208,7 +213,7 @@ public class ForumController {
     @RateLimit(key = "forum:leave-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/leave")
     public Result<Void> leaveCommunity(@Parameter(description = "Community ID") @PathVariable String id) {
-        forumWritePort.leaveCommunity(id, getCurrentUserIdOrThrow());
+        communityMembershipService.leaveCommunity(id, getCurrentUserIdOrThrow());
         return Result.success();
     }
 

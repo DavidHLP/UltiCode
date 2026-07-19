@@ -4,19 +4,19 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconToggleLeft } from '@tabler/icons-vue'
-import type { AllSettings } from '@/api/admin/settings'
+import type { FeatureToggles } from '@/api/admin/settings'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  settings: AllSettings
+defineProps<{
+  settings: FeatureToggles
 }>()
 
 const emit = defineEmits<{
-  'update:settings': [value: AllSettings]
+  'update:settings': [patch: Partial<FeatureToggles>]
 }>()
 
-const featureToggles: { key: keyof AllSettings; labelKey: string; descKey: string }[] = [
+const featureToggles: { key: keyof FeatureToggles; labelKey: string; descKey: string }[] = [
   {
     key: 'feature_contest',
     labelKey: 'settings.features.contest',
@@ -59,8 +59,8 @@ const featureToggles: { key: keyof AllSettings; labelKey: string; descKey: strin
   },
 ]
 
-function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K]) {
-  emit('update:settings', { ...props.settings, [key]: value })
+function updateField<K extends keyof FeatureToggles>(key: K, value: FeatureToggles[K]) {
+  emit('update:settings', { [key]: value })
 }
 </script>
 

@@ -6,22 +6,25 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { IconMail, IconEye, IconEyeOff } from '@tabler/icons-vue'
-import type { AllSettings } from '@/api/admin/settings'
+import type { EmailSettings } from '@/api/admin/settings'
 
 const { t } = useI18n()
 
-const props = defineProps<{
-  settings: AllSettings
+defineProps<{
+  settings: EmailSettings
 }>()
 
 const emit = defineEmits<{
-  'update:settings': [value: AllSettings]
+  'update:settings': [patch: Partial<EmailSettings>]
 }>()
 
+// Eye-toggle for the password input. The backend's "***" preserve-mask
+// is enforced by the system-settings workspace and the API client; this
+// component only renders whatever smtp_password the slice currently holds.
 const showSmtpPassword = ref(false)
 
-function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K]) {
-  emit('update:settings', { ...props.settings, [key]: value })
+function updateField<K extends keyof EmailSettings>(key: K, value: EmailSettings[K]) {
+  emit('update:settings', { [key]: value })
 }
 </script>
 

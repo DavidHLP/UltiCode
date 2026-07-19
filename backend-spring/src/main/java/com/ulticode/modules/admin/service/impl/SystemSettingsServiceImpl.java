@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.admin.dto.ClearCacheResponseVO;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
@@ -247,14 +248,16 @@ public class SystemSettingsServiceImpl implements SystemSettingsService {
     }
 
     @Override
-    public Map<String, Object> clearCache() {
+    public ClearCacheResponseVO clearCache() {
         // No Redis cache is in use for settings today; this is a no-op
-        // reserved for future invalidation hooks. Returned shape lets
-        // the frontend confirm the operation scope.
+        // reserved for future invalidation hooks. The returned shape
+        // lets the frontend confirm the operation scope; the wire type
+        // is now a typed VO (not a Map) so the contract is enforced at
+        // the API boundary.
         log.info("Clearing system settings cache (no-op, no cache configured)");
-        return Map.of(
-                "clearedScopes", List.of("settings"),
-                "timestamp", LocalDateTime.now(clock).toString()
+        return new ClearCacheResponseVO(
+                List.of("settings"),
+                LocalDateTime.now(clock).toString()
         );
     }
 

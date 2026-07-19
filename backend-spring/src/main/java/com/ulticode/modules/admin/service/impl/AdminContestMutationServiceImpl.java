@@ -105,7 +105,9 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         contest.setSubmissionCount(0);
         contest.setIsDeleted(false);
 
-        String slug = adminContestProjection.generateSlug(dto.getTitle());
+        String slug = (dto.getSlug() != null && !dto.getSlug().isBlank())
+                ? dto.getSlug().trim()
+                : adminContestProjection.generateSlug(dto.getTitle());
         contest.setSlug(slug);
 
         try {

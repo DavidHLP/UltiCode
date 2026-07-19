@@ -334,12 +334,9 @@ class SystemSettingsServiceImplTest {
     @Test
     @DisplayName("clearCache returns the placeholder response shape (no-op today)")
     void clearCache() {
-        Map<String, Object> out = service.clearCache();
-        assertThat(out).containsKey("clearedScopes");
-        @SuppressWarnings("unchecked")
-        List<String> scopes = (List<String>) out.get("clearedScopes");
-        assertThat(scopes).containsExactly("settings");
-        assertThat(out).containsKey("timestamp");
+        com.ulticode.modules.admin.dto.ClearCacheResponseVO out = service.clearCache();
+        assertThat(out.getClearedScopes()).containsExactly("settings");
+        assertThat(out.getTimestamp()).isNotBlank();
     }
 
     // ===== in-memory store (test double) =====

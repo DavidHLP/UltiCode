@@ -9,6 +9,10 @@ import com.ulticode.modules.monitoring.dto.RedisStatsVO;
 import com.ulticode.modules.monitoring.dto.ResourceUsageVO;
 import com.ulticode.modules.monitoring.dto.SystemHealthVO;
 import com.ulticode.modules.monitoring.dto.SystemInfoVO;
+import com.ulticode.modules.queue.constants.QueueConstants;
+import com.ulticode.modules.queue.dto.ProbeStatus;
+import com.ulticode.modules.queue.dto.QueueHealthSnapshotDTO;
+import com.ulticode.modules.queue.inspector.QueueInspector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,13 +41,27 @@ import java.util.Properties;
 
 /**
  * Default adapter for {@link MonitoringInspector}. Side-effect free:
- * reads from the JVM MXBeans, the {@code DataSource}, and the
- * {@code RedisTemplate} only.
+ * reads from the JVM MXBeans, the {@code DataSource}, the
+ * {@code RedisTemplate}, and the queue module's {@link QueueInspector}
+ * port only.
  *
  * <p>Owns its own copy of the inspection logic — no inheritance from
  * any prior {@code MonitoringServiceImpl} class — so this read module
  * is independent of any write-path bean graph (none exists for the
  * monitoring subsystem; reads are the entire contract).
+ *
+ * <p><b>One queue truth</b>: queue depth is delegated to the queue
+ * module's {@link QueueInspector#getQueueHealthSnapshot(String)}. An
+ * earlier revision of this class probed a BullMQ (Node.js) key layout
+ * via {@code SCARD}/{@code LLEN} that no Java writer in this repo
+ * ever produced, so every queue always read empty and the health
+ * check was permanently green — even during a Redis outage. The
+ * current shape closes that loop: the queue inspector returns the
+ * real Redisson {@code RQueue.size()} (or XPENDING total for the
+ * Stream backend), and any probe failure is carried back as
+ * {@link ProbeStatus#PROBE_FAILED} so this inspector can fail closed
+ * (surface unhealthy) instead of folding the failure into
+ * "queue empty and healthy".
  *
  * <p>Public {@code @Value} fields ({@code applicationName},
  * {@code applicationVersion}, {@code activeProfile}) participate in
@@ -65,20 +83,15 @@ import java.util.Properties;
 @RequiredArgsConstructor
 public class DefaultMonitoringInspector implements MonitoringInspector {
 
-    /** Static configuration: the BullMQ-style queue buckets this app runs. */
+    /**
+     * Static configuration: the application queues the queue module
+     * owns. Order is part of the monitoring wire contract — the
+     * management frontend renders rows in this order.
+     */
     private static final List<String> KNOWN_QUEUE_NAMES =
-            List.of("judge_queue", "notification_queue", "email_queue");
-
-    /** BullMQ key suffix: a Set holding the IDs of waiting jobs. */
-    private static final String BULL_WAITING_SUFFIX = ":waiting";
-    /** BullMQ key suffix: a Set holding the IDs of currently-active jobs. */
-    private static final String BULL_ACTIVE_SUFFIX = ":active";
-    /** BullMQ key suffix: a List holding completed-job metadata. */
-    private static final String BULL_COMPLETED_SUFFIX = ":completed";
-    /** BullMQ key suffix: a List holding failed-job metadata. */
-    private static final String BULL_FAILED_SUFFIX = ":failed";
-    /** BullMQ key suffix: a Set holding the IDs of delayed jobs. */
-    private static final String BULL_DELAYED_SUFFIX = ":delayed";
+            List.of(QueueConstants.JUDGE_QUEUE,
+                    QueueConstants.NOTIFICATION_QUEUE,
+                    QueueConstants.EMAIL_QUEUE);
 
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
@@ -86,6 +99,14 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     private final MetricsCollector metricsCollector;
     private final SystemProbe systemProbe;
     private final TimeSource timeSource;
+
+    /**
+     * The queue module's read port. Injecting this is the
+     * monitoring → queue edge: monitoring consumes the queue module's
+     * owned port (satisfies {@code .claude/rules/backend/06}) instead
+     * of probing broker key layouts directly.
+     */
+    private final QueueInspector queueInspector;
 
     @Value("${spring.application.name:UltiCode}")
     private String applicationName;
@@ -193,20 +214,8 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
         List<QueueStatsVO> queues = new ArrayList<>();
 
         for (String queueName : KNOWN_QUEUE_NAMES) {
-            try {
-                queues.add(inspectQueueBucket(queueName));
-            } catch (Exception e) {
-                // broad catch: any single failure must not blank the dashboard; preserve the rest of the fleet.
-                log.warn("Could not get stats for queue: {}", queueName, e);
-                queues.add(QueueStatsVO.builder()
-                        .name(queueName)
-                        .waiting(0L)
-                        .active(0L)
-                        .completed(0L)
-                        .failed(0L)
-                        .delayed(0L)
-                        .build());
-            }
+            QueueHealthSnapshotDTO snapshot = readQueueHealthSnapshot(queueName);
+            queues.add(toQueueStatsVO(queueName, snapshot));
         }
 
         return queues;
@@ -347,38 +356,66 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     }
 
     /**
-     * Read queue pressure and classify the fleet.
+     * Read queue pressure via the queue inspector port and classify the
+     * fleet. A probe failure on any single queue flips this check to
+     * unhealthy — the failure is never folded into "queue empty and
+     * healthy" (that was the original defect: a Redis outage reported
+     * zero depth and a green check).
      */
     private SystemHealthVO.HealthCheck checkQueues() {
-        try {
-            List<QueueStatsVO> queues = getQueueStats();
-            long failedJobs = queues.stream()
-                    .mapToLong(QueueStatsVO::getFailed)
-                    .sum();
+        long start = timeSource.wallMillis();
+        boolean anyProbeFailed = false;
+        boolean anySnapshotError = false;
+        long failedJobs = 0L;
+        int probed = 0;
 
-            if (failedJobs > 100) {
-                return SystemHealthVO.HealthCheck.builder()
-                        .service("queues")
-                        .status("degraded")
-                        .latency(0L)
-                        .message("High number of failed jobs: " + failedJobs)
-                        .build();
+        for (String queueName : KNOWN_QUEUE_NAMES) {
+            try {
+                QueueHealthSnapshotDTO snapshot = queueInspector.getQueueHealthSnapshot(queueName);
+                probed++;
+                if (snapshot.getProbeStatus() == ProbeStatus.PROBE_FAILED) {
+                    anyProbeFailed = true;
+                    log.warn("Queue probe failed for {} (reported PROBE_FAILED); surfacing as unhealthy",
+                            queueName);
+                } else {
+                    failedJobs += snapshot.getFailedCount();
+                }
+            } catch (Exception e) {
+                // broad catch: an unexpected exception (e.g. QUEUE_NOT_FOUND
+                // from a typo, or a Spring infrastructure fault) is unhealthy
+                // but reported separately from a broker PROBE_FAILED so the
+                // operator can tell infrastructure failure from broker outage.
+                anySnapshotError = true;
+                log.warn("Queue snapshot threw for {}: {}", queueName, e.getMessage());
             }
-            return SystemHealthVO.HealthCheck.builder()
-                    .service("queues")
-                    .status("healthy")
-                    .latency(0L)
-                    .message("Queues operating normally")
-                    .build();
-        } catch (Exception e) {
-            // broad catch: any inspection failure is unhealthy.
+        }
+
+        long latency = timeSource.wallMillis() - start;
+
+        if (anyProbeFailed || anySnapshotError) {
             return SystemHealthVO.HealthCheck.builder()
                     .service("queues")
                     .status("unhealthy")
-                    .latency(0L)
-                    .message("Failed to check queues: " + e.getMessage())
+                    .latency(latency)
+                    .message("Queue probe failed for at least one queue "
+                            + "(probeFailed=" + anyProbeFailed
+                            + ", snapshotError=" + anySnapshotError + ")")
                     .build();
         }
+        if (failedJobs > 100) {
+            return SystemHealthVO.HealthCheck.builder()
+                    .service("queues")
+                    .status("degraded")
+                    .latency(latency)
+                    .message("High number of failed jobs: " + failedJobs)
+                    .build();
+        }
+        return SystemHealthVO.HealthCheck.builder()
+                .service("queues")
+                .status("healthy")
+                .latency(latency)
+                .message("Queues operating normally (probed=" + probed + ")")
+                .build();
     }
 
     /**
@@ -428,60 +465,49 @@ public class DefaultMonitoringInspector implements MonitoringInspector {
     }
 
     /**
-     * Read the five BullMQ-style bucket sizes for one queue and
-     * fold them into a single {@link QueueStatsVO}.
+     * Read one queue's health snapshot via the queue inspector port,
+     * translating an unexpected exception (not a probe failure) into
+     * a synthetic PROBE_FAILED so the dashboard still renders the row
+     * with zeros and the health check still flips unhealthy.
      */
-    private QueueStatsVO inspectQueueBucket(String queueName) {
-        String bullPrefix = "bull:" + queueName;
+    private QueueHealthSnapshotDTO readQueueHealthSnapshot(String queueName) {
+        try {
+            return queueInspector.getQueueHealthSnapshot(queueName);
+        } catch (Exception e) {
+            // broad catch: an unexpected exception outside the queue
+            // inspector's own probe-failure handling still needs to
+            // produce a dashboard row; surface it as PROBE_FAILED so
+            // checkQueues() can flip unhealthy on this queue too.
+            log.warn("Queue inspector threw for {}: {}", queueName, e.getMessage());
+            return QueueHealthSnapshotDTO.builder()
+                    .queueName(queueName)
+                    .waitingDepth(0L)
+                    .failedCount(0L)
+                    .completedCount(0L)
+                    .probeStatus(ProbeStatus.PROBE_FAILED)
+                    .build();
+        }
+    }
 
-        Long waiting = getKeyCount(bullPrefix + BULL_WAITING_SUFFIX);
-        Long active = getKeyCount(bullPrefix + BULL_ACTIVE_SUFFIX);
-        Long completed = getListLength(bullPrefix + BULL_COMPLETED_SUFFIX);
-        Long failed = getListLength(bullPrefix + BULL_FAILED_SUFFIX);
-        Long delayed = getKeyCount(bullPrefix + BULL_DELAYED_SUFFIX);
-
+    /**
+     * Adapt the queue module's snapshot into the existing
+     * {@link QueueStatsVO} wire shape so the management frontend
+     * contract is unchanged. Fields the snapshot does not own yet
+     * (active, delayed) stay at zero.
+     *
+     * <p>A PROBE_FAILED snapshot is rendered with zero depth here;
+     * the unhealthy signal is surfaced separately by
+     * {@link #checkQueues()} so the failure cannot be mistaken for
+     * an empty-but-healthy queue.
+     */
+    private QueueStatsVO toQueueStatsVO(String queueName, QueueHealthSnapshotDTO snapshot) {
         return QueueStatsVO.builder()
                 .name(queueName)
-                .waiting(waiting != null ? waiting : 0L)
-                .active(active != null ? active : 0L)
-                .completed(completed != null ? completed : 0L)
-                .failed(failed != null ? failed : 0L)
-                .delayed(delayed != null ? delayed : 0L)
+                .waiting(snapshot.getWaitingDepth())
+                .active(0L)
+                .completed(snapshot.getCompletedCount())
+                .failed(snapshot.getFailedCount())
+                .delayed(0L)
                 .build();
-    }
-
-    /**
-     * Read a Set cardinality via {@code SCARD} on the given key.
-     *
-     * @return the cardinality or {@code 0L} when the key is missing,
-     *         the command throws, or the connection is down.
-     */
-    private Long getKeyCount(String key) {
-        try {
-            return redisTemplate.execute((RedisCallback<Long>) connection -> {
-                Long size = connection.setCommands().sCard(key.getBytes());
-                return size != null ? size : 0L;
-            });
-        } catch (Exception e) {
-            // broad catch: a Redis probe failure should not blank the queue stats.
-            return 0L;
-        }
-    }
-
-    /**
-     * Read a List length via {@code LLEN} on the given key.
-     *
-     * @return the length or {@code 0L} when the key is missing, the
-     *         command throws, or the connection is down.
-     */
-    private Long getListLength(String key) {
-        try {
-            Long length = redisTemplate.execute((RedisCallback<Long>) connection ->
-                    connection.listCommands().lLen(key.getBytes()));
-            return length != null ? length : 0L;
-        } catch (Exception e) {
-            // broad catch: same defensive posture as getKeyCount.
-            return 0L;
-        }
     }
 }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { storeToRefs } from 'pinia'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -16,7 +17,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { settingsApi, type AllSettings } from '@/api/admin/settings'
 import {
   IconSettings,
   IconMail,
@@ -33,116 +33,50 @@ import EmailSettings from './components/EmailSettings.vue'
 import RateLimitSettings from './components/RateLimitSettings.vue'
 import UploadSettings from './components/UploadSettings.vue'
 import FeatureToggleSettings from './components/FeatureToggleSettings.vue'
+import { useSystemSettingsStore } from '@/stores/admin/system-settings'
 
 const { t } = useI18n()
 
-const loading = ref(false)
-const saving = ref(false)
-const clearingCache = ref(false)
+const store = useSystemSettingsStore()
+const {
+  general,
+  email,
+  rateLimits,
+  uploads,
+  features,
+  loading,
+  saving,
+  clearingCache,
+  isDirty,
+} = storeToRefs(store)
+
 const activeTab = ref('general')
 const isLoaded = ref(false)
 
-const settings = ref<AllSettings>({
-  maintenance_mode: false,
-  maintenance_message: '',
-  enable_registrations: true,
-  site_name: '',
-  site_description: '',
-  require_email_verification: false,
-  smtp_host: '',
-  smtp_port: '587',
-  smtp_user: '',
-  smtp_password: '',
-  smtp_from: '',
-  smtp_from_name: '',
-  smtp_secure: true,
-  rate_limit_api: '100',
-  rate_limit_submission: '10',
-  rate_limit_auth: '5',
-  rate_limit_upload: '20',
-  upload_max_size: '10485760',
-  upload_allowed_types: '',
-  upload_max_files: '5',
-  feature_contest: true,
-  feature_forum: true,
-  feature_solutions: true,
-  feature_subscriptions: true,
-  feature_achievements: true,
-  feature_notifications: true,
-  feature_bookmarks: true,
-  feature_problem_lists: true,
-})
-
-function onSettingsUpdate(newSettings: AllSettings) {
-  settings.value = newSettings
-}
-
-async function loadSettings() {
-  loading.value = true
+async function onSave() {
   try {
-    settings.value = await settingsApi.getAllSettings()
-  } catch (error) {
-    toast.error(t('settings.toast.loadFailed'))
-    console.error(error)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function saveSettings() {
-  saving.value = true
-  try {
-    const result = await settingsApi.updateSettings(settings.value)
-    // Backend may return { message, settings } or AllSettings directly after unwrap
-    const updatedSettings =
-      result && typeof result === 'object' && 'settings' in result
-        ? (result as { settings: AllSettings }).settings
-        : result
-    if (updatedSettings) {
-      settings.value = updatedSettings
-    }
-    const message =
-      result && typeof result === 'object' && 'message' in result
-        ? (result as { message: string }).message
-        : t('settings.toast.saveSuccess')
-    toast.success(message)
+    await store.saveAllDirty()
+    toast.success(t('settings.toast.saveSuccess'))
   } catch (error) {
     toast.error(t('settings.toast.saveFailed'))
     console.error(error)
-  } finally {
-    saving.value = false
   }
 }
 
-async function clearCache() {
-  clearingCache.value = true
+async function onClearCache() {
   try {
-    const { message } = await settingsApi.clearCache()
-    toast.success(message)
+    await store.clearCache()
+    toast.success(t('settings.toast.cacheCleared'))
   } catch (error) {
     toast.error(t('settings.toast.clearCacheFailed'))
     console.error(error)
-  } finally {
-    clearingCache.value = false
   }
 }
 
-async function resetToDefaults() {
+async function onResetToDefaults() {
   try {
-    const result = await settingsApi.resetToDefaults()
-    // Backend may return { message, settings } or AllSettings directly after unwrap
-    const defaultSettings =
-      result && typeof result === 'object' && 'settings' in result
-        ? (result as { settings: AllSettings }).settings
-        : result
-    if (defaultSettings) {
-      settings.value = defaultSettings
-    }
-    const message =
-      result && typeof result === 'object' && 'message' in result
-        ? (result as { message: string }).message
-        : t('settings.toast.resetSuccess')
-    toast.success(message)
+    await store.resetToDefaultsServer()
+    toast.success(t('settings.toast.resetSuccess'))
   } catch (error) {
     toast.error(t('settings.toast.resetFailed'))
     console.error(error)
@@ -150,8 +84,14 @@ async function resetToDefaults() {
 }
 
 onMounted(async () => {
-  await loadSettings()
-  isLoaded.value = true
+  try {
+    await store.load()
+  } catch (error) {
+    toast.error(t('settings.toast.loadFailed'))
+    console.error(error)
+  } finally {
+    isLoaded.value = true
+  }
 })
 </script>
 
@@ -211,24 +151,32 @@ onMounted(async () => {
           </TabsTrigger>
         </TabsList>
 
+        <!--
+          Each category adapter receives ONLY its own slice (focused props)
+          and emits a per-category patch. The system-settings workspace
+          owns the AllSettings bag, the per-category dirty tracking, and
+          routes each save to its own typed backend endpoint — the previous
+          design POSTed the whole bag to /admin/settings and silently
+          dropped every non-general edit at Jackson binding.
+        -->
         <TabsContent value="general" class="space-y-6">
-          <GeneralSettings :settings="settings" @update:settings="onSettingsUpdate" />
+          <GeneralSettings :settings="general" @update:settings="store.patchGeneral" />
         </TabsContent>
 
         <TabsContent value="email" class="space-y-6">
-          <EmailSettings :settings="settings" @update:settings="onSettingsUpdate" />
+          <EmailSettings :settings="email" @update:settings="store.patchEmail" />
         </TabsContent>
 
         <TabsContent value="rateLimits" class="space-y-6">
-          <RateLimitSettings :settings="settings" @update:settings="onSettingsUpdate" />
+          <RateLimitSettings :settings="rateLimits" @update:settings="store.patchRateLimits" />
         </TabsContent>
 
         <TabsContent value="uploads" class="space-y-6">
-          <UploadSettings :settings="settings" @update:settings="onSettingsUpdate" />
+          <UploadSettings :settings="uploads" @update:settings="store.patchUploads" />
         </TabsContent>
 
         <TabsContent value="features" class="space-y-6">
-          <FeatureToggleSettings :settings="settings" @update:settings="onSettingsUpdate" />
+          <FeatureToggleSettings :settings="features" @update:settings="store.patchFeatures" />
         </TabsContent>
 
         <!-- Actions (always visible) -->
@@ -238,7 +186,7 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="flex items-center justify-between flex-wrap gap-4">
             <div class="flex gap-2">
-              <Button variant="outline" @click="clearCache" :disabled="clearingCache">
+              <Button variant="outline" @click="onClearCache" :disabled="clearingCache">
                 <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
                 {{ t('settings.actions.clearCache') }}
               </Button>
@@ -261,7 +209,7 @@ onMounted(async () => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
-                    <AlertDialogAction @click="resetToDefaults">{{
+                    <AlertDialogAction @click="onResetToDefaults">{{
                       t('settings.actions.resetConfirm')
                     }}</AlertDialogAction>
                   </AlertDialogFooter>
@@ -269,7 +217,7 @@ onMounted(async () => {
               </AlertDialog>
             </div>
 
-            <Button @click="saveSettings" :disabled="saving">
+            <Button @click="onSave" :disabled="saving || !isDirty">
               <IconDeviceFloppy class="h-4 w-4 mr-2" />
               {{ saving ? t('settings.actions.saving') : t('settings.actions.saveChanges') }}
             </Button>

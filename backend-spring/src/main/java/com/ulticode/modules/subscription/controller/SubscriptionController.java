@@ -2,7 +2,6 @@ package com.ulticode.modules.subscription.controller;
 
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.subscription.dto.SubscriptionDTO;
-import com.ulticode.modules.subscription.entity.Subscription;
 import com.ulticode.modules.subscription.service.SubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,9 +33,7 @@ public class SubscriptionController {
     public Result<SubscriptionDTO> getSubscriptionById(
             @Parameter(description = "Subscription ID")
             @PathVariable String id) {
-        Subscription subscription = subscriptionService.findById(id)
-                .orElse(null);
-        return Result.success(subscriptionService.toDTO(subscription));
+        return Result.success(subscriptionService.getSubscriptionById(id));
     }
 
     /**
@@ -50,8 +47,6 @@ public class SubscriptionController {
     public Result<SubscriptionDTO> getUserSubscription(
             @Parameter(description = "User ID")
             @PathVariable String userId) {
-        Subscription subscription = subscriptionService.getActiveSubscription(userId)
-                .orElse(null);
-        return Result.success(subscriptionService.toDTO(subscription));
+        return Result.success(subscriptionService.getActiveSubscription(userId));
     }
 }

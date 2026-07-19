@@ -3,27 +3,24 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useI18n } from 'vue-i18n'
+import type { ScheduleSlice, SchedulePatch } from './useContestAuthoring'
 
-const props = defineProps<{
-  formData: {
-    startTime: string
-    duration: number
-    isPublished: boolean
-    [key: string]: unknown
-  }
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:formData', value: unknown): void
-}>()
+defineProps<{ slice: ScheduleSlice }>()
+const emit = defineEmits<{ (e: 'patch', patch: SchedulePatch): void }>()
 
 const { t } = useI18n()
 
-function updateField(field: string, value: string | number | boolean) {
-  emit('update:formData', {
-    ...props.formData,
-    [field]: value,
-  })
+function updateStartTime(value: string | number): void {
+  if (typeof value === 'string') emit('patch', { startTimeLocal: value })
+}
+
+function updateDuration(value: string | number): void {
+  const n = Number(value)
+  if (Number.isFinite(n)) emit('patch', { duration: n })
+}
+
+function updateIsPublished(value: boolean): void {
+  emit('patch', { isPublished: value })
 }
 </script>
 
@@ -39,8 +36,8 @@ function updateField(field: string, value: string | number | boolean) {
       <label class="terminal-label">{{ t('contests.scheduleStep.startTime') }}</label>
       <Input
         type="datetime-local"
-        :model-value="formData.startTime"
-        @update:model-value="updateField('startTime', $event)"
+        :model-value="slice.startTimeLocal"
+        @update:model-value="updateStartTime($event)"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
       />
       <span class="terminal-comment text-xs">{{
@@ -54,8 +51,8 @@ function updateField(field: string, value: string | number | boolean) {
       <Input
         type="number"
         min="1"
-        :model-value="formData.duration"
-        @update:model-value="updateField('duration', Number($event))"
+        :model-value="slice.duration"
+        @update:model-value="updateDuration($event)"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
       />
       <span class="terminal-comment text-xs">{{
@@ -70,8 +67,8 @@ function updateField(field: string, value: string | number | boolean) {
       <div class="flex items-center gap-4">
         <Switch
           id="is_published"
-          :checked="formData.isPublished"
-          @update:checked="updateField('isPublished', $event)"
+          :checked="slice.isPublished"
+          @update:checked="updateIsPublished($event)"
           class="data-[state=checked]:bg-[var(--terminal-green)]"
         />
         <div class="space-y-1">

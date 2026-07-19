@@ -13,12 +13,17 @@ import java.util.List;
  * Read-only inspection deep module for system monitoring.
  *
  * <p>Owns every pure-read path that asks the running JVM, the JDBC
- * datasource, the Redis client, and the BullMQ-style queue buckets
- * about their state. The interface is intentionally narrow so callers
+ * datasource, the Redis client, and the queue subsystem about their
+ * state. Queue depth is sourced from the queue module's
+ * {@link com.ulticode.modules.queue.inspector.QueueInspector} port
+ * (one queue truth); monitoring never reads broker key layouts
+ * directly.
+ *
+ * <p>The interface is intentionally narrow so callers
  * (admin/diagnostic controllers, future Prometheus exporter, ad-hoc
  * Arthas probes) get a stable view of the platform without reaching
- * into the {@code JdbcTemplate} or the {@code RedisTemplate} beans
- * themselves.
+ * into the {@code JdbcTemplate}, the {@code RedisTemplate}, or the
+ * queue beans themselves.
  *
  * <p>Deliberately side-effect free: every method returns a snapshot
  * and does not mutate application state. The Spring
@@ -28,12 +33,14 @@ import java.util.List;
  *
  * <p>Test surface: a unit test for this module mocks the
  * {@code DataSource}, the {@code RedisConnectionFactory}, the
- * {@code RedisTemplate}, and the {@code MetricsCollector} directly;
- * no write-path collaborator is needed because there is no write
- * path.
+ * {@code RedisTemplate}, the {@code MetricsCollector}, and the
+ * {@code QueueInspector} port directly; no write-path collaborator
+ * is needed because there is no write path.
  *
  * @see com.ulticode.common.metrics.MetricsCollector the matching
  *      writer of query metrics this inspector reads from
+ * @see com.ulticode.modules.queue.inspector.QueueInspector the queue
+ *      module's read port this inspector delegates queue depth to
  */
 public interface MonitoringInspector {
 
@@ -72,10 +79,19 @@ public interface MonitoringInspector {
     DatabaseStatsVO getDatabaseStats();
 
     /**
-     * Snapshot of every known BullMQ-style queue bucket
+     * Snapshot of every known application queue
      * ({@code judge_queue}, {@code notification_queue},
-     * {@code email_queue}). A single failing queue is reported with
-     * zeros so the admin sees the rest of the fleet intact.
+     * {@code email_queue}). Depth is sourced from the queue module's
+     * {@link com.ulticode.modules.queue.inspector.QueueInspector}
+     * port, so it reflects the same Redisson {@code RQueue.size()} /
+     * Stream XPENDING total the rest of the backend treats as truth.
+     *
+     * <p>The wire shape (the {@link QueueStatsVO} fields the
+     * management frontend reads) is preserved; a probe failure on a
+     * single queue surfaces as zeros on that queue's VO and is
+     * additionally translated into an unhealthy sub-check by
+     * {@link #getHealthCheck()} so the failure is never folded into
+     * "queue empty and healthy".
      *
      * @return non-empty list of queue stats VOs in the order the
      *         queue names appear in the inspector's static

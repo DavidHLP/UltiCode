@@ -14,57 +14,31 @@ import { Input } from '@/components/ui/input'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import { SemanticBadge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import ContestProblemPicker from '../components/ContestProblemPicker.vue'
+import type { ProblemsSlice } from './useContestAuthoring'
 
-const props = defineProps<{
-  formData: {
-    selectedProblems?: {
-      id: string
-      title: string
-      slug: string
-      difficulty: string
-      score?: number
-    }[]
-    [key: string]: unknown
-  }
-}>()
-
+defineProps<{ slice: ProblemsSlice }>()
 const emit = defineEmits<{
-  (e: 'update:formData', value: unknown): void
+  (e: 'add', problem: { id: string; title: string; slug: string; difficulty: string }): void
+  (e: 'remove', problemId: string): void
+  (e: 'score', payload: { problemId: string; score: number }): void
 }>()
 
 const { t } = useI18n()
 const pickerOpen = ref(false)
 
-function addProblem(problem: { id: string; title: string; slug: string; difficulty: string }) {
-  const currentProblems = props.formData.selectedProblems || []
-  if (currentProblems.find((p) => p.id === problem.id)) return
-
-  const newProblem = {
-    ...problem,
-    score: 100,
-  }
-
-  emit('update:formData', {
-    ...props.formData,
-    selectedProblems: [...currentProblems, newProblem],
-  })
+function handleSelect(problem: {
+  id: string
+  title: string
+  slug: string
+  difficulty: string
+}): void {
+  emit('add', problem)
   pickerOpen.value = false
 }
 
-function removeProblem(problemId: string) {
-  const currentProblems = props.formData.selectedProblems || []
-  emit('update:formData', {
-    ...props.formData,
-    selectedProblems: currentProblems.filter((p) => p.id !== problemId),
-  })
-}
-
-function updateScore(problemId: string, score: number) {
-  const currentProblems = props.formData.selectedProblems || []
-  emit('update:formData', {
-    ...props.formData,
-    selectedProblems: currentProblems.map((p) => (p.id === problemId ? { ...p, score } : p)),
-  })
+function handleScore(problemId: string, value: string | number): void {
+  const n = Number(value)
+  if (Number.isFinite(n)) emit('score', { problemId, score: n })
 }
 </script>
 
@@ -74,7 +48,7 @@ function updateScore(problemId: string, score: number) {
     <div class="flex justify-between items-center">
       <div class="flex items-center gap-2">
         <span class="terminal-comment">problems_config</span>
-        <span class="terminal-label">[{{ formData.selectedProblems?.length || 0 }}]</span>
+        <span class="terminal-label">[{{ slice.problems.length }}]</span>
       </div>
       <Button
         type="button"
@@ -123,7 +97,7 @@ function updateScore(problemId: string, score: number) {
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="(problem, index) in formData.selectedProblems || []"
+            v-for="(problem, index) in slice.problems"
             :key="problem.id"
             class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
           >
@@ -152,7 +126,7 @@ function updateScore(problemId: string, score: number) {
                 min="0"
                 class="h-8 w-20 font-data text-xs border-[var(--silver-200)] dark:border-[var(--silver-700)] focus:border-[var(--accent-electric)]"
                 :model-value="problem.score"
-                @update:model-value="updateScore(problem.id, Number($event))"
+                @update:model-value="handleScore(problem.id, $event)"
               />
             </TableCell>
             <TableCell>
@@ -161,13 +135,13 @@ function updateScore(problemId: string, score: number) {
                 size="icon"
                 variant="ghost"
                 class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
-                @click="removeProblem(problem.id)"
+                @click="emit('remove', problem.id)"
               >
                 <IconTrash class="h-4 w-4" />
               </Button>
             </TableCell>
           </TableRow>
-          <TableRow v-if="!formData.selectedProblems?.length">
+          <TableRow v-if="slice.problems.length === 0">
             <TableCell colspan="5" class="h-24 text-center">
               <span class="terminal-comment">{{
                 t('contests.problemsStep.noProblemsSelected')
@@ -180,8 +154,8 @@ function updateScore(problemId: string, score: number) {
 
     <ContestProblemPicker
       v-model:open="pickerOpen"
-      :exclude-ids="formData.selectedProblems?.map((p: any) => p.id) || []"
-      @select="addProblem"
+      :exclude-ids="slice.problems.map((p) => p.id)"
+      @select="handleSelect"
     />
   </div>
 </template>

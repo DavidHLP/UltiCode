@@ -1,5 +1,5 @@
 /**
- * Thin locale-injection wrapper over shared/datetime-utils (arch review #4).
+ * Thin locale-injection wrapper over shared/datetime-utils.
  * Console's active locale from i18n is injected as the default so presentation
  * policy (locale, null/invalid, date variants) stays concentrated in the
  * shared module instead of being re-learned at each call site.

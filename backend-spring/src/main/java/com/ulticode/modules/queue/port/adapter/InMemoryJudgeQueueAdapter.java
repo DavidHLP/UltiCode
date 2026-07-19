@@ -95,6 +95,13 @@ public class InMemoryJudgeQueueAdapter implements JudgeQueue {
         return pendingAcks.size();
     }
 
+    @Override
+    public long pendingDepth() {
+        // Ready (not yet polled) plus in-flight (polled but not acked):
+        // both are "not committed" from monitoring's point of view.
+        return ready.size() + pendingAcks.size();
+    }
+
     private static String ackKey(JudgeJobEnvelope envelope) {
         return envelope.id() != null
                 ? envelope.id()

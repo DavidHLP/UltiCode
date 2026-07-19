@@ -1,23 +1,9 @@
 <script setup lang="ts">
 import ScoringRuleSelector from '../components/ScoringRuleSelector.vue'
+import type { ScoringRuleSlice } from './useContestAuthoring'
 
-const props = defineProps<{
-  formData: {
-    scoringRuleId?: string
-    [key: string]: unknown
-  }
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:formData', value: unknown): void
-}>()
-
-function updateField(field: string, value: string) {
-  emit('update:formData', {
-    ...props.formData,
-    [field]: value,
-  })
-}
+defineProps<{ slice: ScoringRuleSlice }>()
+const emit = defineEmits<{ (e: 'select', value: string): void }>()
 </script>
 
 <template>
@@ -27,10 +13,18 @@ function updateField(field: string, value: string) {
       <span class="terminal-comment">scoring_config</span>
     </div>
 
-    <!-- Scoring Rule Selector -->
+    <!--
+      Scoring rule selector. The selector owns the on-mount default-pick
+      (it surfaces the first available rule for the contest type via
+      `update:modelValue`); the authoring module accepts the resulting
+      value through its `select` patch and routes it into the draft. This
+      keeps the default-policy lookup (which needs the rules endpoint)
+      next to the selector's own data fetch rather than duplicating it
+      in the authoring module.
+    -->
     <ScoringRuleSelector
-      :model-value="formData.scoringRuleId"
-      @update:model-value="updateField('scoringRuleId', $event)"
+      :model-value="slice.scoringRuleId"
+      @update:model-value="emit('select', $event)"
     />
   </div>
 </template>

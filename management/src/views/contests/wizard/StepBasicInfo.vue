@@ -10,32 +10,29 @@ import {
 } from '@/components/ui/select'
 import { ContestType } from '@/api/admin/contests'
 import { useI18n } from 'vue-i18n'
+import type { BasicInfoSlice, BasicInfoPatch } from './useContestAuthoring'
 
 const CONTEST_FORMATS: ContestType[] = [ContestType.ICPC, ContestType.IOI, ContestType.CUSTOM]
 
-const props = defineProps<{
-  formData: {
-    title: string
-    slug: string
-    description: string
-    contestType: ContestType
-    [key: string]: unknown
-  }
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:formData', value: unknown): void
-}>()
+defineProps<{ slice: BasicInfoSlice }>()
+const emit = defineEmits<{ (e: 'patch', patch: BasicInfoPatch): void }>()
 
 const { t } = useI18n()
 
-function updateField(field: string, value: string | number | bigint | ContestType | null) {
-  if (value === null) return
+function updateTitle(value: string | number): void {
+  if (typeof value === 'string') emit('patch', { title: value })
+}
 
-  emit('update:formData', {
-    ...props.formData,
-    [field]: value,
-  })
+function updateSlug(value: string | number): void {
+  if (typeof value === 'string') emit('patch', { slug: value })
+}
+
+function updateDescription(value: string | number): void {
+  if (typeof value === 'string') emit('patch', { description: value })
+}
+
+function updateContestType(value: ContestType): void {
+  emit('patch', { contestType: value })
 }
 </script>
 
@@ -50,8 +47,8 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
     <div class="space-y-2">
       <label class="terminal-label">{{ t('contests.basics.title') }}</label>
       <Input
-        :model-value="formData.title"
-        @update:model-value="updateField('title', $event)"
+        :model-value="slice.title"
+        @update:model-value="updateTitle($event)"
         :placeholder="t('contests.basics.titlePlaceholder')"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
       />
@@ -62,8 +59,8 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
     <div class="space-y-2">
       <label class="terminal-label">{{ t('contests.basics.slug') }}</label>
       <Input
-        :model-value="formData.slug"
-        @update:model-value="updateField('slug', $event)"
+        :model-value="slice.slug"
+        @update:model-value="updateSlug($event)"
         :placeholder="t('contests.basics.slugPlaceholder')"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
       />
@@ -74,8 +71,8 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
     <div class="space-y-2">
       <label class="terminal-label">{{ t('contests.basics.type') }}</label>
       <Select
-        :model-value="formData.contestType"
-        @update:model-value="updateField('contestType', $event as ContestType)"
+        :model-value="slice.contestType"
+        @update:model-value="updateContestType($event as ContestType)"
       >
         <SelectTrigger
           class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm"
@@ -100,8 +97,8 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
     <div class="space-y-2">
       <label class="terminal-label">{{ t('contests.basics.description') }}</label>
       <Textarea
-        :model-value="formData.description"
-        @update:model-value="updateField('description', $event)"
+        :model-value="slice.description"
+        @update:model-value="updateDescription($event)"
         :placeholder="t('contests.basics.descriptionPlaceholder')"
         rows="4"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)] resize-none"

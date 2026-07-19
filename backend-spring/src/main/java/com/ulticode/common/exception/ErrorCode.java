@@ -101,6 +101,7 @@ public enum ErrorCode {
     FORUM_TAG_NOT_FOUND(60010, "Forum tag not found", HttpStatus.NOT_FOUND),
     FORUM_TAG_NAME_EXISTS(60011, "Forum tag name already exists", HttpStatus.CONFLICT),
     FORUM_TAG_SLUG_EXISTS(60012, "Forum tag slug already exists", HttpStatus.CONFLICT),
+    FORUM_INVALID_SORT(60013, "Unknown sortBy value", HttpStatus.BAD_REQUEST),
 
     // Contest module (7xxxx)
     CONTEST_NOT_FOUND(70001, "Contest not found", HttpStatus.NOT_FOUND),

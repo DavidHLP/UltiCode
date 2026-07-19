@@ -83,6 +83,12 @@ export interface ContestQueryParams {
 
 export interface CreateContestDto {
   title: string
+  /**
+   * URL-friendly identifier. Validated by the backend
+   * (lowercase letters, digits, hyphens) and persisted when provided; falls
+   * back to `generateSlug(title)` only when the field is absent or blank.
+   */
+  slug?: string
   description?: string
   contestType?: ContestType
   startTime: string

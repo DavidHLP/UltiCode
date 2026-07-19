@@ -4,6 +4,7 @@ export default {
     back: "返回",
     update: "更新题解",
     publish: "发布题解",
+    publishing: "发布中...",
     draftSaved: "草稿已保存",
     editingDraft: "正在编辑草稿...",
     enterTitle: "输入标题",
@@ -25,6 +26,7 @@ export default {
   },
   messages: {
     loadFailed: "加载题解失败",
+    unknownRoute: "无法打开此页面。路由未被识别——请通过题目页面进入题解编辑。",
     fetchSubmissionFailed: "获取提交记录失败",
     acceptedRequired: "你必须有一个“已通过”的提交才能创建题解。",
     loadTopicsFailed: "加载话题失败",

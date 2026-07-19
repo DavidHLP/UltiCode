@@ -21,7 +21,7 @@ import java.util.Map;
  * <p>Extracted from the deleted {@code ForumService} facade. Owns every
  * entity-to-VO projection rule, list-query builder, batch-load helper and
  * cross-table read aggregation for the forum. After the deepening, controllers
- * depend on this projection for reads and on {@code ForumWritePort} for
+ * depend on this projection for reads and on the write services for
  * writes; {@code ForumPostService} / {@code ForumCommentService} keep the
  * transactional write paths and inject this projection for VO building.
  *

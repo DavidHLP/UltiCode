@@ -9,6 +9,10 @@ import com.ulticode.modules.monitoring.dto.RedisStatsVO;
 import com.ulticode.modules.monitoring.dto.ResourceUsageVO;
 import com.ulticode.modules.monitoring.dto.SystemHealthVO;
 import com.ulticode.modules.monitoring.dto.SystemInfoVO;
+import com.ulticode.modules.queue.constants.QueueConstants;
+import com.ulticode.modules.queue.dto.ProbeStatus;
+import com.ulticode.modules.queue.dto.QueueHealthSnapshotDTO;
+import com.ulticode.modules.queue.inspector.QueueInspector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -76,6 +80,9 @@ class DefaultMonitoringInspectorTest {
     @Mock
     private SystemProbe systemProbe;
 
+    @Mock
+    private QueueInspector queueInspector;
+
     private FakeTimeSource fakeTime;
 
     @InjectMocks
@@ -99,6 +106,18 @@ class DefaultMonitoringInspectorTest {
         // through the TimeSource seam in the architecture sweep.
         fakeTime = new FakeTimeSource(1_700_000_000_000L, 0L);
         ReflectionTestUtils.setField(monitoringInspector, "timeSource", fakeTime);
+
+        // Default the queue inspector to OK/zero for every queue so health-check
+        // tests can focus on database/redis behavior without re-stubbing each
+        // queue. Tests that need to assert on queue behavior override these.
+        lenient().when(queueInspector.getQueueHealthSnapshot(anyString()))
+                .thenAnswer(inv -> QueueHealthSnapshotDTO.builder()
+                        .queueName(inv.getArgument(0))
+                        .waitingDepth(0L)
+                        .failedCount(0L)
+                        .completedCount(0L)
+                        .probeStatus(ProbeStatus.OK)
+                        .build());
     }
 
     @Nested
@@ -290,27 +309,38 @@ class DefaultMonitoringInspectorTest {
     class GetQueueStatsTests {
 
         @Test
-        @DisplayName("should return queue stats for all known queues")
-        void shouldReturnQueueStatsForAllKnownQueues() {
-            // Arrange
-            when(redisTemplate.execute(any(RedisCallback.class)))
-                    .thenReturn(0L);
+        @DisplayName("should adapt the queue inspector snapshot for all known queues")
+        void shouldAdaptQueueInspectorSnapshotForAllKnownQueues() {
+            // Arrange — the queue inspector returns the real depth; monitoring
+            // adapts it into the existing QueueStatsVO wire shape.
+            when(queueInspector.getQueueHealthSnapshot(QueueConstants.JUDGE_QUEUE))
+                    .thenReturn(snapshot(QueueConstants.JUDGE_QUEUE, 7L, ProbeStatus.OK));
+            when(queueInspector.getQueueHealthSnapshot(QueueConstants.NOTIFICATION_QUEUE))
+                    .thenReturn(snapshot(QueueConstants.NOTIFICATION_QUEUE, 3L, ProbeStatus.OK));
+            when(queueInspector.getQueueHealthSnapshot(QueueConstants.EMAIL_QUEUE))
+                    .thenReturn(snapshot(QueueConstants.EMAIL_QUEUE, 0L, ProbeStatus.OK));
 
             // Act
             List<QueueStatsVO> result = monitoringInspector.getQueueStats();
 
             // Assert
             assertNotNull(result);
-            assertFalse(result.isEmpty());
-            assertTrue(result.stream().anyMatch(q -> "judge_queue".equals(q.getName())));
+            assertEquals(3, result.size());
+            QueueStatsVO judge = result.stream()
+                    .filter(q -> QueueConstants.JUDGE_QUEUE.equals(q.getName()))
+                    .findFirst().orElse(null);
+            assertNotNull(judge);
+            assertEquals(7L, judge.getWaiting(),
+                    "monitoring must surface the queue inspector's waitingDepth, not a BullMQ key cardinality");
         }
 
         @Test
-        @DisplayName("should return zero values when Redis is unavailable")
-        void shouldReturnZeroValuesWhenRedisIsUnavailable() {
-            // Arrange
-            when(redisTemplate.execute(any(RedisCallback.class)))
-                    .thenThrow(new RuntimeException("Redis unavailable"));
+        @DisplayName("should render zeros when the probe failed (unhealthy signal is on the health check)")
+        void shouldRenderZerosWhenProbeFailed() {
+            // Arrange — probe failure: depth is informational; the unhealthy signal
+            // is surfaced separately by getHealthCheck() (see GetHealthCheckTests).
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenReturn(snapshot("any", 0L, ProbeStatus.PROBE_FAILED));
 
             // Act
             List<QueueStatsVO> result = monitoringInspector.getQueueStats();
@@ -325,6 +355,33 @@ class DefaultMonitoringInspectorTest {
                 assertEquals(0L, queue.getFailed());
                 assertEquals(0L, queue.getDelayed());
             });
+        }
+
+        @Test
+        @DisplayName("should not call redisTemplate for queue depth (regression: BullMQ probe deletion)")
+        void shouldNotCallRedisTemplateForQueueDepth() {
+            // Arrange — the queue inspector handles depth; monitoring must NOT
+            // reach into redisTemplate for SCARD/LLEN. Verify by leaving
+            // redisTemplate completely unstubbed for the queue path.
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenReturn(snapshot("any", 0L, ProbeStatus.OK));
+
+            // Act — must not throw and must not invoke redisTemplate
+            List<QueueStatsVO> result = monitoringInspector.getQueueStats();
+
+            // Assert — no exception, list returned; redisTemplate was not touched.
+            assertNotNull(result);
+            org.mockito.Mockito.verifyNoInteractions(redisTemplate);
+        }
+
+        private QueueHealthSnapshotDTO snapshot(String name, long depth, ProbeStatus status) {
+            return QueueHealthSnapshotDTO.builder()
+                    .queueName(name)
+                    .waitingDepth(depth)
+                    .failedCount(0L)
+                    .completedCount(0L)
+                    .probeStatus(status)
+                    .build();
         }
     }
 
@@ -408,7 +465,6 @@ class DefaultMonitoringInspectorTest {
             when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
             when(redisConnection.ping()).thenReturn("PONG");
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -430,7 +486,6 @@ class DefaultMonitoringInspectorTest {
             when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
             when(redisConnection.ping()).thenReturn("PONG");
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -461,7 +516,6 @@ class DefaultMonitoringInspectorTest {
             when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
             when(redisConnection.ping()).thenReturn("PONG");
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -492,7 +546,6 @@ class DefaultMonitoringInspectorTest {
             when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
             when(redisConnection.ping()).thenReturn("PONG");
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -524,7 +577,6 @@ class DefaultMonitoringInspectorTest {
                 return "PONG";
             }).when(redisConnection).ping();
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -553,7 +605,6 @@ class DefaultMonitoringInspectorTest {
             when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
             when(redisConnection.ping()).thenReturn("UNEXPECTED");
             when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
-            when(redisTemplate.execute(any(RedisCallback.class))).thenReturn(0L);
 
             // Act
             SystemHealthVO result = monitoringInspector.getHealthCheck();
@@ -567,6 +618,113 @@ class DefaultMonitoringInspectorTest {
                     .orElse(null);
             assertNotNull(redisCheck);
             assertEquals("degraded", redisCheck.getStatus());
+        }
+
+        @Test
+        @DisplayName("probe failure on any queue MUST flip the queues check to unhealthy (regression: original defect reported green during Redis outages)")
+        void queueProbeFailureMustFlipCheckToUnhealthy() throws Exception {
+            // Arrange — database and Redis are healthy; ONLY the queue probe fails.
+            // Under the original (BullMQ) implementation, a Redis outage read as
+            // zero depth on every queue and the check returned "healthy" with
+            // latency pinned to 0L. The new design must fail closed.
+            Connection mockConnection = mock(Connection.class);
+            Statement mockStatement = mock(Statement.class);
+            when(dataSource.getConnection()).thenReturn(mockConnection);
+            when(mockConnection.createStatement()).thenReturn(mockStatement);
+            when(mockStatement.execute(anyString())).thenReturn(true);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
+            when(redisConnection.ping()).thenReturn("PONG");
+            when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
+
+            // Override the default setUp stub: every queue reports PROBE_FAILED.
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenAnswer(inv -> QueueHealthSnapshotDTO.builder()
+                            .queueName(inv.getArgument(0))
+                            .waitingDepth(0L)
+                            .failedCount(0L)
+                            .completedCount(0L)
+                            .probeStatus(ProbeStatus.PROBE_FAILED)
+                            .build());
+
+            // Act
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
+
+            // Assert — overall unhealthy, and the queues sub-check is unhealthy.
+            assertEquals("unhealthy", result.getStatus(),
+                    "a PROBE_FAILED snapshot must not be folded into zero-then-healthy");
+
+            SystemHealthVO.HealthCheck queueCheck = result.getChecks().stream()
+                    .filter(c -> "queues".equals(c.getService()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(queueCheck);
+            assertEquals("unhealthy", queueCheck.getStatus());
+            assertTrue(queueCheck.getLatency() >= 0L,
+                    "queue health latency must be measured (not hard-pinned to 0L)");
+        }
+
+        @Test
+        @DisplayName("an unexpected exception from the queue inspector also surfaces as unhealthy")
+        void queueInspectorExceptionMustFlipCheckToUnhealthy() throws Exception {
+            // Arrange — database and Redis healthy; the queue inspector throws
+            // unexpectedly (e.g. Spring infrastructure fault). The check must
+            // still flip unhealthy rather than blanking the dashboard.
+            Connection mockConnection = mock(Connection.class);
+            Statement mockStatement = mock(Statement.class);
+            when(dataSource.getConnection()).thenReturn(mockConnection);
+            when(mockConnection.createStatement()).thenReturn(mockStatement);
+            when(mockStatement.execute(anyString())).thenReturn(true);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
+            when(redisConnection.ping()).thenReturn("PONG");
+            when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
+            when(queueInspector.getQueueHealthSnapshot(anyString()))
+                    .thenThrow(new RuntimeException("inspector infrastructure fault"));
+
+            // Act
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
+
+            // Assert
+            assertEquals("unhealthy", result.getStatus());
+            SystemHealthVO.HealthCheck queueCheck = result.getChecks().stream()
+                    .filter(c -> "queues".equals(c.getService()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(queueCheck);
+            assertEquals("unhealthy", queueCheck.getStatus());
+        }
+
+        @Test
+        @DisplayName("queue health-check latency is measured from the TimeSource seam (not hard-pinned to 0)")
+        void queueHealthCheckLatencyComesFromTimeSource() throws Exception {
+            // Arrange — make the queue inspector probe advance fake wall time,
+            // mirroring how the database/redis latency tests pin the seam.
+            fakeTime.pinWall(1_700_000_000_000L);
+            Connection mockConnection = mock(Connection.class);
+            Statement mockStatement = mock(Statement.class);
+            when(dataSource.getConnection()).thenReturn(mockConnection);
+            when(mockConnection.createStatement()).thenReturn(mockStatement);
+            when(mockStatement.execute(anyString())).thenReturn(true);
+            when(redisConnectionFactory.getConnection()).thenReturn(redisConnection);
+            when(redisConnection.ping()).thenReturn("PONG");
+            when(redisTemplate.getConnectionFactory()).thenReturn(redisConnectionFactory);
+            when(queueInspector.getQueueHealthSnapshot(anyString())).thenAnswer(inv -> {
+                fakeTime.advance(11L);
+                return QueueHealthSnapshotDTO.builder()
+                        .queueName(inv.getArgument(0))
+                        .waitingDepth(0L)
+                        .probeStatus(ProbeStatus.OK)
+                        .build();
+            });
+
+            SystemHealthVO result = monitoringInspector.getHealthCheck();
+
+            SystemHealthVO.HealthCheck queueCheck = result.getChecks().stream()
+                    .filter(c -> "queues".equals(c.getService()))
+                    .findFirst()
+                    .orElse(null);
+            assertNotNull(queueCheck);
+            assertTrue(queueCheck.getLatency() >= 11L,
+                    "queue latency must be measured via TimeSource, not hard-pinned to 0L");
         }
     }
 }

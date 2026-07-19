@@ -55,7 +55,7 @@ export function watchLocale(callback: (locale: SupportedLocale) => void) {
 
 /**
  * Format a date according to current locale.
- * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
+ * Delegates to the locale-injected wrapper in lib/format/date.
  */
 export function formatDateByLocale(
   date: Date | string | null | undefined,
@@ -75,7 +75,7 @@ export function formatNumberByLocale(number: number, options?: Intl.NumberFormat
 
 /**
  * Format a date and time according to current locale.
- * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
+ * Delegates to the locale-injected wrapper in lib/format/date.
  */
 export function formatDateTimeByLocale(
   date: Date | string | null | undefined,
@@ -111,7 +111,7 @@ export function formatCompactNumber(num: number): string {
 
 /**
  * Format a relative time (e.g., "2 hours ago").
- * Delegates to the locale-injected wrapper in lib/format/date (arch review Card 7).
+ * Delegates to the locale-injected wrapper in lib/format/date.
  */
 export function formatRelativeTime(date: Date | string | null | undefined): string {
   return _formatRelativeTime(date)

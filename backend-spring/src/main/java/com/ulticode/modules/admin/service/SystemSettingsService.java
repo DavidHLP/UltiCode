@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.service;
 
+import com.ulticode.modules.admin.dto.ClearCacheResponseVO;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
@@ -8,8 +9,6 @@ import com.ulticode.modules.admin.dto.settings.MaintenanceModeRequest;
 import com.ulticode.modules.admin.dto.settings.MaintenanceModeVO;
 import com.ulticode.modules.admin.dto.settings.RateLimitSettingsVO;
 import com.ulticode.modules.admin.dto.settings.UploadSettingsVO;
-
-import java.util.Map;
 
 /**
  * Admin-facing system settings service.
@@ -51,5 +50,5 @@ public interface SystemSettingsService {
     MaintenanceModeVO toggleMaintenance(MaintenanceModeRequest request);
 
     /** Placeholder for future cache invalidation. */
-    Map<String, Object> clearCache();
+    ClearCacheResponseVO clearCache();
 }

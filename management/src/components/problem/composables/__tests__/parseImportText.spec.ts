@@ -19,8 +19,20 @@ describe('parseImportText', () => {
         ]),
       )
       expect(result).toEqual([
-        { inputText: '1 2', outputText: '3', isSample: true, isHidden: false, explanation: undefined },
-        { inputText: '4 5', outputText: '9', isSample: false, isHidden: true, explanation: undefined },
+        {
+          inputText: '1 2',
+          outputText: '3',
+          isSample: true,
+          isHidden: false,
+          explanation: undefined,
+        },
+        {
+          inputText: '4 5',
+          outputText: '9',
+          isSample: false,
+          isHidden: true,
+          explanation: undefined,
+        },
       ])
     })
 
@@ -29,7 +41,12 @@ describe('parseImportText', () => {
         JSON.stringify([{ input: '7', output: '8', is_sample: true, is_hidden: false }]),
       )
       expect(result).toHaveLength(1)
-      expect(result[0]).toMatchObject({ inputText: '7', outputText: '8', isSample: true, isHidden: false })
+      expect(result[0]).toMatchObject({
+        inputText: '7',
+        outputText: '8',
+        isSample: true,
+        isHidden: false,
+      })
     })
 
     it('defaults a JSON case to HIDDEN and non-sample when flags are absent', () => {
@@ -40,7 +57,9 @@ describe('parseImportText', () => {
 
   describe('line grammar', () => {
     it('parses Input:/Output: blocks separated by ---', () => {
-      const text = ['Input:', '1 2', 'Output:', '3', '---', 'Input:', '3 4', 'Output:', '7'].join('\n')
+      const text = ['Input:', '1 2', 'Output:', '3', '---', 'Input:', '3 4', 'Output:', '7'].join(
+        '\n',
+      )
       const result = parseImportText(text)
       expect(result).toEqual([
         { inputText: '1 2', outputText: '3', isSample: false, isHidden: true },
@@ -70,9 +89,7 @@ describe('parseImportText', () => {
     it('falls back to the line grammar when JSON is malformed', () => {
       const text = 'Input:\nx\nOutput:\ny'
       const result = parseImportText(text)
-      expect(result).toEqual([
-        { inputText: 'x', outputText: 'y', isSample: false, isHidden: true },
-      ])
+      expect(result).toEqual([{ inputText: 'x', outputText: 'y', isSample: false, isHidden: true }])
     })
   })
 })

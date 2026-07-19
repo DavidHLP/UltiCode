@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   DifficultyEnum,
   ProblemStatusEnum,
+  SUMMARY_MAX_LENGTH,
   exampleSchema,
   type Example,
 } from './problem'
@@ -25,7 +26,10 @@ export const problemDescriptionSchema = z.object({
   status: ProblemStatusEnum,
   isPremium: z.boolean(),
   isPublished: z.boolean(),
-  summary: z.string().max(500, 'Summary must be at most 500 characters').optional(),
+  summary: z
+    .string()
+    .max(SUMMARY_MAX_LENGTH, `Summary must be at most ${SUMMARY_MAX_LENGTH} characters`)
+    .optional(),
   content: z.string().min(1, 'Content is required'),
   examples: z.array(exampleSchema).min(1, 'At least one example is required'),
   constraints: z.array(z.string()).min(1, 'At least one constraint is required'),

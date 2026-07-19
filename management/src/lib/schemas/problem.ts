@@ -5,6 +5,9 @@ import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 export const DifficultyEnum = z.nativeEnum(Difficulty)
 export const ProblemStatusEnum = z.nativeEnum(ProblemStatus)
 
+/** Maximum length of a problem summary; matches the backend column constraint. */
+export const SUMMARY_MAX_LENGTH = 500
+
 export const exampleSchema = z.object({
   id: z.string().optional(),
   input: z.string(),
@@ -35,7 +38,10 @@ export const problemFormSchema = z.object({
   status: ProblemStatusEnum.default(ProblemStatus.TODO),
   isPremium: z.boolean().default(false),
   isPublished: z.boolean().default(false),
-  summary: z.string().max(500, 'Summary must be at most 500 characters').optional(),
+  summary: z
+    .string()
+    .max(SUMMARY_MAX_LENGTH, `Summary must be at most ${SUMMARY_MAX_LENGTH} characters`)
+    .optional(),
   content: z.string().optional(),
   examples: z.array(exampleSchema).min(1, 'At least one example is required').default([]),
   constraints: z.array(z.string()).default([]),

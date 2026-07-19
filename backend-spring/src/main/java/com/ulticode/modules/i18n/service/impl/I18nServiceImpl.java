@@ -78,7 +78,7 @@ public class I18nServiceImpl implements I18nService {
         Map<String, List<BulkUpsertDTO.TranslationItem>> byEntityType = translations.stream()
                 .collect(Collectors.groupingBy(BulkUpsertDTO.TranslationItem::getEntityType));
 
-        // Maps to hold items that need to be created vs update
+        // Maps to hold items that need to be created vs updated
         List<Translation> toCreate = new ArrayList<>();
         List<Translation> toUpdate = new ArrayList<>();
 

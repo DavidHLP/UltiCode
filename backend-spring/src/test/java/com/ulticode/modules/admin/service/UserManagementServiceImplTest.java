@@ -1,15 +1,13 @@
 package com.ulticode.modules.admin.service;
 
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.ulticode.common.audit.AuditRecorder;
+import com.ulticode.common.testsupport.MyBatisPlusLambdaCacheSupport;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -62,22 +60,11 @@ class UserManagementServiceImplTest {
     /**
      * Bootstrap the MyBatis-Plus lambda cache so {@code LambdaUpdateWrapper}
      * column references in executeBan / executeUnban resolve without a Spring
-     * context. Mirrors {@code DefaultForumReadProjectionSortTest}.
+     * context. See {@link MyBatisPlusLambdaCacheSupport}.
      */
     @BeforeAll
     static void bootstrapLambdaCache() {
-        try {
-            Class<?> assistantClass = Class.forName(
-                    "com.baomidou.mybatisplus.core.MybatisMapperBuilderAssistant");
-            MapperBuilderAssistant assistant =
-                    (MapperBuilderAssistant) assistantClass
-                            .getDeclaredConstructor(Configuration.class, String.class)
-                            .newInstance(new Configuration(), "");
-            TableInfoHelper.initTableInfo(assistant, User.class);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(
-                    "Failed to register User with MyBatis-Plus TableInfoHelper", e);
-        }
+        MyBatisPlusLambdaCacheSupport.register(User.class);
     }
 
     @AfterEach

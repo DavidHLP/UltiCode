@@ -216,6 +216,17 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Transactional
     @Audited(action = AuditVocabulary.RESET_PASSWORD, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void resetPassword(String id, String newPassword) {
+        executeResetPassword(id, newPassword);
+        log.info("Password reset for user: {}", id);
+    }
+
+    /**
+     * Core password-reset mutation. Mirrors executeBan / executeUnban /
+     * executeDelete so every single lifecycle mutation shares one shape:
+     * the {@code @Audited} public method delegates to a private core that
+     * owns the mutation and stages {@link AuditContext} old/new values.
+     */
+    private void executeResetPassword(String id, String newPassword) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -230,8 +241,6 @@ public class UserManagementServiceImpl implements UserManagementService {
                 .set(User::getPassword, hashedPassword);
 
         userMapper.update(null, wrapper);
-
-        log.info("Password reset for user: {}", id);
     }
 
     /**
@@ -316,6 +325,24 @@ public class UserManagementServiceImpl implements UserManagementService {
         userMapper.deleteById(id);
     }
 
+    /**
+     * Emit the lifecycle audit staged by an {@code execute*} core and clear
+     * the thread-local in one place. Bulk operations reach this path directly
+     * because a self-invocation of the {@code @Audited} public method bypasses
+     * the Spring proxy; centralizing record + clear keeps future code between
+     * {@code execute*} and record from leaking {@link AuditContext} across
+     * loop iterations.
+     */
+    private void recordLifecycleAudit(String id, String action) {
+        auditRecorder.recordForUser(
+            action,
+            AuditVocabulary.ENTITY_USER,
+            id, id,
+            AuditContext.getOldValues(),
+            AuditContext.getNewValues());
+        AuditContext.clear();
+    }
+
     @Override
     @Transactional
     public List<BanResult> bulkBan(List<String> ids, String reason) {
@@ -324,17 +351,9 @@ public class UserManagementServiceImpl implements UserManagementService {
         for (String id : ids) {
             try {
                 executeBan(id, reason, null);
-                // Bulk operations cannot rely on the @Audited aspect — a
-                // self-invoked banUser bypasses the proxy and would emit no
-                // audit. Emit through the same AuditRecorder policy the
-                // aspect uses, reading the values executeBan staged.
-                auditRecorder.recordForUser(
-                    AuditVocabulary.BAN_USER,
-                    AuditVocabulary.ENTITY_USER,
-                    id, id,
-                    AuditContext.getOldValues(),
-                    AuditContext.getNewValues());
-                AuditContext.clear();
+                // Bulk ops bypass the @Audited aspect (self-invocation), so
+                // emit through the same AuditRecorder policy the aspect uses.
+                recordLifecycleAudit(id, AuditVocabulary.BAN_USER);
                 results.add(new BanResult(id, true, null));
             } catch (RuntimeException e) {
                 AuditContext.clear();
@@ -354,13 +373,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         for (String id : ids) {
             try {
                 executeUnban(id);
-                auditRecorder.recordForUser(
-                    AuditVocabulary.UNBAN_USER,
-                    AuditVocabulary.ENTITY_USER,
-                    id, id,
-                    AuditContext.getOldValues(),
-                    AuditContext.getNewValues());
-                AuditContext.clear();
+                recordLifecycleAudit(id, AuditVocabulary.UNBAN_USER);
                 results.add(new BanResult(id, true, null));
             } catch (RuntimeException e) {
                 AuditContext.clear();
@@ -380,13 +393,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         for (String id : ids) {
             try {
                 executeDelete(id);
-                auditRecorder.recordForUser(
-                    AuditVocabulary.DELETE_USER,
-                    AuditVocabulary.ENTITY_USER,
-                    id, id,
-                    AuditContext.getOldValues(),
-                    AuditContext.getNewValues());
-                AuditContext.clear();
+                recordLifecycleAudit(id, AuditVocabulary.DELETE_USER);
                 results.add(new DeleteResult(id, true, null));
             } catch (RuntimeException e) {
                 AuditContext.clear();

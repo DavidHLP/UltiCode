@@ -43,6 +43,7 @@ describe('accountApi success feedback', () => {
       accountApi.changePassword({
         currentPassword: 'current-password',
         newPassword: 'new-password',
+        confirmPassword: 'new-password',
       }),
     ).resolves.toBeUndefined()
     expect(toast.success).not.toHaveBeenCalled()

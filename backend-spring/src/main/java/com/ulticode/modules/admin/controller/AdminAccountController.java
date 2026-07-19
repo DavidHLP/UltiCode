@@ -1,7 +1,9 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
+import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.port.UserWritePort;
@@ -45,9 +47,10 @@ public class AdminAccountController {
     }
 
     @Operation(summary = "Change password", description = "Change the current admin user's password")
+    @RateLimit(key = "admin:password", limit = 5, period = 60)
     @PostMapping("/change-password")
-    public Result<Void> changePassword(@RequestBody ChangePasswordRequest request) {
-        // TODO: Implement password change logic
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
+        userWritePort.changePassword(changePasswordDTO);
         return Result.success();
     }
 
@@ -59,19 +62,6 @@ public class AdminAccountController {
         subscription.setPlan("FREE");
         subscription.setStatus("ACTIVE");
         return Result.success(subscription);
-    }
-
-    /**
-     * Request DTO for password change.
-     */
-    public static class ChangePasswordRequest {
-        private String currentPassword;
-        private String newPassword;
-
-        public String getCurrentPassword() { return currentPassword; }
-        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
-        public String getNewPassword() { return newPassword; }
-        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 
     /**

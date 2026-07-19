@@ -92,6 +92,7 @@ async function changePassword() {
     await accountApi.changePassword({
       currentPassword: passwordData.value.currentPassword,
       newPassword: passwordData.value.newPassword,
+      confirmPassword: passwordData.value.confirmPassword,
     })
     passwordData.value = {
       currentPassword: '',

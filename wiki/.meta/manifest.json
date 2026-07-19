@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "e39410e61d471d477046c0f3d6f4c453f7062071",
+  "generated_with_head": "8636a479d586f89792036b792d9a8916ab9619d2",
   "stats": {
     "pages": 41,
     "by_type": {
@@ -123,30 +123,30 @@
       "type": "entity",
       "title": "Backup",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-19",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "8636a479d586f89792036b792d9a8916ab9619d2",
+        "short": "8636a479d",
+        "committed_at": "2026-07-19T20:10:56+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "docs(wiki): fix backup status flow, auth seam, contest controller roster"
       },
-      "body_sha256": "2106d1791accc771f418514bbd4515d86fa76fa2402fa65fdc6bd03e166c4360"
+      "body_sha256": "27149766cd02892715e99f030a94bc864805bcd50cab7831855b31b035b55168"
     },
     {
       "path": "wiki/entities/contest.md",
       "type": "entity",
       "title": "Contest",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-19",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "8636a479d586f89792036b792d9a8916ab9619d2",
+        "short": "8636a479d",
+        "committed_at": "2026-07-19T20:10:56+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "docs(wiki): fix backup status flow, auth seam, contest controller roster"
       },
-      "body_sha256": "47e662f2d3514c9d0eedf66f64008453f1c1e2607f3c7a89e2cea9d14f4f46ff"
+      "body_sha256": "9354be8480be960f25b482815906589738919ddaeb59e500fb80479438cd1c1e"
     },
     {
       "path": "wiki/entities/email.md",
@@ -200,11 +200,11 @@
       "status": "living",
       "frontmatter_updated": "2026-06-21",
       "last_commit": {
-        "sha": "4cf891f7ec6cd3072994ed47fdaf090d9a7bcf34",
-        "short": "4cf891f7e",
-        "committed_at": "2026-07-07T18:58:43+08:00",
+        "sha": "459bb3db5b69fd2c5f96058243b80c321a2febec",
+        "short": "459bb3db5",
+        "committed_at": "2026-07-19T12:46:23+08:00",
         "author": "DavidHLP",
-        "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
+        "subject": "refactor(i18n): narrow translation catalog seam"
       },
       "body_sha256": "523a351dd6991e1514d815203b2fdee5cb79103e3ac85235aa6d09f9371ff513"
     },

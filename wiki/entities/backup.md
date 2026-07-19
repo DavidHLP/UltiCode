@@ -3,12 +3,13 @@ title: Backup
 type: entity
 tags: [backup, platform, ops, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-19
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/backup/
   - backend-spring/src/main/java/com/ulticode/modules/backup/controller/BackupController.java
   - backend-spring/src/main/java/com/ulticode/modules/backup/entity/Backup.java
   - backend-spring/src/main/java/com/ulticode/modules/backup/scheduler/BackupScheduler.java
+  - backend-spring/src/main/java/com/ulticode/modules/backup/service/impl/BackupExecutionServiceImpl.java
 aliases: [备份恢复]
 ---
 
@@ -22,8 +23,8 @@ size, error), with free-form JSON metadata.
 
 Owned entirely by admin users. The module produces a downloadable artifact
 (SQL dump or compressed archive), tracks it through the
-`PENDING → RUNNING → COMPLETED / FAILED` state machine, and restores from a
-previously completed artifact.
+`PENDING → IN_PROGRESS → COMPLETED / FAILED` state machine, and restores from
+a previously completed artifact.
 
 ## Key tables
 
@@ -31,7 +32,7 @@ previously completed artifact.
 |-------|---------|
 | `backups` | one row per backup run; `metadata` is `Map<String, Object>` (JSON) via `JacksonTypeHandler`; `@TableName(autoResultMap = true)` is load-bearing for the type handler |
 
-`BackupStatus` (`PENDING` / `RUNNING` / `COMPLETED` / `FAILED`) and
+`BackupStatus` (`PENDING` / `IN_PROGRESS` / `COMPLETED` / `FAILED`) and
 `BackupType` (e.g. `FULL`, `INCREMENTAL`) are the enums.
 
 ## Controllers
@@ -39,8 +40,7 @@ previously completed artifact.
 `BackupController` → `/admin/backups`:
 
 | Endpoint | Notes |
-|----------|-------|
-| `POST /admin/backups` | create on demand; `@RateLimit(30/60s)`; records `createdBy` from `SecurityUtil.getCurrentUserId()` |
+| `POST /admin/backups` | create on demand; `@RateLimit(30/60s)`; records `createdBy` from `CurrentUserProvider.getCurrentUserId()` (controller-side, falls back to `"anonymous"`) |
 | `GET /admin/backups` | list with `BackupQueryDTO` filter, paginated |
 | `GET /admin/backups/{id}` | detail |
 | `GET /admin/backups/{id}/download` | stream the file as `application/octet-stream` with `filename*=UTF-8''...` |
@@ -49,9 +49,13 @@ previously completed artifact.
 
 ## Scheduler
 
-`BackupScheduler` runs the periodic backup job (cron-driven). It marks each run
-`PENDING → RUNNING → COMPLETED/FAILED`; on `FAILED` it writes the error string
-to the `error` column.
+`BackupScheduler` runs the periodic backup job (cron-driven). It triggers
+`BackupService.createBackup`, which dispatches the run through the async
+`BackupExecutionService` bean (not an in-class self-call &mdash; the proxy
+seam is what makes `@Async` take effect). The lifecycle
+`PENDING → IN_PROGRESS → COMPLETED/FAILED` is owned by
+`BackupExecutionServiceImpl`; on `FAILED` it writes the error string to the
+`error` column.
 
 ## autoResultMap
 
@@ -73,9 +77,10 @@ will not be deserialised and the field will be `null` at read time.
 
 - `metadata` is JSON, not a fixed schema — the service is the only place that
   should know the keys. Don't bind `metadata` to a typed DTO at the controller.
-- `createBackup` records `userId` from `SecurityUtil.getCurrentUserId()` (falls
-  back to `"anonymous"` if null); same for `restoreBackup`. This is the audit
-  anchor — see `AGENTS.md` § Security Invariants.
+- `createBackup` records `userId` from
+  `CurrentUserProvider.getCurrentUserId()` on the controller (falls back to
+  `"anonymous"` if null); same for `restoreBackup`. This is the audit anchor
+  &mdash; see `AGENTS.md` § Security Invariants.
 - `restore` is destructive and rate-limited (30/min); there is no dry-run. Test
   restore on a non-prod DB first.
 - The download response uses RFC 5987 (`filename*=UTF-8''...`) — never plain

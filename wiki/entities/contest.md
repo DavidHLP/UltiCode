@@ -3,7 +3,7 @@ title: Contest
 type: entity
 tags: [contest, core, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-19
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/contest/
   - init-db/migrations/V20260617120000__Contest_Scoring_Hardening.sql
@@ -57,9 +57,18 @@ virtual: participant starts own session → isolated clock + standings
 
 ## Controllers
 
-- `ContestController` → `/contest` (user-facing: list, detail, register, standings).
-- `AdminContestController` → `/admin/contest` (create/edit/publish).
+The contest read surface is split across several focused controllers, all
+under `/contest` or `/admin/contest`:
+
+- `ContestCatalogController` → `/contest` (catalog list, detail, problems, announcements).
+- `ContestParticipationController` → `/contest` (register / unregister / virtual session lifecycle).
+- `ContestRankingController` → `/contest` (global + paginated rankings).
+- `ContestSubmissionBridgeController` → `/contest` (per-problem submission list, problem id resolution).
+- `AdminContestController` → `/admin/contest` (create/edit/publish + admin ranking reads).
 - `ScoringRuleController` → `/admin/scoring-rules`.
+
+All read paths depend on `ContestProjection`
+directly; write paths go through `ContestService`.
 
 ## Hardening migrations (2026-06-17)
 

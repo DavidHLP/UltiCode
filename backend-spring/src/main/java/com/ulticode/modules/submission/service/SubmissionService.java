@@ -5,12 +5,7 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
-import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
-import com.ulticode.modules.submission.entity.Submission;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Submission domain facade — controller-facing seam for the submission state
@@ -32,8 +27,7 @@ import java.util.Optional;
  *       is the legitimate cross-module consumer-seam pattern;</li>
  *   <li>the <em>boundary reads</em> a caller crosses just after the state
  *       boundary: {@link #findById}, {@link #findByUserId},
- *       {@link #findByProblemId}, {@link #findBest}, {@link #getSubmissionEntity},
- *       and the static status catalog {@link #getStatuses}.</li>
+ *       {@link #findByProblemId}, and {@link #findBest}.</li>
  * </ul>
  *
  * <p>Read-side rollups (calendar dates, learning progress, submission history)
@@ -97,19 +91,4 @@ public interface SubmissionService {
      * @return the best submission view object, or null if not found
      */
     SubmissionVO findBest(Long problemId, String userId);
-
-    /**
-     * Get the raw submission entity by ID.
-     *
-     * @param id the submission ID
-     * @return the submission entity, or empty if not found
-     */
-    Optional<Submission> getSubmissionEntity(String id);
-
-    /**
-     * Get submission status metadata for frontend display.
-     *
-     * @return list of submission status metadata
-     */
-    List<SubmissionStatusMeta> getStatuses();
 }

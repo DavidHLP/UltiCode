@@ -106,24 +106,6 @@ export interface WebSocketMessage<T = unknown> {
 
 type EventCallback<T = unknown> = (data: T) => void;
 
-interface SocketManager {
-  status: ConnectionStatus;
-  connect: () => void;
-  disconnect: () => void;
-  on: <T>(
-    event: NotificationEvent | string,
-    callback: EventCallback<T>,
-  ) => void;
-  off: <T>(
-    event: NotificationEvent | string,
-    callback: EventCallback<T>,
-  ) => void;
-  subscribeToContest: (contestId: string) => void;
-  unsubscribeFromContest: (contestId: string) => void;
-  subscribeToCommunity: (communityId: string) => void;
-  unsubscribeFromCommunity: (communityId: string) => void;
-}
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
 
@@ -181,22 +163,37 @@ function getNotificationTransport(): RealtimeTransport {
 }
 
 /**
- * Build the public {@link SocketManager} facade over the notification
- * transport. Lifecycle, listener registry, and JSON parsing live in the
- * transport; this object only maps the legacy contest/community subscription
- * helpers onto transport.subscribe + publish.
+ * Notification channel surface over the deep realtime transport (C04
+ * deepening). The transport itself stays deliberately generic &mdash; its
+ * own invariant is "free of notification-vs-contest knowledge" &mdash; so
+ * this module is where the notification channel's behavior concentrates:
+ * the singleton transport, the user-queue subscriptions established on
+ * connect, the STOMP-error classification that stops the reconnect loop on
+ * auth failures, and the contest / community routing that dispatches onto
+ * {@link NotificationEvent}.
+ *
+ * The legacy {@code SocketManager} interface that only re-declared the
+ * transport's lifecycle/listener surface plus the four routing signatures is
+ * gone: the realtime transport is the sole typed seam, and the return type
+ * of {@link getSocketManager} is inferred from the channel surface it
+ * exposes. Callers use the transport's {@code status}/{@code connect}/
+ * {@code disconnect}/{@code on}/{@code off} directly alongside the channel
+ * routing helpers.
  */
-function createSocketManager(): SocketManager {
-  const transport = getNotificationTransport();
+let socketInstance: ReturnType<typeof buildNotificationSocket> | null = null;
 
+function buildNotificationSocket() {
+  const transport = getNotificationTransport();
   return {
-    get status() {
+    get status(): ConnectionStatus {
       return transport.status;
     },
     connect: () => transport.connect(),
     disconnect: () => transport.disconnect(),
-    on: (event, callback) => transport.on(event, callback as EventCallback),
-    off: (event, callback) => transport.off(event, callback as EventCallback),
+    on: <T>(event: NotificationEvent | string, callback: EventCallback<T>) =>
+      transport.on(event, callback as EventCallback),
+    off: <T>(event: NotificationEvent | string, callback: EventCallback<T>) =>
+      transport.off(event, callback as EventCallback),
     subscribeToContest: (contestId: string) => {
       if (!transport.isConnected()) return;
       const key = `contest-${contestId}`;
@@ -232,14 +229,15 @@ function createSocketManager(): SocketManager {
   };
 }
 
-// Singleton socket manager
-let socketInstance: SocketManager | null = null;
-
-export function getSocketManager(): SocketManager {
+/**
+ * Singleton notification channel socket. One process-wide notification
+ * transport plus the contest/community routing that dispatches onto
+ * {@link NotificationEvent}. Equivalent to the former facade; the surface is
+ * now inferred from the channel behavior rather than re-declared.
+ */
+export function getSocketManager() {
   if (!socketInstance) {
-    socketInstance = createSocketManager();
+    socketInstance = buildNotificationSocket();
   }
   return socketInstance;
 }
-
-export { type SocketManager as SocketManagerType };

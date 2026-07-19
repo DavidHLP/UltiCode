@@ -8,6 +8,93 @@ import {
   type BulkImportTestCaseDto,
 } from '@/api/admin/test-cases'
 
+/**
+ * Parse pasted / imported test-case text into DTOs.
+ *
+ * Pure, side-effect-free owner of the two supported import grammars so the
+ * rules are unit-testable independent of the dialog / HTTP / toast state:
+ *   1. JSON array — accepts the camelCase export shape plus legacy
+ *      snake_case / loose `{input, output}` pastes. Every emitted case
+ *      carries both flags so the backend `isSample XOR isHidden` invariant
+ *      holds (a case is SAMPLE only when explicitly so, HIDDEN unless
+ *      explicitly marked visible).
+ *   2. Line grammar — `Input:`/`Output:` (or `<`/`>`) blocks separated by
+ *      `---` / `===`; emits HIDDEN, non-sample cases.
+ *
+ * Returns an empty array when the text is blank or yields no usable case;
+ * the caller decides the user-facing message.
+ */
+export function parseImportText(text: string): BulkImportTestCaseDto[] {
+  if (!text.trim()) {
+    return []
+  }
+
+  // Grammar 1: JSON array (camelCase export + legacy snake_case / loose pastes).
+  try {
+    const parsed = JSON.parse(text)
+    if (Array.isArray(parsed)) {
+      return parsed.map(
+        (tc: Record<string, unknown>): BulkImportTestCaseDto => ({
+          inputText: String(tc.inputText ?? tc.input_text ?? tc.input ?? ''),
+          outputText: String(tc.outputText ?? tc.output_text ?? tc.output ?? ''),
+          // Coerce through comparison so the result is boolean (not unknown)
+          // and the defaults match the wire invariant.
+          isSample: (tc.isSample ?? tc.is_sample) === true,
+          isHidden: (tc.isHidden ?? tc.is_hidden) !== false,
+          explanation: tc.explanation != null ? String(tc.explanation) : undefined,
+        }),
+      )
+    }
+  } catch {
+    // Not JSON — fall through to the line grammar.
+  }
+
+  // Grammar 2: line-oriented input/output blocks.
+  const lines = text.split('\n').filter((l) => l.trim())
+  const result: BulkImportTestCaseDto[] = []
+  let currentInput = ''
+  let currentOutput = ''
+  let isOutput = false
+  for (const line of lines) {
+    if (line.startsWith('---') || line.startsWith('===')) {
+      if (currentInput && currentOutput) {
+        result.push({
+          inputText: currentInput.trim(),
+          outputText: currentOutput.trim(),
+          isSample: false,
+          isHidden: true,
+        })
+      }
+      currentInput = ''
+      currentOutput = ''
+      isOutput = false
+      continue
+    }
+    if (line.toLowerCase().startsWith('output:') || line.startsWith('>')) {
+      isOutput = true
+      continue
+    }
+    if (line.toLowerCase().startsWith('input:') || line.startsWith('<')) {
+      isOutput = false
+      continue
+    }
+    if (isOutput) {
+      currentOutput += (currentOutput ? '\n' : '') + line
+    } else {
+      currentInput += (currentInput ? '\n' : '') + line
+    }
+  }
+  if (currentInput && currentOutput) {
+    result.push({
+      inputText: currentInput.trim(),
+      outputText: currentOutput.trim(),
+      isSample: false,
+      isHidden: true,
+    })
+  }
+  return result
+}
+
 export function useTestCases(problemId: () => string) {
   const { t } = useI18n()
 
@@ -173,70 +260,7 @@ export function useTestCases(problemId: () => string) {
     }
     importing.value = true
     try {
-      let testCasesToImport: BulkImportTestCaseDto[] = []
-      try {
-        const parsed = JSON.parse(importText.value)
-        if (Array.isArray(parsed)) {
-          // Accept both camelCase (current export) and legacy snake_case / loose
-          // {input,output} pastes so admins can re-import a previously exported
-          // file or hand-written cases. Every emitted case always carries both
-          // flags so the backend @NotNull isSample XOR isHidden invariant holds.
-          testCasesToImport = parsed.map(
-            (tc: Record<string, unknown>): BulkImportTestCaseDto => ({
-              inputText: String(tc.inputText ?? tc.input_text ?? tc.input ?? ''),
-              outputText: String(tc.outputText ?? tc.output_text ?? tc.output ?? ''),
-              // Coerce through comparison so the result is boolean (not unknown)
-              // and the defaults match the wire invariant: a case is SAMPLE only
-              // when explicitly so, and HIDDEN unless explicitly marked visible.
-              isSample: (tc.isSample ?? tc.is_sample) === true,
-              isHidden: (tc.isHidden ?? tc.is_hidden) !== false,
-              explanation: tc.explanation != null ? String(tc.explanation) : undefined,
-            }),
-          )
-        }
-      } catch {
-        const lines = importText.value.split('\n').filter((l) => l.trim())
-        let currentInput = ''
-        let currentOutput = ''
-        let isOutput = false
-        for (const line of lines) {
-          if (line.startsWith('---') || line.startsWith('===')) {
-            if (currentInput && currentOutput) {
-              testCasesToImport.push({
-                inputText: currentInput.trim(),
-                outputText: currentOutput.trim(),
-                isSample: false,
-                isHidden: true,
-              })
-            }
-            currentInput = ''
-            currentOutput = ''
-            isOutput = false
-            continue
-          }
-          if (line.toLowerCase().startsWith('output:') || line.startsWith('>')) {
-            isOutput = true
-            continue
-          }
-          if (line.toLowerCase().startsWith('input:') || line.startsWith('<')) {
-            isOutput = false
-            continue
-          }
-          if (isOutput) {
-            currentOutput += (currentOutput ? '\n' : '') + line
-          } else {
-            currentInput += (currentInput ? '\n' : '') + line
-          }
-        }
-        if (currentInput && currentOutput) {
-          testCasesToImport.push({
-            inputText: currentInput.trim(),
-            outputText: currentOutput.trim(),
-            isSample: false,
-            isHidden: true,
-          })
-        }
-      }
+      const testCasesToImport = parseImportText(importText.value)
       if (testCasesToImport.length === 0) {
         toast.error(t('testCases.validation.noValidTestCases'))
         return

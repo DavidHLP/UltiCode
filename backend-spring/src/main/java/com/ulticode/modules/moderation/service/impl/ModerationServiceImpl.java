@@ -169,8 +169,11 @@ public class ModerationServiceImpl implements ModerationService {
         // ActionContext proxy that called back into this service are gone: every
         // action's resolve/flag/warn/ban behavior lives here, the package-private
         // sink methods are reached directly, and the variation stays internal.
-        applyAction(actionType, item, moderatorId, dto.getNote(), dto.getDurationDays(),
-                now, id, moderationAction.getId());
+        // The per-action inputs travel in a narrow ActionRequest value record so
+        // the switch signature is not an 8-parameter data clump (the record is a
+        // pure value — not the old service-callback ActionContext proxy).
+        applyAction(new ActionRequest(actionType, moderatorId, dto.getNote(),
+                dto.getDurationDays(), now, id, moderationAction.getId()), item);
 
         queueMapper.updateById(item);
 
@@ -368,6 +371,31 @@ public class ModerationServiceImpl implements ModerationService {
     // ==================== Action application (owned state machine) ====================
 
     /**
+     * Per-action inputs the {@link #applyAction} switch needs. A narrow value
+     * record so the switch signature is not an 8-parameter data clump. This is
+     * a pure value (action + actor + note + timing + sink foreign keys) &mdash;
+     * deliberately not the old {@code ActionContext}, which proxied callbacks
+     * back into this service.
+     *
+     * @param action        the moderation action to apply
+     * @param moderatorId   the acting moderator id (ban sink uses it as banned-by)
+     * @param note          the moderator note (flag reason / warn / ban reason)
+     * @param durationDays  temp-ban duration (ignored for non-ban actions)
+     * @param now           the transition timestamp
+     * @param queueId       the queue id (sink foreign key)
+     * @param actionId      the moderation-action record id (sink foreign key)
+     */
+    private record ActionRequest(
+            ModerationActionType action,
+            String moderatorId,
+            String note,
+            Integer durationDays,
+            LocalDateTime now,
+            String queueId,
+            String actionId) {
+    }
+
+    /**
      * Apply one moderation action's queue transition and side effect in a
      * single owned switch. Replaces the former sealed
      * {@code ModerationActionHandler} strategy + {@code ActionContext} proxy:
@@ -378,47 +406,42 @@ public class ModerationServiceImpl implements ModerationService {
      * <p>Behavior matches the deleted handlers exactly: the same status set,
      * resolved-at stamp, content-flag polarity, and warn/ban sink calls.
      *
-     * @param action        the moderation action to apply
-     * @param item          the queue item being resolved (mutated in place)
-     * @param moderatorId   the acting moderator id (ban sink uses it as banned-by)
-     * @param note          the moderator note (flag reason / warn / ban reason)
-     * @param durationDays  temp-ban duration (ignored for non-ban actions)
-     * @param now           the transition timestamp
-     * @param queueId       the queue id (sink foreign key)
-     * @param actionId      the moderation-action record id (sink foreign key)
+     * @param request the per-action inputs (action, actor, note, timing, sink ids)
+     * @param item    the queue item being resolved (mutated in place)
      */
-    private void applyAction(ModerationActionType action, ModerationQueue item,
-                             String moderatorId, String note, Integer durationDays,
-                             LocalDateTime now, String queueId, String actionId) {
-        switch (action) {
+    private void applyAction(ActionRequest request, ModerationQueue item) {
+        switch (request.action()) {
             case DELETED, HIDDEN -> {
-                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, note);
-                resolve(item, now);
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, request.note());
+                resolve(item, request.now());
             }
             case RESTORED, DISMISSED, RESOLVED -> {
                 updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
-                resolve(item, now);
+                resolve(item, request.now());
             }
             case WARNED -> {
-                createUserWarning(item.getAuthorId(), queueId, note, item.getPrimaryCategory(), actionId);
-                resolve(item, now);
+                createUserWarning(item.getAuthorId(), request.queueId(), request.note(),
+                        item.getPrimaryCategory(), request.actionId());
+                resolve(item, request.now());
             }
             case TEMP_BANNED -> {
-                createUserBan(item.getAuthorId(), queueId, note, item.getPrimaryCategory(),
-                        moderatorId, actionId, durationDays, false);
-                resolve(item, now);
+                createUserBan(item.getAuthorId(), request.queueId(), request.note(),
+                        item.getPrimaryCategory(), request.moderatorId(), request.actionId(),
+                        request.durationDays(), false);
+                resolve(item, request.now());
             }
             case PERM_BANNED -> {
-                createUserBan(item.getAuthorId(), queueId, note, item.getPrimaryCategory(),
-                        moderatorId, actionId, null, true);
-                resolve(item, now);
+                createUserBan(item.getAuthorId(), request.queueId(), request.note(),
+                        item.getPrimaryCategory(), request.moderatorId(), request.actionId(),
+                        null, true);
+                resolve(item, request.now());
             }
             case APPEAL_PENDING -> item.setStatus(ModerationStatus.APPEAL_PENDING.name());
             case APPEAL_APPROVED -> {
                 updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
-                resolve(item, now);
+                resolve(item, request.now());
             }
-            case APPEAL_REJECTED -> resolve(item, now);
+            case APPEAL_REJECTED -> resolve(item, request.now());
         }
     }
 

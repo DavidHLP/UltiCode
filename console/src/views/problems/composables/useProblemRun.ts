@@ -10,6 +10,16 @@ import { useBottomPanelStore } from "../test/test";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { storeToRefs } from "pinia";
 
+/** Fallback editor language when the editor store has none selected. */
+const DEFAULT_RUN_LANGUAGE = "javascript";
+/**
+ * Wait time shown in the rate-limit toast when the backend's
+ * "retry in N seconds" message is absent or unparseable.
+ */
+const RATE_LIMIT_FALLBACK_WAIT_SECONDS = 60;
+/** Duration the rate-limit toast stays on screen. */
+const RATE_LIMIT_TOAST_DURATION_MS = 5000;
+
 /**
  * Problem run module (architecture-review candidate #2). Concentrates the
  * run policy that previously hid inside {@link useProblemDetail}'s watcher
@@ -38,7 +48,7 @@ export function useProblemRun(
     async () => {
       if (!problem.value) return;
       const currentCode = code.value;
-      const currentLanguage = language.value || "javascript";
+      const currentLanguage = language.value || DEFAULT_RUN_LANGUAGE;
       if (!currentCode.trim()) {
         runResult.value = null;
         return;
@@ -71,10 +81,12 @@ export function useProblemRun(
             // TOO_MANY_REQUESTS
             const message = error.message || "Rate limit exceeded";
             const waitTimeMatch = message.match(/(\d+)\s+seconds?/);
-            const waitSeconds = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+            const waitSeconds = waitTimeMatch
+              ? parseInt(waitTimeMatch[1])
+              : RATE_LIMIT_FALLBACK_WAIT_SECONDS;
 
             toast.error(t("errors.rateLimitExceeded", { seconds: waitSeconds }), {
-              duration: 5000,
+              duration: RATE_LIMIT_TOAST_DURATION_MS,
               description: t("errors.rateLimitDescription", {
                 seconds: waitSeconds,
               }),

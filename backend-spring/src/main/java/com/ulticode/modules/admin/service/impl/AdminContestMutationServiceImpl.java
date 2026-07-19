@@ -404,11 +404,11 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         List<ContestProblem> list = new ArrayList<>(source.size());
         for (int i = 0; i < source.size(); i++) {
             AddContestProblemDTO item = source.get(i);
-            int score = item.getScore() != null ? item.getScore() : 100;
+            int score = item.getScore() != null ? item.getScore() : DEFAULT_PROBLEM_SCORE;
             ContestProblem cp = new ContestProblem();
             cp.setContestId(contestId);
             cp.setProblemId(item.getProblemId());
-            cp.setProblemIndex(String.valueOf((char) ('A' + i)));
+            cp.setProblemIndex(problemIndex(i));
             cp.setScore(score);
             cp.setBaseScore(score);
             cp.setSolvedCount(0);
@@ -416,5 +416,26 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
             list.add(cp);
         }
         return list;
+    }
+
+    /**
+     * Default per-problem score when the author did not supply one, applied to
+     * both {@code score} (the field {@link ContestAdjudicationServiceImpl}
+     * reads for ranking) and {@code baseScore}.
+     */
+    private static final int DEFAULT_PROBLEM_SCORE = 100;
+
+    /**
+     * Compute a stable, human-readable problem index for the zero-based slot
+     * {@code i}. Slots 0&ndash;25 map to the single letters A&ndash;Z; slot
+     * 26+ (a contest with more than 26 problems) falls back to a deterministic
+     * {@code P<i+1>} label instead of the silent non-letter overflow that a
+     * bare {@code (char) ('A' + i)} would produce.
+     */
+    private static String problemIndex(int i) {
+        if (i >= 0 && i < 26) {
+            return String.valueOf((char) ('A' + i));
+        }
+        return "P" + (i + 1);
     }
 }

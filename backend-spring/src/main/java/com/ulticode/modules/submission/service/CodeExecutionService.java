@@ -26,21 +26,42 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Thin facade for code execution (M2a, ADR-002).
+ * Problem run module — owns the full {@code /run} preview lifecycle from
+ * intake validation through result projection, keeping {@link SandboxExecutor}
+ * as the real hexagonal seam.
  *
- * <p>Compared to the pre-M2a version:
+ * <p>The class was originally a thin facade over a {@code SandboxService}
+ * collaborator (since deleted). The responsibilities folded in since —
+ * signature-cache + DTO enrichment, per-problem resource-limit resolution,
+ * sandbox translation, verdict reduction, and per-case / batch dispatch —
+ * make this class the deep module the run path depends on. The
+ * architecture-review 2026-07-19 candidate #2 noted the {@code "Thin facade"}
+ * self-description no longer matched the implementation; this javadoc
+ * reflects the actual ownership.
+ *
+ * <p>What lives here, by intent:
  * <ul>
- *   <li>Directly depends on the Hexagonal
- *       {@link SandboxExecutor} port instead of the
- *       pre-M2a {@code SandboxService} interface — the latter
- *       has been deleted along with its impl (ADR-002 §1.1).</li>
- *   <li>Per-case verdict still flows through the shared
- *       {@link VerdictResolver} (M1a round-4 / F15-F16).</li>
- *   <li>Boundary translation (DTO ↔ port) lives here because this
- *       is the one place where the wire shape and the port shape
- *       meet; both the sandbox and the controller layers stay
- *       decoupled from each other.</li>
+ *   <li><em>Intake validation</em> — language support is checked against the
+ *       {@link JudgingLanguageSupport} seam; empty / null test cases short-
+ *       circuit to {@link SandboxOutputFormatter#emptyResult} without ever
+ *       touching the sandbox.</li>
+ *   <li><em>Preparation</em> — the {@code (problemId, language)} signature
+ *       cache + starter-code lookup, the per-input OJ-type enrichment, and
+ *       the per-problem resource limits ({@link ProblemFactsPort#findLimits}
+ *       override → global {@link DockerSandboxConfig} default).</li>
+ *   <li><em>Sandbox translation</em> — the one place the wire
+ *       {@link RunSubmissionDTO} shape meets the port-owned
+ *       {@link TestCase} / {@link SandboxJob} shape, so both the sandbox
+ *       and the controller layers stay decoupled from each other.</li>
+ *   <li><em>Dispatch</em> — single-case vs. batch routing into
+ *       {@link SandboxExecutor}, preserving positional alignment.</li>
+ *   <li><em>Result projection</em> — per-case port result → wire
+ *       {@link RunResultDTO.RunCaseResult}, then overall verdict via the
+ *       shared {@link VerdictResolver} and runtime / memory aggregation.</li>
  * </ul>
+ *
+ * <p>{@link SandboxExecutor} remains the hexagonal seam this module talks
+ * to; docker / firecracker / in-memory adapters swap behind it.
  */
 @Slf4j
 @Service

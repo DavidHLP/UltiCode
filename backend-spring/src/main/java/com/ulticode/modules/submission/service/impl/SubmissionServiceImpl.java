@@ -10,7 +10,6 @@ import com.ulticode.modules.submission.dto.PerformanceStats;
 import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
-import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -42,9 +41,7 @@ import java.util.Optional;
  *       cross-module consumer-seam pattern;</li>
  *   <li>the <em>boundary reads</em> the caller crosses just after the state
  *       boundary: {@link #findById}, {@link #findByUserId},
- *       {@link #findByProblemId}, {@link #findBest},
- *       {@link #getSubmissionEntity}, and the static status catalog
- *       {@link #getStatuses}.</li>
+ *       {@link #findByProblemId}, and {@link #findBest}.</li>
  * </ul>
  *
  * <p>View-shape aggregation (calendar, learning progress, history) stays
@@ -136,15 +133,5 @@ public class SubmissionServiceImpl implements SubmissionService {
         Optional<Submission> bestSubmission = submissionMapper.findBestByProblemIdAndUserId(problemId, userId);
 
         return bestSubmission.map(submissionProjection::toVO).orElse(null);
-    }
-
-    @Override
-    public Optional<Submission> getSubmissionEntity(String id) {
-        return Optional.ofNullable(submissionMapper.selectById(id));
-    }
-
-    @Override
-    public List<SubmissionStatusMeta> getStatuses() {
-        return submissionProjection.getStatusCatalog();
     }
 }

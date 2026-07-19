@@ -124,6 +124,11 @@ docker/sandbox/harness-staging/
 .claude/settings.local.json
 .claude/worktrees/
 
+# Pi coding agent rules (mirror of .claude/rules/ for Pi's pi-rules extension)
+!.pi/rules/**
+# Pi extension runtime state (queue, locks, logs) — never tracked
+.pi/.pi-rules/
+
 !.codex/**
 !.cursor/**
 !.github/**

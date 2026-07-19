@@ -35,7 +35,7 @@ export const problemFormSchema = z.object({
   status: ProblemStatusEnum.default(ProblemStatus.TODO),
   isPremium: z.boolean().default(false),
   isPublished: z.boolean().default(false),
-  summary: z.string().optional(),
+  summary: z.string().max(500, 'Summary must be at most 500 characters').optional(),
   content: z.string().optional(),
   examples: z.array(exampleSchema).min(1, 'At least one example is required').default([]),
   constraints: z.array(z.string()).default([]),

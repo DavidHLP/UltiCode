@@ -45,6 +45,11 @@ describe("readField / readNumber / readString / readBool", () => {
     expect(readNumber({}, "x", "x_y", 9)).toBe(9);
   });
 
+  it("readNumber treats numeric NaN as missing (no NaN leak)", () => {
+    expect(readNumber({ x: NaN }, "x", "x_y", 9)).toBe(9);
+    expect(readNumber({ x: NaN }, "x", "x_y")).toBeUndefined();
+  });
+
   it("readString stringifies non-string values", () => {
     expect(readString({ x: 1 }, "x", "x_y", "fb")).toBe("1");
     expect(readString({ x: undefined }, "x", "x_y", "fb")).toBe("fb");

@@ -66,7 +66,10 @@ export function readNumber(
 ): number | undefined {
   const v = readField<unknown>(raw, camelKey, snakeKey)
   if (v === undefined) return fallback
-  if (typeof v === 'number') return v
+  // Guard NaN: a numeric NaN is not a valid value for any field this reads
+  // (acceptance rate, runtime, memory, counts), so fall through to fallback
+  // instead of propagating NaN to consumers that type the field as `number`.
+  if (typeof v === 'number') return Number.isNaN(v) ? fallback : v
   if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
     return Number(v)
   }

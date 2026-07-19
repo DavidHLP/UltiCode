@@ -69,9 +69,23 @@ export interface NavigationClock {
 
 const systemClock: NavigationClock = { now: () => Date.now() };
 
+/**
+ * Default stale-session window shared by both apps: 5 minutes. Each app
+ * previously hard-coded this as a local constant; the value lives here now
+ * so callers can omit {@link NavigationPolicyOptions.staleSessionMs} unless
+ * they need a genuinely different policy. Exposed for tests that want to
+ * assert the default.
+ */
+export const DEFAULT_STALE_SESSION_MS = 5 * 60 * 1000;
+
 export interface NavigationPolicyOptions {
-  /** A session older than this must be revalidated before protected navigation. */
-  staleSessionMs: number;
+  /**
+   * A session older than this must be revalidated before protected navigation.
+   * Optional — defaults to {@link DEFAULT_STALE_SESSION_MS} (5 minutes), the
+   * value both apps previously hard-coded. Override only when an app has a
+   * genuinely different revalidation policy.
+   */
+  staleSessionMs?: number;
   /** Route name to redirect to when authentication is required. */
   loginRouteName: string;
   /** Optional: route name for authenticated users who land on a guest-only route. */
@@ -116,6 +130,11 @@ export function createNavigationPolicy(
   policy: NavigationPolicyOptions,
   clock: NavigationClock = systemClock,
 ): NavigationPolicy {
+  // Resolve the stale-session window once, applying the shared default when
+  // the caller omits it. Both apps used to hard-code 5 minutes; the default
+  // keeps that policy living in one place.
+  const staleSessionMs = policy.staleSessionMs ?? DEFAULT_STALE_SESSION_MS;
+
   // Cancellation token. Every new navigation bumps this; async guards compare
   // their captured id against the current value to bail out when superseded.
   let pendingNavigationId = 0;
@@ -146,12 +165,11 @@ export function createNavigationPolicy(
     }
 
     const requiresAuth = routeMetaHasBoolean(to, 'requiresAuth');
-
     if (requiresAuth) {
       const isSessionExpired =
         auth.isAuthenticated() &&
         lastValidatedAt > 0 &&
-        clock.now() - lastValidatedAt > policy.staleSessionMs;
+        clock.now() - lastValidatedAt > staleSessionMs;
 
       if (isSessionExpired) {
         await auth.fetchUser();

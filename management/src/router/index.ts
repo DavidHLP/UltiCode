@@ -357,7 +357,7 @@ const router = createRouter({
 // See architecture-review candidate #1.
 // ----------------------------------------------------------------------------
 
-const STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
+// Default staleness window lives in shared/auth-core (DEFAULT_STALE_SESSION_MS).
 
 function buildManagementAuthAdapter() {
   // The management store is initialized in main.ts before the router mounts.
@@ -380,7 +380,6 @@ installAuthNavigation({
   router,
   auth: buildManagementAuthAdapter,
   policy: {
-    staleSessionMs: STALE_SESSION_MS,
     loginRouteName: 'login',
     // Management has no guest-only routes besides login itself, so we leave
     // `authenticatedGuestRouteName` unset and rely on the explicit

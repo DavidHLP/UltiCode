@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createNavigationPolicy,
   installAuthNavigation,
+  DEFAULT_STALE_SESSION_MS,
   type NavigationAuthAdapter,
   type NavigationClock,
   type NavigationPolicy,
@@ -52,9 +53,8 @@ function makeFakeClock(initial = 1_000_000): NavigationClock & { advance(ms: num
     },
   };
 }
-
 const defaultPolicy: NavigationPolicyOptions = {
-  staleSessionMs: 5 * 60 * 1000,
+  staleSessionMs: DEFAULT_STALE_SESSION_MS,
   loginRouteName: 'login',
   authenticatedGuestRouteName: 'home',
   authenticatedLandingRouteName: 'home',
@@ -116,7 +116,7 @@ describe('createNavigationPolicy — staleness & cancellation', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     // Advance past staleness window.
-    clock.advance(defaultPolicy.staleSessionMs + 1);
+    clock.advance(DEFAULT_STALE_SESSION_MS + 1);
 
     const decision = await nav.evaluate(protectedRoute);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -159,6 +159,75 @@ describe('createNavigationPolicy — staleness & cancellation', () => {
     expect(decision).toEqual({ kind: 'allow' });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(ensureSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Default staleSessionMs
+// ---------------------------------------------------------------------------
+//
+// Both apps used to hard-code 5 * 60 * 1000 ms. The constant now lives in
+// shared/auth-core so callers can omit `staleSessionMs` entirely. These
+// tests pin (1) the exported value and (2) the policy behaviour when the
+// field is absent — protected routes still revalidate after the default
+// window, not never.
+
+describe('createNavigationPolicy — default staleSessionMs', () => {
+  it('exports the shared 5-minute default', () => {
+    expect(DEFAULT_STALE_SESSION_MS).toBe(5 * 60 * 1000);
+  });
+
+  it('omitting staleSessionMs applies the default — session still revalidates after 5 minutes', async () => {
+    const clock = makeFakeClock();
+    const fetchSpy = vi.fn();
+    const auth = makeAuthAdapter({ fetchUser: fetchSpy });
+    const policyWithoutStaleMs: NavigationPolicyOptions = {
+      loginRouteName: 'login',
+    };
+    const nav = createNavigationPolicy(auth, policyWithoutStaleMs, clock);
+
+    const protectedRoute = makeTarget({
+      matched: [{ meta: { requiresAuth: true } }],
+    });
+
+    // First navigation primes lastValidatedAt.
+    await nav.evaluate(protectedRoute);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Inside the default window → no revalidation. We do NOT call evaluate
+    // here because a successful evaluate resets lastValidatedAt; we just
+    // advance the clock to confirm the gate math at the boundary.
+    clock.advance(DEFAULT_STALE_SESSION_MS - 1);
+
+    // Past the default window → revalidation fires. The regression guard:
+    // if the implementation ever fell back to `policy.staleSessionMs`
+    // (undefined) the comparison `clock.now() - last > undefined` is NaN,
+    // always-false, and revalidation silently never happens — this test
+    // fails in that case.
+    clock.advance(2);
+    await nav.evaluate(protectedRoute);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('explicit staleSessionMs still overrides the default', async () => {
+    const clock = makeFakeClock();
+    const fetchSpy = vi.fn();
+    const auth = makeAuthAdapter({ fetchUser: fetchSpy });
+    const nav = createNavigationPolicy(
+      auth,
+      { loginRouteName: 'login', staleSessionMs: 1_000 },
+      clock,
+    );
+
+    const protectedRoute = makeTarget({
+      matched: [{ meta: { requiresAuth: true } }],
+    });
+    await nav.evaluate(protectedRoute);
+
+    // 1.001s later — only past the explicit window, well inside the default.
+    clock.advance(1_001);
+    await nav.evaluate(protectedRoute);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
 

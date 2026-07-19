@@ -357,7 +357,7 @@ const router = createRouter({
  * See architecture-review candidate #1.
  */
 
-const STALE_SESSION_MS = 5 * 60 * 1000; // 5 minutes
+// Default staleness window lives in shared/auth-core (DEFAULT_STALE_SESSION_MS).
 
 function buildConsoleAuthAdapter() {
   const authStore = useAuthStore();
@@ -385,7 +385,6 @@ installAuthNavigation({
   router,
   auth: buildConsoleAuthAdapter,
   policy: {
-    staleSessionMs: STALE_SESSION_MS,
     loginRouteName: "login",
     authenticatedGuestRouteName: "forum-home",
     // Authenticated users may still view the landing page (route `landing`),

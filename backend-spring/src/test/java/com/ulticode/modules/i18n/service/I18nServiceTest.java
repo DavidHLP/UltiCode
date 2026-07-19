@@ -1,6 +1,8 @@
 package com.ulticode.modules.i18n.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.i18n.constants.I18nConstants;
 import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
 import com.ulticode.modules.i18n.entity.Translation;
@@ -19,13 +21,17 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for I18nService.
+ *
+ * <p>Covers the catalog's validated lookup and administrative writes. The
+ * generic reflection / header-parser helpers and the unused batch lookup
+ * were removed from the interface; these tests assert the remaining
+ * behavior, including validation locality (invalid entity type / locale /
+ * field abort the operation before persistence).
  */
 @ExtendWith(MockitoExtension.class)
 class I18nServiceTest {
@@ -36,23 +42,10 @@ class I18nServiceTest {
     @InjectMocks
     private I18nServiceImpl i18nService;
 
-    private Translation testTranslation;
     private List<Translation> testTranslations;
 
     @BeforeEach
     void setUp() {
-        testTranslation = new Translation();
-        testTranslation.setId("test-translation-id");
-        testTranslation.setEntityType("PROBLEM");
-        testTranslation.setEntityId("problem-1");
-        testTranslation.setFieldName("title");
-        testTranslation.setLocale("zh-CN");
-        testTranslation.setContent("Test Title Chinese");
-        testTranslation.setCreatedBy("user-1");
-
-        testTranslations = new ArrayList<>();
-        testTranslations.add(testTranslation);
-
         Translation titleTranslation = new Translation();
         titleTranslation.setId("title-trans-id");
         titleTranslation.setEntityType("PROBLEM");
@@ -79,18 +72,11 @@ class I18nServiceTest {
         @Test
         @DisplayName("should return translations for valid entity")
         void shouldReturnTranslationsForValidEntity() {
-            // Arrange
             when(translationMapper.findByEntityAndLocale("PROBLEM", "problem-1", "zh-CN"))
                     .thenReturn(testTranslations);
 
-            // Act
-            Map<String, String> result = i18nService.getTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    "problem-1",
-                    "zh-CN"
-            );
+            Map<String, String> result = i18nService.getTranslations("PROBLEM", "problem-1", "zh-CN");
 
-            // Assert
             assertNotNull(result);
             assertEquals(2, result.size());
             assertEquals("Chinese Title", result.get("title"));
@@ -100,292 +86,41 @@ class I18nServiceTest {
         @Test
         @DisplayName("should return empty map for non-existent entity")
         void shouldReturnEmptyMapForNonExistentEntity() {
-            // Arrange
             when(translationMapper.findByEntityAndLocale("PROBLEM", "non-existent", "zh-CN"))
                     .thenReturn(Collections.emptyList());
 
-            // Act
-            Map<String, String> result = i18nService.getTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    "non-existent",
-                    "zh-CN"
-            );
+            Map<String, String> result = i18nService.getTranslations("PROBLEM", "non-existent", "zh-CN");
 
-            // Assert
             assertNotNull(result);
             assertTrue(result.isEmpty());
         }
 
         @Test
-        @DisplayName("should return empty map for null entityId")
+        @DisplayName("should return empty map for null entityId without touching the mapper")
         void shouldReturnEmptyMapForNullEntityId() {
-            // Act
-            Map<String, String> result = i18nService.getTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    null,
-                    "zh-CN"
-            );
+            Map<String, String> result = i18nService.getTranslations("PROBLEM", null, "zh-CN");
 
-            // Assert
             assertNotNull(result);
             assertTrue(result.isEmpty());
             verify(translationMapper, never()).findByEntityAndLocale(anyString(), anyString(), anyString());
         }
 
         @Test
-        @DisplayName("should return empty map for blank locale")
-        void shouldReturnEmptyMapForBlankLocale() {
-            // Act
-            Map<String, String> result = i18nService.getTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    "problem-1",
-                    ""
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-        }
-    }
-
-    @Nested
-    @DisplayName("getBatchTranslations")
-    class GetBatchTranslationsTests {
-
-        @Test
-        @DisplayName("should return translations for multiple entities")
-        void shouldReturnTranslationsForMultipleEntities() {
-            // Arrange
-            Translation trans1 = new Translation();
-            trans1.setEntityId("problem-1");
-            trans1.setFieldName("title");
-            trans1.setContent("Chinese Title 1");
-
-            Translation trans2 = new Translation();
-            trans2.setEntityId("problem-2");
-            trans2.setFieldName("title");
-            trans2.setContent("Chinese Title 2");
-
-            when(translationMapper.findByEntitiesAndLocale(anyString(), anyList(), anyString()))
-                    .thenReturn(Arrays.asList(trans1, trans2));
-
-            // Act
-            Map<String, Map<String, String>> result = i18nService.getBatchTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    Arrays.asList("problem-1", "problem-2"),
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(2, result.size());
-            assertEquals("Chinese Title 1", result.get("problem-1").get("title"));
-            assertEquals("Chinese Title 2", result.get("problem-2").get("title"));
+        @DisplayName("should reject an invalid entity type before lookup")
+        void shouldRejectInvalidEntityType() {
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> i18nService.getTranslations("NOT_A_TYPE", "problem-1", "zh-CN"));
+            assertEquals(ErrorCode.I18N_INVALID_ENTITY_TYPE.getCode(), ex.getCode());
+            verify(translationMapper, never()).findByEntityAndLocale(anyString(), anyString(), anyString());
         }
 
         @Test
-        @DisplayName("should handle empty list")
-        void shouldHandleEmptyList() {
-            // Act
-            Map<String, Map<String, String>> result = i18nService.getBatchTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    Collections.emptyList(),
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        @DisplayName("should handle null list")
-        void shouldHandleNullList() {
-            // Act
-            Map<String, Map<String, String>> result = i18nService.getBatchTranslations(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    null,
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-        }
-    }
-
-    @Nested
-    @DisplayName("applyTranslations")
-    class ApplyTranslationsTests {
-
-        @Test
-        @DisplayName("should apply translations to entity")
-        void shouldApplyTranslationsToEntity() {
-            // Arrange
-            TestEntity entity = new TestEntity();
-            entity.setTitle("Original Title");
-            entity.setSummary("Original Summary");
-
-            Map<String, String> translations = new HashMap<>();
-            translations.put("title", "Translated Title");
-            translations.put("summary", "Translated Summary");
-
-            List<String> fields = Arrays.asList("title", "summary");
-
-            // Act
-            TestEntity result = i18nService.applyTranslations(entity, translations, fields);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals("Translated Title", result.getTitle());
-            assertEquals("Translated Summary", result.getSummary());
-        }
-
-        @Test
-        @DisplayName("should handle missing fields gracefully")
-        void shouldHandleMissingFieldsGracefully() {
-            // Arrange
-            TestEntity entity = new TestEntity();
-            entity.setTitle("Original Title");
-
-            Map<String, String> translations = new HashMap<>();
-            translations.put("nonExistentField", "Some Value");
-
-            List<String> fields = Arrays.asList("nonExistentField");
-
-            // Act
-            TestEntity result = i18nService.applyTranslations(entity, translations, fields);
-
-            // Assert
-            assertNotNull(result);
-            assertEquals("Original Title", result.getTitle()); // Original value unchanged
-        }
-
-        @Test
-        @DisplayName("should return original entity for null translations")
-        void shouldReturnOriginalEntityForNullTranslations() {
-            // Arrange
-            TestEntity entity = new TestEntity();
-            entity.setTitle("Original Title");
-
-            // Act
-            TestEntity result = i18nService.applyTranslations(entity, null, Arrays.asList("title"));
-
-            // Assert
-            assertNotNull(result);
-            assertEquals("Original Title", result.getTitle());
-        }
-
-        @Test
-        @DisplayName("should return null for null entity")
-        void shouldReturnNullForNullEntity() {
-            // Act
-            TestEntity result = i18nService.applyTranslations(null, new HashMap<>(), Arrays.asList("title"));
-
-            // Assert
-            assertNull(result);
-        }
-
-        /**
-         * Test entity class for applyTranslations tests.
-         */
-        static class TestEntity {
-            private String title;
-            private String summary;
-
-            public String getTitle() {
-                return title;
-            }
-
-            public void setTitle(String title) {
-                this.title = title;
-            }
-
-            public String getSummary() {
-                return summary;
-            }
-
-            public void setSummary(String summary) {
-                this.summary = summary;
-            }
-        }
-    }
-
-    @Nested
-    @DisplayName("translateEntities")
-    class TranslateEntitiesTests {
-
-        @Test
-        @DisplayName("should translate list of entities")
-        void shouldTranslateListOfEntities() {
-            // Arrange
-            List<Map<String, Object>> entities = new ArrayList<>();
-
-            Map<String, Object> entity1 = new HashMap<>();
-            entity1.put("id", "problem-1");
-            entity1.put("title", "Original Title 1");
-            entities.add(entity1);
-
-            Map<String, Object> entity2 = new HashMap<>();
-            entity2.put("id", "problem-2");
-            entity2.put("title", "Original Title 2");
-            entities.add(entity2);
-
-            Translation trans1 = new Translation();
-            trans1.setEntityId("problem-1");
-            trans1.setFieldName("title");
-            trans1.setContent("Translated Title 1");
-
-            Translation trans2 = new Translation();
-            trans2.setEntityId("problem-2");
-            trans2.setFieldName("title");
-            trans2.setContent("Translated Title 2");
-
-            when(translationMapper.findByEntitiesAndLocale(anyString(), anyList(), anyString()))
-                    .thenReturn(Arrays.asList(trans1, trans2));
-
-            // Act
-            List<Map<String, Object>> result = i18nService.translateEntities(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    entities,
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertEquals(2, result.size());
-            assertEquals("Translated Title 1", result.get(0).get("title"));
-            assertEquals("Translated Title 2", result.get(1).get("title"));
-        }
-
-        @Test
-        @DisplayName("should handle empty list")
-        void shouldHandleEmptyList() {
-            // Act
-            List<Map<String, Object>> result = i18nService.translateEntities(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    Collections.emptyList(),
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        @DisplayName("should handle null list")
-        void shouldHandleNullList() {
-            // Act
-            List<Map<String, Object>> result = i18nService.translateEntities(
-                    I18nConstants.TranslatableEntity.PROBLEM,
-                    null,
-                    "zh-CN"
-            );
-
-            // Assert
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
+        @DisplayName("should reject an unsupported locale before lookup")
+        void shouldRejectUnsupportedLocale() {
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> i18nService.getTranslations("PROBLEM", "problem-1", "fr-FR"));
+            assertEquals(ErrorCode.I18N_INVALID_LOCALE.getCode(), ex.getCode());
+            verify(translationMapper, never()).findByEntityAndLocale(anyString(), anyString(), anyString());
         }
     }
 
@@ -396,7 +131,6 @@ class I18nServiceTest {
         @Test
         @DisplayName("should create new translations")
         void shouldCreateNewTranslations() {
-            // Arrange
             List<BulkUpsertDTO.TranslationItem> items = new ArrayList<>();
 
             BulkUpsertDTO.TranslationItem item = new BulkUpsertDTO.TranslationItem();
@@ -407,14 +141,11 @@ class I18nServiceTest {
             item.setContent("New Translation");
             items.add(item);
 
-            // Return empty list to indicate no existing translations (batch query)
             when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
             when(translationMapper.insert(any(Translation.class))).thenReturn(1);
 
-            // Act
             BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false, "user-1");
 
-            // Assert
             assertNotNull(result);
             assertEquals(1, result.getCreated());
             assertEquals(0, result.getUpdated());
@@ -424,7 +155,6 @@ class I18nServiceTest {
         @Test
         @DisplayName("should update existing translations")
         void shouldUpdateExistingTranslations() {
-            // Arrange
             List<BulkUpsertDTO.TranslationItem> items = new ArrayList<>();
 
             BulkUpsertDTO.TranslationItem item = new BulkUpsertDTO.TranslationItem();
@@ -443,14 +173,11 @@ class I18nServiceTest {
             existing.setLocale("zh-CN");
             existing.setContent("Old Translation");
 
-            // Return existing translation in batch query
             when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Arrays.asList(existing));
             when(translationMapper.updateById(any(Translation.class))).thenReturn(1);
 
-            // Act
             BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, false, "user-1");
 
-            // Assert
             assertNotNull(result);
             assertEquals(0, result.getCreated());
             assertEquals(1, result.getUpdated());
@@ -461,7 +188,6 @@ class I18nServiceTest {
         @Test
         @DisplayName("should skip duplicates when flag is set")
         void shouldSkipDuplicatesWhenFlagIsSet() {
-            // Arrange
             List<BulkUpsertDTO.TranslationItem> items = new ArrayList<>();
 
             BulkUpsertDTO.TranslationItem item = new BulkUpsertDTO.TranslationItem();
@@ -480,13 +206,10 @@ class I18nServiceTest {
             existing.setLocale("zh-CN");
             existing.setContent("Old Translation");
 
-            // Return existing translation in batch query
             when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Arrays.asList(existing));
 
-            // Act
             BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, true, "user-1");
 
-            // Assert
             assertNotNull(result);
             assertEquals(0, result.getCreated());
             assertEquals(0, result.getUpdated());
@@ -496,11 +219,9 @@ class I18nServiceTest {
         @Test
         @DisplayName("should handle empty list")
         void shouldHandleEmptyList() {
-            // Act
             BulkUpsertDTO result =
                     i18nService.bulkUpsertTranslations(Collections.emptyList(), false, "user-1");
 
-            // Assert
             assertNotNull(result);
             assertEquals(0, result.getCreated());
             assertEquals(0, result.getUpdated());
@@ -510,69 +231,31 @@ class I18nServiceTest {
         @Test
         @DisplayName("should handle null list")
         void shouldHandleNullList() {
-            // Act
             BulkUpsertDTO result = i18nService.bulkUpsertTranslations(null, false, "user-1");
 
-            // Assert
             assertNotNull(result);
             assertEquals(0, result.getCreated());
             assertEquals(0, result.getUpdated());
             assertEquals(0, result.getSkipped());
         }
-    }
-
-    @Nested
-    @DisplayName("parseAcceptLanguage")
-    class ParseAcceptLanguageTests {
 
         @Test
-        @DisplayName("should parse valid header")
-        void shouldParseValidHeader() {
-            // Act
-            String result = i18nService.parseAcceptLanguage("zh-CN,en-US;q=0.9");
+        @DisplayName("should abort the batch on an invalid field name without persisting")
+        void shouldAbortOnInvalidFieldName() {
+            List<BulkUpsertDTO.TranslationItem> items = new ArrayList<>();
+            BulkUpsertDTO.TranslationItem item = new BulkUpsertDTO.TranslationItem();
+            item.setEntityType("PROBLEM");
+            item.setEntityId("problem-1");
+            item.setFieldName("notTranslatable");
+            item.setLocale("zh-CN");
+            item.setContent("X");
+            items.add(item);
 
-            // Assert
-            assertEquals("zh-CN", result);
-        }
-
-        @Test
-        @DisplayName("should return fallback for invalid header")
-        void shouldReturnFallbackForInvalidHeader() {
-            // Act
-            String result = i18nService.parseAcceptLanguage("invalid-locale");
-
-            // Assert
-            assertEquals("en-US", result);
-        }
-
-        @Test
-        @DisplayName("should handle null header")
-        void shouldHandleNullHeader() {
-            // Act
-            String result = i18nService.parseAcceptLanguage(null);
-
-            // Assert
-            assertEquals("en-US", result);
-        }
-
-        @Test
-        @DisplayName("should extract first matching locale")
-        void shouldExtractFirstMatchingLocale() {
-            // Act
-            String result = i18nService.parseAcceptLanguage("ja-JP,zh-CN;q=0.8,en-US;q=0.7");
-
-            // Assert
-            assertEquals("ja-JP", result);
-        }
-
-        @Test
-        @DisplayName("should handle empty header")
-        void shouldHandleEmptyHeader() {
-            // Act
-            String result = i18nService.parseAcceptLanguage("");
-
-            // Assert
-            assertEquals("en-US", result);
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> i18nService.bulkUpsertTranslations(items, false, "user-1"));
+            assertEquals(ErrorCode.I18N_INVALID_FIELD_NAME.getCode(), ex.getCode());
+            verify(translationMapper, never()).insert(any(Translation.class));
+            verify(translationMapper, never()).updateById(any(Translation.class));
         }
     }
 }

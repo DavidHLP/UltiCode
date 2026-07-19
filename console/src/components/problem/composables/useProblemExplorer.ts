@@ -1,9 +1,9 @@
-import { computed, onMounted, ref, watch, markRaw } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { Component } from "vue";
 import type { ProblemExplorerProps } from "../type";
-import { CheckCircle2, FileEdit, CircleDot } from "lucide-vue-next";
+import { CheckCircle2, FileEdit } from "lucide-vue-next";
 import { fetchProblems } from "@/api/problem";
 import { toast } from "vue-sonner";
 import { useRouter } from "vue-router";
@@ -35,6 +35,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   const totalPages = ref(1);
   const isLoading = ref(false);
   const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+  // Monotonic request token: a fresh search/filter bumps it so an in-flight
+  // response that was superseded can detect it is stale and discard itself.
+  const latestRequestToken = ref(0);
 
   const selectedCategory = ref(props.initialCategory || "all");
 
@@ -65,7 +68,13 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   };
 
   const loadProblems = async (append = false) => {
-    if (isLoading.value) return;
+    // Supplied mode: the caller passed its own problem list, so there is no
+    // fetch to perform and the watchers/clearFilters/onMounted stay no-op.
+    if (props.problems !== undefined) return;
+    // Serialize pagination (scroll-driven load-more can fan); fresh
+    // searches/filters go through and supersede via latestRequestToken.
+    if (append && isLoading.value) return;
+    const myToken = ++latestRequestToken.value;
     isLoading.value = true;
     try {
       const currentPage = append ? page.value : 1;
@@ -74,6 +83,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
         currentPage,
         PROBLEMS_PER_PAGE,
       );
+      // A newer search/filter superseded this request — discard the stale
+      // response so it cannot overwrite newer state.
+      if (myToken !== latestRequestToken.value) return;
       if (append) {
         fallbackProblems.value = [...fallbackProblems.value, ...result.items];
       } else {
@@ -83,6 +95,7 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
       total.value = result.total;
       totalPages.value = result.totalPages;
     } catch (error) {
+      if (myToken !== latestRequestToken.value) return;
       console.error("Failed to load problems", error);
       toast.error(t("problem.explorer.failedToLoad"));
       if (!append) {
@@ -91,7 +104,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
         totalPages.value = 1;
       }
     } finally {
-      isLoading.value = false;
+      if (myToken === latestRequestToken.value) {
+        isLoading.value = false;
+      }
     }
   };
 
@@ -104,16 +119,10 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   );
 
   const enrichedProblems = computed<EnrichedProblem[]>(() => {
-    return sourceProblems.value.map((p) => {
-      const status = p.status ?? "todo";
-      const icon =
-        status === "solved"
-          ? markRaw(CheckCircle2)
-          : status === "attempted"
-            ? markRaw(CircleDot)
-            : undefined;
-      return { ...p, status, statusIcon: icon } as EnrichedProblem;
-    });
+    return sourceProblems.value.map((p) => ({
+      ...p,
+      status: p.status ?? "todo",
+    })) as EnrichedProblem[];
   });
 
   // Debounced search

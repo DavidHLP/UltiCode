@@ -182,6 +182,68 @@ describe("useProblemExplorer", () => {
     });
   });
 
+  describe("Candidate 04 deepening", () => {
+    it("does not fetch when props.problems is supplied (supplied mode)", async () => {
+      const wrapper = await mountExplorer({
+        problems: [makeProblem({ title: "A", slug: "a" })],
+      });
+      const ex = explorerOf(wrapper);
+
+      // onMounted, watchers, and clearFilters all stay no-op in supplied mode
+      expect(mocks.fetchProblems).not.toHaveBeenCalled();
+      ex.toggleDifficulty("EASY", true);
+      await settle();
+      ex.clearFilters();
+      await settle();
+      expect(mocks.fetchProblems).not.toHaveBeenCalled();
+      // the supplied list is the source, not a fetched fallback
+      expect(ex.displayedProblems.value.map((p) => p.slug)).toEqual(["a"]);
+    });
+
+    it("discards a stale response when a newer filter supersedes it", async () => {
+      // The onMounted fetch never resolves (simulating a slow/abandoned
+      // request). A later filter toggle must supersede it via the request
+      // token, and only the latest EASY-filtered response may land.
+      const never = new Promise<never>(() => {});
+      mocks.fetchProblems.mockReturnValueOnce(never);
+      mocks.fetchProblems.mockResolvedValueOnce(
+        page([makeProblem({ title: "Latest", slug: "latest" })]),
+      );
+
+      const wrapper = await mountExplorer();
+      const ex = explorerOf(wrapper);
+
+      ex.toggleDifficulty("EASY", true);
+      await settle();
+
+      // stale onMounted response (pending forever) did not land; latest wins
+      expect(ex.displayedProblems.value.map((p) => p.slug)).toEqual(["latest"]);
+      expect([...ex.selectedDifficulty.value]).toEqual(["EASY"]);
+    });
+
+    it("leaves enrichedProblems.statusIcon undefined (icons owned by displayedProblems)", async () => {
+      mocks.fetchProblems.mockResolvedValue(
+        page([
+          makeProblem({ title: "Solved", slug: "s", status: "solved" }),
+          makeProblem({ title: "Attempt", slug: "a", status: "attempted" }),
+        ]),
+      );
+      const wrapper = await mountExplorer();
+      const ex = explorerOf(wrapper);
+
+      // enrichedProblems no longer computes the dead CircleDot icon
+      expect(ex.enrichedProblems.value.map((p) => p.statusIcon)).toEqual([
+        undefined,
+        undefined,
+      ]);
+      // displayedProblems still owns the rendered icons
+      expect(ex.displayedProblems.value.map((p) => p.statusIcon)).toEqual([
+        CheckCircle2,
+        FileEdit,
+      ]);
+    });
+  });
+
   describe("filter state", () => {
     it("toggles status / difficulty / premium and updates the active-filter computeds", async () => {
       const wrapper = await mountExplorer();

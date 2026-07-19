@@ -1,5 +1,5 @@
 /**
- * Thin locale-injection wrapper over shared/datetime-utils (arch review #3).
+ * Thin locale-injection wrapper over shared/datetime-utils.
  * Management's active locale from i18n is injected as the default.
  */
 import {

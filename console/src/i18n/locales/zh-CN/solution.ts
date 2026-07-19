@@ -4,6 +4,7 @@ export default {
     back: "返回",
     update: "更新题解",
     publish: "发布题解",
+    publishing: "发布中...",
     draftSaved: "草稿已保存",
     editingDraft: "正在编辑草稿...",
     enterTitle: "输入标题",

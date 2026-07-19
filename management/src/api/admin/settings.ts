@@ -170,7 +170,9 @@ interface AllSettingsWire extends GeneralWire, EmailWire, RateLimitWire, UploadW
 // mapped key (GET responses always carry the full category slice).
 // ============================================================================
 
-type FieldMapping = Readonly<Record<string, string>>
+type FieldMapping<W extends string, D extends string> = {
+  readonly [K in W]: D
+}
 
 const GENERAL_MAPPING = {
   maintenanceMode: 'maintenance_mode',
@@ -179,7 +181,7 @@ const GENERAL_MAPPING = {
   siteName: 'site_name',
   siteDescription: 'site_description',
   requireEmailVerification: 'require_email_verification',
-} satisfies FieldMapping
+} as const satisfies FieldMapping<keyof GeneralWire & string, keyof SystemSettings & string>
 
 const EMAIL_MAPPING = {
   smtpHost: 'smtp_host',
@@ -189,20 +191,20 @@ const EMAIL_MAPPING = {
   smtpFrom: 'smtp_from',
   smtpFromName: 'smtp_from_name',
   smtpSecure: 'smtp_secure',
-} satisfies FieldMapping
+} as const satisfies FieldMapping<keyof EmailWire & string, keyof EmailSettings & string>
 
 const RATE_LIMIT_MAPPING = {
   rateLimitApi: 'rate_limit_api',
   rateLimitSubmission: 'rate_limit_submission',
   rateLimitAuth: 'rate_limit_auth',
   rateLimitUpload: 'rate_limit_upload',
-} satisfies FieldMapping
+} as const satisfies FieldMapping<keyof RateLimitWire & string, keyof RateLimitSettings & string>
 
 const UPLOAD_MAPPING = {
   uploadMaxSize: 'upload_max_size',
   uploadAllowedTypes: 'upload_allowed_types',
   uploadMaxFiles: 'upload_max_files',
-} satisfies FieldMapping
+} as const satisfies FieldMapping<keyof UploadWire & string, keyof UploadSettings & string>
 
 const FEATURE_MAPPING = {
   featureContest: 'feature_contest',
@@ -213,17 +215,27 @@ const FEATURE_MAPPING = {
   featureNotifications: 'feature_notifications',
   featureBookmarks: 'feature_bookmarks',
   featureProblemLists: 'feature_problem_lists',
-} satisfies FieldMapping
+} as const satisfies FieldMapping<keyof FeatureWire & string, keyof FeatureToggles & string>
 
 /**
  * Rename a partial dto's snake_case keys to camelCase wire keys, dropping
- * any key whose value is undefined. The projection is structurally safe
- * because {mapping} enumerates the exact field set of both shapes.
+ * any key whose value is undefined. The mapping's wireKey and dtoKey are
+ * constrained to `keyof W` and `keyof D` respectively so a misspelled
+ * mapping entry fails to compile rather than silently dropping the field
+ * at runtime. The final `as Partial<W>` / `as D` is required because
+ * TypeScript cannot prove that the value copied from a string-keyed
+ * source object matches the target's element type, but every key was
+ * already validated by the generic constraint.
  */
-function toWire<W, D>(dto: Partial<D>, mapping: FieldMapping): Partial<W> {
+function toWire<W extends object, D extends object>(
+  dto: Partial<D>,
+  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>
+): Partial<W> {
   const source = dto as Record<string, unknown>
   const out: Record<string, unknown> = {}
-  for (const [wireKey, dtoKey] of Object.entries(mapping)) {
+  for (const entry of Object.entries(mapping) as Array<[string, string]>) {
+    const wireKey = entry[0]
+    const dtoKey = entry[1]
     const value = source[dtoKey]
     if (value !== undefined) out[wireKey] = value
   }
@@ -231,10 +243,15 @@ function toWire<W, D>(dto: Partial<D>, mapping: FieldMapping): Partial<W> {
 }
 
 /** Rename a full wire object's camelCase keys to snake_case dto keys. */
-function fromWire<W, D>(wire: W, mapping: FieldMapping): D {
+function fromWire<W extends object, D extends object>(
+  wire: W,
+  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>
+): D {
   const source = wire as Record<string, unknown>
   const out: Record<string, unknown> = {}
-  for (const [wireKey, dtoKey] of Object.entries(mapping)) {
+  for (const entry of Object.entries(mapping) as Array<[string, string]>) {
+    const wireKey = entry[0]
+    const dtoKey = entry[1]
     out[dtoKey] = source[wireKey]
   }
   return out as D

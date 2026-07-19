@@ -1,14 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
+import type { RouteLocationNormalized } from "vue-router";
 
 // --- Mocks ---------------------------------------------------------------
 // Mutable route/router so each test can configure the mode without re-mocking.
+// The route mock satisfies the full RouteLocationNormalized shape so it can be
+// passed to resolveAuthoringMode without an `as never` (or any) cast — every
+// field the type requires is stubbed here, and the tests only mutate
+// name / params / query via the setRoute helper below.
 const { mockRoute, mockRouter } = vi.hoisted(() => {
-  const route: {
-    name: unknown;
-    params: Record<string, unknown>;
-    query: Record<string, unknown>;
-  } = { name: "", params: {}, query: {} };
+  const route = {
+    name: "" as RouteLocationNormalized["name"],
+    params: {} as RouteLocationNormalized["params"],
+    query: {} as RouteLocationNormalized["query"],
+    path: "/",
+    fullPath: "/",
+    hash: "",
+    matched: [],
+    meta: {},
+    redirectedFrom: undefined,
+  } as unknown as RouteLocationNormalized;
   const router = { push: vi.fn(), back: vi.fn() };
   return { mockRoute: route, mockRouter: router };
 });
@@ -69,7 +80,11 @@ import { fetchSubmission } from "@/api/submission";
 import { fetchSolutionTopics } from "@/api/topic";
 import { toast } from "vue-sonner";
 
-function setRoute(name: string, params: Record<string, unknown> = {}, query: Record<string, unknown> = {}): void {
+function setRoute(
+  name: string,
+  params: RouteLocationNormalized["params"] = {},
+  query: RouteLocationNormalized["query"] = {},
+): void {
   mockRoute.name = name;
   mockRoute.params = params;
   mockRoute.query = query;
@@ -78,7 +93,7 @@ function setRoute(name: string, params: Record<string, unknown> = {}, query: Rec
 describe("resolveAuthoringMode — param-overload subtlety", () => {
   it("treats route.params.id as solutionId in solution-edit", () => {
     setRoute("solution-edit", { id: "sol-7" });
-    expect(resolveAuthoringMode(mockRoute as never)).toEqual({
+    expect(resolveAuthoringMode(mockRoute)).toEqual({
       kind: "edit",
       solutionId: "sol-7",
     });
@@ -86,7 +101,7 @@ describe("resolveAuthoringMode — param-overload subtlety", () => {
 
   it("treats route.params.id as problemId in solution-create", () => {
     setRoute("solution-create", { id: "123" });
-    expect(resolveAuthoringMode(mockRoute as never)).toEqual({
+    expect(resolveAuthoringMode(mockRoute)).toEqual({
       kind: "create-from-problem",
       problemId: "123",
     });
@@ -94,7 +109,7 @@ describe("resolveAuthoringMode — param-overload subtlety", () => {
 
   it("reads route.query.submissionId for solution-create-from-submission", () => {
     setRoute("solution-create-from-submission", {}, { submissionId: "sub-9" });
-    expect(resolveAuthoringMode(mockRoute as never)).toEqual({
+    expect(resolveAuthoringMode(mockRoute)).toEqual({
       kind: "create-from-submission",
       submissionId: "sub-9",
     });
@@ -102,7 +117,7 @@ describe("resolveAuthoringMode — param-overload subtlety", () => {
 
   it("returns null for an unknown route", () => {
     setRoute("problem-detail", { slug: "two-sum" });
-    expect(resolveAuthoringMode(mockRoute as never)).toBeNull();
+    expect(resolveAuthoringMode(mockRoute)).toBeNull();
   });
 });
 

@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.ClearCacheResponseVO;
 import com.ulticode.modules.admin.dto.settings.AllSettingsVO;
 import com.ulticode.modules.admin.dto.settings.EmailSettingsVO;
 import com.ulticode.modules.admin.dto.settings.FeatureTogglesVO;
@@ -122,7 +123,7 @@ public class AdminSettingsController {
 
     @Operation(summary = "Clear cache", description = "Clear system cache (placeholder)")
     @PostMapping("/cache/clear")
-    public Result<Map<String, Object>> clearCache() {
+    public Result<ClearCacheResponseVO> clearCache() {
         return Result.success(service.clearCache());
     }
 

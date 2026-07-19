@@ -6,6 +6,7 @@ import {
 } from './useContestAuthoring'
 import { contestsApi } from '@/api/admin/contests'
 import { ContestType } from '@/api/admin/contests'
+import type { Contest, ContestProblem } from '@/api/admin/contests'
 
 vi.mock('@/api/admin/contests', async () => {
   const actual =
@@ -221,9 +222,29 @@ describe('useContestAuthoring', () => {
       addProblem({ id: '20', title: 'B', slug: 'b', difficulty: 'HARD' })
       setProblemScore('20', 250)
 
-      const created = { id: 'contest-xyz', slug: 'weekly-contest-1' }
-      mockedCreateContest.mockResolvedValue(created as never)
-      mockedAddProblem.mockResolvedValue({} as never)
+      const created: Contest = {
+        id: 'contest-xyz',
+        slug: 'weekly-contest-1',
+        title: 'Weekly Contest #1',
+        contestType: ContestType.ICPC,
+        startTime: '2026-07-19T00:00:00Z',
+        duration: 120,
+        status: 'DRAFT' as Contest['status'],
+        isVisible: true,
+        isPremium: false,
+        isPublished: false,
+        participantCount: 0,
+        problemCount: 0,
+      }
+      mockedCreateContest.mockResolvedValue(created)
+      const addedProblem: ContestProblem = {
+        id: 'cp-1',
+        contestId: 'contest-xyz',
+        problemId: 10,
+        problemIndex: 'A',
+        score: 100,
+      }
+      mockedAddProblem.mockResolvedValue(addedProblem)
 
       const result = await submit()
 
@@ -247,8 +268,21 @@ describe('useContestAuthoring', () => {
         (p) => patchBasicInfo(p),
         (p) => patchSchedule(p),
       )
-      const created = { id: 'c', slug: 's' }
-      mockedCreateContest.mockResolvedValue(created as never)
+      const created: Contest = {
+        id: 'c',
+        slug: 's',
+        title: 't',
+        contestType: ContestType.ICPC,
+        startTime: '2026-07-19T00:00:00Z',
+        duration: 120,
+        status: 'DRAFT' as Contest['status'],
+        isVisible: true,
+        isPremium: false,
+        isPublished: false,
+        participantCount: 0,
+        problemCount: 0,
+      }
+      mockedCreateContest.mockResolvedValue(created)
 
       await submit()
 
@@ -266,8 +300,31 @@ describe('useContestAuthoring', () => {
       addProblem({ id: '1', title: 'A', slug: 'a', difficulty: 'EASY' })
       addProblem({ id: '2', title: 'B', slug: 'b', difficulty: 'HARD' })
 
-      mockedCreateContest.mockResolvedValue({ id: 'c' } as never)
-      mockedAddProblem.mockResolvedValueOnce({} as never).mockRejectedValueOnce(new Error('boom'))
+      const stubContest: Contest = {
+        id: 'c',
+        slug: 's',
+        title: 't',
+        contestType: ContestType.ICPC,
+        startTime: '2026-07-19T00:00:00Z',
+        duration: 120,
+        status: 'DRAFT' as Contest['status'],
+        isVisible: true,
+        isPremium: false,
+        isPublished: false,
+        participantCount: 0,
+        problemCount: 0,
+      }
+      const stubProblem: ContestProblem = {
+        id: 'cp-x',
+        contestId: 'c',
+        problemId: 1,
+        problemIndex: 'A',
+        score: 0,
+      }
+      mockedCreateContest.mockResolvedValue(stubContest)
+      mockedAddProblem
+        .mockResolvedValueOnce(stubProblem)
+        .mockRejectedValueOnce(new Error('boom'))
 
       await expect(submit()).rejects.toThrow('boom')
 
@@ -284,7 +341,21 @@ describe('useContestAuthoring', () => {
         (p) => patchSchedule(p),
       )
       expect(submitting.value).toBe(false) // initial state
-      mockedCreateContest.mockResolvedValue({ id: 'c' } as never)
+      const stubContest: Contest = {
+        id: 'c',
+        slug: 's',
+        title: 't',
+        contestType: ContestType.ICPC,
+        startTime: '2026-07-19T00:00:00Z',
+        duration: 120,
+        status: 'DRAFT' as Contest['status'],
+        isVisible: true,
+        isPremium: false,
+        isPublished: false,
+        participantCount: 0,
+        problemCount: 0,
+      }
+      mockedCreateContest.mockResolvedValue(stubContest)
 
       await submit()
 
@@ -299,7 +370,7 @@ describe('useContestAuthoring', () => {
         (p) => patchBasicInfo(p),
         (p) => patchSchedule(p),
       )
-      mockedCreateContest.mockRejectedValue(new Error('create-failed') as never)
+      mockedCreateContest.mockRejectedValue(new Error('create-failed'))
 
       await expect(submit()).rejects.toThrow('create-failed')
 

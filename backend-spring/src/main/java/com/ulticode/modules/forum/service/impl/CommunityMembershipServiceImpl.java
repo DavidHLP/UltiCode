@@ -62,7 +62,15 @@ public class CommunityMembershipServiceImpl implements CommunityMembershipServic
                     communityId, userId);
             return;
         }
-        communityMapper.incrementMembers(communityId);
+        int counterDelta = communityMapper.incrementMembers(communityId);
+        if (counterDelta == 0) {
+            // The row was inserted but the counter UPDATE did not match any row.
+            // This should be impossible while the community exists (we checked
+            // selectById at entry), but log loudly so a deleted-in-flight community
+            // does not silently leave the new membership without a counter bump.
+            log.warn("Member insert succeeded but counter increment matched no row: community={}, user={}",
+                    communityId, userId);
+        }
     }
 
     @Override

@@ -4,6 +4,7 @@ export default {
     back: "Back",
     update: "Update Solution",
     publish: "Publish Solution",
+    publishing: "Publishing...",
     draftSaved: "Draft saved",
     editingDraft: "Editing draft...",
     enterTitle: "Enter title",

@@ -1,5 +1,5 @@
 /**
- * Re-export from shared/locale-preference (arch review candidate #3).
+ * Re-export from shared/locale-preference.
  * Registers vue-sonner toast as the storage notifier on first import.
  */
 import { toast } from 'vue-sonner'

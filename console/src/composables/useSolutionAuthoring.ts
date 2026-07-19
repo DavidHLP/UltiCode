@@ -127,6 +127,9 @@ export interface SolutionAuthoringHandle {
   language: Ref<string>;
   resolvedProblemId: Ref<string>;
   resolvedProblemSlug: Ref<string>;
+  // --- publish in-flight flag (used by the view to disable the submit button
+  //     and prevent duplicate submissions while a create/update is in flight) ---
+  isPublishing: Ref<boolean>;
   // --- topic state ---
   topicOptions: Ref<SolutionTopic[]>;
   selectedTopicIds: Ref<string[]>;
@@ -183,6 +186,7 @@ export function useSolutionAuthoring(
   const resolvedProblemSlug = ref<string>("");
   const isEditMode = ref(false);
   const solutionId = ref<string>("");
+  const isPublishing = ref(false);
 
   // --- Topic state ---
   const topicOptions = ref<SolutionTopic[]>([]);
@@ -410,6 +414,10 @@ ${code}
 
   // --- Publish (create/update + collision recovery) ---
   async function publish(): Promise<void> {
+    // Re-entry guard: while a previous publish is still in flight, drop the
+    // request. The view disables the submit button via isPublishing so this
+    // branch is the belt-and-braces backstop.
+    if (isPublishing.value) return;
     if (!title.value.trim()) {
       toast.error(t("solution.messages.enterTitle"));
       return;
@@ -419,6 +427,7 @@ ${code}
       return;
     }
 
+    isPublishing.value = true;
     isDraftSaved.value = false;
     try {
       if (isEditMode.value) {
@@ -479,6 +488,8 @@ ${code}
       }
       toast.error(message);
       isDraftSaved.value = true;
+    } finally {
+      isPublishing.value = false;
     }
   }
 
@@ -511,6 +522,7 @@ ${code}
     language,
     resolvedProblemId,
     resolvedProblemSlug,
+    isPublishing,
     topicOptions,
     selectedTopicIds,
     selectedTopics,

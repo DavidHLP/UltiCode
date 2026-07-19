@@ -43,8 +43,6 @@ import { extractApiErrorMessage } from '@/utils/error'
  *       into this workspace so the byte semantics (1024-base) live next to
  *       the field that owns the wire contract.</li>
  * </ul>
- *
- * <p>Architecture review candidate #3.
  */
 
 // ---------------------------------------------------------------------------

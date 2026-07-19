@@ -17,7 +17,9 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,10 +51,15 @@ class CommunityMembershipServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Stub the Clock so LocalDateTime.now(clock) inside joinCommunity does
-        // not NPE on the fresh @Mock (membership.setJoinedAt runs before insert).
-        lenient().when(clock.instant()).thenReturn(Instant.now());
-        lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+        // Stub the Clock with a fixed instant + UTC zone so the joinedAt
+        // timestamp asserted below is deterministic across CI machines
+        // (ZoneId.systemDefault() / Instant.now() would drift on every run).
+        Instant fixedInstant = Instant.parse("2026-07-19T00:00:00Z");
+        lenient().when(clock.instant()).thenReturn(fixedInstant);
+        lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
+        // LocalDateTime.now(clock) is implemented as
+        // LocalDateTime.ofInstant(clock.instant(), clock.getZone()), so the two
+        // stubs above are sufficient — no third stub is needed.
     }
 
     @Test
@@ -76,10 +83,13 @@ class CommunityMembershipServiceImplTest {
 
         membershipService.joinCommunity(COMMUNITY_ID, USER_ID);
 
+        // Fixed Clock above means joinedAt is deterministic (UTC 2026-07-19).
+        LocalDateTime expectedJoinedAt = LocalDateTime.of(2026, 7, 19, 0, 0);
         verify(memberMapper).insert(org.mockito.ArgumentMatchers.argThat((ForumCommunityMember m) -> {
             assertEquals(COMMUNITY_ID, m.getCommunityId());
             assertEquals(USER_ID, m.getUserId());
             assertEquals("MEMBER", m.getRole());
+            assertEquals(expectedJoinedAt, m.getJoinedAt());
             return true;
         }));
         verify(communityMapper).incrementMembers(COMMUNITY_ID);

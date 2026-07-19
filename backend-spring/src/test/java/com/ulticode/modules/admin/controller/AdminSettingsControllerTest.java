@@ -264,7 +264,7 @@ class AdminSettingsControllerTest {
         @Test
         @DisplayName("POST /admin/settings/cache/clear")
         void postCacheClear() throws Exception {
-            when(service.clearCache()).thenReturn(Map.of("clearedScopes", java.util.List.of("settings")));
+            when(service.clearCache()).thenReturn(new com.ulticode.modules.admin.dto.ClearCacheResponseVO(java.util.List.of("settings"), "2026-07-19T00:00:00"));
             mockMvc.perform(post("/admin/settings/cache/clear"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.clearedScopes[0]").value("settings"));

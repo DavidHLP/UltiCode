@@ -226,10 +226,11 @@ export function useContestAuthoring() {
   // ----- Persistence shaping ------------------------------------------------
   /**
    * Build the `CreateContestDto` payload for the current draft. `slug` is
-   * forwarded to match `CreateContestDTO.java`. `problemIds` is intentionally
-   * omitted: per-problem scores flow through `buildProblemScorePatches` after
-   * the contest exists. Sending `problemIds` here would cause the backend to
-   * bulk-insert each problem with `score = 0`, and the subsequent scored
+   * forwarded to the backend so it can be persisted when provided. `problemIds`
+   * is intentionally omitted: per-problem scores flow through
+   * `buildProblemScorePatches` after the contest exists. Sending `problemIds`
+   * here would cause the backend to bulk-insert each problem with `score = 0`,
+   * and the subsequent scored
    * `addProblem` calls would 400 with "Problem already exists in this
    * contest".
    */
@@ -269,8 +270,8 @@ export function useContestAuthoring() {
    * Orchestrate the full submission: create the contest, then issue one
    * scored `addProblem` call per drafted problem. The order is sequential so
    * a partial failure surfaces the first error to the caller; problems added
-   * before the failure remain persisted (see residual-risk note in the task
-   * report). The draft is reset only by the caller after a successful submit.
+   * before the failure remain persisted (no in-place rollback). The draft
+   * is reset only by the caller after a successful submit.
    */
   async function submit(): Promise<Contest> {
     submitting.value = true

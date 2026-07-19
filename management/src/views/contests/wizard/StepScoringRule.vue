@@ -14,10 +14,13 @@ const emit = defineEmits<{ (e: 'select', value: string): void }>()
     </div>
 
     <!--
-      Scoring rule selector. The selector continues to own its on-mount
-      default-pick behavior; the authoring module simply accepts whatever
-      value flows out via `update:modelValue`. No new default policy is
-      introduced at the wizard level.
+      Scoring rule selector. The selector owns the on-mount default-pick
+      (it surfaces the first available rule for the contest type via
+      `update:modelValue`); the authoring module accepts the resulting
+      value through its `select` patch and routes it into the draft. This
+      keeps the default-policy lookup (which needs the rules endpoint)
+      next to the selector's own data fetch rather than duplicating it
+      in the authoring module.
     -->
     <ScoringRuleSelector
       :model-value="slice.scoringRuleId"

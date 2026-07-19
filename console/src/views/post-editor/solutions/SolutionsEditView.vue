@@ -10,12 +10,19 @@
       <span class="text-xs text-muted-foreground">
         {{ draftStatus }}
       </span>
-      <Button size="sm" class="ml-4 gap-2" @click="publish">
+      <Button
+        size="sm"
+        class="ml-4 gap-2"
+        :disabled="isPublishing"
+        @click="publish"
+      >
         <SendHorizonal class="h-4 w-4" />
         {{
-          isEditMode
-            ? t("solution.editor.update")
-            : t("solution.editor.publish")
+          isPublishing
+            ? t("solution.editor.publishing")
+            : isEditMode
+              ? t("solution.editor.update")
+              : t("solution.editor.publish")
         }}
       </Button>
     </header>
@@ -172,6 +179,7 @@ const {
   editorContent,
   dynamicTemplate,
   isEditMode,
+  isPublishing,
   initError,
   draftStatus,
   topicOptions,

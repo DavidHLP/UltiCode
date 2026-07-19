@@ -48,14 +48,14 @@ import java.util.stream.Collectors;
 public class CodeExecutionService {
 
     private final SandboxExecutor sandboxExecutor;
-    private final CodeExecutionHelper helper;
+    private final SandboxOutputFormatter sandboxOutputFormatter;
     private final VerdictResolver verdictResolver;
     private final ProblemFactsPort problemFacts;
     private final UuidGenerator uuidGenerator;
     /**
      * Architecture-review candidate #1: the executable-language set
      * now crosses the {@link JudgingLanguageSupport} seam rather than
-     * the submission-internal {@link CodeExecutionHelper} constants.
+     * a submission-internal constants surface.
      */
     private final JudgingLanguageSupport languageSupport;
     /**
@@ -95,7 +95,7 @@ public class CodeExecutionService {
 
         List<RunSubmissionDTO.RunTestCase> testCases = request.getTestCases();
         if (testCases == null || testCases.isEmpty()) {
-            return helper.emptyResult(problemId, userId);
+            return sandboxOutputFormatter.emptyResult(problemId, userId);
         }
 
         // 链表/树题:从题目 starter_code 推断参数 OJ 类型(ListNode/TreeNode),
@@ -151,7 +151,7 @@ public class CodeExecutionService {
         ).wireValue();
         long totalRuntimeMs = dtoResults.stream()
                 .mapToLong(r -> r.getRuntimeMs() != null ? r.getRuntimeMs()
-                        : helper.parseRuntimeMs(r.getRuntime()))
+                        : sandboxOutputFormatter.parseRuntimeMs(r.getRuntime()))
                 .sum();
         long totalRuntimeUs = dtoResults.stream()
                 .mapToLong(r -> r.getRuntimeUs() != null ? r.getRuntimeUs() : 0L)

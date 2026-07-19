@@ -10,9 +10,11 @@ import java.util.List;
  * ({@code /job/input.json}) and the output side (the JSON envelope the
  * harness writes to stdout).
  *
- * <p>Extracted out of {@link CodeExecutionHelper} in the C4 split because
- * the envelope parser ({@link #parseDEnvelope}) was the heaviest method
- * (75 lines of state-machine logic) and three concerns shared one name:
+ * <p>This is the D-form protocol seam (the C4 split collapsed the old
+ * forwarding {@code CodeExecutionHelper} facade so the protocol and the
+ * display concerns each have one home). The envelope parser
+ * ({@link #parseDEnvelope}) is the heaviest method (75 lines of
+ * state-machine logic); three concerns used to share one name:
  * <ul>
  *   <li>envelope parse-and-decode (this interface),</li>
  *   <li>display-string formatting (lives in {@link SandboxOutputFormatter}),</li>

@@ -6,7 +6,9 @@ import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 /**
  * Display and DTO-construction helpers for the D-form sandbox pipeline.
  *
- * <p>Extracted out of {@link CodeExecutionHelper} in the C4 split. Owns:
+ * <p>Display and DTO-construction seam for the D-form sandbox pipeline
+ * (the C4 split collapsed the old forwarding {@code CodeExecutionHelper}
+ * facade so display concerns own one home). Owns:
  * <ul>
  *   <li>{@link #sanitizeSandboxOutput} — strip docker / OCI runtime lines
  *       from harness stdout so the user-facing {@code detail} string stays
@@ -15,11 +17,30 @@ import com.ulticode.modules.submission.dto.RunSubmissionDTO;
  *       for the dispatcher when nothing ran.</li>
  *   <li>{@link #buildCaseResult} — assemble a single {@link RunResultDTO.RunCaseResult}
  *       from harness-reported values plus the original test-case.</li>
+ *   <li>{@link #parseRuntimeMs} — parse the raw sandbox runtime wire formats
+ *       ({@code "Nms"}, {@code "N.Ns"}, bare numbers) the dispatcher and
+ *       sandbox executor see.</li>
  * </ul>
  *
  * @author ulticode
  */
 public interface SandboxOutputFormatter {
+
+    /**
+     * Parse a sandbox runtime wire string to milliseconds. Unlike
+     * {@link com.ulticode.modules.queue.port.VerdictMetricsParser#parseRuntimeMs},
+     * this version serves the raw sandbox-output formats the dispatcher and
+     * sandbox executor see &mdash; the {@code "s"} suffix (seconds -&gt; millis
+     * via {@code Double} math) and fractional milliseconds (e.g.
+     * {@code "42.5ms"}). The queue-side parser only accepts integer
+     * {@code "Nms"} payloads, so the two are NOT interchangeable; routing this
+     * onto {@code VerdictMetricsParser} would silently drop runtime data for
+     * those formats.
+     *
+     * @param runtime raw sandbox runtime string (may be {@code null})
+     * @return milliseconds, or {@code 0L} when the input is blank or unparseable
+     */
+    long parseRuntimeMs(String runtime);
 
     /**
      * Format raw sandbox / harness output for the user-facing

@@ -7,7 +7,7 @@ import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.sandbox.RunCaseResult;
 import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier;
 import com.ulticode.modules.submission.sandbox.TestCase;
-import com.ulticode.modules.submission.service.CodeExecutionHelper;
+import com.ulticode.modules.submission.service.SandboxOutputFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,21 +39,21 @@ import java.util.List;
  */
 class SandboxResultTranslator {
 
-    private final CodeExecutionHelper helper;
+    private final SandboxOutputFormatter outputFormatter;
     private final SandboxOutcomeClassifier outcomeClassifier;
 
-    SandboxResultTranslator(CodeExecutionHelper helper,
+    SandboxResultTranslator(SandboxOutputFormatter outputFormatter,
                             SandboxOutcomeClassifier outcomeClassifier) {
-        this.helper = helper;
+        this.outputFormatter = outputFormatter;
         this.outcomeClassifier = outcomeClassifier;
     }
 
     /**
-     * Translate the port-owned {@link TestCase} into the DTO the pre-existing
-     * {@link CodeExecutionHelper} still speaks. Lives here (not in the port)
-     * so {@code sandbox} stays decoupled from the {@code submission.dto}
-     * package in the public type signatures; only this translator — which is
-     * the seam — touches the DTO type.
+     * Translate the port-owned {@link TestCase} into the DTO the D-form
+     * envelope codec speaks. Lives here (not in the port) so {@code sandbox}
+     * stays decoupled from the {@code submission.dto} package in the public
+     * type signatures; only this translator &mdash; which is the seam &mdash;
+     * touches the DTO type.
      *
      * @param tc the port test case
      * @return the DTO test case, never {@code null}
@@ -98,7 +98,7 @@ class SandboxResultTranslator {
         SubmissionStatus status = SubmissionStatusCodec.fromWire(dto.getStatus());
         long elapsedMs = dto.getRuntimeMs() != null
                 ? dto.getRuntimeMs()
-                : helper.parseRuntimeMs(dto.getRuntime());
+                : outputFormatter.parseRuntimeMs(dto.getRuntime());
         long memoryBytes = dto.getMemoryMb() != null
                 ? (long) (dto.getMemoryMb() * 1024L * 1024L)
                 : 0L;

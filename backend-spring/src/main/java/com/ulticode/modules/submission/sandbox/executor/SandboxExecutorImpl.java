@@ -14,7 +14,8 @@ import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier;
 import com.ulticode.modules.submission.sandbox.SandboxOutcomeClassifier.SandboxInfraFailure;
 import com.ulticode.modules.submission.sandbox.TestCase;
 import com.ulticode.modules.submission.sandbox.UnsupportedLanguageException;
-import com.ulticode.modules.submission.service.CodeExecutionHelper;
+import com.ulticode.modules.submission.service.DFormEnvelopeCodec;
+import com.ulticode.modules.submission.service.SandboxOutputFormatter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -111,21 +112,24 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     // ── State ────────────────────────────────────────────────────────────────
     private final Map<String, LanguageProfile> profiles;
     private final DockerSandboxConfig config;
-    private final CodeExecutionHelper helper;
+    private final DFormEnvelopeCodec dFormEnvelopeCodec;
+    private final SandboxOutputFormatter sandboxOutputFormatter;
     private final SandboxOutcomeClassifier outcomeClassifier;
     private final ProcessLifecycleRunner processLifecycleRunner;
     private final SandboxResultTranslator resultTranslator;
 
     public SandboxExecutorImpl(List<LanguageProfile> all,
                                DockerSandboxConfig config,
-                               CodeExecutionHelper helper,
+                               DFormEnvelopeCodec dFormEnvelopeCodec,
+                               SandboxOutputFormatter sandboxOutputFormatter,
                                SandboxOutcomeClassifier outcomeClassifier,
                                ProcessLifecycleRunner processLifecycleRunner) {
         this.config = config;
-        this.helper = helper;
+        this.dFormEnvelopeCodec = dFormEnvelopeCodec;
+        this.sandboxOutputFormatter = sandboxOutputFormatter;
         this.outcomeClassifier = outcomeClassifier;
         this.processLifecycleRunner = processLifecycleRunner;
-        this.resultTranslator = new SandboxResultTranslator(helper, outcomeClassifier);
+        this.resultTranslator = new SandboxResultTranslator(sandboxOutputFormatter, outcomeClassifier);
         // Fail-fast: two profiles claiming the same language id is a
         // wiring bug, not a runtime fallback. Per ADR-002 §2.2.
         this.profiles = all.stream().collect(Collectors.toUnmodifiableMap(
@@ -186,7 +190,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                 }
                 long perCase = (System.nanoTime() - start) / 1_000_000
                         / Math.max(cases.size(), 1);
-                String detail = helper.sanitizeSandboxOutput(outcome.stdout());
+                String detail = sandboxOutputFormatter.sanitizeSandboxOutput(outcome.stdout());
                 SubmissionStatus status = outcomeClassifier.genericRuntimeError();
                 return new BatchRunResult(cases.stream()
                         .map(c -> rejected(status,
@@ -199,7 +203,7 @@ public class SandboxExecutorImpl implements SandboxExecutor {
             List<RunSubmissionDTO.RunTestCase> runCases = cases.stream()
                     .map(resultTranslator::toRunTestCase)
                     .toList();
-            List<RunResultDTO.RunCaseResult> parsedDto = helper.parseDEnvelope(
+            List<RunResultDTO.RunCaseResult> parsedDto = dFormEnvelopeCodec.parseDEnvelope(
                     outcome.stdout(), runCases, job.runId(), job.userId());
             // F3: zip with the original port-owned cases so each
             // toPortResult call can preserve the original input
@@ -240,11 +244,11 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     return rejectedInfra(outcome, failure, elapsedMs);
                 }
                 return rejected(outcomeClassifier.genericRuntimeError(),
-                        helper.sanitizeSandboxOutput(outcome.stdout()),
+                        sandboxOutputFormatter.sanitizeSandboxOutput(outcome.stdout()),
                         elapsedMs, 0L);
             }
             long memoryLimitBytes = effectiveMemoryLimitBytes(job);
-            List<RunCaseResult> parsed = helper.parseDEnvelope(
+            List<RunCaseResult> parsed = dFormEnvelopeCodec.parseDEnvelope(
                     outcome.stdout(), List.of(resultTranslator.toRunTestCase(tc)),
                     job.runId(), job.userId())
                     .stream()
@@ -274,8 +278,8 @@ public class SandboxExecutorImpl implements SandboxExecutor {
                     .map(resultTranslator::toRunTestCase)
                     .toList();
             String inputJson = runCases.size() == 1
-                    ? helper.buildDInputsJson(runCases.get(0), perCaseMs, effectiveMemoryLimitBytes(job))
-                    : helper.buildDBatchInputsJson(runCases, perCaseMs, effectiveMemoryLimitBytes(job));
+                    ? dFormEnvelopeCodec.buildDInputsJson(runCases.get(0), perCaseMs, effectiveMemoryLimitBytes(job))
+                    : dFormEnvelopeCodec.buildDBatchInputsJson(runCases, perCaseMs, effectiveMemoryLimitBytes(job));
 
             jobDir = Files.createTempDirectory("ulticode-sandbox-" + job.runId() + "-");
             Path workspace = profile.materializeWorkspace(jobDir, job.code());
@@ -468,14 +472,14 @@ public class SandboxExecutorImpl implements SandboxExecutor {
     /**
      * Build a stable, user-facing detail string for each infra-failure
      * category. The previous code reused
-     * {@code helper.sanitizeSandboxOutput(outcome.stdout())} which
+     * {@code sandboxOutputFormatter.sanitizeSandboxOutput(outcome.stdout())} which
      * stripped docker / OCI lines — leaving the user with a generic
      * "Runtime error". Each branch now spells out which infra signal
      * fired and (for fork / OOM / OCI / launch) keeps a sanitized
      * fragment so the user can debug.
      */
     private String buildInfraDetail(SandboxInfraFailure failure, DFormRunOutcome outcome) {
-        String sanitized = helper.sanitizeSandboxOutput(outcome.stdout());
+        String sanitized = sandboxOutputFormatter.sanitizeSandboxOutput(outcome.stdout());
         switch (failure) {
             case OUT_OF_MEMORY:
                 return "sandbox process killed (exit 137; likely cgroup OOM or hard timeout)";

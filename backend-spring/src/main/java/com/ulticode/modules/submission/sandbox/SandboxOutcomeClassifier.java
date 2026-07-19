@@ -14,7 +14,7 @@ import java.util.Locale;
  * <p>This is the single source of truth for exit-code / output-based
  * failure detection (ADR-002 §2.5). It deliberately sees the
  * <b>raw</b> stdout / stderr (including docker / OCI runtime lines
- * that {@link com.ulticode.modules.submission.service.CodeExecutionHelper#sanitizeSandboxOutput(String)}
+ * that {@link com.ulticode.modules.submission.service.SandboxOutputFormatter#sanitizeSandboxOutput(String)}
  * strips for display). Keeping the failure oracle independent of the
  * display formatter fixes a long-standing regression where real Docker
  * / OCI infra failures were scrubbed and flattened to a generic

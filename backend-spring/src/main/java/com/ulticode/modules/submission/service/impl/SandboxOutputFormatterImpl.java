@@ -25,6 +25,28 @@ public class SandboxOutputFormatterImpl implements SandboxOutputFormatter {
     private final UuidGenerator uuidGenerator;
 
     @Override
+    public long parseRuntimeMs(String runtime) {
+        if (runtime == null) {
+            return 0L;
+        }
+        String trimmed = runtime.trim();
+        if (trimmed.endsWith("ms")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 2).trim();
+        } else if (trimmed.endsWith("s")) {
+            try {
+                return (long) (Double.parseDouble(trimmed.substring(0, trimmed.length() - 1).trim()) * 1000.0);
+            } catch (NumberFormatException e) {
+                return 0L;
+            }
+        }
+        try {
+            return (long) Double.parseDouble(trimmed);
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    @Override
     public String sanitizeSandboxOutput(String output) {
         if (output == null) {
             return "Runtime error";

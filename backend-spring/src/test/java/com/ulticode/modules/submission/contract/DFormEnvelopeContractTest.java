@@ -7,7 +7,7 @@ import com.ulticode.modules.submission.codec.SubmissionStatusCodec;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
-import com.ulticode.modules.submission.service.impl.CodeExecutionHelperImpl;
+import com.ulticode.modules.submission.service.DFormEnvelopeCodec;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,9 +54,9 @@ class DFormEnvelopeContractTest {
     private static JsonNode inputSchema;
     private static JsonNode envelopeSchema;
 
-    private final CodeExecutionHelperImpl helper = (CodeExecutionHelperImpl) buildHelper();
+    private final DFormEnvelopeCodec helper = buildCodec();
 
-    private com.ulticode.modules.submission.service.CodeExecutionHelper buildHelper() {
+    private DFormEnvelopeCodec buildCodec() {
         UuidGenerator fixedUuid = new UuidGenerator() {
             @Override
             public String newId() {
@@ -65,9 +65,7 @@ class DFormEnvelopeContractTest {
         };
         com.ulticode.modules.submission.service.SandboxOutputFormatter formatter =
             new com.ulticode.modules.submission.service.impl.SandboxOutputFormatterImpl(fixedUuid);
-        com.ulticode.modules.submission.service.DFormEnvelopeCodec codec =
-            new com.ulticode.modules.submission.service.impl.DFormEnvelopeCodecImpl(MAPPER, formatter);
-        return new CodeExecutionHelperImpl(codec, formatter);
+        return new com.ulticode.modules.submission.service.impl.DFormEnvelopeCodecImpl(MAPPER, formatter);
     }
 
     @BeforeAll

@@ -49,7 +49,7 @@ class CodeExecutionServiceTest {
     private SandboxExecutor sandboxExecutor;
 
     @Mock
-    private CodeExecutionHelper helper;
+    private com.ulticode.modules.submission.service.SandboxOutputFormatter sandboxOutputFormatter;
 
     @Mock
     private DockerSandboxConfig sandboxConfig;
@@ -81,7 +81,7 @@ class CodeExecutionServiceTest {
         // needed (an explicit one trips UnnecessaryStubbing for the cases
         // that pass problemId=null).
         codeExecutionService = new CodeExecutionService(
-                sandboxExecutor, helper, verdictResolver, problemFacts,
+                sandboxExecutor, sandboxOutputFormatter, verdictResolver, problemFacts,
                 new com.ulticode.common.uuid.FixedUuidGenerator(),
                 new com.ulticode.modules.submission.port.DefaultJudgingLanguageSupport(),
                 sandboxConfig);
@@ -126,12 +126,12 @@ class CodeExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("empty test cases delegates to helper.emptyResult and never touches the sandbox")
+        @DisplayName("empty test cases delegates to sandboxOutputFormatter.emptyResult and never touches the sandbox")
         void execute_emptyTestCases_returnsEmptyResult() {
             RunSubmissionDTO request = createRequest("python", "print('hello')", List.of());
             RunResultDTO emptyResult = RunResultDTO.builder()
                     .verdict("Accepted").passedCases(0).totalCases(0).cases(List.of()).build();
-            when(helper.emptyResult(1L, "user-1")).thenReturn(emptyResult);
+            when(sandboxOutputFormatter.emptyResult(1L, "user-1")).thenReturn(emptyResult);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -142,7 +142,7 @@ class CodeExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("null test cases delegates to helper.emptyResult")
+        @DisplayName("null test cases delegates to sandboxOutputFormatter.emptyResult")
         void execute_nullTestCases_returnsEmptyResult() {
             RunSubmissionDTO request = new RunSubmissionDTO();
             request.setLanguage("python");
@@ -150,7 +150,7 @@ class CodeExecutionServiceTest {
             request.setTestCases(null);
             RunResultDTO emptyResult = RunResultDTO.builder()
                     .verdict("Accepted").passedCases(0).totalCases(0).cases(List.of()).build();
-            when(helper.emptyResult(1L, "user-1")).thenReturn(emptyResult);
+            when(sandboxOutputFormatter.emptyResult(1L, "user-1")).thenReturn(emptyResult);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -166,7 +166,7 @@ class CodeExecutionServiceTest {
             // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
             // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
             // longer on the hot path — lenient so the stub stays tolerant.
-            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
+            lenient().when(sandboxOutputFormatter.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -188,7 +188,7 @@ class CodeExecutionServiceTest {
             // ADR-002 §8: execute() now aggregates via dto.runtimeMs (set by
             // toDtoCaseResult from port.elapsedMs), so parseRuntimeMs is no
             // longer on the hot path — lenient so the stub stays tolerant.
-            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(10L);
+            lenient().when(sandboxOutputFormatter.parseRuntimeMs(anyString())).thenReturn(10L);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
@@ -232,7 +232,7 @@ class CodeExecutionServiceTest {
             when(sandboxExecutor.run(any(SandboxJob.class), any(TestCase.class))).thenReturn(portResult);
             // ADR-002 §8: aggregation now uses dto.runtimeMs (set from
             // port.elapsedMs=2), so parseRuntimeMs is off the hot path.
-            lenient().when(helper.parseRuntimeMs(anyString())).thenReturn(2L);
+            lenient().when(sandboxOutputFormatter.parseRuntimeMs(anyString())).thenReturn(2L);
 
             RunResultDTO result = codeExecutionService.execute(request, 7L, "user-1");
 

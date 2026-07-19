@@ -1,7 +1,5 @@
 package com.ulticode.modules.problemlist.projection;
 
-import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
@@ -11,37 +9,33 @@ import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListCategory;
 
 /**
- * Read-side projection for the problem-list domain — a deep module that owns
- * every entity-to-VO projection rule, list-query builder and read-side
- * aggregation for both the user-facing console and the management console.
+ * Read-side projection for the problem-list domain &mdash; owns every
+ * user-facing list read (overview, detail, per-problem list-status) and
+ * the entity-to-VO conversion helpers the in-module write state machine
+ * uses to shape its return values.
  *
- * <p>Three kinds of reads cross this seam:
- * <ul>
- *   <li><b>User-facing overview reads</b> — {@link #findAll},
- *       {@link #getUserProblemLists}, {@link #getListOverview},
- *       {@link #getUserListsForProblem}. Each returns a fully-shaped VO
- *       (batched problem / tag enrichment, solved / attempted / todo stats,
- *       viewer state, saved status) so callers never see query assembly.</li>
- *   <li><b>Admin intent-level reads</b> — {@link #findAdminLists} and
- *       {@link #getAdminListDetail}. These own the page query, the
- *       filter-wrapper assembly, the entity load, and the entity-to-VO
- *       projection internally; the management console asks for an admin
- *       list page or admin detail and receives a typed VO. Added in
- *       architecture-review 2026-07-19 candidate #3 to retire the
- *       cross-module conversion helper {@code toAdminDetailVO} that
- *       previously leaked through this interface.</li>
- *   <li><b>In-module write-side conversion helpers</b> — {@link #toSummaryVO},
- *       {@link #toSummaryVOWithSavedStatus}, {@link #toCategorySummaryVO}.
- *       Exposed because the write state machine in
- *       {@link com.ulticode.modules.problemlist.service.ProblemListService}
- *       legitimately needs to shape create / update / fork / category-CRUD
- *       return values without duplicating the projection rules.</li>
- * </ul>
+ * <p>Architecture-review 2026-07-19 candidate #3 noted the interface
+ * previously also hosted {@code toAdminDetailVO(ProblemList)}, a
+ * cross-module conversion helper that let the admin service reach into
+ * feature-side projection mechanics. That helper is gone; admin-facing
+ * reads now live on the admin-side
+ * {@link com.ulticode.modules.admin.projection.AdminProblemListProjection}
+ * (admin &rarr; feature direction, matching the existing
+ * {@code AdminContestProjection} / {@code AdminSubmissionProjection} /
+ * {@code AdminUserProjection} series). This interface no longer imports
+ * any type from the admin module.
  *
- * <p>All methods are pure reads; none mutate list state. Single-item reads
- * throw {@link com.ulticode.common.exception.ErrorCode#PROBLEM_LIST_NOT_FOUND}
- * / {@link com.ulticode.common.exception.ErrorCode#PROBLEM_LIST_PRIVATE} to
- * preserve the access contract observed by the controller.
+ * <p>The conversion helpers ({@link #toSummaryVO},
+ * {@link #toSummaryVOWithSavedStatus}, {@link #toCategorySummaryVO}) stay
+ * on this interface because the in-module
+ * {@link com.ulticode.modules.problemlist.service.ProblemListService}
+ * write state machine legitimately uses them to shape create / update /
+ * fork / category-CRUD return values &mdash; they are same-module
+ * collaborators, not cross-module leakage.
+ *
+ * <p>Single-item endpoints throw {@link com.ulticode.common.exception.ErrorCode#PROBLEM_LIST_NOT_FOUND}
+ * / {@link com.ulticode.common.exception.ErrorCode#PROBLEM_LIST_PRIVATE}
+ * to preserve the access contract observed by the controller.
  *
  * @author ulticode
  */
@@ -84,39 +78,6 @@ public interface ProblemListProjection {
      * @return user lists for problem
      */
     UserListsForProblemVO getUserListsForProblem(String userId, Long problemId);
-
-    /**
-     * Admin overview: paged, filtered list of problem-list summary VOs the
-     * management console renders. Owns the page normalization
-     * ({@link com.ulticode.common.response.PaginationRequest#of} with the
-     * admin default of 10), the {@code LambdaQueryWrapper} assembly for
-     * search / featured / public filters and the sort selector, the
-     * {@code selectPage} call, and the entity → summary projection. The
-     * admin service is left with only the audit context it owns around the
-     * call — no page-assembly mechanics cross the module boundary.
-     *
-     * <p>Architecture-review 2026-07-19 candidate #3: replaces the previous
-     * pattern where the admin service built the wrapper, ran the page query,
-     * then mapped each entity through {@link #toSummaryVO} — which forced
-     * the conversion helper to be the cross-module API.
-     *
-     * @param query admin query (search / filters / pagination / sort)
-     * @return paged summary VOs with the platform-standard pagination envelope
-     */
-    PageResult<ProblemListSummaryVO> findAdminLists(AdminProblemListQueryDTO query);
-
-    /**
-     * Admin detail: load and project a problem-list into the detail VO the
-     * management console renders. Owns the entity load (404 on missing),
-     * the batched problem / tag enrichment, the solved / attempted / todo
-     * stats aggregation, and the admin-specific shaping (no viewer state,
-     * no categories). Replaces the cross-module conversion helper
-     * {@code toAdminDetailVO} that previously leaked through this interface.
-     *
-     * @param id list ID
-     * @return admin-facing detail VO
-     */
-    ProblemListDetailVO getAdminListDetail(String id);
 
     /**
      * Project a {@link ProblemList} entity into a {@link ProblemListSummaryVO}

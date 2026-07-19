@@ -14,7 +14,7 @@ import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
-import com.ulticode.modules.problemlist.projection.ProblemListProjection;
+import com.ulticode.modules.admin.projection.AdminProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import org.junit.jupiter.api.AfterEach;
@@ -68,7 +68,7 @@ class AdminProblemListServiceImplTest {
 
     @Mock private ProblemListService problemListService;
     @Mock private ProblemListAdminService problemListAdminService;
-    @Mock private ProblemListProjection problemListProjection;
+    @Mock private AdminProblemListProjection adminProblemListProjection;
 
     private AdminProblemListServiceImpl service;
 
@@ -77,7 +77,7 @@ class AdminProblemListServiceImplTest {
         service = new AdminProblemListServiceImpl(
                 problemListService,
                 problemListAdminService,
-                problemListProjection);
+                adminProblemListProjection);
     }
 
     @AfterEach
@@ -144,7 +144,7 @@ class AdminProblemListServiceImplTest {
             ProblemListSummaryVO vo = createSummary();
             PageResult<ProblemListSummaryVO> projectionResult =
                     PageResult.of(List.of(vo), 1L, 1, 10);
-            when(problemListProjection.findAdminLists(query)).thenReturn(projectionResult);
+            when(adminProblemListProjection.findAdminLists(query)).thenReturn(projectionResult);
 
             var result = service.getProblemLists(query);
 
@@ -154,7 +154,7 @@ class AdminProblemListServiceImplTest {
             // projection's, unchanged.
             assertThat(result.getTotal()).isEqualTo(1L);
             assertThat(result.getItems()).containsExactly(vo);
-            verify(problemListProjection).findAdminLists(query);
+            verify(adminProblemListProjection).findAdminLists(query);
         }
 
         @Test
@@ -168,12 +168,12 @@ class AdminProblemListServiceImplTest {
 
             PageResult<ProblemListSummaryVO> empty =
                     PageResult.of(Collections.emptyList(), 0L, 1, 10);
-            when(problemListProjection.findAdminLists(query)).thenReturn(empty);
+            when(adminProblemListProjection.findAdminLists(query)).thenReturn(empty);
 
             var result = service.getProblemLists(query);
 
             assertThat(result.getItems()).isEmpty();
-            verify(problemListProjection).findAdminLists(query);
+            verify(adminProblemListProjection).findAdminLists(query);
         }
     }
 
@@ -187,7 +187,7 @@ class AdminProblemListServiceImplTest {
         @DisplayName("should delegate the detail read to ProblemListProjection.getAdminListDetail")
         void delegatesToProjectionGetAdminListDetail() {
             ProblemListDetailVO detail = new ProblemListDetailVO();
-            when(problemListProjection.getAdminListDetail(LIST_ID)).thenReturn(detail);
+            when(adminProblemListProjection.getAdminListDetail(LIST_ID)).thenReturn(detail);
 
             ProblemListDetailVO result = service.getProblemList(LIST_ID);
 
@@ -196,14 +196,14 @@ class AdminProblemListServiceImplTest {
             // The admin service no longer calls findEntityById or any
             // conversion helper.
             assertThat(result).isSameAs(detail);
-            verify(problemListProjection).getAdminListDetail(LIST_ID);
+            verify(adminProblemListProjection).getAdminListDetail(LIST_ID);
             verify(problemListAdminService, never()).findEntityById(any());
         }
 
         @Test
         @DisplayName("should surface PROBLEM_LIST_NOT_FOUND when the projection cannot find the list")
         void notFound() {
-            when(problemListProjection.getAdminListDetail(LIST_ID))
+            when(adminProblemListProjection.getAdminListDetail(LIST_ID))
                     .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.getProblemList(LIST_ID))
@@ -269,20 +269,6 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should delegate the mutation through ProblemListAdminService")
-        void noDirectMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListAdminService.adminUpdateProblemList(eq(LIST_ID), any(UpdateProblemListDTO.class)))
-                    .thenReturn(createSummary());
-
-            UpdateProblemListDTO dto = new UpdateProblemListDTO();
-            dto.setName("X");
-            service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID);
-
-        }
-
-        @Test
         @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when service findEntityById rejects")
         void notFoundBubbles() {
             when(problemListAdminService.findEntityById(LIST_ID))
@@ -319,16 +305,6 @@ class AdminProblemListServiceImplTest {
             Map<String, Object> oldValues = AuditContext.getOldValues();
             assertThat(oldValues).containsEntry("name", "Original Name");
             assertThat(oldValues).containsEntry("authorId", AUTHOR_ID);
-        }
-
-        @Test
-        @DisplayName("should delegate delete through ProblemListAdminService without direct mapper mutation")
-        void noDirectMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-
-            service.deleteProblemList(LIST_ID, ADMIN_USER_ID);
-
         }
 
         @Test
@@ -443,21 +419,6 @@ class AdminProblemListServiceImplTest {
             assertThat(newValues).containsEntry("name", "Admin Name");
             assertThat(newValues).containsEntry("description", "Admin Description");
         }
-
-        @Test
-        @DisplayName("should delegate the mutation through ProblemListAdminService")
-        void noDirectMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListAdminService.adminUpdateBasicInfo(eq(LIST_ID), any(UpdateBasicInfoDTO.class)))
-                    .thenReturn(createSummary());
-
-            UpdateBasicInfoDTO dto = new UpdateBasicInfoDTO();
-            dto.setName("X");
-            dto.setDescription("Y");
-            service.updateBasicInfo(LIST_ID, ADMIN_USER_ID, dto);
-
-        }
     }
 
     // ==================== updateVisibility (seam delegation + audit context) ====================
@@ -497,20 +458,6 @@ class AdminProblemListServiceImplTest {
             assertThat(newValues).containsEntry("isPublic", true);
             assertThat(newValues).containsEntry("isFeatured", true);
         }
-
-        @Test
-        @DisplayName("should delegate the mutation through ProblemListAdminService")
-        void noDirectMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListAdminService.adminUpdateVisibility(eq(LIST_ID), any(UpdateVisibilityDTO.class)))
-                    .thenReturn(createSummary());
-
-            UpdateVisibilityDTO dto = new UpdateVisibilityDTO();
-            dto.setIsPublic(true);
-            service.updateVisibility(LIST_ID, ADMIN_USER_ID, dto);
-
-        }
     }
 
     // ==================== updateBanner (seam delegation + audit context) ====================
@@ -548,20 +495,6 @@ class AdminProblemListServiceImplTest {
             assertThat(newValues).containsEntry("bannerTheme", "updated-theme");
             assertThat(newValues).containsEntry("bannerOrder", 2);
         }
-
-        @Test
-        @DisplayName("should delegate the mutation through ProblemListAdminService")
-        void noDirectMapperMutation() {
-            ProblemList existing = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
-            when(problemListAdminService.adminUpdateBanner(eq(LIST_ID), any(UpdateBannerDTO.class)))
-                    .thenReturn(createSummary());
-
-            UpdateBannerDTO dto = new UpdateBannerDTO();
-            dto.setBannerTag("X");
-            service.updateBanner(LIST_ID, ADMIN_USER_ID, dto);
-
-        }
     }
 
     // ==================== Architectural invariant test ====================
@@ -569,19 +502,22 @@ class AdminProblemListServiceImplTest {
     @Test
     @DisplayName("AdminProblemListServiceImpl must not hold a ProblemListProblemMapper dependency")
     void architecturalInvariant_noProblemMapperDependency() throws NoSuchMethodException {
-        // The seam extraction removes ProblemListProblemMapper from the admin
-        // service constructor entirely. This test pins that contract: the admin
-        // side depends only on the page mapper, the user-facing
-        // ProblemListService (for createList), the ProblemListAdminService
-        // bypass seam, and the projection — never the problem-relation mapper.
+        // The seam extraction removes ProblemListProblemMapper AND
+        // ProblemListMapper from the admin service constructor entirely.
+        // This test pins that contract: the admin side depends only on
+        // ProblemListService (createList), ProblemListAdminService (mutation
+        // bypass seam with audit snapshots), and AdminProblemListProjection
+        // (read-side intent reads) — never the problem-relation mapper nor
+        // the raw ProblemListMapper.
         java.lang.reflect.Constructor<?> ctor = AdminProblemListServiceImpl.class.getDeclaredConstructors()[0];
         Class<?>[] paramTypes = ctor.getParameterTypes();
         assertThat(paramTypes).containsOnly(
                 ProblemListService.class,
                 ProblemListAdminService.class,
-                ProblemListProjection.class);
+                AdminProblemListProjection.class);
         assertThat(paramTypes).doesNotContain(
-                com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper.class);
+                com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper.class,
+                com.ulticode.modules.problemlist.mapper.ProblemListMapper.class);
     }
 
     @Test

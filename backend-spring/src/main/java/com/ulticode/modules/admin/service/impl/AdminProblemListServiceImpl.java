@@ -17,7 +17,7 @@ import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
-import com.ulticode.modules.problemlist.projection.ProblemListProjection;
+import com.ulticode.modules.admin.projection.AdminProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import lombok.RequiredArgsConstructor;
@@ -38,15 +38,18 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     private final ProblemListService problemListService;
     private final ProblemListAdminService problemListAdminService;
-    private final ProblemListProjection problemListProjection;
+    private final AdminProblemListProjection adminProblemListProjection;
 
     @Override
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
         // Page-walked read + filter-wrapper + entity→VO projection live in
-        // ProblemListProjection.findAdminLists — architecture-review
+        // AdminProblemListProjection.findAdminLists — architecture-review
         // 2026-07-19 candidate #3: the admin service owns only audit context
-        // around the call now, not the page-assembly mechanics.
-        return problemListProjection.findAdminLists(query);
+        // around the call now, not the page-assembly mechanics. Dependency
+        // direction is admin → feature (projection injects feature mappers),
+        // matching the AdminContestProjection / AdminSubmissionProjection /
+        // AdminUserProjection series.
+        return adminProblemListProjection.findAdminLists(query);
     }
 
     @Override
@@ -54,7 +57,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         // Intent-level admin detail read: the projection owns entity load
         // (404 on missing) + admin-detail shaping. Replaces the previous
         // load-then-convert-helper split.
-        return problemListProjection.getAdminListDetail(id);
+        return adminProblemListProjection.getAdminListDetail(id);
     }
 
     @Override

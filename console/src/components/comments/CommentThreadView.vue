@@ -94,6 +94,11 @@ const fetchComments = async () => {
     });
   } catch (err) {
     console.error("Error loading comments:", err);
+    // Failure must not leave previously-rendered comments visible; reset so
+    // the view falls through to its empty/silence branch instead of stale
+    // state. (The component fetches once on mount today, so this is
+    // defensive — it makes the failure path unambiguous and future-proof.)
+    commentTree.value = [];
   } finally {
     loading.value = false;
   }

@@ -18,6 +18,7 @@ import com.ulticode.modules.moderation.entity.Report;
 import com.ulticode.modules.moderation.entity.UserBan;
 import com.ulticode.modules.moderation.entity.UserWarning;
 import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
+import com.ulticode.modules.moderation.entity.enums.ModerationStatus;
 import com.ulticode.modules.moderation.mapper.AppealMapper;
 import com.ulticode.modules.moderation.mapper.ModerationActionMapper;
 import com.ulticode.modules.moderation.mapper.ModerationQueueMapper;
@@ -42,16 +43,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The moderation state machine — every queue mutation, the report intake, the appeal lifecycle,
- * and the action-sink side effects the {@link ModerationActionHandler} strategies invoke.
+ * and the action-sink side effects the owned {@code applyAction} switch dispatches.
  *
  * <p>This module owns the full write invariant directly: the
  * {@code PENDING → UNDER_REVIEW → RESOLVED / DISMISSED / APPEAL_PENDING} queue transitions, the
  * appeal decision flow, the action-record-on-every-mutation rule, and the warning / ban /
- * content-flag side effects dispatched by the strategy handlers. The state machine previously sat
+ * content-flag side effects dispatched by {@code applyAction}. The state machine previously sat
  * behind a one-adapter {@code ModerationWritePort} seam that the service forwarded to verbatim;
  * that seam fronted the service's own logic (eight pure-delegate write paths) and carried no second
  * provider, so it was removed and the logic absorbed here. The guards join the transitions they
- * protect instead of being split across a facade and an adapter.
+ * protect instead of being split across a facade and an adapter. The per-action variation likewise
+ * moved out of a sealed {@code ModerationActionHandler} strategy + {@code ActionContext} proxy and
+ * into the {@code applyAction} switch (C06 deepening), so the resolve/flag/warn/ban behavior and
+ * the side-effect sinks sit in one module.
  *
  * <p>Reads live on {@link ModerationProjection}; controllers and cross-module callers depend on
  * {@link ModerationService} for writes and for the authorisation-guarded appeal lookup
@@ -60,9 +64,9 @@ import org.springframework.transaction.annotation.Transactional;
  * per-item loop shares the batch transaction and captures failures rather than rolling back).
  *
  * <p>The action-sink methods ({@link #createUserWarning}, {@link #createUserBan},
- * {@link #updateContentFlagStatus}) are package-private: only {@link ModerationActionHandler}
- * reaches them, through {@link ModerationActionHandler.ActionContext}, so they stay off the public
- * service contract while remaining callable from the strategy handlers in this package.
+ * {@link #updateContentFlagStatus}) are package-private: only {@code applyAction} reaches them
+ * directly, so they stay off the public service contract while remaining callable from inside
+ * this module.
  *
  * @author ulticode
  */
@@ -160,10 +164,13 @@ public class ModerationServiceImpl implements ModerationService {
         item.setResolution(actionType.name());
         item.setResolutionNote(dto.getNote());
 
-        ModerationActionHandler handler = ModerationActionHandler.from(actionType);
-        ModerationActionHandler.ActionContext context =
-                new ModerationActionHandler.ActionContext(this, id, moderationAction.getId());
-        handler.perform(context, item, moderatorId, dto.getNote(), dto.getDurationDays(), now);
+        // Apply the action's queue transition + side effect in one owned switch
+        // (C06 deepening). The sealed ModerationActionHandler strategy + the
+        // ActionContext proxy that called back into this service are gone: every
+        // action's resolve/flag/warn/ban behavior lives here, the package-private
+        // sink methods are reached directly, and the variation stays internal.
+        applyAction(actionType, item, moderatorId, dto.getNote(), dto.getDurationDays(),
+                now, id, moderationAction.getId());
 
         queueMapper.updateById(item);
 
@@ -358,7 +365,70 @@ public class ModerationServiceImpl implements ModerationService {
         return moderationProjection.toAppealVO(appeal);
     }
 
-    // ==================== Action-sink callbacks (ModerationActionHandler strategies) ====================
+    // ==================== Action application (owned state machine) ====================
+
+    /**
+     * Apply one moderation action's queue transition and side effect in a
+     * single owned switch. Replaces the former sealed
+     * {@code ModerationActionHandler} strategy + {@code ActionContext} proxy:
+     * every action's resolve/flag/warn/ban behavior is concentrated here, the
+     * package-private sink methods are reached directly (no callback through a
+     * record wrapper), and the meaningful per-action variation stays internal.
+     *
+     * <p>Behavior matches the deleted handlers exactly: the same status set,
+     * resolved-at stamp, content-flag polarity, and warn/ban sink calls.
+     *
+     * @param action        the moderation action to apply
+     * @param item          the queue item being resolved (mutated in place)
+     * @param moderatorId   the acting moderator id (ban sink uses it as banned-by)
+     * @param note          the moderator note (flag reason / warn / ban reason)
+     * @param durationDays  temp-ban duration (ignored for non-ban actions)
+     * @param now           the transition timestamp
+     * @param queueId       the queue id (sink foreign key)
+     * @param actionId      the moderation-action record id (sink foreign key)
+     */
+    private void applyAction(ModerationActionType action, ModerationQueue item,
+                             String moderatorId, String note, Integer durationDays,
+                             LocalDateTime now, String queueId, String actionId) {
+        switch (action) {
+            case DELETED, HIDDEN -> {
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, note);
+                resolve(item, now);
+            }
+            case RESTORED, DISMISSED, RESOLVED -> {
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
+                resolve(item, now);
+            }
+            case WARNED -> {
+                createUserWarning(item.getAuthorId(), queueId, note, item.getPrimaryCategory(), actionId);
+                resolve(item, now);
+            }
+            case TEMP_BANNED -> {
+                createUserBan(item.getAuthorId(), queueId, note, item.getPrimaryCategory(),
+                        moderatorId, actionId, durationDays, false);
+                resolve(item, now);
+            }
+            case PERM_BANNED -> {
+                createUserBan(item.getAuthorId(), queueId, note, item.getPrimaryCategory(),
+                        moderatorId, actionId, null, true);
+                resolve(item, now);
+            }
+            case APPEAL_PENDING -> item.setStatus(ModerationStatus.APPEAL_PENDING.name());
+            case APPEAL_APPROVED -> {
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
+                resolve(item, now);
+            }
+            case APPEAL_REJECTED -> resolve(item, now);
+        }
+    }
+
+    /** Mark the queue item RESOLVED and stamp its resolved-at timestamp. */
+    private void resolve(ModerationQueue item, LocalDateTime now) {
+        item.setStatus(ModerationStatus.RESOLVED.name());
+        item.setResolvedAt(now);
+    }
+
+    // ==================== Action-sink callbacks (package-private; reached by applyAction) ====================
 
     void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
         UserWarning warning = new UserWarning();

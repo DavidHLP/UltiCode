@@ -229,7 +229,7 @@ const FEATURE_MAPPING = {
  */
 function toWire<W extends object, D extends object>(
   dto: Partial<D>,
-  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>
+  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>,
 ): Partial<W> {
   const source = dto as Record<string, unknown>
   const out: Record<string, unknown> = {}
@@ -245,7 +245,7 @@ function toWire<W extends object, D extends object>(
 /** Rename a full wire object's camelCase keys to snake_case dto keys. */
 function fromWire<W extends object, D extends object>(
   wire: W,
-  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>
+  mapping: Readonly<Record<Extract<keyof W, string>, Extract<keyof D, string>>>,
 ): D {
   const source = wire as Record<string, unknown>
   const out: Record<string, unknown> = {}

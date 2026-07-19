@@ -322,9 +322,7 @@ describe('useContestAuthoring', () => {
         score: 0,
       }
       mockedCreateContest.mockResolvedValue(stubContest)
-      mockedAddProblem
-        .mockResolvedValueOnce(stubProblem)
-        .mockRejectedValueOnce(new Error('boom'))
+      mockedAddProblem.mockResolvedValueOnce(stubProblem).mockRejectedValueOnce(new Error('boom'))
 
       await expect(submit()).rejects.toThrow('boom')
 

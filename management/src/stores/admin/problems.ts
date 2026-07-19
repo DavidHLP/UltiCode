@@ -49,17 +49,6 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Selection state — owned by the store so the workspace facade, the
-  // bulk-action dialog, and the row-checkbox column all read the same
-  // ids without prop-drilling or duplicate refs. Cleared on reset().
-  const selectedIds = ref<string[]>([])
-  function setSelectedIds(ids: string[]): void {
-    selectedIds.value = [...ids]
-  }
-  function clearSelectedIds(): void {
-    selectedIds.value = []
-  }
-
   const tabStates = ref<Map<string, TabState<unknown>>>(new Map())
 
   function getTabState<T>(tabKey: string): TabState<T> {
@@ -405,7 +394,6 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     total.value = 0
     loading.value = false
     error.value = null
-    selectedIds.value = []
 
     clearCurrentProblem()
   }
@@ -415,9 +403,6 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     total,
     loading,
     error,
-    selectedIds,
-    setSelectedIds,
-    clearSelectedIds,
     headerData,
     headerLoading,
     headerError,

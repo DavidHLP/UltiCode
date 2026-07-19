@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -14,7 +14,6 @@ import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
-import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
@@ -49,10 +48,9 @@ import static org.mockito.Mockito.when;
  *
  * <p>Verifies the architectural contract:
  * <ul>
- *   <li>Every mutation path delegates to the admin-bypass ports on
- *       {@link ProblemListAdminService} &mdash; not to {@link ProblemListMapper}
- *       {@code updateById} / {@code deleteById} or any
- *       {@code ProblemListProblemMapper} mutation.</li>
+ *   <li>Every mutation path delegates to {@link ProblemListAdminService};
+ *       the admin service holds no direct *Mapper dependency for
+ *       mutation.</li>
  *   <li>{@link AuditContext} receives both old and new value snapshots for
  *       every audited mutation so {@code AuditAspect} can persist them.</li>
  *   <li>Read paths (paginated list + single detail) keep using the mapper /
@@ -68,7 +66,6 @@ class AdminProblemListServiceImplTest {
     private static final String AUTHOR_ID = "user-author";
     private static final String ADMIN_USER_ID = "admin-001";
 
-    @Mock private ProblemListMapper problemListMapper;
     @Mock private ProblemListService problemListService;
     @Mock private ProblemListAdminService problemListAdminService;
     @Mock private ProblemListProjection problemListProjection;
@@ -78,7 +75,6 @@ class AdminProblemListServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new AdminProblemListServiceImpl(
-                problemListMapper,
                 problemListService,
                 problemListAdminService,
                 problemListProjection);
@@ -139,28 +135,30 @@ class AdminProblemListServiceImplTest {
     class GetProblemListsTests {
 
         @Test
-        @DisplayName("should build the page wrapper from query and project records through the projection")
-        void delegatesToMapperAndProjection() {
+        @DisplayName("should delegate the page read to ProblemListProjection.findAdminLists")
+        void delegatesToProjectionFindAdminLists() {
             AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
             query.setPage(1);
             query.setLimit(10);
 
-            ProblemList entity = createList();
-            Page<ProblemList> pageResult = new Page<>(1, 10);
-            pageResult.setRecords(List.of(entity));
-            pageResult.setTotal(1);
-            when(problemListMapper.selectPage(any(Page.class), any())).thenReturn(pageResult);
             ProblemListSummaryVO vo = createSummary();
-            when(problemListProjection.toSummaryVO(entity)).thenReturn(vo);
+            PageResult<ProblemListSummaryVO> projectionResult =
+                    PageResult.of(List.of(vo), 1L, 1, 10);
+            when(problemListProjection.findAdminLists(query)).thenReturn(projectionResult);
 
             var result = service.getProblemLists(query);
 
-            assertThat(result.getTotal()).isEqualTo(1);
+            // Thin pass-through after the candidate #3 rewire: the admin
+            // service owns audit context, the projection owns page assembly
+            // + entity→VO projection. The returned envelope is the
+            // projection's, unchanged.
+            assertThat(result.getTotal()).isEqualTo(1L);
             assertThat(result.getItems()).containsExactly(vo);
+            verify(problemListProjection).findAdminLists(query);
         }
 
         @Test
-        @DisplayName("should default sort to createdAt when sortBy is blank")
+        @DisplayName("should default sort to createdAt when sortBy is blank (regression: projection still receives the raw query)")
         void defaultsSortBy() {
             AdminProblemListQueryDTO query = new AdminProblemListQueryDTO();
             query.setPage(1);
@@ -168,15 +166,14 @@ class AdminProblemListServiceImplTest {
             query.setSortBy(null);
             query.setSortOrder(null);
 
-            Page<ProblemList> pageResult = new Page<>(1, 10);
-            pageResult.setRecords(Collections.emptyList());
-            pageResult.setTotal(0);
-            when(problemListMapper.selectPage(any(Page.class), any())).thenReturn(pageResult);
+            PageResult<ProblemListSummaryVO> empty =
+                    PageResult.of(Collections.emptyList(), 0L, 1, 10);
+            when(problemListProjection.findAdminLists(query)).thenReturn(empty);
 
             var result = service.getProblemLists(query);
 
             assertThat(result.getItems()).isEmpty();
-            verify(problemListMapper).selectPage(any(Page.class), any());
+            verify(problemListProjection).findAdminLists(query);
         }
     }
 
@@ -187,24 +184,26 @@ class AdminProblemListServiceImplTest {
     class GetProblemListTests {
 
         @Test
-        @DisplayName("should load entity via mapper and project through toAdminDetailVO")
-        void loadsAndProjects() {
-            ProblemList entity = createList();
-            when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(entity);
+        @DisplayName("should delegate the detail read to ProblemListProjection.getAdminListDetail")
+        void delegatesToProjectionGetAdminListDetail() {
             ProblemListDetailVO detail = new ProblemListDetailVO();
-            when(problemListProjection.toAdminDetailVO(entity)).thenReturn(detail);
+            when(problemListProjection.getAdminListDetail(LIST_ID)).thenReturn(detail);
 
             ProblemListDetailVO result = service.getProblemList(LIST_ID);
 
+            // Intent-level read after the candidate #3 rewire: the projection
+            // owns the entity load (404 on missing) + admin-detail shaping.
+            // The admin service no longer calls findEntityById or any
+            // conversion helper.
             assertThat(result).isSameAs(detail);
-            verify(problemListAdminService).findEntityById(LIST_ID);
-            verify(problemListProjection).toAdminDetailVO(entity);
+            verify(problemListProjection).getAdminListDetail(LIST_ID);
+            verify(problemListAdminService, never()).findEntityById(any());
         }
 
         @Test
-        @DisplayName("should throw PROBLEM_LIST_NOT_FOUND when mapper returns null")
+        @DisplayName("should surface PROBLEM_LIST_NOT_FOUND when the projection cannot find the list")
         void notFound() {
-            when(problemListAdminService.findEntityById(LIST_ID))
+            when(problemListProjection.getAdminListDetail(LIST_ID))
                     .thenThrow(new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
 
             assertThatThrownBy(() -> service.getProblemList(LIST_ID))
@@ -270,7 +269,7 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListMapper.updateById in mutation path")
+        @DisplayName("should delegate the mutation through ProblemListAdminService")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
@@ -281,7 +280,6 @@ class AdminProblemListServiceImplTest {
             dto.setName("X");
             service.updateProblemList(LIST_ID, dto, ADMIN_USER_ID);
 
-            verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
 
         @Test
@@ -324,14 +322,13 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListMapper.deleteById or problemListProblemMapper directly")
+        @DisplayName("should delegate delete through ProblemListAdminService without direct mapper mutation")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
 
             service.deleteProblemList(LIST_ID, ADMIN_USER_ID);
 
-            verify(problemListMapper, never()).deleteById(any(String.class));
         }
 
         @Test
@@ -395,7 +392,7 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListProblemMapper directly")
+        @DisplayName("should delegate replace-problems via ProblemListAdminService without direct mapper mutation")
         void noDirectProblemMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
@@ -448,7 +445,7 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListMapper.updateById in mutation path")
+        @DisplayName("should delegate the mutation through ProblemListAdminService")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
@@ -460,7 +457,6 @@ class AdminProblemListServiceImplTest {
             dto.setDescription("Y");
             service.updateBasicInfo(LIST_ID, ADMIN_USER_ID, dto);
 
-            verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
     }
 
@@ -503,7 +499,7 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListMapper.updateById in mutation path")
+        @DisplayName("should delegate the mutation through ProblemListAdminService")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
@@ -514,7 +510,6 @@ class AdminProblemListServiceImplTest {
             dto.setIsPublic(true);
             service.updateVisibility(LIST_ID, ADMIN_USER_ID, dto);
 
-            verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
     }
 
@@ -555,7 +550,7 @@ class AdminProblemListServiceImplTest {
         }
 
         @Test
-        @DisplayName("should never call problemListMapper.updateById in mutation path")
+        @DisplayName("should delegate the mutation through ProblemListAdminService")
         void noDirectMapperMutation() {
             ProblemList existing = createList();
             when(problemListAdminService.findEntityById(LIST_ID)).thenReturn(existing);
@@ -566,7 +561,6 @@ class AdminProblemListServiceImplTest {
             dto.setBannerTag("X");
             service.updateBanner(LIST_ID, ADMIN_USER_ID, dto);
 
-            verify(problemListMapper, never()).updateById(any(ProblemList.class));
         }
     }
 
@@ -583,7 +577,6 @@ class AdminProblemListServiceImplTest {
         java.lang.reflect.Constructor<?> ctor = AdminProblemListServiceImpl.class.getDeclaredConstructors()[0];
         Class<?>[] paramTypes = ctor.getParameterTypes();
         assertThat(paramTypes).containsOnly(
-                ProblemListMapper.class,
                 ProblemListService.class,
                 ProblemListAdminService.class,
                 ProblemListProjection.class);

@@ -1,7 +1,12 @@
 package com.ulticode.modules.problemlist.projection;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.PaginationRequest;
+import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.problemlist.dto.CategorySummaryVO;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
@@ -23,6 +28,7 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 /**
  * Default (and only) adapter for {@link ProblemListProjection}. Owns every
@@ -374,11 +381,83 @@ public class DefaultProblemListProjection implements ProblemListProjection {
     }
 
     // ------------------------------------------------------------------
-    // Admin detail projection
+    // Admin intent-level reads (architecture-review 2026-07-19 candidate #3)
     // ------------------------------------------------------------------
+    // The management console used to build its own LambdaQueryWrapper, run
+    // selectPage, then map each entity through the cross-module toSummaryVO
+    // conversion helper — the page-assembly mechanics leaked across the seam.
+    // These two reads own the page query, the wrapper, the entity load, and
+    // the projection internally; the admin service is left with only its
+    // audit context. Mirrors the DefaultAdminContestProjection /
+    // DefaultAdminSubmissionProjection / DefaultAdminUserProjection shape
+    // (PaginationRequest default page-size 10, selectPage, shape, PageResult).
 
     @Override
-    public ProblemListDetailVO toAdminDetailVO(ProblemList list) {
+    public PageResult<ProblemListSummaryVO> findAdminLists(AdminProblemListQueryDTO query) {
+        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
+        int page = pageRequest.page();
+        int limit = pageRequest.pageSize();
+
+        Page<ProblemList> result = problemListMapper.selectPage(
+                new Page<>(page, limit), buildAdminWrapper(query));
+
+        List<ProblemListSummaryVO> vos = result.getRecords().stream()
+                .map(this::toSummaryVO)
+                .collect(Collectors.toList());
+
+        return PageResult.of(vos, result.getTotal(), page, limit);
+    }
+
+    @Override
+    public ProblemListDetailVO getAdminListDetail(String id) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        return assembleAdminDetailVO(list);
+    }
+
+    /**
+     * Build the {@link LambdaQueryWrapper} that backs the paginated admin
+     * list read. Pure query-shape concern — search across name + description,
+     * featured / public filters, sort selector matching the previous
+     * admin-service assembly so observed behaviour is preserved.
+     */
+    private LambdaQueryWrapper<ProblemList> buildAdminWrapper(AdminProblemListQueryDTO query) {
+        LambdaQueryWrapper<ProblemList> wrapper = new LambdaQueryWrapper<>();
+
+        if (StringUtils.hasText(query.getSearch())) {
+            String search = "%" + query.getSearch() + "%";
+            wrapper.and(w -> w
+                    .like(ProblemList::getName, search)
+                    .or()
+                    .like(ProblemList::getDescription, search));
+        }
+
+        if (query.getIsFeatured() != null) {
+            wrapper.eq(ProblemList::getIsFeatured, query.getIsFeatured());
+        }
+
+        if (query.getIsPublic() != null) {
+            wrapper.eq(ProblemList::getIsPublic, query.getIsPublic());
+        }
+
+        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
+        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
+        switch (sortBy) {
+            case "name" -> wrapper.orderBy(true, isAsc, ProblemList::getName);
+            case "bannerOrder" -> wrapper.orderBy(true, isAsc, ProblemList::getBannerOrder);
+            default -> wrapper.orderBy(true, isAsc, ProblemList::getCreatedAt);
+        }
+
+        return wrapper;
+    }
+
+    /**
+     * Admin-detail projection (private). Same body the previous public
+     * {@code toAdminDetailVO} conversion helper had; one source of truth so
+     * any future tweak lands in a single place. The intent-level
+     * {@link #getAdminListDetail(String)} does the load and delegates here.
+     */
+    private ProblemListDetailVO assembleAdminDetailVO(ProblemList list) {
         ProblemListDetailVO vo = new ProblemListDetailVO();
         vo.setId(list.getId());
         vo.setName(list.getName());
@@ -423,6 +502,7 @@ public class DefaultProblemListProjection implements ProblemListProjection {
         vo.setCategories(Collections.emptyList());
         return vo;
     }
+
 
     private List<ProblemListDetailVO.ProblemInListVO> assembleProblemInList(
             List<ProblemListProblemRelation> relations) {

@@ -1,11 +1,8 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.response.PaginationRequest;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
@@ -20,7 +17,6 @@ import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
-import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.projection.ProblemListProjection;
 import com.ulticode.modules.problemlist.service.ProblemListAdminService;
 import com.ulticode.modules.problemlist.service.ProblemListService;
@@ -28,12 +24,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of AdminProblemListService.
@@ -43,56 +36,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminProblemListServiceImpl implements AdminProblemListService {
 
-    private final ProblemListMapper problemListMapper;
     private final ProblemListService problemListService;
     private final ProblemListAdminService problemListAdminService;
     private final ProblemListProjection problemListProjection;
 
     @Override
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
-        LambdaQueryWrapper<ProblemList> wrapper = new LambdaQueryWrapper<>();
-
-        if (StringUtils.hasText(query.getSearch())) {
-            String search = "%" + query.getSearch() + "%";
-            wrapper.and(w -> w
-                    .like(ProblemList::getName, search)
-                    .or()
-                    .like(ProblemList::getDescription, search));
-        }
-
-        if (query.getIsFeatured() != null) {
-            wrapper.eq(ProblemList::getIsFeatured, query.getIsFeatured());
-        }
-
-        if (query.getIsPublic() != null) {
-            wrapper.eq(ProblemList::getIsPublic, query.getIsPublic());
-        }
-
-        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        switch (sortBy) {
-            case "name" -> wrapper.orderBy(true, isAsc, ProblemList::getName);
-            case "bannerOrder" -> wrapper.orderBy(true, isAsc, ProblemList::getBannerOrder);
-            default -> wrapper.orderBy(true, isAsc, ProblemList::getCreatedAt);
-        }
-
-        PaginationRequest pageRequest = PaginationRequest.of(query.getPage(), query.getLimit(), 10);
-        int page = pageRequest.page();
-        int limit = pageRequest.pageSize();
-
-        Page<ProblemList> pageResult = new Page<>(page, limit);
-        Page<ProblemList> result = problemListMapper.selectPage(pageResult, wrapper);
-
-        List<ProblemListSummaryVO> voList = result.getRecords().stream()
-                .map(problemListProjection::toSummaryVO)
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), page, limit);
+        // Page-walked read + filter-wrapper + entity→VO projection live in
+        // ProblemListProjection.findAdminLists — architecture-review
+        // 2026-07-19 candidate #3: the admin service owns only audit context
+        // around the call now, not the page-assembly mechanics.
+        return problemListProjection.findAdminLists(query);
     }
 
     @Override
     public ProblemListDetailVO getProblemList(String id) {
-        return problemListProjection.toAdminDetailVO(problemListAdminService.findEntityById(id));
+        // Intent-level admin detail read: the projection owns entity load
+        // (404 on missing) + admin-detail shaping. Replaces the previous
+        // load-then-convert-helper split.
+        return problemListProjection.getAdminListDetail(id);
     }
 
     @Override

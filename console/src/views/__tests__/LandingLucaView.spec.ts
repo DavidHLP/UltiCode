@@ -79,6 +79,27 @@ describe("LandingLucaView", () => {
     expect(wrapper.find(".luca-portal-enter").attributes("tabindex")).toBe("0");
   });
 
+  it("dismisses the portal when the skip button is clicked", async () => {
+    vi.useFakeTimers();
+    try {
+      const wrapper = mountView();
+      expect(wrapper.find(".luca-portal").exists()).toBe(true);
+
+      await wrapper.find(".luca-portal-skip").trigger("click");
+      // The skip composable fast-forwards progress synchronously…
+      expect(wrapper.find(".luca-portal-counter").text()).toBe("024 / 024");
+      // …and the view should schedule an unmount through the same leave timer
+      // ENTER uses. Before the timer fires the leaving class is present.
+      expect(wrapper.find(".luca-portal.is-leaving").exists()).toBe(true);
+
+      vi.advanceTimersByTime(600);
+      await wrapper.vm.$nextTick();
+      expect(wrapper.find(".luca-portal").exists()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("marks the portal as leaving once ENTER is activated", async () => {
     const wrapper = mountView();
     await wrapper.find(".luca-portal-skip").trigger("click");

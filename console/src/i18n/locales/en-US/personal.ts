@@ -171,6 +171,7 @@ export default {
     viewCode: "View Code",
     notFound: "Submission not found",
     goBack: "Go back",
+    searchPlaceholder: "Search submissions...",
   },
 
   // Solutions

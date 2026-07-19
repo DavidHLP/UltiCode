@@ -164,6 +164,7 @@ export default {
     viewCode: "查看代码",
     notFound: "未找到该提交",
     goBack: "返回",
+    searchPlaceholder: "搜索提交记录...",
   },
 
   // Solutions

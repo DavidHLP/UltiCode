@@ -57,22 +57,33 @@ const goToSeedProblem = () =>
       : { name: "problem-detail", params: { slug: TWO_SUM_SLUG } },
   );
 
-const handleEnter = () => {
+const dismissPortal = () => {
   portal.enter();
-  // Let the exit animation play before unmounting; under reduced-motion the
-  // CSS animation is disabled, so remove the portal on the next frame.
+  // Match handleEnter: let the exit animation play before unmounting; under
+  // reduced-motion the CSS animation is disabled, so remove the portal on the
+  // next frame. Sharing the dismiss path keeps ENTER and SKIP visually and
+  // behaviourally aligned (both persist the "entered" flag, both release
+  // scroll lock, both schedule the unmount through the same timer).
   const delay = prefersReducedMotion() ? 0 : PORTAL_LEAVE_MS;
   dismissTimer = setTimeout(() => {
     showPortal.value = false;
   }, delay);
 };
 
+const handleEnter = dismissPortal;
+
 onBeforeUnmount(() => {
   if (dismissTimer) clearTimeout(dismissTimer);
 });
 
+// "跳过引序" should make the portal go away — the underlying composable's
+// `skip()` only fast-forwards the counter (its docstring: "reveal ENTER
+// immediately"), so the view is responsible for the dismiss timing. Without
+// this hook the button emitted the event but the portal stayed mounted, which
+// is the user-reported bug.
 const handleSkip = () => {
   portal.skip();
+  dismissPortal();
 };
 
 onMounted(() => {

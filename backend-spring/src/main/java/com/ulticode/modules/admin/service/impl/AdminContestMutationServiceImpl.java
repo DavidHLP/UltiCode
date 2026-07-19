@@ -12,6 +12,7 @@ import com.ulticode.modules.admin.port.AdminContestReadPort;
 import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
+import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -121,24 +122,15 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
                     "Contest slug '" + slug + "' already exists");
         }
 
-        // Bulk-insert contest problems if provided
-        List<Long> problemIds = dto.getProblemIds();
-        if (problemIds != null && !problemIds.isEmpty()) {
-            List<ContestProblem> contestProblems = new ArrayList<>();
-            for (int i = 0; i < problemIds.size(); i++) {
-                ContestProblem cp = new ContestProblem();
-                cp.setContestId(contest.getId());
-                cp.setProblemId(problemIds.get(i));
-                cp.setProblemIndex("Q" + (i + 1));
-                cp.setScore(0);
-                cp.setBaseScore(100);
-                cp.setSolvedCount(0);
-                cp.setSubmissionCount(0);
-                contestProblems.add(cp);
-            }
-            if (!contestProblems.isEmpty()) {
-                contestProblemMapper.batchInsert(contestProblems);
-            }
+        // Bulk-insert scored contest problems atomically with the contest row
+        // (C01 deepening). buildScoredContestProblems concentrates the score,
+        // index, and base-score rule shared by create and update; a failure
+        // here rolls back the whole @Transactional create so no partial
+        // contest persists.
+        List<ContestProblem> contestProblems = buildScoredContestProblems(
+                contest.getId(), dto.getProblems(), dto.getProblemIds());
+        if (!contestProblems.isEmpty()) {
+            contestProblemMapper.batchInsert(contestProblems);
         }
 
         AuditContext.setNewValues(Map.of("title", contest.getTitle(), "slug", contest.getSlug()));
@@ -183,22 +175,14 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         PartialUpdate.setIfPresent(dto, UpdateContestDTO::getMaxParticipants, contest::setMaxParticipants);
         PartialUpdate.setIfPresent(dto, UpdateContestDTO::getIsPublished, contest::setIsVisible);
 
-        // Replace contest problems if problemIds is provided
-        if (dto.getProblemIds() != null) {
+        // Replace contest problems when scored problems or legacy problemIds
+        // are provided. The delete + scored bulk-insert runs in this
+        // @Transactional update, so a mid-list failure rolls back the whole
+        // update (no half-replaced problem set).
+        if (dto.getProblems() != null || dto.getProblemIds() != null) {
             contestProblemMapper.deleteByContestId(id);
-            List<Long> problemIds = dto.getProblemIds();
-            List<ContestProblem> contestProblems = new ArrayList<>();
-            for (int i = 0; i < problemIds.size(); i++) {
-                ContestProblem cp = new ContestProblem();
-                cp.setContestId(id);
-                cp.setProblemId(problemIds.get(i));
-                cp.setProblemIndex("Q" + (i + 1));
-                cp.setScore(0);
-                cp.setBaseScore(100);
-                cp.setSolvedCount(0);
-                cp.setSubmissionCount(0);
-                contestProblems.add(cp);
-            }
+            List<ContestProblem> contestProblems = buildScoredContestProblems(
+                    id, dto.getProblems(), dto.getProblemIds());
             if (!contestProblems.isEmpty()) {
                 contestProblemMapper.batchInsert(contestProblems);
             }
@@ -376,35 +360,61 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
         log.info("Admin deleted announcement {} for contest {}", announcementId, contestId);
     }
 
-    @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
-    public ContestProblem addProblemToContest(String contestId, Long problemId, Integer score) {
-        Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+    // =========================================================================
+    // Shared contest-problem shaping
+    // =========================================================================
+
+    /**
+     * Build the scored {@link ContestProblem} list for a contest from the
+     * request's {@code problems} (preferred) or the legacy {@code problemIds}
+     * fallback. Concentrates the score-shaping, problem-index, and base-score
+     * rule so create and the update replacement share one transactional
+     * bulk-insert path.
+     *
+     * <p>Each problem receives the author's score (default {@code 100}) in
+     * both {@code score} &mdash; the field {@link ContestAdjudicationServiceImpl}
+     * reads for ranking &mdash; and {@code baseScore}, a letter problem-index
+     * ({@code "A"+i}, matching the live add-problem seam in
+     * {@link ContestServiceImpl}), and zeroed counters. The previous
+     * inline paths wrote {@code score=0} and a {@code "Q"+n} index, which was
+     * either dead (create bulk-insert was never reached by any caller) or
+     * inconsistent with the ranking reader.
+     *
+     * @param contestId  the contest the problems attach to
+     * @param problems   scored attachments; wins over {@code problemIds} when present
+     * @param problemIds legacy unscored ids; each attaches with the default score
+     * @return the shaped contest-problem list (empty when neither input is given)
+     */
+    private List<ContestProblem> buildScoredContestProblems(
+            String contestId, List<AddContestProblemDTO> problems, List<Long> problemIds) {
+        List<AddContestProblemDTO> source;
+        if (problems != null && !problems.isEmpty()) {
+            source = problems;
+        } else if (problemIds != null && !problemIds.isEmpty()) {
+            source = new ArrayList<>(problemIds.size());
+            for (Long pid : problemIds) {
+                AddContestProblemDTO item = new AddContestProblemDTO();
+                item.setProblemId(pid);
+                source.add(item);
+            }
+        } else {
+            return List.of();
         }
 
-        ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
-        if (existing != null) {
-            throw new BusinessException(ErrorCode.CONFLICT);
+        List<ContestProblem> list = new ArrayList<>(source.size());
+        for (int i = 0; i < source.size(); i++) {
+            AddContestProblemDTO item = source.get(i);
+            int score = item.getScore() != null ? item.getScore() : 100;
+            ContestProblem cp = new ContestProblem();
+            cp.setContestId(contestId);
+            cp.setProblemId(item.getProblemId());
+            cp.setProblemIndex(String.valueOf((char) ('A' + i)));
+            cp.setScore(score);
+            cp.setBaseScore(score);
+            cp.setSolvedCount(0);
+            cp.setSubmissionCount(0);
+            list.add(cp);
         }
-
-        long problemCount = contestReadPort.countProblemsByContestId(contestId);
-
-        ContestProblem cp = new ContestProblem();
-        cp.setContestId(contestId);
-        cp.setProblemId(problemId);
-        cp.setProblemIndex("Q" + (problemCount + 1));
-        cp.setScore(0);
-        cp.setBaseScore(score != null ? score : 100);
-        cp.setSolvedCount(0);
-        cp.setSubmissionCount(0);
-        contestProblemMapper.insert(cp);
-
-        AuditContext.setNewValues(Map.of("addedProblemId", problemId, "problemIndex", cp.getProblemIndex()));
-
-        log.info("Admin added problem {} to contest {}", problemId, contestId);
-        return cp;
+        return list;
     }
 }

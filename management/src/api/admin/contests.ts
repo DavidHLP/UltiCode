@@ -97,6 +97,12 @@ export interface CreateContestDto {
   isPremium?: boolean
   isPublished?: boolean
   problemIds?: number[]
+  /**
+   * Scored problem attachments persisted atomically with the contest.
+   * Preferred over `problemIds`; when present the backend bulk-inserts each
+   * problem with the author's score in the create transaction.
+   */
+  problems?: ContestProblemAttachment[]
   tags?: string[]
   scoringRuleId?: string
 }
@@ -111,11 +117,27 @@ export interface UpdateContestDto {
   isPremium?: boolean
   isPublished?: boolean
   problemIds?: number[]
+  /**
+   * Scored problem attachments that replace the contest's problem set
+   * atomically with the update. Preferred over `problemIds`.
+   */
+  problems?: ContestProblemAttachment[]
   tags?: string[]
   scoringRuleId?: string
 }
 
 export interface AddContestProblemDto {
+  problemId: number
+  score?: number
+}
+
+/**
+ * Scored problem attachment used by the atomic contest create/update
+ * payloads. One `{ problemId, score }` per drafted problem; the backend
+ * persists the contest row and every scored ContestProblem in a single
+ * transaction.
+ */
+export interface ContestProblemAttachment {
   problemId: number
   score?: number
 }

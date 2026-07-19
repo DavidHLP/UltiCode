@@ -8,6 +8,7 @@ import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.port.AdminContestReadPort;
 import com.ulticode.modules.admin.port.ContestAnnouncementPushPort;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
+import com.ulticode.modules.contest.dto.AddContestProblemDTO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
@@ -143,7 +144,7 @@ class AdminContestMutationServiceImplTest {
         }
 
         @Test
-        @DisplayName("bulk-inserts contest problems when problemIds is provided")
+        @DisplayName("bulk-inserts contest problems with letter index + default score when only problemIds is provided")
         void withProblemIds_bulkInserts() {
             CreateContestDTO dto = buildCreateDto("With Problems", LocalDateTime.of(2026, 7, 1, 10, 0),
                     120, false, List.of(101L, 102L, 103L));
@@ -156,11 +157,35 @@ class AdminContestMutationServiceImplTest {
             verify(contestProblemMapper).batchInsert(captor.capture());
             List<ContestProblem> inserted = captor.getValue();
             assertThat(inserted).hasSize(3);
-            assertThat(inserted.get(0).getProblemIndex()).isEqualTo("Q1");
             assertThat(inserted.get(0).getProblemId()).isEqualTo(101L);
+            assertThat(inserted.get(0).getProblemIndex()).isEqualTo("A");
+            assertThat(inserted.get(0).getScore()).isEqualTo(100);
             assertThat(inserted.get(0).getBaseScore()).isEqualTo(100);
-            assertThat(inserted.get(1).getProblemIndex()).isEqualTo("Q2");
-            assertThat(inserted.get(2).getProblemIndex()).isEqualTo("Q3");
+            assertThat(inserted.get(1).getProblemIndex()).isEqualTo("B");
+            assertThat(inserted.get(2).getProblemIndex()).isEqualTo("C");
+        }
+
+        @Test
+        @DisplayName("C01: bulk-inserts scored problems atomically with the contest row")
+        void withScoredProblems_bulkInsertsAtomically() {
+            CreateContestDTO dto = buildCreateDto("Scored", LocalDateTime.of(2026, 7, 1, 10, 0),
+                    120, false, null);
+            dto.setProblems(List.of(scoredProblem(201L, 250), scoredProblem(202L, null)));
+            when(adminContestProjection.generateSlug(anyString())).thenReturn("scored");
+            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
+
+            service.createContest(dto, ADMIN_USER_ID);
+
+            ArgumentCaptor<List<ContestProblem>> captor = ArgumentCaptor.forClass(List.class);
+            verify(contestProblemMapper).batchInsert(captor.capture());
+            List<ContestProblem> inserted = captor.getValue();
+            assertThat(inserted).hasSize(2);
+            assertThat(inserted.get(0).getProblemId()).isEqualTo(201L);
+            assertThat(inserted.get(0).getScore()).isEqualTo(250);
+            assertThat(inserted.get(0).getBaseScore()).isEqualTo(250);
+            // null score defaults to 100 so ranking reads a real max score
+            assertThat(inserted.get(1).getScore()).isEqualTo(100);
+            assertThat(inserted.get(1).getProblemIndex()).isEqualTo("B");
         }
 
         @Test
@@ -564,71 +589,6 @@ class AdminContestMutationServiceImplTest {
     }
 
     // ----------------------------------------------------------------------
-    // addProblemToContest
-    // ----------------------------------------------------------------------
-
-    @Nested
-    @DisplayName("addProblemToContest — problem association")
-    class AddProblem {
-
-        @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest does not exist")
-        void missingContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(null);
-
-            assertThatThrownBy(() -> service.addProblemToContest(CONTEST_ID, 42L, 100))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("throws CONFLICT when the problem is already linked")
-        void duplicateProblem_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.UPCOMING));
-            when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, 42L))
-                    .thenReturn(new ContestProblem());
-
-            assertThatThrownBy(() -> service.addProblemToContest(CONTEST_ID, 42L, 100))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONFLICT);
-        }
-
-        @Test
-        @DisplayName("computes the next index from the problem count and inserts the link")
-        void happyPath_insertsWithComputedIndex() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.UPCOMING));
-            when(contestProblemMapper.findByContestIdAndProblemId(CONTEST_ID, 42L)).thenReturn(null);
-            when(contestReadPort.countProblemsByContestId(CONTEST_ID)).thenReturn(5L);
-
-            ContestProblem result = service.addProblemToContest(CONTEST_ID, 42L, 250);
-
-            ArgumentCaptor<ContestProblem> captor = ArgumentCaptor.forClass(ContestProblem.class);
-            verify(contestProblemMapper).insert(captor.capture());
-            ContestProblem saved = captor.getValue();
-            assertThat(saved.getContestId()).isEqualTo(CONTEST_ID);
-            assertThat(saved.getProblemId()).isEqualTo(42L);
-            assertThat(saved.getProblemIndex()).isEqualTo("Q6");
-            assertThat(saved.getBaseScore()).isEqualTo(250);
-            assertThat(result.getProblemIndex()).isEqualTo("Q6");
-        }
-
-        @Test
-        @DisplayName("null score defaults to base score 100")
-        void nullScore_defaultsTo100() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.UPCOMING));
-            when(contestProblemMapper.findByContestIdAndProblemId(eq(CONTEST_ID), anyLong())).thenReturn(null);
-            when(contestReadPort.countProblemsByContestId(CONTEST_ID)).thenReturn(0L);
-
-            service.addProblemToContest(CONTEST_ID, 42L, null);
-
-            ArgumentCaptor<ContestProblem> captor = ArgumentCaptor.forClass(ContestProblem.class);
-            verify(contestProblemMapper).insert(captor.capture());
-            assertThat(captor.getValue().getBaseScore()).isEqualTo(100);
-            assertThat(captor.getValue().getProblemIndex()).isEqualTo("Q1");
-        }
-    }
-
-    // ----------------------------------------------------------------------
     // Test fixture helpers
     // ----------------------------------------------------------------------
 
@@ -642,6 +602,13 @@ class AdminContestMutationServiceImplTest {
         dto.setIsPublished(isPublished);
         dto.setProblemIds(problemIds);
         return dto;
+    }
+
+    private static AddContestProblemDTO scoredProblem(Long problemId, Integer score) {
+        AddContestProblemDTO item = new AddContestProblemDTO();
+        item.setProblemId(problemId);
+        item.setScore(score);
+        return item;
     }
 
     private static Contest buildContest(ContestStatus status) {

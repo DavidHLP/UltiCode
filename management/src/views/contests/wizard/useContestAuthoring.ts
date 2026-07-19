@@ -4,7 +4,6 @@ import {
   ContestType,
   type Contest,
   type CreateContestDto,
-  type AddContestProblemDto,
 } from '@/api/admin/contests'
 
 /**
@@ -225,14 +224,13 @@ export function useContestAuthoring() {
 
   // ----- Persistence shaping ------------------------------------------------
   /**
-   * Build the `CreateContestDto` payload for the current draft. `slug` is
-   * forwarded to the backend so it can be persisted when provided. `problemIds`
-   * is intentionally omitted: per-problem scores flow through
-   * `buildProblemScorePatches` after the contest exists. Sending `problemIds`
-   * here would cause the backend to bulk-insert each problem with `score = 0`,
-   * and the subsequent scored
-   * `addProblem` calls would 400 with "Problem already exists in this
-   * contest".
+   * Build the atomic `CreateContestDto` payload for the current draft. The
+   * contest and every scored problem travel in one request so the backend's
+   * create transaction owns them together: a mid-list failure rolls back the
+   * whole contest instead of leaving a partial set of problems persisted.
+   * `problemIds` is intentionally omitted now that the scored `problems`
+   * list is the create-time seam (it would otherwise bulk-insert each
+   * problem with the default score and is not the wizard's intent).
    */
   function buildCreatePayload(): CreateContestDto {
     const startTime = toISO8601(draft.value.startTimeLocal)
@@ -250,40 +248,26 @@ export function useContestAuthoring() {
       duration: draft.value.duration,
       isPublished: draft.value.isPublished,
       scoringRuleId: scoringRuleId === '' ? undefined : scoringRuleId,
+      problems: draft.value.problems.map((p) => ({
+        problemId: Number(p.id),
+        score: p.score,
+      })),
     }
   }
 
   /**
-   * Build the per-problem scored `addProblem` payloads. Each entry pairs the
-   * numeric problem id with the author's chosen score so the wizard can issue
-   * one scored `POST /admin/contest/{id}/problems` per problem after the
-   * contest is created.
-   */
-  function buildProblemScorePatches(): AddContestProblemDto[] {
-    return draft.value.problems.map((p) => ({
-      problemId: Number(p.id),
-      score: p.score,
-    }))
-  }
-
-  /**
-   * Orchestrate the full submission: create the contest, then issue one
-   * scored `addProblem` call per drafted problem. The order is sequential so
-   * a partial failure surfaces the first error to the caller; problems added
-   * before the failure remain persisted (no in-place rollback). The draft
-   * is reset only by the caller after a successful submit.
+   * Orchestrate the full submission as one atomic create. The contest row and
+   * every scored ContestProblem persist in the backend's single create
+   * transaction, so a failure rolls back the whole contest and leaves no
+   * partial state. The draft is reset only by the caller after a successful
+   * submit.
    */
   async function submit(): Promise<Contest> {
     submitting.value = true
     submitError.value = null
     try {
       const payload = buildCreatePayload()
-      const contest = await contestsApi.createContest(payload)
-      const patches = buildProblemScorePatches()
-      for (const patch of patches) {
-        await contestsApi.addProblem(contest.id, patch)
-      }
-      return contest
+      return await contestsApi.createContest(payload)
     } catch (err: unknown) {
       submitError.value = err instanceof Error ? err.message : 'Submission failed'
       throw err
@@ -320,7 +304,6 @@ export function useContestAuthoring() {
     reset,
     // persistence shaping + orchestration
     buildCreatePayload,
-    buildProblemScorePatches,
     submit,
   }
 }

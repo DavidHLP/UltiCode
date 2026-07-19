@@ -6,7 +6,7 @@ import {
 } from './useContestAuthoring'
 import { contestsApi } from '@/api/admin/contests'
 import { ContestType } from '@/api/admin/contests'
-import type { Contest, ContestProblem } from '@/api/admin/contests'
+import type { Contest } from '@/api/admin/contests'
 
 vi.mock('@/api/admin/contests', async () => {
   const actual =
@@ -190,28 +190,34 @@ describe('useContestAuthoring', () => {
       expect(payload).not.toHaveProperty('problemIds')
     })
 
+    it('attaches drafted problems as a scored list so create is atomic', () => {
+      const { patchBasicInfo, patchSchedule, addProblem, setProblemScore, buildCreatePayload } =
+        useContestAuthoring()
+      seedValidDraft(
+        (p) => patchBasicInfo(p),
+        (p) => patchSchedule(p),
+      )
+      addProblem({ id: '10', title: 'A', slug: 'a', difficulty: 'EASY' })
+      addProblem({ id: '20', title: 'B', slug: 'b', difficulty: 'HARD' })
+      setProblemScore('20', 250)
+
+      const payload = buildCreatePayload()
+      expect(payload.problems).toEqual([
+        { problemId: 10, score: 100 },
+        { problemId: 20, score: 250 },
+      ])
+      // scored attachments are the create-time seam; legacy bulk problemIds stays absent
+      expect(payload).not.toHaveProperty('problemIds')
+    })
+
     it('throws on invalid start time', () => {
       const { buildCreatePayload } = useContestAuthoring()
       expect(() => buildCreatePayload()).toThrow(/Invalid start time/)
     })
   })
 
-  describe('buildProblemScorePatches', () => {
-    it('produces one {problemId, score} per drafted problem with numeric ids', () => {
-      const { addProblem, setProblemScore, buildProblemScorePatches } = useContestAuthoring()
-      addProblem({ id: '10', title: 'A', slug: 'a', difficulty: 'EASY' })
-      addProblem({ id: '20', title: 'B', slug: 'b', difficulty: 'HARD' })
-      setProblemScore('20', 250)
-
-      expect(buildProblemScorePatches()).toEqual([
-        { problemId: 10, score: 100 },
-        { problemId: 20, score: 250 },
-      ])
-    })
-  })
-
   describe('submit orchestration', () => {
-    it('creates the contest with slug and then issues one scored addProblem per problem', async () => {
+    it('creates the contest once with the scored problems payload and no follow-up calls', async () => {
       const { patchBasicInfo, patchSchedule, addProblem, setProblemScore, submit } =
         useContestAuthoring()
       seedValidDraft(
@@ -237,32 +243,26 @@ describe('useContestAuthoring', () => {
         problemCount: 0,
       }
       mockedCreateContest.mockResolvedValue(created)
-      const addedProblem: ContestProblem = {
-        id: 'cp-1',
-        contestId: 'contest-xyz',
-        problemId: 10,
-        problemIndex: 'A',
-        score: 100,
-      }
-      mockedAddProblem.mockResolvedValue(addedProblem)
 
       const result = await submit()
 
       expect(result).toBe(created)
+      // ONE atomic create call carrying the scored problems; no per-problem follow-ups.
       expect(mockedCreateContest).toHaveBeenCalledTimes(1)
       const payload = mockedCreateContest.mock.calls[0]![0] as {
         slug?: string
         problemIds?: number[]
+        problems?: { problemId: number; score: number }[]
       }
       expect(payload.slug).toBe('weekly-contest-1')
-      expect(payload.problemIds).toBeUndefined()
-
-      expect(mockedAddProblem).toHaveBeenCalledTimes(2)
-      expect(mockedAddProblem.mock.calls[0]).toEqual(['contest-xyz', { problemId: 10, score: 100 }])
-      expect(mockedAddProblem.mock.calls[1]).toEqual(['contest-xyz', { problemId: 20, score: 250 }])
+      expect(payload.problems).toEqual([
+        { problemId: 10, score: 100 },
+        { problemId: 20, score: 250 },
+      ])
+      expect(mockedAddProblem).not.toHaveBeenCalled()
     })
 
-    it('succeeds with zero addProblem calls when no problems are drafted', async () => {
+    it('succeeds with a single create call when no problems are drafted', async () => {
       const { patchBasicInfo, patchSchedule, submit } = useContestAuthoring()
       seedValidDraft(
         (p) => patchBasicInfo(p),
@@ -290,7 +290,7 @@ describe('useContestAuthoring', () => {
       expect(mockedAddProblem).not.toHaveBeenCalled()
     })
 
-    it('surfaces the first addProblem failure and leaves earlier problems persisted (N-call window)', async () => {
+    it('C01: a failed create rejects and persists nothing — no partial-problem window', async () => {
       const { patchBasicInfo, patchSchedule, addProblem, submitting, submitError, submit } =
         useContestAuthoring()
       seedValidDraft(
@@ -300,34 +300,15 @@ describe('useContestAuthoring', () => {
       addProblem({ id: '1', title: 'A', slug: 'a', difficulty: 'EASY' })
       addProblem({ id: '2', title: 'B', slug: 'b', difficulty: 'HARD' })
 
-      const stubContest: Contest = {
-        id: 'c',
-        slug: 's',
-        title: 't',
-        contestType: ContestType.ICPC,
-        startTime: '2026-07-19T00:00:00Z',
-        duration: 120,
-        status: 'DRAFT' as Contest['status'],
-        isVisible: true,
-        isPremium: false,
-        isPublished: false,
-        participantCount: 0,
-        problemCount: 0,
-      }
-      const stubProblem: ContestProblem = {
-        id: 'cp-x',
-        contestId: 'c',
-        problemId: 1,
-        problemIndex: 'A',
-        score: 0,
-      }
-      mockedCreateContest.mockResolvedValue(stubContest)
-      mockedAddProblem.mockResolvedValueOnce(stubProblem).mockRejectedValueOnce(new Error('boom'))
+      // The single atomic create rejects; the backend rolls back the whole
+      // transaction, so the client must not issue any per-problem follow-up
+      // that previously left earlier problems persisted.
+      mockedCreateContest.mockRejectedValue(new Error('boom'))
 
       await expect(submit()).rejects.toThrow('boom')
 
-      // First problem still got its scored POST through before the failure.
-      expect(mockedAddProblem).toHaveBeenCalledTimes(2)
+      expect(mockedCreateContest).toHaveBeenCalledTimes(1)
+      expect(mockedAddProblem).not.toHaveBeenCalled()
       expect(submitting.value).toBe(false)
       expect(submitError.value).toBe('boom')
     })

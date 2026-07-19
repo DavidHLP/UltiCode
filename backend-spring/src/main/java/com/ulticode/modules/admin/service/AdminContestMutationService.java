@@ -4,7 +4,6 @@ import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.entity.ContestProblem;
 
 /**
  * Deep write module for the admin contest surface &mdash; the single owner
@@ -26,9 +25,10 @@ import com.ulticode.modules.contest.entity.ContestProblem;
  *   <li><b>Announcement CRUD</b> &mdash; create / update / delete contest
  *       announcements, with the WebSocket push delegated to
  *       {@link com.ulticode.modules.admin.port.ContestAnnouncementPushPort}.</li>
- *   <li><b>Problem association</b> &mdash; add a problem to a contest via the
- *       {@code ContestProblemMapper} write path, with the cross-module
- *       problem-count read narrowed to
+ *   <li><b>Scored problem attachment</b> &mdash; create and update accept a
+ *       scored {@code problems} list so the contest row and every
+ *       {@code ContestProblem} persist in one transaction; the cross-module
+ *       problem-count read used by the start guard stays narrowed to
  *       {@link com.ulticode.modules.admin.port.AdminContestReadPort}.</li>
  * </ul>
  *
@@ -168,22 +168,4 @@ public interface AdminContestMutationService {
      *         when the announcement does not exist under the contest
      */
     void deleteAnnouncement(String contestId, String announcementId);
-
-    /**
-     * Add a problem to a contest. Computes the next problem index from the
-     * current linked-problem count (read through
-     * {@link com.ulticode.modules.admin.port.AdminContestReadPort}) and
-     * rejects duplicates.
-     *
-     * @param contestId the contest id
-     * @param problemId the problem id
-     * @param score     the base score ({@code null} defaults to {@code 100})
-     * @return the created contest-problem link
-     * @throws com.ulticode.common.exception.BusinessException with
-     *         {@link com.ulticode.common.exception.ErrorCode#CONTEST_NOT_FOUND}
-     *         when the contest does not exist, or
-     *         {@link com.ulticode.common.exception.ErrorCode#CONFLICT}
-     *         when the problem is already linked to the contest
-     */
-    ContestProblem addProblemToContest(String contestId, Long problemId, Integer score);
 }

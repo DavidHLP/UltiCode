@@ -1,6 +1,7 @@
 package com.ulticode.modules.contest.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -48,6 +49,18 @@ public class CreateContestDTO {
 
     @Schema(description = "List of problem IDs to include in the contest", example = "[1, 2, 3]")
     private List<Long> problemIds;
+
+    /**
+     * Scored problem attachments. Each entry pairs a problem id with the
+     * author's chosen score. When present, the contest and every scored
+     * {@code ContestProblem} are persisted in the same transaction so a
+     * mid-list failure rolls back the whole contest (no partial persistence).
+     * Preferred over {@link #problemIds}, which is retained for backward
+     * compatibility and attaches each problem with the default score.
+     */
+    @Valid
+    @Schema(description = "Scored problem attachments (problemId + score). Atomic with contest creation.")
+    private List<AddContestProblemDTO> problems;
 
     @Schema(description = "List of tags for the contest", example = "[\"dp\", \"greedy\", \"array\"]")
     private List<String> tags;

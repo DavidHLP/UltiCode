@@ -378,10 +378,10 @@ function buildConsoleAuthAdapter() {
   };
 }
 
-// Install the shared navigation guard. We capture the returned policy so
-// tests (and the existing `pm2-logs`-style tooling) can introspect state
-// without reaching into router internals.
-const _ = installAuthNavigation({
+// Install the shared navigation guard as a side effect of importing the
+// router. The returned policy is intentionally not captured: nothing
+// introspects it, and a dead capture tripped the unused-var lint.
+installAuthNavigation({
   router,
   auth: buildConsoleAuthAdapter,
   policy: {

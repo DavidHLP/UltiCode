@@ -11,6 +11,8 @@ import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.UserListsForProblemVO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListCategory;
+import com.ulticode.modules.problemlist.dto.UserProblemListsVO;
+import com.ulticode.modules.problemlist.entity.ProblemListBookmark;
 import com.ulticode.modules.problemlist.mapper.ProblemListBookmarkMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListCategoryMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
@@ -320,5 +322,217 @@ class DefaultProblemListProjectionTest {
             list.setIsFeatured(false);
             return list;
         }
+    }
+
+    // ==================== findAll (Phase B: pre-existing coverage gap) ====================
+
+    @Nested
+    @DisplayName("findAll()")
+    class FindAllTests {
+
+        @Test
+        @DisplayName("happy path: featured + public lists, empty saved/categories for unauthenticated view")
+        void findAll_populatesFeaturedAndPublic() {
+            ProblemList featured = listEntity("list-f", "Featured");
+            featured.setIsFeatured(true);
+            ProblemList publicList = listEntity("list-p", "Public");
+            when(problemListMapper.findFeatured()).thenReturn(List.of(featured));
+            when(problemListMapper.findAllPublic()).thenReturn(List.of(publicList));
+            // toSummaryVO enrichment collaborators
+            when(problemListProblemMapper.countByListId(anyString())).thenReturn(0L);
+
+            UserProblemListsVO result = projection.findAll("en");
+
+            assertThat(result.getFeaturedLists()).hasSize(1);
+            assertThat(result.getFeaturedLists().get(0).getId()).isEqualTo("list-f");
+            assertThat(result.getOwnLists()).hasSize(1);
+            assertThat(result.getOwnLists().get(0).getId()).isEqualTo("list-p");
+            // Unauthenticated view contract: no saved lists, no categories.
+            assertThat(result.getSavedLists()).isEmpty();
+            assertThat(result.getCategories()).isEmpty();
+        }
+    }
+
+    // ==================== getUserProblemLists (Phase B) ====================
+
+    @Nested
+    @DisplayName("getUserProblemLists()")
+    class GetUserProblemListsTests {
+
+        @Test
+        @DisplayName("happy path: own + saved + featured + categories all populated")
+        void getUserProblemLists_populatesAllFourSections() {
+            ProblemList own = listEntity("list-own", "My List");
+            own.setAuthorId(OWNER_ID);
+            ProblemList featured = listEntity("list-feat", "Featured");
+            featured.setIsFeatured(true);
+            ProblemList saved = listEntity("list-saved", "Saved By Me");
+            saved.setIsPublic(true);
+
+            when(problemListMapper.findByAuthorId(OWNER_ID)).thenReturn(List.of(own));
+            when(problemListMapper.findFeatured()).thenReturn(List.of(featured));
+            ProblemListBookmark bookmark = new ProblemListBookmark();
+            bookmark.setListId("list-saved");
+            bookmark.setUserId(OWNER_ID);
+            when(problemListBookmarkMapper.findByUserId(OWNER_ID)).thenReturn(List.of(bookmark));
+            when(problemListMapper.findById("list-saved")).thenReturn(Optional.of(saved));
+            ProblemListCategory cat = new ProblemListCategory();
+            cat.setId("cat-1");
+            cat.setUserId(OWNER_ID);
+            cat.setName("Favorites");
+            when(problemListCategoryMapper.findByUserId(OWNER_ID)).thenReturn(List.of(cat));
+            // Conversion-helper enrichment collaborators
+            when(problemListProblemMapper.countByListId(anyString())).thenReturn(0L);
+            when(problemListBookmarkMapper.findByCategoryId("cat-1")).thenReturn(Collections.emptyList());
+            when(problemListBookmarkMapper.existsByUserIdAndListId(eq(OWNER_ID), anyString())).thenReturn(false);
+
+            UserProblemListsVO result = projection.getUserProblemLists(OWNER_ID);
+
+            assertThat(result.getOwnLists()).hasSize(1);
+            assertThat(result.getOwnLists().get(0).getId()).isEqualTo("list-own");
+            assertThat(result.getSavedLists()).hasSize(1);
+            assertThat(result.getSavedLists().get(0).getId()).isEqualTo("list-saved");
+            // Bookmark sets isSaved=true on the saved path explicitly.
+            assertThat(result.getSavedLists().get(0).getIsSaved()).isTrue();
+            assertThat(result.getFeaturedLists()).hasSize(1);
+            assertThat(result.getFeaturedLists().get(0).getId()).isEqualTo("list-feat");
+            assertThat(result.getCategories()).hasSize(1);
+            assertThat(result.getCategories().get(0).getId()).isEqualTo("cat-1");
+        }
+    }
+
+    // ==================== getListOverview (Phase B: access-control smoke tests) ====================
+
+    @Nested
+    @DisplayName("getListOverview()")
+    class GetListOverviewTests {
+
+        private static final String LIST_ID = "list-overview-1";
+
+        @Test
+        @DisplayName("not found: throws BusinessException(PROBLEM_LIST_NOT_FOUND) when findById is empty")
+        void getListOverview_throwsNotFoundWhenListMissing() {
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> projection.getListOverview(LIST_ID, OWNER_ID, "en"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+        }
+
+        @Test
+        @DisplayName("private + viewer not owner: throws BusinessException(PROBLEM_LIST_PRIVATE)")
+        void getListOverview_throwsPrivateWhenListNotPublicAndViewerNotOwner() {
+            ProblemList list = listEntity(LIST_ID, "Private List");
+            list.setIsPublic(false);
+            list.setAuthorId("someone-else");
+            when(problemListMapper.findById(LIST_ID)).thenReturn(Optional.of(list));
+
+            assertThatThrownBy(() -> projection.getListOverview(LIST_ID, OWNER_ID, "en"))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.PROBLEM_LIST_PRIVATE));
+        }
+    }
+
+    // ==================== Conversion helpers (Phase B) ====================
+
+    @Nested
+    @DisplayName("Conversion helpers — toSummaryVO / toSummaryVOWithSavedStatus / toCategorySummaryVO")
+    class ConversionHelperTests {
+
+        @Test
+        @DisplayName("toSummaryVO: enriches with problem count + author info")
+        void toSummaryVO_enrichesWithProblemCountAndAuthor() {
+            ProblemList list = listEntity("list-1", "Summary List");
+            list.setAuthorId(OWNER_ID);
+            when(problemListProblemMapper.countByListId("list-1")).thenReturn(7L);
+            User author = new User();
+            author.setName("Alice");
+            author.setUsername("alice");
+            when(userMapper.selectById(OWNER_ID)).thenReturn(author);
+
+            ProblemListSummaryVO vo = projection.toSummaryVO(list);
+
+            assertThat(vo.getId()).isEqualTo("list-1");
+            assertThat(vo.getName()).isEqualTo("Summary List");
+            assertThat(vo.getProblemCount()).isEqualTo(7);
+            assertThat(vo.getAuthorName()).isEqualTo("Alice");
+            assertThat(vo.getAuthorUsername()).isEqualTo("alice");
+            verify(problemListProblemMapper).countByListId("list-1");
+            verify(userMapper).selectById(OWNER_ID);
+        }
+
+        @Test
+        @DisplayName("toSummaryVOWithSavedStatus: sets isSaved=true when bookmark exists")
+        void toSummaryVOWithSavedStatus_marksSavedWhenBookmarkExists() {
+            ProblemList list = listEntity("list-1", "Saved List");
+            list.setAuthorId(OWNER_ID);
+            when(problemListProblemMapper.countByListId("list-1")).thenReturn(0L);
+            when(problemListBookmarkMapper.existsByUserIdAndListId(OWNER_ID, "list-1"))
+                    .thenReturn(true);
+
+            ProblemListSummaryVO vo = projection.toSummaryVOWithSavedStatus(list, OWNER_ID);
+
+            assertThat(vo.getIsSaved()).isTrue();
+            verify(problemListBookmarkMapper).existsByUserIdAndListId(OWNER_ID, "list-1");
+        }
+
+        @Test
+        @DisplayName("toSummaryVOWithSavedStatus: sets isSaved=false when userId is null (unauthenticated)")
+        void toSummaryVOWithSavedStatus_unauthenticatedSetsFalse() {
+            ProblemList list = listEntity("list-1", "Anon List");
+            when(problemListProblemMapper.countByListId("list-1")).thenReturn(0L);
+
+            ProblemListSummaryVO vo = projection.toSummaryVOWithSavedStatus(list, null);
+
+            assertThat(vo.getIsSaved()).isFalse();
+            // No bookmark lookup when userId is null.
+            verify(problemListBookmarkMapper, never())
+                    .existsByUserIdAndListId(any(), any());
+        }
+
+        @Test
+        @DisplayName("toCategorySummaryVO: enriches with list count from bookmark mapper")
+        void toCategorySummaryVO_enrichesWithListCount() {
+            ProblemListCategory cat = new ProblemListCategory();
+            cat.setId("cat-1");
+            cat.setUserId(OWNER_ID);
+            cat.setName("Favorites");
+            cat.setIcon("star");
+            cat.setColor("blue");
+            cat.setSortOrder(1);
+            // Two bookmarks attached to this category → listCount = 2.
+            ProblemListBookmark b1 = new ProblemListBookmark();
+            b1.setCategoryId("cat-1");
+            ProblemListBookmark b2 = new ProblemListBookmark();
+            b2.setCategoryId("cat-1");
+            when(problemListBookmarkMapper.findByCategoryId("cat-1"))
+                    .thenReturn(Arrays.asList(b1, b2));
+
+            CategorySummaryVO vo = projection.toCategorySummaryVO(cat);
+
+            assertThat(vo.getId()).isEqualTo("cat-1");
+            assertThat(vo.getName()).isEqualTo("Favorites");
+            assertThat(vo.getIcon()).isEqualTo("star");
+            assertThat(vo.getColor()).isEqualTo("blue");
+            assertThat(vo.getSortOrder()).isEqualTo(1);
+            assertThat(vo.getListCount()).isEqualTo(2);
+            verify(problemListBookmarkMapper).findByCategoryId("cat-1");
+        }
+    }
+
+    // ==================== Shared helper ====================
+
+    private ProblemList listEntity(String id, String name) {
+        ProblemList list = new ProblemList();
+        list.setId(id);
+        list.setName(name);
+        list.setAuthorId(OWNER_ID);
+        list.setIsPublic(true);
+        list.setIsFeatured(false);
+        list.setCreatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
+        list.setUpdatedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
+        return list;
     }
 }

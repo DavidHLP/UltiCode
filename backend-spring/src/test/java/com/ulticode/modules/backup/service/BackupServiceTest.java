@@ -10,6 +10,7 @@ import com.ulticode.modules.backup.entity.enums.BackupType;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
+import com.ulticode.modules.backup.service.BackupExecutionService;
 import com.ulticode.modules.backup.service.impl.BackupServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,9 @@ class BackupServiceTest {
 
     @Mock
     private BackupProcessPort backupProcessPort;
+
+    @Mock
+    private BackupExecutionService backupExecutionService;
 
     @Mock
     private BackupReadProjection backupReadProjection;
@@ -160,6 +164,51 @@ class BackupServiceTest {
             Backup savedBackup = captor.getValue();
             assertEquals(BackupType.INCREMENTAL, savedBackup.getType());
             assertTrue(savedBackup.getFilename().startsWith("backup_incremental_"));
+        }
+
+        /**
+         * Dispatch-separation wiring test: createBackup must route the
+         * async run through the injected BackupExecutionService bean, not
+         * via in-class self-invocation. The previous shape called
+         * {@code this.executeBackup(id)} directly, which bypassed the AOP
+         * proxy and silently defeated {@code @Async}. This assertion fails
+         * the day someone reintroduces the self-call.
+         */
+        @Test
+        @DisplayName("should dispatch execution via BackupExecutionService (proxy seam)")
+        void shouldDispatchViaBackupExecutionService() {
+            // Arrange
+            CreateBackupDTO dto = new CreateBackupDTO();
+            dto.setType(BackupType.FULL);
+            when(backupMapper.insert(any(Backup.class))).thenAnswer(invocation -> {
+                Backup backup = invocation.getArgument(0);
+                backup.setId(BACKUP_ID);
+                return 1;
+            });
+
+            // Act
+            backupService.createBackup(USER_ID, dto);
+
+            // Assert — dispatched through the injected bean, never in-class.
+            verify(backupExecutionService).executeBackup(BACKUP_ID);
+            // The orchestration service no longer owns the lifecycle: it
+            // must not update the status itself on the create path.
+            verify(backupMapper, never()).updateById(any(Backup.class));
+        }
+
+        /**
+         * Proxy-seam regression test: the write service must not declare
+         * {@code executeBackup} on its interface. Declaring it there would
+         * tempt callers back into a self-call. If this fails, the lifecycle
+         * method has leaked back into BackupService.
+         */
+        @Test
+        @DisplayName("BackupService interface must not expose executeBackup")
+        void backupServiceInterfaceMustNotExposeExecuteBackup() throws NoSuchMethodException {
+            // Act & Assert
+            assertThrows(NoSuchMethodException.class,
+                    () -> BackupService.class.getMethod("executeBackup", String.class),
+                    "executeBackup must live only on BackupExecutionService so the @Async proxy seam is preserved");
         }
     }
 

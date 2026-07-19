@@ -49,17 +49,15 @@ public interface BackupService {
     void deleteBackup(String id);
 
     /**
-     * Execute the backup process asynchronously
-     *
-     * @param backupId the backup ID to execute
-     */
-    void executeBackup(String backupId);
-
-    /**
      * Convert Backup entity to BackupVO. Thin delegate to
      * {@link com.ulticode.modules.backup.projection.BackupReadProjection#toVO(Backup)}
      * so write paths return the same view shape the controller's read path
      * serves without re-implementing the projection rules.
+     *
+     * <p>The async {@code executeBackup} lifecycle moved to
+     * {@link BackupExecutionService} so dispatch can cross the Spring AOP
+     * proxy &mdash; see that interface for why self-invocation defeated
+     * {@code @Async}.
      *
      * @param backup the backup entity
      * @return the backup VO

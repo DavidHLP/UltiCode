@@ -10,13 +10,12 @@ import com.ulticode.modules.backup.entity.enums.BackupStatus;
 import com.ulticode.modules.backup.mapper.BackupMapper;
 import com.ulticode.modules.backup.port.BackupProcessPort;
 import com.ulticode.modules.backup.projection.BackupReadProjection;
+import com.ulticode.modules.backup.service.BackupExecutionService;
 import com.ulticode.modules.backup.service.BackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,17 +29,22 @@ import java.util.Map;
 
 /**
  * Write-side service for the backup module: create, restore (delegates dump
- * / restore to {@link BackupProcessPort}), delete and the async execute path.
+ * / restore to {@link BackupProcessPort}), delete, file download, and the
+ * view-shape delegate. This is HTTP / scheduler orchestration only &mdash;
+ * the async execution lifecycle (status transitions, file-size recording,
+ * failure capture) lives behind {@link BackupExecutionService}.
  *
  * <p>Read paths (paginated list, detail by id) and the entity-to-VO shaping
- * live behind {@link BackupReadProjection}. The two cross-module touch points
- * &mdash; the {@code UserMapper.selectBatchIds(userIds)} reach-in for
- * {@code createdByName} enrichment and the inline
- * {@code toVO(Backup, Map<String, User>)} mapping &mdash; were lifted out as
- * part of the ADR-0011 read-side deepening so this file no longer imports
- * {@code User} or {@code UserMapper}. The public {@link #toVO(Backup)} stays
- * for backwards compatibility and now delegates to the projection so write
- * paths return the same view shape the controller's read path serves.
+ * live behind {@link BackupReadProjection}. The public {@link #toVO(Backup)}
+ * stays for backwards compatibility and now delegates to the projection so
+ * write paths return the same view shape the controller's read path serves.
+ *
+ * <p><strong>Async dispatch.</strong> {@link #createBackup} dispatches the
+ * run by calling {@link BackupExecutionService#executeBackup} on the injected
+ * bean, not by self-invoking a {@code @Async} method. The previous shape
+ * ({@code this.executeBackup(id)} in-class) silently bypassed the Spring AOP
+ * proxy and ran the dump on the request thread &mdash; see
+ * {@link BackupExecutionService} for the deep-module rationale.
  */
 @Slf4j
 @Service
@@ -52,15 +56,18 @@ public class BackupServiceImpl implements BackupService {
     private final UuidGenerator uuidGenerator;
     private final BackupProcessPort backupProcessPort;
     private final BackupReadProjection backupReadProjection;
+    private final BackupExecutionService backupExecutionService;
 
     @Value("${backup.dir:${BACKUP_DIR:/tmp/backups}}")
     private String backupDir;
-
     private static final DateTimeFormatter FILE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
     @Override
     public BackupVO createBackup(String userId, CreateBackupDTO dto) {
-        // Create backup directory if not exists
+        // Pre-create the backup directory so a misconfigured path fails fast
+        // at the request boundary instead of degrading to PENDING -> FAILED.
+        // The execution service also tolerates a missing directory, but this
+        // earlier check gives the operator an immediate actionable error.
         ensureBackupDirectoryExists();
 
         // Generate filename
@@ -78,8 +85,11 @@ public class BackupServiceImpl implements BackupService {
         backupMapper.insert(backup);
         log.info("Created backup record: {} by user: {}", backup.getId(), userId);
 
-        // Execute backup asynchronously
-        executeBackup(backup.getId());
+        // Dispatch the async lifecycle via the injected bean so the call
+        // crosses the Spring AOP proxy. The previous self-invocation
+        // (this.executeBackup(id)) bypassed the proxy and ran synchronously
+        // on this thread — see BackupExecutionService.
+        backupExecutionService.executeBackup(backup.getId());
 
         return backupReadProjection.toVO(backup);
     }
@@ -159,65 +169,16 @@ public class BackupServiceImpl implements BackupService {
     }
 
     @Override
-    @Async
-    public void executeBackup(String backupId) {
-        Backup backup = backupMapper.selectById(backupId);
-        if (backup == null) {
-            log.error("Backup not found: {}", backupId);
-            return;
-        }
-
-        try {
-            // Update status to IN_PROGRESS
-            backup.setStatus(BackupStatus.IN_PROGRESS);
-            backupMapper.updateById(backup);
-
-            // Ensure backup directory exists
-            ensureBackupDirectoryExists();
-
-            Path filePath = Paths.get(backupDir, backup.getFilename());
-
-            // Delegate the mysqldump process I/O to the port — the
-            // service no longer spawns the subprocess directly.
-            boolean success = backupProcessPort.dump(filePath);
-
-            if (success && Files.exists(filePath)) {
-                long size = Files.size(filePath);
-                backup.setSize(size);
-                backup.setStatus(BackupStatus.COMPLETED);
-                backup.setCompletedAt(LocalDateTime.now(clock));
-
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("databaseName", "see-port-adapter");
-                metadata.put("backupType", backup.getType().name());
-                backup.setMetadata(metadata);
-
-                backupMapper.updateById(backup);
-                log.info("Backup completed successfully: {}, size: {} bytes", backupId, size);
-            } else {
-                backup.setStatus(BackupStatus.FAILED);
-                backup.setCompletedAt(LocalDateTime.now(clock));
-                backup.setError("mysqldump failed — see server logs");
-                backupMapper.updateById(backup);
-                log.error("Backup failed: {}", backupId);
-            }
-        } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.error("Backup execution failed for: {}", backupId, e);
-            backup.setStatus(BackupStatus.FAILED);
-            backup.setCompletedAt(LocalDateTime.now(clock));
-            backup.setError(e.getMessage());
-            backupMapper.updateById(backup);
-        }
-    }
-
-    @Override
     public BackupVO toVO(Backup backup) {
         return backupReadProjection.toVO(backup);
     }
 
+    /**
+     * Pre-create the backup directory at the request boundary so a
+     * misconfigured path fails fast with a 4xx instead of degrading the
+     * async run to PENDING &rarr; FAILED. The execution service also
+     * tolerates a missing directory; this is the fast-fail for operators.
+     */
     private void ensureBackupDirectoryExists() {
         Path path = Paths.get(backupDir);
         if (!Files.exists(path)) {

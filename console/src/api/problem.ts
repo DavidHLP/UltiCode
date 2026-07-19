@@ -1,38 +1,16 @@
 import type { Problem } from "@/types/problem";
 import { apiGet } from "@/utils/request";
+import { readField, readNumber } from "@/api/projection";
 
 // ============================================================================
 // Backend Response Interface (snake_case from Spring Boot)
 // ============================================================================
 
-interface BackendProblem {
-  id?: unknown;
-  acceptanceRate?: unknown;
-  acceptance_rate?: unknown;
-  completedTime?: unknown;
-  completed_time?: unknown;
-  isPremium?: unknown;
-  is_premium?: unknown;
-  hasSolution?: unknown;
-  has_solution?: unknown;
-  tagRelations?: unknown;
-  tags?: unknown;
-  [key: string]: unknown;
-}
-
 function mapProblem(problem: unknown): Problem {
   if (!problem || typeof problem !== "object") return problem as Problem;
-  const p = problem as BackendProblem;
-  const rawAcceptance = p.acceptanceRate ?? p.acceptance_rate;
-  const parsedAcceptance =
-    rawAcceptance === undefined || rawAcceptance === null
-      ? undefined
-      : Number(rawAcceptance);
-  const acceptanceRate =
-    parsedAcceptance === undefined || Number.isNaN(parsedAcceptance)
-      ? undefined
-      : parsedAcceptance;
-  const completedRaw = p.completedTime ?? p.completed_time;
+  const p = problem as Record<string, unknown>;
+  const acceptanceRate = readNumber(p, "acceptanceRate", "acceptance_rate");
+  const completedRaw = readField<unknown>(p, "completedTime", "completed_time");
   const completedTime =
     completedRaw === null || completedRaw === undefined
       ? undefined
@@ -54,8 +32,8 @@ function mapProblem(problem: unknown): Problem {
       acceptanceRate ??
       (typeof p.acceptance_rate === "number" ? p.acceptance_rate : undefined),
     acceptanceRate,
-    isPremium: (p.isPremium ?? p.is_premium) as boolean | undefined,
-    hasSolution: (p.hasSolution ?? p.has_solution) as boolean | undefined,
+    isPremium: readField<boolean>(p, "isPremium", "is_premium"),
+    hasSolution: readField<boolean>(p, "hasSolution", "has_solution"),
     completedTime,
     tags: Array.isArray(p.tags)
       ? p.tags

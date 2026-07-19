@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "1116f9fc4dfc37f99e5c04b7980d14d26f765f98",
+  "generated_with_head": "e39410e61d471d477046c0f3d6f4c453f7062071",
   "stats": {
     "pages": 41,
     "by_type": {
@@ -206,7 +206,7 @@
         "author": "DavidHLP",
         "subject": "fix(security): delete dead @CurrentUser/@RequireRole, fix I18nController principal spoofing"
       },
-      "body_sha256": "2b7ce9d7957d5cd5bf7e05802dfdee998105e6bfd7e73a73727d89ea8fed7a19"
+      "body_sha256": "523a351dd6991e1514d815203b2fdee5cb79103e3ac85235aa6d09f9371ff513"
     },
     {
       "path": "wiki/entities/interactions.md",
@@ -275,11 +275,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-07",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "506ca6c52d926e4894caa031cd1a3977696f765e",
+        "short": "506ca6c52",
+        "committed_at": "2026-07-16T12:28:45+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "fix(notification,contest): resolve CR findings + deepen lifecycle"
       },
       "body_sha256": "79328e08834f9562ec44798eb79cf656dfc1a96861dd8f063260dd3ffcd5c540"
     },

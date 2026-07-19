@@ -2,8 +2,8 @@ package com.ulticode.modules.forum.projection;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.testsupport.MyBatisPlusLambdaCacheSupport;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -14,8 +14,6 @@ import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
 import com.ulticode.modules.user.projection.UserReadProjection;
 import com.ulticode.modules.vote.service.VoteService;
-import org.apache.ibatis.builder.MapperBuilderAssistant;
-import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,23 +58,11 @@ class DefaultForumReadProjectionSortTest {
     /**
      * Bootstrap the MyBatis-Plus lambda cache so {@code
      * LambdaQueryWrapper.getSqlSegment()} can resolve column references.
-     * {@code TableInfoHelper.initTableInfo(BuilderAssistant, Class)} is the
-     * only public route that initialises a table for a non-Spring test.
+     * See {@link MyBatisPlusLambdaCacheSupport}.
      */
     @BeforeAll
     static void bootstrapLambdaCache() {
-        try {
-            Class<?> assistantClass = Class.forName(
-                    "com.baomidou.mybatisplus.core.MybatisMapperBuilderAssistant");
-            MapperBuilderAssistant assistant =
-                    (MapperBuilderAssistant) assistantClass
-                            .getDeclaredConstructor(Configuration.class, String.class)
-                            .newInstance(new Configuration(), "");
-            TableInfoHelper.initTableInfo(assistant, ForumPost.class);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(
-                    "Failed to register ForumPost with MyBatis-Plus TableInfoHelper", e);
-        }
+        MyBatisPlusLambdaCacheSupport.register(ForumPost.class);
     }
 
     private String sqlFor(String sortBy) {

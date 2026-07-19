@@ -1,27 +1,19 @@
 import { z } from 'zod'
-import { Difficulty, ProblemStatus } from '@/api/admin/problems'
+import {
+  DifficultyEnum,
+  ProblemStatusEnum,
+  SUMMARY_MAX_LENGTH,
+  exampleSchema,
+  type Example,
+} from './problem'
 
-// Zod schemas using API enum values
-export const DifficultyEnum = z.nativeEnum(Difficulty)
-export const ProblemStatusEnum = z.nativeEnum(ProblemStatus)
+// Shared authoring building blocks (exampleSchema, DifficultyEnum,
+// ProblemStatusEnum) live in ./problem so create and edit flows validate the
+// same Example shape and enum surface. Previously this file redefined all
+// three and the Example diverged (create examples carried an optional `id`,
+// edit examples did not), so the two flows disagreed on the same domain.
 
-export const exampleSchema = z.object({
-  input: z.string(),
-  output: z.string(),
-  explanation: z.string().optional(),
-  inputs: z
-    .array(
-      z.object({
-        name: z.string(),
-        value: z.unknown(),
-        label: z.string().optional(),
-        fieldName: z.string().optional(),
-      }),
-    )
-    .optional(),
-})
-
-export type Example = z.infer<typeof exampleSchema>
+export { exampleSchema, type Example }
 
 export const problemDescriptionSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title must be at most 255 characters'),
@@ -34,7 +26,10 @@ export const problemDescriptionSchema = z.object({
   status: ProblemStatusEnum,
   isPremium: z.boolean(),
   isPublished: z.boolean(),
-  summary: z.string().max(500, 'Summary must be at most 500 characters').optional(),
+  summary: z
+    .string()
+    .max(SUMMARY_MAX_LENGTH, `Summary must be at most ${SUMMARY_MAX_LENGTH} characters`)
+    .optional(),
   content: z.string().min(1, 'Content is required'),
   examples: z.array(exampleSchema).min(1, 'At least one example is required'),
   constraints: z.array(z.string()).min(1, 'At least one constraint is required'),

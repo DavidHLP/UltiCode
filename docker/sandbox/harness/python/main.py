@@ -20,14 +20,12 @@ CR fixes applied:
 
 from __future__ import annotations
 
-import io
 import json
 import os
 import sys
 import time
 import traceback
-from contextlib import redirect_stdout
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 HARNESS_VERSION = "1.0"
 LANGUAGE = "python"
@@ -72,125 +70,36 @@ def _harness_exit(code: int) -> None:
 import harness as H  # noqa: E402  (after the guard module-level constants are set)
 
 
-def _truncate(s: str) -> str:
-    if not s:
-        return ""
-    raw = s.encode("utf-8")
-    if len(raw) <= MAX_USER_STDOUT_BYTES:
-        return s
-    head = raw[:MAX_USER_STDOUT_BYTES].decode("utf-8", errors="ignore")
-    return head + f"\n... [truncated, original={len(raw)} bytes]"
+def _fallback_verdict(tc: Dict[str, Any], *, status: str, elapsed_ms: int,
+                      error: Dict[str, Any] | None = None, interrupted: bool = False,
+                      stdout: str = "", stderr: str = "") -> Dict[str, Any]:
+    """Canonical verdict for a process-level failure of the case subprocess.
 
-
-def _error_obj(exc: BaseException) -> Dict[str, Any]:
-    tb = traceback.extract_tb(exc.__traceback__)
-    stack: List[str] = []
-    for frame in tb:
-        # Hide harness frames; keep user solution frames.
-        if frame.filename.endswith("/main.py") or frame.filename.endswith("/harness.py"):
-            continue
-        stack.append(f"{frame.filename}:{frame.lineno} in {frame.name}")
-    return {
-        "type": f"{type(exc).__module__}.{type(exc).__name__}",
-        "message": str(exc),
-        "stack": stack,
+    The parent is retained only as a process adapter: it cannot run user
+    code, so it owns just this fallback shape. The live
+    ``_case_runner.run_one_case`` owns verdicts for cases that actually
+    executed (with real ``peak_memory_bytes`` / ``cpu_ms`` measurements).
+    This helper keeps the fallback shape aligned with the child's verdict
+    keys (including ``peak_memory_bytes``) so downstream consumers see one
+    verdict shape; an unmeasurable killed or panicked subprocess reports
+    zero peak memory.
+    """
+    verdict: Dict[str, Any] = {
+        "case_id": str(tc.get("id", tc.get("case_id", ""))),
+        "label": str(tc.get("label", "")),
+        "elapsed_ms": elapsed_ms,
+        "elapsed_us": elapsed_ms * 1000,
+        "cpu_ms": 0,
+        "status": status,
+        "interrupted": interrupted,
+        "result": None,
+        "peak_memory_bytes": 0,
+        "user_stdout": stdout[:H.MAX_USER_STDOUT_BYTES],
+        "user_stderr": stderr[:H.MAX_USER_STDOUT_BYTES],
     }
-
-
-def _run_case(solution_cls: Any, method_hint: str | None,
-              testcase: Dict[str, Any], per_case_timeout_ms: int) -> Dict[str, Any]:
-    case_id = str(testcase.get("case_id", ""))
-    label = str(testcase.get("label", case_id))
-    inputs = testcase.get("inputs", []) or []
-    expected_output = testcase.get("expected_output")
-
-    result: Dict[str, Any] = {"case_id": case_id, "label": label}
-    user_buf = io.StringIO()
-
-    # Instantiate + resolve method (could raise on bad Solution shape)
-    try:
-        instance = solution_cls()
-        method, _method_name, hints = H.resolve_method(instance, method_hint)
-    except Exception as e:  # noqa: BLE001
-        return {**result, "elapsed_ms": 0, "status": "Runtime Error",
-                "result": None, "error": _error_obj(e),
-                "user_stdout": "", "user_stderr": ""}
-
-    # Adapt args using input spec's 'type' field first, annotation as fallback.
-    args = []
-    try:
-        for i, spec in enumerate(inputs):
-            raw = H.parse_input_value(spec)
-            type_override = H.input_type_hint(spec)
-            ann_hint = hints[i] if i < len(hints) else None
-            args.append(H.adapt_arg(raw, ann_hint, type_override))
-    except Exception as e:  # noqa: BLE001
-        return {**result, "elapsed_ms": 0, "status": "Runtime Error",
-                "result": None, "error": _error_obj(e),
-                "user_stdout": "", "user_stderr": ""}
-
-    timeout_s = per_case_timeout_ms / 1000.0
-    start = time.monotonic()
-    method_result: Any = None
-    user_exc: BaseException | None = None
-    timed_out = False
-    try:
-        with redirect_stdout(user_buf):
-            method_result = method(*args)
-        elapsed = time.monotonic() - start
-        if elapsed > timeout_s:
-            timed_out = True
-            method_result = None
-    except SystemExit as se:
-        # CR fix: user code called sys.exit / exit / quit (now blocked, but
-        # SystemExit could still be raised explicitly). Treat as RE.
-        user_exc = RuntimeError(f"User code raised SystemExit({se.code})")
-    except BaseException as e:  # noqa: BLE001
-        user_exc = e
-
-    elapsed_ms = int((time.monotonic() - start) * 1000)
-    user_stdout = _truncate(user_buf.getvalue())
-
-    if timed_out:
-        return {**result, "elapsed_ms": elapsed_ms, "status": "Time Limit Exceeded",
-                "result": None, "interrupted": False,
-                "user_stdout": user_stdout, "user_stderr": ""}
-    if user_exc is not None:
-        return {**result, "elapsed_ms": elapsed_ms, "status": "Runtime Error",
-                "result": None, "error": _error_obj(user_exc),
-                "user_stdout": user_stdout, "user_stderr": ""}
-
-    # LeetCode convention: None return on a ListNode/TreeNode-typed method is
-    # an empty structure ('[]', not 'null'). Apply before jsonable.
-    method_result = H.normalize_return_value(method_result, method)
-
-    # CR fix #7/#8: jsonable() now raises on cycles, depth, node-count,
-    # non-finite floats. Convert to per-case RE rather than envelope panic.
-    try:
-        jsonable_result = H.jsonable(method_result)
-    except Exception as e:  # noqa: BLE001
-        return {**result, "elapsed_ms": elapsed_ms, "status": "Runtime Error",
-                "result": None, "error": _error_obj(e),
-                "user_stdout": user_stdout, "user_stderr": ""}
-
-    try:
-        actual_json = json.dumps(jsonable_result, separators=(",", ":"), allow_nan=False)
-    except (ValueError, TypeError) as e:
-        return {**result, "elapsed_ms": elapsed_ms, "status": "Runtime Error",
-                "result": None, "error": _error_obj(e),
-                "user_stdout": user_stdout, "user_stderr": ""}
-
-    if expected_output is None:
-        passed = False
-    else:
-        try:
-            passed = H.normalize_json_str(actual_json) == H.normalize_json_str(str(expected_output))
-        except Exception:  # noqa: BLE001
-            passed = False
-
-    return {**result, "elapsed_ms": elapsed_ms,
-            "status": "Accepted" if passed else "Wrong Answer",
-            "result": jsonable_result, "user_stdout": user_stdout, "user_stderr": ""}
+    if error is not None:
+        verdict["error"] = error
+    return verdict
 
 
 def run(solution_module: Any, input_path: str) -> int:
@@ -210,9 +119,9 @@ def run(solution_module: Any, input_path: str) -> int:
     solution_cls = getattr(solution_module, "Solution")
 
     # CR fix (Phase 5.5 #4): dispatch each case in a per-case subprocess.
-    # The inline _run_case loop was the root cause of "infinite loop in
-    # case 1 marks the entire batch as TLE". Now case 1's infinite loop
-    # is SIGKILLed by the parent's subprocess.run timeout and the
+    # The previous inline per-case loop was the root cause of "infinite
+    # loop in case 1 marks the entire batch as TLE". Now case 1's infinite
+    # loop is SIGKILLed by the parent's subprocess.run timeout and the
     # remaining cases proceed normally.
     #
     # We use the same Python interpreter that's running this harness,
@@ -279,55 +188,39 @@ def _run_case_in_subprocess(case_runner: str, solution_cls: Any,
         )
     except subprocess.TimeoutExpired as te:
         # The case runner was still running when the parent killed it.
-        return {
-            "case_id": str(tc.get("id", tc.get("case_id", ""))),
-            "label": str(tc.get("label", "")),
-            "elapsed_ms": int(hard_timeout_s * 1000),
-            "elapsed_us": int(hard_timeout_s * 1_000_000),
-            "cpu_ms": 0,
-            "status": "Time Limit Exceeded",
-            "interrupted": True,
-            "result": None,
-            "user_stdout": (te.stdout or b"").decode("utf-8", errors="ignore")[:H.MAX_USER_STDOUT_BYTES],
-            "user_stderr": (te.stderr or b"").decode("utf-8", errors="ignore")[:H.MAX_USER_STDOUT_BYTES],
-        }
+        return _fallback_verdict(
+            tc, status="Time Limit Exceeded",
+            elapsed_ms=int(hard_timeout_s * 1000), interrupted=True,
+            stdout=(te.stdout or b"").decode("utf-8", errors="ignore"),
+            stderr=(te.stderr or b"").decode("utf-8", errors="ignore"),
+        )
 
     stdout = proc.stdout.decode("utf-8", errors="ignore") if proc.stdout else ""
     stderr = proc.stderr.decode("utf-8", errors="ignore") if proc.stderr else ""
     if proc.returncode != 0:
         # The case runner panicked (e.g. import error, JSON dump failed).
         # Surface as a Runtime Error for this case only.
-        return {
-            "case_id": str(tc.get("id", tc.get("case_id", ""))),
-            "label": str(tc.get("label", "")),
-            "elapsed_ms": 0, "elapsed_us": 0, "cpu_ms": 0,
-            "status": "Runtime Error",
-            "result": None,
-            "error": {
+        return _fallback_verdict(
+            tc, status="Runtime Error", elapsed_ms=0,
+            error={
                 "type": "CaseRunnerPanic",
                 "message": f"case runner exited with code {proc.returncode}",
                 "stack": [line for line in stderr.splitlines() if line.strip()],
             },
-            "user_stdout": stdout[:H.MAX_USER_STDOUT_BYTES],
-            "user_stderr": stderr[:H.MAX_USER_STDOUT_BYTES],
-        }
+            stdout=stdout, stderr=stderr,
+        )
     try:
         verdict = json.loads(stdout)
     except Exception:  # noqa: BLE001
-        return {
-            "case_id": str(tc.get("id", tc.get("case_id", ""))),
-            "label": str(tc.get("label", "")),
-            "elapsed_ms": 0, "elapsed_us": 0, "cpu_ms": 0,
-            "status": "Runtime Error",
-            "result": None,
-            "error": {
+        return _fallback_verdict(
+            tc, status="Runtime Error", elapsed_ms=0,
+            error={
                 "type": "CaseRunnerPanic",
                 "message": "case runner emitted unparseable JSON",
                 "stack": [],
             },
-            "user_stdout": stdout[:H.MAX_USER_STDOUT_BYTES],
-            "user_stderr": stderr[:H.MAX_USER_STDOUT_BYTES],
-        }
+            stdout=stdout, stderr=stderr,
+        )
     return verdict
 
 

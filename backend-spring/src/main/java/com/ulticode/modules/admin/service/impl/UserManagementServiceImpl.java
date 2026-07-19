@@ -188,25 +188,69 @@ public class UserManagementServiceImpl implements UserManagementService {
 
     @Override
     @Transactional
+    @Audited(action = AuditVocabulary.BAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
+    public AdminUserVO banUser(String id, String reason, String until) {
+        executeBan(id, reason, until);
+        log.info("User banned: {} - reason: {}", id, reason);
+        return adminUserProjection.getUserById(id);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditVocabulary.UNBAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
+    public AdminUserVO unbanUser(String id) {
+        executeUnban(id);
+        log.info("User unbanned: {}", id);
+        return adminUserProjection.getUserById(id);
+    }
+
+    @Override
+    @Transactional
     @Audited(action = AuditVocabulary.DELETE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public void deleteUser(String id) {
-        User user = userMapper.selectById(id);
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        AuditContext.setOldValues(Map.of("username", user.getUsername()));
-        AuditContext.setNewValues(Map.of("deleted", true));
-
-        userMapper.deleteById(id);
-
+        executeDelete(id);
         log.info("User deleted: {}", id);
     }
 
     @Override
     @Transactional
-    @Audited(action = AuditVocabulary.BAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
-    public AdminUserVO banUser(String id, String reason, String until) {
+    @Audited(action = AuditVocabulary.RESET_PASSWORD, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
+    public void resetPassword(String id, String newPassword) {
+        executeResetPassword(id, newPassword);
+        log.info("Password reset for user: {}", id);
+    }
+
+    /**
+     * Core password-reset mutation. Mirrors executeBan / executeUnban /
+     * executeDelete so every single lifecycle mutation shares one shape:
+     * the {@code @Audited} public method delegates to a private core that
+     * owns the mutation and stages {@link AuditContext} old/new values.
+     */
+    private void executeResetPassword(String id, String newPassword) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(Map.of("passwordChanged", false));
+        AuditContext.setNewValues(Map.of("passwordChanged", true));
+
+        String hashedPassword = passwordEncoder.encode(newPassword);
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id)
+                .set(User::getPassword, hashedPassword);
+
+        userMapper.update(null, wrapper);
+    }
+
+    /**
+     * Core ban mutation shared by {@link #banUser} and {@link #bulkBan}.
+     * Populates {@link AuditContext} old/new values so the single path (via
+     * the {@code @Audited} aspect) and the bulk path (via {@link AuditRecorder})
+     * emit identical audit semantics — the bulk path cannot rely on the
+     * aspect because a self-invoked method bypasses the Spring proxy.
+     */
+    private void executeBan(String id, String reason, String until) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -237,15 +281,12 @@ public class UserManagementServiceImpl implements UserManagementService {
             "isBanned", true,
             "bannedReason", reason != null ? reason : ""
         ));
-
-        log.info("User banned: {} - reason: {}", id, reason);
-        return adminUserProjection.getUserById(id);
     }
 
-    @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.UNBAN_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
-    public AdminUserVO unbanUser(String id) {
+    /**
+     * Core unban mutation shared by {@link #unbanUser} and {@link #bulkUnban}.
+     */
+    private void executeUnban(String id) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
@@ -265,31 +306,41 @@ public class UserManagementServiceImpl implements UserManagementService {
         userMapper.update(null, wrapper);
 
         AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
-
-        log.info("User unbanned: {}", id);
-        return adminUserProjection.getUserById(id);
     }
 
-    @Override
-    @Transactional
-    @Audited(action = AuditVocabulary.RESET_PASSWORD, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
-    public void resetPassword(String id, String newPassword) {
+    /**
+     * Core delete mutation shared by {@link #deleteUser} and
+     * {@link #bulkDelete}. Records the same {@code deleted:true} new-value
+     * shape as the single path so audit entries do not drift between flows.
+     */
+    private void executeDelete(String id) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        AuditContext.setOldValues(Map.of("passwordChanged", false));
-        AuditContext.setNewValues(Map.of("passwordChanged", true));
+        AuditContext.setOldValues(Map.of("username", user.getUsername()));
+        AuditContext.setNewValues(Map.of("deleted", true));
 
-        String hashedPassword = passwordEncoder.encode(newPassword);
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getPassword, hashedPassword);
+        userMapper.deleteById(id);
+    }
 
-        userMapper.update(null, wrapper);
-
-        log.info("Password reset for user: {}", id);
+    /**
+     * Emit the lifecycle audit staged by an {@code execute*} core and clear
+     * the thread-local in one place. Bulk operations reach this path directly
+     * because a self-invocation of the {@code @Audited} public method bypasses
+     * the Spring proxy; centralizing record + clear keeps future code between
+     * {@code execute*} and record from leaking {@link AuditContext} across
+     * loop iterations.
+     */
+    private void recordLifecycleAudit(String id, String action) {
+        auditRecorder.recordForUser(
+            action,
+            AuditVocabulary.ENTITY_USER,
+            id, id,
+            AuditContext.getOldValues(),
+            AuditContext.getNewValues());
+        AuditContext.clear();
     }
 
     @Override
@@ -299,9 +350,13 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         for (String id : ids) {
             try {
-                banUser(id, reason, null);
+                executeBan(id, reason, null);
+                // Bulk ops bypass the @Audited aspect (self-invocation), so
+                // emit through the same AuditRecorder policy the aspect uses.
+                recordLifecycleAudit(id, AuditVocabulary.BAN_USER);
                 results.add(new BanResult(id, true, null));
             } catch (RuntimeException e) {
+                AuditContext.clear();
                 log.error("Failed to ban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
             }
@@ -317,9 +372,11 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         for (String id : ids) {
             try {
-                unbanUser(id);
+                executeUnban(id);
+                recordLifecycleAudit(id, AuditVocabulary.UNBAN_USER);
                 results.add(new BanResult(id, true, null));
             } catch (RuntimeException e) {
+                AuditContext.clear();
                 log.error("Failed to unban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
             }
@@ -335,22 +392,11 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         for (String id : ids) {
             try {
-                User user = userMapper.selectById(id);
-                int deleted = userMapper.deleteById(id);
-                if (deleted > 0) {
-                    auditRecorder.recordForUser(
-                        AuditVocabulary.DELETE_USER,
-                        AuditVocabulary.ENTITY_USER,
-                        id,
-                        id,
-                        Map.of("username", user != null ? user.getUsername() : "unknown"),
-                        null
-                    );
-                    results.add(new DeleteResult(id, true, null));
-                } else {
-                    results.add(new DeleteResult(id, false, "User not found"));
-                }
+                executeDelete(id);
+                recordLifecycleAudit(id, AuditVocabulary.DELETE_USER);
+                results.add(new DeleteResult(id, true, null));
             } catch (RuntimeException e) {
+                AuditContext.clear();
                 log.error("Failed to delete user {}: {}", id, e.getMessage());
                 results.add(new DeleteResult(id, false, e.getMessage()));
             }

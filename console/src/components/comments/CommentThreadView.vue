@@ -57,7 +57,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import type { Comment } from "@/types/comment";
-import type { ForumComment, ForumThread } from "@/types/forum";
+import { fetchForumThread } from "@/api/forum";
 import CommentNode from "./CommentNode.vue";
 import { buildCommentTree, countComments } from "./comment-tree-builder";
 import { Loader2, MessageSquare } from "lucide-vue-next";
@@ -83,19 +83,22 @@ const fetchComments = async () => {
 
   try {
     loading.value = true;
-    const response = await fetch(`/api/forum/posts/${postId}/thread`);
-    if (!response.ok) throw new Error("Failed to fetch thread");
-
-    const data: ForumThread & { comments: ForumComment[] } =
-      await response.json();
-    if (data && data.comments) {
-      threadAuthor.value = data.author?.username;
-      commentTree.value = buildCommentTree(data.comments, {
-        postAuthorUsername: threadAuthor.value,
-      });
-    }
+    // Route through the established Forum thread delivery seam so this view
+    // shares Result unwrapping, normalizePost shaping, HttpOnly-cookie auth,
+    // retry/dedup, and the 401 → runSessionExpired coordination with the rest
+    // of the Forum path.
+    const data = await fetchForumThread(postId);
+    threadAuthor.value = data.author?.username;
+    commentTree.value = buildCommentTree(data.comments ?? [], {
+      postAuthorUsername: threadAuthor.value,
+    });
   } catch (err) {
     console.error("Error loading comments:", err);
+    // Failure must not leave previously-rendered comments visible; reset so
+    // the view falls through to its empty/silence branch instead of stale
+    // state. (The component fetches once on mount today, so this is
+    // defensive — it makes the failure path unambiguous and future-proof.)
+    commentTree.value = [];
   } finally {
     loading.value = false;
   }

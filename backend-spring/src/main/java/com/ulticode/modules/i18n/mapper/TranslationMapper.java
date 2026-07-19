@@ -29,27 +29,4 @@ public interface TranslationMapper extends BaseMapper<Translation> {
             @Param("entityId") String entityId,
             @Param("locale") String locale
     );
-
-    /**
-     * Find all translations for multiple entities and a specific locale.
-     * Uses MyBatis foreach for safe parameterized queries.
-     *
-     * @param entityType the type of entity
-     * @param entityIds  list of entity IDs
-     * @param locale     the locale code
-     * @return list of translations
-     */
-    @Select("<script>" +
-            "SELECT * FROM translations WHERE entity_type = #{entityType} " +
-            "AND entity_id IN " +
-            "<foreach item='id' collection='entityIds' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach> " +
-            "AND locale = #{locale}" +
-            "</script>")
-    List<Translation> findByEntitiesAndLocale(
-            @Param("entityType") String entityType,
-            @Param("entityIds") List<String> entityIds,
-            @Param("locale") String locale
-    );
 }

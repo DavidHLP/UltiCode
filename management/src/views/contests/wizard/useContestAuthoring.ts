@@ -1,10 +1,5 @@
 import { ref, computed, readonly } from 'vue'
-import {
-  contestsApi,
-  ContestType,
-  type Contest,
-  type CreateContestDto,
-} from '@/api/admin/contests'
+import { contestsApi, ContestType, type Contest, type CreateContestDto } from '@/api/admin/contests'
 
 /**
  * Per-problem entry carried inside a `ContestDraft`. The numeric `id` matches

@@ -81,4 +81,4 @@ export const SKY = { x: 0, y: 26, z: -190, radius: 90 };
 export const COLLAPSE_POINT = { x: 0, y: 1.2, z: -305 } as const;
 
 /** Particle budgets per device class. */
-export const PARTICLE_BUDGET = { desktop: 90000, mobile: 24000 } as const;
+export const PARTICLE_BUDGET = { desktop: 50000, mobile: 14000 } as const;

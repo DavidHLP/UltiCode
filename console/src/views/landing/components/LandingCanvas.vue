@@ -9,7 +9,7 @@
  *   1. WebGL/init failure → static fallback mark; content unaffected.
  *   2. prefers-reduced-motion → no loop: each chapter renders its pinned
  *      dwell composition, swapped on scroll.
- *   3. Small screens → mobile rail, 24k particles, capped DPR, no pointer.
+ *   3. Small screens → mobile rail, 14k particles, capped DPR, no pointer.
  *   4. Page hidden → loop stops; resumes on visibility.
  */
 import { onBeforeUnmount, onMounted, ref } from "vue";

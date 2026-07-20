@@ -52,7 +52,9 @@ export interface WastelandScene {
 const BG_COLOR = new THREE.Color(0x0a0a0a);
 const SILVER = new THREE.Color(0.75, 0.78, 0.82);
 const FOG_DENSITY = 0.012;
-const DUST_COUNT = 600;
+const DUST_COUNT = 300;
+/** Hard cap on gl_PointSize, expressed in CSS pixels (scaled to framebuffer px via DPR). */
+const MAX_POINT_PX_CSS = 10;
 
 const VERTEX_SHADER = /* glsl */ `
   attribute vec3 aTarget1;
@@ -69,6 +71,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform vec3 uGatherPos;
   uniform float uGatherStrength;
   uniform float uPointScale; // projection-dependent pixel scale
+  uniform float uPointMaxPx; // hard cap in framebuffer pixels (CSS * DPR)
   uniform float uBreathAmp;
   uniform float uFogDensity;
 
@@ -110,7 +113,7 @@ const VERTEX_SHADER = /* glsl */ `
     // Collapse finish: shrink as the field contracts so the finale reads as
     // a sharp point of light, not a glowing moon.
     size *= 1.0 - smoothstep(4.5, 5.0, uMorph) * 0.55;
-    gl_PointSize = size * uPointScale / dist;
+    gl_PointSize = min(size * uPointScale / dist, uPointMaxPx);
     gl_Position = projectionMatrix * mv;
 
     float alpha = aRandom.x;
@@ -210,6 +213,7 @@ export function createWastelandScene(
     uGatherPos: { value: new THREE.Vector3(0, 0, 0) },
     uGatherStrength: { value: 0 },
     uPointScale: { value: 600 },
+    uPointMaxPx: { value: MAX_POINT_PX_CSS * dpr },
     uBreathAmp: { value: 0.22 },
     uFogDensity: { value: FOG_DENSITY },
     uColor: { value: SILVER },
@@ -408,6 +412,8 @@ export function createWastelandScene(
       const heightPx = renderer.domElement.height;
       uniforms.uPointScale.value =
         heightPx / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+      // Hard cap in CSS pixels, refreshed each frame in case DPR changes.
+      uniforms.uPointMaxPx.value = MAX_POINT_PX_CSS * renderer.getPixelRatio();
 
       updateMouseWorld();
       updateTitles();

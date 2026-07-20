@@ -275,18 +275,6 @@ forumEditRoute.meta = { requiresAuth: true };
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: "/",
-      name: "landing",
-      component: () => import("../views/LandingLucaView.vue"),
-    },
-    {
-      // The product-marketing landing (workbench demo, capabilities, FAQ) is
-      // kept reachable at /home so the aboutluca-style intro can own "/".
-      path: "/home",
-      name: "home",
-      component: () => import("../views/LandingView.vue"),
-    },
     forumCreateRoute,
     forumEditRoute,
     submissionDetailRoute,
@@ -351,8 +339,7 @@ const router = createRouter({
  * exactly one implementation. This file keeps only the per-app adapters:
  *   - the auth-store bridge that exposes `status`/`waitForInitialization`/
  *     `fetchUser`/`ensureUser`/`isAuthenticated`
- *   - the per-app redirect targets (`login`, `forum-home` for guest-only
- *     and landing hits).
+ *   - the per-app redirect targets (`login`, `forum-home` for guest-only hits).
  *
  * See architecture-review candidate #1.
  */
@@ -387,10 +374,7 @@ installAuthNavigation({
   policy: {
     loginRouteName: "login",
     authenticatedGuestRouteName: "forum-home",
-    // Authenticated users may still view the landing page (route `landing`),
-    // so we intentionally do NOT set `authenticatedLandingRouteName` here.
-    // An unset value makes the shared guard allow `/` instead of bouncing
-    // logged-in users to `forum-home`.
+    // Landing route was removed; no authenticated-landing redirect needed.
   },
 });
 

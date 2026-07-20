@@ -35,8 +35,7 @@ public interface ForumPostProjection {
 
     /**
      * Batch path. Caller pre-resolves {@code community} and {@code commentCount}
-     * (e.g. via {@code ForumReadProjection#batchLoadCommentCounts}). This
-     * overload performs no SQL.
+     * before calling this overload, which performs no SQL.
      */
     ForumPostVO toPostVO(ForumPost post,
                          String userId,

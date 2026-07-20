@@ -33,7 +33,7 @@ import java.util.Map;
  */
 public interface ForumReadProjection {
 
-    // ---- List / single-item reads ----
+    // ---- List / single-item reads (caller-intent — only these are called by controllers) ----
 
     /** Most recent posts (default sort = new, max 50). */
     List<ForumPostVO> findAllPosts(String userId);
@@ -71,43 +71,21 @@ public interface ForumReadProjection {
     /** All tags, ordered by usage. */
     List<ForumTagVO> findAllTags();
 
-    /** Static quick-filter list. */
+    /** Quick filter options (hot, new, top, controversial). */
     List<QuickFilterDTO> getQuickFilters();
 
-    // ---- Entity-to-VO projection rules (formerly on ForumPostService) ----
+    // ---- Conversion helpers (package-visible; used by write services via this projection) ----
 
-    /**
-     * Project a single post to its VO. Uses {@link #batchLoadCommentCounts}
-     * for the real comment count (the {@code stats.comments} field on the
-     * entity can be stale; we always re-query the count). Community is loaded
-     * individually if not provided.
-     */
     ForumPostVO convertToPostVO(ForumPost post, String userId, User author);
 
-    /**
-     * Project a single post to its VO with pre-loaded community + comment count.
-     * Used by batch paths where community and counts are loaded once for the
-     * full set of posts.
-     */
     ForumPostVO convertToPostVO(ForumPost post, String userId, User author,
-                                ForumCommunity community, long commentCount);
+                                ForumCommunity community, long realCommentCount);
 
-    /** Project a {@link ForumCommunity} entity to its {@link ForumCommunityVO}. */
-    ForumCommunityVO toCommunityVO(ForumCommunity community);
+    ForumCommunityVO toCommunityVO(ForumCommunity c);
 
-    /** Project a {@link ForumTag} entity to its {@link ForumTagVO}. */
-    ForumTagVO toTagVO(ForumTag tag);
+    ForumTagVO toTagVO(ForumTag t);
 
-    /**
-     * Batch-load authors for a list of posts. Returns a {@code Map<userId, User>}
-     * with one entry per distinct user id found in the post list.
-     */
     Map<String, User> batchLoadAuthors(List<ForumPost> posts);
 
-    /**
-     * Batch-load real comment counts for a list of posts. Returns
-     * {@code Map<postId, count>}. Used by the VO projection so
-     * {@code stats.comments} does not leak through to the user as stale.
-     */
     Map<String, Long> batchLoadCommentCounts(List<ForumPost> posts);
 }

@@ -275,6 +275,13 @@ forumEditRoute.meta = { requiresAuth: true };
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      // Public landing page — the "one submission" micro-narrative. No
+      // AppLayout, no auth requirement; CTAs branch on auth state instead.
+      path: "/",
+      name: "landing",
+      component: () => import("@/views/landing/LandingView.vue"),
+    },
     forumCreateRoute,
     forumEditRoute,
     submissionDetailRoute,
@@ -374,7 +381,8 @@ installAuthNavigation({
   policy: {
     loginRouteName: "login",
     authenticatedGuestRouteName: "forum-home",
-    // Landing route was removed; no authenticated-landing redirect needed.
+    // The landing route (`/`) is public for both guests and signed-in
+    // users, so no authenticated-landing redirect is registered here.
   },
 });
 

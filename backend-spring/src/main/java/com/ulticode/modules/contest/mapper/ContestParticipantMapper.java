@@ -165,7 +165,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "WHERE id IN "
             + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>"
             + "#{id}</foreach> "
-            + "AND status = 'STARTED' AND is_virtual = 0</script>")
+            + "AND status = 'STARTED' AND is_virtual = 1</script>")
     int bulkFinishByIds(@Param("ids") java.util.Collection<String> ids,
                         @Param("now") java.time.LocalDateTime now);
 

@@ -13,6 +13,7 @@ import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -318,4 +319,57 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         verify(participantMapper).insert(any(ContestParticipant.class));
     }
+
+    // ============================================================
+    // startVirtualContest — regression: virtualSessionId must be set
+    // ============================================================
+
+    @Test
+    @DisplayName("startVirtualContest sets virtualSessionId and returns it as DTO id")
+    void startVirtualContest_setsVirtualSessionIdAndReturnsIt() {
+        Contest c = buildContest();
+        c.setStatus("FINISHED");
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(participantMapper.findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.empty());
+
+        // Holder to capture the generated session ID after insert
+        java.util.concurrent.atomic.AtomicReference<String> generatedId =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        when(participantMapper.insert(any(ContestParticipant.class)))
+                .thenAnswer(invocation -> {
+                    ContestParticipant p = invocation.getArgument(0);
+                    generatedId.set(p.getVirtualSessionId());
+                    return 1;
+                });
+
+        // getVirtualSession reads the DB — return a valid participant
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenAnswer(invocation -> {
+                    ContestParticipant p = buildVirtualParticipant(generatedId.get());
+                    return Optional.of(p);
+                });
+
+        ParticipationStatusDTO result = service.startVirtualContest(CONTEST_ID, USER_ID);
+
+        assertThat(generatedId.get()).isNotNull();
+        assertThat(generatedId.get()).isNotBlank();
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(generatedId.get());
+    }
+
+    @Test
+    @DisplayName("bulkFinishByIds has STARTED and is_virtual=1 guard in UPDATE WHERE clause")
+    void bulkFinishByIds_hasCorrectGuard() throws Exception {
+        // Reflection: read @Update annotation from the mapper method
+        java.lang.reflect.Method method = ContestParticipantMapper.class
+                .getDeclaredMethod("bulkFinishByIds", java.util.Collection.class, java.time.LocalDateTime.class);
+        org.apache.ibatis.annotations.Update annotation = method.getAnnotation(org.apache.ibatis.annotations.Update.class);
+        assertThat(annotation).isNotNull();
+        String sql = annotation.value()[0];
+        assertThat(sql).contains("status = 'STARTED'");
+        assertThat(sql).contains("is_virtual = 1");
+        assertThat(sql).doesNotContain("is_virtual = 0");
+    }
+
 }

@@ -14,6 +14,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.ContestParticipationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
     private final UuidGenerator uuidGenerator;
     private final ContestClock contestClock;
     private final AchievementTriggerService achievementTriggerService;
+    private final ContestParticipantTransitions participantTransitions;
 
     @Override
     @Transactional
@@ -209,9 +211,15 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         participant.setRegisteredAt(now);
         participant.setStartedAt(now);
         participant.setIsVirtual(true);
-        participant.setVirtualSessionId(uuidGenerator.newId());
-        participantMapper.insert(participant);
-
+        try {
+            participantMapper.insert(participant);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // C4: race lost — another transaction inserted the same active (contest, user,
+            // STARTED) row. The unique key on active_virtual_key guarantees at most one
+            // active virtual session exists. Return the winner.
+            log.info("C4: user {} lost race for virtual contest {} start, returning existing",
+                    userId, contestId);
+        }
         log.info("User {} started virtual contest {}", userId, contestId);
         return getVirtualSession(contestId, userId);
     }
@@ -277,11 +285,10 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
                     userId, contestId, effectiveSessionId);
             return;
         }
-
-        // R6.2 / F-01: route through the bulk-finish mapper so the audit's
-        // "auto-finish central dispatch" invariant holds — same path the
-        // scheduler uses, no direct updateById bypass.
-        participantMapper.bulkFinishByIds(
+        // R6.2 / F-01: route through the module so the bulk-finish path is
+        // exercised by the interactive path too, and future transition rules
+        // (e.g. active_virtual_key guard) apply uniformly.
+        participantTransitions.bulkFinishVirtualByIds(
                 java.util.List.of(participant.getId()), LocalDateTime.now(clock));
 
         log.info("User {} finished virtual contest {} session {}", userId, contestId, effectiveSessionId);

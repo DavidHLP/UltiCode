@@ -107,12 +107,15 @@ public class AdminTestCaseService {
      */
     private TestCase persistNewTestCase(Long problemId, CreateTestCaseDTO dto) {
         validateInputsJson(dto.getInputs());
+        boolean[] scope = resolveCaseScopeFlags(dto.getIsSample(), dto.getIsHidden());
+        boolean isSample = scope[0];
+        boolean isHidden = scope[1];
 
         TestCase testCase = new TestCase();
         testCase.setId(uuidGenerator.newId().replace("-", ""));
         testCase.setProblemId(problemId);
-        testCase.setIsSample(dto.getIsSample() != null ? dto.getIsSample() : false);
-        testCase.setIsHidden(dto.getIsHidden() != null ? dto.getIsHidden() : false);
+        testCase.setIsSample(isSample);
+        testCase.setIsHidden(isHidden);
         testCase.setTestOrder(dto.getTestOrder() != null ? dto.getTestOrder() : 0);
         testCase.setInputText(dto.getInputText());
         testCase.setOutputText(dto.getOutputText());
@@ -127,6 +130,26 @@ public class AdminTestCaseService {
         return testCase;
     }
 
+    /**
+     * Resolve the canonical {@code (is_sample, is_hidden)} pair from a create
+     * payload. The backend test_cases table models author intent as a single
+     * "CaseScope" dimension (SAMPLE or HIDDEN) — the judging pipeline's
+     * {@code findActiveCasesForJudging} only certifies XOR pairs, so every
+     * persisted row MUST satisfy XOR. {@link CreateTestCaseDTO#getIsSample()}
+     * is {@code @NotNull}; when {@code isHidden} is omitted we default it to
+     * {@code !isSample} (the inverse) so an admin that sends only one flag
+     * still produces a valid scope instead of the draft {@code (false, false)}
+     * or the illegal {@code (true, true)} combination.
+     */
+    private boolean[] resolveCaseScopeFlags(Boolean isSample, Boolean isHidden) {
+        boolean sample = Boolean.TRUE.equals(isSample);
+        boolean hidden = isHidden != null ? isHidden : !sample;
+        if (sample == hidden) {
+            throw new BusinessException(ErrorCode.TEST_CASE_INVALID_SCOPE);
+        }
+        return new boolean[]{sample, hidden};
+    }
+
     @Transactional
     public TestCase updateTestCase(Long problemId, String testCaseId, UpdateTestCaseDTO dto) {
         TestCase existing = getTestCase(problemId, testCaseId);
@@ -135,6 +158,16 @@ public class AdminTestCaseService {
 
         PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsSample, existing::setIsSample);
         PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getIsHidden, existing::setIsHidden);
+        // The judging pipeline only certifies XOR (is_sample XOR is_hidden) rows,
+        // so every partial update must still leave the row in SAMPLE or HIDDEN
+        // scope. Reject any merge that lands on the disallowed (false,false)
+        // "draft" or the illegal (true,true) combination before it persists.
+        // The frontend always emits both flags together via the CaseScope seam,
+        // but alternate admin callers (scripts, future UIs) reach this endpoint
+        // too — this guard makes the invariant server-side enforced.
+        if (Boolean.TRUE.equals(existing.getIsSample()) == Boolean.TRUE.equals(existing.getIsHidden())) {
+            throw new BusinessException(ErrorCode.TEST_CASE_INVALID_SCOPE);
+        }
         PartialUpdate.setIfPresent(dto, UpdateTestCaseDTO::getTestOrder, existing::setTestOrder);
         PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputText, existing::setInputText);
         PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getOutputText, existing::setOutputText);

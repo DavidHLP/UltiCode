@@ -13,6 +13,14 @@ public class CreateTestCaseDTO {
     @NotNull(message = "is_sample is required")
     private Boolean isSample;
 
+    /**
+     * Required: the wire contract models test-case author intent as one
+     * "CaseScope" dimension — SAMPLE ({@code is_sample=true, is_hidden=false})
+     * or HIDDEN ({@code is_sample=false, is_hidden=true}). Callers MUST send
+     * both flags together so the persisted row satisfies the XOR invariant
+     * the judging pipeline depends on; the service still validates the pair.
+     */
+    @NotNull(message = "is_hidden is required; send the (is_sample, is_hidden) pair that matches the desired SAMPLE or HIDDEN scope")
     private Boolean isHidden;
 
     private Integer testOrder;

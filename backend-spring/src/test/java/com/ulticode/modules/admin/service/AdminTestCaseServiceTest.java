@@ -127,6 +127,60 @@ class AdminTestCaseServiceTest {
                     .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
             verify(testCaseMapper, never()).insert(any(TestCase.class));
         }
+
+        @Test
+        @DisplayName("rejects (true,true) scope before any write")
+        void rejectsIllegalTrueTrueScope() {
+            problemExists();
+            CreateTestCaseDTO dto = new CreateTestCaseDTO();
+            dto.setIsSample(true);
+            dto.setIsHidden(true);
+            dto.setInputText("1\n");
+            dto.setOutputText("1\n");
+
+            assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("rejects (false,false) scope before any write")
+        void rejectsDraftFalseFalseScope() {
+            problemExists();
+            CreateTestCaseDTO dto = new CreateTestCaseDTO();
+            dto.setIsSample(false);
+            dto.setIsHidden(false);
+            dto.setInputText("1\n");
+            dto.setOutputText("1\n");
+
+            assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("defaults isHidden=!isSample when isHidden is null (back-compat for partial payloads)")
+        void defaultsHiddenFromSampleWhenMissing() {
+            problemExists();
+            CreateTestCaseDTO dto = new CreateTestCaseDTO();
+            dto.setIsSample(true);
+            // isHidden intentionally left null: a non-frontend admin caller that
+            // sends only isSample=true should still produce a valid SAMPLE row,
+            // not the (true, isHidden-defaults-to-false-vue-service) shape pre-fix.
+            // The @NotNull constraint is enforced at the controller layer; the
+            // service still defends in depth for direct service callers (tests,
+            // internal admin scripts).
+            dto.setInputText("1\n");
+            dto.setOutputText("1\n");
+
+            TestCase created = service.createTestCase(PROBLEM_ID, dto);
+
+            assertThat(created.getIsSample()).isTrue();
+            assertThat(created.getIsHidden()).isFalse();
+            verify(testCaseMapper).insert(any(TestCase.class));
+        }
     }
 
     @Nested
@@ -160,6 +214,27 @@ class AdminTestCaseServiceTest {
             assertThat(response.getCount()).isEqualTo(1);
             verify(testCaseMapper).delete(any());
             verify(testCaseMapper).insert(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("rejects a batch entry with (true,true) scope before any insert")
+        void rejectsInvalidScopeInBatch() {
+            problemExists();
+            CreateTestCaseDTO bad = new CreateTestCaseDTO();
+            bad.setIsSample(true);
+            bad.setIsHidden(true);
+            bad.setInputText("1\n");
+            bad.setOutputText("1\n");
+            BulkImportTestCasesDTO dto = new BulkImportTestCasesDTO();
+            // Bad case FIRST: the service iterates in order, so this raises
+            // before any persistNewTestCase call. @Transactional rolls back any
+            // earlier inserts in a real container; mocks here see zero inserts.
+            dto.setTestCases(List.of(bad, newCase("1\n", "1\n")));
+
+            assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            verify(testCaseMapper, never()).insert(any(TestCase.class));
         }
 
         @Test
@@ -210,20 +285,63 @@ class AdminTestCaseServiceTest {
     class MutationsAndExport {
 
         @Test
-        @DisplayName("partial update applies only supplied fields")
+        @DisplayName("partial update applies only supplied fields while preserving XOR scope")
         void partialUpdate() {
             problemExists();
             TestCase existing = existingCase("a");
+            // Start from a valid HIDDEN scope (false, true).
+            existing.setIsSample(false);
             existing.setIsHidden(true);
             when(testCaseMapper.selectById("a")).thenReturn(existing);
 
+            // Flip the whole scope to SAMPLE by sending both flags together
+            // (the wire contract the CaseScope seam emits).
             UpdateTestCaseDTO dto = new UpdateTestCaseDTO();
+            dto.setIsSample(true);
             dto.setIsHidden(false);
 
             TestCase updated = service.updateTestCase(PROBLEM_ID, "a", dto);
 
+            assertThat(updated.getIsSample()).isTrue();
             assertThat(updated.getIsHidden()).isFalse();
             verify(testCaseMapper).updateById(existing);
+        }
+
+        @Test
+        @DisplayName("updateTestCase rejects a partial update that lands on the (false,false) draft scope")
+        void rejectsUpdateToDraftScope() {
+            problemExists();
+            TestCase existing = existingCase("a");
+            existing.setIsSample(false);
+            existing.setIsHidden(true);
+            when(testCaseMapper.selectById("a")).thenReturn(existing);
+
+            // Send only isHidden=false → merged result (false, false) is invalid.
+            UpdateTestCaseDTO dto = new UpdateTestCaseDTO();
+            dto.setIsHidden(false);
+
+            assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            verify(testCaseMapper, never()).updateById(any(TestCase.class));
+        }
+
+        @Test
+        @DisplayName("updateTestCase rejects a partial update that lands on the (true,true) illegal scope")
+        void rejectsUpdateToIllegalScope() {
+            problemExists();
+            TestCase existing = existingCase("a");
+            existing.setIsSample(true);
+            existing.setIsHidden(false);
+            when(testCaseMapper.selectById("a")).thenReturn(existing);
+
+            UpdateTestCaseDTO dto = new UpdateTestCaseDTO();
+            dto.setIsHidden(true);
+
+            assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
+                    .isInstanceOf(BusinessException.class)
+                    .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
+            verify(testCaseMapper, never()).updateById(any(TestCase.class));
         }
 
         @Test

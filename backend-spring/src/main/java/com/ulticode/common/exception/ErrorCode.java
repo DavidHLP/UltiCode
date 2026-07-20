@@ -70,6 +70,7 @@ public enum ErrorCode {
 
     // Test case (3xxxx) — 测试用例属于题目子域,沿用 3xxxx 号段
     TEST_CASE_NOT_FOUND(30020, "Test case not found", HttpStatus.NOT_FOUND),
+    TEST_CASE_INVALID_SCOPE(30021, "Test case scope must be exactly one of SAMPLE or HIDDEN", HttpStatus.BAD_REQUEST),
 
     // Submission module (4xxxx)
     SUBMISSION_NOT_FOUND(40001, "Submission not found", HttpStatus.NOT_FOUND),

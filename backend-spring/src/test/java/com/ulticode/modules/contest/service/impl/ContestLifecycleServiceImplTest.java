@@ -13,6 +13,7 @@ import com.ulticode.modules.contest.mapper.FirstSolveRecordMapper;
 import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
 import com.ulticode.modules.contest.port.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
+import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.intent.ContestStartingIntent;
@@ -71,6 +72,7 @@ class ContestLifecycleServiceImplTest {
     @Mock private ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     @Mock private RatingCalculationService ratingService;
     @Mock private NotificationDispatcher notificationDispatcher;
+    @Mock private ContestParticipantTransitions participantTransitions;
 
     private ContestLifecycleServiceImpl service;
 
@@ -83,21 +85,20 @@ class ContestLifecycleServiceImplTest {
                 contestSubmissionMapper, contestProblemResultMapper,
                 firstSolveRecordMapper, rankingCacheEvictor, clock,
                 contestClock, contestStatusPushPort, contestRankingMarkDirtyPort,
-                ratingService, notificationDispatcher);
+                notificationDispatcher, ratingService, participantTransitions);
     }
 
-    /** P0-2: batchStartParticipants delegates to mapper and returns the count. */
+    /** P0-2: batchStartParticipants delegates to participantTransitions seam and returns the count. */
     @Test
-    @DisplayName("P0-2: batchStartParticipants calls mapper and returns count")
-    void batchStartParticipants_delegatesToMapper() {
-        when(contestParticipantMapper.batchUpdateStatus(eq(CONTEST_ID), eq("REGISTERED"), eq("STARTED"), any(LocalDateTime.class)))
+    @DisplayName("P0-2: batchStartParticipants delegates to participantTransitions seam")
+    void batchStartParticipants_delegatesToTransitionsSeam() {
+        when(participantTransitions.batchStartParticipants(eq(CONTEST_ID), any(LocalDateTime.class)))
                 .thenReturn(7);
-
         int updated = service.batchStartParticipants(CONTEST_ID);
 
+
         assertThat(updated).isEqualTo(7);
-        verify(contestParticipantMapper).batchUpdateStatus(
-                eq(CONTEST_ID), eq("REGISTERED"), eq("STARTED"), any(LocalDateTime.class));
+        verify(participantTransitions).batchStartParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
     }
 
     /** M2: autoFinishVirtualParticipants queries, then issues a single bulk UPDATE keyed by ids. */
@@ -108,14 +109,14 @@ class ContestLifecycleServiceImplTest {
         ContestParticipant v2 = newParticipant("v-2");
         when(contestParticipantMapper.findVirtualParticipantsToFinish(any(LocalDateTime.class)))
                 .thenReturn(List.of(v1, v2));
-        when(contestParticipantMapper.bulkFinishByIds(any(), any(LocalDateTime.class)))
+        when(participantTransitions.bulkFinishVirtualByIds(any(), any(LocalDateTime.class)))
                 .thenReturn(2);
 
         int total = service.autoFinishVirtualParticipants();
 
         assertThat(total).isEqualTo(2);
-        verify(contestParticipantMapper, times(1))
-                .bulkFinishByIds(argThat(ids -> ids.contains("v-1") && ids.contains("v-2")),
+        verify(participantTransitions, times(1))
+                .bulkFinishVirtualByIds(argThat(ids -> ids.contains("v-1") && ids.contains("v-2")),
                         any(LocalDateTime.class));
         verify(contestParticipantMapper, never())
                 .batchUpdateStatus(anyString(), anyString(), anyString(), any(LocalDateTime.class));
@@ -148,11 +149,12 @@ class ContestLifecycleServiceImplTest {
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of(contest));
         when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW.minusMinutes(1)));
         when(contestMapper.tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+        when(participantTransitions.finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(5);
 
         service.tick(NOW);
 
         verify(contestMapper).tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class));
-        verify(contestParticipantMapper).finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
+        verify(participantTransitions).finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED),
                 argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
         verify(ratingService).calculateAndUpdate(CONTEST_ID);

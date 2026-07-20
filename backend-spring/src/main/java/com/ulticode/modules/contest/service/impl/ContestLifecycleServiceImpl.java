@@ -14,6 +14,7 @@ import com.ulticode.modules.contest.port.ContestRankingMarkDirtyPort;
 import com.ulticode.modules.contest.port.ContestStatusPushPort;
 import com.ulticode.modules.contest.scoring.ContestRankingCacheEvictor;
 import com.ulticode.modules.contest.service.ContestLifecycleService;
+import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.RatingCalculationService;
 import com.ulticode.modules.notification.dispatcher.NotificationDispatcher;
 import com.ulticode.modules.notification.intent.ContestStartingIntent;
@@ -64,14 +65,15 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestClock contestClock;
     private final ContestStatusPushPort contestStatusPushPort;
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
-    private final RatingCalculationService ratingService;
     private final NotificationDispatcher notificationDispatcher;
+    private final RatingCalculationService ratingService;
+    private final ContestParticipantTransitions participantTransitions;
 
     @Override
     @Transactional
     public int batchStartParticipants(String contestId) {
         LocalDateTime now = LocalDateTime.now(clock);
-        int updated = contestParticipantMapper.batchUpdateStatus(contestId, "REGISTERED", "STARTED", now);
+        int updated = participantTransitions.batchStartParticipants(contestId, now);
         if (updated > 0) {
             log.info("P0-2: transitioned {} participants REGISTERED -> STARTED for contest {}",
                     updated, contestId);
@@ -82,19 +84,19 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     @Override
     @Transactional
     public int autoFinishVirtualParticipants() {
+        // M2: route through the module so the bulk-finish path is exercised by the
+        // scheduled path too, and future transition rules (e.g. active_virtual_key
+        // guard) apply uniformly.
         LocalDateTime now = LocalDateTime.now(clock);
         List<ContestParticipant> toFinish = contestParticipantMapper.findVirtualParticipantsToFinish(now);
         if (toFinish.isEmpty()) {
             return 0;
         }
-        // M2: replace per-row UPDATE with a single bulk UPDATE keyed by id
-        // (the result list is bounded by the 10s scheduler tick, typically
-        // small, but previously this was N+1 UPDATEs).
         Set<String> ids = new HashSet<>();
         for (ContestParticipant p : toFinish) {
             ids.add(p.getId());
         }
-        int total = contestParticipantMapper.bulkFinishByIds(ids, now);
+        int total = participantTransitions.bulkFinishVirtualByIds(ids, now);
         if (total > 0) {
             log.info("P2-2: auto-finished {} virtual participants past their duration", total);
         }
@@ -290,7 +292,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         // calculation below sees a stable, FINISHED set. Virtual participants
         // are managed by the per-user virtual session, not the contest clock.
         // Rethrows on failure — see method Javadoc.
-        int finished = contestParticipantMapper.finishStartedRealParticipants(contest.getId(), now);
+        int finished = participantTransitions.finishStartedRealParticipants(contest.getId(), now);
         if (finished > 0) {
             log.info("R3.1: closed {} real participants for contest {}", finished, contest.getId());
         }

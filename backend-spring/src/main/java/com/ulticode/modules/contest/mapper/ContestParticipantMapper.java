@@ -270,16 +270,6 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     );
 
     /**
-     * Update participant status.
-     *
-     * @param id     the participant ID
-     * @param status the new status
-     * @return number of rows affected
-     */
-    @Update("UPDATE contest_participants SET status = #{status}, updated_at = NOW() WHERE id = #{id}")
-    int updateStatus(@Param("id") String id, @Param("status") String status);
-
-    /**
      * Update participant rank and scores.
      *
      * @param id           the participant ID

@@ -33,8 +33,16 @@ const menuOpen = ref(false);
 let dismissTimer: ReturnType<typeof setTimeout> | undefined;
 
 // Stage bus: owns state / progress / fragment / reverse-explode command and
-// provides them to the 3D scene + the interactive beats.
-useLucaStage(rootRef);
+// provides them to the 3D scene + the interactive beats.  The `onFuture`
+// callback is called by the stage once the explode animation completes so this
+// view (which owns router + auth) can perform the auth-aware navigation.
+useLucaStage(rootRef, {
+  onFutureTransitionComplete: () => {
+    void router.push(
+      authStore.isAuthenticated ? { name: "forum-home" } : { name: "register" },
+    );
+  },
+});
 
 useLucaScroll({ locked: showPortal });
 useLucaReveal(rootRef);

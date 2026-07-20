@@ -6,6 +6,7 @@ module.exports = {
       script: 'mvn',
       args: 'spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
+      env_file: '/home/DavidHLP/UltiCode/.env',
       env: { SERVER_PORT: '9001' },
       out_file: '/home/DavidHLP/UltiCode/logs/backend-spring.out.log',
       error_file: '/home/DavidHLP/UltiCode/logs/backend-spring.err.log',

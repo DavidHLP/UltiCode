@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import LandingLucaView from "../LandingLucaView.vue";
-
 const push = vi.fn();
 
 vi.mock("vue-router", () => ({
@@ -175,5 +174,14 @@ describe("LandingLucaView", () => {
     BEAT_STATES.forEach((state) => {
       expect(wrapper.find(`.luca-beat-${state}`).exists()).toBe(true);
     });
+  });
+  it("primary CTA on broken beat navigates to register after scene completes command", async () => {
+    const wrapper = mountView();
+    // Allow async LucaScene.start() to install the terminal handler (jsdom = WebGL unavailable).
+    await flushPromises();
+    // Click the primary CTA which calls requestFutureTransition → scene completes synchronously.
+    await wrapper.find(".luca-cta-solid").trigger("click");
+    await flushPromises();
+    expect(push).toHaveBeenCalledWith({ name: "register" });
   });
 });

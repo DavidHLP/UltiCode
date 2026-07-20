@@ -4,19 +4,14 @@
  *
  *  - "今昔并存" (secondary, ghost)  → requestReverse(): the scene eases the
  *    device back to a pristine symmetric origin state (the "harmony" path).
- *  - "创造未来" (primary, solid)    → requestExplode(): the scene bursts the
- *    device into a particle cloud; this beat watches the same command and,
- *    after a short delay so the burst actually plays, navigates to register
- *    (or forum-home when already signed in).
+ *  - "创造未来" (primary, solid)    → requestFutureTransition(): the scene
+ *    bursts the device into a particle cloud; when the animation completes,
+ *    the stage's injected callback navigates to register or forum-home.
  *
- * The beat owns the navigation; the scene owns the visual burst. They share
- * the command via the stage bus, keyed by a monotonic id so repeated clicks
- * always re-fire.
+ * Navigation lives in the landing view (via the stage callback) so the beat
+ * expresses only intent and the deep module owns sequencing/completion.
  */
-import { onBeforeUnmount, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
 import LucaBeat from "./LucaBeat.vue";
 import { useLucaStageConsumer } from "@/composables/landing/useLucaStage";
 
@@ -27,37 +22,11 @@ interface Props {
 }
 const props = withDefaults(defineProps<Props>(), { align: "right" });
 
-// Give the scene's particle burst time to play before we yank the route.
-const EXPLODE_NAV_DELAY_MS = 700;
-
 const { t } = useI18n();
-const router = useRouter();
-const authStore = useAuthStore();
 const stage = useLucaStageConsumer();
 
-let navTimer: ReturnType<typeof setTimeout> | undefined;
-
-const navigateAfterExplode = () => {
-  if (navTimer) clearTimeout(navTimer);
-  navTimer = setTimeout(() => {
-    void router.push(
-      authStore.isAuthenticated ? { name: "forum-home" } : { name: "register" },
-    );
-  }, EXPLODE_NAV_DELAY_MS);
-};
-
-// React to the explode command (whoever issued it). The id in the command
-// makes every dispatch a fresh object, so the watcher fires per click.
-watch(stage.command, (cmd) => {
-  if (cmd?.kind === "explode") navigateAfterExplode();
-});
-
-onBeforeUnmount(() => {
-  if (navTimer) clearTimeout(navTimer);
-});
-
 const onReverse = () => stage.requestReverse();
-const onExplode = () => stage.requestExplode();
+const onExplode = () => stage.requestFutureTransition();
 </script>
 
 <template>

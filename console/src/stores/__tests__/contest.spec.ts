@@ -5,11 +5,11 @@ import { fetchVirtualSession } from "@/api/contest";
 import type { VirtualContestSession } from "@/types/contest";
 
 vi.mock("@/api/contest", async (importOriginal) => {
-  // Keep the real implementations around for any helper the store reaches
-  // for; the tests below only need to override `fetchVirtualSession`.
   const actual = await importOriginal<typeof import("@/api/contest")>();
   return {
     ...actual,
+    startVirtualContest: vi.fn(),
+    finishVirtualContest: vi.fn(),
     fetchVirtualSession: vi.fn(),
   };
 });
@@ -169,5 +169,54 @@ describe("useVirtualContestStore — loadVirtualSession (R10.1 / F-51)", () => {
     await store.loadVirtualSession("contest-x");
 
     expect(store.virtualSession).toBeNull();
+  });
+});
+
+describe("useVirtualContestStore — start/finish atomicity (C3)", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it("startVirtualContest: API failure leaves state and storage untouched", async () => {
+    const { startVirtualContest } = await import("@/api/contest");
+    vi.mocked(startVirtualContest).mockRejectedValue(new Error("boom"));
+
+    const store = useVirtualContestStore();
+    const contestId = "contest-new";
+
+    await expect(store.startVirtualContest(contestId)).rejects.toThrow("boom");
+    expect(store.virtualSession).toBeNull();
+    expect(sessionStorage.getItem(VIRTUAL_SESSION_PREFIX + contestId)).toBeNull();
+    expect(store.error).toBe("boom");
+  });
+
+  it("finishVirtualContest: API failure leaves session and storage untouched", async () => {
+    const { startVirtualContest, finishVirtualContest } = await import("@/api/contest");
+    const session = makeStartedSession({ contestId: "contest-running" });
+    vi.mocked(startVirtualContest).mockResolvedValue(session);
+
+    // Establish a running session
+    const store = useVirtualContestStore();
+    await store.startVirtualContest(session.contestId);
+    expect(store.virtualSession).not.toBeNull();
+
+    // Now make finish reject
+    vi.mocked(finishVirtualContest).mockRejectedValue(new Error("finish failed"));
+
+    await expect(
+      store.finishVirtualContest(session.contestId),
+    ).rejects.toThrow("finish failed");
+    // Session and storage must still hold the original session
+    expect(store.virtualSession).not.toBeNull();
+    expect(store.virtualSession!.id).toBe(session.id);
+    expect(
+      sessionStorage.getItem(VIRTUAL_SESSION_PREFIX + session.contestId),
+    ).not.toBeNull();
   });
 });

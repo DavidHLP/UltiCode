@@ -27,12 +27,15 @@
  * Section-09 commands:
  *   - reverse → a ~2.5s gsap tween (power2.inOut) eases the device back to a
  *     pristine symmetric origin state and sits there (the "harmony" path).
+ *     The scene calls `reportCommandCompleted` in its `onComplete` callback.
  *   - explode → the polyhedron bursts into an additive THREE.Points cloud
- *     expanding outward over ~700ms while the wireframe hides. The DOM beat
- *     owns the router push on the same command; the scene only plays the burst.
- *
- * WebGL unavailable → canvas stays blank (portal + page bg cover it).
- * prefers-reduced-motion / narrow viewport → one static frame, no rAF loop.
+ *     expanding outward over ~700ms while the wireframe hides.  Navigation is
+ *     deferred until the scene reports completion via the stage callback; the beat
+ *     expresses intent via `requestFutureTransition` and the deep module sequences
+ *     the animation and auth-aware router push.
+ * WebGL unavailable → terminal handler installed, queued commands completed synchronously.
+ * Reduced motion / narrow viewport → reduced guard in the real handler completes
+ *   commands synchronously; a static frame is still rendered.
  *
  * The canvas is `position: fixed; pointer-events: none`; the magnetic pull in
  * the broken beat reads the pointer from a window 'pointermove' listener.
@@ -76,12 +79,21 @@ watch(
 
 // Command + state-enter dispatchers are populated by start() once THREE/gsap
 // are alive; until then (jsdom, SSR) the watches below no-op.
+// A fast CTA click during startup is queued and replayed once the handler
+// is installed, so no command is silently dropped.
 let commandHandler: ((cmd: LucaCommand) => void) | null = null;
 let stateEnterHandler: ((s: LucaState) => void) | null = null;
+let queuedCommand: LucaCommand | null = null;
 watch(
   () => stage.command.value,
   (cmd) => {
-    if (cmd && commandHandler) commandHandler(cmd);
+    if (!cmd) return;
+    if (commandHandler) {
+      commandHandler(cmd);
+    } else {
+      // Handler not yet installed (still booting); queue and replay once ready.
+      queuedCommand = cmd;
+    }
   },
 );
 watch(
@@ -167,9 +179,23 @@ const start = async () => {
   if (typeof window === "undefined") return;
   const canvas = canvasRef.value;
   const root = rootRef.value;
-  if (!canvas || !root) return;
+  // Install a terminal handler that immediately completes any queued command.
+  // Used when canvas/root are absent or WebGL is unavailable, so no command
+  // hangs waiting for an animation that cannot play.
+  const installTerminalHandler = () => {
+    commandHandler = (cmd) => stage.reportCommandCompleted(cmd.id);
+    if (queuedCommand) {
+      commandHandler(queuedCommand);
+      queuedCommand = null;
+    }
+  };
+  if (!canvas || !root) {
+    installTerminalHandler();
+    return;
+  }
   if (!detectWebGL()) {
     supportsWebGL.value = false;
+    installTerminalHandler();
     return;
   }
 
@@ -772,8 +798,23 @@ const start = async () => {
     }
   };
 
+  const isNarrowViewport =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 768px)").matches;
+  const reduced = prefersReducedMotion() || isNarrowViewport;
+
   // ---- Section-09 command dispatch --------------------------------------
+  // Track the explode command id whose completion should trigger navigation.
+  // We do NOT reset explodeActive on completion so the final exploded visual
+  // stays on screen until the route change takes effect.
+  let currentExplodeCommandId: number | null = null;
   commandHandler = (cmd: LucaCommand) => {
+    if (reduced) {
+      // Reduced motion / narrow viewport: no animation. Complete synchronously.
+      stage.reportCommandCompleted(cmd.id);
+      return;
+    }
     if (cmd.kind === "reverse") {
       // ~2.5s power2.inOut ease back to a pristine symmetric origin state.
       if (reverseTween) reverseTween.kill();
@@ -791,19 +832,27 @@ const start = async () => {
         onComplete: () => {
           reverseActive = false;
           reverseT = 1;
+          stage.reportCommandCompleted(cmd.id);
         },
       });
     } else if (cmd.kind === "explode") {
       // Burst into an additive particle cloud expanding outward over ~700ms;
-      // hide the wireframe. The DOM beat owns the navigation.
+      // hide the wireframe. Navigation is driven by the stage's completion
+      // callback once the scene reports the animation is done.
       ensureParticles();
       explodeActive = true;
       explodeStart = performance.now();
       explodeT = 0;
+      currentExplodeCommandId = cmd.id;
     }
   };
 
-  // ---- Interaction + sizing ---------------------------------------------
+  // Replay any command that arrived before the handler was installed.
+  if (queuedCommand) {
+    commandHandler(queuedCommand);
+    queuedCommand = null;
+  }
+
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   const onPointerMove = (event: PointerEvent) => {
     pointer.tx = event.clientX / window.innerWidth - 0.5;
@@ -827,12 +876,6 @@ const start = async () => {
   ro.observe(root);
   window.addEventListener("pointermove", onPointerMove, { passive: true });
   window.addEventListener("resize", onResize);
-
-  const isNarrowViewport =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(max-width: 768px)").matches;
-  const reduced = prefersReducedMotion() || isNarrowViewport;
   const startTime = performance.now();
   let rafId = 0;
   let orbitAngle = 0;
@@ -874,8 +917,15 @@ const start = async () => {
     applyTargets(curState, curProgress, curFragment);
 
     // Explode ramp (manual, ~700ms): particles expand from origin to field.
+    // Report completion exactly once when the ramp finishes; do NOT reset
+    // explodeActive so the final exploded visual stays on screen.
     if (explodeActive) {
       explodeT = Math.min(1, (now - explodeStart) / 700);
+      if (explodeT >= 1 && currentExplodeCommandId !== null) {
+        const id = currentExplodeCommandId;
+        currentExplodeCommandId = null;
+        stage.reportCommandCompleted(id);
+      }
     }
 
     // Frame-rate-independent damping toward per-state targets. Each channel

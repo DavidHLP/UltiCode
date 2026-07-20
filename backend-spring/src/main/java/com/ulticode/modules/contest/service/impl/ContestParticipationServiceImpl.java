@@ -211,6 +211,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         participant.setRegisteredAt(now);
         participant.setStartedAt(now);
         participant.setIsVirtual(true);
+        participant.setVirtualSessionId(uuidGenerator.newId());
         try {
             participantMapper.insert(participant);
         } catch (org.springframework.dao.DuplicateKeyException e) {

@@ -164,7 +164,8 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "SET status = 'FINISHED', finished_at = #{now}, updated_at = NOW() "
             + "WHERE id IN "
             + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>"
-            + "#{id}</foreach></script>")
+            + "#{id}</foreach> "
+            + "AND status = 'STARTED' AND is_virtual = 0</script>")
     int bulkFinishByIds(@Param("ids") java.util.Collection<String> ids,
                         @Param("now") java.time.LocalDateTime now);
 

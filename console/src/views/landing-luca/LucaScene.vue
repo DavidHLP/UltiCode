@@ -1124,10 +1124,11 @@ const start = async () => {
     // One static frame: apply the initial beat's targets once and render.
     applyTargets(curState, curProgress, curFragment, tgtBuf, harmonyMode, reverseT)
     Object.assign(morph, tgtBuf)
-    device.scale.set(morph.scaleX, morph.scaleY, morph.scaleZ)
     device.rotation.set(morph.rotX, morph.rotY, morph.rotZ)
+    wireMat.opacity = morph.wireOpacity
+    anchor.scale.setScalar(morph.anchorScale * morph.anchorVis)
+    anchor.visible = morph.anchorVis > 0.02
     starMat.opacity = morph.starOpacity
-    renderer.render(scene, camera)
   } else {
     rafId = requestAnimationFrame(tick)
   }

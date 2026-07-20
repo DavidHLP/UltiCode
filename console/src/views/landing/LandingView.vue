@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
  * LandingView — public `/` route. A single continuous 3D micro-narrative:
- * one code core travels through parse → judge → growth → network as the user
- * scrolls. All narrative content is plain DOM; the canvas is a progressive
- * enhancement layered underneath.
+ * the camera follows one code submission down a rail through parse → judge
+ * → verdict → growth → network. All narrative content is plain DOM; the
+ * canvas is a progressive enhancement layered underneath.
  */
 import { useI18n } from "vue-i18n";
-import CodeCoreCanvas from "./components/CodeCoreCanvas.vue";
+import LandingCanvas from "./components/LandingCanvas.vue";
 import LandingNav from "./components/LandingNav.vue";
 import HeroSection from "./sections/HeroSection.vue";
 import ParseSection from "./sections/ParseSection.vue";
@@ -25,7 +25,7 @@ defineOptions({ name: "LandingView" });
     <a href="#landing-main" class="landing-skip">
       {{ t("common.skipToContent") }}
     </a>
-    <CodeCoreCanvas />
+    <LandingCanvas />
     <LandingNav />
     <main id="landing-main" class="relative z-10">
       <HeroSection />

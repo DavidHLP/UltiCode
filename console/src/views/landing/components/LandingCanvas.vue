@@ -1,19 +1,26 @@
 <script setup lang="ts">
 /**
- * CodeCoreCanvas — the fixed full-viewport 3D layer behind the landing
- * narrative. Self-contained: owns its scroll listener, rAF loop, and every
- * degradation path so the page content never depends on WebGL.
+ * LandingCanvas — fixed full-viewport 3D layer carrying the camera-rail
+ * narrative. Owns its scroll listener, dt-damped rAF loop, and every
+ * degradation path so page content never depends on WebGL.
+ *
+ * Motion model: scroll maps to rail progress; the loop eases the rendered
+ * progress toward the scroll target with a frame-rate independent
+ * exponential approach (alpha = 1 - e^(-dt·k)) — fast scrolls stay stable,
+ * reverse scrolls replay the rail exactly, refresh restores the right frame.
  *
  * Degradation ladder:
- *   1. WebGL init failure (or dynamic import failure) → static SVG core.
- *   2. prefers-reduced-motion → no rAF loop, no parallax, no rotation;
- *      a single frame is rendered per scroll position.
- *   3. Small screens → fewer nodes, capped DPR, no pointer parallax.
- *   4. Page hidden → animation loop stops; resumes on visibility.
+ *   1. WebGL/init failure → static SVG core; content unaffected.
+ *   2. prefers-reduced-motion → no loop, no flight: each chapter renders as
+ *      its pinned dwell composition, swapped on scroll.
+ *   3. Small screens → mobile rail variant, fewer nodes, capped DPR.
+ *   4. Page hidden → loop stops; resumes on visibility.
  */
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import type { CodeCoreScene } from "../scene/createCodeCoreScene";
+import type { LandingScene } from "../scene/createLandingScene";
+import { CHAPTERS } from "../scene/layout";
+import { chapterAt } from "../scene/rail";
 
 const { t } = useI18n();
 
@@ -21,13 +28,15 @@ const canvasRef = ref<HTMLCanvasElement | null>(null);
 const failed = ref(false);
 const ready = ref(false);
 
-let scene: CodeCoreScene | null = null;
+let scene: LandingScene | null = null;
 let frameId = 0;
 let running = false;
 let reducedMotion = false;
 let interactivePointer = false;
 let targetProgress = 0;
-let currentProgress = 0;
+let renderedProgress = 0;
+let lastFrameTime = 0;
+let lastDwellChapter = -1;
 let removeMediaListener: (() => void) | null = null;
 
 function readProgress(): number {
@@ -37,29 +46,40 @@ function readProgress(): number {
   return Math.min(1, Math.max(0, window.scrollY / scrollable));
 }
 
-function onScroll(): void {
-  targetProgress = readProgress();
-  if (reducedMotion && scene) {
-    // Reduced motion: settle directly, render one frame — no damping.
-    currentProgress = targetProgress;
-    scene.render(currentProgress);
-  }
+function renderDwellShot(): void {
+  if (!scene) return;
+  const chapter = chapterAt(targetProgress);
+  if (chapter === lastDwellChapter) return;
+  lastDwellChapter = chapter;
+  scene.renderAt(CHAPTERS[chapter].dwell);
 }
 
-function tick(): void {
+function onScroll(): void {
+  targetProgress = readProgress();
+  if (reducedMotion) renderDwellShot();
+}
+
+function tick(now: number): void {
   if (!running || !scene) return;
-  const diff = targetProgress - currentProgress;
-  // Frame-rate independent damping toward the scroll target.
-  if (Math.abs(diff) > 0.0005) {
-    currentProgress += diff * 0.12;
-    scene.render(currentProgress);
+  const dt = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) / 1000));
+  lastFrameTime = now;
+
+  const diff = targetProgress - renderedProgress;
+  if (Math.abs(diff) > 0.0004) {
+    // Exponential approach: tight enough that the camera never lags the
+    // narrative, smooth enough that wheel bursts cannot jolt it.
+    const alpha = 1 - Math.exp(-dt * 7);
+    renderedProgress += diff * alpha;
+    scene.setProgress(renderedProgress);
   }
+  scene.render();
   frameId = window.requestAnimationFrame(tick);
 }
 
 function startLoop(): void {
   if (running || reducedMotion || !scene) return;
   running = true;
+  lastFrameTime = performance.now();
   frameId = window.requestAnimationFrame(tick);
 }
 
@@ -89,7 +109,10 @@ function onPointerMove(event: PointerEvent): void {
 
 function onResize(): void {
   scene?.setSize(window.innerWidth, window.innerHeight);
-  if (reducedMotion) onScroll();
+  if (reducedMotion) {
+    lastDwellChapter = -1;
+    renderDwellShot();
+  }
 }
 
 onMounted(async () => {
@@ -108,8 +131,11 @@ onMounted(async () => {
     reducedMotion = event.matches;
     if (reducedMotion) {
       stopLoop();
-      onScroll();
+      lastDwellChapter = -1;
+      renderDwellShot();
     } else {
+      renderedProgress = targetProgress;
+      scene?.setProgress(renderedProgress);
       startLoop();
     }
   };
@@ -127,12 +153,13 @@ onMounted(async () => {
 
   try {
     // Dynamic import keeps three.js out of the first-paint bundle.
-    const { createCodeCoreScene } = await import(
-      "../scene/createCodeCoreScene"
+    const { createLandingScene } = await import(
+      "../scene/createLandingScene"
     );
-    scene = createCodeCoreScene({
+    scene = createLandingScene({
       canvas,
-      count: smallScreen ? 280 : 700,
+      variant: smallScreen ? "mobile" : "desktop",
+      detailScale: smallScreen ? 0.45 : 1,
       maxDpr: smallScreen ? 1.5 : 2,
       interactive: !reducedMotion,
     });
@@ -144,8 +171,14 @@ onMounted(async () => {
 
   scene.setSize(window.innerWidth, window.innerHeight);
   targetProgress = readProgress();
-  currentProgress = targetProgress;
-  scene.render(currentProgress);
+  renderedProgress = targetProgress;
+  scene.setProgress(renderedProgress);
+
+  if (reducedMotion) {
+    renderDwellShot();
+  } else {
+    scene.render();
+  }
   ready.value = true;
 
   window.addEventListener("scroll", onScroll, { passive: true });
@@ -172,18 +205,18 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="code-core-layer" aria-hidden="false">
+  <div class="landing-canvas-layer">
     <canvas
       v-show="!failed"
       ref="canvasRef"
-      class="code-core-canvas"
+      class="landing-canvas"
       :class="{ 'is-ready': ready }"
       role="img"
       :aria-label="t('landing.hero.sceneAlt')"
     />
     <!-- Static fallback: WebGL failed — narrative content stays fully usable. -->
-    <div v-if="failed" class="code-core-fallback" aria-hidden="true">
-      <svg viewBox="0 0 200 200" class="code-core-fallback-svg">
+    <div v-if="failed" class="landing-canvas-fallback" aria-hidden="true">
+      <svg viewBox="0 0 200 200" class="landing-canvas-fallback-svg">
         <g
           fill="none"
           stroke="var(--solarized-cyan)"
@@ -204,7 +237,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.code-core-layer {
+.landing-canvas-layer {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -218,7 +251,7 @@ onBeforeUnmount(() => {
     var(--background);
 }
 
-.code-core-canvas {
+.landing-canvas {
   width: 100%;
   height: 100%;
   display: block;
@@ -226,11 +259,11 @@ onBeforeUnmount(() => {
   transition: opacity 600ms ease;
 }
 
-.code-core-canvas.is-ready {
+.landing-canvas.is-ready {
   opacity: 1;
 }
 
-.code-core-fallback {
+.landing-canvas-fallback {
   position: absolute;
   inset: 0;
   display: flex;
@@ -238,14 +271,14 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.code-core-fallback-svg {
+.landing-canvas-fallback-svg {
   width: min(46vmin, 320px);
   height: auto;
   opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .code-core-canvas {
+  .landing-canvas {
     transition: none;
   }
 }

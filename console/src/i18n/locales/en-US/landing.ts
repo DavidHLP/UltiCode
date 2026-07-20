@@ -18,7 +18,8 @@ export default {
       "Write, run, and get judged instantly. Keep proving your skill across problems, contests, and the community.",
     ctaPrimary: "Start solving",
     ctaSecondary: "Browse contests",
-    sceneAlt: "Decorative 3D scene: a code core made of syntax nodes",
+    sceneAlt:
+      "Decorative 3D scene: the camera follows a code submission through the judging world",
   },
   parse: {
     eyebrow: "01 / Parse",

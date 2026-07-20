@@ -45,12 +45,12 @@ async function mountLanding() {
       plugins: [router, i18n],
     },
   });
-  // CodeCoreCanvas dynamically imports the three.js scene, which cannot
+  // LandingCanvas dynamically imports the three.js scene, which cannot
   // create a WebGL context under jsdom — wait for the failure to settle.
   await vi.waitFor(
     () => {
       expect(
-        wrapper.find(".code-core-fallback").exists() ||
+        wrapper.find(".landing-canvas-fallback").exists() ||
           wrapper.find("canvas.is-ready").exists(),
       ).toBe(true);
     },
@@ -95,7 +95,7 @@ describe("LandingView", () => {
     const wrapper = await mountLanding();
     // jsdom has no WebGL — the canvas layer must degrade, and the page
     // content must stay complete and navigable.
-    expect(wrapper.find(".code-core-fallback").exists()).toBe(true);
+    expect(wrapper.find(".landing-canvas-fallback").exists()).toBe(true);
     expect(wrapper.find("main").exists()).toBe(true);
   });
 });

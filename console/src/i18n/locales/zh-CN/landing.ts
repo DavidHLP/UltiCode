@@ -17,7 +17,7 @@ export default {
     subtitle: "从编写、运行到即时评测，在题目、竞赛与社区中持续验证你的能力。",
     ctaPrimary: "开始刷题",
     ctaSecondary: "浏览竞赛",
-    sceneAlt: "装饰性三维场景：一枚由语法节点组成的代码核心",
+    sceneAlt: "装饰性三维场景：镜头跟随一次代码提交穿越评测世界",
   },
   parse: {
     eyebrow: "01 / 解析",

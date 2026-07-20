@@ -85,4 +85,7 @@ export default {
   footer: {
     tagline: "可验证的进步",
   },
+  chrome: {
+    scrollHint: "滚动",
+  },
 } as const;

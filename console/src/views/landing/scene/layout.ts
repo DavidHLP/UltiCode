@@ -1,83 +1,84 @@
 /**
- * World layout for the landing micro-world — the single source of truth for
- * every spatial coordinate. Both the camera rail (rail.ts) and the geometry
- * builder (world.ts) derive from this data, so the narrative path and the
- * scenery can never drift apart.
+ * Wasteland layout — single source of truth for the monochrome world:
+ * chapter timing, terrain extent, and morph-state anchors. Both the camera
+ * rail and the morph-target builder derive from this data.
  *
- * The world is one continuous corridor along -Z. The camera travels from the
- * code core at the origin down to the finale node at z = -235; nothing is a
- * separate "scene" — chapters are regions of one world.
+ * The world is one continuous particle plain along -Z. Chapters are not
+ * separate scenes: every particle owns a target position in each of the six
+ * morph states, and scroll blends the whole field continuously.
  */
 
-export type Vec3 = readonly [number, number, number];
+/** Six morph states, indexed 0..5 — the particle state machine. */
+export const MORPH_STATES = [
+  "terrain", // hero: the plain wakes out of noise
+  "tunnel", // parse: particles lift into a structural gate
+  "slabs", // judge: vertical test steles rise from the field
+  "starfield", // growth: submissions dissolve into a drifting sky
+  "monoliths", // network: three entry steles (problems/contests/community)
+  "collapse", // finale: everything contracts to one point of light
+] as const;
 
-/** Chapter 0 — the code core, woken at the origin. */
-export const CORE = { center: [0, 0, 0] as Vec3, radius: 2.3 };
+export type MorphState = (typeof MORPH_STATES)[number];
 
-/** Chapter 1 — the parse tunnel the camera follows the submission through. */
-export const TUNNEL = { startZ: -6, endZ: -38, radius: 3 };
-
-/** Chapter 2 — eight test chambers flanking the corridor. */
-export interface ChamberLayout {
-  center: Vec3;
-  /** Half-extent of the chamber box. */
-  half: number;
-}
-
-export const CHAMBERS: readonly ChamberLayout[] = Array.from(
-  { length: 8 },
-  (_, i) => ({
-    center: [
-      i % 2 === 0 ? -5 : 5,
-      i % 4 < 2 ? 2.5 : -2.5,
-      -48 - i * 5.5,
-    ] as Vec3,
-    half: 1.6,
-  }),
-);
-
-/** Chapter 3 — the verdict ring the camera punches through. */
-export const RING = { center: [0, 0, -100] as Vec3, radius: 3 };
-
-/** Chapter 4 — the growth helix of past submissions. */
-export const HELIX = {
-  center: [0, 0, -136] as Vec3,
-  radius: 6,
-  startZ: -116,
-  endZ: -158,
-  turns: 3,
-};
-
-/** Chapter 5 — the wider network of contests and community. */
-export const NETWORK = {
-  center: [0, 0, -200] as Vec3,
-  radius: 16,
-  clusters: 9,
-};
-
-/** Chapter 6 — the finale node that resolves into a cursor. */
-export const FINALE = { center: [0, 0, -235] as Vec3, radius: 0.9 };
-
-/** Narrative chapters as progress ranges over page scroll. */
-export const CHAPTER_COUNT = 7;
+export const MORPH_COUNT = MORPH_STATES.length;
 
 export interface ChapterConfig {
   name: string;
+  /** Morph state this chapter dwells in. */
+  state: number;
   start: number;
   end: number;
-  /**
-   * Progress value of the chapter's representative composition. Reduced
-   * motion renders exactly this frame instead of flying the rail.
-   */
+  /** Progress of the chapter's representative composition (reduced motion). */
   dwell: number;
+  /** Z anchor of the chapter's in-world title plane. */
+  titleZ: number;
 }
 
 export const CHAPTERS: readonly ChapterConfig[] = [
-  { name: "hero", start: 0.0, end: 0.14, dwell: 0.07 },
-  { name: "parse", start: 0.14, end: 0.3, dwell: 0.22 },
-  { name: "matrix", start: 0.3, end: 0.52, dwell: 0.46 },
-  { name: "verdict", start: 0.52, end: 0.62, dwell: 0.56 },
-  { name: "growth", start: 0.62, end: 0.78, dwell: 0.74 },
-  { name: "network", start: 0.78, end: 0.92, dwell: 0.86 },
-  { name: "finale", start: 0.92, end: 1.0, dwell: 0.98 },
+  { name: "hero", state: 0, start: 0.0, end: 0.16, dwell: 0.08, titleZ: -34 },
+  { name: "parse", state: 1, start: 0.16, end: 0.34, dwell: 0.25, titleZ: -78 },
+  { name: "matrix", state: 2, start: 0.34, end: 0.52, dwell: 0.43, titleZ: -132 },
+  { name: "growth", state: 3, start: 0.52, end: 0.7, dwell: 0.61, titleZ: -188 },
+  { name: "network", state: 4, start: 0.7, end: 0.88, dwell: 0.79, titleZ: -238 },
+  { name: "finale", state: 5, start: 0.88, end: 1.0, dwell: 0.95, titleZ: -296 },
 ] as const;
+
+export const CHAPTER_COUNT = CHAPTERS.length;
+
+/** Terrain plain extent. */
+export const TERRAIN = {
+  width: 170, // x: -85..85
+  depth: 380, // z: 30..-350
+  maxHeight: 7.5,
+};
+
+/** Test steles (matrix chapter): eight slabs in two ranks. */
+export interface Stele {
+  x: number;
+  z: number;
+  width: number;
+  height: number;
+}
+
+export const SLABS: readonly Stele[] = Array.from({ length: 8 }, (_, i) => ({
+  x: i % 2 === 0 ? -7 : 7,
+  z: -108 - Math.floor(i / 2) * 9,
+  width: 6,
+  height: 11 + (i % 3) * 1.5,
+}));
+
+/** Entry monoliths (network chapter): problems / contests / community. */
+export const MONOLITHS = [
+  { x: -15, z: -238, width: 7, height: 22 },
+  { x: 0, z: -244, width: 8, height: 27 },
+  { x: 15, z: -238, width: 7, height: 22 },
+] as const;
+
+/** Starfield centre (growth chapter). */
+export const SKY = { x: 0, y: 26, z: -190, radius: 90 };
+
+/** Collapse point (finale). */
+export const COLLAPSE_POINT = { x: 0, y: 1.2, z: -305 } as const;
+
+/** Particle budgets per device class. */
+export const PARTICLE_BUDGET = { desktop: 90000, mobile: 24000 } as const;

@@ -29,7 +29,7 @@ defineOptions({ name: "NetworkSection" });
 <template>
   <section class="landing-section" aria-labelledby="landing-network-title">
     <div class="landing-container">
-      <div class="landing-block mx-auto max-w-2xl text-center">
+      <div class="landing-block landing-reveal mx-auto max-w-2xl text-center">
         <p class="landing-eyebrow">{{ t("landing.network.eyebrow") }}</p>
         <h2 id="landing-network-title" class="landing-heading">
           {{ t("landing.network.title") }}
@@ -47,7 +47,7 @@ defineOptions({ name: "NetworkSection" });
               {{ point }}
             </li>
           </ul>
-          <Button as-child variant="outline" size="sm" class="mt-6">
+          <Button as-child variant="outline" size="sm" class="landing-btn-ghost mt-6">
             <RouterLink :to="{ name: 'contest-home' }">
               {{ t("landing.network.contest.cta") }}
             </RouterLink>
@@ -63,7 +63,7 @@ defineOptions({ name: "NetworkSection" });
               {{ point }}
             </li>
           </ul>
-          <Button as-child variant="outline" size="sm" class="mt-6">
+          <Button as-child variant="outline" size="sm" class="landing-btn-ghost mt-6">
             <RouterLink :to="{ name: 'forum-home' }">
               {{ t("landing.network.community.cta") }}
             </RouterLink>

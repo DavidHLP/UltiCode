@@ -26,18 +26,18 @@ defineOptions({ name: "FinaleSection" });
 <template>
   <section class="landing-section" aria-labelledby="landing-finale-title">
     <div class="landing-container">
-      <div class="landing-block mx-auto max-w-2xl text-center">
+      <div class="landing-block landing-reveal mx-auto max-w-2xl text-center">
         <h2 id="landing-finale-title" class="landing-title">
           {{ t("landing.finale.title") }}
         </h2>
         <p class="landing-body">{{ t("landing.finale.body") }}</p>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Button as-child size="lg">
+          <Button as-child size="lg" class="landing-btn-primary">
             <RouterLink :to="{ name: 'problemset' }">
               {{ t("landing.finale.ctaPrimary") }}
             </RouterLink>
           </Button>
-          <Button as-child variant="outline" size="lg">
+          <Button as-child variant="outline" size="lg" class="landing-btn-ghost">
             <RouterLink
               :to="{ name: isAuthenticated ? 'personal-profile' : 'register' }"
             >

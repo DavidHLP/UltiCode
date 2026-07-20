@@ -87,4 +87,7 @@ export default {
   footer: {
     tagline: "Verifiable progress",
   },
+  chrome: {
+    scrollHint: "Scroll",
+  },
 } as const;

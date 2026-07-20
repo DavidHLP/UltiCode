@@ -25,7 +25,7 @@ defineOptions({ name: "ParseSection" });
   <section class="landing-section" aria-labelledby="landing-parse-title">
     <div class="landing-container">
       <div class="grid items-center gap-10 lg:grid-cols-2">
-        <div class="landing-block">
+        <div class="landing-block landing-reveal">
           <p class="landing-eyebrow">{{ t("landing.parse.eyebrow") }}</p>
           <h2 id="landing-parse-title" class="landing-heading">
             {{ t("landing.parse.title") }}
@@ -38,7 +38,7 @@ defineOptions({ name: "ParseSection" });
           </ul>
         </div>
 
-        <div class="landing-editor" data-testid="landing-editor">
+        <div class="landing-editor landing-reveal" data-testid="landing-editor">
           <div class="landing-editor-bar">
             <span class="landing-editor-dot" />
             <span class="landing-editor-dot" />

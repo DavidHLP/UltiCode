@@ -27,7 +27,7 @@ defineOptions({ name: "GrowthSection" });
   <section class="landing-section" aria-labelledby="landing-growth-title">
     <div class="landing-container">
       <div class="grid items-center gap-10 lg:grid-cols-2">
-        <div class="landing-track" aria-hidden="true">
+        <div class="landing-track landing-reveal" aria-hidden="true">
           <svg viewBox="0 0 320 200" class="landing-track-svg">
             <path
               d="M16 176 C 80 160, 96 128, 144 116 S 224 88, 244 60 S 296 36, 304 24"
@@ -47,7 +47,7 @@ defineOptions({ name: "GrowthSection" });
           </svg>
         </div>
 
-        <div class="landing-block">
+        <div class="landing-block landing-reveal">
           <p class="landing-eyebrow">{{ t("landing.growth.eyebrow") }}</p>
           <h2 id="landing-growth-title" class="landing-heading">
             {{ t("landing.growth.title") }}

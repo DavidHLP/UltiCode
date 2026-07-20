@@ -15,7 +15,7 @@ defineOptions({ name: "HeroSection" });
 <template>
   <section class="landing-section" aria-labelledby="landing-hero-title">
     <div class="landing-container">
-      <div class="landing-block max-w-2xl">
+      <div class="landing-block landing-reveal max-w-2xl">
         <p class="landing-eyebrow">{{ t("landing.hero.eyebrow") }}</p>
         <h1 id="landing-hero-title" class="landing-title">
           {{ t("landing.hero.title") }}
@@ -24,12 +24,12 @@ defineOptions({ name: "HeroSection" });
           {{ t("landing.hero.subtitle") }}
         </p>
         <div class="mt-8 flex flex-wrap items-center gap-3">
-          <Button as-child size="lg">
+          <Button as-child size="lg" class="landing-btn-primary">
             <RouterLink :to="{ name: 'problemset' }">
               {{ t("landing.hero.ctaPrimary") }}
             </RouterLink>
           </Button>
-          <Button as-child variant="outline" size="lg">
+          <Button as-child variant="outline" size="lg" class="landing-btn-ghost">
             <RouterLink :to="{ name: 'contest-home' }">
               {{ t("landing.hero.ctaSecondary") }}
             </RouterLink>

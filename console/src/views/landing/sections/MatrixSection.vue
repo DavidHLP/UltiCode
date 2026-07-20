@@ -50,7 +50,7 @@ defineOptions({ name: "MatrixSection" });
   >
     <div class="landing-container">
       <div class="grid items-center gap-10 lg:grid-cols-2">
-        <div class="landing-block order-2 lg:order-1">
+        <div class="landing-block landing-reveal order-2 lg:order-1">
           <p class="landing-eyebrow">{{ t("landing.matrix.eyebrow") }}</p>
           <h2 id="landing-matrix-title" class="landing-heading">
             {{ t("landing.matrix.title") }}

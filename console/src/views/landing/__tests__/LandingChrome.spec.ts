@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { RouterLinkStub } from "@vue/test-utils";
-import LandingNav from "../components/LandingNav.vue";
+import LandingChrome from "../components/LandingChrome.vue";
 
 vi.mock("vue-i18n", async (importOriginal) => ({
   ...(await importOriginal<typeof import("vue-i18n")>()),
@@ -22,8 +22,8 @@ vi.mock("@/components/LanguageSwitcher.vue", () => ({
   default: { template: "<div />" },
 }));
 
-function mountNav() {
-  return mount(LandingNav, {
+function mountChrome() {
+  return mount(LandingChrome, {
     global: {
       stubs: {
         RouterLink: RouterLinkStub,
@@ -32,28 +32,27 @@ function mountNav() {
   });
 }
 
-describe("LandingNav", () => {
-  it("shows login and register entries to guests", () => {
+describe("LandingChrome", () => {
+  it("shows the primary CTA and a login entry to guests", () => {
     authState.isAuthenticated = false;
-    const wrapper = mountNav();
+    const wrapper = mountChrome();
     const text = wrapper.text();
+    expect(text).toContain("landing.hero.ctaPrimary");
     expect(text).toContain("landing.nav.login");
-    expect(text).toContain("landing.nav.register");
     expect(text).not.toContain("landing.nav.enter");
   });
 
   it("shows a platform entry to signed-in users instead of auth links", () => {
     authState.isAuthenticated = true;
-    const wrapper = mountNav();
+    const wrapper = mountChrome();
     const text = wrapper.text();
     expect(text).toContain("landing.nav.enter");
     expect(text).not.toContain("landing.nav.login");
-    expect(text).not.toContain("landing.nav.register");
   });
 
   it("links to the real product surfaces", () => {
     authState.isAuthenticated = false;
-    const wrapper = mountNav();
+    const wrapper = mountChrome();
     const names = wrapper
       .findAllComponents(RouterLinkStub)
       .map((link) => (link.props("to") as { name?: string })?.name);

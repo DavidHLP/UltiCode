@@ -64,7 +64,7 @@ public class ForumController {
     @Operation(summary = "Get all posts", description = "Get all forum posts with sorting and pagination")
     @GetMapping("/posts")
     public Result<PageResult<ForumPostVO>> getAllPosts(
-            @Parameter(description = "Sort by (hot, new, top)")
+            @Parameter(description = "Sort by (new, hot, top, controversial, explore)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
             @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,
@@ -189,7 +189,7 @@ public class ForumController {
     @GetMapping("/communities/{slug}/posts")
     public Result<PageResult<ForumPostVO>> getCommunityPosts(
             @Parameter(description = "Community slug") @PathVariable String slug,
-            @Parameter(description = "Sort by (hot, new, top)")
+            @Parameter(description = "Sort by (new, hot, top, controversial, explore)")
             @RequestParam(required = false, defaultValue = "new") String sortBy,
             @Parameter(description = "Page number (1-based)")
             @RequestParam(required = false, defaultValue = "1") @ForumPage Integer page,

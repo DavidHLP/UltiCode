@@ -155,4 +155,19 @@ class DefaultForumReadProjectionSortTest {
         assertThat(sql).contains("CREATED_AT");
         assertThat(sql).contains("ID DESC");
     }
+    // explore sort key — compatibility alias for /forum/explore route.
+    @Test
+    @DisplayName("explore is a recognised sort key — aliases to new (regression: was 400)")
+    void exploreIsRecognised() {
+        String sql = sqlFor("explore");
+        assertThat(sql).contains("ORDER BY");
+        assertThat(sql).contains("CREATED_AT");
+        assertThat(sql).contains("ID DESC");
+    }
+
+    @Test
+    @DisplayName("explore produces the same order as new (compatibility alias, not a new ranking)")
+    void exploreIsAliasOfNew() {
+        assertThat(sqlFor("explore")).isEqualTo(sqlFor("new"));
+    }
 }

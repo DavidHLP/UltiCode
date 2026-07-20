@@ -344,6 +344,9 @@ public class DefaultForumReadProjection implements ForumReadProjection {
      *       column; currently maps to the same signal as {@code hot}. A TODO
      *       notes the future migration to surface high-vote + high-downvote
      *       posts.</li>
+     *   <li>{@code explore} — compatibility alias for {@code new}, added to
+     *       support the {@code /forum/explore} route without defining a distinct
+     *       ranking signal.</li>
      * </ul>
      *
      * <p>Every branch appends {@code id DESC} as a stable tie-breaker so
@@ -375,6 +378,9 @@ public class DefaultForumReadProjection implements ForumReadProjection {
             // hot signal so the option is functional rather than invalid.
             wrapper.orderByDesc(ForumPost::getViews)
                     .orderByDesc(ForumPost::getCreatedAt);
+        } else if ("explore".equals(normalisedSortBy)) {
+            // Compatibility alias for the /forum/explore route.
+            wrapper.orderByDesc(ForumPost::getCreatedAt);
         } else {
             throw new BusinessException(ErrorCode.FORUM_INVALID_SORT);
         }

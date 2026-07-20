@@ -214,6 +214,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         participant.setVirtualSessionId(uuidGenerator.newId());
         try {
             participantMapper.insert(participant);
+            log.info("User {} started virtual contest {}", userId, contestId);
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // C4: race lost — another transaction inserted the same active (contest, user,
             // STARTED) row. The unique key on active_virtual_key guarantees at most one
@@ -221,7 +222,6 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
             log.info("C4: user {} lost race for virtual contest {} start, returning existing",
                     userId, contestId);
         }
-        log.info("User {} started virtual contest {}", userId, contestId);
         return getVirtualSession(contestId, userId);
     }
 

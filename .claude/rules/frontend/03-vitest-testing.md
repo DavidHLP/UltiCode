@@ -7,6 +7,8 @@ paths:
   - "management/src/{api,components,composables,i18n,lib,stores,utils,views}/**/*.{spec,test}.ts"
   - "shared/*/vitest.config.ts"
   - "shared/*/{src,__tests__,test,tests}/**/*.{spec,test}.ts"
+kind: rules
+summary: 'Vitest testing conventions for frontend.'
 ---
 
 # Vitest rules

@@ -2,6 +2,8 @@
 paths:
   - "backend-spring/src/test/**/*.java"
   - "docker/sandbox/harness/java/src/test/**/*.java"
+kind: rules
+summary: 'Java unit testing standards (JUnit / Mockito).'
 ---
 
 # Java test rules

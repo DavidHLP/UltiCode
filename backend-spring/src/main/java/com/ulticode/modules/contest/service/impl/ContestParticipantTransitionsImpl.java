@@ -13,12 +13,20 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Single implementation of all {@code ContestParticipant} status transitions.
+ * Delegation seam for {@code ContestParticipant} status transitions called by
+ * the scheduled lifecycle path ({@code ContestLifecycleServiceImpl}).
  *
- * <p>Both the interactive path ({@code ContestParticipationServiceImpl}) and
- * the scheduled path ({@code ContestLifecycleServiceImpl}) delegate here so
- * that transition rules, conditional-UPDATE guards, and audit stamping have one
- * locality.
+ * <p>This seam gives the lifecycle service a single mockable collaborator
+ * (instead of wiring the mapper directly into the scheduler) and owns three
+ * practical concerns: the REGISTERED→STARTED and STARTED→FINISHED(real)
+ * bulk calls are forwarded to {@link ContestParticipantMapper} with the
+ * canonical status literals; the virtual batch call adds input hygiene
+ * (null/empty guard + {@link HashSet} dedup) before dispatch.
+ *
+ * <p>The transition rules themselves — conditional-UPDATE WHERE guards,
+ * status literal checks, and audit-stamp columns — live in the mapper's
+ * {@code @Update} SQL, not here. This class deliberately does not re-express
+ * them so there is one source of truth for the guards.
  */
 @Service
 @RequiredArgsConstructor

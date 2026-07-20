@@ -3,6 +3,8 @@ paths:
   - "console/**/*.{ts,vue,js,mjs,cjs,json,css,html}"
   - "management/**/*.{ts,vue,js,mjs,cjs,json,css,html}"
   - "shared/**/*.{ts,vue,js,mjs,cjs,json,css}"
+kind: rules
+summary: 'Cross-cutting frontend conventions for Console and Management apps.'
 ---
 
 # UltiCode frontend rules

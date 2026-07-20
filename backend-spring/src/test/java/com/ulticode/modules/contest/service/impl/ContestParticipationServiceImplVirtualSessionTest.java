@@ -358,6 +358,42 @@ class ContestParticipationServiceImplVirtualSessionTest {
         assertThat(result.getId()).isEqualTo(generatedId.get());
     }
 
+    // ============================================================
+    // startVirtualContest — regression: DuplicateKeyException handler
+    // must return existing session, not crash or lose the winner's id
+    // ============================================================
+
+    @Test
+    @DisplayName("startVirtualContest DuplicateKeyException returns existing session without error")
+    void startVirtualContest_dupKey_returnsExistingSession() {
+        Contest c = buildContest();
+        c.setStatus("FINISHED");
+        when(contestMapper.selectById(CONTEST_ID)).thenReturn(c);
+        when(participantMapper.findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.empty());
+
+        // Simulate the race: another transaction won and inserted first
+        String winnerSessionId = UUID.randomUUID().toString();
+        when(participantMapper.insert(any(ContestParticipant.class)))
+                .thenThrow(new org.springframework.dao.DuplicateKeyException(
+                        "Duplicate entry for active_virtual_key"));
+
+        // getVirtualSession reads the winner's row from the DB
+        ContestParticipant existing = buildVirtualParticipant(winnerSessionId);
+        when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
+                .thenReturn(Optional.of(existing));
+
+        // Must not throw — catch block handles DuplicateKeyException gracefully
+        ParticipationStatusDTO result = service.startVirtualContest(CONTEST_ID, USER_ID);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(winnerSessionId);
+        // The existing session is returned, not null or a newly-generated id
+        verify(participantMapper).findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID);
+        verify(participantMapper).insert(any(ContestParticipant.class));
+    }
+
+
     @Test
     @DisplayName("bulkFinishByIds has STARTED and is_virtual=1 guard in UPDATE WHERE clause")
     void bulkFinishByIds_hasCorrectGuard() throws Exception {

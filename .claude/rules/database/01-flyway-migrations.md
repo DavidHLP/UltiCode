@@ -3,6 +3,8 @@ paths:
   - "init-db/flyway.conf"
   - "init-db/migrations/**/*.sql"
   - "scripts/dev/migrate.sh"
+kind: rules
+summary: 'Flyway migration rules for schema changes.'
 ---
 
 # Database migration workflow

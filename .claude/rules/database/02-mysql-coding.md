@@ -3,6 +3,8 @@ paths:
   - "init-db/migrations/**/*.sql"
   - "backend-spring/src/main/java/**/*Mapper.java"
   - "backend-spring/src/main/java/**/mapper/**/*.java"
+kind: rules
+summary: 'MySQL coding standards for mappers and migrations.'
 ---
 
 # MySQL rules

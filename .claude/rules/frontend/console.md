@@ -4,6 +4,8 @@ paths:
   - "console/*.{json,ts,js,mjs,cjs,html}"
   - "console/src/**/*.{ts,vue,css}"
   - "console/public/**/*.{js,css,html}"
+kind: rules
+summary: 'Console app (Vue 3 user application) rules.'
 ---
 
 # Console application workflow

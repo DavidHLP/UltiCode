@@ -4,6 +4,8 @@ paths:
   - "*/AGENTS.md"
   - "CLAUDE.md"
   - "wiki/**/*.md"
+kind: rules
+summary: 'Documentation rules for AGENTS.md and wiki.'
 ---
 
 # Project documentation workflow

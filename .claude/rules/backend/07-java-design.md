@@ -1,6 +1,8 @@
 ---
 paths:
   - "backend-spring/src/main/**/*.java"
+kind: rules
+summary: 'Java design patterns and architectural rules.'
 ---
 
 # Java design rules

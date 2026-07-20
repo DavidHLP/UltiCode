@@ -12,6 +12,8 @@ paths:
   - "shared/{auth-core,auth-ui,http-client,markdown-utils,theme}/**/*.{ts,vue,js}"
   - "docker-compose*.yml"
   - "docker/**/*.{yml,yaml,json,conf}"
+kind: rules
+summary: 'Cross-cutting trust boundary and security invariants.'
 ---
 
 # Trust-boundary review

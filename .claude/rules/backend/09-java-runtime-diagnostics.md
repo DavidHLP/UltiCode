@@ -1,3 +1,13 @@
+---
+kind: rules
+paths: []
+summary: 'Arthas / JVM runtime diagnostics guardrails (unconditional; trigger-driven).'
+triggers:
+  - 'arthas'
+  - 'jvm diagnostics'
+  - 'runtime debug'
+  - 'hot attach'
+---
 # Runtime diagnostics guardrails
 
 - Treat attached JVM diagnostics as production-affecting even when the command appears read-only; start with the narrowest observation point.

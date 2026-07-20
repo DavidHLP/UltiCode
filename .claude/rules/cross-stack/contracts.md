@@ -12,6 +12,8 @@ paths:
   - "management/src/types/**/*.ts"
   - "shared/domain-types/**/*.ts"
   - "shared/sandbox-types/**/*.ts"
+kind: rules
+summary: 'Cross-stack API contracts (DTOs, VOs, frontend types).'
 ---
 
 # Cross-stack contract changes

@@ -2,6 +2,8 @@
 paths:
   - "backend-spring/pom.xml"
   - "backend-spring/src/**/*.java"
+kind: rules
+summary: 'Java project structure and module layout.'
 ---
 
 # Java project-structure rules

@@ -5,6 +5,8 @@ paths:
   - "management/src/router/**/*.ts"
   - "management/src/stores/**/*.ts"
   - "shared/**/*{router,store}*.ts"
+kind: rules
+summary: 'Vue Router and Pinia store conventions.'
 ---
 
 # Vue Router and Pinia rules

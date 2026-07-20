@@ -6,6 +6,8 @@ paths:
   - "management/{src,test,tests,e2e,scripts}/**/*.{ts,mts,cts,vue}"
   - "shared/*/*.{ts,mts,cts,vue}"
   - "shared/*/{src,test,tests,__tests__}/**/*.{ts,mts,cts,vue}"
+kind: rules
+summary: 'Vue 3 + TypeScript conventions for both apps.'
 ---
 
 # TypeScript and Vue 3 rules

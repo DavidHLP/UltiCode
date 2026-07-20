@@ -4,6 +4,8 @@ paths:
   - "management/*.{json,ts,js,mjs,cjs,html}"
   - "management/src/**/*.{ts,vue,css}"
   - "management/public/**/*.{js,css,html}"
+kind: rules
+summary: 'Management app (Vue 3 admin application) rules.'
 ---
 
 # Management application workflow

@@ -4,6 +4,8 @@ paths:
   - "backend-spring/src/main/java/**/mapper/**/*.java"
   - "backend-spring/src/main/java/**/entity/**/*.java"
   - "backend-spring/src/main/java/**/service/**/*.java"
+kind: rules
+summary: 'MyBatis-Plus mapper and entity rules for MySQL.'
 ---
 
 # MyBatis and persistence rules

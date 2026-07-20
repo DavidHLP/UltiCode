@@ -5,6 +5,8 @@ paths:
   - "docker/**/*"
   - "ecosystem.config.cjs"
   - "scripts/dev/**/*"
+kind: rules
+summary: 'Runtime and infrastructure rules (Docker, Compose, PM2).'
 ---
 
 # Runtime and infrastructure workflow

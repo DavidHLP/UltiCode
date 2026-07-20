@@ -2,6 +2,8 @@
 paths:
   - "backend-spring/src/**/*.java"
   - "docker/sandbox/harness/java/src/**/*.java"
+kind: rules
+summary: 'Java programming standards for backend source.'
 ---
 
 # Java 17 language rules

@@ -1,6 +1,8 @@
 ---
 paths:
   - "shared/**/*.{ts,vue,js,mjs,cjs,json,css}"
+kind: rules
+summary: 'Shared monorepo packages conventions.'
 ---
 
 # Shared package workflow

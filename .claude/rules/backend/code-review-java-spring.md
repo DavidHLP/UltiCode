@@ -1,6 +1,8 @@
 ---
 paths:
   - "backend-spring/src/**/*.{java,yml,yaml,properties}"
+kind: rules
+summary: 'Spring-specific code review rules.'
 ---
 
 # Spring review entry point

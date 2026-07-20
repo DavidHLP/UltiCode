@@ -6,14 +6,17 @@ import java.time.LocalDateTime;
  * Single seam for all {@link com.ulticode.modules.contest.entity.ContestParticipant}
  * status transitions.
  * <p>The scheduled path ({@link com.ulticode.modules.contest.service.ContestLifecycleService})
- * delegates bulk transitions here so that conditional-UPDATE guards, clock arithmetic,
- * and side-effect ordering have one locality. Individual participant transitions
- * (interactive start/finish) are handled directly by the mapper in
- * {@code ContestParticipationService}.
+ * delegates bulk transitions here so that the lifecycle scheduler has a single
+ * mockable collaborator. This seam owns input hygiene (null guard, dedup) for
+ * virtual batches and forwards the three transition calls to the mapper with
+ * the canonical status literals.
+ *
+ * <p>Individual participant transitions (interactive start/finish) are handled
+ * directly by the mapper in {@code ContestParticipationService}.
  *
  * <p>Load-bearing constraints preserved:
  * <ul>
- *   <li>D-05/D-06 — status rules are expressed as conditional-UPDATE guards</li>
+ *   <li>D-05/D-06 — status rules are enforced as conditional-UPDATE guards in the mapper SQL</li>
  *   <li>R6.2/F-06 — effective time arithmetic stays in {@link com.ulticode.modules.contest.clock.ContestClock}</li>
  *   <li>D-04 — submission intake is not modified by this module</li>
  * </ul>

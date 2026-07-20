@@ -4,6 +4,8 @@ paths:
   - "scripts/**/*.sh"
   - "docker/**/*.sh"
   - "init-db/**/*.sh"
+kind: rules
+summary: 'Shell scripting standards for repo scripts.'
 ---
 
 # Bash and shell-script rules

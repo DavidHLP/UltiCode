@@ -2,6 +2,8 @@
 paths:
   - "backend-spring/pom.xml"
   - "backend-spring/src/**/*.{java,xml,yml,yaml,properties}"
+kind: rules
+summary: 'Backend implementation workflow and conventions.'
 ---
 
 # Backend implementation workflow

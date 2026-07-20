@@ -9,6 +9,7 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
     private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
+    private ContestParticipantTransitions participantTransitions;
     private ContestParticipationServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -63,9 +65,10 @@ class ContestParticipationServiceImplVirtualSessionTest {
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
         achievementTriggerService =
                 mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
+        participantTransitions = mock(ContestParticipantTransitions.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new ContestParticipationServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock, achievementTriggerService);
+        service = new ContestParticipationServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock, achievementTriggerService, participantTransitions);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {
@@ -153,10 +156,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
         // Should not throw — null sessionId is allowed
         service.finishVirtualContest(CONTEST_ID, null, USER_ID);
 
-        // Verify the SQL update was issued (the actual contract: mapper.bulkFinishByIds
-        // is called with the participant's id). The in-memory p is not mutated by
-        // the mocked mapper, so checking p.getStatus() is incorrect here.
-        verify(participantMapper).bulkFinishByIds(any(), any());
+        // Verify the transition was delegated through the participant-transitions module.
+        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -169,7 +170,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         service.finishVirtualContest(CONTEST_ID, "  ", USER_ID);
 
-        verify(participantMapper).bulkFinishByIds(any(), any());
+        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -182,7 +183,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         service.finishVirtualContest(CONTEST_ID, storedUuid, USER_ID);
 
-        verify(participantMapper).bulkFinishByIds(any(), any());
+        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -230,7 +231,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         assertThat(p.getFinishedAt()).isEqualTo(originalFinish);
         assertThat(p.getUpdatedAt()).isEqualTo(originalFinish);
         // The SQL UPDATE must NOT be re-issued
-        verify(participantMapper, never()).bulkFinishByIds(any(), any());
+        verify(participantTransitions, never()).bulkFinishVirtualByIds(any(), any());
     }
 
     // ============================================================

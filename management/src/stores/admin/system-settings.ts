@@ -440,12 +440,27 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
       if (isUploadsDirty.value) saves.push({ key: 'uploads', fn: saveUploads })
       if (isFeaturesDirty.value) saves.push({ key: 'features', fn: saveFeatures })
 
+      const preBatchSnapshot = snapshot.value
       const results = await Promise.allSettled(saves.map((s) => s.fn()))
 
-      // Snapshot is refreshed only for categories that reached the server.
-      // Each successful saveXxx already merged the server response into `all`.
+      // Build nextSnapshot from the pre-batch snapshot, then overlay only the slices
+      // that succeeded. Each successful saveXxx already merged the server response
+      // into `all`; failed categories keep their pre-save values in `all` and their
+      // dirty state is preserved by NOT copying them into the new snapshot.
+      const nextSnapshot = { ...preBatchSnapshot }
+      results.forEach((result, i) => {
+        if (result.status === 'fulfilled') {
+          const key = saves[i]?.key
+          if (key === 'general') Object.assign(nextSnapshot, sliceGeneral(all.value))
+          else if (key === 'email') Object.assign(nextSnapshot, sliceEmail(all.value))
+          else if (key === 'rateLimits') Object.assign(nextSnapshot, sliceRateLimits(all.value))
+          else if (key === 'uploads') Object.assign(nextSnapshot, sliceUploads(all.value))
+          else if (key === 'features') Object.assign(nextSnapshot, sliceFeatures(all.value))
+        }
+      })
+      snapshot.value = nextSnapshot
+
       const anyRejected = results.some((r) => r.status === 'rejected')
-      snapshot.value = { ...all.value }
 
       if (anyRejected) {
         const failed = results

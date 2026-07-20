@@ -5,15 +5,21 @@ import { useSystemSettingsStore } from '../system-settings'
 import { formatBytes, parseSizeToBytes } from '../system-settings'
 import type { AllSettings } from '@/api/admin/settings'
 
-vi.mock('@/utils/request', () => ({
-  apiGet: vi.fn(),
-  apiPatch: vi.fn(),
-  apiPost: vi.fn(),
-  apiPut: vi.fn(),
-  apiDelete: vi.fn(),
-  apiUpload: vi.fn(),
-  apiDownload: vi.fn(),
-}))
+// Keep ApiError (and all other non-mocked exports) so that extractApiErrorMessage's
+// `instanceof ApiError` guard works correctly inside store catch blocks.
+vi.mock('@/utils/request', async () => {
+  const actual = await vi.importActual<typeof import('@/utils/request')>('@/utils/request')
+  return {
+    ...actual,
+    apiGet: vi.fn(),
+    apiPatch: vi.fn(),
+    apiPost: vi.fn(),
+    apiPut: vi.fn(),
+    apiDelete: vi.fn(),
+    apiUpload: vi.fn(),
+    apiDownload: vi.fn(),
+  }
+})
 
 // Backend serves camelCase (Jackson default — no PropertyNamingStrategy
 // configured in JacksonConfig). The API client converts to/from snake_case
@@ -345,10 +351,45 @@ describe('useSystemSettingsStore', () => {
       await store.resetToDefaultsServer()
 
       expect(apiPost).toHaveBeenCalledWith('/admin/settings/reset')
-      // After the server reset, the canonical state matches the server payload
       // and dirty flags clear because the snapshot is refreshed.
       expect(store.features.feature_contest).toBe(true)
       expect(store.isFeaturesDirty).toBe(false)
+    })
+  })
+
+  describe('saveAllDirty — partial-failure snapshot isolation', () => {
+    it('keeps failed category dirty while clearing succeeded category', async () => {
+      // email fails (409/conflict); general succeeds and echoes the edit.
+      // The bug: snapshot was blindly set to all (which holds the user's
+      // failed-email edits), making email appear non-dirty even though it failed.
+      vi.mocked(apiPatch).mockImplementation((path: string) => {
+        if (path === '/admin/settings/email') {
+          return Promise.reject(new Error('email failed — conflict'))
+        }
+        // Echo the edited general slice back so all.value reflects the persisted value.
+        return Promise.resolve({ ...allWire, siteName: 'Dirty Name' })
+      })
+      const store = useSystemSettingsStore()
+      await store.load()
+      vi.mocked(apiPatch).mockClear()
+
+      // Dirty both categories.
+      store.patchGeneral({ site_name: 'Dirty Name' })
+      store.patchEmail({ smtp_host: 'dirty@example.com' })
+      expect(store.isGeneralDirty).toBe(true)
+      expect(store.isEmailDirty).toBe(true)
+
+      await expect(store.saveAllDirty()).rejects.toThrow()
+
+      // General succeeded — server echoed the edit; snapshot now matches all;
+      // dirty is cleared and the persisted value is preserved.
+      expect(store.isGeneralDirty).toBe(false)
+      expect(store.general.site_name).toBe('Dirty Name')
+      // Email failed — snapshot still holds the pre-save email slice,
+      // so isEmailDirty stays true (user's edit is still uncommitted).
+      expect(store.isEmailDirty).toBe(true)
+      // Error is surfaced per-category.
+      expect(store.saveStatus.errors.email).toBeTruthy()
     })
   })
 })

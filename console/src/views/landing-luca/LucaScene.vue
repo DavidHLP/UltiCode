@@ -50,6 +50,7 @@ import {
   type LucaState,
 } from "@/composables/landing/useLucaStage";
 import {
+  applyTargets,
   PRISTINE,
   lerp,
   bakeGridSnap,
@@ -59,7 +60,6 @@ import {
   mulberry32,
 } from "./luca/polyhedron";
 import type { MorphTargets } from "./luca/polyhedron";
-
 const props = defineProps<{ active?: boolean }>();
 
 const stage = useLucaStageConsumer();
@@ -641,7 +641,6 @@ const start = async () => {
   // via gsap) blends the transition so the return reads as a deliberate
   // easing, not a flip.
   let harmonyMode = false;
-  let reverseActive = false;
   let reverseT = 0;
   const reverseProxy = { t: 0 };
   let reverseTween: gsap.core.Animation | null = null;
@@ -656,108 +655,6 @@ const start = async () => {
   const clickProxy = { v: 1 };
   let clickTween: gsap.core.Animation | null = null;
 
-  // Compute the per-state morph TARGETS for the current beat. Every beat
-  // overrides a handful of PRISTINE fields; the rest stay neutral. This switch
-  // is the literal 9-state choreography table. Writes the result into the
-  // shared `tgtBuf` (reset to PRISTINE first) so the damping loop never
-  // allocates a fresh MorphTargets object per tick.
-  const applyTargets = (
-    state: LucaState,
-    p: number,
-    fragment: string | null,
-  ): void => {
-    Object.assign(tgtBuf, PRISTINE);
-    switch (state) {
-      case "squashed":
-        // Device squash + full-opacity wireframe; jitter channel drives the
-        // per-vertex high-frequency micro-jitter.
-        tgtBuf.scaleX = 1.15;
-        tgtBuf.scaleY = 1.15;
-        tgtBuf.scaleZ = 0.6;
-        tgtBuf.wireOpacity = 1;
-        tgtBuf.jitter = 1;
-        break;
-      case "cracked":
-        // Outer wireframe fades to grey; the core sphere + halo replace the
-        // origin anchor; a slow counter-rotation reads as "frictionless core".
-        tgtBuf.wireOpacity = 0.18;
-        tgtBuf.wireGrey = 1;
-        tgtBuf.anchorVis = 0;
-        tgtBuf.coreVis = 1;
-        tgtBuf.coreLight = 1;
-        tgtBuf.idleSpin = 0.06;
-        break;
-      case "snapped":
-        // Wireframe eases onto a 0.125 grid; a faint background grid plane
-        // appears at z=-3. (The 200ms click-pulse fires on enter.)
-        tgtBuf.snapBlend = 1;
-        tgtBuf.bgGrid = 0.5;
-        tgtBuf.wireOpacity = 0.9;
-        tgtBuf.idleSpin = 0.25;
-        break;
-      case "axed":
-        // A glowing axis line through the origin; the polyhedron orbits it
-        // while the camera holds.
-        tgtBuf.axisVis = 1;
-        tgtBuf.wireOpacity = 0.7;
-        tgtBuf.orbitRate = 0.5;
-        tgtBuf.idleSpin = 0;
-        break;
-      case "opened":
-        // Polyhedron hides; the two baked halves slide apart (∓0.8); a soft
-        // portal plane glows behind the gap.
-        tgtBuf.openBlend = 1;
-        tgtBuf.portalVis = 1;
-        tgtBuf.wireOpacity = 0;
-        tgtBuf.idleSpin = 0;
-        break;
-      case "quarteted":
-        // Main polyhedron hides; four sub-icosahedra fly to the canvas corners.
-        // The active pillar returns to center + flares (handled per-frame).
-        tgtBuf.quartet = 1;
-        tgtBuf.wireOpacity = 0;
-        tgtBuf.idleSpin = 0;
-        break;
-      case "timed":
-        // A dial + 12 ticks light up sequentially as the beat's local scrub
-        // goes 0→1; a progress arc traces from 2021 to the current tick.
-        tgtBuf.tickRing = 1;
-        tgtBuf.dialOpacity = 0.45;
-        tgtBuf.tickLit = p;
-        tgtBuf.wireOpacity = 0.22;
-        tgtBuf.idleSpin = 0.1;
-        break;
-      case "still":
-        // Everything stops and fades; only the origin point remains, breathing.
-        tgtBuf.starOpacity = 0;
-        tgtBuf.idleSpin = 0;
-        tgtBuf.wireOpacity = 0;
-        tgtBuf.anchorVis = 1;
-        tgtBuf.brokenBlend = 0;
-        break;
-      case "broken":
-        if (harmonyMode) {
-          // Ease from the broken shape back to pristine over the reverse tween.
-          const b = reverseActive ? reverseT : 1;
-          tgtBuf.brokenBlend = lerp(1, 0, b);
-          tgtBuf.rotX = lerp(0.2, 0, b);
-          tgtBuf.rotZ = lerp(-0.15, 0, b);
-          tgtBuf.magnetic = lerp(1, 0, b);
-          tgtBuf.wireOpacity = 0.85;
-        } else {
-          // Asymmetric lean + seeded vertex offsets + magnetic pointer pull.
-          tgtBuf.brokenBlend = 1;
-          tgtBuf.rotX = 0.2;
-          tgtBuf.rotZ = -0.15;
-          tgtBuf.magnetic = 1;
-          tgtBuf.wireOpacity = 0.85;
-        }
-        break;
-    }
-    void fragment;
-  };
-
-  // ---- State-enter effects ----------------------------------------------
   stateEnterHandler = (s: LucaState) => {
     if (s === "snapped") {
       // 200ms scale click-pulse 1 → 0.97 → 1 (power3.out).
@@ -792,7 +689,6 @@ const start = async () => {
     if (s === "broken" && harmonyMode) {
       if (reverseTween) reverseTween.kill();
       harmonyMode = false;
-      reverseActive = false;
       reverseT = 0;
       reverseProxy.t = 0;
     }
@@ -819,7 +715,6 @@ const start = async () => {
       // ~2.5s power2.inOut ease back to a pristine symmetric origin state.
       if (reverseTween) reverseTween.kill();
       harmonyMode = true;
-      reverseActive = true;
       reverseT = 0;
       reverseProxy.t = 0;
       reverseTween = gsap.to(reverseProxy, {
@@ -830,9 +725,7 @@ const start = async () => {
           reverseT = reverseProxy.t;
         },
         onComplete: () => {
-          reverseActive = false;
           reverseT = 1;
-          stage.reportCommandCompleted(cmd.id);
         },
       });
     } else if (cmd.kind === "explode") {
@@ -914,10 +807,7 @@ const start = async () => {
     const dt = Math.min(1 / 30, (now - (lastNow || now)) / 1000);
     lastNow = now;
     const elapsed = (now - startTime) / 1000;
-    applyTargets(curState, curProgress, curFragment);
-
-    // Explode ramp (manual, ~700ms): particles expand from origin to field.
-    // Report completion exactly once when the ramp finishes; do NOT reset
+    applyTargets(curState, curProgress, curFragment, tgtBuf, harmonyMode, reverseT);
     // explodeActive so the final exploded visual stays on screen.
     if (explodeActive) {
       explodeT = Math.min(1, (now - explodeStart) / 700);
@@ -1232,17 +1122,14 @@ const start = async () => {
 
   if (reduced) {
     // One static frame: apply the initial beat's targets once and render.
-    applyTargets(curState, curProgress, curFragment);
-    Object.assign(morph, tgtBuf);
-    device.scale.set(morph.scaleX, morph.scaleY, morph.scaleZ);
-    device.rotation.set(morph.rotX, morph.rotY, morph.rotZ);
-    wireMat.opacity = morph.wireOpacity;
-    anchor.scale.setScalar(morph.anchorScale * morph.anchorVis);
-    anchor.visible = morph.anchorVis > 0.02;
-    starMat.opacity = morph.starOpacity;
-    renderer.render(scene, camera);
+    applyTargets(curState, curProgress, curFragment, tgtBuf, harmonyMode, reverseT)
+    Object.assign(morph, tgtBuf)
+    device.scale.set(morph.scaleX, morph.scaleY, morph.scaleZ)
+    device.rotation.set(morph.rotX, morph.rotY, morph.rotZ)
+    starMat.opacity = morph.starOpacity
+    renderer.render(scene, camera)
   } else {
-    rafId = requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick)
   }
 
   cleanup = () => {

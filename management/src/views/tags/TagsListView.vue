@@ -15,7 +15,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -155,26 +155,7 @@ async function handleBulkDelete() {
 }
 
 const columns: ColumnDef<Tag>[] = [
-  {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': t('table.selectAll'),
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('table.selected', { count: 1 }),
-      }),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  ...createSelectionColumn<Tag>(t),
   {
     accessorKey: 'name',
     header: () => t('tags.columns.tag'),

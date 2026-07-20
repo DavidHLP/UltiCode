@@ -33,7 +33,6 @@ export default {
   // TestCaseList dropdown labels
   markAsSample: '设为公开样例',
   markAsHidden: '设为隐藏判题用例',
-  makeVisible: '取消隐藏',
 
   // Tabs (EditCasesView / ViewCasesView)
   tabs: {

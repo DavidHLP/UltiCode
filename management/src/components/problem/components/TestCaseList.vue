@@ -37,8 +37,8 @@ const emit = defineEmits<{
       <IconGripVertical class="h-4 w-4 text-muted-foreground cursor-grab" />
       <span class="text-sm font-medium flex-1">
         #{{ index + 1 }}
-        <Badge v-if="testCase.isSample" variant="secondary" class="ml-1 text-2xs"> Sample </Badge>
-        <Badge v-if="testCase.isHidden" variant="outline" class="ml-1 text-2xs"> Hidden </Badge>
+        <Badge v-if="testCase.isSample" variant="secondary" class="ml-1 text-2xs">{{ $t('testCases.sample') }}</Badge>
+        <Badge v-if="testCase.isHidden" variant="outline" class="ml-1 text-2xs">{{ $t('testCases.hidden') }}</Badge>
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -47,18 +47,24 @@ const emit = defineEmits<{
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem @click.stop="emit('edit', testCase)">Edit</DropdownMenuItem>
-          <DropdownMenuItem @click.stop="emit('set-scope', testCase, testCase.isSample ? 'HIDDEN' : 'SAMPLE')">
-            {{ $t('testCases.markAsHidden') }}
+          <DropdownMenuItem @click.stop="emit('edit', testCase)">{{ $t('common.edit') }}</DropdownMenuItem>
+          <DropdownMenuItem
+            v-if="!testCase.isSample"
+            @click.stop="emit('set-scope', testCase, 'SAMPLE')"
+          >
+            {{ $t('testCases.markAsSample') }}
           </DropdownMenuItem>
-          <DropdownMenuItem @click.stop="emit('set-scope', testCase, testCase.isHidden ? 'SAMPLE' : 'HIDDEN')">
-            {{ $t('testCases.makeVisible') }}
+          <DropdownMenuItem
+            v-if="!testCase.isHidden"
+            @click.stop="emit('set-scope', testCase, 'HIDDEN')"
+          >
+            {{ $t('testCases.markAsHidden') }}
           </DropdownMenuItem>
           <DropdownMenuItem
             class="text-destructive focus:text-destructive"
             @click.stop="emit('delete', testCase)"
           >
-            Delete
+            {{ $t('common.delete') }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,26 +152,7 @@ async function handleSetDefault(rule: ScoringRule) {
 }
 
 const columns: ColumnDef<ScoringRule>[] = [
-  {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': t('table.selectAll'),
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('table.selected', { count: 1 }),
-      }),
-    enableSorting: false,
-    enableHiding: false,
-  },
+  ...createSelectionColumn<ScoringRule>(t),
   {
     accessorKey: 'name',
     header: () => t('scoringRules.columns.name'),

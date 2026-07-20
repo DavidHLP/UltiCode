@@ -40,7 +40,6 @@ export default {
   // Dropdown labels (TestCaseList)
   markAsSample: 'Mark as Sample',
   markAsHidden: 'Mark as Hidden',
-  makeVisible: 'Make Visible',
   scope: {
     sample: 'Sample',
     sampleHelp: 'Visible in problem statement; visible to submitter',

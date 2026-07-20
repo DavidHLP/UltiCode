@@ -13,7 +13,7 @@ import {
   IconUsers,
 } from '@tabler/icons-vue'
 
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
@@ -63,30 +63,10 @@ export function createColumns(
   canDelete: () => boolean,
 ): ColumnDef<Contest>[] {
   return [
-    {
-      id: 'select',
-      header: ({ table }) =>
-        h(Checkbox, {
-          modelValue:
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            table.toggleAllPageRowsSelected(!!value),
-          'aria-label': 'Select all',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      cell: ({ row }) =>
-        h(Checkbox, {
-          modelValue: row.getIsSelected(),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-          'aria-label': 'Select row',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...createSelectionColumn<Contest>(t, {
+      checkboxClass:
+        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+    }),
     {
       id: 'row_num',
       header: () => '#',

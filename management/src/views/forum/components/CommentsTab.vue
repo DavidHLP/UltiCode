@@ -14,7 +14,7 @@ import {
 import { badge } from '@/components/ui/terminal'
 import { formatDateByLocale } from '@/i18n/utils'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,30 +101,10 @@ function renderStatusBadge(comment: Comment, t: (key: string) => string) {
 }
 
 const columns: ColumnDef<Comment>[] = [
-  {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': t('table.selectAll'),
-        class:
-          'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('common.select'),
-        class:
-          'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-      }),
-    enableSorting: false,
-    enableHiding: false,
-  },
+    ...createSelectionColumn<Comment>(t, {
+      checkboxClass:
+        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+    }),
   {
     id: 'row_num',
     header: () => '#',

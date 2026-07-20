@@ -23,7 +23,7 @@ import {
 
 import { Badge } from '@/components/ui/badge'
 import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { Difficulty, type Problem } from '@/api/admin/problems'
 
@@ -61,26 +61,10 @@ export function useProblemColumns(
   const { t } = useI18n()
 
   return [
-    {
-      id: 'select',
-      header: ({ table }) =>
-        h(Checkbox, {
-          modelValue:
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            table.toggleAllPageRowsSelected(!!value),
-          'aria-label': 'Select all',
-        }),
-      cell: ({ row }) =>
-        h(Checkbox, {
-          modelValue: row.getIsSelected(),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-          'aria-label': 'Select row',
-        }),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...createSelectionColumn<Problem>(t, {
+      checkboxClass:
+        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+    }),
     {
       accessorKey: 'id',
       header: () => t('problems.columns.id'),

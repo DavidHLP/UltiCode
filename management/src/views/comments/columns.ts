@@ -10,7 +10,7 @@ import {
   IconUser,
 } from '@tabler/icons-vue'
 
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { createEntityActionsMenu } from '@/components/table/entityActions'
 import { badge, type SemanticColor } from '@/components/ui/terminal'
 import type { Comment, CommentType } from '@/api/admin/comments'
@@ -45,30 +45,10 @@ export function createColumns(
   canModerate: (comment: Comment) => boolean,
 ): ColumnDef<Comment>[] {
   return [
-    {
-      id: 'select',
-      header: ({ table }) =>
-        h(Checkbox, {
-          modelValue:
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            table.toggleAllPageRowsSelected(!!value),
-          'aria-label': 'Select all',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      cell: ({ row }) =>
-        h(Checkbox, {
-          modelValue: row.getIsSelected(),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-          'aria-label': 'Select row',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...createSelectionColumn<Comment>(t, {
+      checkboxClass:
+        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+    }),
     {
       id: 'row_num',
       header: () => '#',

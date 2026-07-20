@@ -9,7 +9,7 @@ import {
   IconClock,
 } from '@tabler/icons-vue'
 
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -117,33 +117,10 @@ export function createReportsColumns(
 ): ColumnDef<Report>[] {
   return [
     // Selection column
-    {
-      id: 'select',
-      size: 40,
-      minSize: 40,
-      maxSize: 40,
-      header: ({ table }) =>
-        h(Checkbox, {
-          modelValue:
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate'),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-            table.toggleAllPageRowsSelected(!!value),
-          'aria-label': 'Select all',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      cell: ({ row }) =>
-        h(Checkbox, {
-          modelValue: row.getIsSelected(),
-          'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-          'aria-label': 'Select row',
-          class:
-            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
-        }),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...createSelectionColumn<Report>(t, {
+      checkboxClass:
+        'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
+    }),
     // Row number
     {
       id: 'row_num',

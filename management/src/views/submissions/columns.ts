@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SubmissionListItem } from '@/api/admin/submissions'
-import { Checkbox } from '@/components/ui/checkbox'
+import { createSelectionColumn } from '@/components/table/selectionColumn'
 import { badge } from '@/components/ui/terminal'
 import { getStatusColor, normalizeStatusKey } from '@/shared/submission-status/src'
 import { Button } from '@/components/ui/button'
@@ -53,24 +53,9 @@ export function createColumns(
   actions: SubmissionActions,
 ): ColumnDef<SubmissionListItem>[] {
   return [
-    {
-      id: 'select',
-      header: ({ table }) =>
-        h(Checkbox, {
-          checked: table.getIsAllPageRowsSelected(),
-          indeterminate: table.getIsSomePageRowsSelected(),
-          'onUpdate:checked': (value: boolean) => table.toggleAllPageRowsSelected(!!value),
-          class: 'translate-y-0.5',
-        }),
-      cell: ({ row }) =>
-        h(Checkbox, {
-          checked: row.getIsSelected(),
-          'onUpdate:checked': (value: boolean) => row.toggleSelected(!!value),
-          class: 'translate-y-0.5',
-        }),
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...createSelectionColumn<SubmissionListItem>(t, {
+      checkboxClass: 'translate-y-0.5',
+    }),
     {
       accessorKey: 'id',
       header: () => t('submissions.id'),

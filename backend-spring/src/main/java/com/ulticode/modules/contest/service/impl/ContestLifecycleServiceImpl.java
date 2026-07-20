@@ -92,11 +92,8 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         if (toFinish.isEmpty()) {
             return 0;
         }
-        Set<String> ids = new HashSet<>();
-        for (ContestParticipant p : toFinish) {
-            ids.add(p.getId());
-        }
-        int total = participantTransitions.bulkFinishVirtualByIds(ids, now);
+        int total = participantTransitions.bulkFinishVirtualByIds(
+                toFinish.stream().map(ContestParticipant::getId).toList(), now);
         if (total > 0) {
             log.info("P2-2: auto-finished {} virtual participants past their duration", total);
         }

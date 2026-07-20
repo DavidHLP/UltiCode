@@ -18,8 +18,7 @@ defineProps<{
 const emit = defineEmits<{
   select: [id: string]
   edit: [testCase: TestCase]
-  toggleSample: [testCase: TestCase]
-  toggleHidden: [testCase: TestCase]
+  'set-scope': [testCase: TestCase, scope: 'SAMPLE' | 'HIDDEN']
   delete: [testCase: TestCase]
 }>()
 </script>
@@ -49,11 +48,11 @@ const emit = defineEmits<{
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem @click.stop="emit('edit', testCase)">Edit</DropdownMenuItem>
-          <DropdownMenuItem @click.stop="emit('toggleSample', testCase)">
-            {{ testCase.isSample ? 'Mark as Hidden' : 'Mark as Sample' }}
+          <DropdownMenuItem @click.stop="emit('set-scope', testCase, testCase.isSample ? 'HIDDEN' : 'SAMPLE')">
+            {{ $t('testCases.markAsHidden') }}
           </DropdownMenuItem>
-          <DropdownMenuItem @click.stop="emit('toggleHidden', testCase)">
-            {{ testCase.isHidden ? 'Make Visible' : 'Make Hidden' }}
+          <DropdownMenuItem @click.stop="emit('set-scope', testCase, testCase.isHidden ? 'SAMPLE' : 'HIDDEN')">
+            {{ $t('testCases.makeVisible') }}
           </DropdownMenuItem>
           <DropdownMenuItem
             class="text-destructive focus:text-destructive"

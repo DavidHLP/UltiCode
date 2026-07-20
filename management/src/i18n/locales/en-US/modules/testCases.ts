@@ -37,12 +37,15 @@ export default {
     hidden: 'Hidden Judge Cases',
   },
 
-  // Per-case scope radio (TestCaseForm)
+  // Dropdown labels (TestCaseList)
+  markAsSample: 'Mark as Sample',
+  markAsHidden: 'Mark as Hidden',
+  makeVisible: 'Make Visible',
   scope: {
-    sample: 'Public Sample',
-    sampleHelp: 'Shown in the problem statement, visible to submitters',
-    hidden: 'Hidden Judge Case',
-    hiddenHelp: 'Admin/judge only, never exposed to submitters',
+    sample: 'Sample',
+    sampleHelp: 'Visible in problem statement; visible to submitter',
+    hidden: 'Hidden',
+    hiddenHelp: 'Only visible to admin and judge; submitter cannot see',
   },
 
   // Hidden tab list badges / counts
@@ -95,5 +98,9 @@ export default {
     hiddenSectionTitle: 'Hidden Judge Cases ({count})',
     hiddenSectionHelp: 'Admin only — never exposed to submitters',
     publicSectionTitle: 'Public Samples ({count})',
+  },
+  // Read-only detail card heading (TestCaseDetail)
+  details: {
+    title: 'Test Case Details',
   },
 }

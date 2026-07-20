@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import type { TestCase } from '@/api/admin/test-cases'
+import type { TestCase, CaseScope } from '@/api/admin/test-cases'
 
 defineProps<{
   testCase: TestCase
@@ -12,8 +12,7 @@ defineProps<{
 
 const emit = defineEmits<{
   edit: [testCase: TestCase]
-  'toggle-sample': [testCase: TestCase]
-  'toggle-hidden': [testCase: TestCase]
+  'set-scope': [testCase: TestCase, scope: CaseScope]
 }>()
 </script>
 
@@ -21,28 +20,19 @@ const emit = defineEmits<{
   <div class="col-span-8 space-y-4">
     <div class="p-4 rounded-none border bg-card">
       <div class="flex items-center justify-between mb-4">
-        <h4 class="font-medium">Test Case Details</h4>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <Label class="text-xs">Sample</Label>
-            <Switch
-              :checked="testCase.isSample"
-              @update:checked="emit('toggle-sample', testCase)"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <Label class="text-xs">Hidden</Label>
-            <Switch
-              :checked="testCase.isHidden"
-              @update:checked="emit('toggle-hidden', testCase)"
-            />
-          </div>
+        <h4 class="font-medium">{{ $t('testCases.details.title') }}</h4>
+        <div class="flex items-center gap-2">
+          <Label class="text-xs">{{ testCase.isSample ? $t('testCases.scope.sample') : $t('testCases.scope.hidden') }}</Label>
+          <Switch
+            :checked="testCase.isSample"
+            @update:checked="emit('set-scope', testCase, $event ? 'SAMPLE' : 'HIDDEN')"
+          />
         </div>
       </div>
 
       <div class="space-y-4">
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">Input</Label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ $t('testCases.input') }}</Label>
           <Textarea
             :model-value="testCase.inputText"
             readonly
@@ -50,7 +40,7 @@ const emit = defineEmits<{
           />
         </div>
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">Output</Label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ $t('testCases.output') }}</Label>
           <Textarea
             :model-value="testCase.outputText"
             readonly
@@ -58,13 +48,13 @@ const emit = defineEmits<{
           />
         </div>
         <div v-if="testCase.explanation">
-          <Label class="text-sm text-muted-foreground mb-1 block">Explanation</Label>
+          <Label class="text-sm text-muted-foreground mb-1 block">{{ $t('testCases.explanation') }}</Label>
           <Input :model-value="testCase.explanation" readonly />
         </div>
       </div>
 
       <div class="flex justify-end mt-4">
-        <Button size="sm" @click="emit('edit', testCase)">Edit</Button>
+        <Button size="sm" @click="emit('edit', testCase)">{{ $t('common.edit') }}</Button>
       </div>
     </div>
   </div>

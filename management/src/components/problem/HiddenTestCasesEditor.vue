@@ -43,8 +43,7 @@ const {
   openEditDialog,
   saveTestCase,
   deleteTestCase,
-  toggleSample,
-  toggleHidden,
+  setCaseScope,
   exportTestCases,
   openImportDialog,
   importTestCases,
@@ -126,17 +125,14 @@ watch(
         :active-id="activeId"
         @select="selectTestCase"
         @edit="openEditDialog"
-        @toggle-sample="toggleSample"
-        @toggle-hidden="toggleHidden"
+        @set-scope="(tc, scope) => setCaseScope(tc, scope)"
         @delete="(tc) => deleteTestCase(tc)"
       />
-
       <TestCaseDetail
         v-if="activeTestCase"
         :test-case="activeTestCase"
         @edit="openEditDialog"
-        @toggle-sample="toggleSample"
-        @toggle-hidden="toggleHidden"
+        @set-scope="(tc, scope) => setCaseScope(tc, scope)"
       />
     </div>
 

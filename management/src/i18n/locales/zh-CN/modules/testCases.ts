@@ -30,6 +30,11 @@ export default {
   replaceExisting: '替换已存在的测试用例',
   importing: '正在导入',
 
+  // TestCaseList dropdown labels
+  markAsSample: '设为公开样例',
+  markAsHidden: '设为隐藏判题用例',
+  makeVisible: '取消隐藏',
+
   // Tabs (EditCasesView / ViewCasesView)
   tabs: {
     samples: '公开样例',
@@ -94,5 +99,9 @@ export default {
     hiddenSectionTitle: '隐藏判题用例 ({count})',
     hiddenSectionHelp: '仅管理员可见,提交者无法看到这些用例',
     publicSectionTitle: '公开样例 ({count})',
+  },
+  // 只读详情卡片标题(TestCaseDetail)
+  details: {
+    title: '测试用例详情',
   },
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { testCasesApi } from '@/api/admin/test-cases'
-import type { TestCase, TestCasesResponse } from '@/api/admin/test-cases'
+import type { TestCase, TestCasesResponse, CaseScope } from '@/api/admin/test-cases'
 
 vi.mock('@/api/admin/test-cases', async () => {
   const actual =
@@ -256,41 +256,62 @@ describe('useTestCases — editor workflow', () => {
     })
   })
 
-  describe('toggleSample / toggleHidden', () => {
-    it('toggleSample PUTs the inverted isSample flag', async () => {
+  describe('setCaseScope / toggleCaseScope', () => {
+    it('setCaseScope SAMPLE PUTs isSample:true,isHidden:false and updates row', async () => {
       vi.mocked(testCasesApi.updateTestCase).mockResolvedValue(fakeCase())
       const target = fakeCase({ id: 'tc-1', isSample: false, isHidden: true })
 
-      const { toggleSample } = useTestCases(PROBLEM_ID)
-      await toggleSample(target)
+      const { setCaseScope } = useTestCases(PROBLEM_ID)
+      await setCaseScope(target, 'SAMPLE')
 
       expect(testCasesApi.updateTestCase).toHaveBeenCalledWith(PROBLEM_ID(), 'tc-1', {
         isSample: true,
-      })
-      expect(target.isSample).toBe(true)
-    })
-
-    it('toggleHidden PUTs the inverted isHidden flag', async () => {
-      vi.mocked(testCasesApi.updateTestCase).mockResolvedValue(fakeCase())
-      const target = fakeCase({ id: 'tc-1', isSample: false, isHidden: true })
-
-      const { toggleHidden } = useTestCases(PROBLEM_ID)
-      await toggleHidden(target)
-
-      expect(testCasesApi.updateTestCase).toHaveBeenCalledWith(PROBLEM_ID(), 'tc-1', {
         isHidden: false,
       })
+      expect(target.isSample).toBe(true)
       expect(target.isHidden).toBe(false)
     })
 
-    it('emits updateFailed and leaves the case unchanged on error', async () => {
+    it('setCaseScope HIDDEN PUTs isSample:false,isHidden:true and updates row', async () => {
+      vi.mocked(testCasesApi.updateTestCase).mockResolvedValue(fakeCase())
+      const target = fakeCase({ id: 'tc-1', isSample: true, isHidden: false })
+
+      const { setCaseScope } = useTestCases(PROBLEM_ID)
+      await setCaseScope(target, 'HIDDEN')
+
+      expect(testCasesApi.updateTestCase).toHaveBeenCalledWith(PROBLEM_ID(), 'tc-1', {
+        isSample: false,
+        isHidden: true,
+      })
+      expect(target.isSample).toBe(false)
+      expect(target.isHidden).toBe(true)
+    })
+
+    it('toggleCaseScope flips SAMPLE→HIDDEN using current row flags', async () => {
+      vi.mocked(testCasesApi.updateTestCase).mockResolvedValue(fakeCase())
+      // start as SAMPLE
+      const target = fakeCase({ id: 'tc-1', isSample: true, isHidden: false })
+
+      const { toggleCaseScope } = useTestCases(PROBLEM_ID)
+      await toggleCaseScope(target)
+
+      expect(testCasesApi.updateTestCase).toHaveBeenCalledWith(PROBLEM_ID(), 'tc-1', {
+        isSample: false,
+        isHidden: true,
+      })
+      expect(target.isSample).toBe(false)
+      expect(target.isHidden).toBe(true)
+    })
+
+    it('setCaseScope emits updateFailed and leaves the case unchanged on error', async () => {
       vi.mocked(testCasesApi.updateTestCase).mockRejectedValue(new Error('boom'))
       const target = fakeCase({ id: 'tc-1', isSample: false, isHidden: true })
 
-      const { toggleSample } = useTestCases(PROBLEM_ID)
-      await toggleSample(target)
+      const { setCaseScope } = useTestCases(PROBLEM_ID)
+      await setCaseScope(target, 'SAMPLE')
 
       expect(target.isSample).toBe(false)
+      expect(target.isHidden).toBe(true)
       expect(toastError).toHaveBeenCalledWith('testCases.toast.updateFailed')
     })
   })

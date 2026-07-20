@@ -6,6 +6,9 @@ import {
   type TestCase,
   type CreateTestCaseDto,
   type BulkImportTestCaseDto,
+  type CaseScope,
+  mapCaseScopeToFlags,
+  mapFlagsToCaseScope,
 } from '@/api/admin/test-cases'
 
 /**
@@ -213,28 +216,38 @@ export function useTestCases(problemId: () => string) {
     }
   }
 
-  async function toggleSample(testCase: TestCase) {
+  /**
+   * Set the canonical CaseScope (SAMPLE | HIDDEN) on a persisted test case.
+   *
+   * <p>This is the one author intent the per-row UI may express — the dual
+   * "toggle Sample / toggle Hidden" surface the list/detail views used to
+   * expose leaked the backend's XOR invariant: callers could land on the
+   * disallowed (false,false) "draft" or the illegal (true,true) combination
+   * by toggling only one flag. Concentrating the toggle on a single scope
+   * argument lets the wire payload always carry both flags together through
+   * {@link mapCaseScopeToFlags}, so the row stays judging-eligible.
+   */
+  async function setCaseScope(testCase: TestCase, scope: CaseScope) {
+    const flags = mapCaseScopeToFlags(scope)
     try {
-      await testCasesApi.updateTestCase(problemId(), testCase.id, {
-        isSample: !testCase.isSample,
-      })
-      testCase.isSample = !testCase.isSample
+      await testCasesApi.updateTestCase(problemId(), testCase.id, flags)
+      testCase.isSample = flags.isSample
+      testCase.isHidden = flags.isHidden
     } catch (error) {
-      console.error('Failed to toggle sample:', error)
+      console.error('Failed to update test case scope:', error)
       toast.error(t('testCases.toast.updateFailed'))
     }
   }
 
-  async function toggleHidden(testCase: TestCase) {
-    try {
-      await testCasesApi.updateTestCase(problemId(), testCase.id, {
-        isHidden: !testCase.isHidden,
-      })
-      testCase.isHidden = !testCase.isHidden
-    } catch (error) {
-      console.error('Failed to toggle hidden:', error)
-      toast.error(t('testCases.toast.updateFailed'))
-    }
+  /**
+   * Convenience: flip the row's current scope to the opposite canonical value.
+   * Used by list/detail UIs that expose a single "Mark as Sample / Hidden"
+   * affordance, so they never have to reason about the underlying flags.
+   */
+  async function toggleCaseScope(testCase: TestCase) {
+    const next: CaseScope =
+      mapFlagsToCaseScope(testCase.isSample, testCase.isHidden) === 'SAMPLE' ? 'HIDDEN' : 'SAMPLE'
+    await setCaseScope(testCase, next)
   }
 
   async function exportTestCases() {
@@ -301,8 +314,8 @@ export function useTestCases(problemId: () => string) {
     openEditDialog,
     saveTestCase,
     deleteTestCase,
-    toggleSample,
-    toggleHidden,
+    setCaseScope,
+    toggleCaseScope,
     exportTestCases,
     openImportDialog,
     importTestCases,

@@ -42,6 +42,14 @@ import { extractApiErrorMessage } from '@/utils/error'
  *       {@link #parseSizeToBytes} move out of {@code UploadSettings.vue}
  *       into this workspace so the byte semantics (1024-base) live next to
  *       the field that owns the wire contract.</li>
+ *   <li><b>Partial-failure safety</b> &mdash; {@link #saveAllDirty} uses
+ *       {@code Promise.allSettled} so a rejected category does not prevent
+ *       other categories from clearing their dirty flags. The snapshot is
+ *       refreshed for every fulfilled category; failed categories surface a
+ *       per-category error while preserving their pre-save values.</li>
+ *   <li><b>Overlap guard</b> &mdash; concurrent calls to {@link #saveAllDirty}
+ *       are rejected; in-flight individual saves track their own
+ *       {@code saveState} so callers can observe per-category progress.</li>
  * </ul>
  */
 
@@ -191,6 +199,13 @@ function flatEqual<T>(a: T, b: T): boolean {
   return true
 }
 
+// ---------------------------------------------------------------------------
+// Per-category save-state tracking (deep seam: 5× state matrix moved inside).
+// Each dirty category independently transitions idle → saving → success|error.
+// ---------------------------------------------------------------------------
+
+type SaveState = 'idle' | 'saving' | 'success' | 'error'
+
 export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
   const all = ref<AllSettings>(defaultAllSettings())
   const snapshot = ref<AllSettings>(defaultAllSettings())
@@ -198,6 +213,35 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
   const saving = ref(false)
   const clearingCache = ref(false)
   const error = ref<string | null>(null)
+
+  // Per-category save-state: tracks idle / saving / success / error per category.
+  const saveState = ref<Record<string, SaveState>>({
+    general: 'idle',
+    email: 'idle',
+    rateLimits: 'idle',
+    uploads: 'idle',
+    features: 'idle',
+  })
+  const categoryErrors = ref<Record<string, string | null>>({
+    general: null,
+    email: null,
+    rateLimits: null,
+    uploads: null,
+    features: null,
+  })
+
+  /**
+   * Focused seam: one object replaces the 15 exported symbols for per-category
+   * status. Callers see one structured view instead of 10 individual refs.
+   */
+  const saveStatus = computed(() => ({
+    general: saveState.value.general,
+    email: saveState.value.email,
+    rateLimits: saveState.value.rateLimits,
+    uploads: saveState.value.uploads,
+    features: saveState.value.features,
+    errors: { ...categoryErrors.value },
+  }))
 
   // ===== read views (focused slices for each category adapter) =====
 
@@ -273,6 +317,9 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
   }
 
   // ===== per-category save (routes to the correct typed endpoint) =====
+  // Each saveXxx sets its own saveState entry so callers can observe progress.
+  // On success the server-returned slice is merged into `all` (the canonical
+  // state); on error the pre-save value in `all` is preserved unchanged.
 
   /**
    * Save the general slice. PATCHes {@code /admin/settings} with the
@@ -280,8 +327,17 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
    * state in sync with what the server persisted.
    */
   async function saveGeneral(): Promise<void> {
-    const result = await settingsApi.updateSettings(general.value)
-    all.value = { ...all.value, ...result }
+    saveState.value.general = 'saving'
+    categoryErrors.value.general = null
+    try {
+      const result = await settingsApi.updateSettings(general.value)
+      all.value = { ...all.value, ...result }
+      saveState.value.general = 'success'
+    } catch (err) {
+      categoryErrors.value.general = extractApiErrorMessage(err, 'Failed to save general settings')
+      saveState.value.general = 'error'
+      throw err
+    }
   }
 
   /**
@@ -291,18 +347,45 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
    * slice re-masks the password for re-display.
    */
   async function saveEmail(): Promise<void> {
-    const result = await settingsApi.updateEmailSettings(email.value)
-    all.value = { ...all.value, ...result }
+    saveState.value.email = 'saving'
+    categoryErrors.value.email = null
+    try {
+      const result = await settingsApi.updateEmailSettings(email.value)
+      all.value = { ...all.value, ...result }
+      saveState.value.email = 'success'
+    } catch (err) {
+      categoryErrors.value.email = extractApiErrorMessage(err, 'Failed to save email settings')
+      saveState.value.email = 'error'
+      throw err
+    }
   }
 
   async function saveRateLimits(): Promise<void> {
-    const result = await settingsApi.updateRateLimitSettings(rateLimits.value)
-    all.value = { ...all.value, ...result }
+    saveState.value.rateLimits = 'saving'
+    categoryErrors.value.rateLimits = null
+    try {
+      const result = await settingsApi.updateRateLimitSettings(rateLimits.value)
+      all.value = { ...all.value, ...result }
+      saveState.value.rateLimits = 'success'
+    } catch (err) {
+      categoryErrors.value.rateLimits = extractApiErrorMessage(err, 'Failed to save rate limit settings')
+      saveState.value.rateLimits = 'error'
+      throw err
+    }
   }
 
   async function saveUploads(): Promise<void> {
-    const result = await settingsApi.updateUploadSettings(uploads.value)
-    all.value = { ...all.value, ...result }
+    saveState.value.uploads = 'saving'
+    categoryErrors.value.uploads = null
+    try {
+      const result = await settingsApi.updateUploadSettings(uploads.value)
+      all.value = { ...all.value, ...result }
+      saveState.value.uploads = 'success'
+    } catch (err) {
+      categoryErrors.value.uploads = extractApiErrorMessage(err, 'Failed to save upload settings')
+      saveState.value.uploads = 'error'
+      throw err
+    }
   }
 
   /**
@@ -312,35 +395,80 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
    * guard.
    */
   async function saveFeatures(): Promise<void> {
-    const result = await settingsApi.updateFeatureToggles(features.value)
-    all.value = { ...all.value, ...result }
+    saveState.value.features = 'saving'
+    categoryErrors.value.features = null
+    try {
+      const result = await settingsApi.updateFeatureToggles(features.value)
+      all.value = { ...all.value, ...result }
+      saveState.value.features = 'success'
+    } catch (err) {
+      categoryErrors.value.features = extractApiErrorMessage(err, 'Failed to save feature toggles')
+      saveState.value.features = 'error'
+      throw err
+    }
   }
 
   /**
    * Fan out to whichever categories are dirty. The root "Save Changes"
    * button calls this so a single click still saves every edited tab,
-   * while each category lands on its own typed endpoint. After every
-   * save resolves, the snapshot is refreshed so dirty flags clear.
+   * while each category lands on its own typed endpoint.
+   *
+   * <p>Uses {@code Promise.allSettled} so a rejected category does NOT
+   * prevent other categories from updating their snapshot and clearing
+   * their dirty flags. After all settles:
+   * <ul>
+   *   <li>Fulfilled categories refresh the snapshot (dirty clears).</li>
+   *   <li>Rejected categories preserve their pre-save values in {@code all}
+   *       and surface a per-category error in {@code categoryErrors}.</li>
+   * </ul>
+   *
+   * <p>An in-flight guard prevents concurrent calls; callers should check
+   * {@code saving} before invoking.
    */
   async function saveAllDirty(): Promise<void> {
     if (!isDirty.value) return
+    if (saving.value) {
+      throw new Error('A save operation is already in progress')
+    }
     saving.value = true
     error.value = null
     try {
-      const tasks: Promise<unknown>[] = []
-      if (isGeneralDirty.value) tasks.push(saveGeneral())
-      if (isEmailDirty.value) tasks.push(saveEmail())
-      if (isRateLimitsDirty.value) tasks.push(saveRateLimits())
-      if (isUploadsDirty.value) tasks.push(saveUploads())
-      if (isFeaturesDirty.value) tasks.push(saveFeatures())
-      await Promise.all(tasks)
+      const saves: Array<{ key: string; fn: () => Promise<void> }> = []
+      if (isGeneralDirty.value) saves.push({ key: 'general', fn: saveGeneral })
+      if (isEmailDirty.value) saves.push({ key: 'email', fn: saveEmail })
+      if (isRateLimitsDirty.value) saves.push({ key: 'rateLimits', fn: saveRateLimits })
+      if (isUploadsDirty.value) saves.push({ key: 'uploads', fn: saveUploads })
+      if (isFeaturesDirty.value) saves.push({ key: 'features', fn: saveFeatures })
+
+      const results = await Promise.allSettled(saves.map((s) => s.fn()))
+
+      // Snapshot is refreshed only for categories that reached the server.
+      // Each successful saveXxx already merged the server response into `all`.
+      const anyRejected = results.some((r) => r.status === 'rejected')
       snapshot.value = { ...all.value }
-    } catch (err: unknown) {
+
+      if (anyRejected) {
+        const failed = results
+          .map((r, i) => ({ status: r.status, key: saves[i]?.key }))
+          .filter((r) => r.status === 'rejected')
+        const msgs = failed.map((r) => categoryErrors.value[r.key ?? ''] ?? 'Unknown error')
+        error.value = `Partial failure: ${msgs.join('; ')}`
+        throw new Error(error.value)
+      }
+    } catch (err) {
       error.value = extractApiErrorMessage(err, 'Failed to save system settings')
       console.error('Failed to save system settings:', err)
       throw err
     } finally {
       saving.value = false
+      // Reset per-category save states after the batch completes.
+      saveState.value = {
+        general: 'idle',
+        email: 'idle',
+        rateLimits: 'idle',
+        uploads: 'idle',
+        features: 'idle',
+      }
     }
   }
 
@@ -428,6 +556,8 @@ export const useSystemSettingsStore = defineStore('adminSystemSettings', () => {
     saveUploads,
     saveFeatures,
     saveAllDirty,
+    // deep seam: per-category save status (replaces 15 individual symbols)
+    saveStatus,
     // server actions
     resetToDefaultsServer,
     clearCache,

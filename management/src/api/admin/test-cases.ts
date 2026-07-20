@@ -76,9 +76,10 @@ export interface BulkImportResponse {
 }
 
 export const testCasesApi = {
-  async getTestCases(problemId: string, params?: TestCaseQueryParams): Promise<TestCasesResponse> {
+  async getTestCases(problemId: string, params?: TestCaseQueryParams, signal?: AbortSignal): Promise<TestCasesResponse> {
     return await apiGet<TestCasesResponse>(`/admin/problems/${problemId}/test-cases`, {
       params,
+      signal,
     })
   },
 
@@ -118,12 +119,13 @@ export const testCasesApi = {
   async bulkImportTestCases(
     problemId: string,
     data: BulkImportTestCasesDto,
+    signal?: AbortSignal,
   ): Promise<BulkImportResponse> {
-    return await apiPost<BulkImportResponse>(`/admin/problems/${problemId}/test-cases/bulk`, data)
+    return await apiPost<BulkImportResponse>(`/admin/problems/${problemId}/test-cases/bulk`, data, { signal })
   },
 
-  async reorderTestCases(problemId: string, testCaseIds: string[]): Promise<void> {
-    await apiPut<void>(`/admin/problems/${problemId}/test-cases/reorder`, testCaseIds)
+  async reorderTestCases(problemId: string, testCaseIds: string[], signal?: AbortSignal): Promise<void> {
+    await apiPut<void>(`/admin/problems/${problemId}/test-cases/reorder`, testCaseIds, { signal })
   },
 }
 

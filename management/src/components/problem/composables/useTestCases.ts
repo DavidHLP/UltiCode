@@ -1,12 +1,13 @@
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { createAbortController } from '@/utils/request'
 import {
   testCasesApi,
-  type TestCase,
-  type CreateTestCaseDto,
   type BulkImportTestCaseDto,
   type CaseScope,
+  type CreateTestCaseDto,
+  type TestCase,
   mapCaseScopeToFlags,
   mapFlagsToCaseScope,
 } from '@/api/admin/test-cases'
@@ -112,6 +113,12 @@ export function useTestCases(problemId: () => string) {
   const replaceExisting = ref(false)
   const importing = ref(false)
 
+  /**
+   * Cancels any in-flight loadTestCases() request so a stale response cannot
+   * overwrite state after a problemId change or after a save-triggered reload.
+   */
+  let loadController: AbortController | null = null
+
   const formData = ref<CreateTestCaseDto>({
     inputText: '',
     outputText: '',
@@ -131,24 +138,45 @@ export function useTestCases(problemId: () => string) {
   )
 
   async function loadTestCases() {
+    if (loadController) {
+      loadController.abort()
+    }
+    const controller = createAbortController()
+    loadController = controller
     loading.value = true
     try {
-      const response = await testCasesApi.getTestCases(problemId(), { limit: 1000 })
+      const response = await testCasesApi.getTestCases(problemId(), { limit: 1000 }, controller.signal)
+      // Discard result if a newer request has already superseded this one.
+      if (controller.signal.aborted) return
       testCases.value = response.items
       if (testCases.value.length > 0 && !activeId.value) {
         activeId.value = testCases.value[0]?.id ?? null
       }
     } catch (error) {
+      if ((error as Error).name === 'CanceledError' || (error as Error).message?.includes('canceled')) return
       console.error('Failed to load test cases:', error)
       toast.error(t('testCases.toast.loadFailed'))
     } finally {
-      loading.value = false
+      if (!controller.signal.aborted) {
+        loading.value = false
+      }
     }
   }
 
   function selectTestCase(id: string) {
     activeId.value = id
   }
+
+  /**
+   * Reactive problemId coordination: moves ownership of the identity-change
+   * protocol inside the composable. When the identity changes, the prior
+   * in-flight load is aborted and a fresh load fires — stale responses
+   * can no longer overwrite newer problem state.
+   */
+  watch(problemId, () => {
+    activeId.value = null
+    loadTestCases()
+  })
 
   function openCreateDialog() {
     editingTestCase.value = null

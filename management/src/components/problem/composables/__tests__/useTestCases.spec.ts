@@ -86,7 +86,11 @@ describe('useTestCases — editor workflow', () => {
       const { loadTestCases, testCases, activeId } = useTestCases(PROBLEM_ID)
       await loadTestCases()
 
-      expect(testCasesApi.getTestCases).toHaveBeenCalledWith(PROBLEM_ID(), { limit: 1000 })
+      expect(testCasesApi.getTestCases).toHaveBeenCalledWith(
+        PROBLEM_ID(),
+        expect.objectContaining({ limit: 1000 }),
+        expect.any(AbortSignal),
+      )
       expect(testCases.value).toHaveLength(2)
       expect(activeId.value).toBe('a')
     })

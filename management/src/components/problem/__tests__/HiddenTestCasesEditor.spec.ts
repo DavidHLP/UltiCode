@@ -84,7 +84,11 @@ describe('HiddenTestCasesEditor — admin API contract (task #10 P0-1)', () => {
     })
     mountEditor()
     await flushPromises()
-    expect(testCasesApi.getTestCases).toHaveBeenCalledWith('p-1', { limit: 1000 })
+    expect(testCasesApi.getTestCases).toHaveBeenCalledWith(
+      'p-1',
+      expect.objectContaining({ limit: 1000 }),
+      expect.any(AbortSignal),
+    )
   })
 
   it('refetches when problemId prop changes (route-level case)', async () => {
@@ -100,7 +104,11 @@ describe('HiddenTestCasesEditor — admin API contract (task #10 P0-1)', () => {
     await wrapper.setProps({ problemId: 'p-2' })
     await flushPromises()
     expect(testCasesApi.getTestCases).toHaveBeenCalledTimes(2)
-    expect(testCasesApi.getTestCases).toHaveBeenLastCalledWith('p-2', { limit: 1000 })
+    expect(testCasesApi.getTestCases).toHaveBeenLastCalledWith(
+      'p-2',
+      expect.objectContaining({ limit: 1000 }),
+      expect.any(AbortSignal),
+    )
   })
 
   it('correctly counts sample vs hidden cases from API response (XOR filter on client)', async () => {

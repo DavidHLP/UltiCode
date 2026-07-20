@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -49,17 +49,11 @@ const {
   importTestCases,
 } = useTestCases(() => props.problemId)
 
+// Initial load; subsequent loads are triggered reactively inside useTestCases
+// whenever problemId changes.
 onMounted(() => {
   loadTestCases()
 })
-
-watch(
-  () => props.problemId,
-  () => {
-    activeId.value = null
-    loadTestCases()
-  },
-)
 </script>
 
 <template>

@@ -30,10 +30,10 @@ export interface CameraFrame {
 export type RailVariant = "desktop" | "mobile";
 
 const DESKTOP_KEYFRAMES: readonly CameraKeyframe[] = [
-  // hero — high above the plain, then the first-scroll descent
-  { t: 0.0, pos: [0, 26, 34], look: [0, 0, -30], fov: 55 },
-  { t: 0.08, pos: [0, 12, 8], look: [0, 2, -40], fov: 52 },
-  { t: 0.16, pos: [0, 6, -16], look: [0, 2, -60], fov: 50 },
+  // hero — high above the plain with open sky, then the first-scroll descent
+  { t: 0.0, pos: [0, 30, 48], look: [0, 3, -40], fov: 55 },
+  { t: 0.08, pos: [0, 14, 18], look: [0, 2, -46], fov: 52 },
+  { t: 0.16, pos: [0, 6.5, -16], look: [0, 2, -60], fov: 50 },
   // parse — low glide into the arches
   { t: 0.25, pos: [-3.5, 4.5, -50], look: [2, 2, -90], fov: 50 },
   { t: 0.34, pos: [2, 4, -84], look: [-2, 3, -118], fov: 51 },

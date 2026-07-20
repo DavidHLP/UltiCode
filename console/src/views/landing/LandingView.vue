@@ -169,6 +169,8 @@ defineOptions({ name: "LandingView" });
 .landing-block {
   border-inline-start: 1px solid var(--lw-hairline);
   padding-inline-start: 1.5rem;
+  /* Keep copy legible over the particle field without a card. */
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.85), 0 0 4px rgba(0, 0, 0, 0.7);
 }
 
 .landing-block.text-center,
@@ -292,7 +294,7 @@ defineOptions({ name: "LandingView" });
 /* — editor fragment (parse chapter) — */
 .landing-editor {
   border: 1px solid var(--lw-hairline);
-  background: rgba(16, 16, 16, 0.72);
+  background: rgba(10, 10, 10, 0.88);
 }
 
 .landing-editor-bar {
@@ -330,7 +332,7 @@ defineOptions({ name: "LandingView" });
 /* — judge matrix — */
 .landing-matrix {
   border: 1px solid var(--lw-hairline);
-  background: rgba(16, 16, 16, 0.72);
+  background: rgba(10, 10, 10, 0.88);
   padding: 1rem 1.25rem;
 }
 

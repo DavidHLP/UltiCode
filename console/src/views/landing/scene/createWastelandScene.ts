@@ -50,8 +50,8 @@ export interface WastelandScene {
 }
 
 const BG_COLOR = new THREE.Color(0x0a0a0a);
-const SILVER = new THREE.Color(0.92, 0.94, 0.97);
-const FOG_DENSITY = 0.0065;
+const SILVER = new THREE.Color(0.75, 0.78, 0.82);
+const FOG_DENSITY = 0.012;
 const DUST_COUNT = 600;
 
 const VERTEX_SHADER = /* glsl */ `
@@ -103,14 +103,18 @@ const VERTEX_SHADER = /* glsl */ `
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     float dist = max(0.001, -mv.z);
 
-    // Foreground bokeh: nearer particles grow and soften out.
-    float nearBlur = smoothstep(12.0, 2.5, dist);
-    float size = aRandom.z * (1.0 + nearBlur * 1.8);
+    // Foreground bokeh: nearer particles grow and soften out — restrained,
+    // so low-altitude flight doesn't smear the lower frame.
+    float nearBlur = smoothstep(8.0, 2.5, dist);
+    float size = aRandom.z * (1.0 + nearBlur * 0.8);
+    // Collapse finish: shrink as the field contracts so the finale reads as
+    // a sharp point of light, not a glowing moon.
+    size *= 1.0 - smoothstep(4.5, 5.0, uMorph) * 0.55;
     gl_PointSize = size * uPointScale / dist;
     gl_Position = projectionMatrix * mv;
 
     float alpha = aRandom.x;
-    alpha *= smoothstep(1.2, 5.0, dist);            // dissolve extreme close-up
+    alpha *= smoothstep(2.0, 7.0, dist);            // dissolve near the camera
     alpha *= 1.0 - smoothstep(60.0, 240.0, dist) * 0.6; // distance decay
     vAlpha = alpha * (1.0 - nearBlur * 0.45);
 
@@ -143,7 +147,6 @@ function makeTitleTexture(text: string): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d");
   if (ctx) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(235, 238, 242, 0.9)";
     ctx.textBaseline = "middle";
     ctx.font = "300 92px 'LXGW WenKai', 'Noto Sans SC', sans-serif";
     // Manual letter-spacing for the wide, mechanical chapter titling.
@@ -151,7 +154,18 @@ function makeTitleTexture(text: string): THREE.CanvasTexture {
     const chars = Array.from(text);
     const widths = chars.map((ch) => ctx.measureText(ch).width);
     const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
-    let x = (canvas.width - total) / 2;
+    const startX = (canvas.width - total) / 2;
+    // Dark outline pass first: titles must survive bright particle backdrops.
+    ctx.strokeStyle = "rgba(4, 4, 4, 0.95)";
+    ctx.lineWidth = 10;
+    ctx.lineJoin = "round";
+    let x = startX;
+    chars.forEach((ch, i) => {
+      ctx.strokeText(ch, x, canvas.height / 2);
+      x += widths[i] + spacing;
+    });
+    ctx.fillStyle = "rgba(235, 238, 242, 0.92)";
+    x = startX;
     chars.forEach((ch, i) => {
       ctx.fillText(ch, x, canvas.height / 2);
       x += widths[i] + spacing;
@@ -179,6 +193,8 @@ export function createWastelandScene(
 
   const scene = new THREE.Scene();
   scene.background = BG_COLOR;
+  // Scene fog handles the title planes; the point shader fogs manually.
+  scene.fog = new THREE.FogExp2(BG_COLOR, FOG_DENSITY);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 600);
 
   const keyframes = buildKeyframes(variant);
@@ -206,7 +222,9 @@ export function createWastelandScene(
     fragmentShader: FRAGMENT_SHADER,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    // Normal blending: film-grain build-up, not a glowing galaxy — dense
+    // regions stay matte instead of blowing out.
+    blending: THREE.NormalBlending,
   });
 
   function buildCloud(source: {
@@ -264,41 +282,64 @@ export function createWastelandScene(
   });
   scene.add(dust);
 
-  // In-world chapter titles: canvas-texture planes that fog dims with depth.
+  // In-world chapter titles: canvas-texture planes with a lifecycle — each
+  // title only lives inside its chapter's approach band, so distant and
+  // passed titles never overlap in frame.
   const titleDisposables: { dispose(): void }[] = [];
-  CHAPTERS.forEach((chapter, index) => {
-    const text = labels.chapters[index];
-    if (!text) return;
+  const titlePlanes: { mesh: THREE.Mesh; material: THREE.MeshBasicMaterial; baseOpacity: number }[] = [];
+
+  function addTitlePlane(
+    text: string,
+    y: number,
+    z: number,
+    width: number,
+    baseOpacity: number,
+  ): void {
     const texture = makeTitleTexture(text);
-    const geometry = new THREE.PlaneGeometry(30, 6.6);
+    const height = width * (224 / 1024);
+    const geometry = new THREE.PlaneGeometry(width, height);
     const planeMaterial = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0,
       depthWrite: false,
       fog: false,
     });
     const plane = new THREE.Mesh(geometry, planeMaterial);
-    plane.position.set(0, 9.5, chapter.titleZ);
+    plane.position.set(0, y, z);
     scene.add(plane);
+    titlePlanes.push({ mesh: plane, material: planeMaterial, baseOpacity });
     titleDisposables.push(texture, geometry, planeMaterial);
+  }
+
+  CHAPTERS.forEach((chapter, index) => {
+    const text = labels.chapters[index];
+    if (!text) return;
+    // High placement: titles ride above the DOM copy blocks, never through
+    // centred section text.
+    addTitlePlane(text, 13.5, chapter.titleZ, 30, 0.55);
   });
 
   // Brand word drifting in the growth starfield.
   if (labels.brand) {
-    const texture = makeTitleTexture(labels.brand);
-    const geometry = new THREE.PlaneGeometry(40, 8.8);
-    const planeMaterial = new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      opacity: 0.35,
-      depthWrite: false,
-      fog: false,
-    });
-    const plane = new THREE.Mesh(geometry, planeMaterial);
-    plane.position.set(0, 30, -196);
-    scene.add(plane);
-    titleDisposables.push(texture, geometry, planeMaterial);
+    addTitlePlane(labels.brand, 30, -196, 40, 0.35);
+  }
+
+  function smoothstepJs(e0: number, e1: number, x: number): number {
+    const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  /** Fade titles in on approach (60→28 units) and out after passing (14→5).
+   * Bands stay narrower than the inter-chapter spacing (50) so two chapter
+   * titles never share the frame. */
+  function updateTitles(): void {
+    for (const title of titlePlanes) {
+      const d = camera.position.z - title.mesh.position.z;
+      const approach = 1 - smoothstepJs(28, 60, d);
+      const passed = smoothstepJs(5, 14, d);
+      title.material.opacity = title.baseOpacity * approach * passed;
+    }
   }
 
   const frame: CameraFrame = { pos: [0, 26, 34], look: [0, 0, -30], fov: 55 };
@@ -369,6 +410,7 @@ export function createWastelandScene(
         heightPx / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
 
       updateMouseWorld();
+      updateTitles();
       renderer.render(scene, camera);
     },
 

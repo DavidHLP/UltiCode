@@ -51,7 +51,7 @@ describe("buildMorphTargets", () => {
       if (close) near++;
     }
     // Most particles coat the steles; the rest form the ground mist nearby.
-    expect(near / COUNT).toBeGreaterThan(0.5);
+    expect(near / COUNT).toBeGreaterThan(0.45);
   });
 
   it("collapse pulls every particle into a tight sphere", () => {

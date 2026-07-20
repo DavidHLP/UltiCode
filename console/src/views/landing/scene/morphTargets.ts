@@ -88,7 +88,7 @@ function buildTunnel(count: number, rng: () => number, out: Float32Array): void 
  * with a thin residual floor of dust between them.
  */
 function buildSlabs(count: number, rng: () => number, out: Float32Array): void {
-  const coatCount = Math.floor(count * 0.8);
+  const coatCount = Math.floor(count * 0.6);
   for (let i = 0; i < count; i++) {
     if (i < coatCount) {
       const slab = SLABS[i % SLABS.length];
@@ -96,7 +96,8 @@ function buildSlabs(count: number, rng: () => number, out: Float32Array): void {
       out[i * 3] =
         slab.x + (rng() - 0.5) * slab.width + face * 0.05;
       out[i * 3 + 1] = rng() * slab.height - 1;
-      out[i * 3 + 2] = slab.z + face * (0.35 + rng() * 0.15);
+      // Spread through the slab depth so faces don't stack into glare.
+      out[i * 3 + 2] = slab.z + face * (0.3 + rng() * 0.7);
     } else {
       out[i * 3] = (rng() - 0.5) * 40;
       out[i * 3 + 1] = -1.1 + rng() * 0.5;
@@ -136,14 +137,15 @@ function buildStarfield(count: number, rng: () => number, out: Float32Array): vo
  * with a low ground mist; the gathering sky falls back into structure.
  */
 function buildMonoliths(count: number, rng: () => number, out: Float32Array): void {
-  const coatCount = Math.floor(count * 0.72);
+  const coatCount = Math.floor(count * 0.55);
   for (let i = 0; i < count; i++) {
     if (i < coatCount) {
       const mono = MONOLITHS[i % MONOLITHS.length];
       const face = rng() > 0.5 ? 1 : -1;
       out[i * 3] = mono.x + (rng() - 0.5) * mono.width + face * 0.06;
       out[i * 3 + 1] = rng() * mono.height - 1;
-      out[i * 3 + 2] = mono.z + face * (0.4 + rng() * 0.2);
+      // Spread through the monolith depth so faces don't stack into glare.
+      out[i * 3 + 2] = mono.z + face * (0.35 + rng() * 0.75);
     } else {
       out[i * 3] = (rng() - 0.5) * 60;
       out[i * 3 + 1] = -1 + rng() * 0.7;
@@ -160,7 +162,7 @@ function buildCollapse(count: number, rng: () => number, out: Float32Array): voi
   for (let i = 0; i < count; i++) {
     const theta = rng() * Math.PI * 2;
     const phi = Math.acos(2 * rng() - 1);
-    const radius = Math.pow(rng(), 2.2) * 1.6;
+    const radius = Math.pow(rng(), 2.2) * 0.75;
     out[i * 3] =
       COLLAPSE_POINT.x + Math.sin(phi) * Math.cos(theta) * radius;
     out[i * 3 + 1] = COLLAPSE_POINT.y + Math.cos(phi) * radius;
@@ -194,9 +196,18 @@ export function buildMorphTargets(count: number, seed = 20260720): MorphTargets 
 
   const random = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
-    random[i * 3] = 0.25 + rng() * 0.65; // brightness
+    random[i * 3] = 0.18 + rng() * 0.42; // base brightness (normal blending)
     random[i * 3 + 1] = rng() * Math.PI * 2; // breathing phase
-    random[i * 3 + 2] = 0.55 + rng() * 1.1; // size factor
+    random[i * 3 + 2] = 0.28 + rng() * 0.32; // size factor
   }
+
+  // Brightness follows terrain height: ridges catch light, gullies fall
+  // dark — the plain reads as landscape, not uniform noise.
+  const terrain = states[0];
+  for (let i = 0; i < count; i++) {
+    const h = (terrain[i * 3 + 1] + 1.2) / TERRAIN.maxHeight;
+    random[i * 3] *= 0.25 + 0.75 * Math.min(1, Math.max(0, h));
+  }
+
   return { states, random, count };
 }

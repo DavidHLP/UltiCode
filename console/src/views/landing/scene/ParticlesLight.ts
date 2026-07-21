@@ -39,17 +39,15 @@ export class ParticlesLight {
     const rnd = new Float32Array(maxCount);
     const rnd2 = new Float32Array(maxCount);
     const stars = new Float32Array(maxCount * 3);
-    const dir = new THREE.Vector3();
     for (let i = 0; i < maxCount; i++) {
       const i3 = i * 3;
-      // Spawn: small sphere, radius pow(rand,0.5)*0.3 (reference distribution).
-      dir.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1);
-      if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
-      dir.normalize();
+      // Spawn: uniform sphere, radius pow(rand,0.5)*0.3 (reference ParticlesLight.js).
       const r = Math.pow(Math.random(), 0.5) * 0.3;
-      positions[i3] = dir.x * r;
-      positions[i3 + 1] = dir.y * r;
-      positions[i3 + 2] = dir.z * r;
+      const theta = Math.random() * Math.PI * 2.0;
+      const phi = Math.acos(Math.random() * 2.0 - 1.0);
+      positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = r * Math.cos(phi);
+      positions[i3 + 2] = r * Math.sin(phi) * Math.sin(theta);
       sizes[i] = Math.pow(Math.random(), 2.2);
       rnd[i] = Math.random();
       rnd2[i] = Math.random();
@@ -60,7 +58,9 @@ export class ParticlesLight {
     }
 
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const positionAttr = new THREE.BufferAttribute(positions, 3);
+    positionAttr.setUsage(THREE.DynamicDrawUsage);
+    geometry.setAttribute("position", positionAttr);
     geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute("aRnd", new THREE.BufferAttribute(rnd, 1));
     geometry.setAttribute("aRnd2", new THREE.BufferAttribute(rnd2, 1));

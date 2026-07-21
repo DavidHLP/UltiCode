@@ -155,22 +155,29 @@ function buildMonoliths(count: number, rng: () => number, out: Float32Array): vo
 }
 
 /**
- * State 5 — collapse. Particles orbit the collapse mesh as embers — a shell
- * outside the solid core (radius 0.7), weighted toward the inner edge. The
- * mesh itself (created in the renderer) is the genuine 3D point of light;
- * these particles form the swirling halo around it.
+ * State 5 — collapse. The particles themselves are the volumetric orb: a
+ * dense core with a power-law falloff, plus a sparse wide ember halo. No
+ * mesh — the 3D read comes from filling the volume, and the shader adds
+ * sway parallax and back-hemisphere dimming on top. The tilt is baked into
+ * the buffer: applying it in the shader would swing distant particles
+ * mid-transition.
  */
 function buildCollapse(count: number, rng: () => number, out: Float32Array): void {
+  const TILT = 0.35;
+  const cosT = Math.cos(TILT);
+  const sinT = Math.sin(TILT);
   for (let i = 0; i < count; i++) {
     const theta = rng() * Math.PI * 2;
     const phi = Math.acos(2 * rng() - 1);
-    // Orbit outside the collapse mesh — embers circling the solid core.
-    const radius = 0.85 + Math.pow(rng(), 0.7) * 0.65;
+    // ~8% drift wide as halo embers; the rest fill the ball, core-biased.
+    const radius =
+      i % 12 === 0 ? 2.6 + rng() * 1.8 : 2.6 * Math.pow(rng(), 0.65);
+    const y = Math.cos(phi) * radius;
+    const z = Math.sin(phi) * Math.sin(theta) * radius;
     out[i * 3] =
       COLLAPSE_POINT.x + Math.sin(phi) * Math.cos(theta) * radius;
-    out[i * 3 + 1] = COLLAPSE_POINT.y + Math.cos(phi) * radius;
-    out[i * 3 + 2] =
-      COLLAPSE_POINT.z + Math.sin(phi) * Math.sin(theta) * radius;
+    out[i * 3 + 1] = COLLAPSE_POINT.y + y * cosT - z * sinT;
+    out[i * 3 + 2] = COLLAPSE_POINT.z + y * sinT + z * cosT;
   }
 }
 

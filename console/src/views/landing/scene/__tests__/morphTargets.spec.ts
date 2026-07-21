@@ -54,15 +54,21 @@ describe("buildMorphTargets", () => {
     expect(near / COUNT).toBeGreaterThan(0.45);
   });
 
-  it("collapse pulls every particle into a tight sphere", () => {
+  it("collapse pulls every particle into a volumetric orb", () => {
     const targets = buildMorphTargets(COUNT);
     const collapse = targets.states[5];
+    let core = 0;
     for (let i = 0; i < COUNT; i++) {
       const dx = collapse[i * 3] - COLLAPSE_POINT.x;
       const dy = collapse[i * 3 + 1] - COLLAPSE_POINT.y;
       const dz = collapse[i * 3 + 2] - COLLAPSE_POINT.z;
-      expect(Math.hypot(dx, dy, dz)).toBeLessThan(2);
+      const r = Math.hypot(dx, dy, dz);
+      // Halo embers drift to 4.4; nothing beyond.
+      expect(r).toBeLessThan(4.5);
+      if (r < 2.7) core++;
     }
+    // The bulk of the field fills the ball, not a thin shell.
+    expect(core / COUNT).toBeGreaterThan(0.85);
   });
 
   it("every state covers the corridor the camera travels", () => {

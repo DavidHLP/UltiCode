@@ -74,6 +74,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uPointMaxPx; // hard cap in framebuffer pixels (CSS * DPR)
   uniform float uBreathAmp;
   uniform float uFogDensity;
+  uniform vec3 uCollapseCenter;
 
   varying float vAlpha;
   varying float vFog;
@@ -85,6 +86,23 @@ const VERTEX_SHADER = /* glsl */ `
     p = mix(p, aTarget3, clamp(uMorph - 2.0, 0.0, 1.0));
     p = mix(p, aTarget4, clamp(uMorph - 3.0, 0.0, 1.0));
     p = mix(p, aTarget5, clamp(uMorph - 4.0, 0.0, 1.0));
+
+    // Collapse finale: a bounded sway gives the orb motion parallax. Gated
+    // by proximity (arrive) so particles still flying in from the monoliths
+    // are untouched — any absolute angle applied to a large offset whips
+    // them through huge arcs. Never an accumulating angle: dwell at the
+    // finale then scroll back and the gate ramp would sweep the whole arc.
+    float collapseW = smoothstep(4.4, 5.0, uMorph);
+    vec3 cOff = p - uCollapseCenter;
+    float arrive = smoothstep(9.0, 4.5, length(cOff));
+    float gate = collapseW * arrive;
+    if (gate > 0.001) {
+      float ang = sin(uTime * 0.22) * 0.55 * gate;
+      float ca = cos(ang);
+      float sa = sin(ang);
+      cOff.xz = mat2(ca, -sa, sa, ca) * cOff.xz;
+      p = uCollapseCenter + cOff;
+    }
 
     // Slow breathing / drift — atmosphere, not waves.
     float breath = sin(uTime * 0.35 + aRandom.y);
@@ -109,19 +127,26 @@ const VERTEX_SHADER = /* glsl */ `
     // Foreground bokeh: nearer particles grow and soften out — restrained,
     // so low-altitude flight doesn't smear the lower frame.
     float nearBlur = smoothstep(8.0, 2.5, dist);
-    // Suppress the bokeh swell during collapse so embers orbit the solid core
-    // as distinct points, not puffy bokeh blobs.
+    // Suppress the bokeh swell during collapse so the orb stays crisp.
     nearBlur *= 1.0 - smoothstep(4.5, 4.9, uMorph) * 0.7;
     float size = aRandom.z * (1.0 + nearBlur * 0.8);
-    // Collapse finish: shrink as the field contracts so the finale reads as
-    // a sharp point of light, not a glowing moon.
-    size *= 1.0 - smoothstep(4.5, 5.0, uMorph) * 0.55;
+    // Orb depth cue: the far hemisphere shrinks, so the ball reads as a
+    // volume instead of a flat disc of identical sprites. Gated by arrive
+    // so incoming particles keep their size until they join the orb.
+    float behind = (1.0 - smoothstep(-2.6, 0.8, cOff.z)) * gate;
+    size *= 1.0 - behind * 0.35;
+    // Collapse finish: shrink as the field contracts into the orb.
+    size *= 1.0 - smoothstep(4.5, 5.0, uMorph) * 0.45;
     gl_PointSize = min(size * uPointScale / dist, uPointMaxPx);
     gl_Position = projectionMatrix * mv;
 
     float alpha = aRandom.x;
     alpha *= smoothstep(2.0, 7.0, dist);            // dissolve near the camera
     alpha *= 1.0 - smoothstep(60.0, 240.0, dist) * 0.6; // distance decay
+    // Far hemisphere fades; the dense core brightens.
+    alpha *= 1.0 - behind * 0.6;
+    alpha *= 1.0 + (1.0 - smoothstep(0.0, 2.2, length(cOff))) * gate * 0.7;
+    alpha = min(alpha, 1.0);
     vAlpha = alpha * (1.0 - nearBlur * 0.45);
 
     vFog = 1.0 - exp(-uFogDensity * uFogDensity * dist * dist);
@@ -143,44 +168,6 @@ const FRAGMENT_SHADER = /* glsl */ `
     if (alpha < 0.004) discard;
     vec3 color = mix(uColor, uFogColor, vFog);
     gl_FragColor = vec4(color, alpha);
-  }
-`;
-
-const COLLAPSE_VERTEX_SHADER = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  varying float vDist;
-
-  void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vNormal = normalize(normalMatrix * normal);
-    vViewDir = normalize(-mv.xyz);
-    vDist = max(0.001, -mv.z);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-
-const COLLAPSE_FRAGMENT_SHADER = /* glsl */ `
-  uniform vec3 uColor;
-  uniform vec3 uRimColor;
-  uniform vec3 uFogColor;
-  uniform float uFogDensity;
-
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  varying float vDist;
-
-  void main() {
-    // Fresnel rim: bright at glancing angles, dim facing the camera — reads
-    // as a shaded solid sphere, not a flat disc.
-    float fresnel = pow(1.0 - max(0.0, dot(vNormal, vViewDir)), 2.5);
-    vec3 color = mix(uColor * 0.4, uRimColor, fresnel);
-    // Internal glow so the core reads as a point of light, not dead metal.
-    color += uRimColor * 0.15;
-    // Manual exp² fog to match the particle field.
-    float fog = 1.0 - exp(-uFogDensity * uFogDensity * vDist * vDist);
-    color = mix(color, uFogColor, fog * 0.75);
-    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
@@ -257,6 +244,13 @@ export function createWastelandScene(
     uPointMaxPx: { value: MAX_POINT_PX_CSS * dpr },
     uBreathAmp: { value: 0.22 },
     uFogDensity: { value: FOG_DENSITY },
+    uCollapseCenter: {
+      value: new THREE.Vector3(
+        COLLAPSE_POINT.x,
+        COLLAPSE_POINT.y,
+        COLLAPSE_POINT.z,
+      ),
+    },
     uColor: { value: SILVER },
     uFogColor: { value: BG_COLOR },
   };
@@ -370,34 +364,6 @@ export function createWastelandScene(
     addTitlePlane(labels.brand, 30, -196, 40, 0.35);
   }
 
-  // Collapse core: a real icosphere mesh that materializes at the finale.
-  // Unlike the particle cloud this is genuine 3D geometry — it occludes
-  // embers behind it via depth and reads as a solid point of light, not a
-  // shaded billboard cluster. Scales in from 0 as the collapse forms.
-  const collapseGeometry = new THREE.IcosahedronGeometry(0.7, 3);
-  const collapseMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      uColor: { value: SILVER },
-      uRimColor: { value: new THREE.Color(0.92, 0.95, 1.0) },
-      uFogColor: { value: BG_COLOR },
-      uFogDensity: { value: FOG_DENSITY },
-    },
-    vertexShader: COLLAPSE_VERTEX_SHADER,
-    fragmentShader: COLLAPSE_FRAGMENT_SHADER,
-    // Opaque + depthWrite so the solid core occludes embers behind it; the
-    // particle field (depthWrite=false) still renders normally in front.
-    transparent: false,
-    depthWrite: true,
-  });
-  const collapseMesh = new THREE.Mesh(collapseGeometry, collapseMaterial);
-  collapseMesh.position.set(
-    COLLAPSE_POINT.x,
-    COLLAPSE_POINT.y,
-    COLLAPSE_POINT.z,
-  );
-  collapseMesh.scale.setScalar(0);
-  scene.add(collapseMesh);
-
   function smoothstepJs(e0: number, e1: number, x: number): number {
     const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
     return t * t * (3 - 2 * t);
@@ -483,16 +449,6 @@ export function createWastelandScene(
         heightPx / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
       // Hard cap in CSS pixels, refreshed each frame in case DPR changes.
       uniforms.uPointMaxPx.value = MAX_POINT_PX_CSS * renderer.getPixelRatio();
-      // Collapse core materializes during the finale (uMorph 4.5 → 4.95):
-      // smoothstepped scale 0 → 1 so the solid sphere grows as particles
-      // contract into its orbit shell.
-      const collapseMorph = Math.max(
-        0,
-        Math.min(1, (uniforms.uMorph.value - 4.5) / 0.45),
-      );
-      const collapseScale =
-        collapseMorph * collapseMorph * (3 - 2 * collapseMorph);
-      collapseMesh.scale.setScalar(collapseScale);
 
       updateMouseWorld();
       updateTitles();
@@ -528,8 +484,6 @@ export function createWastelandScene(
       cloud.geometry.dispose();
       dust.geometry.dispose();
       material.dispose();
-      collapseGeometry.dispose();
-      collapseMaterial.dispose();
       for (const disposable of titleDisposables) disposable.dispose();
       renderer.dispose();
     },

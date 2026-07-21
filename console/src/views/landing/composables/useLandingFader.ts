@@ -49,6 +49,15 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
     scene.yaw.position.x = lerp(0, 1.5, p);
     scene.yaw.position.y = lerp(0, 1.2, p);
     scene.yaw.position.z = lerp(0, -2.5, p);
+    // Hand-model cloud: appears early, collapses (uProgress 1->0) mid-scroll,
+    // fades before the end. No-op until the async GLTF "hand" resolves.
+    const model = scene.model;
+    if (model) {
+      const appear = clamp01((p - 0.1) / 0.1);
+      const fadeOut = clamp01((p - 0.88) / 0.1);
+      model.setActive(appear * (1 - fadeOut));
+      (model.uniforms.uProgress.value as number) = 1 - clamp01((p - 0.5) / 0.22);
+    }
   };
 
   if (reducedMotion) {

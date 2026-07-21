@@ -5,6 +5,9 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { ParticlesDesert } from "../scene/ParticlesDesert";
 import { CustomFog } from "../scene/CustomFog";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { ParticlesModel } from "../scene/ParticlesModel";
 
 /**
  * createLandingScene — owns the renderer, the yaw→pitch camera rig with mouse
@@ -29,6 +32,8 @@ export interface LandingSceneHandle {
   readonly camera: THREE.PerspectiveCamera;
   readonly yaw: THREE.Object3D;
   readonly pitch: THREE.Object3D;
+  /** Hand-model particle cloud; null until the async GLTF "hand" mesh resolves. */
+  readonly model: ParticlesModel | null;
   /** Render a single frame (used by the reduced-motion path per scroll tick). */
   renderOnce(): void;
   dispose(): void;
@@ -82,6 +87,36 @@ export function createLandingScene(
 
   const desert = new ParticlesDesert({ scene, mouse, isDesktop: opts.isDesktop });
   const fog = new CustomFog({ scene, camera, mouse });
+  // Async "hand" model — abort-safe: a late resolve after teardown is dropped.
+  let disposed = false;
+  const handHolder: { current: ParticlesModel | null } = { current: null };
+  const draco = new DRACOLoader();
+  draco.setDecoderPath("/landing-assets/draco/");
+  draco.setDecoderConfig({ type: "js" }); // pure-JS decoder; no wasm staged
+  const gltfLoader = new GLTFLoader();
+  gltfLoader.setDRACOLoader(draco);
+  gltfLoader.load(
+    "/landing-assets/model/scene.glb",
+    (gltf) => {
+      const hand = gltf.scene.getObjectByName("hand") as THREE.Mesh | null;
+      if (hand && hand.isMesh && !disposed) {
+        handHolder.current = new ParticlesModel({ scene, mesh: hand, mouse });
+      } else if (!disposed) {
+        console.warn("[LandingScene] GLTF 'hand' mesh not found; hand cloud skipped");
+      }
+      // Sampling already copied vertex data into the cloud's own buffers; release
+      // the parsed GLTF resources (covers used AND late-resolve-after-dispose).
+      gltf.scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.geometry) m.geometry.dispose();
+        const mat = m.material;
+        if (Array.isArray(mat)) mat.forEach((x) => x.dispose());
+        else if (mat) (mat as THREE.Material).dispose();
+      });
+    },
+    undefined,
+    (err) => console.error("[LandingScene] GLTF load failed", err),
+  );
 
   // Post chain: RenderPass -> UnrealBloom (≈ reference Bloom 2.5) -> OutputPass
   // (applies Reinhard tone mapping + sRGB).
@@ -118,6 +153,7 @@ export function createLandingScene(
     composer.setSize(w, h);
     desert.resize(dpr);
     fog.resize();
+    handHolder.current?.resize(dpr);
   };
   window.addEventListener("resize", onResize);
 
@@ -128,6 +164,7 @@ export function createLandingScene(
   const renderFrame = (time: number) => {
     desert.update(time);
     fog.update(time);
+    handHolder.current?.update(time);
     yaw.rotation.y = lerp(yaw.rotation.y, targetYaw.v, MOUSE_LERP);
     pitch.rotation.x = lerp(pitch.rotation.x, targetPitch.v, MOUSE_LERP);
     composer.render();
@@ -149,14 +186,27 @@ export function createLandingScene(
   }
 
   const dispose = () => {
+    disposed = true;
     cancelAnimationFrame(raf);
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("resize", onResize);
     desert.dispose();
     fog.dispose();
+    handHolder.current?.dispose();
     composer.dispose();
     renderer.dispose();
   };
 
-  return { desert, fog, camera, yaw, pitch, renderOnce, dispose };
+  return {
+    desert,
+    fog,
+    camera,
+    yaw,
+    pitch,
+    get model() {
+      return handHolder.current;
+    },
+    renderOnce,
+    dispose,
+  };
 }

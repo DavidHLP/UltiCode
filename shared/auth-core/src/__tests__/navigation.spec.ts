@@ -57,7 +57,6 @@ const defaultPolicy: NavigationPolicyOptions = {
   staleSessionMs: DEFAULT_STALE_SESSION_MS,
   loginRouteName: 'login',
   authenticatedGuestRouteName: 'home',
-  authenticatedLandingRouteName: 'home',
 };
 
 function makeTarget(
@@ -264,35 +263,6 @@ describe('createNavigationPolicy — post-auth redirects', () => {
       matched: [{ meta: { guestOnly: true } }],
     });
 
-    const decision = await nav.evaluate(target);
-    expect(decision).toEqual({ kind: 'allow' });
-  });
-
-  it('T8: authenticated user on landing page → redirect to authenticatedLandingRouteName', async () => {
-    auth = makeAuthAdapter({ isAuthenticated: () => true });
-    const nav = createNavigationPolicy(auth, defaultPolicy, clock);
-
-    const target = makeTarget({
-      name: 'landing',
-      matched: [],
-    });
-
-    const decision = await nav.evaluate(target);
-    expect(decision).toEqual({ kind: 'redirect', name: 'home' });
-  });
-
-  it('T9: when authenticatedLandingRouteName not configured → allow on landing', async () => {
-    auth = makeAuthAdapter({ isAuthenticated: () => true });
-    const nav = createNavigationPolicy(
-      auth,
-      {
-        staleSessionMs: 5 * 60 * 1000,
-        loginRouteName: 'login',
-      },
-      clock,
-    );
-
-    const target = makeTarget({ name: 'landing', matched: [] });
     const decision = await nav.evaluate(target);
     expect(decision).toEqual({ kind: 'allow' });
   });

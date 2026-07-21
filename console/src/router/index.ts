@@ -276,11 +276,11 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // Public landing page — the "one submission" micro-narrative. No
-      // AppLayout, no auth requirement; CTAs branch on auth state instead.
+      // Root → problemset. The landing page was removed; a new landing
+      // design will replace this redirect. problemset is public, so guests
+      // and signed-in users both land on the core OJ surface.
       path: "/",
-      name: "landing",
-      component: () => import("@/views/landing/LandingView.vue"),
+      redirect: "/problemset",
     },
     forumCreateRoute,
     forumEditRoute,
@@ -381,8 +381,6 @@ installAuthNavigation({
   policy: {
     loginRouteName: "login",
     authenticatedGuestRouteName: "forum-home",
-    // The landing route (`/`) is public for both guests and signed-in
-    // users, so no authenticated-landing redirect is registered here.
   },
 });
 

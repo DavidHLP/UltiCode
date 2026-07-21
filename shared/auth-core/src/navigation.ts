@@ -90,8 +90,6 @@ export interface NavigationPolicyOptions {
   loginRouteName: string;
   /** Optional: route name for authenticated users who land on a guest-only route. */
   authenticatedGuestRouteName?: string;
-  /** Optional: route name for authenticated users who land on the landing page. */
-  authenticatedLandingRouteName?: string;
 }
 
 /** Result of a navigation evaluation. */
@@ -196,15 +194,6 @@ export function createNavigationPolicy(
     const isGuestOnly = routeMetaHasBoolean(to, 'guestOnly');
     if (isGuestOnly && policy.authenticatedGuestRouteName && auth.isAuthenticated()) {
       return { kind: 'redirect', name: policy.authenticatedGuestRouteName };
-    }
-
-    if (
-      typeof to.name === 'string' &&
-      to.name === 'landing' &&
-      policy.authenticatedLandingRouteName &&
-      auth.isAuthenticated()
-    ) {
-      return { kind: 'redirect', name: policy.authenticatedLandingRouteName };
     }
 
     return { kind: 'allow' };

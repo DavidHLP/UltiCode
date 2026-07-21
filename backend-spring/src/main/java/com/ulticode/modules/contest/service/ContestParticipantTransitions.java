@@ -5,14 +5,25 @@ import java.time.LocalDateTime;
 /**
  * Single seam for all {@link com.ulticode.modules.contest.entity.ContestParticipant}
  * status transitions.
- * <p>The scheduled path ({@link com.ulticode.modules.contest.service.ContestLifecycleService})
- * delegates bulk transitions here so that the lifecycle scheduler has a single
- * mockable collaborator. This seam owns input hygiene (null guard, dedup) for
- * virtual batches and forwards the three transition calls to the mapper with
- * the canonical status literals.
+ * <p>Callers: the scheduled lifecycle path
+ * ({@link com.ulticode.modules.contest.service.ContestLifecycleService})
+ * delegates all three bulk transitions here, and the interactive
+ * virtual-finish path ({@code ContestParticipationServiceImpl#finishVirtualContest})
+ * routes {@link #bulkFinishVirtualByIds} through this seam too (with a
+ * single-element id list) so both paths exercise the same transition code.
+ * Individual real-participant start/finish (interactive register to start,
+ * single real participant finishing) still goes direct to the mapper in
+ * {@code ContestParticipationService}; only the virtual-finish overlap
+ * crosses this seam today.
  *
- * <p>Individual participant transitions (interactive start/finish) are handled
- * directly by the mapper in {@code ContestParticipationService}.
+ * <p>Purpose: this seam is the concentration point for participant status
+ * transitions. Today it forwards to the mapper with input hygiene
+ * (null/empty guard + HashSet dedup for the virtual batch) and the canonical
+ * status literals; the transition rules
+ * themselves (conditional-UPDATE WHERE guards) stay in the mapper SQL so
+ * they remain atomic against scheduler / rejudge races. The seam exists so
+ * future transition-side preconditions land in one place rather than
+ * across the two callers; see the M2 / R6.2 notes on those callers.
  *
  * <p>Load-bearing constraints preserved:
  * <ul>

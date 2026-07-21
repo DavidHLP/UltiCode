@@ -44,8 +44,8 @@ export interface LandingSceneHandle {
 
 // Fixed phase so reduced-motion stills are identical on every visit.
 const FROZEN_TIME = 1.0;
-const PARALLAX_X = 0.08;
-const PARALLAX_Y = 0.12;
+const PARALLAX_X = 0.6; // lookAt target offset: NDC -> world units
+const PARALLAX_Y = 0.9;
 const MOUSE_LERP = 0.15;
 
 export function createLandingScene(
@@ -85,8 +85,11 @@ export function createLandingScene(
   yaw.add(pitch);
   pitch.add(camera);
   scene.add(yaw);
-  camera.position.set(0, 1.0, 11);
-  camera.lookAt(0, 0, 0);
+  camera.position.set(0, 0, 0); // sits at yaw.position (the CatmullRom path point)
+  // Camera looks at a fixed target; parallax shifts the target with the mouse.
+  const cameraTarget = new THREE.Vector3(0.36, 0.26, -0.22);
+  const smoothMouse = new THREE.Vector2();
+  const lookTarget = new THREE.Vector3();
 
   const desert = new ParticlesDesert({ scene, mouse, isDesktop: opts.isDesktop });
   const fog = new CustomFog({ scene, camera, mouse });
@@ -139,16 +142,10 @@ export function createLandingScene(
   const dither = new DitherEffect(0.001);
   composer.addPass(dither);
 
-  // Mouse parallax targets (kept zero under reduced-motion).
-  const targetYaw = { v: 0 };
-  const targetPitch = { v: 0 };
+  // Track raw NDC mouse (parallax applied via lookAt target offset in renderFrame).
   const onPointerMove = (e: PointerEvent) => {
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -((e.clientY / window.innerHeight) * 2 - 1);
-    if (!reducedMotion) {
-      targetYaw.v = -mouse.x * PARALLAX_X;
-      targetPitch.v = mouse.y * PARALLAX_Y;
-    }
   };
   window.addEventListener("pointermove", onPointerMove, { passive: true });
 
@@ -169,7 +166,6 @@ export function createLandingScene(
   const clock = new THREE.Clock();
   let raf = 0;
   let prevFrameTime: number | null = null;
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
   const renderFrame = (time: number) => {
     desert.update(time);
@@ -179,8 +175,11 @@ export function createLandingScene(
     const delta = Math.min(Math.max(time - (prevFrameTime ?? time), 0), 0.5);
     prevFrameTime = time;
     dither.update(delta);
-    yaw.rotation.y = lerp(yaw.rotation.y, targetYaw.v, MOUSE_LERP);
-    pitch.rotation.x = lerp(pitch.rotation.x, targetPitch.v, MOUSE_LERP);
+    if (!reducedMotion) smoothMouse.lerp(mouse, MOUSE_LERP);
+    lookTarget.copy(cameraTarget);
+    lookTarget.x += smoothMouse.x * PARALLAX_X;
+    lookTarget.y += smoothMouse.y * PARALLAX_Y;
+    camera.lookAt(lookTarget);
     composer.render();
   };
 

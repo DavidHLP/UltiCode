@@ -1,9 +1,26 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
+import * as THREE from "three";
 import type { LandingSceneHandle } from "./useLandingScene";
 
 gsap.registerPlugin(ScrollTrigger);
+// Reference camera path: 9 centripetal CatmullRom control points (MainScene.js).
+const CAMERA_PATH = new THREE.CatmullRomCurve3(
+  [
+    new THREE.Vector3(-7.799073, 0.25, 9.103358),
+    new THREE.Vector3(-5.05, 0.76, 7.05),
+    new THREE.Vector3(-4.313, 0.65, 3.701),
+    new THREE.Vector3(-5.74, 0.65, -0.22),
+    new THREE.Vector3(-3.051, 0.65, -5.277),
+    new THREE.Vector3(3.224, 0.65, -5.606),
+    new THREE.Vector3(6.46, 0.65, -0.22),
+    new THREE.Vector3(3.034, 0.65, 5.263),
+    new THREE.Vector3(-3, 0.65, 6.1),
+  ],
+  false,
+  "centripetal",
+);
 
 /**
  * createLandingFader — drives the desert morph uniforms + camera dolly from
@@ -32,23 +49,19 @@ export interface LandingFaderHandle {
 
 const SCROLL_STEPS = 24;
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandle {
   const { scene, scroller, reducedMotion } = opts;
   const u = scene.desert.uniforms;
 
-  // Map overall scroll progress [0,1] to the v1 morph beats + camera dolly.
-  // Camera dollies via the rig root (yaw) so it composes with mouse parallax
-  // rotation instead of fighting it.
+  // Map overall scroll progress [0,1] to the morph beats + the CatmullRom camera
+  // path (reference: getPointAt arc-length sampling along the 9 control points).
   const applyProgress = (p: number) => {
     (u.uProgress.value as number) = 1 - clamp01(p / 0.33); // desert assembles
     (u.uSplitProgress.value as number) = clamp01((p - 0.33) / 0.33); // mirror split
     (u.uBlackHoleProgress.value as number) = clamp01((p - 0.66) / 0.34) * 0.35; // vortex
 
-    scene.yaw.position.x = lerp(0, 1.5, p);
-    scene.yaw.position.y = lerp(0, 1.2, p);
-    scene.yaw.position.z = lerp(0, -2.5, p);
+    scene.yaw.position.copy(CAMERA_PATH.getPointAt(clamp01(p)));
     // Hand-model cloud: appears early, collapses (uProgress 1->0) mid-scroll,
     // fades before the end. No-op until the async GLTF "hand" resolves.
     const model = scene.model;
@@ -102,6 +115,9 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
     duration: SCROLL_STEPS,
     onUpdate: () => applyProgress(proxy.p),
   });
+  // Position the camera at the path start before the first render frame so it
+  // never flashes at the rig origin while waiting for the first scrub update.
+  applyProgress(0);
 
   return {
     dispose: () => {

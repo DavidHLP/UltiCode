@@ -13,7 +13,14 @@ export default defineConfigWithVueTs(
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    // Byte-frozen third-party landing mirror served as-is from /landing;
+    // not project source, must stay identical to landing/landing/mirror/site.
+    'public/landing/**',
+  ]),
 
   pluginVue.configs['flat/essential'],
   {

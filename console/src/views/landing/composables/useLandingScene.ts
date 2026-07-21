@@ -10,6 +10,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { ParticlesModel } from "../scene/ParticlesModel";
 import { ParticlesLight } from "../scene/ParticlesLight";
 import { DitherEffect } from "../scene/DitherEffect";
+import { MousePointer } from "../scene/MousePointer";
 
 /**
  * createLandingScene — owns the renderer, the yaw→pitch camera rig with mouse
@@ -32,6 +33,7 @@ export interface LandingSceneHandle {
   readonly desert: ParticlesDesert;
   readonly fog: CustomFog;
   readonly light: ParticlesLight;
+  readonly cursor: MousePointer;
   readonly camera: THREE.PerspectiveCamera;
   readonly yaw: THREE.Object3D;
   readonly pitch: THREE.Object3D;
@@ -94,6 +96,7 @@ export function createLandingScene(
   const desert = new ParticlesDesert({ scene, mouse, isDesktop: opts.isDesktop });
   const fog = new CustomFog({ scene, camera, mouse });
   const light = new ParticlesLight({ scene, mouse });
+  const cursor = new MousePointer({ scene, mouse });
   // Async "hand" model — abort-safe: a late resolve after teardown is dropped.
   let disposed = false;
   const handHolder: { current: ParticlesModel | null } = { current: null };
@@ -159,6 +162,7 @@ export function createLandingScene(
     desert.resize(dpr);
     fog.resize();
     light.resize();
+    cursor.resize();
     handHolder.current?.resize(dpr);
   };
   window.addEventListener("resize", onResize);
@@ -171,6 +175,7 @@ export function createLandingScene(
     desert.update(time);
     fog.update(time);
     light.update(time);
+    cursor.update();
     handHolder.current?.update(time);
     const delta = Math.min(Math.max(time - (prevFrameTime ?? time), 0), 0.5);
     prevFrameTime = time;
@@ -206,6 +211,7 @@ export function createLandingScene(
     desert.dispose();
     fog.dispose();
     light.dispose();
+    cursor.dispose();
     handHolder.current?.dispose();
     composer.dispose();
     renderer.dispose();
@@ -215,6 +221,7 @@ export function createLandingScene(
     desert,
     fog,
     light,
+    cursor,
     camera,
     yaw,
     pitch,

@@ -14,7 +14,9 @@ import java.util.Set;
 
 /**
  * Delegation seam for {@code ContestParticipant} status transitions called by
- * the scheduled lifecycle path ({@code ContestLifecycleServiceImpl}).
+ * both the scheduled lifecycle path ({@code ContestLifecycleServiceImpl})
+ * and the interactive virtual-finish path
+ * ({@code ContestParticipationServiceImpl#finishVirtualContest}).
  *
  * <p>This seam gives the lifecycle service a single mockable collaborator
  * (instead of wiring the mapper directly into the scheduler) and owns three

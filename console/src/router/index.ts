@@ -276,10 +276,9 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // Root → landing. A self-contained static mirror lives under
-      // public/landing/ and is embedded full-viewport via an iframe, so the
-      // Vue shell never touches its bundle, styles, or scroll container.
-      // Public: guests and signed-in users both see it.
+      // Root → landing. A native Vue 3 + Three.js scene (composables under
+      // views/landing/composables) renders the immersive particle narrative;
+      // no iframe or static mirror. Public: guests and signed-in users both see it.
       path: "/",
       name: "landing",
       component: () => import("@/views/landing/LandingView.vue"),

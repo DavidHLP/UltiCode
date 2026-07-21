@@ -99,6 +99,31 @@ export function parseImportText(text: string): BulkImportTestCaseDto[] {
   return result
 }
 
+/**
+ * Problem test-case authoring module — owns the list/load + abort protocol,
+ * the editor dialog + form state machine, the per-item CRUD + CaseScope
+ * toggle, and the bulk import/export pipeline behind one seam so
+ * HiddenTestCasesEditor.vue is left with template wiring.
+ *
+ * Four concerns share one closure: (1) list state + the identity-change
+ * abort protocol, (2) the editor dialog + form + CaseScope vocabulary,
+ * (3) CRUD HTTP + optimistic update, (4) the bulk import/export pipeline.
+ * parseImportText is the one piece already lifted out as a pure function;
+ * the rest stays inline by deliberate convention.
+ *
+ * Precedent: useSolutionAuthoring (console/src/composables) and
+ * useForumThread (console/src/composables) share this monolithic-authoring
+ * shape — one composable per authoring workflow, even with a single
+ * consumer. useSolutionAuthoring explicitly cites useForumThread as its
+ * precedent; this composable follows the same convention. The bulk import
+ * pipeline is a fourth concern unique to test-case authoring, but it stays
+ * inline: splitting it would break the established
+ * one-composable-per-authoring-workflow convention. A spec file once named
+ * useTestCaseAuthoring.spec.ts anticipated an extraction that was
+ * deliberately not pursued; it is now caseScope-invariant.spec.ts to
+ * honestly describe what it tests (the api-layer mapCaseScopeToFlags
+ * contract).
+ */
 export function useTestCases(problemId: () => string) {
   const { t } = useI18n()
 
@@ -247,13 +272,13 @@ export function useTestCases(problemId: () => string) {
   /**
    * Set the canonical CaseScope (SAMPLE | HIDDEN) on a persisted test case.
    *
-   * <p>This is the one author intent the per-row UI may express — the dual
+   * This is the one author intent the per-row UI may express — the dual
    * "toggle Sample / toggle Hidden" surface the list/detail views used to
    * expose leaked the backend's XOR invariant: callers could land on the
    * disallowed (false,false) "draft" or the illegal (true,true) combination
    * by toggling only one flag. Concentrating the toggle on a single scope
    * argument lets the wire payload always carry both flags together through
-   * {@link mapCaseScopeToFlags}, so the row stays judging-eligible.
+   * mapCaseScopeToFlags, so the row stays judging-eligible.
    */
   async function setCaseScope(testCase: TestCase, scope: CaseScope) {
     const flags = mapCaseScopeToFlags(scope)

@@ -155,14 +155,17 @@ function buildMonoliths(count: number, rng: () => number, out: Float32Array): vo
 }
 
 /**
- * State 5 — collapse. Every particle contracts toward a single point of
- * light; a whisper-thin shell keeps the implosion readable mid-transition.
+ * State 5 — collapse. Particles orbit the collapse mesh as embers — a shell
+ * outside the solid core (radius 0.7), weighted toward the inner edge. The
+ * mesh itself (created in the renderer) is the genuine 3D point of light;
+ * these particles form the swirling halo around it.
  */
 function buildCollapse(count: number, rng: () => number, out: Float32Array): void {
   for (let i = 0; i < count; i++) {
     const theta = rng() * Math.PI * 2;
     const phi = Math.acos(2 * rng() - 1);
-    const radius = Math.pow(rng(), 2.2) * 0.75;
+    // Orbit outside the collapse mesh — embers circling the solid core.
+    const radius = 0.85 + Math.pow(rng(), 0.7) * 0.65;
     out[i * 3] =
       COLLAPSE_POINT.x + Math.sin(phi) * Math.cos(theta) * radius;
     out[i * 3 + 1] = COLLAPSE_POINT.y + Math.cos(phi) * radius;

@@ -3,6 +3,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import * as THREE from "three";
 import type { LandingSceneHandle } from "./useLandingScene";
+import { createLoopController } from "./useLandingLoop";
 
 gsap.registerPlugin(ScrollTrigger);
 // Reference camera path: 9 centripetal CatmullRom control points (MainScene.js).
@@ -101,6 +102,16 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
   gsap.ticker.lagSmoothing(0);
 
   const proxy = { p: 0 };
+  // Seamless loop: at scroll-end the controller fades out, snaps to the start,
+  // and fades back in (guard/rearm/dispose unit-tested in useLandingLoop.spec).
+  const loop = createLoopController({
+    getCanvas: () => document.querySelector("canvas"),
+    reset: () => {
+      lenis.scrollTo(0, { immediate: true });
+      proxy.p = 0;
+      applyProgress(0);
+    },
+  });
   const tl = gsap.timeline({
     defaults: { ease: "none" },
     scrollTrigger: {
@@ -108,6 +119,8 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
       start: "top top",
       end: "bottom bottom",
       scrub: true,
+      onUpdate: (self: ScrollTrigger) =>
+        loop.maybeTrigger(self.progress, self.direction),
     },
   });
   tl.to(proxy, {
@@ -126,6 +139,7 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
       gsap.ticker.remove(tickerFn);
       lenis.destroy();
       ScrollTrigger.getAll().forEach((s) => s.kill());
+      loop.dispose();
     },
   };
 }

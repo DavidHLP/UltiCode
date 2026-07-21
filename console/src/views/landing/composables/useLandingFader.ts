@@ -58,6 +58,13 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
       model.setActive(appear * (1 - fadeOut));
       (model.uniforms.uProgress.value as number) = 1 - clamp01((p - 0.5) / 0.22);
     }
+    // Light pillar -> starfield: appears mid-scroll, morphs to stars, fades late.
+    scene.light.setActive(
+      clamp01((p - 0.2) / 0.1) * (1 - clamp01((p - 0.85) / 0.1)),
+    );
+    (scene.light.uniforms.uProgressStars.value as number) = clamp01(
+      (p - 0.25) / 0.2,
+    );
   };
 
   if (reducedMotion) {

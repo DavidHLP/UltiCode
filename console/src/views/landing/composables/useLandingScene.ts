@@ -8,6 +8,7 @@ import { CustomFog } from "../scene/CustomFog";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { ParticlesModel } from "../scene/ParticlesModel";
+import { ParticlesLight } from "../scene/ParticlesLight";
 
 /**
  * createLandingScene — owns the renderer, the yaw→pitch camera rig with mouse
@@ -29,6 +30,7 @@ export interface LandingSceneOptions {
 export interface LandingSceneHandle {
   readonly desert: ParticlesDesert;
   readonly fog: CustomFog;
+  readonly light: ParticlesLight;
   readonly camera: THREE.PerspectiveCamera;
   readonly yaw: THREE.Object3D;
   readonly pitch: THREE.Object3D;
@@ -87,6 +89,7 @@ export function createLandingScene(
 
   const desert = new ParticlesDesert({ scene, mouse, isDesktop: opts.isDesktop });
   const fog = new CustomFog({ scene, camera, mouse });
+  const light = new ParticlesLight({ scene, mouse });
   // Async "hand" model — abort-safe: a late resolve after teardown is dropped.
   let disposed = false;
   const handHolder: { current: ParticlesModel | null } = { current: null };
@@ -153,6 +156,7 @@ export function createLandingScene(
     composer.setSize(w, h);
     desert.resize(dpr);
     fog.resize();
+    light.resize();
     handHolder.current?.resize(dpr);
   };
   window.addEventListener("resize", onResize);
@@ -164,6 +168,7 @@ export function createLandingScene(
   const renderFrame = (time: number) => {
     desert.update(time);
     fog.update(time);
+    light.update(time);
     handHolder.current?.update(time);
     yaw.rotation.y = lerp(yaw.rotation.y, targetYaw.v, MOUSE_LERP);
     pitch.rotation.x = lerp(pitch.rotation.x, targetPitch.v, MOUSE_LERP);
@@ -192,6 +197,7 @@ export function createLandingScene(
     window.removeEventListener("resize", onResize);
     desert.dispose();
     fog.dispose();
+    light.dispose();
     handHolder.current?.dispose();
     composer.dispose();
     renderer.dispose();
@@ -200,6 +206,7 @@ export function createLandingScene(
   return {
     desert,
     fog,
+    light,
     camera,
     yaw,
     pitch,

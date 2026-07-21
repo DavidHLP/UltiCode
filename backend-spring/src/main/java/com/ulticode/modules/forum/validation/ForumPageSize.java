@@ -1,4 +1,4 @@
-package com.ulticode.common.validation;
+package com.ulticode.modules.forum.validation;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
@@ -13,8 +13,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Composite validation constraint for the {@code page} parameter of paginated
- * forum list endpoints. The value must be in the inclusive range {@code [1, 1000]}.
+ * Composite validation constraint for the {@code pageSize} parameter of paginated
+ * forum list endpoints. The value must be in the inclusive range {@code [1, 50]}.
  *
  * <p>Composes the standard {@link Min} and {@link Max} constraints under
  * {@link ReportAsSingleViolation} so a single validation error is surfaced
@@ -29,19 +29,19 @@ import java.lang.annotation.Target;
  * }
  * }</pre>
  *
- * @see ForumPageSize
+ * @see ForumPage
  * @see <a href="https://jakarta.ee/specifications/bean-validation/3.0/jakarta-bean-validation-spec-3.0.html#constraintcomposition">Jakarta Bean Validation §3.3 (Constraint Composition)</a>
  */
 @Target({ElementType.PARAMETER, ElementType.FIELD, ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Min(value = 1, message = "page must be at least 1")
-@Max(value = 1000, message = "page cannot exceed 1000")
+@Min(value = 1, message = "pageSize must be at least 1")
+@Max(value = 50, message = "pageSize cannot exceed 50")
 @Constraint(validatedBy = {})
 @ReportAsSingleViolation
-public @interface ForumPage {
+public @interface ForumPageSize {
 
-    String message() default "page must be between 1 and 1000";
+    String message() default "pageSize must be between 1 and 50";
 
     Class<?>[] groups() default {};
 

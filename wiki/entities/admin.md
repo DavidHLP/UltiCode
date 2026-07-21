@@ -3,7 +3,7 @@ title: Admin
 type: entity
 tags: [admin, platform, core, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-21
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/admin/
   - backend-spring/src/main/java/com/ulticode/modules/admin/controller/AdminSettingsController.java
@@ -11,6 +11,9 @@ sources:
   - backend-spring/src/main/java/com/ulticode/modules/admin/controller/DashboardController.java
   - backend-spring/src/main/java/com/ulticode/modules/admin/entity/AuditLog.java
   - backend-spring/src/main/java/com/ulticode/modules/admin/entity/SystemSetting.java
+  - backend-spring/src/main/java/com/ulticode/modules/admin/port/UserProvisioningPort.java
+  - backend-spring/src/main/java/com/ulticode/modules/admin/bootstrap/AdminBootstrapRunner.java
+  - backend-spring/src/main/java/com/ulticode/modules/admin/bootstrap/DevUserBootstrapRunner.java
 aliases: [管理后台]
 ---
 
@@ -85,8 +88,13 @@ unknown formats).
 ## Source files
 
 - `backend-spring/.../modules/admin/` (controller, service + impl, entity, dto, mapper).
-- The `bootstrap/` package contains `AdminBootstrapRunner` (opt-in dev profile
-  only; see `AGENTS.md`).
+- The `bootstrap/` package contains `AdminBootstrapRunner` (production; gated by
+  `app.bootstrap-admin.enabled`, refuses if an active admin already exists) and
+  `DevUserBootstrapRunner` (dev profile only, gated by `app.dev-users.enabled`).
+  Both delegate account materialization to the admin-owned consumer port
+  `UserProvisioningPort`, backed by `user/port/UserProvisioningAdapter` (the
+  former package-private `AdministratorProvisioner` was absorbed into that
+  adapter — admin/bootstrap no longer imports any `user`-internal type).
 
 ## Cross-links
 

@@ -6,11 +6,12 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.permission.PermissionVocabulary;
+import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
 import com.ulticode.modules.permission.service.impl.PermissionServiceImpl;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.permission.port.UserRoleReadPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -58,7 +61,7 @@ class PermissionServiceTest {
     private RolePermissionMapper rolePermissionMapper;
 
     @Mock
-    private UserMapper userMapper;
+    private UserRoleReadPort userRoleReadPort;
 
     @Mock
     private CurrentUserProvider currentUserProvider;
@@ -74,7 +77,7 @@ class PermissionServiceTest {
         lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
         lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-admin");
         permissionService = new PermissionServiceImpl(
-            userPermissionMapper, rolePermissionMapper, userMapper, clock,
+            userPermissionMapper, rolePermissionMapper, userRoleReadPort, clock,
             new FixedUuidGenerator(), new PermissionVocabulary(), currentUserProvider);
     }
 
@@ -246,4 +249,50 @@ class PermissionServiceTest {
             assertThat(result).isFalse();
         }
     }
+    @Nested
+    @DisplayName("getUserPermissionStrings()")
+    class GetUserPermissionStrings {
+
+        @Test
+        @DisplayName("returns empty when user does not exist")
+        void emptyWhenUserAbsent() {
+            when(userRoleReadPort.findRole("ghost")).thenReturn(Optional.empty());
+
+            assertThat(permissionService.getUserPermissionStrings("ghost")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("merges role permissions and user permissions when role is set")
+        void mergesRoleAndUserPermissions() {
+            when(userRoleReadPort.findRole("user-1"))
+                .thenReturn(Optional.of(new UserRoleReadPort.UserRole("ADMIN")));
+            RolePermission rp = new RolePermission();
+            rp.setAction("READ");
+            rp.setResource("USER");
+            when(rolePermissionMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(rp));
+            UserPermission up = new UserPermission();
+            up.setAction("CREATE");
+            up.setResource("PROBLEM");
+            when(userPermissionMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(up));
+
+            assertThat(permissionService.getUserPermissionStrings("user-1"))
+                .containsExactlyInAnyOrder("READ:USER", "CREATE:PROBLEM");
+        }
+
+        @Test
+        @DisplayName("includes only user permissions (no role lookup) when role is null")
+        void userPermsOnlyWhenRoleNull() {
+            when(userRoleReadPort.findRole("user-1"))
+                .thenReturn(Optional.of(new UserRoleReadPort.UserRole(null)));
+            UserPermission up = new UserPermission();
+            up.setAction("CREATE");
+            up.setResource("PROBLEM");
+            when(userPermissionMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(up));
+
+            assertThat(permissionService.getUserPermissionStrings("user-1"))
+                .containsExactly("CREATE:PROBLEM");
+            verify(rolePermissionMapper, never()).selectList(any(LambdaQueryWrapper.class));
+        }
+    }
+
 }

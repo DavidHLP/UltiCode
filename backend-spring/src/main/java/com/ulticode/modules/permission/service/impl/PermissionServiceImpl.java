@@ -10,9 +10,8 @@ import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
+import com.ulticode.modules.permission.port.UserRoleReadPort;
 import com.ulticode.modules.permission.service.PermissionService;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,11 @@ import java.util.Set;
  * {@link PermissionVocabulary} — this class only consults them via the
  * vocabulary's {@code isAllowedAction} / {@code isAllowedResource}
  * predicates. Adding or dropping an ENUM value is a one-file change.
+ *
+ * <p>User role lookups go through {@link UserRoleReadPort} — a consumer-owned
+ * seam declared in this module ({@code permission.port}) and backed by
+ * {@code user.port.UserRoleReadAdapter}. This class no longer imports
+ * {@code user.entity.User} or {@code user.mapper.UserMapper}.
  */
 @Slf4j
 @Service
@@ -40,7 +44,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final UserPermissionMapper userPermissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
-    private final UserMapper userMapper;
+    private final UserRoleReadPort userRoleReadPort;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final PermissionVocabulary vocabulary;
@@ -58,30 +62,27 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<String> getUserPermissionStrings(String userId) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            return List.of();
-        }
-
-        String role = user.getRole();
-        Set<String> permissions = new HashSet<>();
-
-        if (role != null) {
-            List<RolePermission> rolePerms = rolePermissionMapper.selectList(
-                new LambdaQueryWrapper<RolePermission>()
-                    .eq(RolePermission::getRole, role)
-            );
-            for (RolePermission p : rolePerms) {
-                permissions.add(p.getAction() + ":" + p.getResource());
-            }
-        }
-
-        List<UserPermission> userPerms = getUserPermissions(userId);
-        for (UserPermission p : userPerms) {
-            permissions.add(p.getAction() + ":" + p.getResource());
-        }
-
-        return new ArrayList<>(permissions);
+        return userRoleReadPort.findRole(userId)
+            .map(roleView -> {
+                Set<String> permissions = new HashSet<>();
+                String role = roleView.role();
+                if (role != null) {
+                    List<RolePermission> rolePerms = rolePermissionMapper.selectList(
+                        new LambdaQueryWrapper<RolePermission>()
+                            .eq(RolePermission::getRole, role)
+                    );
+                    for (RolePermission p : rolePerms) {
+                        permissions.add(p.getAction() + ":" + p.getResource());
+                    }
+                }
+                List<UserPermission> userPerms = getUserPermissions(userId);
+                for (UserPermission p : userPerms) {
+                    permissions.add(p.getAction() + ":" + p.getResource());
+                }
+                List<String> merged = new ArrayList<>(permissions);
+                return merged;
+            })
+            .orElse(List.of());
     }
 
     @Override

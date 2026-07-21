@@ -8,8 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.port.UserProvisioningPort;
+import com.ulticode.modules.admin.port.UserProvisioningPort.AdministratorSpec;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,55 +21,45 @@ import org.springframework.mock.env.MockEnvironment;
 
 /**
  * The runner now owns only its development identity policy and delegates account materialization
- * to {@link AdministratorProvisioner}; these tests lock the delegation and the refusal paths. The
- * provisioner invariant itself is covered by {@link AdministratorProvisionerTest}.
+ * to {@link UserProvisioningPort}; these tests lock the delegation and the refusal paths. The
+ * provisioning invariant itself is covered by {@code user.port.UserProvisioningAdapterTest}.
  */
 @ExtendWith(MockitoExtension.class)
 class DevUserBootstrapRunnerTest {
 
-  @Mock private UserMapper userMapper;
+  @Mock private UserProvisioningPort userProvisioningPort;
   @Mock private ConfigurableApplicationContext applicationContext;
-  @Mock private AdministratorProvisioner provisioner;
 
   @Test
   void delegatesCreationWhenNoAccountExists() {
     MockEnvironment environment = developmentEnvironment();
-    when(userMapper.selectOne(any())).thenReturn(null);
-    when(userMapper.selectCount(any())).thenReturn(0L);
+    when(userProvisioningPort.findIdByUsername("admin")).thenReturn(Optional.empty());
+    when(userProvisioningPort.emailConflicts(eq("admin@localhost.test"), any())).thenReturn(false);
 
     runner(environment).run(mock(ApplicationArguments.class));
 
-    verify(provisioner)
+    verify(userProvisioningPort)
         .createAdministrator(
-            eq("admin"),
-            eq("Development Administrator"),
-            eq("admin@localhost.test"),
-            eq("admin123"),
-            eq("ADMIN"));
-    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+            new AdministratorSpec(
+                "admin", "Development Administrator", "admin@localhost.test", "admin123", "ADMIN"));
+    verify(userProvisioningPort, never()).restoreAdministrator(any(), any());
     verify(applicationContext).close();
   }
 
   @Test
   void delegatesRestorationWhenAccountExists() {
     MockEnvironment environment = developmentEnvironment();
-    User existing = new User();
-    existing.setId("admin-id");
-    existing.setUsername("admin");
-    when(userMapper.selectOne(any())).thenReturn(existing);
-    when(userMapper.selectCount(any())).thenReturn(0L);
+    when(userProvisioningPort.findIdByUsername("admin")).thenReturn(Optional.of("admin-id"));
+    when(userProvisioningPort.emailConflicts(eq("admin@localhost.test"), any())).thenReturn(false);
 
     runner(environment).run(mock(ApplicationArguments.class));
 
-    verify(provisioner)
+    verify(userProvisioningPort)
         .restoreAdministrator(
-            eq(existing),
-            eq("Development Administrator"),
-            eq("admin@localhost.test"),
-            eq("admin123"),
-            eq("ADMIN"));
-    verify(provisioner, never())
-        .createAdministrator(any(), any(), any(), any(), any());
+            eq("admin-id"),
+            eq(new AdministratorSpec(
+                "admin", "Development Administrator", "admin@localhost.test", "admin123", "ADMIN")));
+    verify(userProvisioningPort, never()).createAdministrator(any());
     verify(applicationContext).close();
   }
 
@@ -81,22 +72,22 @@ class DevUserBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("dev profile");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
-    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
+    verify(userProvisioningPort, never()).restoreAdministrator(any(), any());
   }
 
   @Test
   void refusesWhenEmailBelongsToAnotherAccount() {
     MockEnvironment environment = developmentEnvironment();
-    when(userMapper.selectOne(any())).thenReturn(null);
-    when(userMapper.selectCount(any())).thenReturn(1L);
+    when(userProvisioningPort.findIdByUsername("admin")).thenReturn(Optional.empty());
+    when(userProvisioningPort.emailConflicts(eq("admin@localhost.test"), any())).thenReturn(true);
 
     assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("DEV_SEED_ADMIN_EMAIL");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
-    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
+    verify(userProvisioningPort, never()).restoreAdministrator(any(), any());
   }
 
   @Test
@@ -108,12 +99,12 @@ class DevUserBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("DEV_SEED_ADMIN_ROLE");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
-    verify(provisioner, never()).restoreAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
+    verify(userProvisioningPort, never()).restoreAdministrator(any(), any());
   }
 
   private DevUserBootstrapRunner runner(MockEnvironment environment) {
-    return new DevUserBootstrapRunner(userMapper, environment, applicationContext, provisioner);
+    return new DevUserBootstrapRunner(userProvisioningPort, environment, applicationContext);
   }
 
   private MockEnvironment developmentEnvironment() {

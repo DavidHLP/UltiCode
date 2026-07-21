@@ -1,8 +1,8 @@
 package com.ulticode.modules.admin.bootstrap;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.port.UserProvisioningPort;
+import com.ulticode.modules.admin.port.UserProvisioningPort.AdministratorSpec;
+import java.util.Optional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +20,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>This runner is unavailable outside the dev profile and must also be explicitly enabled. It
  * exists separately from the production-safe administrator bootstrap because local credentials are
- * intentionally easy to remember. Account materialization (id, encoded password, account state, join
- * timestamp, ban-clearing on restore) is delegated to {@link AdministratorProvisioner}; this runner
- * owns only its development identity policy (role whitelist, email-conflict refusal) and the CLI-only
- * context shutdown.
+ * intentionally easy to remember. Account materialization is delegated to
+ * {@link UserProvisioningPort} (the user module's adapter); this runner owns only its development
+ * identity policy (role whitelist, email-conflict refusal) and the CLI-only context shutdown.
  */
 @Slf4j
 @Component
@@ -35,10 +34,9 @@ public class DevUserBootstrapRunner implements ApplicationRunner {
   private static final Set<String> ALLOWED_ROLES = Set.of("ADMIN", "SUPER_ADMIN");
   private static final String DEVELOPMENT_DISPLAY_NAME = "Development Administrator";
 
-  private final UserMapper userMapper;
+  private final UserProvisioningPort userProvisioningPort;
   private final Environment environment;
   private final ConfigurableApplicationContext applicationContext;
-  private final AdministratorProvisioner provisioner;
 
   @Override
   public void run(ApplicationArguments args) {
@@ -54,24 +52,18 @@ public class DevUserBootstrapRunner implements ApplicationRunner {
       throw new IllegalStateException("DEV_SEED_ADMIN_ROLE must be ADMIN or SUPER_ADMIN");
     }
 
-    User user =
-        userMapper.selectOne(
-            new LambdaQueryWrapper<User>().eq(User::getUsername, username).last("LIMIT 1"));
-
-    Long emailConflicts =
-        userMapper.selectCount(
-            new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, email)
-                .ne(user != null, User::getId, user == null ? null : user.getId()));
-    if (emailConflicts > 0) {
+    Optional<String> existingId = userProvisioningPort.findIdByUsername(username);
+    if (userProvisioningPort.emailConflicts(email, existingId.orElse(null))) {
       throw new IllegalStateException("DEV_SEED_ADMIN_EMAIL is already used by another account");
     }
 
-    if (user == null) {
-      provisioner.createAdministrator(username, DEVELOPMENT_DISPLAY_NAME, email, password, role);
+    AdministratorSpec spec =
+        new AdministratorSpec(username, DEVELOPMENT_DISPLAY_NAME, email, password, role);
+    if (existingId.isEmpty()) {
+      userProvisioningPort.createAdministrator(spec);
       log.info("Created development administrator account: {}", username);
     } else {
-      provisioner.restoreAdministrator(user, DEVELOPMENT_DISPLAY_NAME, email, password, role);
+      userProvisioningPort.restoreAdministrator(existingId.get(), spec);
       log.info("Restored development administrator account: {}", username);
     }
     applicationContext.close();

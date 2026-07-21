@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "8636a479d586f89792036b792d9a8916ab9619d2",
+  "generated_with_head": "c96f5d7769e904dcdd6f26dff3602acfa3f4a98e",
   "stats": {
     "pages": 41,
     "by_type": {
@@ -93,7 +93,7 @@
       "type": "entity",
       "title": "Admin",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-21",
       "last_commit": {
         "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
         "short": "f4b9a2556",
@@ -101,7 +101,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
-      "body_sha256": "c2d927d739792e8db3ac4a2a74bff753443022353e6046dc14a3bfa76cd1e883"
+      "body_sha256": "0daff523bd29543a77e4049529f0cf0269da0cf29408490fd47c34eb781e3308"
     },
     {
       "path": "wiki/entities/auth.md",
@@ -125,9 +125,9 @@
       "status": "living",
       "frontmatter_updated": "2026-07-19",
       "last_commit": {
-        "sha": "8636a479d586f89792036b792d9a8916ab9619d2",
-        "short": "8636a479d",
-        "committed_at": "2026-07-19T20:10:56+08:00",
+        "sha": "1099f3fac0f34761b9091e3cf2482b1c2ebbb786",
+        "short": "1099f3fac",
+        "committed_at": "2026-07-19T20:11:43+08:00",
         "author": "DavidHLP",
         "subject": "docs(wiki): fix backup status flow, auth seam, contest controller roster"
       },
@@ -140,9 +140,9 @@
       "status": "living",
       "frontmatter_updated": "2026-07-19",
       "last_commit": {
-        "sha": "8636a479d586f89792036b792d9a8916ab9619d2",
-        "short": "8636a479d",
-        "committed_at": "2026-07-19T20:10:56+08:00",
+        "sha": "1099f3fac0f34761b9091e3cf2482b1c2ebbb786",
+        "short": "1099f3fac",
+        "committed_at": "2026-07-19T20:11:43+08:00",
         "author": "DavidHLP",
         "subject": "docs(wiki): fix backup status flow, auth seam, contest controller roster"
       },
@@ -288,7 +288,7 @@
       "type": "entity",
       "title": "Permission",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-21",
       "last_commit": {
         "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
         "short": "f4b9a2556",
@@ -296,7 +296,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
-      "body_sha256": "4fbccf23e5bf126906cce7fdcf5a87f62e11cabaefb2dd3ab77d1619ccdd9168"
+      "body_sha256": "858e71ab8db54f87daf44bb4f6c3e02b06ffedcc9657a704542c83a4ce465156"
     },
     {
       "path": "wiki/entities/problem.md",
@@ -423,7 +423,7 @@
       "type": "entity",
       "title": "User",
       "status": "living",
-      "frontmatter_updated": "2026-06-21",
+      "frontmatter_updated": "2026-07-21",
       "last_commit": {
         "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
         "short": "f4b9a2556",
@@ -431,7 +431,7 @@
         "author": "DavidHLP",
         "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
       },
-      "body_sha256": "be74f1cb53581936f2e1c5b55a2d76b3a0f2cd2c66c5c11e6b165bba1ea6a2ab"
+      "body_sha256": "b04022758a891c1c4a9d8aa9c8251c21ed3c497dd4b745e774ea623e20309525"
     },
     {
       "path": "wiki/entities/websocket.md",

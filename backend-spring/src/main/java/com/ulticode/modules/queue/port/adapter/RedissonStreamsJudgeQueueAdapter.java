@@ -2,7 +2,7 @@ package com.ulticode.modules.queue.port.adapter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.infrastructure.redis.JudgeStreamKeys;
+import com.ulticode.modules.queue.redis.JudgeStreamKeys;
 import com.ulticode.modules.queue.port.JudgeJobEnvelope;
 import com.ulticode.modules.queue.port.JudgeJobHandle;
 import com.ulticode.modules.queue.port.JudgeQueue;

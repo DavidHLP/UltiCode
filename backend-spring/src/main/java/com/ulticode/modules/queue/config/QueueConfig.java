@@ -1,7 +1,7 @@
 package com.ulticode.modules.queue.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulticode.infrastructure.redis.JudgeStreamKeys;
+import com.ulticode.modules.queue.redis.JudgeStreamKeys;
 import com.ulticode.modules.queue.constants.QueueConstants;
 import com.ulticode.modules.queue.port.JudgeQueue;
 import com.ulticode.modules.queue.port.adapter.RedissonStreamsJudgeQueueAdapter;

@@ -3,9 +3,10 @@ title: Permission
 type: entity
 tags: [auth, security, rbac, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-21
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/permission/
+  - backend-spring/src/main/java/com/ulticode/modules/permission/port/UserRoleReadPort.java
   - init-db/migrations/V20260610140000__Add_User_Permission_Expires_At.sql
 aliases: [权限, RBAC]
 ---
@@ -32,6 +33,15 @@ the authenticated principal may do the thing. Enforced by Spring
 ## Source files
 
 - `backend-spring/.../modules/permission/`; annotations in `.../common/annotation/` + `security/`.
+
+## Consumer-owned ports
+
+- `permission/port/UserRoleReadPort` — the role-lookup seam permission consumes
+  over the user domain (declared here per `AGENTS.md`; backed by
+  `user/port/UserRoleReadAdapter`). `PermissionServiceImpl` resolves a user's
+  role through this port rather than importing `user.entity.User` /
+  `user.mapper.UserMapper` directly. The `UserRole` view distinguishes
+  "user absent" (empty) from "present with no role" (present, `role == null`).
 
 ## Cross-links
 

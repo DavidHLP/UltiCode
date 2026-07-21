@@ -3,7 +3,7 @@ title: User
 type: entity
 tags: [user, core, type/entity]
 status: living
-updated: 2026-06-21
+updated: 2026-07-21
 sources:
   - backend-spring/src/main/java/com/ulticode/modules/user/
   - backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java
@@ -42,6 +42,17 @@ computation (contest-driven).
 ## Source files
 
 - `backend-spring/.../modules/user/` (controller, service, entity, dto).
+
+## Provider adapters (consumer-owned ports implemented here)
+
+The user module backs ports declared by consumer modules, keeping
+`UserMapper` / `User` internal to user:
+
+- `user/port/UserRoleReadAdapter` implements `permission/port/UserRoleReadPort`
+  (role lookup for the permission module).
+- `user/port/UserProvisioningAdapter` implements `admin/port/UserProvisioningPort`
+  (administrator create/restore + active-admin/identity checks for the admin
+  bootstrap runners; absorbs the deleted `AdministratorProvisioner` invariant).
 
 ## Cross-links
 

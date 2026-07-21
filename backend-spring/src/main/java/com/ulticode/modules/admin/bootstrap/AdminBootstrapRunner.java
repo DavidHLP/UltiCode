@@ -1,8 +1,7 @@
 package com.ulticode.modules.admin.bootstrap;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.port.UserProvisioningPort;
+import com.ulticode.modules.admin.port.UserProvisioningPort.AdministratorSpec;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +18,8 @@ import org.springframework.stereotype.Component;
  * <p>Run the application as a non-web process with APP_BOOTSTRAP_ADMIN_ENABLED=true. The command
  * refuses to run when any active administrator already exists and never logs the password. Account
  * materialization (id, encoded password, account state, join timestamp) is delegated to
- * {@link AdministratorProvisioner}; this runner owns only its production identity policy
- * (credential strength and conflict refusal) and the CLI-only context shutdown.
+ * {@link UserProvisioningPort} (the user module's adapter); this runner owns only its production
+ * identity policy (credential strength and conflict refusal) and the CLI-only context shutdown.
  */
 @Slf4j
 @Component
@@ -33,10 +32,9 @@ public class AdminBootstrapRunner implements ApplicationRunner {
   private static final Pattern STRONG_PASSWORD =
       Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{16,}$");
 
-  private final UserMapper userMapper;
+  private final UserProvisioningPort userProvisioningPort;
   private final Environment environment;
   private final ConfigurableApplicationContext applicationContext;
-  private final AdministratorProvisioner provisioner;
 
   @Override
   public void run(ApplicationArguments args) {
@@ -53,25 +51,16 @@ public class AdminBootstrapRunner implements ApplicationRunner {
               + "digit, and symbol characters");
     }
 
-    Long activeAdmins =
-        userMapper.selectCount(
-            new LambdaQueryWrapper<User>()
-                .in(User::getRole, "ADMIN", "SUPER_ADMIN")
-                .eq(User::getIsActive, true)
-                .eq(User::getIsBanned, false));
-    if (activeAdmins > 0) {
+    if (userProvisioningPort.countActiveAdministrators() > 0) {
       throw new IllegalStateException("An active administrator already exists; bootstrap refused");
     }
 
-    Long duplicateIdentity =
-        userMapper.selectCount(
-            new LambdaQueryWrapper<User>()
-                .and(wrapper -> wrapper.eq(User::getUsername, username).or().eq(User::getEmail, email)));
-    if (duplicateIdentity > 0) {
+    if (userProvisioningPort.identityExists(username, email)) {
       throw new IllegalStateException("Bootstrap username or email already exists; overwrite refused");
     }
 
-    provisioner.createAdministrator(username, username, email, password, "SUPER_ADMIN");
+    userProvisioningPort.createAdministrator(
+        new AdministratorSpec(username, username, email, password, "SUPER_ADMIN"));
 
     log.info("Created bootstrap SUPER_ADMIN account: {}", username);
     applicationContext.close();

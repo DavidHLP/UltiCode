@@ -8,7 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.admin.port.UserProvisioningPort;
+import com.ulticode.modules.admin.port.UserProvisioningPort.AdministratorSpec;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,55 +21,52 @@ import org.springframework.mock.env.MockEnvironment;
 /**
  * The production bootstrap previously had no test. These lock its identity policy refusals (the
  * security-sensitive guards) and that it delegates account materialization to
- * {@link AdministratorProvisioner} only when every guard passes.
+ * {@link UserProvisioningPort} only when every guard passes.
  */
 @ExtendWith(MockitoExtension.class)
 class AdminBootstrapRunnerTest {
 
-  @Mock private UserMapper userMapper;
+  @Mock private UserProvisioningPort userProvisioningPort;
   @Mock private ConfigurableApplicationContext applicationContext;
-  @Mock private AdministratorProvisioner provisioner;
 
   @Test
   void delegatesCreationWhenEnvironmentIsValidAndNoConflicts() {
     MockEnvironment environment = productionEnvironment();
-    when(userMapper.selectCount(any())).thenReturn(0L);
+    when(userProvisioningPort.countActiveAdministrators()).thenReturn(0L);
+    when(userProvisioningPort.identityExists(eq("root"), eq("root@example.com"))).thenReturn(false);
 
     runner(environment).run(mock(ApplicationArguments.class));
 
-    verify(provisioner)
+    verify(userProvisioningPort)
         .createAdministrator(
-            eq("root"),
-            eq("root"),
-            eq("root@example.com"),
-            eq("Admin!234567890Ab"),
-            eq("SUPER_ADMIN"));
+            new AdministratorSpec("root", "root", "root@example.com", "Admin!234567890Ab", "SUPER_ADMIN"));
     verify(applicationContext).close();
   }
 
   @Test
   void refusesWhenAnActiveAdministratorAlreadyExists() {
     MockEnvironment environment = productionEnvironment();
-    when(userMapper.selectCount(any())).thenReturn(1L);
+    when(userProvisioningPort.countActiveAdministrators()).thenReturn(1L);
 
     assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("active administrator already exists");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
     verify(applicationContext, never()).close();
   }
 
   @Test
   void refusesWhenUsernameOrEmailAlreadyExists() {
     MockEnvironment environment = productionEnvironment();
-    when(userMapper.selectCount(any())).thenReturn(0L, 1L);
+    when(userProvisioningPort.countActiveAdministrators()).thenReturn(0L);
+    when(userProvisioningPort.identityExists(eq("root"), eq("root@example.com"))).thenReturn(true);
 
     assertThatThrownBy(() -> runner(environment).run(mock(ApplicationArguments.class)))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("username or email already exists");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
   }
 
   @Test
@@ -80,7 +78,7 @@ class AdminBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("valid email address");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
   }
 
   @Test
@@ -92,7 +90,7 @@ class AdminBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("APP_BOOTSTRAP_ADMIN_PASSWORD");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
   }
 
   @Test
@@ -104,11 +102,11 @@ class AdminBootstrapRunnerTest {
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("APP_BOOTSTRAP_ADMIN_PASSWORD is required");
 
-    verify(provisioner, never()).createAdministrator(any(), any(), any(), any(), any());
+    verify(userProvisioningPort, never()).createAdministrator(any());
   }
 
   private AdminBootstrapRunner runner(MockEnvironment environment) {
-    return new AdminBootstrapRunner(userMapper, environment, applicationContext, provisioner);
+    return new AdminBootstrapRunner(userProvisioningPort, environment, applicationContext);
   }
 
   private MockEnvironment productionEnvironment() {

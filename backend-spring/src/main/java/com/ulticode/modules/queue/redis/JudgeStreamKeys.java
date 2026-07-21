@@ -1,4 +1,4 @@
-package com.ulticode.infrastructure.redis;
+package com.ulticode.modules.queue.redis;
 
 /**
  * Redis keys and configuration for the judge-stream dispatch path

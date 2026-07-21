@@ -1,7 +1,6 @@
 export default {
   // Accessibility
   skipToContent: "Skip to main content",
-  landingFrameTitle: "Landing page",
 
   // Common actions
   actions: {

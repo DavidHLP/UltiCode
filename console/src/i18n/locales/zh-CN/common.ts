@@ -1,7 +1,6 @@
 export default {
   // Accessibility
   skipToContent: "跳转到主要内容",
-  landingFrameTitle: "落地页",
 
   // Common actions
   actions: {

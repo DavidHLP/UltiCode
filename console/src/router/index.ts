@@ -276,11 +276,13 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // Root → problemset. The landing page was removed; a new landing
-      // design will replace this redirect. problemset is public, so guests
-      // and signed-in users both land on the core OJ surface.
+      // Root → landing. A self-contained static mirror lives under
+      // public/landing/ and is embedded full-viewport via an iframe, so the
+      // Vue shell never touches its bundle, styles, or scroll container.
+      // Public: guests and signed-in users both see it.
       path: "/",
-      redirect: "/problemset",
+      name: "landing",
+      component: () => import("@/views/landing/LandingView.vue"),
     },
     forumCreateRoute,
     forumEditRoute,

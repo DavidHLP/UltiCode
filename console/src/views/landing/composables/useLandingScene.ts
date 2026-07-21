@@ -9,6 +9,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { ParticlesModel } from "../scene/ParticlesModel";
 import { ParticlesLight } from "../scene/ParticlesLight";
+import { DitherEffect } from "../scene/DitherEffect";
 
 /**
  * createLandingScene — owns the renderer, the yaw→pitch camera rig with mouse
@@ -133,6 +134,10 @@ export function createLandingScene(
   );
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  // Dark-region screen dither (reference: Bloom -> Reinhard -> Dither); applied
+  // after OutputPass so it dithers the tone-mapped sRGB image.
+  const dither = new DitherEffect(0.001);
+  composer.addPass(dither);
 
   // Mouse parallax targets (kept zero under reduced-motion).
   const targetYaw = { v: 0 };
@@ -163,6 +168,7 @@ export function createLandingScene(
 
   const clock = new THREE.Clock();
   let raf = 0;
+  let prevFrameTime: number | null = null;
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
   const renderFrame = (time: number) => {
@@ -170,6 +176,9 @@ export function createLandingScene(
     fog.update(time);
     light.update(time);
     handHolder.current?.update(time);
+    const delta = Math.min(Math.max(time - (prevFrameTime ?? time), 0), 0.5);
+    prevFrameTime = time;
+    dither.update(delta);
     yaw.rotation.y = lerp(yaw.rotation.y, targetYaw.v, MOUSE_LERP);
     pitch.rotation.x = lerp(pitch.rotation.x, targetPitch.v, MOUSE_LERP);
     composer.render();

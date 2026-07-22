@@ -79,6 +79,13 @@ export function createLandingFader(opts: LandingFaderOptions): LandingFaderHandl
     (scene.light.uniforms.uProgressStars.value as number) = clamp01(
       (p - 0.25) / 0.2,
     );
+    // Beat 7 — Awards tunnel (progress ~0.458-0.542): the full-screen card
+    // gallery takes over the view. Fade active + groupOpacity in by 0.46,
+    // travel the track 0->1 across the beat, fade out by 0.56.
+    const awardsActive = clamp01((p - 0.44) / 0.02) * clamp01((0.56 - p) / 0.02);
+    scene.awards.setActive(awardsActive);
+    scene.awards.setGroupOpacity(awardsActive);
+    scene.awards.setProgress(clamp01((p - 0.458) / 0.084));
   };
 
   if (reducedMotion) {

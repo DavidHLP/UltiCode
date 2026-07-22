@@ -11,6 +11,7 @@ import { ParticlesModel } from "../scene/ParticlesModel";
 import { ParticlesLight } from "../scene/ParticlesLight";
 import { DitherEffect } from "../scene/DitherEffect";
 import { MousePointer } from "../scene/MousePointer";
+import { AwardsTunnel } from "../scene/AwardsTunnel";
 
 /**
  * createLandingScene — owns the renderer, the yaw→pitch camera rig with mouse
@@ -34,6 +35,9 @@ export interface LandingSceneHandle {
   readonly fog: CustomFog;
   readonly light: ParticlesLight;
   readonly cursor: MousePointer;
+  /** Awards tunnel (6-card RT + screen overlay); null-until-built is not used —
+   * always present, inactive until the fader drives Beat 7. */
+  readonly awards: AwardsTunnel;
   readonly camera: THREE.PerspectiveCamera;
   readonly yaw: THREE.Object3D;
   readonly pitch: THREE.Object3D;
@@ -97,6 +101,25 @@ export function createLandingScene(
   const fog = new CustomFog({ scene, camera, mouse });
   const light = new ParticlesLight({ scene, mouse });
   const cursor = new MousePointer({ scene, mouse });
+  // Awards tunnel (Beat 7): six rebranded award cards on a z-track, rendered to
+  // an MSAA RT and composited via a distortion/chroma screen quad attached to
+  // the camera. Inert (active 0) until the fader activates it.
+  const awards = new AwardsTunnel({
+    mouse,
+    cards: [
+      { url: "/landing-assets/awards/wod.png" },
+      { url: "/landing-assets/awards/ux.png" },
+      { url: "/landing-assets/awards/ui.png" },
+      { url: "/landing-assets/awards/jury.png" },
+      { url: "/landing-assets/awards/innovation.png" },
+      { url: "/landing-assets/awards/hm.png" },
+    ],
+    active: 0,
+    progress: 0,
+    groupOpacity: 0,
+    position: new THREE.Vector3(0, 2, 0),
+    scale: 0.25,
+  });
   // Async "hand" model — abort-safe: a late resolve after teardown is dropped.
   let disposed = false;
   const handHolder: { current: ParticlesModel | null } = { current: null };
@@ -164,6 +187,7 @@ export function createLandingScene(
     light.resize();
     cursor.resize();
     handHolder.current?.resize(dpr);
+    awards.resize(w, h, dpr);
   };
   window.addEventListener("resize", onResize);
 
@@ -177,6 +201,8 @@ export function createLandingScene(
     light.update(time);
     cursor.update();
     handHolder.current?.update(time);
+    awards.update(time);
+    awards.render(renderer, camera);
     const delta = Math.min(Math.max(time - (prevFrameTime ?? time), 0), 0.5);
     prevFrameTime = time;
     dither.update(delta);
@@ -213,6 +239,7 @@ export function createLandingScene(
     light.dispose();
     cursor.dispose();
     handHolder.current?.dispose();
+    awards.dispose();
     composer.dispose();
     renderer.dispose();
   };
@@ -222,6 +249,7 @@ export function createLandingScene(
     fog,
     light,
     cursor,
+    awards,
     camera,
     yaw,
     pitch,

@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import type { TestCase, CaseScope } from '@/api/admin/test-cases'
+import type { TestCase } from '@/api/admin/test-cases'
+import type { CaseScope } from '../model/testCaseScope'
 
 defineProps<{
   testCase: TestCase

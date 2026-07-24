@@ -121,20 +121,15 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     );
 
     /**
-     * Batch transition participants from one status to another, stamping
-     * {@code started_at} / {@code finished_at} as appropriate. Used by P0-2
-     * (REGISTERED → STARTED on contest RUNNING) and by P2-2 (auto-finish
-     * virtual participants).
+     * Start every REGISTERED participant when its contest begins.
+     * The status guard and timestamp write remain one atomic database command.
      */
-    @Update("UPDATE contest_participants SET status = #{toStatus}, "
+    @Update("UPDATE contest_participants SET status = 'STARTED', "
             + "started_at = COALESCE(started_at, #{now}), "
-            + "finished_at = CASE WHEN #{toStatus} = 'FINISHED' THEN #{now} ELSE finished_at END, "
             + "updated_at = NOW() "
-            + "WHERE contest_id = #{contestId} AND status = #{fromStatus}")
-    int batchUpdateStatus(@Param("contestId") String contestId,
-                          @Param("fromStatus") String fromStatus,
-                          @Param("toStatus") String toStatus,
-                          @Param("now") java.time.LocalDateTime now);
+            + "WHERE contest_id = #{contestId} AND status = 'REGISTERED'")
+    int startRegisteredParticipants(@Param("contestId") String contestId,
+                                    @Param("now") java.time.LocalDateTime now);
 
     /**
      * R3.1: finish all REAL (is_virtual = 0) participants of a contest that are
@@ -166,8 +161,9 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>"
             + "#{id}</foreach> "
             + "AND status = 'STARTED' AND is_virtual = 1</script>")
-    int bulkFinishByIds(@Param("ids") java.util.Collection<String> ids,
-                        @Param("now") java.time.LocalDateTime now);
+    int finishStartedVirtualParticipantsByIds(
+            @Param("ids") java.util.Collection<String> ids,
+            @Param("now") java.time.LocalDateTime now);
 
     /**
      * R3.2: fetch all real (non-virtual) participants of a contest for the

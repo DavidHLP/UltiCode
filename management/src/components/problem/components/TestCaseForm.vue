@@ -16,10 +16,12 @@ import { IconLoader2 } from '@tabler/icons-vue'
 import {
   type CreateTestCaseDto,
   type TestCase,
+} from '@/api/admin/test-cases'
+import {
   type CaseScope,
   mapFlagsToCaseScope,
   mapCaseScopeToFlags,
-} from '@/api/admin/test-cases'
+} from '../model/testCaseScope'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

@@ -24,9 +24,14 @@ export default {
   import: '导入',
   export: '导出',
   importTestCases: '导入测试用例',
-  importData: '粘贴或上传 JSON / CSV 格式的测试用例',
-  importPlaceholder: '每行一个用例,字段用逗号或制表符分隔:输入,输出,分值,是否为样例,是否隐藏',
-  importHelp: '支持 JSON 数组,或 CSV / TSV 文本,首行可为表头',
+  importData:
+    '粘贴 JSON 数组,或使用 Input:/Output:（或 </>）块并以 --- / === 分隔',
+  // 占位符与 focused import-normalization 模块支持的语法保持一致。
+  // 每个块都会被规范化为 HIDDEN 案例。
+  importPlaceholder:
+    '< {输入}\n> {输出}\n---\n< {输入 2}\n> {输出 2}\n\n或 JSON:\n[\n  { "inputText": "...", "outputText": "...", "isSample": true, "isHidden": false }\n]',
+  importHelp:
+    'JSON 支持 camelCase（inputText/outputText），以及旧版 snake_case 与宽松的 {input, output} 格式。行语法始终生成 HIDDEN 案例。',
   replaceExisting: '替换已存在的测试用例',
   importing: '正在导入',
 

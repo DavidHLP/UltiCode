@@ -3,6 +3,8 @@ package com.ulticode.modules.contest.service.impl;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.achievement.constants.AchievementType;
+import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.contest.clock.ContestClock;
 import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.ParticipationStatusDTO;
@@ -11,8 +13,6 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.achievement.constants.AchievementType;
-import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.ContestParticipantTransitions;
 import com.ulticode.modules.contest.service.ContestParticipationService;
@@ -32,6 +32,15 @@ import java.util.stream.Collectors;
  * Implementation of {@link ContestParticipationService}. Owns contest
  * registration, virtual replay, and the participation lifecycle invariants,
  * plus the registration achievement side effect.
+ *
+ * <p>Architectural boundary: this service depends on
+ * {@link ContestParticipantTransitions} for every status transition and for
+ * the register / start / delete operations on {@code contest_participants}.
+ * The single-row read lookups
+ * ({@link ContestParticipantMapper#findByContestIdAndUserId(String, String)}
+ * and {@link ContestParticipantMapper#findActiveVirtualSessionForUpdate(String, String)})
+ * stay on the mapper because they are pure lookups with no transition
+ * policy — the seam only owns write paths and read-then-write composites.
  */
 @Slf4j
 @Service
@@ -39,11 +48,22 @@ import java.util.stream.Collectors;
 public class ContestParticipationServiceImpl implements ContestParticipationService {
 
     private final ContestMapper contestMapper;
+    /**
+     * Read-only lookups for the participation row. Single-row finds stay
+     * on the mapper because they are pure lookups; the seam owns writes
+     * and read-then-write composites.
+     */
     private final ContestParticipantMapper participantMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
     private final ContestClock contestClock;
     private final AchievementTriggerService achievementTriggerService;
+    /**
+     * All {@link ContestParticipant} writes and read-then-write composites
+     * cross this seam — the service never calls the participant mapper's
+     * INSERT / DELETE / conditional UPDATE methods directly. See
+     * {@link ContestParticipantTransitions} for the full ownership contract.
+     */
     private final ContestParticipantTransitions participantTransitions;
 
     @Override
@@ -71,11 +91,9 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
-        participant.setStatus(ContestParticipantStatus.REGISTERED.name());
         participant.setRegisteredAt(now);
-        participant.setIsVirtual(false);
         try {
-            participantMapper.insert(participant);
+            participantTransitions.registerRealParticipant(participant);
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // Race lost: another transaction inserted the same (contest, user)
             // row. The transaction will roll back the registeredCount increment.
@@ -112,7 +130,7 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         if (contest.getRegistrationEnd() != null && now.isAfter(contest.getRegistrationEnd())) {
             throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
-        participantMapper.deleteById(participant.getId());
+        participantTransitions.deleteById(participant.getId());
         contestMapper.decrementRegisteredCount(contestId);
         log.info("User {} unregistered from contest {}", userId, contestId);
     }
@@ -148,8 +166,10 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         status.setScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
         status.setPenalty(p.getTotalPenalty());
         status.setHasStarted(p.getStartedAt() != null);
-        status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(p.getStatus()));
-        status.setIsActive(ContestParticipantStatus.STARTED.name().equals(p.getStatus()));
+        // Typed status comparison via the entity helper so the literal is
+        // the single source of truth.
+        status.setIsCompleted(ContestParticipantStatus.FINISHED.wireValue().equalsIgnoreCase(p.getStatus()));
+        status.setIsActive(ContestParticipantStatus.STARTED.wireValue().equalsIgnoreCase(p.getStatus()));
         return status;
     }
 
@@ -160,10 +180,10 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         List<ContestParticipant> filtered = participants.stream().filter(p -> {
             String s = p.getStatus();
             return switch (type) {
-                case "registered" -> ContestParticipantStatus.REGISTERED.name().equals(s);
+                case "registered" -> ContestParticipantStatus.REGISTERED.wireValue().equals(s);
                 case "virtual" -> Boolean.TRUE.equals(p.getIsVirtual());
-                default -> ContestParticipantStatus.FINISHED.name().equals(s) ||
-                        ContestParticipantStatus.STARTED.name().equals(s);
+                default -> ContestParticipantStatus.FINISHED.wireValue().equals(s) ||
+                        ContestParticipantStatus.STARTED.wireValue().equals(s);
             };
         }).collect(Collectors.toList());
 
@@ -207,13 +227,11 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
-        participant.setStatus(ContestParticipantStatus.STARTED.name());
         participant.setRegisteredAt(now);
         participant.setStartedAt(now);
-        participant.setIsVirtual(true);
         participant.setVirtualSessionId(uuidGenerator.newId());
         try {
-            participantMapper.insert(participant);
+            participantTransitions.startVirtualParticipant(participant);
             log.info("User {} started virtual contest {}", userId, contestId);
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // C4: race lost — another transaction inserted the same active (contest, user,
@@ -248,8 +266,8 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         status.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
         status.setPenalty(participant.getTotalPenalty());
         status.setHasStarted(true);
-        status.setIsActive(ContestParticipantStatus.STARTED.name().equals(participant.getStatus()));
-        status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(participant.getStatus()));
+        status.setIsActive(ContestParticipantStatus.STARTED.wireValue().equalsIgnoreCase(participant.getStatus()));
+        status.setIsCompleted(ContestParticipantStatus.FINISHED.wireValue().equalsIgnoreCase(participant.getStatus()));
         return status;
     }
 
@@ -281,14 +299,13 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
         // POSTs (network retry, double-click, polling tab) would overwrite the
         // original finish time and lose the audit trail of when the user
         // actually finished.
-        if (ContestParticipantStatus.FINISHED.name().equals(participant.getStatus())) {
+        if (ContestParticipantStatus.FINISHED.wireValue().equals(participant.getStatus())) {
             log.info("User {} virtual contest {} session {} already finished, skip re-stamp",
                     userId, contestId, effectiveSessionId);
             return;
         }
-        // R6.2 / F-01: route through the module so the bulk-finish path is
-        // exercised by the interactive path too, and future transition rules
-        // (e.g. active_virtual_key guard) apply uniformly.
+        // R6.2 / F-01: the seam's bulk method owns the atomic STARTED + virtual
+        // guard, so concurrent finish attempts cannot re-stamp the row.
         participantTransitions.bulkFinishVirtualByIds(
                 java.util.List.of(participant.getId()), LocalDateTime.now(clock));
 

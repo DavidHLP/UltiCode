@@ -5,7 +5,6 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
@@ -50,6 +49,10 @@ import static org.mockito.Mockito.when;
  * P2-5 idempotent cascade delete, the {@link #tick(LocalDateTime)} heartbeat
  * (due selection + idempotent transition + participant closure + push/ranking
  * + rating handoff), and the {@link #sendReminders(LocalDateTime)} fan-out.
+ *
+ * <p>All participant status transitions and cascade deletes are verified
+ * through the {@link ContestParticipantTransitions} seam — the lifecycle
+ * service has no direct dependency on the participant mapper.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -60,7 +63,7 @@ class ContestLifecycleServiceImplTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 3, 1, 12, 0);
 
     @Mock private ContestMapper contestMapper;
-    @Mock private ContestParticipantMapper contestParticipantMapper;
+    @Mock private ContestParticipantTransitions participantTransitions;
     @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestSubmissionMapper contestSubmissionMapper;
     @Mock private ContestProblemResultMapper contestProblemResultMapper;
@@ -72,7 +75,6 @@ class ContestLifecycleServiceImplTest {
     @Mock private ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     @Mock private RatingCalculationService ratingService;
     @Mock private NotificationDispatcher notificationDispatcher;
-    @Mock private ContestParticipantTransitions participantTransitions;
 
     private ContestLifecycleServiceImpl service;
 
@@ -81,45 +83,38 @@ class ContestLifecycleServiceImplTest {
         lenient().when(clock.instant()).thenReturn(NOW.toInstant(ZoneOffset.UTC));
         lenient().when(clock.getZone()).thenReturn(ZoneOffset.UTC);
         service = new ContestLifecycleServiceImpl(
-                contestMapper, contestParticipantMapper, contestProblemMapper,
+                contestMapper, participantTransitions, contestProblemMapper,
                 contestSubmissionMapper, contestProblemResultMapper,
                 firstSolveRecordMapper, rankingCacheEvictor, clock,
                 contestClock, contestStatusPushPort, contestRankingMarkDirtyPort,
-                notificationDispatcher, ratingService, participantTransitions);
+                notificationDispatcher, ratingService);
     }
 
-    /** P0-2: batchStartParticipants delegates to participantTransitions seam and returns the count. */
+    /** P0-2: batchStartParticipants crosses the seam and returns its count. */
     @Test
-    @DisplayName("P0-2: batchStartParticipants delegates to participantTransitions seam")
-    void batchStartParticipants_delegatesToTransitionsSeam() {
-        when(participantTransitions.batchStartParticipants(eq(CONTEST_ID), any(LocalDateTime.class)))
+    @DisplayName("P0-2: batchStartParticipants crosses the transitions seam")
+    void batchStartParticipants_crossesTransitionsSeam() {
+        when(participantTransitions.batchStartRegistered(eq(CONTEST_ID), any(LocalDateTime.class)))
                 .thenReturn(7);
         int updated = service.batchStartParticipants(CONTEST_ID);
 
-
         assertThat(updated).isEqualTo(7);
-        verify(participantTransitions).batchStartParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
+        verify(participantTransitions)
+                .batchStartRegistered(eq(CONTEST_ID), any(LocalDateTime.class));
     }
 
-    /** M2: autoFinishVirtualParticipants queries, then issues a single bulk UPDATE keyed by ids. */
+    /** M2: autoFinishVirtualParticipants calls the seam's read-then-write composite. */
     @Test
-    @DisplayName("M2: auto-finish virtual participants uses a single bulk UPDATE by ids")
-    void autoFinishVirtualParticipants_processesQueryResults() {
-        ContestParticipant v1 = newParticipant("v-1");
-        ContestParticipant v2 = newParticipant("v-2");
-        when(contestParticipantMapper.findVirtualParticipantsToFinish(any(LocalDateTime.class)))
-                .thenReturn(List.of(v1, v2));
-        when(participantTransitions.bulkFinishVirtualByIds(any(), any(LocalDateTime.class)))
+    @DisplayName("M2: auto-finish virtual participants uses the read-then-write composite")
+    void autoFinishVirtualParticipants_usesFindAndFinishComposite() {
+        when(participantTransitions.findAndFinishExpiredVirtuals(any(LocalDateTime.class)))
                 .thenReturn(2);
 
         int total = service.autoFinishVirtualParticipants();
 
         assertThat(total).isEqualTo(2);
         verify(participantTransitions, times(1))
-                .bulkFinishVirtualByIds(argThat(ids -> ids.contains("v-1") && ids.contains("v-2")),
-                        any(LocalDateTime.class));
-        verify(contestParticipantMapper, never())
-                .batchUpdateStatus(anyString(), anyString(), anyString(), any(LocalDateTime.class));
+                .findAndFinishExpiredVirtuals(any(LocalDateTime.class));
     }
 
     /** tick: a due UPCOMING contest transitions to RUNNING, pushes status, marks ranking dirty. */
@@ -131,6 +126,8 @@ class ContestLifecycleServiceImplTest {
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of(contest));
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of());
         when(contestMapper.tryTransitionToRunning(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
+        when(participantTransitions.batchStartRegistered(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(0);
 
         service.tick(NOW);
 
@@ -149,12 +146,14 @@ class ContestLifecycleServiceImplTest {
         when(contestMapper.findByStatus(ContestStatus.RUNNING.name())).thenReturn(List.of(contest));
         when(contestClock.contestEndTime(contest)).thenReturn(Optional.of(NOW.minusMinutes(1)));
         when(contestMapper.tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(1);
-        when(participantTransitions.finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class))).thenReturn(5);
+        when(participantTransitions.finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class)))
+                .thenReturn(5);
 
         service.tick(NOW);
 
         verify(contestMapper).tryTransitionToFinished(eq(CONTEST_ID), any(LocalDateTime.class));
-        verify(participantTransitions).finishStartedRealParticipants(eq(CONTEST_ID), any(LocalDateTime.class));
+        verify(participantTransitions)
+                .finishStartedReal(eq(CONTEST_ID), any(LocalDateTime.class));
         verify(contestStatusPushPort).emitStatus(eq(CONTEST_ID), eq(ContestStatus.FINISHED),
                 argThat(java.util.Objects::isNull), any(), argThat(java.util.Objects::isNull));
         verify(ratingService).calculateAndUpdate(CONTEST_ID);
@@ -204,7 +203,7 @@ class ContestLifecycleServiceImplTest {
         ContestParticipant participant = newParticipant("p-1");
         participant.setUserId("user-1");
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of(contest));
-        when(contestParticipantMapper.findByContestIds(any())).thenReturn(List.of(participant));
+        when(participantTransitions.findByContestIdsForReminder(any())).thenReturn(List.of(participant));
 
         service.sendReminders(NOW);
 
@@ -226,7 +225,7 @@ class ContestLifecycleServiceImplTest {
         ContestParticipant participant = newParticipant("p-1");
         participant.setUserId("user-1");
         when(contestMapper.findByStatus(ContestStatus.UPCOMING.name())).thenReturn(List.of(contest));
-        when(contestParticipantMapper.findByContestIds(any())).thenReturn(List.of(participant));
+        when(participantTransitions.findByContestIdsForReminder(any())).thenReturn(List.of(participant));
 
         service.sendReminders(NOW);
 
@@ -263,7 +262,7 @@ class ContestLifecycleServiceImplTest {
         service.deleteContestCascade(CONTEST_ID);
 
         verify(contestSubmissionMapper, never()).deleteByContestId(anyString());
-        verify(contestParticipantMapper, never()).deleteByContestId(anyString());
+        verify(participantTransitions, never()).deleteAllByContestId(anyString());
         verify(rankingCacheEvictor, never()).evictRankingCache();
     }
 
@@ -281,7 +280,7 @@ class ContestLifecycleServiceImplTest {
         verify(contestSubmissionMapper).deleteByContestId(CONTEST_ID);
         verify(contestProblemResultMapper).deleteByContestId(CONTEST_ID);
         verify(firstSolveRecordMapper).deleteByContestId(CONTEST_ID);
-        verify(contestParticipantMapper).deleteByContestId(CONTEST_ID);
+        verify(participantTransitions).deleteAllByContestId(CONTEST_ID);
         verify(contestProblemMapper).deleteByContestId(CONTEST_ID);
         verify(rankingCacheEvictor).evictRankingCache();
     }

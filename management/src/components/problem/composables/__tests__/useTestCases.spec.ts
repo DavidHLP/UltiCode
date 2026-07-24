@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { testCasesApi } from '@/api/admin/test-cases'
-import type { TestCase, TestCasesResponse, CaseScope } from '@/api/admin/test-cases'
+import type { TestCase, TestCasesResponse } from '@/api/admin/test-cases'
 
 vi.mock('@/api/admin/test-cases', async () => {
   const actual =
@@ -61,12 +61,12 @@ const emptyResponse: TestCasesResponse = { items: [], total: 0, page: 1, limit: 
 /**
  * Workflow tests for the test-case editor composable.
  *
- * <p>The pure parser already has {@code parseImportText.spec.ts}; this file
- * pins the actual editor workflow surface: state transitions, mutation
+ * <p>The focused import-normalization module has its own grammar tests; this
+ * file pins the actual editor workflow surface: state transitions, mutation
  * convergence, validation gating, error recovery and the XOR invariant on
  * every emitted DTO. It is the test surface the deep-module review asked
  * for &mdash; before this file the editor logic could only be exercised
- * through a full component mount, and only its parser was covered.
+ * through a full component mount.
  */
 describe('useTestCases — editor workflow', () => {
   beforeEach(() => {
@@ -142,6 +142,7 @@ describe('useTestCases — editor workflow', () => {
       await saveTestCase()
 
       expect(testCasesApi.createTestCase).not.toHaveBeenCalled()
+      expect(testCasesApi.updateTestCase).not.toHaveBeenCalled()
       expect(toastError).toHaveBeenCalledWith('testCases.validation.inputOutputRequired')
     })
   })
@@ -369,6 +370,75 @@ describe('useTestCases — editor workflow', () => {
 
       expect(importDialogOpen.value).toBe(true)
       expect(toastError).toHaveBeenCalledWith('testCases.toast.importFailed')
+    })
+
+    it('forwards replaceExisting=false on append-only import (default)', async () => {
+      vi.mocked(testCasesApi.bulkImportTestCases).mockResolvedValue({ count: 1 })
+      const { importTestCases, importText } = useTestCases(PROBLEM_ID)
+      // replaceExisting is false by default (openImportDialog resets it).
+      importText.value = JSON.stringify([
+        { inputText: '1 2', outputText: '3', isSample: true, isHidden: false },
+      ])
+
+      await importTestCases()
+
+      expect(testCasesApi.bulkImportTestCases).toHaveBeenCalledWith(
+        PROBLEM_ID(),
+        expect.objectContaining({
+          testCases: [
+            expect.objectContaining({
+              inputText: '1 2',
+              outputText: '3',
+              isSample: true,
+              isHidden: false,
+            }),
+          ],
+          replaceExisting: false,
+        }),
+      )
+    })
+
+    it('canonicalises (isSample=true, isHidden=true) to HIDDEN before the wire round-trip', async () => {
+      // Defensive: a JSON literal where isSample is true and isHidden is
+      // also true is canonicalised to HIDDEN by the focused import module
+      // before the wire round-trip, so the backend never sees a (true,true)
+      // row. This pins the contract.
+      vi.mocked(testCasesApi.bulkImportTestCases).mockResolvedValue({ count: 1 })
+      const { importTestCases, importText } = useTestCases(PROBLEM_ID)
+      importText.value = JSON.stringify([
+        { inputText: '1 2', outputText: '3', isSample: true, isHidden: true },
+      ])
+
+      await importTestCases()
+
+      expect(testCasesApi.bulkImportTestCases).toHaveBeenCalledWith(
+        PROBLEM_ID(),
+        expect.objectContaining({
+          testCases: [
+            expect.objectContaining({ isSample: false, isHidden: true }),
+          ],
+        }),
+      )
+    })
+
+    it('keeps the import dialog open and the parsed text when bulkImportTestCases rejects', async () => {
+      // Recovery path: after a failed import, the user should be able to
+      // adjust the text and retry without losing their draft.
+      vi.mocked(testCasesApi.bulkImportTestCases).mockRejectedValue(new Error('boom'))
+      const { importTestCases, importText, openImportDialog, importDialogOpen, replaceExisting } =
+        useTestCases(PROBLEM_ID)
+      openImportDialog()
+      replaceExisting.value = true
+      const draft = JSON.stringify([
+        { inputText: 'a', outputText: 'b', isSample: false, isHidden: true },
+      ])
+      importText.value = draft
+
+      await importTestCases()
+
+      expect(importDialogOpen.value).toBe(true)
+      expect(importText.value).toBe(draft)
+      expect(replaceExisting.value).toBe(true)
     })
   })
 

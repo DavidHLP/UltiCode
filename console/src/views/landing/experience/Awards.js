@@ -135,10 +135,10 @@ export class Awards {
         this.pixelRatio = 1;
 
         this.renderScene = new THREE.Scene();
+        // 不做 MSAA(samples: 4 的全屏 target 在高分辨率下显存开销过大)
         this.renderTarget = new THREE.WebGLRenderTarget(1, 1, {
             depthBuffer: true,
-            stencilBuffer: false,
-            samples: 4
+            stencilBuffer: false
         });
         this.renderTarget.texture.name = "AwardsGalleryRenderTarget";
         this._clearColor = new THREE.Color();

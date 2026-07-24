@@ -1,6 +1,6 @@
 {
   "$schema": "wiki-manifest-v1",
-  "generated_with_head": "c96f5d7769e904dcdd6f26dff3602acfa3f4a98e",
+  "generated_with_head": "bbc14663f150c8214bfe6469b1b0d2308bfe563d",
   "stats": {
     "pages": 41,
     "by_type": {
@@ -95,11 +95,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-21",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "eddca348b12bdd2de7794b7213d9a7fb9fa2c287",
+        "short": "eddca348b",
+        "committed_at": "2026-07-21T18:01:18+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "refactor(backend): extract consumer-owned ports, relocate misplaced classes"
       },
       "body_sha256": "0daff523bd29543a77e4049529f0cf0269da0cf29408490fd47c34eb781e3308"
     },
@@ -290,11 +290,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-21",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "eddca348b12bdd2de7794b7213d9a7fb9fa2c287",
+        "short": "eddca348b",
+        "committed_at": "2026-07-21T18:01:18+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "refactor(backend): extract consumer-owned ports, relocate misplaced classes"
       },
       "body_sha256": "858e71ab8db54f87daf44bb4f6c3e02b06ffedcc9657a704542c83a4ce465156"
     },
@@ -425,11 +425,11 @@
       "status": "living",
       "frontmatter_updated": "2026-07-21",
       "last_commit": {
-        "sha": "f4b9a2556b85d8266e76126b916d4663611c64ba",
-        "short": "f4b9a2556",
-        "committed_at": "2026-07-09T16:59:49+08:00",
+        "sha": "eddca348b12bdd2de7794b7213d9a7fb9fa2c287",
+        "short": "eddca348b",
+        "committed_at": "2026-07-21T18:01:18+08:00",
         "author": "DavidHLP",
-        "subject": "refactor(wiki): retire concept + ADR layer — codebase is the only source of truth"
+        "subject": "refactor(backend): extract consumer-owned ports, relocate misplaced classes"
       },
       "body_sha256": "b04022758a891c1c4a9d8aa9c8251c21ed3c497dd4b745e774ea623e20309525"
     },

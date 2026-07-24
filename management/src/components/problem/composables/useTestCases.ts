@@ -4,100 +4,15 @@ import { toast } from 'vue-sonner'
 import { createAbortController } from '@/utils/request'
 import {
   testCasesApi,
-  type BulkImportTestCaseDto,
-  type CaseScope,
   type CreateTestCaseDto,
   type TestCase,
+} from '@/api/admin/test-cases'
+import { normalizeTestCaseImport } from '../model/testCaseImport'
+import {
   mapCaseScopeToFlags,
   mapFlagsToCaseScope,
-} from '@/api/admin/test-cases'
-
-/**
- * Parse pasted / imported test-case text into DTOs.
- *
- * Pure, side-effect-free owner of the two supported import grammars so the
- * rules are unit-testable independent of the dialog / HTTP / toast state:
- *   1. JSON array — accepts the camelCase export shape plus legacy
- *      snake_case / loose `{input, output}` pastes. Every emitted case
- *      carries both flags so the backend `isSample XOR isHidden` invariant
- *      holds (a case is SAMPLE only when explicitly so, HIDDEN unless
- *      explicitly marked visible).
- *   2. Line grammar — `Input:`/`Output:` (or `<`/`>`) blocks separated by
- *      `---` / `===`; emits HIDDEN, non-sample cases.
- *
- * Returns an empty array when the text is blank or yields no usable case;
- * the caller decides the user-facing message.
- */
-export function parseImportText(text: string): BulkImportTestCaseDto[] {
-  if (!text.trim()) {
-    return []
-  }
-
-  // Grammar 1: JSON array (camelCase export + legacy snake_case / loose pastes).
-  try {
-    const parsed = JSON.parse(text)
-    if (Array.isArray(parsed)) {
-      return parsed.map(
-        (tc: Record<string, unknown>): BulkImportTestCaseDto => ({
-          inputText: String(tc.inputText ?? tc.input_text ?? tc.input ?? ''),
-          outputText: String(tc.outputText ?? tc.output_text ?? tc.output ?? ''),
-          // Coerce through comparison so the result is boolean (not unknown)
-          // and the defaults match the wire invariant.
-          isSample: (tc.isSample ?? tc.is_sample) === true,
-          isHidden: (tc.isHidden ?? tc.is_hidden) !== false,
-          explanation: tc.explanation != null ? String(tc.explanation) : undefined,
-        }),
-      )
-    }
-  } catch {
-    // Not JSON — fall through to the line grammar.
-  }
-
-  // Grammar 2: line-oriented input/output blocks.
-  const lines = text.split('\n').filter((l) => l.trim())
-  const result: BulkImportTestCaseDto[] = []
-  let currentInput = ''
-  let currentOutput = ''
-  let isOutput = false
-  for (const line of lines) {
-    if (line.startsWith('---') || line.startsWith('===')) {
-      if (currentInput && currentOutput) {
-        result.push({
-          inputText: currentInput.trim(),
-          outputText: currentOutput.trim(),
-          isSample: false,
-          isHidden: true,
-        })
-      }
-      currentInput = ''
-      currentOutput = ''
-      isOutput = false
-      continue
-    }
-    if (line.toLowerCase().startsWith('output:') || line.startsWith('>')) {
-      isOutput = true
-      continue
-    }
-    if (line.toLowerCase().startsWith('input:') || line.startsWith('<')) {
-      isOutput = false
-      continue
-    }
-    if (isOutput) {
-      currentOutput += (currentOutput ? '\n' : '') + line
-    } else {
-      currentInput += (currentInput ? '\n' : '') + line
-    }
-  }
-  if (currentInput && currentOutput) {
-    result.push({
-      inputText: currentInput.trim(),
-      outputText: currentOutput.trim(),
-      isSample: false,
-      isHidden: true,
-    })
-  }
-  return result
-}
+  type CaseScope,
+} from '../model/testCaseScope'
 
 /**
  * Problem test-case authoring module — owns the list/load + abort protocol,
@@ -108,8 +23,8 @@ export function parseImportText(text: string): BulkImportTestCaseDto[] {
  * Four concerns share one closure: (1) list state + the identity-change
  * abort protocol, (2) the editor dialog + form + CaseScope vocabulary,
  * (3) CRUD HTTP + optimistic update, (4) the bulk import/export pipeline.
- * parseImportText is the one piece already lifted out as a pure function;
- * the rest stays inline by deliberate convention.
+ * Free-form grammar and CaseScope canonicalization live in the focused
+ * testCaseImport module; this workflow consumes only normalized cases.
  *
  * Precedent: useSolutionAuthoring (console/src/composables) and
  * useForumThread (console/src/composables) share this monolithic-authoring
@@ -117,12 +32,8 @@ export function parseImportText(text: string): BulkImportTestCaseDto[] {
  * consumer. useSolutionAuthoring explicitly cites useForumThread as its
  * precedent; this composable follows the same convention. The bulk import
  * pipeline is a fourth concern unique to test-case authoring, but it stays
- * inline: splitting it would break the established
- * one-composable-per-authoring-workflow convention. A spec file once named
- * useTestCaseAuthoring.spec.ts anticipated an extraction that was
- * deliberately not pursued; it is now caseScope-invariant.spec.ts to
- * honestly describe what it tests (the api-layer mapCaseScopeToFlags
- * contract).
+ * inline: splitting orchestration would break the established
+ * one-composable-per-authoring-workflow convention.
  */
 export function useTestCases(problemId: () => string) {
   const { t } = useI18n()
@@ -326,7 +237,7 @@ export function useTestCases(problemId: () => string) {
     }
     importing.value = true
     try {
-      const testCasesToImport = parseImportText(importText.value)
+      const testCasesToImport = normalizeTestCaseImport(importText.value)
       if (testCasesToImport.length === 0) {
         toast.error(t('testCases.validation.noValidTestCases'))
         return

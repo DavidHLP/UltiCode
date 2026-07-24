@@ -40,6 +40,13 @@ export class MainScene {
         this.time = 0;
         this.maxDevicePixelRatio = maxDevicePixelRatio;
         this.devicePixelRatio = maxDevicePixelRatio;
+
+        // 帧率上限:setAnimationLoop 跟随显示器 vsync,在 120/144/240Hz
+        // 高刷屏上会无意义地满速渲染,把 GPU 占满(实测 240Hz 下 GPU 常驻
+        // ~80%)。该场景是慢速氛围动画,60fps 足够流畅,超出的帧直接跳过。
+        // 60Hz 显示器上帧间隔天然 >= 阈值,行为不变。
+        this.minFrameInterval = 1000 / 60;
+        this.lastRenderTime = -Infinity;
         this.particlePerformance = {
             enabled: true,
             ratio: 1,
@@ -167,7 +174,9 @@ export class MainScene {
 
 
         // renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        // antialias 关闭:画面经 EffectComposer 离屏渲染,默认帧缓冲的 MSAA
+        // 纯浪费显存;粒子/文字本身的视觉由后处理链保证。
+        this.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.setPixelRatio(this.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
@@ -213,14 +222,35 @@ export class MainScene {
 
 
 
-    // 4) destroy(): rimuovi anche labelRenderer DOM e disponi composer/target
+    // 4) destroy(): 先停渲染循环,再释放全部 GPU 资源
     destroy() {
+
+        this.destroyed = true;
+
+        // 必须停掉 animation loop:否则循环持有 renderer 引用,
+        // 每次访问落地页都会留下一个永久渲染的僵尸 WebGL 场景,显存只涨不回收
+        this.renderer?.setAnimationLoop(null);
 
         window.removeEventListener('mousemove', this.onMouseMove);
 
         if (this._onResize) window.removeEventListener("resize", this._onResize);
+        if (this._onVisibilityChange) document.removeEventListener('visibilitychange', this._onVisibilityChange);
 
+        // Awards 使用独立 scene / render target,不在主 scene 遍历范围内
+        try { this.awards?.destroy?.(); } catch (e) { /* noop */ }
 
+        // 释放主场景内所有 geometry / material(贴图由 Resources.destroy 统一释放)
+        if (this.scene) {
+            this.scene.traverse((obj) => {
+                obj.geometry?.dispose?.();
+
+                const materials = Array.isArray(obj.material)
+                    ? obj.material
+                    : (obj.material ? [obj.material] : []);
+
+                materials.forEach((material) => material?.dispose?.());
+            });
+        }
 
         // post fx cleanup
         this.composer?.dispose?.();
@@ -231,11 +261,8 @@ export class MainScene {
             this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
         }
 
-
-
         this.renderer?.dispose?.();
-
-
+        this.renderer = null;
 
     }
 
@@ -823,7 +850,9 @@ export class MainScene {
             progress: 0,
             groupOpacity: 0,
             position: new THREE.Vector3(0, 2, 0),
-            scale: 0.25
+            scale: 0.25,
+            // 半分辨率离屏渲染,显著降低全屏 render target 显存占用
+            renderScale: 0.5
         });
 
 
@@ -863,7 +892,9 @@ export class MainScene {
 
 
         this.composer = new EffectComposer(this.renderer, {
-            frameBufferType: THREE.HalfFloatType,
+            // LDR 缓冲:全屏 buffer 显存相比 HalfFloat 减半;
+            // 该场景的 bloom/tonemap 不依赖 HDR 范围。
+            frameBufferType: THREE.UnsignedByteType,
         });
 
         this.composer.addPass(new RenderPass(this.scene, this.camera));
@@ -929,10 +960,22 @@ export class MainScene {
     // ---------- layout ----------
     setupEvents(){
         this._onResize = this.resize.bind(this);
+        this._onVisibilityChange = this.handleVisibilityChange.bind(this);
         window.addEventListener('resize', this._onResize);
         window.addEventListener('mousemove', this.onMouseMove);
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
 
+    }
 
+    // 标签页隐藏时暂停渲染,避免后台空跑 GPU
+    handleVisibilityChange() {
+        if (this.destroyed || !this.renderer) return;
+
+        if (document.hidden) {
+            this.renderer.setAnimationLoop(null);
+        } else {
+            this.renderer.setAnimationLoop(this.render);
+        }
     }
 
     onMouseMove(e) {
@@ -1142,6 +1185,12 @@ export class MainScene {
     }
 
     render(now = performance.now()) {
+
+        if (this.destroyed) return;
+
+        // 帧率上限:高刷屏跳帧,见构造函数说明
+        if (now - this.lastRenderTime < this.minFrameInterval - 0.5) return;
+        this.lastRenderTime = now;
 
         this.mouse.lerp(this.mouseTarget, 0.15);
         this.updateParticlePerformance(now);

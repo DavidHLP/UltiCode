@@ -90,7 +90,6 @@ export {
 // 401 auto-refresh coordinator
 export {
   createRefreshAccessToken,
-  _resetRefreshCoordinator,
   type RefreshResponse,
 } from './refreshCoordinator';
 export { rawAxios } from './rawAxios';

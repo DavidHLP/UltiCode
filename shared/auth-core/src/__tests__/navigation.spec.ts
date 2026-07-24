@@ -72,10 +72,10 @@ function makeTarget(
 }
 
 // ---------------------------------------------------------------------------
-// Staleness & cancellation policy
+// Session staleness policy
 // ---------------------------------------------------------------------------
 
-describe('createNavigationPolicy — staleness & cancellation', () => {
+describe('createNavigationPolicy — session staleness', () => {
   let clock: ReturnType<typeof makeFakeClock>;
   let auth: NavigationAuthAdapter;
   let nav: NavigationPolicy;
@@ -137,16 +137,6 @@ describe('createNavigationPolicy — staleness & cancellation', () => {
       name: 'login',
       query: { redirect: '/secret' },
     });
-  });
-
-  it('T4: cancellation — bump() increments and isStale() detects superseded', () => {
-    const id1 = nav.bump();
-    expect(nav.isStale(id1)).toBe(false);
-
-    const id2 = nav.bump();
-    expect(id2).toBe(id1 + 1);
-    expect(nav.isStale(id1)).toBe(true);
-    expect(nav.isStale(id2)).toBe(false);
   });
 
   it('T5: public route — no auth interaction, allow', async () => {
@@ -381,10 +371,9 @@ describe('installAuthNavigation — vue-router adapter', () => {
   });
 
   it('T14: superseded navigation returns undefined (no redirect emitted)', async () => {
-    // Hold `ensureUser()` open so we can race a `bump()` against it. The
-    // guard's `bump()` captures id N+1; while the awaited `ensureUser` is
-    // pending, the test calls `bump()` to supersede it; the guard must
-    // observe isStale() and return `undefined` once the await resolves.
+    // Hold `ensureUser()` open, then run a second guard while the first is
+    // pending. The installed navigation module must suppress the stale result
+    // without exposing its cancellation counter.
     let resolveEnsure: (() => void) | null = null;
     const auth = makeAuthAdapter({
       isAuthenticated: () => false,
@@ -395,7 +384,7 @@ describe('installAuthNavigation — vue-router adapter', () => {
     });
     const { router, guards } = captureGuards();
 
-    const nav = installAuthNavigation({
+    installAuthNavigation({
       router,
       auth: () => auth,
       policy: defaultPolicy,
@@ -409,14 +398,19 @@ describe('installAuthNavigation — vue-router adapter', () => {
       matched: [{ meta: { requiresAuth: true } }],
     };
 
-    // Start the guard (bumps id=1, awaits ensureUser).
+    // Start the first guard; it waits in ensureUser.
     const p1 = guards[0](to);
 
-    // Simulate a newer navigation superseding the first.
-    nav.bump();
+    // A newer public navigation completes and supersedes the first.
+    const p2 = guards[0]({
+      name: 'home',
+      fullPath: '/',
+      query: {},
+      matched: [],
+    });
+    expect(await p2).toBe(true);
 
-    // Now release the awaited ensureUser; the guard resumes, checks
-    // isStale(1) → true, and returns `undefined`.
+    // Releasing the first navigation must not emit its stale redirect.
     resolveEnsure!();
 
     const r1 = await p1;
@@ -443,6 +437,128 @@ describe('installAuthNavigation — vue-router adapter', () => {
 
     const result = await guards[0](to);
     expect(result).toEqual({ name: 'home' });
+  });
+
+  // T18: when evaluate() rejects (e.g. backend 5xx during revalidation),
+  // the guard must not leak the rejection as an unhandled promise. The
+  // guard swallows the error and returns undefined (Vue Router treats
+  // undefined as "do nothing — let the navigation proceed"), so the
+  // user lands on the requested page and the underlying per-page
+  // auth-state handling can recover.
+  it('T18: evaluate() rejection is swallowed — guard returns undefined, no unhandled rejection', async () => {
+    const auth = makeAuthAdapter({
+      isAuthenticated: () => false,
+      ensureUser: () => Promise.reject(new Error('backend 5xx during revalidation')),
+    });
+    const { router, guards } = captureGuards();
+
+    installAuthNavigation({
+      router,
+      auth: () => auth,
+      policy: defaultPolicy,
+      clock: makeFakeClock(),
+    });
+
+    const to: VueRouterTo = {
+      name: 'private',
+      fullPath: '/private',
+      query: {},
+      matched: [{ meta: { requiresAuth: true } }],
+    };
+
+    // The guard returns undefined; no rejection is propagated.
+    const result = await guards[0](to);
+    expect(result).toBeUndefined();
+  });
+
+  // T19: when the rejected guard is superseded by a newer navigation,
+  // the cancellation contract still wins: the newer navigation's
+  // result is what the router sees. This pins the "swallow + still
+  // honour supersession" combination.
+  it('T19: rejected superseded guard is dropped — the newer navigation wins', async () => {
+    let resolveEnsure: (() => void) | null = null;
+    const auth = makeAuthAdapter({
+      isAuthenticated: () => false,
+      ensureUser: () =>
+        new Promise<void>((_resolve, reject) => {
+          // Stash the reject to fire after a newer navigation has been
+          // queued. The newer navigation completes with a public-route
+          // allow verdict, so the router sees allow(true) regardless of
+          // whether the first guard's rejection ever fires.
+          resolveEnsure = () => reject(new Error('backend 5xx'));
+        }),
+    });
+    const { router, guards } = captureGuards();
+
+    installAuthNavigation({
+      router,
+      auth: () => auth,
+      policy: defaultPolicy,
+      clock: makeFakeClock(),
+    });
+
+    const privateTo: VueRouterTo = {
+      name: 'private',
+      fullPath: '/private',
+      query: {},
+      matched: [{ meta: { requiresAuth: true } }],
+    };
+    const publicTo: VueRouterTo = {
+      name: 'home',
+      fullPath: '/',
+      query: {},
+      matched: [],
+    };
+
+    const p1 = guards[0](privateTo);
+    // Newer navigation runs while the first is still pending.
+    const p2 = guards[0](publicTo);
+    expect(await p2).toBe(true);
+    // Reject the first guard; its catch path must NOT emit a redirect
+    // because the cancellation has already been recorded.
+    resolveEnsure!();
+    expect(await p1).toBeUndefined();
+  });
+
+  // T20: two independent installAuthNavigation calls each own their own
+  // cancellation counter — a bump in router A must NOT cancel a pending
+  // navigation in router B. The audit fix the candidate called for.
+  it('T20: two independent installs do not share the cancellation counter', async () => {
+    const authA = makeAuthAdapter({ isAuthenticated: () => false });
+    const authB = makeAuthAdapter({ isAuthenticated: () => true });
+    const routerA = captureGuards();
+    const routerB = captureGuards();
+
+    installAuthNavigation({
+      router: routerA.router,
+      auth: () => authA,
+      policy: defaultPolicy,
+      clock: makeFakeClock(),
+    });
+    installAuthNavigation({
+      router: routerB.router,
+      auth: () => authB,
+      policy: defaultPolicy,
+      clock: makeFakeClock(),
+    });
+
+    const to: VueRouterTo = {
+      name: 'private',
+      fullPath: '/private',
+      query: {},
+      matched: [{ meta: { requiresAuth: true } }],
+    };
+
+    // Bump A twice (so A's pendingNavigationId is 2+), then run B's
+    // guard: A's bumps must not cancel B's in-flight navigation.
+    const aGuard1 = routerA.guards[0]!(to);
+    const aGuard2 = routerA.guards[0]!(to);
+    const bResult = await routerB.guards[0]!(to);
+    expect(bResult).toBe(true); // authenticated → allow
+    expect(await aGuard2).toBeDefined(); // A's own chain proceeds
+    // We don't care about aGuard1's verdict — it's A's first one, which
+    // gets superseded by aGuard2 and emits undefined. Just resolve.
+    expect(await aGuard1).toBeUndefined();
   });
 });
 

@@ -1852,6 +1852,7 @@ const initMainScene = () => {
         if (restoreOpacityTween) restoreOpacityTween.kill();
         ScrollTrigger.getAll().forEach((t) => t.kill());
         try { scene && scene.destroy(); } catch (e) { /* noop */ }
+        try { resources && resources.destroy(); } catch (e) { /* noop */ }
     };
 };
 
@@ -1874,6 +1875,7 @@ return () => {
     } else {
         ScrollTrigger.getAll().forEach((t) => t.kill());
         try { scene && scene.destroy(); } catch (e) { /* noop */ }
+        try { resources && resources.destroy(); } catch (e) { /* noop */ }
     }
     gsap.killTweensOf(['.loader', '.loader a', '.loader i', '.canvas', '.header', '.footer']);
     try { lenis.destroy(); } catch (e) { /* noop */ }

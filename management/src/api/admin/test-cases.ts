@@ -58,6 +58,13 @@ export interface UpdateTestCaseDto {
   constraints?: string
 }
 
+/**
+ * Wire contract for a single test case in a bulk-import request. Mirrors the
+ * backend {@code CreateTestCaseDTO} (the service reuses it for each entry)
+ * and the focused {@code model/testCaseImport.NormalizedTestCaseImport}
+ * shape, with {@code isSample} / {@code isHidden} already canonicalised by
+ * the import normalizer.
+ */
 export interface BulkImportTestCaseDto {
   inputText: string
   outputText: string
@@ -127,74 +134,4 @@ export const testCasesApi = {
   async reorderTestCases(problemId: string, testCaseIds: string[], signal?: AbortSignal): Promise<void> {
     await apiPut<void>(`/admin/problems/${problemId}/test-cases/reorder`, testCaseIds, { signal })
   },
-}
-
-/**
- * Canonical per-case scope enum mirroring backend {@code CaseScope}
- * (com.ulticode.modules.submission.enums.CaseScope).
- *
- * Two durable values map onto the {@code test_cases.is_sample} / {@code is_hidden}
- * columns. The frontend never persists a third value (DRAFT is intentionally
- * absent — see task #10 plan, P9 拍板 2026-06-14 16:38):
- *   - SAMPLE: is_sample=true, is_hidden=false  (public example shown in statement)
- *   - HIDDEN: is_sample=false, is_hidden=true  (private judge case, admin-only)
- *
- * Legacy rows written before P0-1 may carry {@code is_sample=null} /
- * {@code is_hidden=null}; {@link mapFlagsToCaseScope} treats that as SAMPLE
- * for backward compatibility. {@link mapCaseScopeToFlags} always emits both
- * flags explicitly, so XOR always holds on the wire to the backend.
- */
-export type CaseScope = 'SAMPLE' | 'HIDDEN'
-
-/**
- * Convert an ({@code isSample}, {@code isHidden}) flag pair into the canonical
- * {@link CaseScope}. Returns SAMPLE for legacy/undefined pairs so existing
- * test case rows stay queryable in the UI.
- */
-export function mapFlagsToCaseScope(
-  // isSample is accepted for call-site symmetry with mapCaseScopeToFlags; scope
-  // is derived from isHidden alone so legacy null/is_sample=false rows resolve
-  // to SAMPLE (leading underscore marks it intentionally unused).
-  _isSample: boolean | null | undefined,
-  isHidden: boolean | null | undefined,
-): CaseScope {
-  if (isHidden === true) {
-    return 'HIDDEN'
-  }
-  // isHidden === false | null | undefined, treat anything non-hidden as SAMPLE
-  return 'SAMPLE'
-}
-
-/**
- * Convert a {@link CaseScope} into the ({@code isSample}, {@code isHidden})
- * flag pair to send to the backend. Always emits both booleans so the wire
- * contract satisfies the backend XOR filter.
- */
-export function mapCaseScopeToFlags(scope: CaseScope): { isSample: boolean; isHidden: boolean } {
-  switch (scope) {
-    case 'HIDDEN':
-      return { isSample: false, isHidden: true }
-    case 'SAMPLE':
-    default:
-      return { isSample: true, isHidden: false }
-  }
-}
-
-/**
- * True when the given flag pair is well-formed (isSample XOR isHidden).
- *
- * <p>Used by the bulk import parser and any other free-form input path
- * to reject ambiguous dto candidates before they reach the backend.
- * The backend will reject the same pairs at validation, but catching
- * them client-side gives a useful error message and avoids a
- * round-trip.
- *
- * <p>This is the local canonical truth &mdash; {@link mapFlagsToCaseScope}
- * deliberately tolerates legacy null-flag rows; this helper does not.
- */
-export function isValidCaseScopeFlags(flags: {
-  isSample: boolean
-  isHidden: boolean
-}): boolean {
-  return flags.isSample !== flags.isHidden
 }

@@ -5,7 +5,6 @@ import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
-import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemResultMapper;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
@@ -26,9 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implementation of {@link ContestLifecycleService}. Owns every time-driven
@@ -48,6 +45,16 @@ import java.util.Set;
  * {@link ContestRankingCacheEvictor}, because both a verdict and a cascade
  * delete can change what the ranking cache reflects. Rating recalculation is
  * handed off to {@link RatingCalculationService} once a contest is FINISHED.
+ *
+ * <p>Architectural boundary: this service does NOT depend on
+ * {@code ContestParticipantMapper}. All {@link ContestParticipant} status
+ * transitions and cascade deletes cross the
+ * {@link ContestParticipantTransitions} seam so the canonical status
+ * literals, input hygiene, and atomic SQL guard boundary stay in one
+ * deep module. Only {@link ContestMapper} (for the contest-level
+ * transitions) and the read-only
+ * {@link ContestProblemMapper}/{@link ContestSubmissionMapper}/etc. for
+ * the cascade delete are direct dependencies here.
  */
 @Slf4j
 @Service
@@ -55,7 +62,7 @@ import java.util.Set;
 public class ContestLifecycleServiceImpl implements ContestLifecycleService {
 
     private final ContestMapper contestMapper;
-    private final ContestParticipantMapper contestParticipantMapper;
+    private final ContestParticipantTransitions participantTransitions;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestProblemResultMapper contestProblemResultMapper;
@@ -67,13 +74,12 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     private final ContestRankingMarkDirtyPort contestRankingMarkDirtyPort;
     private final NotificationDispatcher notificationDispatcher;
     private final RatingCalculationService ratingService;
-    private final ContestParticipantTransitions participantTransitions;
 
     @Override
     @Transactional
     public int batchStartParticipants(String contestId) {
         LocalDateTime now = LocalDateTime.now(clock);
-        int updated = participantTransitions.batchStartParticipants(contestId, now);
+        int updated = participantTransitions.batchStartRegistered(contestId, now);
         if (updated > 0) {
             log.info("P0-2: transitioned {} participants REGISTERED -> STARTED for contest {}",
                     updated, contestId);
@@ -84,16 +90,8 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
     @Override
     @Transactional
     public int autoFinishVirtualParticipants() {
-        // M2: route through the module so the bulk-finish path is exercised by the
-        // scheduled path too, and future transition rules (e.g. active_virtual_key
-        // guard) apply uniformly.
         LocalDateTime now = LocalDateTime.now(clock);
-        List<ContestParticipant> toFinish = contestParticipantMapper.findVirtualParticipantsToFinish(now);
-        if (toFinish.isEmpty()) {
-            return 0;
-        }
-        int total = participantTransitions.bulkFinishVirtualByIds(
-                toFinish.stream().map(ContestParticipant::getId).toList(), now);
+        int total = participantTransitions.findAndFinishExpiredVirtuals(now);
         if (total > 0) {
             log.info("P2-2: auto-finished {} virtual participants past their duration", total);
         }
@@ -116,8 +114,11 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         contestSubmissionMapper.deleteByContestId(contestId);
         contestProblemResultMapper.deleteByContestId(contestId);
         firstSolveRecordMapper.deleteByContestId(contestId);
-        contestParticipantMapper.deleteByContestId(contestId);
         contestProblemMapper.deleteByContestId(contestId);
+        // Participant cascade goes through the seam (R3.6: bulk cascade
+        // delete does not need input hygiene and never touches the status
+        // column; the seam is a thin pass-through to the mapper).
+        participantTransitions.deleteAllByContestId(contestId);
         rankingCacheEvictor.evictRankingCache();
         log.info("P2-5: cascade-deleted relational rows for soft-deleted contest {}", contestId);
     }
@@ -184,10 +185,13 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
                         && c.getStartTime().isBefore(window1hEnd))
                 .toList();
 
-        // Process T-24h reminders
+        // Process T-24h reminders. The participant list comes from the
+        // transitions seam so the lifecycle module has no direct dependency
+        // on the participant mapper.
         if (!contests24h.isEmpty()) {
             List<String> contestIds24h = contests24h.stream().map(Contest::getId).toList();
-            List<ContestParticipant> participants24h = contestParticipantMapper.findByContestIds(contestIds24h);
+            List<ContestParticipant> participants24h =
+                    participantTransitions.findByContestIdsForReminder(contestIds24h);
             for (ContestParticipant p : participants24h) {
                 sendContestReminder(p, "24h", contests24h);
             }
@@ -196,7 +200,8 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         // Process T-1h reminders
         if (!contests1h.isEmpty()) {
             List<String> contestIds1h = contests1h.stream().map(Contest::getId).toList();
-            List<ContestParticipant> participants1h = contestParticipantMapper.findByContestIds(contestIds1h);
+            List<ContestParticipant> participants1h =
+                    participantTransitions.findByContestIdsForReminder(contestIds1h);
             for (ContestParticipant p : participants1h) {
                 sendContestReminder(p, "1h", contests1h);
             }
@@ -289,7 +294,7 @@ public class ContestLifecycleServiceImpl implements ContestLifecycleService {
         // calculation below sees a stable, FINISHED set. Virtual participants
         // are managed by the per-user virtual session, not the contest clock.
         // Rethrows on failure — see method Javadoc.
-        int finished = participantTransitions.finishStartedRealParticipants(contest.getId(), now);
+        int finished = participantTransitions.finishStartedReal(contest.getId(), now);
         if (finished > 0) {
             log.info("R3.1: closed {} real participants for contest {}", finished, contest.getId());
         }

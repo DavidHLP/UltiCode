@@ -51,6 +51,12 @@ export interface AuthStoreInternals {
   logout: () => Promise<void>
   loadPermissions: () => Promise<void>
   fetchUser: () => Promise<User | null>
+  /**
+   * Lazy-load the user record if missing; no-op when the store already
+   * has a user. Used by the auth-navigation guard to satisfy
+   * {@code ensureUser} without an unconditional re-fetch.
+   */
+  ensureUser: () => Promise<User | null>
   initialize: () => Promise<void>
   clearUser: () => void
   hasPermission: (action: string, resource: string) => boolean
@@ -136,6 +142,20 @@ export function createAuthStore(adapter: AuthStoreAdapter): AuthStoreInternals {
     }
   }
 
+  /**
+   * Lazy user loader: only fetch if the store is empty. This is the
+   * semantically-correct implementation of the {@code NavigationAuthAdapter.ensureUser}
+   * contract that the auth-navigation guard expects. The previous
+   * management adapter routed the seam's {@code ensureUser} call through
+   * {@code fetchUser} (unconditional), which violated the contract and
+   * caused redundant network round-trips on every protected navigation
+   * for an already-authenticated user.
+   */
+  async function ensureUser(): Promise<User | null> {
+    if (user.value) return user.value
+    return await fetchUser()
+  }
+
   async function initialize(): Promise<void> {
     if (isInitialized.value) return
     // Restore session from httpOnly cookies; /auth/me returns 401 when no
@@ -177,6 +197,7 @@ export function createAuthStore(adapter: AuthStoreAdapter): AuthStoreInternals {
     logout,
     loadPermissions,
     fetchUser,
+    ensureUser,
     initialize,
     clearUser,
     hasPermission,

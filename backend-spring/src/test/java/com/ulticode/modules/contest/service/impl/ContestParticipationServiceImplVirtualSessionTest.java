@@ -27,11 +27,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.lenient;
 
 /**
  * Focused unit tests for the new behaviour added in 2026-06-11
@@ -41,17 +41,17 @@ import static org.mockito.Mockito.lenient;
  *  - {@link ContestParticipationServiceImpl#finishVirtualContest} accepts a null
  *    or blank sessionId and falls back to the stored virtualSessionId.
  *
- * These tests use Mockito only (no @WebMvcTest) to keep the test surface
+ * <p>These tests use Mockito only (no @WebMvcTest) to keep the test surface
  * minimal and avoid coupling with other pre-existing test files.
  */
 class ContestParticipationServiceImplVirtualSessionTest {
 
     private ContestMapper contestMapper;
     private ContestParticipantMapper participantMapper;
+    private ContestParticipantTransitions participantTransitions;
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
     private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
-    private ContestParticipantTransitions participantTransitions;
     private ContestParticipationServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -62,14 +62,16 @@ class ContestParticipationServiceImplVirtualSessionTest {
     void setUp() {
         contestMapper = mock(ContestMapper.class);
         participantMapper = mock(ContestParticipantMapper.class);
+        participantTransitions = mock(ContestParticipantTransitions.class);
         clock = mock(Clock.class);
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
         achievementTriggerService =
                 mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
-        participantTransitions = mock(ContestParticipantTransitions.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
-        service = new ContestParticipationServiceImpl(contestMapper, participantMapper, clock, new FixedUuidGenerator(), contestClock, achievementTriggerService, participantTransitions);
+        service = new ContestParticipationServiceImpl(
+                contestMapper, participantMapper, clock, new FixedUuidGenerator(),
+                contestClock, achievementTriggerService, participantTransitions);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {
@@ -79,7 +81,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         p.setUserId(USER_ID);
         p.setIsVirtual(true);
         p.setVirtualSessionId(sessionId);
-        p.setStatus(ContestParticipantStatus.STARTED.name());
+        p.setStatus(ContestParticipantStatus.STARTED.wireValue());
         p.setRegisteredAt(LocalDateTime.now().minusHours(1));
         p.setStartedAt(LocalDateTime.now().minusHours(1));
         return p;
@@ -157,8 +159,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
         // Should not throw — null sessionId is allowed
         service.finishVirtualContest(CONTEST_ID, null, USER_ID);
 
-        // Verify the transition was delegated through the participant-transitions module.
-        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
+        verify(participantTransitions)
+                .bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -171,7 +173,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         service.finishVirtualContest(CONTEST_ID, "  ", USER_ID);
 
-        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
+        verify(participantTransitions)
+                .bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -184,7 +187,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         service.finishVirtualContest(CONTEST_ID, storedUuid, USER_ID);
 
-        verify(participantTransitions).bulkFinishVirtualByIds(any(), any());
+        verify(participantTransitions)
+                .bulkFinishVirtualByIds(any(), any());
     }
 
     @Test
@@ -219,7 +223,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         LocalDateTime originalFinish = LocalDateTime.of(2026, 6, 18, 9, 42, 5);
         ContestParticipant p = buildVirtualParticipant(storedUuid);
         p.setId("participant-finished-id");
-        p.setStatus(ContestParticipantStatus.FINISHED.name());
+        p.setStatus(ContestParticipantStatus.FINISHED.wireValue());
         p.setFinishedAt(originalFinish);
         p.setUpdatedAt(originalFinish);
         when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
@@ -232,7 +236,8 @@ class ContestParticipationServiceImplVirtualSessionTest {
         assertThat(p.getFinishedAt()).isEqualTo(originalFinish);
         assertThat(p.getUpdatedAt()).isEqualTo(originalFinish);
         // The SQL UPDATE must NOT be re-issued
-        verify(participantTransitions, never()).bulkFinishVirtualByIds(any(), any());
+        verify(participantTransitions, never())
+                .bulkFinishVirtualByIds(any(), any());
     }
 
     // ============================================================
@@ -255,7 +260,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         service.registerForContest(CONTEST_ID, USER_ID);
 
-        verify(participantMapper).insert(any(ContestParticipant.class));
+        verify(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
         verify(achievementTriggerService).trigger(
                 USER_ID,
                 com.ulticode.modules.achievement.constants.AchievementType.CONTEST_PARTICIPATION,
@@ -272,7 +277,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_FULL);
 
-        verify(participantMapper, never()).insert(any(ContestParticipant.class));
+        verify(participantTransitions, never()).registerRealParticipant(any(ContestParticipant.class));
         verify(achievementTriggerService, never()).trigger(any(), any(), anyInt());
     }
 
@@ -282,7 +287,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildUpcomingContest());
         when(contestMapper.tryIncrementRegisteredCount(CONTEST_ID)).thenReturn(1);
         doThrow(new org.springframework.dao.DuplicateKeyException("dup"))
-                .when(participantMapper).insert(any(ContestParticipant.class));
+                .when(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
 
         assertThatThrownBy(() -> service.registerForContest(CONTEST_ID, USER_ID))
                 .isInstanceOf(BusinessException.class)
@@ -317,7 +322,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         // Must not propagate — the side effect is best-effort by design.
         service.registerForContest(CONTEST_ID, USER_ID);
 
-        verify(participantMapper).insert(any(ContestParticipant.class));
+        verify(participantTransitions).registerRealParticipant(any(ContestParticipant.class));
     }
 
     // ============================================================
@@ -336,12 +341,11 @@ class ContestParticipationServiceImplVirtualSessionTest {
         // Holder to capture the generated session ID after insert
         java.util.concurrent.atomic.AtomicReference<String> generatedId =
                 new java.util.concurrent.atomic.AtomicReference<>();
-        when(participantMapper.insert(any(ContestParticipant.class)))
-                .thenAnswer(invocation -> {
-                    ContestParticipant p = invocation.getArgument(0);
-                    generatedId.set(p.getVirtualSessionId());
-                    return 1;
-                });
+        org.mockito.Mockito.doAnswer(invocation -> {
+            ContestParticipant p = invocation.getArgument(0);
+            generatedId.set(p.getVirtualSessionId());
+            return p;
+        }).when(participantTransitions).startVirtualParticipant(any(ContestParticipant.class));
 
         // getVirtualSession reads the DB — return a valid participant
         when(participantMapper.findByContestIdAndUserId(CONTEST_ID, USER_ID))
@@ -374,9 +378,9 @@ class ContestParticipationServiceImplVirtualSessionTest {
 
         // Simulate the race: another transaction won and inserted first
         String winnerSessionId = UUID.randomUUID().toString();
-        when(participantMapper.insert(any(ContestParticipant.class)))
-                .thenThrow(new org.springframework.dao.DuplicateKeyException(
-                        "Duplicate entry for active_virtual_key"));
+        doThrow(new org.springframework.dao.DuplicateKeyException(
+                        "Duplicate entry for active_virtual_key"))
+                .when(participantTransitions).startVirtualParticipant(any(ContestParticipant.class));
 
         // getVirtualSession reads the winner's row from the DB
         ContestParticipant existing = buildVirtualParticipant(winnerSessionId);
@@ -390,22 +394,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
         assertThat(result.getId()).isEqualTo(winnerSessionId);
         // The existing session is returned, not null or a newly-generated id
         verify(participantMapper).findActiveVirtualSessionForUpdate(CONTEST_ID, USER_ID);
-        verify(participantMapper).insert(any(ContestParticipant.class));
-    }
-
-
-    @Test
-    @DisplayName("bulkFinishByIds has STARTED and is_virtual=1 guard in UPDATE WHERE clause")
-    void bulkFinishByIds_hasCorrectGuard() throws Exception {
-        // Reflection: read @Update annotation from the mapper method
-        java.lang.reflect.Method method = ContestParticipantMapper.class
-                .getDeclaredMethod("bulkFinishByIds", java.util.Collection.class, java.time.LocalDateTime.class);
-        org.apache.ibatis.annotations.Update annotation = method.getAnnotation(org.apache.ibatis.annotations.Update.class);
-        assertThat(annotation).isNotNull();
-        String sql = annotation.value()[0];
-        assertThat(sql).contains("status = 'STARTED'");
-        assertThat(sql).contains("is_virtual = 1");
-        assertThat(sql).doesNotContain("is_virtual = 0");
+        verify(participantTransitions).startVirtualParticipant(any(ContestParticipant.class));
     }
 
 }

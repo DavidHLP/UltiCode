@@ -20,6 +20,12 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: () => import('@/views/auth/LoginView.vue'),
+    // Post-auth redirect: an already-authenticated user landing on /login
+    // is sent to `dashboard` by the shared auth-navigation seam via the
+    // `authenticatedGuestRouteName` policy field. The route meta is the
+    // policy's input — without `guestOnly: true` the seam has no way to
+    // know this is a guest-only route.
+    meta: { guestOnly: true },
   },
 
   // ==================== Main App ====================
@@ -371,7 +377,14 @@ function buildManagementAuthAdapter() {
       await useAuthStore().fetchUser()
     },
     ensureUser: async () => {
-      await useAuthStore().fetchUser()
+      // Lazy-load the user record only if the store is empty.
+      // Previously this adapter called fetchUser() unconditionally
+      // (ensureUser() did not exist on the auth store yet), which
+      // caused a redundant /auth/me round-trip on every protected
+      // navigation for an already-authenticated user. createAuthStore
+      // now exposes ensureUser() to satisfy the seam's lazy-loader
+      // contract.
+      await useAuthStore().ensureUser()
     },
   }
 }
@@ -381,9 +394,11 @@ installAuthNavigation({
   auth: buildManagementAuthAdapter,
   policy: {
     loginRouteName: 'login',
-    // Management has no guest-only routes besides login itself, so we leave
-    // `authenticatedGuestRouteName` unset and rely on the explicit
-    // `authed-redirect-from-login` block below.
+    // Authenticated users landing on /login (e.g. via a stale
+    // session-expired redirect) are sent to the dashboard. The
+    // guest-only route meta is set on the /login route above so the
+    // shared seam can match it.
+    authenticatedGuestRouteName: 'dashboard',
   },
 })
 
@@ -428,10 +443,9 @@ router.beforeEach(async (to) => {
     }
   }
 
-  if (to.name === 'login' && authStore.isAuthenticated) {
-    return { name: 'dashboard' }
-  }
-
+  // Post-auth redirect is owned by the shared auth-navigation seam via
+  // `authenticatedGuestRouteName: 'dashboard'` and the login route's
+  // `meta: { guestOnly: true }` (see installAuthNavigation above).
   return true
 })
 

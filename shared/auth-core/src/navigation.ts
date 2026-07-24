@@ -111,12 +111,6 @@ export interface NavigationPolicy {
    * `redirect`. Callers translate that into Vue Router's `boolean | RouteLocationRaw`.
    */
   evaluate(to: NavigationTarget): Promise<NavigationDecision>;
-  /** Bump the internal cancellation counter; returns the new id. */
-  bump(): number;
-  /** True if the navigation has been superseded by a newer one. */
-  isStale(id: number): boolean;
-  /** Test seam — explicitly reset the staleness clock. */
-  _reset(): void;
 }
 
 /**
@@ -135,21 +129,14 @@ export function createNavigationPolicy(
 
   // Cancellation token. Every new navigation bumps this; async guards compare
   // their captured id against the current value to bail out when superseded.
+  // Kept closure-scoped so each `installAuthNavigation` call gets an
+  // independent counter — two routers never see each other's bumps.
   let pendingNavigationId = 0;
 
   // Last successful validation timestamp. 0 means "never validated yet" — we
   // do NOT force a fetch on the first protected navigation, because if the
   // user just logged in the auth store already has a fresh user record.
   let lastValidatedAt = 0;
-
-  function bump(): number {
-    pendingNavigationId += 1;
-    return pendingNavigationId;
-  }
-
-  function isStale(id: number): boolean {
-    return id !== pendingNavigationId;
-  }
 
   async function evaluate(to: NavigationTarget): Promise<NavigationDecision> {
     // 1. Wait for in-flight auth initialization so we don't redirect to login
@@ -158,8 +145,8 @@ export function createNavigationPolicy(
     //    barrier naturally.
     if (auth.status() === 'loading') {
       await auth.waitForInitialization();
-      // Caller checks isStale() before consuming the verdict, so we don't
-      // re-check here.
+      // The installer discards this decision if a newer navigation supersedes
+      // it while initialization is pending.
     }
 
     const requiresAuth = routeMetaHasBoolean(to, 'requiresAuth');
@@ -199,16 +186,8 @@ export function createNavigationPolicy(
     return { kind: 'allow' };
   }
 
-  function reset(): void {
-    pendingNavigationId = 0;
-    lastValidatedAt = 0;
-  }
-
   return {
     evaluate,
-    bump,
-    isStale,
-    _reset: reset,
   };
 }
 
@@ -250,10 +229,17 @@ export interface InstallAuthNavigationOptions {
  *
  * Both apps call this in `router/index.ts` and then layer their own
  * per-app post-auth redirects on top of the verdict.
+ *
+ * Error handling: the guard wraps {@code nav.evaluate(to)} in a try/catch
+ * and emits `undefined` (Vue Router's "do nothing" sentinel) on a rejected
+ * promise. This prevents a backend 5xx during revalidation from leaking
+ * as an unhandled rejection from a router guard. The supersession
+ * (T14) check still runs after the catch so a cancelled navigation does
+ * not emit a stale redirect from the still-pending guard.
  */
 export function installAuthNavigation(
   options: InstallAuthNavigationOptions,
-): NavigationPolicy {
+): void {
   // Resolve the auth adapter lazily on each navigation so that any
   // Pinia store lookup inside the factory runs after `app.use(pinia)`.
   const auth = () => options.auth();
@@ -265,18 +251,32 @@ export function installAuthNavigation(
     options.policy,
     options.clock,
   );
+  let pendingNavigationId = 0;
 
   options.router.beforeEach(async (to) => {
-    const navId = nav.bump();
+    pendingNavigationId += 1;
+    const navId = pendingNavigationId;
 
-    const decision = await nav.evaluate(to);
-    if (nav.isStale(navId)) return;
+    let decision;
+    try {
+      decision = await nav.evaluate(to);
+    } catch (error) {
+      // Swallow rejected evaluation promises so a backend 5xx during
+      // staleness revalidation does not surface as an unhandled
+      // rejection from a router guard. Vue Router treats the
+      // returned `undefined` as "no redirect — let the navigation
+      // proceed" so the user lands on the requested page (possibly
+      // unauthenticated, which the per-page auth-state handling can
+      // recover from). The supersession check below still runs.
+      if (navId !== pendingNavigationId) return;
+      console.error('[auth-navigation] evaluate() rejected:', error);
+      return;
+    }
+    if (navId !== pendingNavigationId) return;
 
     if (decision.kind === 'allow') return true;
     return { name: decision.name, query: decision.query };
   });
-
-  return nav;
 }
 
 /**

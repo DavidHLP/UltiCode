@@ -93,7 +93,7 @@
       ADR-MIG-WS-BLACKLIST added: Phase 0 does NOT widen TokenBlacklistPort;\nrefresh-token revocation stays owned by RefreshTokenService.\n\
       \nNo SQL changes; no DROP. Phase 7 collects production evidence."
   commits:
-  - c093a140b5630822d1045fb6ee34dc1bd9dcb069
+  - c093a1445e33614f8b13dbdcd9bc7d03a4f39930
   notes: ''
   updated_at: '2026-07-25T00:54:00+08:00'
 - id: P0-SEC-001

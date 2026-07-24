@@ -23,12 +23,14 @@ Append-only log of significant events. NOT a task state source of truth
 - Migration: `init-db/migrations/V20260724162738__Create_Backups_Table.sql`
 - Status: done
 - Evidence: `./mvnw compile -B` BUILD SUCCESS (real run, real output)
+- Commit: 3f1c61fd16f26a5686228e3f87ef7aac01bba462 (feat(db))
 
 ### P0-SCHEMA-002 — `problem_notes` schema convergence
 
 - Migration: `init-db/migrations/V20260724162800__Converge_Problem_Notes_Schema.sql`
 - Status: done
 - Evidence: `./mvnw compile -B` BUILD SUCCESS (real run, real output)
+- Commit: 3f1c61fd16f26a5686228e3f87ef7aac01bba462 (feat(db), shared with P0-SCHEMA-001)
 
 ### TASKS.yaml rewrite (process correction)
 
@@ -36,12 +38,12 @@ Append-only log of significant events. NOT a task state source of truth
   (duplicate `status:` fields, missing P0-SCHEMA-003, malformed P0-SEC-001
   header). Initial `write` landed with a top-level mapping + sequence
   hybrid that YAML rejects.
-- Rewrote file as a pure top-level list (per project convention). Validated
-  via Python `yaml.safe_load`: 51 tasks, 2 done (P0-SCHEMA-001, P0-SCHEMA-002),
-  all headers present.
+- Rewrote file as a pure top-level list. Validated via Python
+  `yaml.safe_load`: 51 tasks, all headers present.
 - Installed `_tools/update_task.py`: load YAML, mutate by id, dump back.
-  All future status changes will use this script — no more `edit SWAP` on
+  All future status changes use this script — no more `edit SWAP` on
   TASKS.yaml.
+- Commit: 9172541ec9bfef35fb7db916608ab6340f2b9d57 (chore(migration))
 
 ### P0-SEC-001 — OAuth state cookie binding
 
@@ -50,8 +52,7 @@ Append-only log of significant events. NOT a task state source of truth
   - `OAuthStatePort.validateAndConsume` signature: added `cookieState` param.
   - `OAuthStateModule.validateAndConsume`: constant-time compare via
     `MessageDigest.isEqual` on UTF-8 bytes; mismatch throws UNAUTHORIZED
-    and clears the cookie before any Redis access. Null/blank cookie is
-    accepted (no binding) — production callers always forward a cookie.
+    and clears the cookie before any Redis access.
   - `OAuthService.handleGithubCallback`/`handleGoogleCallback`: 4-arg
     signatures forwarding cookieState.
   - `AuthController` callback handlers: extract `oauth_state_<provider>`
@@ -64,26 +65,30 @@ Append-only log of significant events. NOT a task state source of truth
 - Evidence:
   - `./mvnw test -B` → Tests run: 1791, Failures: 0, Errors: 0, Skipped: 4,
     BUILD SUCCESS at 2026-07-25T00:39:16+08:00.
+- Commit: 90c6a0965838aec1e7b14fcad29870b902489080 (fix(security))
+
+### Hash recording
+
+- Commit: 65cc4af6b chore(migration): record phase 0 commit hashes in TASKS.yaml
+- PUSH: NOT pushed. Per GitHub Write Gate, push requires explicit user
+  approval.
 
 ### Status snapshot
 
 - TASKS.yaml: 51 tasks, 3 done (P0-SCHEMA-001, P0-SCHEMA-002, P0-SEC-001)
+- Local commits: 4 (all atomic, by task or task group)
 - Coverage: 100%
-- Next ready queue:
-  1. P0-SEC-003 — WS validator unification, active/ban, fail-closed
-  2. P0-SEC-004 — Effective permission expiry
-  3. P0-SCHEMA-003 — migration-only table inventory
-  4. P0-SEC-002 — OAuth provider identity (depends on P0-SEC-001, now unblocked)
+- Working tree: clean
 
-### Process rule going forward
+### Process rules (sticky going forward)
 
 1. `in_progress` before any work on a task (via update_task.py)
 2. Real validation command output captured before flipping to `done`
 3. Evidence recorded via the script; never predict results
 4. No `edit SWAP`/`DEL` on TASKS.yaml — ever. All status changes via script.
-5. No `edit SWAP` on production code unless the entire hunk is exactly what
-   needs to change (recent near-miss with OAuthService losing the
-   OAuthClient token-exchange block).
+5. Commit + record hash in TASKS.yaml `commits:` field at the end of each
+   task or tight task group. Don't accumulate > 1 task uncommitted.
+6. No `git push` without explicit user approval (GitHub Write Gate).
 
 ### Next actions
 

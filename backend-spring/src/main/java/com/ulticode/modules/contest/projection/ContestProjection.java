@@ -90,6 +90,31 @@ public interface ContestProjection {
     ContestVO toVO(Contest contest, String userId);
 
     /**
+     * User-contest history: the contests a user has registered for, is
+     * currently running, or has finished, filtered by the supplied
+     * <code>type</code> token and projected through the same batched
+     * ContestVO path as the public catalog. Replaces the previous
+     * N+1 re-read loop in
+     * {@link com.ulticode.modules.contest.service.ContestParticipationServiceImpl#getUserContests(String, String)}
+     * that walked the user's participation rows and re-fetched each
+     * contest individually, then re-read the same participant inside
+     * the VO conversion.
+     *
+     * <p>Reads are pure: this method does not mutate contest state.
+     * The implementation loads each Contest row exactly once via
+     * {@code selectBatchIds} and reads each {@code ContestParticipant}
+     * row exactly once via {@code findByUserId}.
+     *
+     * @param userId the current user id (required)
+     * @param type   filter: {@code "registered"} for REGISTERED rows,
+     *               {@code "virtual"} for any virtual session,
+     *               anything else for FINISHED or STARTED real sessions
+     * @return the projected ContestVO list (empty when the user has no
+     *         matching participations)
+     */
+    java.util.List<ContestVO> findUserContests(String userId, String type);
+
+    /**
      * Get the problems for a contest, projected to {@link ContestProblemVO}.
      *
      * @param contestId the contest id

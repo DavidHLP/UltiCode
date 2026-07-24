@@ -52,6 +52,7 @@ class ContestParticipationServiceImplVirtualSessionTest {
     private Clock clock;
     private com.ulticode.modules.contest.clock.ContestClock contestClock;
     private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
+    private com.ulticode.modules.contest.projection.ContestProjection contestProjection;
     private ContestParticipationServiceImpl service;
 
     private static final String CONTEST_ID = "contest-finished-001";
@@ -67,11 +68,14 @@ class ContestParticipationServiceImplVirtualSessionTest {
         contestClock = mock(com.ulticode.modules.contest.clock.ContestClock.class);
         achievementTriggerService =
                 mock(com.ulticode.modules.achievement.service.AchievementTriggerService.class);
+        contestProjection =
+                mock(com.ulticode.modules.contest.projection.ContestProjection.class);
         lenient().when(clock.instant()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
         lenient().when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
         service = new ContestParticipationServiceImpl(
                 contestMapper, participantMapper, clock, new FixedUuidGenerator(),
-                contestClock, achievementTriggerService, participantTransitions);
+                contestClock, achievementTriggerService, participantTransitions,
+                contestProjection);
     }
 
     private ContestParticipant buildVirtualParticipant(String sessionId) {

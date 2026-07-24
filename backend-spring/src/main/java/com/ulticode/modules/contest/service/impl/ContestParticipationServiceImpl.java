@@ -65,6 +65,14 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
      * {@link ContestParticipantTransitions} for the full ownership contract.
      */
     private final ContestParticipantTransitions participantTransitions;
+    /**
+     * Read-side projection for the contest domain. Owns the
+     * user-contest history aggregation (batched Contest load via
+     * {@code selectBatchIds}) so this service stays a thin
+     * delegate for reads; the participation seam above still
+     * owns every write.
+     */
+    private final com.ulticode.modules.contest.projection.ContestProjection contestProjection;
 
     @Override
     @Transactional
@@ -175,25 +183,12 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
 
     @Override
     public List<ContestVO> getUserContests(String userId, String type) {
-        List<ContestParticipant> participants = participantMapper.findByUserId(userId);
-
-        List<ContestParticipant> filtered = participants.stream().filter(p -> {
-            String s = p.getStatus();
-            return switch (type) {
-                case "registered" -> ContestParticipantStatus.REGISTERED.wireValue().equals(s);
-                case "virtual" -> Boolean.TRUE.equals(p.getIsVirtual());
-                default -> ContestParticipantStatus.FINISHED.wireValue().equals(s) ||
-                        ContestParticipantStatus.STARTED.wireValue().equals(s);
-            };
-        }).collect(Collectors.toList());
-
-        return filtered.stream().map(p -> {
-            Contest contest = contestMapper.selectById(p.getContestId());
-            ContestVO vo = toContestVO(contest, userId);
-            vo.setUserRanking(p.getFinalRank());
-            vo.setUserScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
-            return vo;
-        }).collect(Collectors.toList());
+        // Read aggregation is owned by ContestProjection.findUserContests,
+        // which batch-loads the contests (1 query) instead of re-reading
+        // each row one at a time. The participation seam above still
+        // owns every write; this method stays a thin delegate so
+        // controllers and the existing tests don't change.
+        return contestProjection.findUserContests(userId, type);
     }
 
     @Override

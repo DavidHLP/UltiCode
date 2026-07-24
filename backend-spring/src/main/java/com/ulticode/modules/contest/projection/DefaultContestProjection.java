@@ -34,6 +34,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import java.util.List;
 import java.util.Map;
@@ -66,6 +70,81 @@ public class DefaultContestProjection implements ContestProjection {
     private final ProblemMapper problemMapper;
     private final RankingService rankingService;
     private final SubmissionProjection submissionProjection;
+
+    /**
+     * User-contest history: a single batched read of the user's
+     * ContestParticipant rows (one query), filtered in memory, then
+     * a single batched read of the matching Contest rows (one query),
+     * projected through the same {@link #toVOInternal} path as the
+     * public catalog so the user-history VO has the same shape and
+     * enrichment as the rest of the app.
+     *
+     * <p>Before this method existed the read lived inside
+     * {@code ContestParticipationServiceImpl.getUserContests} and
+     * issued <code>1 + 2N</code> queries: one to load the participant
+     * list, then a per-row {@code contestMapper.selectById} (N) plus
+     * a per-row {@code findByContestIdAndUserId} inside
+     * {@code toContestVO} (N) which re-read the same participant
+     * the caller already held. For a user with 100 participations
+     * the projection was 201 queries; this method collapses it to 2.
+     */
+    @Override
+    public java.util.List<ContestVO> findUserContests(String userId, String type) {
+        if (userId == null || userId.isBlank()) {
+            return java.util.Collections.emptyList();
+        }
+        // 1. Single participant-by-user read.
+        java.util.List<ContestParticipant> all = participantMapper.findByUserId(userId);
+        if (all == null || all.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // 2. Filter by status in memory (the type token is a small switch
+        //    that exactly matches the previous service-side filter, so
+        //    the projection is a drop-in replacement).
+        java.util.Set<String> contestIds = new HashSet<>();
+        java.util.Map<String, ContestParticipant> byContestId = new HashMap<>();
+        for (ContestParticipant p : all) {
+            String s = p.getStatus();
+            boolean keep = switch (type == null ? "" : type) {
+                case "registered" -> ContestParticipantStatus.REGISTERED.wireValue().equals(s);
+                case "virtual" -> Boolean.TRUE.equals(p.getIsVirtual());
+                default -> ContestParticipantStatus.FINISHED.wireValue().equals(s)
+                        || ContestParticipantStatus.STARTED.wireValue().equals(s);
+            };
+            if (keep && p.getContestId() != null) {
+                contestIds.add(p.getContestId());
+                byContestId.put(p.getContestId(), p);
+            }
+        }
+        if (contestIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // 3. Single batched contest read.
+        java.util.List<Contest> contests = contestMapper.selectBatchIds(contestIds);
+        if (contests == null || contests.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // 4. Project through the canonical toVO path, reusing the
+        //    participant we already loaded so the inner
+        //    findByContestIdAndUserId call is avoided.
+        java.util.List<ContestVO> result = new ArrayList<>(contests.size());
+        for (Contest contest : contests) {
+            if (contest == null) continue;
+            long problemCount = contestProblemMapper.countByContestId(contest.getId());
+            ContestParticipant participant = byContestId.get(contest.getId());
+            ContestVO vo = toVOInternal(contest, userId, problemCount, participant);
+            // Mirror the previous service behaviour: copy user rank/score
+            // from the participant row so the list is not stale.
+            if (participant != null) {
+                vo.setUserRanking(participant.getFinalRank());
+                if (participant.getTotalScore() != null) {
+                    vo.setUserScore(participant.getTotalScore().longValue());
+                }
+            }
+            result.add(vo);
+        }
+        return result;
+    }
 
     // ------------------------------------------------------------------
     // Entity accessors

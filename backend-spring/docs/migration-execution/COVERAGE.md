@@ -14,7 +14,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §7.1 WS validator unification, active/ban, fail-closed | P0-SEC-003 | pending |
 | §7.1 Effective permission expiry | P0-SEC-004 | pending |
 | §8.3 judge outbox/fence/stream cutover plan | P0-JUDGE-001 | pending |
-| §5 / Phase-0 Table owner manifest | P0-ARCH-001 | pending |
+| §5 / Phase-0 Table owner manifest ([TABLE_OWNERS.md](TABLE_OWNERS.md)) | P0-ARCH-001 | pending |
 | §10 / Phase-0 ArchUnit baseline | P0-ARCH-002 | pending |
 | Phase-0 gate | P0-GATE | pending |
 | §10 Reactor pom / multi-module skeleton | P1-INFRA-001 | pending |

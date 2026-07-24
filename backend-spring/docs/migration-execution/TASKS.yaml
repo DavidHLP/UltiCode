@@ -283,7 +283,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#5
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
-  status: pending
+  status: done
   depends_on: []
   acceptance_criteria:
   - docs/migration-execution/TABLE_OWNERS.md lists every active table with target Owner (Auth/Admin/App), access method (I/Q/C/E/R).
@@ -291,10 +291,18 @@
   validation:
   - File committed; no orphan tables.
   rollback: N/A
-  evidence: []
+  evidence:
+  - command: /tmp/p0arch001_evidence.txt
+    result: "TABLE_OWNERS.md created with 64 active tables and 12 migration-only tables\n  - Every active table listed with\
+      \ Target Owner (Auth/Admin/App)\n  - Access method (I/Q/C/E/R) per guide §5\n  - Cross-Owner Access Patterns section\
+      \ describes future RPC patterns\n  - Migration-only table inventory cross-referenced to ADR-MIG-INV\n\nCOVERAGE.md cross-reference\
+      \ added:\n  - \"§5 / Phase-0 Table owner manifest ([TABLE_OWNERS.md](TABLE_OWNERS.md))\"\n    line updated to link the\
+      \ manifest.\n\n./scripts/dev/test.sh quick at 2026-07-25T01:14:00+08:00: All quick checks passed\n\nNo orphan tables\
+      \ (verified via grep CREATE TABLE|create table against\ninit-db/migrations/V20260602_120000__Create_All_Tables.sql;\
+      \ full list\nmatches manifest)."
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-25T01:14:30+08:00'
 - id: P0-ARCH-002
   phase: 0
   area: ARCH

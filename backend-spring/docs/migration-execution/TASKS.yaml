@@ -200,7 +200,8 @@
       \ via JWT.\n  user_permissions is advisory (filtered for expiry but not enforced\n  via GrantedAuthority / PermissionEvaluator).\
       \ The Phase 0 filter is\n  the data-honesty fix; full enforcement is per-endpoint\n  @PreAuthorize wiring that lands\
       \ with Phase 2/3 as endpoints opt in."
-  commits: []
+  commits:
+  - 0e9c3494773f235ba2f918f6993b7cb8f766b212
   notes: user_permissions.expires_at column added; expiry filter not enforced in /auth/permissions.
   updated_at: '2026-07-25T00:52:00+08:00'
 - id: P0-JUDGE-001

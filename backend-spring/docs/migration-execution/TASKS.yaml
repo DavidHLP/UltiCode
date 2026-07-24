@@ -167,7 +167,8 @@
       \  ErrorCode:                        WEBSOCKET_USER_BANNED (150006),\n                                    WEBSOCKET_SESSION_MISSING\
       \ (150007)"
     note: WS validator unification + active/ban + fail-closed
-  commits: []
+  commits:
+  - 626e665a4755e0845072c2bd9d89f0953962dd86
   notes: Currently WS SEND/SUBSCRIBE only logs and returns when principal missing.
   updated_at: '2026-07-25T00:48:00+08:00'
 - id: P0-SEC-004

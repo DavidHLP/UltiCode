@@ -26,6 +26,100 @@ import { DitherEffect } from './DitherEffect';
 import {CustomFog} from "./CustomFog";
 
 
+// ----------------------------------------------------------------
+// Scene interface helpers (module scope)
+//
+// The deep Scene interface lives on the MainScene class below, but a
+// few pure utilities stay at module scope so the constructor, the
+// addMainModel layout helpers, and the seam's `setTheme` can share
+// the same shape without duplicating logic. Construction code below
+// is preserved byte-for-byte from HEAD; only the seam is additive.
+// ----------------------------------------------------------------
+
+/**
+ * @typedef {(
+ *   'scrollTo' | 'vision' | 'craft' | 'experience' | 'finalClaim' |
+ *   'aboutR' | 'agencyR' | 'clientsR' | 'recognitionR'
+ * )} SceneTextSection
+ */
+
+/**
+ * @typedef {('desert' | 'hand' | 'light')} SceneParticleSystem
+ */
+
+/**
+ * @typedef {Object} SceneTheme
+ * @property {string} clearColor
+ * @property {{ dark: string, light: string }} fog
+ * @property {{ colorA: string, colorB: string }} desert
+ * @property {{ colorA: string, colorB: string }} light
+ * @property {string} text
+ * @property {string} textStroke
+ * @property {string} mouse
+ */
+
+const setUniformColor = (uniform, color) => {
+    if (uniform) {
+        uniform.value.set(color);
+    }
+};
+
+/**
+ * Apply a theme to every subsystem owned by the Scene. Used by
+ * {@link MainScene#setTheme} so palette knowledge lives on the seam.
+ * Behaviour is byte-equivalent to the previous free `applySceneTheme`
+ * helper that lived in `theme.js`; it is now folded back into the
+ * Scene module so theme knowledge is single-sourced.
+ */
+function applyThemeToScene(scene, theme) {
+    if (!scene || !theme) return;
+
+    scene.renderer?.setClearColor(new THREE.Color(theme.clearColor), 0);
+
+    const fog = scene.fog;
+    if (fog) {
+        fog.params.colorDark = theme.fog.dark;
+        fog.params.colorLight = theme.fog.light;
+        [fog.frontMaterial, fog.backMaterial].forEach((material) => {
+            setUniformColor(material?.uniforms?.uColorDark, theme.fog.dark);
+            setUniformColor(material?.uniforms?.uColorLight, theme.fog.light);
+        });
+    }
+
+    const applyParticleColors = (particleSystem, colors) => {
+        const particles = particleSystem?.particles;
+        if (!particles) {
+            return;
+        }
+        particles.colorA = colors.colorA;
+        particles.colorB = colors.colorB;
+        setUniformColor(particles.material?.uniforms?.uColorA, colors.colorA);
+        setUniformColor(particles.material?.uniforms?.uColorB, colors.colorB);
+    };
+    applyParticleColors(scene.desert, theme.desert);
+    applyParticleColors(scene.light, theme.light);
+
+    const texts = [
+        scene.scrollTo,
+        scene.vision,
+        ...(scene.aboutR ?? []),
+        scene.craft,
+        ...(scene.agencyR ?? []),
+        ...(scene.clientsR ?? []),
+        scene.experience,
+        ...(scene.recognitionR ?? []),
+        scene.finalClaim,
+    ].filter(Boolean);
+    texts.forEach((text) => {
+        text.setColor?.(theme.text);
+        setUniformColor(text.material?.uniforms?.uStrokeColor, theme.textStroke);
+    });
+
+    setUniformColor(scene.mousePointer?.material?.uniforms?.uColor, theme.mouse);
+}
+
+export { setUniformColor, applyThemeToScene };
+
 export class MainScene {
 
     constructor(options){
@@ -1331,15 +1425,234 @@ export class MainScene {
 
 
         fBloom.close();
+    }
 
+    // ----------------------------------------------------------------
+    // Deep Scene interface — every public orchestrator crosses the
+    // seam through these methods instead of poking the Three.js
+    // object graph. The fields above remain exposed for legacy code
+    // paths and internal subsystems, but the interface is the
+    // contract the orchestrator uses.
+    // ----------------------------------------------------------------
 
+    /**
+     * Resolve a named text section to the underlying MSDFText
+     * instance(s). Returns an empty array for unknown names so
+     * callers can defensively iterate without crashing the renderer.
+     * @param {SceneTextSection} section
+     * @returns {Array<any>}
+     */
+    getTextSection(section) {
+        switch (section) {
+            case 'scrollTo':
+                return this.scrollTo ? [this.scrollTo] : [];
+            case 'vision':
+                return this.vision ? [this.vision] : [];
+            case 'craft':
+                return this.craft ? [this.craft] : [];
+            case 'experience':
+                return this.experience ? [this.experience] : [];
+            case 'finalClaim':
+                return this.finalClaim ? [this.finalClaim] : [];
+            case 'aboutR':
+                return this.aboutR ?? [];
+            case 'agencyR':
+                return this.agencyR ?? [];
+            case 'clientsR':
+                return this.clientsR ?? [];
+            case 'recognitionR':
+                return this.recognitionR ?? [];
+            default:
+                return [];
+        }
+    }
 
+    /**
+     * Activate a named text section. The orchestrator never touches
+     * `MSDFText.active` directly.
+     * @param {SceneTextSection} section
+     * @param {number} active
+     */
+    setTextSectionActive(section, active) {
+        this.getTextSection(section).forEach((t) => t.setActive(active));
+    }
 
+    /**
+     * Reveal animation hook for a named text section. The
+     * orchestrator never touches `MSDFText.revealProgress` directly.
+     * @param {SceneTextSection} section
+     * @param {number} progress
+     */
+    setTextSectionReveal(section, progress) {
+        this.getTextSection(section).forEach((t) => t.setRevealProgress(progress));
+    }
 
+    /**
+     * Reset every text section to the hidden state. Used by the
+     * seamless loop reset to roll back every reveal animation
+     * atomically.
+     */
+    resetAllTextSections() {
+        const sections = [
+            'scrollTo', 'vision', 'craft', 'experience', 'finalClaim',
+            'aboutR', 'agencyR', 'clientsR', 'recognitionR',
+        ];
+        sections.forEach((section) => {
+            this.getTextSection(section).forEach((t) => {
+                t.setActive(0);
+                t.setRevealProgress(0);
+            });
+        });
+    }
 
+    /**
+     * Set the activation flag on a particle system. The orchestrator
+     * never pokes `ParticlesModel.active` directly.
+     * @param {SceneParticleSystem} name
+     * @param {number} active
+     */
+    setParticleActive(name, active) {
+        const system = this[name];
+        if (system && typeof system.setActive === 'function') {
+            system.setActive(active);
+        }
+    }
 
+    /**
+     * Drive a named particle uniform. Common usage: scroll-driven
+     * uProgress, uDesertMax, uDesertMin, uSplitProgress,
+     * uBlackHoleProgress, light uniforms.
+     * @param {SceneParticleSystem} name
+     * @param {string} uniformName
+     * @param {number|{x?:number,y?:number,z?:number}} value
+     */
+    setParticleUniform(name, uniformName, value) {
+        const system = this[name];
+        const uniform = system?.particles?.material?.uniforms?.[uniformName];
+        if (!uniform) return;
+        if (typeof value === 'number') {
+            uniform.value = value;
+        } else {
+            const target = uniform.value;
+            if (value.x !== undefined) target.x = value.x;
+            if (value.y !== undefined) target.y = value.y;
+            if (value.z !== undefined) target.z = value.z;
+        }
+    }
 
+    /**
+     * Award gallery hooks. Concentrate awards state mutations in the
+     * seam so the orchestrator never reaches into `awards.active` or
+     * `awards.group` directly.
+     * @param {number} active
+     */
+    setAwardsActive(active) {
+        this.awards?.setActive?.(active);
+    }
 
+    /**
+     * @param {number} opacity
+     */
+    setAwardsGroupOpacity(opacity) {
+        this.awards?.setGroupOpacity?.(opacity);
+    }
 
+    /**
+     * @param {number} value
+     */
+    setAwardsProgress(value) {
+        if (this.awards?.progressState) {
+            this.awards.progressState.value = value;
+        }
+    }
+
+    /**
+     * Move the awards + desert planes along the experience depth cue.
+     * Replaces the orchestrator's direct `points.position` writes.
+     * @param {'desert'|'awards'} section
+     * @param {{z:number}} position
+     */
+    setSectionDepth(section, position) {
+        if (section === 'desert') {
+            const points = this.desert?.particles?.points;
+            if (points && position.z !== undefined) points.position.z = position.z;
+            return;
+        }
+        if (section === 'awards') {
+            const group = this.awards?.group;
+            if (group && position.z !== undefined) group.position.z = position.z;
+        }
+    }
+
+    /**
+     * Camera path helpers. Replaces the orchestrator's direct
+     * `cameraYaw.position` writes during camera flight and orbit.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     */
+    setCameraPosition(x, y, z) {
+        if (this.cameraYaw) this.cameraYaw.position.set(x, y, z);
+    }
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     */
+    setCameraTarget(x, y, z) {
+        if (this.cameraTarget) this.cameraTarget.position.set(x, y, z);
+    }
+
+    /**
+     * Move the camera yaw along the constructor-defined path to a
+     * given point index. Replaces direct `scene.path[N].x/.y/.z` reads.
+     * @param {number} index
+     */
+    setCameraPathPoint(index) {
+        const target = this.path?.[index];
+        if (!target || !this.cameraYaw) return;
+        this.cameraYaw.position.set(target.x, target.y, target.z);
+    }
+
+    /**
+     * Light pillar rotation cue. Replaces the orchestrator's direct
+     * `light.particles.points.rotation.z` writes.
+     * @param {number} radians
+     */
+    setLightPillarRotationZ(radians) {
+        const points = this.light?.particles?.points;
+        if (points) points.rotation.z = radians;
+    }
+
+    /**
+     * Desert plane rotation cue. Replaces direct
+     * `desert.particles.points.rotation` writes.
+     * @param {{z?:number,y?:number}} rotation
+     */
+    setDesertRotation(rotation) {
+        const points = this.desert?.particles?.points;
+        if (!points) return;
+        if (rotation.z !== undefined) points.rotation.z = rotation.z;
+        if (rotation.y !== undefined) points.rotation.y = rotation.y;
+    }
+
+    /**
+     * Mouse pointer size setter. Replaces the orchestrator's direct
+     * `mousePointer.params.size` writes.
+     * @param {number} size
+     */
+    setMousePointerSize(size) {
+        this.mousePointer?.setSize?.(size);
+    }
+
+    /**
+     * Apply the supplied theme to every subsystem. Replaces the
+     * legacy `applySceneTheme(scene, theme)` helper from theme.js so
+     * palette knowledge lives behind one seam.
+     * @param {SceneTheme} theme
+     */
+    setTheme(theme) {
+        applyThemeToScene(this, theme);
     }
 }

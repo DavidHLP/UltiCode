@@ -10,7 +10,7 @@ import {
 } from './Utils.js'
 import {ScrollTrigger} from "gsap/ScrollTrigger";
 import { ASSETS } from "./config.js";
-import { getLandingTheme, applySceneTheme } from "./theme.js";
+import { getLandingTheme } from "./theme.js";
 import { i18n } from "../../../i18n";
 
 // Vue 入口:初始化整个落地页体验,返回销毁函数
@@ -42,7 +42,7 @@ let sceneThemeSync = null;
 const handleThemeChange = () => {
     currentTheme = getLandingTheme();
     if (scene) {
-        applySceneTheme(scene, currentTheme);
+        scene.setTheme(currentTheme);
         sceneThemeSync?.();
     }
 };
@@ -124,7 +124,18 @@ const initMainScene = () => {
         dom : document.querySelector('.canvas'),
         resources : resources,
     });
-    applySceneTheme(scene, currentTheme);
+    scene.setTheme(currentTheme);
+
+    // ----------------------------------------------------------------
+    // The orchestrator below drives the Scene entirely through the
+    // deep Scene interface (setTextSection{Active,Reveal} /
+    // setParticleActive / setParticleUniform / setCameraPosition /
+    // setAwardsActive / setSectionDepth / setMousePointerSize /
+    // resetAllTextSections / setTheme). Direct reads of state
+    // (e.g. `scene.path[N].x`, `scene.mousePointer.params.size`) still
+    // hit the underlying object because they are read-only state
+    // that is part of the public subsystem interface.
+    // ----------------------------------------------------------------
 
     const siteAudio = (() => {
         const trackDefinitions = {
@@ -328,7 +339,7 @@ const initMainScene = () => {
                 ease: "power2.out",
                 overwrite: true,
                 onUpdate: () => {
-                    scene.mousePointer.setSize(scene.mousePointer.params.size);
+                    scene.setMousePointerSize(scene.mousePointer.params.size);
                 }
             });
         };
@@ -389,7 +400,7 @@ const initMainScene = () => {
         duration: .25,
         overwrite: true,
         onUpdate:()=>{
-            scene.scrollTo.setRevealProgress(scene.scrollTo.revealProgress)
+            scene.setTextSectionReveal('scrollTo', scene.scrollTo.revealProgress)
         }
     },'start')
         /*
@@ -424,14 +435,14 @@ const initMainScene = () => {
         active: 1,
         duration: 0.01,
         onUpdate: () => {
-            scene.hand.setActive(scene.hand.active)
+            scene.setParticleActive('hand', scene.hand.active)
         }
     })
     .to(scene.light,{
         active: 1,
         duration: 0.01,
         onUpdate: () => {
-            scene.light.setActive(scene.light.active)
+            scene.setParticleActive('light', scene.light.active)
         }
     },'<')
 
@@ -448,7 +459,7 @@ const initMainScene = () => {
     .to(scene.scrollTo,{
         active:0,
         onUpdate:()=>{
-            scene.scrollTo.setActive(scene.scrollTo.active)
+            scene.setTextSectionActive('scrollTo', scene.scrollTo.active)
         }
     },'start')
     .to(scene.desert.particles.material.uniforms.uDesertMax.value,{
@@ -460,7 +471,7 @@ const initMainScene = () => {
     .to(scene.vision,{
         revealProgress: 1,
         onUpdate:()=>{
-            scene.vision.setRevealProgress(scene.vision.revealProgress)
+            scene.setTextSectionReveal('vision', scene.vision.revealProgress)
         }
     },'start')
     .add('out')
@@ -468,7 +479,7 @@ const initMainScene = () => {
             revealProgress: 2,
             delay: .125,
             onUpdate:()=>{
-                scene.vision.setRevealProgress(scene.vision.revealProgress)
+                scene.setTextSectionReveal('vision', scene.vision.revealProgress)
             }
         },'out')
         .to(scene.cameraYaw.position,{
@@ -479,37 +490,37 @@ const initMainScene = () => {
         .to(scene.aboutR[0],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[0].setActive(scene.aboutR[0].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[0].active)
             }
         },'out')
         .to(scene.aboutR[1],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[1].setActive(scene.aboutR[1].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[1].active)
             }
         },'out')
         .to(scene.aboutR[2],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[2].setActive(scene.aboutR[2].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[2].active)
             }
         },'out')
         .to(scene.aboutR[3],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[3].setActive(scene.aboutR[3].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[3].active)
             }
         },'out')
         .to(scene.aboutR[4],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[4].setActive(scene.aboutR[4].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[4].active)
             }
         },'out')
         .to(scene.aboutR[5],{
             active:1,
             onUpdate:()=>{
-                scene.aboutR[5].setActive(scene.aboutR[5].active)
+                scene.setTextSectionActive('aboutR', scene.aboutR[5].active)
             }
         },'out')
 
@@ -549,43 +560,43 @@ const initMainScene = () => {
     .to(scene.vision,{
         active:0,
         onUpdate:()=>{
-            scene.vision.setActive(scene.vision.active)
+            scene.setTextSectionActive('vision', scene.vision.active)
         }
     },'start')
     .to(aboutRow1,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[0].setRevealProgress(aboutRow1.val)
+            scene.setTextSectionReveal('aboutR', aboutRow1.val)
         }
     })
     .to(aboutRow2,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[1].setRevealProgress(aboutRow2.val)
+            scene.setTextSectionReveal('aboutR', aboutRow2.val)
         }
     })
     .to(aboutRow3,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[2].setRevealProgress(aboutRow3.val)
+            scene.setTextSectionReveal('aboutR', aboutRow3.val)
         }
     })
     .to(aboutRow4,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[3].setRevealProgress(aboutRow4.val)
+            scene.setTextSectionReveal('aboutR', aboutRow4.val)
         }
     })
     .to(aboutRow5,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[4].setRevealProgress(aboutRow5.val)
+            scene.setTextSectionReveal('aboutR', aboutRow5.val)
         }
     })
     .to(aboutRow6,{
         val: 1,
         onUpdate: ()=> {
-            scene.aboutR[5].setRevealProgress(aboutRow6.val)
+            scene.setTextSectionReveal('aboutR', aboutRow6.val)
         }
     })
         .to({},{
@@ -595,37 +606,37 @@ const initMainScene = () => {
     .to(aboutRow1,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[0].setRevealProgress(aboutRow1.val)
+            scene.setTextSectionReveal('aboutR', aboutRow1.val)
         }
     },'out')
     .to(aboutRow2,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[1].setRevealProgress(aboutRow2.val)
+            scene.setTextSectionReveal('aboutR', aboutRow2.val)
         }
     },'out+=0.125')
     .to(aboutRow3,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[2].setRevealProgress(aboutRow3.val)
+            scene.setTextSectionReveal('aboutR', aboutRow3.val)
         }
     },'out+=0.25')
     .to(aboutRow4,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[3].setRevealProgress(aboutRow4.val)
+            scene.setTextSectionReveal('aboutR', aboutRow4.val)
         }
     },'out+=0.375')
     .to(aboutRow5,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[4].setRevealProgress(aboutRow5.val)
+            scene.setTextSectionReveal('aboutR', aboutRow5.val)
         }
     },'out+=0.5')
     .to(aboutRow6,{
         val: 2,
         onUpdate: ()=> {
-            scene.aboutR[5].setRevealProgress(aboutRow6.val)
+            scene.setTextSectionReveal('aboutR', aboutRow6.val)
         }
     },'out+=0.625')
 
@@ -641,43 +652,43 @@ const initMainScene = () => {
     .to(scene.aboutR[0],{
         active:0,
         onUpdate:()=>{
-            scene.aboutR[0].setActive(scene.aboutR[0].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[0].active)
         }
     },'start')
     .to(scene.aboutR[1],{
         active:0,
         onUpdate:()=>{
-            scene.aboutR[1].setActive(scene.aboutR[1].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[1].active)
         }
     },'start')
     .to(scene.aboutR[2],{
         active:0,
         onUpdate:()=>{
-            scene.aboutR[2].setActive(scene.aboutR[2].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[2].active)
         }
     },'start')
     .to(scene.aboutR[3],{
         active:0,
         onUpdate:()=>{
-            scene.aboutR[3].setActive(scene.aboutR[3].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[3].active)
         }
     },'start')
     .to(scene.aboutR[4],{
         active:0,
         onUpdate:()=>{
-            scene.aboutR[4].setActive(scene.aboutR[4].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[4].active)
         }
     },'start')
     .to(scene.aboutR[5],{
         active:1,
         onUpdate:()=>{
-            scene.aboutR[5].setActive(scene.aboutR[5].active)
+            scene.setTextSectionActive('aboutR', scene.aboutR[5].active)
         }
     },'start')
     .to(scene.craft,{
         active:1,
         onUpdate:()=>{
-            scene.craft.setActive(scene.craft.active)
+            scene.setTextSectionActive('craft', scene.craft.active)
         }
     },'start')
     .to(cameraOrbitState,{
@@ -698,7 +709,7 @@ const initMainScene = () => {
                 siteAudio.crossfadeTo('craft');
             }
 
-            scene.craft.setRevealProgress(scene.craft.revealProgress)
+            scene.setTextSectionReveal('craft', scene.craft.revealProgress)
         }
     })
 
@@ -753,7 +764,7 @@ const initMainScene = () => {
         delay: .1,
         duration: .4,
         onUpdate:()=>{
-            scene.craft.setRevealProgress(scene.craft.revealProgress)
+            scene.setTextSectionReveal('craft', scene.craft.revealProgress)
         }
     },'start')
     .to(scene.hand.particles.material.uniforms.uProgress,{
@@ -774,147 +785,147 @@ const initMainScene = () => {
         .to(scene.agencyR[0],{
             active:1,
             onUpdate:()=>{
-                scene.agencyR[0].setActive(scene.agencyR[0].active)
+                scene.setTextSectionActive('agencyR', scene.agencyR[0].active)
             }
         },'revealAgency')
         .to(scene.agencyR[1],{
             active:1,
             onUpdate:()=>{
-                scene.agencyR[1].setActive(scene.agencyR[1].active)
+                scene.setTextSectionActive('agencyR', scene.agencyR[1].active)
             }
         },'revealAgency')
         .to(scene.agencyR[2],{
             active:1,
             onUpdate:()=>{
-                scene.agencyR[2].setActive(scene.agencyR[2].active)
+                scene.setTextSectionActive('agencyR', scene.agencyR[2].active)
             }
         },'revealAgency')
         .to(scene.agencyR[3],{
             active:1,
             onUpdate:()=>{
-                scene.agencyR[3].setActive(scene.agencyR[3].active)
+                scene.setTextSectionActive('agencyR', scene.agencyR[3].active)
             }
         },'revealAgency')
         .to(agencyRow1,{
             val: 1,
             onUpdate: ()=> {
 
-                scene.agencyR[0].setRevealProgress(agencyRow1.val)
+                scene.setTextSectionReveal('agencyR', agencyRow1.val)
             }
         },'revealAgency')
         .to(agencyRow2,{
             val: 1,
             onUpdate: ()=> {
-                scene.agencyR[1].setRevealProgress(agencyRow2.val)
+                scene.setTextSectionReveal('agencyR', agencyRow2.val)
             }
         })
         .to(agencyRow3,{
             val: 1,
             onUpdate: ()=> {
-                scene.agencyR[2].setRevealProgress(agencyRow3.val)
+                scene.setTextSectionReveal('agencyR', agencyRow3.val)
             }
         })
         .to(agencyRow4,{
             val: 1,
             onUpdate: ()=> {
-                scene.agencyR[3].setRevealProgress(agencyRow4.val)
+                scene.setTextSectionReveal('agencyR', agencyRow4.val)
             }
         })
         .add('clients')
         .to(scene.clientsR[0],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[0].setActive(scene.clientsR[0].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[0].active)
             }
         },'clients')
         .to(scene.clientsR[1],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[1].setActive(scene.clientsR[1].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[1].active)
             }
         },'clients')
         .to(scene.clientsR[2],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[2].setActive(scene.clientsR[2].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[2].active)
             }
         },'clients')
         .to(scene.clientsR[3],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[3].setActive(scene.clientsR[3].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[3].active)
             }
         },'clients')
         .to(scene.clientsR[4],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[4].setActive(scene.clientsR[4].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[4].active)
             }
         },'clients')
         .to(scene.clientsR[5],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[5].setActive(scene.clientsR[5].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[5].active)
             }
         },'clients')
         .to(scene.clientsR[6],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[6].setActive(scene.clientsR[6].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[6].active)
             }
         },'clients')
         .to(scene.clientsR[7],{
             active:1,
             onUpdate:()=>{
-                scene.clientsR[7].setActive(scene.clientsR[7].active)
+                scene.setTextSectionActive('clientsR', scene.clientsR[7].active)
             }
         },'clients')
         .to(clientRow1,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[0].setRevealProgress(clientRow1.val)
+                scene.setTextSectionReveal('clientsR', clientRow1.val)
             }
         },'clients')
         .to(clientRow2,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[1].setRevealProgress(clientRow2.val)
+                scene.setTextSectionReveal('clientsR', clientRow2.val)
             }
         })
         .to(clientRow3,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[2].setRevealProgress(clientRow3.val)
+                scene.setTextSectionReveal('clientsR', clientRow3.val)
             }
         })
         .to(clientRow4,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[3].setRevealProgress(clientRow4.val)
+                scene.setTextSectionReveal('clientsR', clientRow4.val)
             }
         })
         .to(clientRow5,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[4].setRevealProgress(clientRow5.val)
+                scene.setTextSectionReveal('clientsR', clientRow5.val)
             }
         })
         .to(clientRow6,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[5].setRevealProgress(clientRow6.val)
+                scene.setTextSectionReveal('clientsR', clientRow6.val)
             }
         })
         .to(clientRow7,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[6].setRevealProgress(clientRow7.val)
+                scene.setTextSectionReveal('clientsR', clientRow7.val)
             }
         })
         .to(clientRow8,{
             val: 1,
             onUpdate: ()=> {
-                scene.clientsR[7].setRevealProgress(clientRow8.val)
+                scene.setTextSectionReveal('clientsR', clientRow8.val)
             }
         })
         .to({},{
@@ -925,73 +936,73 @@ const initMainScene = () => {
         .to(agencyRow1,{
             val: 2,
             onUpdate: ()=> {
-                scene.agencyR[0].setRevealProgress(agencyRow1.val)
+                scene.setTextSectionReveal('agencyR', agencyRow1.val)
             }
         },'outAgency')
         .to(agencyRow2,{
             val: 2,
             onUpdate: ()=> {
-                scene.agencyR[1].setRevealProgress(agencyRow2.val)
+                scene.setTextSectionReveal('agencyR', agencyRow2.val)
             }
         },'outAgency')
         .to(agencyRow3,{
             val: 2,
             onUpdate: ()=> {
-                scene.agencyR[2].setRevealProgress(agencyRow3.val)
+                scene.setTextSectionReveal('agencyR', agencyRow3.val)
             }
         },'outAgency')
         .to(agencyRow4,{
             val: 2,
             onUpdate: ()=> {
-                scene.agencyR[3].setRevealProgress(agencyRow4.val)
+                scene.setTextSectionReveal('agencyR', agencyRow4.val)
             }
         },'outAgency')
         .to(clientRow1,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[0].setRevealProgress(clientRow1.val)
+                scene.setTextSectionReveal('clientsR', clientRow1.val)
             }
         },'outClients')
         .to(clientRow2,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[1].setRevealProgress(clientRow2.val)
+                scene.setTextSectionReveal('clientsR', clientRow2.val)
             }
         },'outClients')
         .to(clientRow3,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[2].setRevealProgress(clientRow3.val)
+                scene.setTextSectionReveal('clientsR', clientRow3.val)
             }
         },'outClients')
         .to(clientRow4,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[3].setRevealProgress(clientRow4.val)
+                scene.setTextSectionReveal('clientsR', clientRow4.val)
             }
         },'outClients')
         .to(clientRow5,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[4].setRevealProgress(clientRow5.val)
+                scene.setTextSectionReveal('clientsR', clientRow5.val)
             }
         },'outClients')
         .to(clientRow6,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[5].setRevealProgress(clientRow6.val)
+                scene.setTextSectionReveal('clientsR', clientRow6.val)
             }
         },'outClients')
         .to(clientRow7,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[6].setRevealProgress(clientRow7.val)
+                scene.setTextSectionReveal('clientsR', clientRow7.val)
             }
         },'outClients')
         .to(clientRow8,{
             val: 2,
             onUpdate: ()=> {
-                scene.clientsR[7].setRevealProgress(clientRow8.val)
+                scene.setTextSectionReveal('clientsR', clientRow8.val)
             }
         },'outClients')
 
@@ -1074,31 +1085,31 @@ const initMainScene = () => {
     .to(scene.experience,{
         active:1,
         onUpdate:()=>{
-            scene.experience.setActive(scene.experience.active)
+            scene.setTextSectionActive('experience', scene.experience.active)
         }
     },'start')
     .to(scene.recognitionR[0],{
         active:1,
         onUpdate:()=>{
-            scene.recognitionR[0].setActive(scene.recognitionR[0].active)
+            scene.setTextSectionActive('recognitionR', scene.recognitionR[0].active)
         }
     },'start')
     .to(scene.recognitionR[1],{
         active:1,
         onUpdate:()=>{
-            scene.recognitionR[1].setActive(scene.recognitionR[1].active)
+            scene.setTextSectionActive('recognitionR', scene.recognitionR[1].active)
         }
     },'start')
     .to(scene.recognitionR[2],{
         active:1,
         onUpdate:()=>{
-            scene.recognitionR[2].setActive(scene.recognitionR[2].active)
+            scene.setTextSectionActive('recognitionR', scene.recognitionR[2].active)
         }
     },'start')
     .to(scene.recognitionR[3],{
         active:1,
         onUpdate:()=>{
-            scene.recognitionR[3].setActive(scene.recognitionR[3].active)
+            scene.setTextSectionActive('recognitionR', scene.recognitionR[3].active)
         }
     },'start')
 
@@ -1116,14 +1127,14 @@ const initMainScene = () => {
                 active: 0,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.hand.setActive(scene.hand.active)
+                    scene.setParticleActive('hand', scene.hand.active)
                 }
             },'start')
             .to(scene.light,{
                 active: 0,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.light.setActive(scene.light.active)
+                    scene.setParticleActive('light', scene.light.active)
                 }
             },'start')
             .to(scene.experience,{
@@ -1133,7 +1144,7 @@ const initMainScene = () => {
                         siteAudio.crossfadeTo('experience');
                     }
 
-                    scene.experience.setRevealProgress(scene.experience.revealProgress)
+                    scene.setTextSectionReveal('experience', scene.experience.revealProgress)
                 }
             },'start')
             .to({},{
@@ -1143,7 +1154,7 @@ const initMainScene = () => {
                 revealProgress: 2,
                 duration: 1,
                 onUpdate:()=>{
-                    scene.experience.setRevealProgress(scene.experience.revealProgress)
+                    scene.setTextSectionReveal('experience', scene.experience.revealProgress)
                 }
             })
             .to({},{
@@ -1153,25 +1164,25 @@ const initMainScene = () => {
             .to(recognitionRow1,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[0].setRevealProgress(recognitionRow1.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
                 }
             },'afterexp+=0.1')
             .to(recognitionRow2,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[1].setRevealProgress(recognitionRow2.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
                 }
             },'afterexp+=0.175')
             .to(recognitionRow3,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[2].setRevealProgress(recognitionRow3.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
                 }
             },'afterexp+=0.25')
             .to(recognitionRow4,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[3].setRevealProgress(recognitionRow4.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
                 }
             },'afterexp+=0.325')
 
@@ -1179,13 +1190,13 @@ const initMainScene = () => {
                 active: 1,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.awards.setActive(scene.awards.active)
+                    scene.setAwardsActive(scene.awards.active)
                 }
             },'afterexp-=0.15')
             .to(awop,{
                 val:1,
                 onUpdate : () => {
-                    scene.awards.setGroupOpacity(awop.val)
+                    scene.setAwardsGroupOpacity(awop.val)
                 }
 
             },'afterexp')
@@ -1197,28 +1208,28 @@ const initMainScene = () => {
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[0].setRevealProgress(recognitionRow1.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
                 }
             },'aw')
             .to(recognitionRow2,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[1].setRevealProgress(recognitionRow2.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow3,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[2].setRevealProgress(recognitionRow3.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
                 }
             },'aw+=0.1')
             .to(recognitionRow4,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[3].setRevealProgress(recognitionRow4.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
                 }
             },'aw+=0.15')
             .to(scene.awards.progressState,{
@@ -1240,14 +1251,14 @@ const initMainScene = () => {
                 active: 0,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.hand.setActive(scene.hand.active)
+                    scene.setParticleActive('hand', scene.hand.active)
                 }
             },'start')
             .to(scene.light,{
                 active: 0,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.light.setActive(scene.light.active)
+                    scene.setParticleActive('light', scene.light.active)
                 }
             },'start')
             .to(scene.experience,{
@@ -1257,39 +1268,39 @@ const initMainScene = () => {
                         siteAudio.crossfadeTo('experience');
                     }
 
-                    scene.experience.setRevealProgress(scene.experience.revealProgress)
+                    scene.setTextSectionReveal('experience', scene.experience.revealProgress)
                 }
             },'start')
             .to(scene.experience,{
                 revealProgress: 2,
                 duration: 1,
                 onUpdate:()=>{
-                    scene.experience.setRevealProgress(scene.experience.revealProgress)
+                    scene.setTextSectionReveal('experience', scene.experience.revealProgress)
                 }
             })
 
             .to(recognitionRow1,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[0].setRevealProgress(recognitionRow1.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
                 }
             })
             .to(recognitionRow2,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[1].setRevealProgress(recognitionRow2.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
                 }
             })
             .to(recognitionRow3,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[2].setRevealProgress(recognitionRow3.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
                 }
             })
             .to(recognitionRow4,{
                 val: 1,
                 onUpdate: ()=> {
-                    scene.recognitionR[3].setRevealProgress(recognitionRow4.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
                 }
             })
             .to({},{
@@ -1300,13 +1311,13 @@ const initMainScene = () => {
                 active: 1,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.awards.setActive(scene.awards.active)
+                    scene.setAwardsActive(scene.awards.active)
                 }
             },'aw+=0.65')
             .to(awop,{
                 val:1,
                 onUpdate : () => {
-                    scene.awards.setGroupOpacity(awop.val)
+                    scene.setAwardsGroupOpacity(awop.val)
                 }
 
             },'aw+=0.8')
@@ -1314,28 +1325,28 @@ const initMainScene = () => {
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[0].setRevealProgress(recognitionRow1.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow1.val)
                 }
             },'aw')
             .to(recognitionRow2,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[1].setRevealProgress(recognitionRow2.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow2.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow3,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[2].setRevealProgress(recognitionRow3.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow3.val)
                 }
             },'aw+=0.05')
             .to(recognitionRow4,{
                 val: 2,
                 duration: 0.5,
                 onUpdate: ()=> {
-                    scene.recognitionR[3].setRevealProgress(recognitionRow4.val)
+                    scene.setTextSectionReveal('recognitionR', recognitionRow4.val)
                 }
             },'aw+=0.05')
             .to({},{
@@ -1416,21 +1427,21 @@ const initMainScene = () => {
                 active: 1,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.finalClaim.setActive(scene.finalClaim.active)
+                    scene.setTextSectionActive('finalClaim', scene.finalClaim.active)
                 }
             },'start+=0.22')
             .to(scene.finalClaim,{
                 revealProgress: 1,
                 duration: 0.7,
                 onUpdate:()=>{
-                    scene.finalClaim.setRevealProgress(scene.finalClaim.revealProgress)
+                    scene.setTextSectionReveal('finalClaim', scene.finalClaim.revealProgress)
                 }
             },'start+=0.26')
             .to(scene.finalClaim,{
                 revealProgress: 2,
                 duration: 0.55,
                 onUpdate:()=>{
-                    scene.finalClaim.setRevealProgress(scene.finalClaim.revealProgress)
+                    scene.setTextSectionReveal('finalClaim', scene.finalClaim.revealProgress)
                 }
             },'start+=2.2')
 
@@ -1452,21 +1463,21 @@ const initMainScene = () => {
                 active: 1,
                 duration: 0.05,
                 onUpdate: () => {
-                    scene.finalClaim.setActive(scene.finalClaim.active)
+                    scene.setTextSectionActive('finalClaim', scene.finalClaim.active)
                 }
             },'start+=0.22')
             .to(scene.finalClaim,{
                 revealProgress: 1,
                 duration: 0.7,
                 onUpdate:()=>{
-                    scene.finalClaim.setRevealProgress(scene.finalClaim.revealProgress)
+                    scene.setTextSectionReveal('finalClaim', scene.finalClaim.revealProgress)
                 }
             },'start+=0.26')
             .to(scene.finalClaim,{
                 revealProgress: 2,
                 duration: 0.55,
                 onUpdate:()=>{
-                    scene.finalClaim.setRevealProgress(scene.finalClaim.revealProgress)
+                    scene.setTextSectionReveal('finalClaim', scene.finalClaim.revealProgress)
                 }
             },'start+=2.2')
 
@@ -1812,13 +1823,11 @@ const initMainScene = () => {
             }
         })
 
-        gsap.to(scene.scrollTo,{
-            revealProgress: 1,
+        gsap.to({ reveal: 0 },{
+            reveal: 1,
             duration: 2,
             delay: .5,
-            onUpdate:()=>{
-                scene.scrollTo.setRevealProgress(scene.scrollTo.revealProgress)
-            },
+            onUpdate:()=> scene.setTextSectionReveal('scrollTo', gsap.getProperty(arguments[0], 'reveal')),
             onComplete: ()=> {
                 lenis.start()
             }

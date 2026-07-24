@@ -57,59 +57,7 @@ export function getLandingTheme() {
     return LANDING_THEMES[getLandingThemeName()];
 }
 
-const setUniformColor = (uniform, color) => {
-    if (uniform) {
-        uniform.value.set(color);
-    }
-};
-
-// 将调色板应用到已构建的 MainScene:雾、两组粒子、MSDF 文字、鼠标拖尾。
-// 场景尚未初始化(resources 未加载完)时由 main.js 在创建后补调一次。
-export function applySceneTheme(scene, theme) {
-    if (!scene) {
-        return;
-    }
-
-    scene.renderer?.setClearColor(new THREE.Color(theme.clearColor), 0);
-
-    const fog = scene.fog;
-    if (fog) {
-        fog.params.colorDark = theme.fog.dark;
-        fog.params.colorLight = theme.fog.light;
-        [fog.frontMaterial, fog.backMaterial].forEach((material) => {
-            setUniformColor(material?.uniforms?.uColorDark, theme.fog.dark);
-            setUniformColor(material?.uniforms?.uColorLight, theme.fog.light);
-        });
-    }
-
-    const applyParticleColors = (particleSystem, colors) => {
-        const particles = particleSystem?.particles;
-        if (!particles) {
-            return;
-        }
-        particles.colorA = colors.colorA;
-        particles.colorB = colors.colorB;
-        setUniformColor(particles.material?.uniforms?.uColorA, colors.colorA);
-        setUniformColor(particles.material?.uniforms?.uColorB, colors.colorB);
-    };
-    applyParticleColors(scene.desert, theme.desert);
-    applyParticleColors(scene.light, theme.light);
-
-    const texts = [
-        scene.scrollTo,
-        scene.vision,
-        ...(scene.aboutR ?? []),
-        scene.craft,
-        ...(scene.agencyR ?? []),
-        ...(scene.clientsR ?? []),
-        scene.experience,
-        ...(scene.recognitionR ?? []),
-        scene.finalClaim,
-    ].filter(Boolean);
-    texts.forEach((text) => {
-        text.setColor?.(theme.text);
-        setUniformColor(text.material?.uniforms?.uStrokeColor, theme.textStroke);
-    });
-
-    setUniformColor(scene.mousePointer?.material?.uniforms?.uColor, theme.mouse);
-}
+// `applySceneTheme` was folded into `MainScene.setTheme` during the
+// Scene deepening. This module now exports only the palette data and
+// the DOM-side theme read helpers; subsystem knowledge lives on the
+// seam.

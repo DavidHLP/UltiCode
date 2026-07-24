@@ -72,7 +72,7 @@
   title: Inventory migration-only tables (production write audit)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#5.1
-  status: pending
+  status: done
   depends_on: []
   acceptance_criteria:
   - Inventory document listing every migration-only table, last-known DDL, and placeholder in WORKLOG / DECISIONS.
@@ -80,10 +80,21 @@
   validation:
   - DECISIONS.md ADR-MIG-INV entry written
   rollback: N/A
-  evidence: []
+  evidence:
+  - command: /tmp/p0schema003_evidence.txt
+    result: "Inventory table added to DECISIONS.md (ADR-MIG-INV extension) listing\n13 candidate tables with no Java @TableName\
+      \ references:\n  DailyRecommendation, contest_analytics, contest_rankings,\n  forum_community_links, forum_community_permissions,\n\
+      \  forum_community_rules, forum_community_tags,\n  forum_post_tag_relations, submission_statuses,\n  system_announcement_reads,\
+      \ system_announcements,\n  views, virtual_contest_sessions\n\nEach row notes:\n- Migration line number in V20260602_120000\
+      \ baseline\n- Disposition (R = retired after evidence, I = inert read-only seed)\n- Code path that supersedes the candidate\
+      \ (e.g. views column denormalized\n  on forum_posts / solutions)\n\nDisambiguation entries cover the look-alikes that\
+      \ ARE used:\n- email_templates/email_logs (modules/email)\n- problem_notes (P0-SCHEMA-002)\n- password_resets (R candidate;\
+      \ not migration-only — superseded by\n  users.password_reset_* hash columns)\n- system_settings (modules/admin)\n\n\
+      ADR-MIG-WS-BLACKLIST added: Phase 0 does NOT widen TokenBlacklistPort;\nrefresh-token revocation stays owned by RefreshTokenService.\n\
+      \nNo SQL changes; no DROP. Phase 7 collects production evidence."
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-25T00:54:00+08:00'
 - id: P0-SEC-001
   phase: 0
   area: SEC

@@ -30,6 +30,47 @@ Consequences:
 Affected Tasks:
 - P0-SCHEMA-003
 
+### Inventory (Phase 0 sweep)
+
+Source of truth: `init-db/migrations/V20260602_120000__Create_All_Tables.sql`
+(repo-wide grep confirmed zero `@TableName(...)` references in any
+current `src/main/java` entity for the tables below; they exist in the
+schema but no Java code reads or writes them).
+
+| Table | Migration line | Java ref | Disposition (Phase 7 candidate) |
+|---|---|---|---|
+| `DailyRecommendation` | 4 | none | R (verify production data; archive if zero; DROP only after one business cycle) |
+| `contest_analytics` | 117 | none | R (current analytics computed in-memory; archive if zero) |
+| `contest_rankings` | 215 | none | R (current ranking via participant + cache) |
+| `forum_community_links` | 393 | none | R (verify FK; archive if zero) |
+| `forum_community_permissions` | 415 | none | R (forum RBAC managed in `forum_community_members`; verify before DROP) |
+| `forum_community_rules` | 427 | none | R |
+| `forum_community_tags` | 438 | none | R |
+| `forum_post_tag_relations` | 446 | none | R (forum tags live elsewhere) |
+| `submission_statuses` | 910 | none | I (status enum is `SubmissionStatusCatalog` in code; table is a static reference set — keep as read-only seed; no writer) |
+| `system_announcement_reads` | 971 | none | R (announcement feature unused in current code) |
+| `system_announcements` | 982 | none | R (same as above) |
+| `views` | 1134 | none | R (forum/solution view counts live as denormalized columns on `forum_posts` / `solutions`; the `views` table is shadow state — verify before DROP) |
+| `virtual_contest_sessions` | 1146 | none | R (per the data ownership matrix; activity state already lives on `contest_participants`) |
+
+Disambiguation (NOT migration-only — code DOES use these):
+- `email_templates`, `email_logs` — used by `modules/email/**`. Owner:
+  App (Notification).
+- `problem_notes` — covered by P0-SCHEMA-002 migration convergence.
+- `password_resets` — empty in current prod; the reset flow stores the
+  hash on `users.password_reset_*`. R candidate.
+- `system_settings` — used by `modules/admin/**`. Owner: Admin.
+
+Future evidence required before any DROP:
+- `SELECT COUNT(*)` and `MAX(created_at)` per table on production.
+- Confirmation that no admin tooling / read replica / analytics pipeline
+  reads the candidate tables.
+- One full business cycle of canary without a write or read from these
+  tables.
+
+The above evidence is collected in Phase 7 (P7-DB-001). For now, all
+candidates are flagged R in the matrix; no migration drops or alters them.
+
 ## ADR-MIG-JUDGE (Judge outbox/fence/stream cutover design)
 
 Context:
@@ -165,3 +206,39 @@ Consequences:
 
 Affected Tasks:
 - P0-SEC-003, P2-AUTH-002
+
+## ADR-MIG-WS-BLACKLIST (TokenBlacklistPort stays read-only in Phase 0)
+
+Context:
+Guide §7.1 mentions "access-token blacklist has reads but no complete
+write chain in source." Inspection of `com.ulticode.modules.websocket.port.TokenBlacklistPort`
+shows the port is deliberately read-only: a port-adapter audit removed the
+unused `blacklistToken(...)` writers because runtime revocation is owned
+by `RefreshTokenService` (DB-backed hash-only store, see
+V20260606130000__Secure_Refresh_Tokens_And_Lock_Seed_Accounts.sql). The
+WS port's Javadoc explicitly directs future admin instant-revoke work to
+add a separate writer port rather than widen the read port.
+
+Decision:
+Phase 0 does NOT add write methods to `TokenBlacklistPort`. The current
+write chain for token revocation is `RefreshTokenService.revoke*` (DB
+hash-only + CAS). An admin-driven access-token kill switch, if added
+later, gets its own `TokenRevocationWritePort` in the auth module.
+
+Alternatives:
+- Widen `TokenBlacklistPort` to add `blacklist(token, ttl)` — rejected
+  (violates the port's documented read-only contract; surfaces writes
+  on the WS hot path; duplicate state).
+- Keep dual write: `RefreshTokenService` + Redis — rejected (two stores
+  drift; guide §8.3 mandates single Owner).
+
+Consequences:
+- Phase 0 /auth/logout still relies on `RefreshTokenService` for
+  revocation; WS sessions for the killed refresh chain naturally expire
+  at access-token TTL.
+- An admin instant-revoke feature requires a separate design pass and
+  Phase 4 RPC hand-off to auth.
+
+Affected Tasks:
+- P0-SEC-003 (the read side is unchanged; this ADR documents the
+  explicit non-decision on the write side).

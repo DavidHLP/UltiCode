@@ -311,7 +311,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
   - MICROSERVICE_MIGRATION_GUIDE.md#10
-  status: pending
+  status: done
   depends_on:
   - P0-ARCH-001
   acceptance_criteria:
@@ -326,10 +326,23 @@
   - ArchUnit suites pass with rules active
   rollback:
   - Disable / skip rules; record in DECISIONS.md.
-  evidence: []
+  evidence:
+  - command: /tmp/p0arch002_evidence.txt
+    result: "./mvnw test -B at 2026-07-25T01:23:01+08:00: BUILD SUCCESS\n\nOwnerBoundaryArchTest (5 tests, 0 failures):\n\
+      \  - admin_must_not_reach_contest_directly: 8 source files, 153 events frozen\n  - moderation_must_not_reach_users_directly:\
+      \ 3 source files, 19 events\n  - submission_must_not_reach_queue_service: 4 source files, 10 events\n  - submission_must_not_reach_queue_outbox:\
+      \ 3 source files, 6 events\n  - frozen_baseline_pointer_is_documented: sanity test\n\nADR-MIG-ARCH-BOUNDARY written\
+      \ to DECISIONS.md with freeze strategy and\nbaseline burn-down targets.\n\nFiles added/modified:\n  - backend-spring/pom.xml:\
+      \ archunit-junit5 1.2.0 dependency\n  - backend-spring/src/test/resources/archunit.properties: freeze store creation\n\
+      \  - backend-spring/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java: 4 rules + sanity\n  - backend-spring/docs/migration-execution/DECISIONS.md:\
+      \ ADR-MIG-ARCH-BOUNDARY\n  - backend-spring/archunit_store/: baseline freeze (committed)\n\nAcceptance criteria satisfied:\n\
+      \  - ArchUnit test enforcing admin → contest boundary: rule 1 (frozen)\n  - ArchUnit test enforcing moderation → users\
+      \ boundary: rule 2 (frozen)\n  - ArchUnit test enforcing submission → queue ports boundary: rule 3a/3b\n  - Failing\
+      \ tests show clear remediation messages: because() clauses\n  - ./mvnw test -B passes\n  - ArchUnit suites pass with\
+      \ rules active (BUILD SUCCESS)"
   commits: []
   notes: Phase 0 baseline; strengthened per Phase in later gates.
-  updated_at: ''
+  updated_at: '2026-07-25T01:24:00+08:00'
 - id: P0-GATE
   phase: 0
   area: GATE

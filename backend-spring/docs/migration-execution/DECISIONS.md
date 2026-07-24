@@ -200,3 +200,87 @@ Affected Tasks:
 - P2-JUDGE-001 (implementation of generation fence + judge outbox).
 - P2-JUDGE-002 (result outbox + downstream consumers).
 - P7-JUDGE-001 (legacy `RQueue` removal).
+
+## ADR-MIG-ARCH-BOUNDARY (ArchUnit baseline uses freeze-on-day-1)
+
+Context:
+Guide §5.1 §10 require cross-Owner Mapper/Entity separation
+(Auth/Admin/App). P0-ARCH-002 acceptance criteria specify three rules:
+ 1. admin must not reach contest mapper/entity directly.
+ 2. moderation must not write users directly.
+ 3. submission must not reach queue internals outside the published port.
+
+Inspection of `backend-spring/src/main/java/com/ulticode/modules/` shows
+these rules are already violated today (cross-Owner reads/writes precede
+the Owner manifest). Strict enforcement in Phase 0 would fail ~50+ tests
+and block CI. A "skip rules until Phase 2" approach loses the change-detection
+value of the baseline.
+
+Decision:
+Phase 0 implements the rules using ArchUnit `FreezingArchRule.freeze()`:
+the current violation set is captured as a baseline. Subsequent runs
+fail only when NEW violations are introduced (drift detection), not on
+the existing frozen set. Phase 2/3 burn-down plans reduce each baseline
+to zero per Owner.
+
+Freeze store lives at `backend-spring/archunit_store/` (committed; reviewed
+in PRs). Enabled via `backend-spring/src/test/resources/archunit.properties`
+(`freeze.store.default.allowStoreCreation=true`,
+`freeze.store.default.allowStoreReset=true`).
+
+Rule → file → violation map (frozen baseline as of 2026-07-25):
+
+| Rule | Source module | Forbidden target | Source files violating | ArchUnit events |
+|------|---------------|------------------|------------------------|-----------------|
+| admin_must_not_reach_contest_directly | admin | contest | 8 | 153 |
+| moderation_must_not_reach_users_directly | moderation | user | 3 | 19 |
+| submission_must_not_reach_queue_service | submission | queue.service | 4 | 10 |
+| submission_must_not_reach_queue_outbox | submission | queue.outbox | 3 | 6 |
+
+Source files in baseline (Phase 2/3 burn-down targets):
+
+**Rule 1 — admin → contest (8 files):**
+ - `AdminContestMutationService.java`
+ - `AdminContestMutationServiceImpl.java` (heaviest: ~100 events)
+ - `AdminContestProjection.java`
+ - `AdminContestReadAdapter.java`
+ - `AdminContestService.java`
+ - `AdminContestServiceImpl.java`
+ - `DefaultAdminAnalyticsPortAdapter.java`
+ - `DefaultAdminContestProjection.java`
+
+**Rule 2 — moderation → users (3 files):**
+ - `DefaultModerationProjection.java` (read-port, deprecated in Phase 3)
+ - `ModerationServiceImpl.java` (writes: userMapper.updateById)
+ - `ModerationUserReadPort.java` (read-port, deprecated in Phase 3)
+
+**Rule 3a — submission → queue.service (4 files):**
+ - `DefaultRejudgePolicy.java`
+ - `DefaultSubmissionWritePort.java`
+ - `JudgingLeaseReaper.java`
+ - `LegacyRejudgeStrategy.java`
+
+**Rule 3b — submission → queue.outbox (3 files):**
+ - `DefaultRejudgePolicy.java`
+ - `DefaultSubmissionWritePort.java`
+ - `JudgingLeaseReaper.java`
+
+Alternatives:
+- Strict enforcement today — rejected (fails ~50 tests; blocks CI).
+- Skip rules entirely until Phase 2 — rejected (loses drift detection).
+- Manual code review only — rejected (no automated enforcement).
+
+Consequences:
+- Baseline freeze file committed; PRs must not grow any rule's violation
+  count without an explicit ADR + DECISIONS update.
+- Phase 2/3 burn-down: per Owner, introduce RPC ports / event-driven
+  projections to replace direct cross-Owner Mapper/Entity access.
+- ArchUnit test fails on PR that introduces new cross-Owner leak.
+- Test verifies 4 rules + 1 sanity test = 5 tests in
+  `OwnerBoundaryArchTest`; ./mvnw test -B continues to pass.
+
+Affected Tasks:
+- P0-ARCH-002 (this ADR + the ArchUnit baseline test).
+- P3-OWNER-001 (Phase 3 burn-down for admin/contest rule).
+- P2-AUTH-001 (Phase 2 burn-down for moderation/users rule).
+- P2-JUDGE-001 / P2-JUDGE-002 (Phase 2 burn-down for submission/queue rules).

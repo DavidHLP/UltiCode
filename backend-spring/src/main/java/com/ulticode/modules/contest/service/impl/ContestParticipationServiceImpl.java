@@ -306,32 +306,4 @@ public class ContestParticipationServiceImpl implements ContestParticipationServ
 
         log.info("User {} finished virtual contest {} session {}", userId, contestId, effectiveSessionId);
     }
-
-    private ContestVO toContestVO(Contest contest, String userId) {
-        if (contest == null) return null;
-        ContestVO vo = new ContestVO();
-        BeanUtils.copyProperties(contest, vo);
-        vo.setId(contest.getId());
-        vo.setDuration(contest.getDurationMinutes());
-        vo.setCurrentParticipants(contest.getParticipantCount());
-        vo.setIsPremium(false);
-        vo.setIsPublished(contest.getIsVisible());
-        try {
-            vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
-        } catch (NumberFormatException e) {
-            vo.setCreatedById(null);
-        }
-        if (userId != null && !userId.isBlank()) {
-            Optional<?> participantOpt = participantMapper.findByContestIdAndUserId(contest.getId(), userId);
-            if (participantOpt.isPresent()) {
-                var p = (ContestParticipant) participantOpt.get();
-                vo.setIsParticipating(true);
-                vo.setUserRanking(p.getFinalRank());
-                vo.setUserScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
-            } else {
-                vo.setIsParticipating(false);
-            }
-        }
-        return vo;
-    }
 }

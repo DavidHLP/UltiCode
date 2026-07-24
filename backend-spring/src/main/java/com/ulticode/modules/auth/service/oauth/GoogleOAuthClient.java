@@ -120,7 +120,19 @@ public class GoogleOAuthClient implements OAuthClient {
                     : (email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : googleId);
             String avatar = userNode.has("picture") ? userNode.get("picture").asText() : null;
 
-            return new OAuthUserInfo(googleId, name, email, avatar);
+            // Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1: Google
+            // returns email_verified for every /userinfo response. If
+            // the email is present but the provider did NOT verify it,
+            // refuse to auto-link the OAuth identity to an existing
+            // account by email — that is the canonical "wrong account
+            // merge" attack the guide flags as Critical (R4).
+            boolean emailVerified = userNode.path("email_verified").asBoolean(false);
+            if (email != null && !email.isBlank() && !emailVerified) {
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                    "Google account email is not verified by the provider");
+            }
+
+            return new OAuthUserInfo(googleId, name, email, avatar, emailVerified);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse Google user response", e);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Failed to get Google user info", e);

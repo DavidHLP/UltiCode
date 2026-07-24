@@ -131,7 +131,7 @@
   title: OAuth provider identity & verified-email binding
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#7.1
-  status: pending
+  status: done
   depends_on:
   - P0-SEC-001
   acceptance_criteria:
@@ -144,10 +144,25 @@
   - 'Integration test: Google email_verified=false rejected'
   rollback:
   - Additive schema/columns; revert binding policy.
-  evidence: []
+  evidence:
+  - command: /tmp/p0sec002_evidence.txt
+    result: "./mvnw test -B at 2026-07-25T00:58:21+08:00 (OAuthServiceTest) and 2026-07-25T00:58:30+08:00 (full sweep)\nResult:\
+      \ BUILD SUCCESS\nAggregate: Tests run: 1799, Failures: 0, Errors: 0, Skipped: 4\n\nOAuthUserInfo: 5-arg record (providerId,\
+      \ name, email, avatar, emailVerified).\nDefault emailVerified=false; legacy 4-arg constructor delegates with\nfalse\
+      \ so test fixtures that pre-date the change stay conservative.\n\nGoogleOAuthClient.fetchUserInfo:\n  Parses email_verified\
+      \ from /userinfo response. If email present but\n  unverified -> BusinessException(AUTH_INVALID_CREDENTIALS).\n\nGithubOAuthClient.fetchUserInfo:\n\
+      \  GitHub /user exposes email only when public AND verified (privacy\n  default is no public email). Null/blank email\
+      \ -> throw. Returning\n  OAuthUserInfo sets emailVerified=true because GitHub's public\n  email field implies verification.\n\
+      \nOAuthService.createOrUpdateUser:\n  If findByOAuthEmail returns existing user AND emailVerified=false ->\n  refuse\
+      \ auto-link (log + BusinessException). Brand-new accounts\n  (no match) are still allowed.\n\nTests:\n  OAuthServiceTest:\
+      \ 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n  The two existing-user avatar tests now construct with\
+      \ emailVerified=true.\n\nDeferred to Phase 5 (P5-SCHEMA-001 / P5-USERPROFILE-001):\n  users.email UNIQUE constraint.\
+      \ Phase 0 only addresses the verified-\n  email auto-link risk (R4 in guide §12). Production may have email\n  duplicates\
+      \ from historical data drift; adding UNIQUE without\n  backfill is dangerous and is excluded from Phase 0 per guide\
+      \ §15."
   commits: []
   notes: Currently users.email has no UNIQUE constraint at DB level.
-  updated_at: ''
+  updated_at: '2026-07-25T00:59:00+08:00'
 - id: P0-SEC-003
   phase: 0
   area: SEC

@@ -234,7 +234,7 @@ class OAuthServiceTest {
         @Test
         @DisplayName("GitHub: existing user with changed avatar triggers updateById")
         void github_existingUser_changedAvatar_updates() {
-            OAuthUserInfo userInfo = new OAuthUserInfo(GITHUB_ID, NAME, EMAIL, AVATAR);
+            OAuthUserInfo userInfo = new OAuthUserInfo(GITHUB_ID, NAME, EMAIL, AVATAR, true);
             User existing = new User();
             existing.setId("u-existing");
             existing.setUsername("github_" + GITHUB_ID);
@@ -258,7 +258,7 @@ class OAuthServiceTest {
         @Test
         @DisplayName("GitHub: existing user with same avatar skips updateById")
         void github_existingUser_sameAvatar_noUpdate() {
-            OAuthUserInfo userInfo = new OAuthUserInfo(GITHUB_ID, NAME, EMAIL, AVATAR);
+            OAuthUserInfo userInfo = new OAuthUserInfo(GITHUB_ID, NAME, EMAIL, AVATAR, true);
             User existing = new User();
             existing.setId("u-existing");
             existing.setEmail(EMAIL);
@@ -275,6 +275,29 @@ class OAuthServiceTest {
 
             verify(accountPort, never()).create(any(User.class));
             verify(accountPort, never()).updateAvatar(anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("Phase 0 §7.1: existing user + unverified email refuses auto-link")
+        void github_existingUser_unverifiedEmail_refuses() {
+            OAuthUserInfo userInfo = new OAuthUserInfo(GITHUB_ID, NAME, EMAIL, AVATAR, false);
+            User existing = new User();
+            existing.setId("u-existing");
+            existing.setEmail(EMAIL);
+
+            when(githubClient.exchangeCodeForToken(CODE, GITHUB_REDIRECT))
+                .thenReturn(new OAuthTokenResponse(ACCESS_TOKEN));
+            when(githubClient.fetchUserInfo(ACCESS_TOKEN)).thenReturn(userInfo);
+            when(accountPort.findByOAuthEmail(anyString())).thenReturn(Optional.of(existing));
+
+            assertThatThrownBy(() -> oauthService.handleGithubCallback(CODE, STATE, null, null))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                    .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
+
+            verify(accountPort, never()).create(any(User.class));
+            verify(accountPort, never()).updateAvatar(anyString(), anyString());
+            verify(authSessionPort, never()).completeLogin(any(User.class), any());
         }
 
         @Test

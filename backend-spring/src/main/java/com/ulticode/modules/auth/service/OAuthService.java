@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Coordinator for third-party OAuth login (GitHub and Google).
@@ -49,6 +50,13 @@ import java.util.Map;
  * this coordinator only forwards both values and lets the port enforce the
  * invariant. AuthController extracts the cookie from the request and threads
  * it here.
+ *
+ * <p><strong>Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1:</strong>
+ * {@link #createOrUpdateUser} refuses to auto-link an OAuth identity to
+ * an existing account by email when {@code OAuthUserInfo.emailVerified()}
+ * is {@code false}. This is the canonical "wrong-account merge" defense
+ * (R4 in §12). Brand-new accounts (no match) are still allowed; the email
+ * column stays null until a verified login establishes one.
  */
 @Slf4j
 @Service
@@ -162,15 +170,30 @@ public class OAuthService {
     /**
      * Create or update a user from the normalized provider user-info.
      *
+     * <p><strong>Phase 0 §7.1:</strong> if the email matches an existing
+     * account but the provider did NOT verify the email
+     * ({@code OAuthUserInfo.emailVerified()} is {@code false}), the
+     * auto-link is refused — see R4 in the guide §12.
+     *
      * <p>The post-auth tail (cookies, CSRF, JWT, {@code LoginResponse})
      * is delegated to {@link AuthSessionPort#completeLogin}.
      */
     private LoginResponse createOrUpdateUser(OAuthUserInfo userInfo, String provider,
                                              HttpServletResponse response) {
-        User user = accountPort.findByOAuthEmail(userInfo.email()).orElse(null);
+        Optional<User> existingByEmail = accountPort.findByOAuthEmail(userInfo.email());
+        if (existingByEmail.isPresent() && !userInfo.emailVerified()) {
+            log.warn("Refusing OAuth auto-link by unverified email: provider={}, userId={}",
+                provider, existingByEmail.get().getId());
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
+                "OAuth email is not verified; cannot link to existing account");
+        }
+        User user = existingByEmail.orElse(null);
 
         if (user == null) {
-            // 创建新用户
+            // Create a brand-new user. The email may be null when the
+            // provider did not expose a verified one; in that case the
+            // account is created with email=null and the user is asked
+            // to add one through profile settings.
             user = new User();
             user.setId(IdUtil.fastSimpleUUID());
             user.setUsername(provider + "_" + userInfo.providerId());

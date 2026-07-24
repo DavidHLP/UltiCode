@@ -143,7 +143,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#7.1
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
-  status: in_progress
+  status: done
   depends_on: []
   acceptance_criteria:
   - CONNECT path validates active/ban/locked state (active=true, is_banned=false, banned_until not in future).
@@ -156,10 +156,20 @@
   - ./mvnw test -B
   rollback:
   - Application rollback to previous WS validator; additive ban fields preserved.
-  evidence: []
+  evidence:
+  - command: /tmp/p0sec003_evidence.txt
+    result: "./mvnw test -B at 2026-07-25T00:47:35+08:00\nResult: BUILD SUCCESS\nAggregate (sum of surefire-reports/*.txt):\n\
+      \  Tests run: 1797, Failures: 0, Errors: 0, Skipped: 4\n545 test classes, all green.\nNew tests added vs P0-SEC-001:\n\
+      \  DefaultWebSocketAuthenticatorTest: 8 -> 12 (+4 for active/ban)\n  JwtChannelInterceptorTest:        9 -> 10 (+2 fail-closed\
+      \ SEND/SUBSCRIBE)\n  DefaultWebSocketAuthenticator:    Constructor added Clock; isBannedOrInactive\n    method checks\
+      \ is_active, is_banned, and banned_until (Clock-anchored)\n  JwtChannelInterceptor:            validateUserSession now\
+      \ throws\n    WEBSOCKET_SESSION_MISSING on null attrs / null user / wrong user type\n    (was log-and-return pre-fix)\n\
+      \  ErrorCode:                        WEBSOCKET_USER_BANNED (150006),\n                                    WEBSOCKET_SESSION_MISSING\
+      \ (150007)"
+    note: WS validator unification + active/ban + fail-closed
   commits: []
   notes: Currently WS SEND/SUBSCRIBE only logs and returns when principal missing.
-  updated_at: '2026-07-24T16:39:53+00:00'
+  updated_at: '2026-07-25T00:48:00+08:00'
 - id: P0-SEC-004
   phase: 0
   area: SEC

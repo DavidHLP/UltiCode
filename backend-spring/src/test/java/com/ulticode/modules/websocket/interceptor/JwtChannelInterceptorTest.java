@@ -30,6 +30,12 @@ import org.springframework.messaging.support.MessageBuilder;
  * delegate to the {@link WebSocketAuthenticator}. Auth policy tests
  * (blacklist, expiry, user existence, fail-closed) live in
  * {@code DefaultWebSocketAuthenticatorTest}.
+ *
+ * <p>Phase 0 (MICROSERVICE_MIGRATION_GUIDE.md §7.1) added fail-closed
+ * behavior for SEND/SUBSCRIBE without a bound principal: pre-fix these
+ * commands logged-and-returned, silently admitting frames on
+ * unattributed sessions. New tests assert the WebSocketAuthentication
+ * throw path.
  */
 @ExtendWith(MockitoExtension.class)
 class JwtChannelInterceptorTest {
@@ -58,6 +64,12 @@ class JwtChannelInterceptorTest {
   void preSend_withNonConnectCommand_returnsMessage() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
     accessor.setDestination("/app/test");
+    // Phase 0 §7.1: SEND/SUBSCRIBE now fail closed when the session has
+    // no bound principal. Bind a synthetic principal so the frame passes
+    // validateUserSession without exercising the new error branch.
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    sessionAttrs.put("user", new SocketClientData("u-test", "tester", "USER"));
+    accessor.setSessionAttributes(sessionAttrs);
     Message<?> message = MessageBuilder.createMessage("test", accessor.getMessageHeaders());
 
     Message<?> result = interceptor.preSend(message, channel);
@@ -133,6 +145,9 @@ class JwtChannelInterceptorTest {
   void preSend_withSendCommand_doesNotInvokeAuthenticator() {
     StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
     accessor.setDestination("/app/test");
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    sessionAttrs.put("user", new SocketClientData("u-test", "tester", "USER"));
+    accessor.setSessionAttributes(sessionAttrs);
     Message<?> message = MessageBuilder.createMessage("test", accessor.getMessageHeaders());
 
     Message<?> result = interceptor.preSend(message, channel);
@@ -170,5 +185,37 @@ class JwtChannelInterceptorTest {
 
     verify(authenticator).authenticate(Optional.of(sessionToken));
     verifyNoInteractions(tokenExtractor);
+  }
+
+  // ============ Phase 0 §7.1: SEND/SUBSCRIBE fail-closed ============
+
+  @Test
+  void preSend_sendWithoutSessionAttributes_throwsSessionMissing() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SEND);
+    accessor.setDestination("/app/test");
+    // No session attributes bound — pre-fix this passed silently.
+    Message<?> message = MessageBuilder.createMessage("test", accessor.getMessageHeaders());
+
+    WebSocketAuthenticationException ex = assertThrows(
+            WebSocketAuthenticationException.class,
+            () -> interceptor.preSend(message, channel));
+    assertEquals(ErrorCode.WEBSOCKET_SESSION_MISSING, ex.getErrorCode());
+    verifyNoInteractions(authenticator);
+  }
+
+  @Test
+  void preSend_subscribeWithoutUserInSession_throwsSessionMissing() {
+    StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+    accessor.setDestination("/topic/foo");
+    Map<String, Object> sessionAttrs = new HashMap<>();
+    // Session attributes present but "user" missing.
+    accessor.setSessionAttributes(sessionAttrs);
+    Message<?> message = MessageBuilder.createMessage("test", accessor.getMessageHeaders());
+
+    WebSocketAuthenticationException ex = assertThrows(
+            WebSocketAuthenticationException.class,
+            () -> interceptor.preSend(message, channel));
+    assertEquals(ErrorCode.WEBSOCKET_SESSION_MISSING, ex.getErrorCode());
+    verifyNoInteractions(authenticator);
   }
 }

@@ -11,6 +11,8 @@ import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -23,9 +25,17 @@ import java.util.Optional;
  *   <li>signature + expiry must validate</li>
  *   <li>payload must carry a non-empty subject</li>
  *   <li>the referenced user must still exist</li>
+ *   <li><strong>Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1:</strong>
+ *       the user account must be {@code active=true}, not banned
+ *       ({@code is_banned=false}), and not within a {@code banned_until}
+ *       window. Banned/inactive CONNECT attempts are rejected with
+ *       {@link ErrorCode#WEBSOCKET_USER_BANNED}.</li>
  * </ol>
  *
- * @author ulticode
+ * <p>Long-running sessions re-validate on each CONNECT. Active-frame
+ * revalidation (e.g. heartbeat every N seconds) is a Phase 4 concern
+ * (multi-instance WS bridge); this adapter guarantees that no fresh
+ * CONNECT succeeds for a banned/inactive account.
  */
 @Slf4j
 @Component
@@ -34,13 +44,16 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
     private final TokenBlacklistPort tokenBlacklistPort;
     private final JwtUtils jwtUtils;
     private final UserReadProjection userReadProjection;
+    private final Clock clock;
 
     public DefaultWebSocketAuthenticator(TokenBlacklistPort tokenBlacklistPort,
                                         JwtUtils jwtUtils,
-                                        UserReadProjection userReadProjection) {
+                                        UserReadProjection userReadProjection,
+                                        Clock clock) {
         this.tokenBlacklistPort = tokenBlacklistPort;
         this.jwtUtils = jwtUtils;
         this.userReadProjection = userReadProjection;
+        this.clock = clock;
     }
 
     @Override
@@ -82,6 +95,33 @@ public class DefaultWebSocketAuthenticator implements WebSocketAuthenticator {
         }
 
         User user = userOpt.get();
+        if (isBannedOrInactive(user)) {
+            log.warn("WebSocket connection rejected: Account banned/inactive, userId: {}", userId);
+            throw new WebSocketAuthenticationException(
+                    ErrorCode.WEBSOCKET_USER_BANNED, "Account is banned or inactive");
+        }
+
         return new SocketClientData(userId, user.getUsername(), user.getRole());
+    }
+
+    /**
+     * @return {@code true} if the user is inactive, currently banned, or
+     *         within a {@code banned_until} window. All three states reject
+     *         a CONNECT.
+     */
+    private boolean isBannedOrInactive(User user) {
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            return true;
+        }
+        if (Boolean.TRUE.equals(user.getIsBanned())) {
+            // Banned_until in the future still rejects; expired bans allow
+            // CONNECT (a separate Admin action is expected to flip is_banned
+            // back to false, but expire-window is honored as a backstop).
+            LocalDateTime bannedUntil = user.getBannedUntil();
+            if (bannedUntil == null || bannedUntil.isAfter(LocalDateTime.now(clock))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

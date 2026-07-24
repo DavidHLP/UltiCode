@@ -109,22 +109,30 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private void validateUserSession(StompHeaderAccessor accessor, StompCommand command) {
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes == null) {
-      log.warn("WebSocket {} command with null session attributes, destination: {}",
-          command, accessor.getDestination());
-      return;
+      // Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1: SEND/SUBSCRIBE
+      // must fail closed when the session has no attributes at all. The
+      // pre-fix behaviour was log-and-return, which silently admitted
+      // frames on unattributed sessions — that is a fail-open bug.
+      throw new WebSocketAuthenticationException(
+          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          "WebSocket session is missing attributes for " + command);
     }
 
     Object userObj = sessionAttributes.get("user");
     if (userObj == null) {
-      log.warn("WebSocket {} command with no user in session, destination: {}, sessionId: {}",
-          command, accessor.getDestination(), accessor.getSessionId());
-      return;
+      // Same rationale: a SEND/SUBSCRIBE without a bound principal must
+      // not silently pass through.
+      throw new WebSocketAuthenticationException(
+          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          "WebSocket session has no authenticated user for " + command);
     }
 
     if (!(userObj instanceof SocketClientData)) {
-      log.warn("WebSocket {} command with invalid user type: {}, destination: {}",
-          command, userObj.getClass().getName(), accessor.getDestination());
-      return;
+      // Garbage in the session map (regression / manual injection) must
+      // not become a silent bypass either.
+      throw new WebSocketAuthenticationException(
+          ErrorCode.WEBSOCKET_SESSION_MISSING,
+          "WebSocket session has invalid user payload for " + command);
     }
 
     SocketClientData userData = (SocketClientData) userObj;

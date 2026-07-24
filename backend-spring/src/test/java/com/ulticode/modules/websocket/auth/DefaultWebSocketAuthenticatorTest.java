@@ -12,6 +12,11 @@ import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.interceptor.JwtChannelInterceptor.WebSocketAuthenticationException;
 import com.ulticode.modules.websocket.port.TokenBlacklistPort;
 import io.jsonwebtoken.Claims;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +30,8 @@ import org.springframework.dao.QueryTimeoutException;
  * Tests for {@link DefaultWebSocketAuthenticator}.
  *
  * <p>Verifies the policy the transport now delegates to: presence → blacklist
- * → signature/expiry → payload sanity → user existence. The fail-closed
+ * → signature/expiry → payload sanity → user existence → active/ban
+ * (Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1). The fail-closed
  * Redis contract is regression-protected by the blacklist-error case.
  */
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +39,7 @@ class DefaultWebSocketAuthenticatorTest {
 
     private static final String TOKEN = "raw.jwt.token";
     private static final String USER_ID = "u-1";
+    private static final Instant NOW = Instant.parse("2026-07-25T00:00:00Z");
 
     @Mock private TokenBlacklistPort tokenBlacklistPort;
     @Mock private JwtUtils jwtUtils;
@@ -42,8 +49,10 @@ class DefaultWebSocketAuthenticatorTest {
 
     @BeforeEach
     void setUp() {
+        // Fixed Clock so banned_until comparisons are deterministic across runs.
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         authenticator = new DefaultWebSocketAuthenticator(
-                tokenBlacklistPort, jwtUtils, userReadProjection);
+                tokenBlacklistPort, jwtUtils, userReadProjection, clock);
     }
 
     @Test
@@ -139,6 +148,8 @@ class DefaultWebSocketAuthenticatorTest {
         user.setId(USER_ID);
         user.setUsername("alice");
         user.setRole("USER");
+        user.setIsActive(true);
+        user.setIsBanned(false);
         when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
         when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
         when(claims.getSubject()).thenReturn(USER_ID);
@@ -149,5 +160,87 @@ class DefaultWebSocketAuthenticatorTest {
         assertThat(data.userId()).isEqualTo(USER_ID);
         assertThat(data.username()).isEqualTo("alice");
         assertThat(data.role()).isEqualTo("USER");
+    }
+
+    // ============ Phase 0 §7.1: active/ban CONNECT gating ============
+
+    @Test
+    @DisplayName("inactive account → WEBSOCKET_USER_BANNED (no DB lookup shortcut)")
+    void inactiveAccount_rejected() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        User user = new User();
+        user.setId(USER_ID);
+        user.setIsActive(false);     // explicitly inactive
+        user.setIsBanned(false);
+        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
+        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
+        when(claims.getSubject()).thenReturn(USER_ID);
+        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
+                .isInstanceOf(WebSocketAuthenticationException.class)
+                .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
+    }
+
+    @Test
+    @DisplayName("banned account with future banned_until → WEBSOCKET_USER_BANNED")
+    void bannedAccount_futureUntil_rejected() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        User user = new User();
+        user.setId(USER_ID);
+        user.setIsActive(true);
+        user.setIsBanned(true);
+        user.setBannedUntil(LocalDateTime.of(2027, 1, 1, 0, 0)); // > NOW
+        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
+        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
+        when(claims.getSubject()).thenReturn(USER_ID);
+        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
+                .isInstanceOf(WebSocketAuthenticationException.class)
+                .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
+    }
+
+    @Test
+    @DisplayName("banned account with past banned_until → CONNECT allowed (expire backstop)")
+    void bannedAccount_pastUntil_allowed() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        User user = new User();
+        user.setId(USER_ID);
+        user.setUsername("alice");
+        user.setRole("USER");
+        user.setIsActive(true);
+        user.setIsBanned(true);
+        user.setBannedUntil(LocalDateTime.of(2025, 1, 1, 0, 0)); // < NOW
+        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
+        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
+        when(claims.getSubject()).thenReturn(USER_ID);
+        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+
+        SocketClientData data = authenticator.authenticate(Optional.of(TOKEN));
+
+        assertThat(data.userId()).isEqualTo(USER_ID);
+    }
+
+    @Test
+    @DisplayName("banned account with no banned_until → WEBSOCKET_USER_BANNED")
+    void bannedAccount_noUntil_rejected() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        User user = new User();
+        user.setId(USER_ID);
+        user.setIsActive(true);
+        user.setIsBanned(true);
+        user.setBannedUntil(null); // permanent ban
+        when(tokenBlacklistPort.isBlacklisted(TOKEN)).thenReturn(false);
+        when(jwtUtils.validateToken(TOKEN)).thenReturn(Optional.of(claims));
+        when(claims.getSubject()).thenReturn(USER_ID);
+        when(userReadProjection.findById(USER_ID)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authenticator.authenticate(Optional.of(TOKEN)))
+                .isInstanceOf(WebSocketAuthenticationException.class)
+                .extracting(e -> ((WebSocketAuthenticationException) e).getErrorCode())
+                .isEqualTo(ErrorCode.WEBSOCKET_USER_BANNED);
     }
 }

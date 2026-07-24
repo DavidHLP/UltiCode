@@ -163,6 +163,8 @@ public enum ErrorCode {
     WEBSOCKET_INVALID_TOKEN(150003, "Invalid WebSocket token", HttpStatus.UNAUTHORIZED),
     WEBSOCKET_TOKEN_BLACKLISTED(150004, "Token has been blacklisted", HttpStatus.UNAUTHORIZED),
     WEBSOCKET_USER_NOT_FOUND(150005, "User not found", HttpStatus.NOT_FOUND),
+    WEBSOCKET_USER_BANNED(150006, "Account is banned or inactive", HttpStatus.FORBIDDEN),
+    WEBSOCKET_SESSION_MISSING(150007, "WebSocket session is not authenticated", HttpStatus.UNAUTHORIZED),
 
     // Queue module (16xxxx)
     QUEUE_NOT_FOUND(160001, "Queue not found", HttpStatus.NOT_FOUND),

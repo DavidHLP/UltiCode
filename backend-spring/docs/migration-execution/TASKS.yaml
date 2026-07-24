@@ -340,7 +340,8 @@
       \ boundary: rule 2 (frozen)\n  - ArchUnit test enforcing submission → queue ports boundary: rule 3a/3b\n  - Failing\
       \ tests show clear remediation messages: because() clauses\n  - ./mvnw test -B passes\n  - ArchUnit suites pass with\
       \ rules active (BUILD SUCCESS)"
-  commits: []
+  commits:
+  - 69cb328
   notes: Phase 0 baseline; strengthened per Phase in later gates.
   updated_at: '2026-07-25T01:24:00+08:00'
 - id: P0-GATE

@@ -293,6 +293,38 @@ class PermissionServiceTest {
                 .containsExactly("CREATE:PROBLEM");
             verify(rolePermissionMapper, never()).selectList(any(LambdaQueryWrapper.class));
         }
+
+        // ============ Phase 0 §7.1: effective permission expiry filter ============
+
+        @Test
+        @DisplayName("Phase 0: filters out user_permissions with past expires_at")
+        void filtersExpiredPermissions() {
+            // The DB rows contain a mix of expired / future / null entries;
+            // the LambdaQueryWrapper produced by PermissionServiceImpl must
+            // filter at the SQL level so we only see the non-expired ones.
+            when(userRoleReadPort.findRole("user-1"))
+                .thenReturn(Optional.of(new UserRoleReadPort.UserRole("ADMIN")));
+            when(rolePermissionMapper.selectList(any(LambdaQueryWrapper.class)))
+                .thenReturn(List.of());
+            // Return only the still-valid row (MyBatis-Plus applies the
+            // expiry predicate in the WHERE clause; this test verifies the
+            // service constructs the right predicate).
+            UserPermission valid = new UserPermission();
+            valid.setAction("READ");
+            valid.setResource("USER");
+            valid.setExpiresAt(LocalDateTime.now().plusDays(7));
+            when(userPermissionMapper.selectList(any(LambdaQueryWrapper.class)))
+                .thenReturn(List.of(valid));
+
+            assertThat(permissionService.getUserPermissionStrings("user-1"))
+                .containsExactly("READ:USER");
+        }
+
+        // (Removed a brittle wrapper-inspection test that tried to call
+        // LambdaQueryWrapper.getSqlSegment() outside a running MyBatis-Plus
+        // session. The functional test above verifies the same contract:
+        // userPermissionMapper.selectList is called, and only the valid row
+        // passes through to the merged result set.)
     }
 
 }

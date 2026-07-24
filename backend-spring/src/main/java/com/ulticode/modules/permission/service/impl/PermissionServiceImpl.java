@@ -54,9 +54,17 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<UserPermission> getUserPermissions(String userId) {
+        // Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1: exclude rows whose
+        // expires_at is in the past. Null expires_at = permanent grant;
+        // future expires_at = still valid; past expires_at = stale and
+        // must not be exposed via /auth/permissions. Backed by the
+        // user_permissions.expires_at column added in
+        // V20260610140000__Add_User_Permission_Expires_At.sql.
         return userPermissionMapper.selectList(
             new LambdaQueryWrapper<UserPermission>()
                 .eq(UserPermission::getUserId, userId)
+                .and(w -> w.isNull(UserPermission::getExpiresAt)
+                        .or().gt(UserPermission::getExpiresAt, LocalDateTime.now(clock)))
         );
     }
 

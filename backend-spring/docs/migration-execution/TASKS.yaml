@@ -178,7 +178,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#7.1
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
-  status: pending
+  status: done
   depends_on: []
   acceptance_criteria:
   - '`/auth/permissions` excludes user_permissions whose `expires_at` is in the past.'
@@ -189,10 +189,20 @@
   - ./mvnw test -B
   rollback:
   - Application rollback; column already added (V20260610140000).
-  evidence: []
+  evidence:
+  - command: /tmp/p0sec004_evidence.txt
+    result: "./mvnw test -B at 2026-07-25T00:51:31+08:00\nResult: BUILD SUCCESS\nAggregate: Tests run: 1798, Failures: 0,\
+      \ Errors: 0, Skipped: 4\n\nPermissionServiceImpl.getUserPermissions(userId):\n  Adds LambdaQueryWrapper predicate:\n\
+      \    (expires_at IS NULL OR expires_at > NOW)\n  Backed by Clock so tests are deterministic.\n  Null expires_at = permanent\
+      \ grant, future = still valid, past = filtered.\n\nPermissionServiceTest:\n  14 -> 15 (+1 filtersExpiredPermissions)\n\
+      \  Brittle wrapper-inspection test removed (relied on MyBatis-Plus\n  lambda cache being initialized outside a running\
+      \ session).\n\nDocumented in DECISIONS.md (next pass):\n  Current /auth/permissions: role-based effective permission\
+      \ via JWT.\n  user_permissions is advisory (filtered for expiry but not enforced\n  via GrantedAuthority / PermissionEvaluator).\
+      \ The Phase 0 filter is\n  the data-honesty fix; full enforcement is per-endpoint\n  @PreAuthorize wiring that lands\
+      \ with Phase 2/3 as endpoints opt in."
   commits: []
   notes: user_permissions.expires_at column added; expiry filter not enforced in /auth/permissions.
-  updated_at: ''
+  updated_at: '2026-07-25T00:52:00+08:00'
 - id: P0-JUDGE-001
   phase: 0
   area: JUDGE

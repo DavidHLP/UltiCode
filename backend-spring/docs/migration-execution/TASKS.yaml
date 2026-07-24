@@ -272,7 +272,8 @@
       \ → judge worker) with dispatcher/reaper\n  3. Result outbox (verdict → Contest/Notification/Achievement)\n  4. Feature-flag\
       \ driven dual-write window with exit criteria\n  5. Legacy RQueue deprecation path\n\nAcceptance criteria satisfied:\n\
       \  - Design document (DECISIONS.md ADR-MIG-JUDGE) written\n  - /scripts/dev/test.sh quick passes"
-  commits: []
+  commits:
+  - d2e09a9
   notes: Phase 0 produces design only; implementation phases follow.
   updated_at: '2026-07-25T01:13:00+08:00'
 - id: P0-ARCH-001

@@ -20,6 +20,7 @@ import {
 } from '@/api/admin/moderation'
 import { useDataTable } from '@/composables/useDataTable'
 import { createReportsColumns, type ReportActions } from './reports-columns'
+import { entityRoute } from './workflow/moderationWorkflow'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -48,14 +49,7 @@ const stats = computed(() => ({
 const columns = computed(() => {
   const actions: ReportActions = {
     viewEntity: (report) => {
-      const routes: Record<ModeratableEntityType, string> = {
-        forum_post: `/forum/posts/${report.entityId}`,
-        forum_comment: `/comments/forum/${report.entityId}`,
-        solution: `/solutions/${report.entityId}`,
-        solution_comment: `/comments/solution/${report.entityId}`,
-        problem: `/problems/${report.entityId}`,
-      }
-      router.push(routes[report.entityType])
+      router.push(entityRoute(report.entityType, report.entityId))
     },
     viewInQueue: (report) => {
       if (report.queueId) {

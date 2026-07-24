@@ -1,25 +1,64 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  IconCheck,
-  IconX,
-  IconTrash,
-  IconEyeOff,
-  IconAlertCircle,
-  IconClock,
-  IconBan,
-  IconRefresh,
-  IconScale,
-  IconAlertTriangle,
-} from '@tabler/icons-vue'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
+import {
+  ACTION_CATALOG,
+  findAction,
+} from '../workflow/moderationWorkflow'
+
+/**
+ * Map a workflow ActionColorKey onto the existing CSS variable convention
+ * used by the action panel chrome. Kept here so the workflow module stays
+ * framework-agnostic.
+ */
+type TerminalColorKey =
+  | 'red' | 'amber' | 'green' | 'cyan' | 'purple' | 'info' | 'error' | 'success' | 'warning' | 'neutral' | 'electric'
+
+const ACTION_COLOR_VAR: Record<TerminalColorKey, string> = {
+  red: 'text-[var(--terminal-red)]',
+  amber: 'text-[var(--terminal-amber)]',
+  green: 'text-[var(--terminal-green)]',
+  cyan: 'text-[var(--terminal-cyan)]',
+  purple: 'text-[var(--terminal-purple)]',
+  info: 'text-[var(--terminal-cyan)]',
+  error: 'text-[var(--terminal-red)]',
+  success: 'text-[var(--terminal-green)]',
+  warning: 'text-[var(--terminal-amber)]',
+  neutral: 'text-[var(--silver-500)]',
+  electric: 'text-[var(--accent-electric)]',
+}
+const ACTION_BG_VAR: Record<TerminalColorKey, string> = {
+  red: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+  amber: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+  green: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+  cyan: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+  purple: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
+  info: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+  error: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+  success: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+  warning: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+  neutral: 'bg-[var(--surface-sunken)]',
+  electric: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
+}
+const ACTION_BORDER_VAR: Record<TerminalColorKey, string> = {
+  red: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
+  amber: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+  green: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
+  cyan: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
+  purple: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
+  info: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
+  error: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
+  success: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
+  warning: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+  neutral: 'border-[var(--silver-200)]',
+  electric: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
+}
 
 interface Props {
   item: ModerationQueueItem
@@ -33,7 +72,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const selectedAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)
+const selectedAction = ref(ACTION_CATALOG[0].value)
 const note = ref('')
 const durationDays = ref<number | undefined>(undefined)
 
@@ -41,124 +80,24 @@ const durationDays = ref<number | undefined>(undefined)
 watch(
   () => props.item?.id,
   () => {
-    selectedAction.value = ModerationActionType.RESOLVED
+    selectedAction.value = ACTION_CATALOG[0].value
     note.value = ''
     durationDays.value = undefined
   },
 )
 
-const actionOptions = computed(() => [
-  {
-    value: ModerationActionType.DISMISSED,
-    label: t('moderation.actions.DISMISSED'),
-    description: t('moderation.actionDescriptions.DISMISSED'),
-    icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.RESOLVED,
-    label: t('moderation.actions.RESOLVED'),
-    description: t('moderation.actionDescriptions.RESOLVED'),
-    icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.DELETED,
-    label: t('moderation.actions.DELETED'),
-    description: t('moderation.actionDescriptions.DELETED'),
-    icon: IconTrash,
-    color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.HIDDEN,
-    label: t('moderation.actions.HIDDEN'),
-    description: t('moderation.actionDescriptions.HIDDEN'),
-    icon: IconEyeOff,
-    color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.RESTORED,
-    label: t('moderation.actions.RESTORED'),
-    description: t('moderation.actionDescriptions.RESTORED'),
-    icon: IconRefresh,
-    color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.WARNED,
-    label: t('moderation.actions.WARNED'),
-    description: t('moderation.actionDescriptions.WARNED'),
-    icon: IconAlertCircle,
-    color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.TEMP_BANNED,
-    label: t('moderation.actions.TEMP_BANNED'),
-    description: t('moderation.actionDescriptions.TEMP_BANNED'),
-    icon: IconClock,
-    color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-    requiresDuration: true,
-  },
-  {
-    value: ModerationActionType.PERM_BANNED,
-    label: t('moderation.actions.PERM_BANNED'),
-    description: t('moderation.actionDescriptions.PERM_BANNED'),
-    icon: IconBan,
-    color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.APPEAL_PENDING,
-    label: t('moderation.actions.APPEAL_PENDING'),
-    description: t('moderation.actionDescriptions.APPEAL_PENDING'),
-    icon: IconScale,
-    color: 'text-[var(--terminal-purple)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.APPEAL_APPROVED,
-    label: t('moderation.actions.APPEAL_APPROVED'),
-    description: t('moderation.actionDescriptions.APPEAL_APPROVED'),
-    icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.APPEAL_REJECTED,
-    label: t('moderation.actions.APPEAL_REJECTED'),
-    description: t('moderation.actionDescriptions.APPEAL_REJECTED'),
-    icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-    requiresDuration: false,
-  },
-])
+const actionOptions = computed(() =>
+  ACTION_CATALOG.map((a) => ({
+    value: a.value,
+    label: t(a.labelKey),
+    description: t(a.descriptionKey),
+    icon: a.icon,
+    color: ACTION_COLOR_VAR[a.color] ?? ACTION_COLOR_VAR.red,
+    bgColor: ACTION_BG_VAR[a.color] ?? ACTION_BG_VAR.red,
+    borderColor: ACTION_BORDER_VAR[a.color] ?? ACTION_BORDER_VAR.red,
+    requiresDuration: a.requiresDuration,
+  })),
+)
 
 const selectedOption = computed(() =>
   actionOptions.value.find((opt) => opt.value === selectedAction.value),

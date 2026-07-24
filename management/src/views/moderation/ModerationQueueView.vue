@@ -12,15 +12,8 @@ import {
   IconRefresh,
   IconShield,
   IconLoader2,
-  IconCheck,
-  IconX,
   IconAlertTriangle,
   IconUser,
-  IconTrash,
-  IconEyeOff,
-  IconAlertCircle,
-  IconClock,
-  IconBan,
 } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -31,14 +24,15 @@ import { useModerationStore } from '@/stores/admin/moderation'
 import {
   type ModerationQueueItem,
   ModerationActionType,
-  type ModeratableEntityType,
   ModerationStatus,
   ReportCategory,
   type QueryModerationQueueParams,
+  type ModeratableEntityType,
 } from '@/api/admin/moderation'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
+import { ACTION_CATALOG, isActionable, entityRoute } from './workflow/moderationWorkflow'
 import BatchActionDialog from './components/BatchActionDialog.vue'
 
 const { t } = useI18n()
@@ -80,14 +74,7 @@ const stats = computed(() => ({
 const columns = computed(() => {
   const actions: ModerationActions = {
     viewEntity: (item) => {
-      const routes: Record<ModeratableEntityType, string> = {
-        forum_post: `/forum/posts/${item.entityId}`,
-        forum_comment: `/comments/forum/${item.entityId}`,
-        solution: `/solutions/${item.entityId}`,
-        solution_comment: `/comments/solution/${item.entityId}`,
-        problem: `/problems/${item.entityId}`,
-      }
-      router.push(routes[item.entityType])
+      router.push(entityRoute(item.entityType, item.entityId))
     },
     openDrawer: (item) => {
       selectedQueueItem.value = item
@@ -199,58 +186,28 @@ function handleBatchComplete() {
   loadQueue()
 }
 
-// Action options for drawer
-const actionOptions = computed(() => [
-  {
-    value: ModerationActionType.DISMISSED,
-    label: t('moderation.actions.DISMISSED'),
-    icon: IconX,
-    color: 'text-[var(--terminal-red)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.RESOLVED,
-    label: t('moderation.actions.RESOLVED'),
-    icon: IconCheck,
-    color: 'text-[var(--terminal-green)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.DELETED,
-    label: t('moderation.actions.DELETED'),
-    icon: IconTrash,
-    color: 'text-[var(--terminal-red)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.HIDDEN,
-    label: t('moderation.actions.HIDDEN'),
-    icon: IconEyeOff,
-    color: 'text-[var(--terminal-amber)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.WARNED,
-    label: t('moderation.actions.WARNED'),
-    icon: IconAlertCircle,
-    color: 'text-[var(--terminal-amber)]',
-    requiresDuration: false,
-  },
-  {
-    value: ModerationActionType.TEMP_BANNED,
-    label: t('moderation.actions.TEMP_BANNED'),
-    icon: IconClock,
-    color: 'text-[var(--terminal-amber)]',
-    requiresDuration: true,
-  },
-  {
-    value: ModerationActionType.PERM_BANNED,
-    label: t('moderation.actions.PERM_BANNED'),
-    icon: IconBan,
-    color: 'text-[var(--terminal-red)]',
-    requiresDuration: false,
-  },
-])
+// Action options for drawer — sourced from the workflow module so adding
+// a new ModerationActionType is a one-line change there.
+const actionOptions = computed(() => ACTION_CATALOG.map((a) => ({
+  value: a.value,
+  label: t(a.labelKey),
+  icon: a.icon,
+  color: ACTION_COLOR_VAR[a.color] ?? ACTION_COLOR_VAR.red,
+  requiresDuration: a.requiresDuration,
+})))
+
+/**
+ * Map a workflow ActionColorKey onto the existing CSS variable convention
+ * used by the drawer. Kept here so the workflow module stays
+ * framework-agnostic.
+ */
+const ACTION_COLOR_VAR: Record<string, string> = {
+  red: 'text-[var(--terminal-red)]',
+  amber: 'text-[var(--terminal-amber)]',
+  green: 'text-[var(--terminal-green)]',
+  cyan: 'text-[var(--terminal-cyan)]',
+  purple: 'text-[var(--terminal-purple)]',
+}
 
 const selectedActionOption = computed(() =>
   actionOptions.value.find((opt) => opt.value === drawerAction.value),

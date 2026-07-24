@@ -17,6 +17,7 @@ import {
   type CreateAppealDto,
   type ReviewAppealDto,
 } from '@/api/admin/moderation'
+import { isTerminalStatus } from '@/views/moderation/workflow/moderationWorkflow'
 import { extractApiErrorMessage } from '@/utils/error'
 
 /**
@@ -189,7 +190,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   async function performAction(id: string, data: PerformModerationActionDto) {
     try {
       const item = await moderationQueueApi.performAction(id, data)
-      if (item.status === 'RESOLVED' || item.status === 'DISMISSED') {
+      if (isTerminalStatus(item.status)) {
         queueItems.value = queueItems.value.filter((i) => i.id !== id)
         queueTotal.value = Math.max(0, queueTotal.value - 1)
       } else {
@@ -266,6 +267,11 @@ export const useModerationStore = defineStore('adminModeration', () => {
       const appeal = await appealsApi.reviewAppeal(id, data)
       const index = appeals.value.findIndex((a) => a.id === id)
       if (index !== -1) appeals.value[index] = appeal
+      // Appeal decisions change the dashboard counts (approved/rejected
+      // move items out of PENDING/UNDER_REVIEW). Refresh stats so the
+      // header counters stay in sync; this was previously missing,
+      // leaving the dashboard stale after every appeal review.
+      fetchStats(true)
       return appeal
     } catch (err: unknown) {
       console.error('[ModerationStore] Failed to review appeal:', err)

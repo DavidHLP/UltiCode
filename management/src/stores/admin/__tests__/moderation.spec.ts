@@ -206,6 +206,7 @@ describe('useModerationStore', () => {
       const reviewed = { id: 'a1', status: 'APPROVED' as Appeal['status'] } as Appeal
       store.appeals = [{ id: 'a1', status: 'PENDING' } as unknown as Appeal]
       mockedAppealsApi.reviewAppeal.mockResolvedValueOnce(reviewed)
+      mockedQueueApi.getStats.mockResolvedValueOnce({} as never)
 
       const dto: ReviewAppealDto = { decision: 'APPROVED' }
       const result = await store.reviewAppeal('a1', dto)
@@ -213,6 +214,10 @@ describe('useModerationStore', () => {
       expect(result).toBe(reviewed)
       expect(store.appeals).toHaveLength(1)
       expect(store.appeals[0]).toStrictEqual(reviewed)
+      // Regression: appeal decisions change the dashboard counts; the
+      // store must refresh stats so the header counters stay in sync.
+      // This was previously missing, leaving the dashboard stale.
+      expect(mockedQueueApi.getStats).toHaveBeenCalledTimes(1)
     })
   })
 

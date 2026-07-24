@@ -28,7 +28,8 @@
     result: no prior CREATE TABLE backups found - drift confirmed and resolved
   - command: ./mvnw compile -B
     result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
-  commits: []
+  commits:
+  - 3f1c61fd16f26a5686228e3f87ef7aac01bba462
   notes: Code references backups (BackupMapper, BackupController, Backup entity); migration was missing — drift confirmed
     and resolved.
   updated_at: '2026-07-25T00:30:00+08:00'
@@ -60,7 +61,8 @@
     result: entity maps create_time/update_time directly via @TableField; column rename aligns with @TableField
   - command: ./mvnw compile -B
     result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
-  commits: []
+  commits:
+  - 3f1c61fd16f26a5686228e3f87ef7aac01bba462
   notes: 'Baseline: id/problem_id/user_id/content/updated_at only. Code: create_time/update_time + MEDIUMTEXT. FKs deferred
     to post-orphan-scan (P0-SCHEMA-003).'
   updated_at: '2026-07-25T00:30:00+08:00'
@@ -107,7 +109,8 @@
   - note: 'Cookie binding (constant-time MessageDigest.isEqual) added to OAuthStateModule.validateAndConsume. Tests run: 1791,
       Failures: 0, Errors: 0, Skipped: 4. BUILD SUCCESS at 2026-07-25T00:39:16+08:00 (./mvnw test -B).'
     ts: '2026-07-25T00:39:30+08:00'
-  commits: []
+  commits:
+  - 90c6a0965838aec1e7b14fcad29870b902489080
   notes: Currently OAuthStateModule.issueState sets cookie; callback path calls validateAndConsume only against Redis.
   updated_at: '2026-07-25T00:39:30+08:00'
 - id: P0-SEC-002

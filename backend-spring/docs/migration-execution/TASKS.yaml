@@ -252,7 +252,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#7.1
   - MICROSERVICE_MIGRATION_GUIDE.md#8.3
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
-  status: pending
+  status: done
   depends_on: []
   acceptance_criteria:
   - 'Design document (DECISIONS.md) covering:'
@@ -265,10 +265,16 @@
   - DECISIONS.md ADR-MIG-JUDGE entry written
   - /scripts/dev/test.sh quick or equivalent still passes
   rollback: N/A (design only)
-  evidence: []
+  evidence:
+  - command: /tmp/p0judge001_evidence.txt
+    result: "./scripts/dev/test.sh quick at 2026-07-25T01:12:32+08:00\nResult: All quick checks passed\n\nADR-MIG-JUDGE written\
+      \ to DECISIONS.md covering:\n  1. Generation fence (submission intake via CAS on generation_id)\n  2. Judge outbox (submit\
+      \ → judge worker) with dispatcher/reaper\n  3. Result outbox (verdict → Contest/Notification/Achievement)\n  4. Feature-flag\
+      \ driven dual-write window with exit criteria\n  5. Legacy RQueue deprecation path\n\nAcceptance criteria satisfied:\n\
+      \  - Design document (DECISIONS.md ADR-MIG-JUDGE) written\n  - /scripts/dev/test.sh quick passes"
   commits: []
   notes: Phase 0 produces design only; implementation phases follow.
-  updated_at: ''
+  updated_at: '2026-07-25T01:13:00+08:00'
 - id: P0-ARCH-001
   phase: 0
   area: ARCH

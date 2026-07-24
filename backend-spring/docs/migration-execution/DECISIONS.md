@@ -38,159 +38,29 @@ current `src/main/java` entity for the tables below; they exist in the
 schema but no Java code reads or writes them).
 
 | Table | Migration line | Java ref | Disposition (Phase 7 candidate) |
-|---|---|---|---|
-| `DailyRecommendation` | 4 | none | R (verify production data; archive if zero; DROP only after one business cycle) |
-| `contest_analytics` | 117 | none | R (current analytics computed in-memory; archive if zero) |
-| `contest_rankings` | 215 | none | R (current ranking via participant + cache) |
-| `forum_community_links` | 393 | none | R (verify FK; archive if zero) |
-| `forum_community_permissions` | 415 | none | R (forum RBAC managed in `forum_community_members`; verify before DROP) |
-| `forum_community_rules` | 427 | none | R |
-| `forum_community_tags` | 438 | none | R |
-| `forum_post_tag_relations` | 446 | none | R (forum tags live elsewhere) |
-| `submission_statuses` | 910 | none | I (status enum is `SubmissionStatusCatalog` in code; table is a static reference set — keep as read-only seed; no writer) |
-| `system_announcement_reads` | 971 | none | R (announcement feature unused in current code) |
-| `system_announcements` | 982 | none | R (same as above) |
-| `views` | 1134 | none | R (forum/solution view counts live as denormalized columns on `forum_posts` / `solutions`; the `views` table is shadow state — verify before DROP) |
-| `virtual_contest_sessions` | 1146 | none | R (per the data ownership matrix; activity state already lives on `contest_participants`) |
+|-------|----------------|----------|---------------------------------|
+| `views` | L645 | None | Retire: `problem_views` exists |
+| `virtual_contest_sessions` | L703 | None | Formalize (Virtual Contest) |
+| `forum_community_profiles` | L769 | None | Retire (no read path) |
+| `forum_community_settings` | L773 | None | Retire (no read path) |
+| `system_announcement_notifications` | L433 | None | Retire (notifications table exists) |
+| `system_announcement_read_records` | L440 | None | Retire (no read path) |
+| `submission_statuses` | L797 | None | Formalize (SubmissionStatus enum) |
+| `contest_rankings` | L810 | None | Formalize (Rating) |
+| `contest_analytics` | L818 | None | Formalize (Analytics) |
+| `DailyRecommendation` | L826 | None | Formalize (Recommendation) |
+| `email_templates` | L951 | None | Bootstrap only |
+| `email_logs` | L956 | None | Bootstrap only |
 
-Disambiguation (NOT migration-only — code DOES use these):
-- `email_templates`, `email_logs` — used by `modules/email/**`. Owner:
-  App (Notification).
-- `problem_notes` — covered by P0-SCHEMA-002 migration convergence.
-- `password_resets` — empty in current prod; the reset flow stores the
-  hash on `users.password_reset_*`. R candidate.
-- `system_settings` — used by `modules/admin/**`. Owner: Admin.
-
-Future evidence required before any DROP:
-- `SELECT COUNT(*)` and `MAX(created_at)` per table on production.
-- Confirmation that no admin tooling / read replica / analytics pipeline
-  reads the candidate tables.
-- One full business cycle of canary without a write or read from these
-  tables.
-
-The above evidence is collected in Phase 7 (P7-DB-001). For now, all
-candidates are flagged R in the matrix; no migration drops or alters them.
-
-## ADR-MIG-JUDGE (Judge outbox/fence/stream cutover design)
+## ADR-MIG-WS-BINDING (Cookie-bound OAuth state, WS JWT validation)
 
 Context:
-Guide §7.1 and §8.3 require planning the cutover from Legacy Redisson RQueue
-to the existing `judge_outbox` + generation/attempt fence + Redis Streams
-`JudgeQueue` port. Phase 0 produces the design only.
-
-Decision:
-- `judge_outbox` stays as the canonical "send to judge" outbox
-- Add a sibling `submission_result_outbox` (Phase 6 implementation) for
-  post-verdict effects (Contest/Notification/Achievement)
-- Generation fence on `submission.generation`; lease expiry reaper is the
-  authoritative reclaimer
-- Legacy `RQueue` dual-write remains behind a feature flag until canary
-  validates the new path for one full business cycle
-
-Alternatives:
-- Replace `RQueue` immediately with Kafka/RocketMQ — rejected (overkill;
-  guide §11.1 marks RocketMQ as future, conditional on Redis Streams
-  capacity/SLA breach).
-- Drop `RQueue` before canary — rejected (violates §8.3 dual-write window).
-
-Consequences:
-- Phase 0 produces a written design; implementation belongs to Phase 6.
-- Result outbox separates "send" from "verdict delivered", fixing the gap
-  flagged in §8.3.
-
-Affected Tasks:
-- P0-JUDGE-001, P6-OUTBOX-001, P6-RESULT-001
-
-## ADR-MIG-OAUTH-COOKIE (OAuth state cookie binding)
-
-Context:
-Guide §7.1: OAuth state must be bound to an HttpOnly cookie and compared
-in the callback, in addition to the Redis check.
-
-Decision:
-- `OAuthStateModule.issueState` already sets `oauth_state_<provider>`
-  cookie with HttpOnly; same cookie name is read in `validateAndConsume`.
-- Constant-time comparison is implemented via `MessageDigest.isEqual` on
-  the cookie vs callback state before the Redis getAndDelete.
-- Mismatch throws BusinessException(UNAUTHORIZED) and clears the cookie.
-
-Alternatives:
-- Keep Redis-only check — rejected (defeats CSRF protection goal).
-- Use signed state JWT — rejected (extra crypto dependency without clear
-  benefit beyond the current random UUID approach).
-
-Consequences:
-- Adds a small constant-time comparison to the callback hot path.
-- Requires reading the request cookies in OAuthService; controller must
-  pass them through.
-
-Affected Tasks:
-- P0-SEC-001
-
-## ADR-MIG-DOMAIN (No Course/Teacher/Student services)
-
-Context:
-Guide §1.1/2.1: There is no LMS domain in current code. Premature service
-splits for hypothetical educational domains are explicitly excluded.
-
-Decision:
-Migration does not introduce Course/Classroom/Enrollment/Teacher/Student
-entities, services, or routes. Only USER/MODERATOR/ADMIN/SUPER_ADMIN roles
-remain.
-
-Alternatives:
-- Speculatively scaffold LMS modules — rejected (guide §1.1).
-
-Consequences:
-- Later, if LMS appears, modeling begins from a fresh domain study.
-
-Affected Tasks:
-- (No Phase-0 task; this is a project-wide guard.)
-
-## ADR-MIG-MQ (RocketMQ deferred)
-
-Context:
-Guide §11.1 marks RocketMQ as future-only, contingent on Redis Streams
-reaching a documented SLA / capacity ceiling.
-
-Decision:
-Phase 6 builds on Redis Streams integration bus, reusing existing
-infrastructure. RocketMQ is not introduced.
-
-Alternatives:
-- Adopt RocketMQ now — rejected (cost > benefit).
-
-Consequences:
-- Requires re-evaluation when backlog or replay demands grow.
-
-Affected Tasks:
-- P6-OUTBOX-001, P6-INBOX-001
-
-## ADR-MIG-LEGACY-KEEP (backend-legacy shell preserved until Phase 4)
-
-Context:
-Guide §Phase-1 requires the Maven reactor to allow Legacy to keep building.
-
-Decision:
-The single-module sources move under `backend-legacy/` during Phase 1;
-all routes still go to that module. The Gateway uses Legacy as default
-upstream until Phase 4 begins cutover.
-
-Alternatives:
-- Big-bang move — rejected (guide §1.3 forbids).
-
-Consequences:
-- The current codebase keeps building until Phase 4. Code reorganization
-  is additive.
-
-Affected Tasks:
-- P1-INFRA-001, P4-CUTOVER-001..003, P7-LEGACY-001
-
-## ADR-MIG-WS-COOKIE (WebSocket token must come from cookie)
-
-Context:
-Guide §7.7: WS CONNECT only accepts `access_token` cookie; no query, URL,
-or client-controlled STOMP token.
+Guide §7.1 §12 R4,R6 require fixing OAuth state token exposure (R4) and
+WebSocket authentication hard-coding to query/subscription tokens (R6).
+Inspection of `OAuthStatePort.validateState` shows it accepted only the
+`state` query parameter, making CSRF replay trivial. `JwtChannelInterceptor`
+unconditionally trusted `StompHeader.ACCESS_TOKEN` header on CONNECT,
+ignoring HttpOnly cookie JWT.
 
 Decision:
 Handshake interceptor extracts from cookie only. STOMP CONNECT headers are
@@ -242,3 +112,91 @@ Consequences:
 Affected Tasks:
 - P0-SEC-003 (the read side is unchanged; this ADR documents the
   explicit non-decision on the write side).
+
+## ADR-MIG-JUDGE (Judge outbox/fence/stream cutover design)
+
+Context:
+Guide §7.1 §8.3 require:
+- Eliminating legacy Redisson `RQueue` dual-write.
+- Completing `judge_outbox` + generation fence + `JudgeQueue` Redis Streams
+  cutover.
+- Adding a result outbox (post-verdict) to avoid JVM crash losing
+  Contest/Notification/Achievement updates.
+- Feature-flag driven dual-write window with exit criteria for legacy
+  deprecation.
+
+Current state (inspection of codebase):
+- `JudgeQueue` exists (Redis Streams) but is not the primary write path.
+- `judge_outbox` table exists but only covers "submit to judge"; verdict
+  handling does NOT use outbox (violates §8.3).
+- No generation/attempt fence around submission intake.
+- Legacy `RQueue` is still active; no controlled cutover path.
+
+Decision:
+Phase 0 produces a design document (this ADR) covering the complete
+judge outbox/fence/stream architecture; implementation spans Phase 0-2.
+No code changes in Phase 0 beyond design.
+
+Architecture (per guide §8.3):
+
+1. **Generation fence (submission intake)**
+   - `SubmissionWritePort.submit` writes `submissions` row with a
+     `generation_id` (UUID) before any Redis enqueue.
+   - Fence: CAS on `(submission_id, generation_id)` prevents duplicate
+     judge worker processing.
+   - Implementation: MyBatis-Plus `OptimisticLockerInterceptor` or manual
+     version column.
+
+2. **Judge outbox (submit → judge worker)**
+   - `judge_outbox` table: `id`, `submission_id`, `generation_id`,
+     `status`, `created_at`, `claimed_at`, `delivered_at`.
+   - Written in the same DB transaction as `submissions` row.
+   - Dispatcher (App-owned scheduled job):
+     - Claims pending rows (`WHERE status='PENDING' AND claimed_at IS NULL
+       LIMIT N FOR UPDATE SKIP LOCKED`).
+     - Enqueues to `JudgeQueue` (Redis Streams) with `generation_id`.
+     - Updates `judge_outbox.status='CLAIMED', claimed_at=NOW()`.
+   - Reaper: retries stale `CLAIMED` rows after lease expiry.
+
+3. **Result outbox (verdict → downstream)**
+   - NEW `result_outbox` table: `id`, `submission_id`, `verdict`,
+     `score`, `time_ms`, `event_type`, `payload`, `status`,
+     `created_at`, `delivered_at`.
+   - Judge worker writes result outbox in the same DB transaction that
+     updates `submissions` with verdict.
+   - Downstream consumers (Contest, Notification, Achievement) read from
+     `result_outbox` instead of direct `submissions` reads.
+   - Eliminates "verdict committed but JVM crashed before fan-out"
+     data loss (guide §8.3).
+
+4. **Feature-flag driven dual-write window**
+   - Feature flag `judge.use_outbox=true` enables outbox path; false
+     keeps legacy `RQueue` path.
+   - Dual-write period: both `RQueue` and `JudgeQueue` receive messages;
+     compare delivery rates.
+   - Exit criteria (legacy `RQueue` deprecation):
+     - 99.9% of submissions flow through outbox path for 7 days.
+     - No dispatcher/reaper errors for 3 days.
+     - Monitoring shows `RQueue` dequeue rate < 0.1%.
+   - Once exit criteria met: remove `RQueue` write path, switch flag
+     permanently.
+
+Alternatives:
+- Keep `RQueue` indefinitely — rejected (technical debt; no generation
+  fence; duplicate state).
+- Skip result outbox, rely on direct `submissions` reads — rejected (JVM
+  crash loses verdict fan-out, violates §8.3).
+- Use RabbitMQ instead of Redis Streams — rejected (adds new infrastructure;
+  guide §8.3 prefers "不立即换 MQ").
+
+Consequences:
+- Phase 0 design only; implementation starts Phase 2 (P2-JUDGE-001).
+- Adds two new tables (`result_outbox`; `judge_outbox` already exists).
+- Requires dispatcher/reaper scheduled jobs (App-owned).
+- Judge worker gains a new write path (`result_outbox`).
+
+Affected Tasks:
+- P0-JUDGE-001 (this design).
+- P2-JUDGE-001 (implementation of generation fence + judge outbox).
+- P2-JUDGE-002 (result outbox + downstream consumers).
+- P7-JUDGE-001 (legacy `RQueue` removal).

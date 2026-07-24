@@ -128,3 +128,39 @@ Append-only log of significant events. NOT a task state source of truth
   (ADR-MIG-INV extension). No schema change.
 - P0-SEC-002 — OAuth provider identity & verified-email binding
   (depends on P0-SEC-001, now unblocked).
+
+- [2026-07-25T01:11:00+08:00] P0-SEC-002 done (commit f1be01b)
+  • Created oauth_provider_identities table (V20260724165931)
+  • Added OAuthUserInfo.emailVerified field
+  • OAuthService refuses auto-link on unverified email
+  • 1799 tests pass
+
+
+- [2026-07-25T01:13:00+08:00] P0-JUDGE-001 done (commit d2e09a9)
+  • ADR-MIG-JUDGE design written to DECISIONS.md
+  • Generation fence, judge outbox, result outbox, dual-write window
+  • Quick checks pass
+
+
+- [2026-07-25T01:14:30+08:00] P0-ARCH-001 done (commit fac3d61)
+  • Created TABLE_OWNERS.md (64 active tables + 12 migration-only)
+  • Cross-referenced from COVERAGE.md
+  • Quick checks pass
+
+
+- [2026-07-25T01:24:00+08:00] P0-ARCH-002 done (commit 69cb328)
+  • Added archunit-junit5 1.2.0 dependency
+  • OwnerBoundaryArchTest with 4 frozen rules (admin→contest, moderation→users, submission→queue.service, submission→queue.outbox)
+  • Baseline: 8+3+4+3 = 18 source files across 188 ArchUnit events
+  • ADR-MIG-ARCH-BOUNDARY written to DECISIONS.md
+  • Freeze store committed to git for drift detection
+  • ./mvnw test -B passes (5 tests, 0 failures)
+
+
+- [2026-07-25T01:25:30+08:00] P0-GATE done (commit 7773daa)
+  • Phase 0 closed: all 10 tasks done
+  • ./mvnw verify -B PASS (1804 tests, 0 failures)
+  • JaCoCo check PASS
+  • ArchUnit baseline green
+  • Legacy judge feature-flagged
+  • All migrations additive

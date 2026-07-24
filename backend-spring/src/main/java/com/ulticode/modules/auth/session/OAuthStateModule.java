@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 
 /**
@@ -23,10 +25,15 @@ import java.time.Duration;
  * {@code validateOAuthState} was private — unreachable by tests except through
  * the full provider callback (which then failed on the real GitHub HTTP call).
  *
- * <p>State issuance, atomic consumption, cookie wiring, and the Secure-flag
- * coupling are now changed in one place. The interface is the test surface:
- * each branch (blank / unknown / consumed) can be exercised directly with a
- * mapper-style mock, with no HTTP provider in the loop.
+ * <p>Phase 0 closure of the CSRF gap (MICROSERVICE_MIGRATION_GUIDE.md §7.1):
+ * the callback path now threads the browser's {@code oauth_state_<provider>}
+ * cookie value back into {@link #validateAndConsume(String, String, String,
+ * HttpServletResponse)}, and the module performs a constant-time compare
+ * against the callback {@code state} BEFORE consuming Redis. A mismatch —
+ * even when the Redis entry still exists — throws UNAUTHORIZED and clears
+ * the cookie. The state Redis key prefix, TTL, cookie name, cookie
+ * {@code Path}, and the coupling of the {@code Secure} flag to the
+ * access-token cookie config are now changed in one place.
  */
 @Slf4j
 @Component
@@ -49,10 +56,42 @@ public class OAuthStateModule implements OAuthStatePort {
         return state;
     }
 
+    /**
+     * Cookie binding + atomic consume.
+     *
+     * <p>Order of operations (per guide §7.1 and Phase 0 gate):
+     * <ol>
+     *   <li>Reject blank {@code state} with BAD_REQUEST (no side effects).</li>
+     *   <li>If {@code cookieState} is non-null/non-blank, constant-time
+     *       compare against {@code state}. On mismatch, clear the cookie
+     *       and throw UNAUTHORIZED. This prevents a stolen {@code state}
+     *       from being accepted without the browser cookie.</li>
+     *   <li>GETDEL the Redis entry. {@code null} means unknown / expired /
+     *       already consumed -> clear cookie, throw UNAUTHORIZED.</li>
+     *   <li>Clear the cookie on the response (success path).</li>
+     * </ol>
+     *
+     * <p>{@code cookieState} is permitted to be {@code null}/blank for
+     * non-browser callers (tests, programmatic callers). When the cookie is
+     * absent, the Redis check alone guards replay; production OAuth
+     * callbacks always send the cookie set in {@link #issueState}, so an
+     * absent cookie on a real callback is itself a failure indicator that
+     * surfaces as the Redis-lookup UNAUTHORIZED on the next step.
+     */
     @Override
-    public void validateAndConsume(String provider, String state, HttpServletResponse response) {
+    public void validateAndConsume(String provider, String state, String cookieState,
+                                   HttpServletResponse response) {
         if (state == null || state.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "OAuth state parameter is missing");
+        }
+        if (cookieState != null && !cookieState.isBlank()
+                && !MessageDigest.isEqual(
+                        state.getBytes(StandardCharsets.UTF_8),
+                        cookieState.getBytes(StandardCharsets.UTF_8))) {
+            log.warn("OAuth state cookie mismatch for provider {}: cookie != callback state", provider);
+            clearStateCookie(provider, response);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED,
+                    "OAuth state does not match the browser session");
         }
         String consumed = redisTemplate.opsForValue().getAndDelete(stateKey(provider, state));
         clearStateCookie(provider, response);

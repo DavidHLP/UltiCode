@@ -177,8 +177,9 @@ public class AuthController {
     @Operation(summary = "GitHub callback", description = "Handle GitHub OAuth callback")
     @GetMapping("/github/callback")
     public void githubCallback(@RequestParam String code, @RequestParam String state,
-                               HttpServletResponse response) throws IOException {
-        oauthService.handleGithubCallback(code, state, response);
+                               HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String cookieState = extractOAuthStateCookie(request, "github");
+        oauthService.handleGithubCallback(code, state, cookieState, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
@@ -192,9 +193,32 @@ public class AuthController {
     @Operation(summary = "Google callback", description = "Handle Google OAuth callback")
     @GetMapping("/google/callback")
     public void googleCallback(@RequestParam String code, @RequestParam String state,
-                               HttpServletResponse response) throws IOException {
-        oauthService.handleGoogleCallback(code, state, response);
+                               HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String cookieState = extractOAuthStateCookie(request, "google");
+        oauthService.handleGoogleCallback(code, state, cookieState, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
+    }
+
+    /**
+     * Extract the {@code oauth_state_<provider>} HttpOnly cookie from the
+     * incoming callback request. Returns {@code null} when the cookie is
+     * absent (programmatic callers, missing cookies). The OAuth state
+     * module treats a {@code null}/blank cookie as "no client-side state
+     * to bind"; production browser callers always send the cookie set in
+     * {@code OAuthStateModule.issueState}.
+     */
+    private String extractOAuthStateCookie(HttpServletRequest request, String provider) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        String cookieName = "oauth_state_" + provider;
+        for (Cookie cookie : cookies) {
+            if (cookieName.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 
     /**

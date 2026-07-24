@@ -41,11 +41,14 @@ import java.util.Map;
  *       {@link AuthSessionPort}.</li>
  * </ol>
  *
- * <p>The public API ({@code getGithubAuthUrl}, {@code getGoogleAuthUrl},
- * {@code handleGithubCallback}, {@code handleGoogleCallback}) is preserved
- * so {@code AuthController} does not need to change — the controller
- * dispatches by name, the coordinator picks the matching adapter by
- * provider key.
+ * <p>The public callback API
+ * ({@code handleGithubCallback}, {@code handleGoogleCallback}) carries the
+ * callback's {@code state} query parameter AND the value of the
+ * {@code oauth_state_<provider>} HttpOnly cookie. The cookie-binding
+ * constant-time compare lives inside {@link OAuthStatePort#validateAndConsume};
+ * this coordinator only forwards both values and lets the port enforce the
+ * invariant. AuthController extracts the cookie from the request and threads
+ * it here.
  */
 @Slf4j
 @Service
@@ -94,8 +97,9 @@ public class OAuthService {
         return buildAuthUrl("github", response);
     }
 
-    public LoginResponse handleGithubCallback(String code, String state, HttpServletResponse response) {
-        return handleCallback("github", code, state, response);
+    public LoginResponse handleGithubCallback(String code, String state,
+                                              String cookieState, HttpServletResponse response) {
+        return handleCallback("github", code, state, cookieState, response);
     }
 
     // ==================== Google OAuth ====================
@@ -104,8 +108,9 @@ public class OAuthService {
         return buildAuthUrl("google", response);
     }
 
-    public LoginResponse handleGoogleCallback(String code, String state, HttpServletResponse response) {
-        return handleCallback("google", code, state, response);
+    public LoginResponse handleGoogleCallback(String code, String state,
+                                              String cookieState, HttpServletResponse response) {
+        return handleCallback("google", code, state, cookieState, response);
     }
 
     // ==================== Coordinator internals ====================
@@ -118,12 +123,14 @@ public class OAuthService {
     }
 
     private LoginResponse handleCallback(String provider, String code, String state,
-                                         HttpServletResponse response) {
-        // Security invariant #5: atomically consume the state. Throws on
-        // blank / unknown / replayed state. Stays here (not in OAuthClient)
-        // because the state contract is cross-provider, not GitHub- or
-        // Google-specific.
-        oauthStatePort.validateAndConsume(provider, state, response);
+                                         String cookieState, HttpServletResponse response) {
+        // Security invariant #5: bind the callback state to the browser's
+        // oauth_state_<provider> cookie via constant-time compare inside the
+        // module, then atomically consume the Redis entry. Throws on blank
+        // state, cookie/state mismatch, or unknown/expired/replayed state.
+        // The state contract is cross-provider, not GitHub- or Google-
+        // specific, so it stays in the port rather than each OAuthClient.
+        oauthStatePort.validateAndConsume(provider, state, cookieState, response);
 
         OAuthClient client = requireClient(provider);
         String redirectUri = redirectUriFor(provider);

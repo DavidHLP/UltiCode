@@ -201,13 +201,13 @@ class OAuthServiceTest {
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
-            LoginResponse response = oauthService.handleGithubCallback(CODE, STATE, null);
+            LoginResponse response = oauthService.handleGithubCallback(CODE, STATE, null, null);
 
             assertThat(response).isNotNull();
             assertThat(response.getCsrfToken()).isEqualTo("csrf-stub");
 
             // State validation always runs first (security invariant #5).
-            verify(oauthStatePort).validateAndConsume("github", STATE, null);
+            verify(oauthStatePort).validateAndConsume("github", STATE, null, null);
             // Provider dispatch: only the github client sees HTTP calls.
             verify(githubClient).exchangeCodeForToken(CODE, GITHUB_REDIRECT);
             verify(githubClient).fetchUserInfo(ACCESS_TOKEN);
@@ -249,7 +249,7 @@ class OAuthServiceTest {
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
-            oauthService.handleGithubCallback(CODE, STATE, null);
+            oauthService.handleGithubCallback(CODE, STATE, null, null);
 
             verify(accountPort).updateAvatar(eq(existing.getId()), eq(AVATAR));
             verify(accountPort, never()).create(any(User.class));
@@ -271,7 +271,7 @@ class OAuthServiceTest {
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
-            oauthService.handleGithubCallback(CODE, STATE, null);
+            oauthService.handleGithubCallback(CODE, STATE, null, null);
 
             verify(accountPort, never()).create(any(User.class));
             verify(accountPort, never()).updateAvatar(anyString(), anyString());
@@ -288,10 +288,10 @@ class OAuthServiceTest {
             when(authSessionPort.completeLogin(any(User.class), eq(null)))
                 .thenReturn(stubSessionResponse());
 
-            LoginResponse response = oauthService.handleGoogleCallback(CODE, STATE, null);
+            LoginResponse response = oauthService.handleGoogleCallback(CODE, STATE, null, null);
 
             assertThat(response).isNotNull();
-            verify(oauthStatePort).validateAndConsume("google", STATE, null);
+            verify(oauthStatePort).validateAndConsume("google", STATE, null, null);
             verify(googleClient).exchangeCodeForToken(CODE, GOOGLE_REDIRECT);
             verify(googleClient).fetchUserInfo("g-access-token");
             verify(githubClient, never()).exchangeCodeForToken(anyString(), anyString());
@@ -305,9 +305,9 @@ class OAuthServiceTest {
         @DisplayName("state validation failure short-circuits before any HTTP call")
         void github_stateFailure_noHttpCalls() {
             doThrow(new BusinessException(ErrorCode.UNAUTHORIZED, "bad state"))
-                .when(oauthStatePort).validateAndConsume(eq("github"), eq(STATE), any());
+                .when(oauthStatePort).validateAndConsume(eq("github"), eq(STATE), any(), any());
 
-            assertThatThrownBy(() -> oauthService.handleGithubCallback(CODE, STATE, null))
+            assertThatThrownBy(() -> oauthService.handleGithubCallback(CODE, STATE, null, null))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                     .isEqualTo(ErrorCode.UNAUTHORIZED));
@@ -332,9 +332,9 @@ class OAuthServiceTest {
             when(authSessionPort.completeLogin(any(User.class), eq(response)))
                 .thenReturn(stubSessionResponse());
 
-            oauthService.handleGithubCallback(CODE, STATE, response);
+            oauthService.handleGithubCallback(CODE, STATE, null, response);
 
-            verify(oauthStatePort).validateAndConsume("github", STATE, response);
+            verify(oauthStatePort).validateAndConsume("github", STATE, null, response);
             verify(authSessionPort).completeLogin(any(User.class), eq(response));
         }
     }

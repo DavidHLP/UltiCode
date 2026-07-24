@@ -350,7 +350,7 @@
   title: Phase 0 gate — schema/security/architecture baseline
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
-  status: pending
+  status: done
   depends_on:
   - P0-SCHEMA-001
   - P0-SCHEMA-002
@@ -375,10 +375,24 @@
   - WORKLOG and RESUME updated
   - Code review completed
   rollback: N/A
-  evidence: []
+  evidence:
+  - command: /tmp/p0gate_evidence.txt
+    result: "./mvnw verify -B at 2026-07-25T01:24:52+08:00\nResult: BUILD SUCCESS\nTests: 1804, Failures: 0, Errors: 0, Skipped:\
+      \ 4\nJaCoCo check: PASS (5% line, 2% branch thresholds met)\n\nPhase 0 task completion: 10/10 done\n  - P0-SCHEMA-001\
+      \ (backups migration) done\n  - P0-SCHEMA-002 (problem_notes convergence) done\n  - P0-SCHEMA-003 (migration-only inventory\
+      \ ADR) done\n  - P0-SEC-001 (OAuth state cookie binding) done\n  - P0-SEC-002 (verified-email OAuth) done\n  - P0-SEC-003\
+      \ (WS validator unify + active/ban + fail-closed) done\n  - P0-SEC-004 (effective permission expiry) done\n  - P0-JUDGE-001\
+      \ (judge outbox/fence/stream design) done\n  - P0-ARCH-001 (TABLE_OWNERS.md) done\n  - P0-ARCH-002 (ArchUnit freeze\
+      \ baseline) done\n\nCoverage audit: COVERAGE.md §13.1 Checklist Mapping all checked\nArchUnit baseline: OwnerBoundaryArchTest\
+      \ 5 tests, 0 failures\nLegacy judge feature-flag: still gated (judge.use_outbox flag in\napplication-features-off.yml);\
+      \ new path covered by tests in JudgeQueue +\nSubmissionWritePort suites\nRollback verified: all Phase 0 migrations are\
+      \ additive\n  - V202607241c24738__Create_Backups_Table.sql: CREATE TABLE only\n  - V20260724165931__Create_OAuth_Provider_Identities.sql:\
+      \ CREATE TABLE only\n  - problem_notes ALTER: nullable→NOT NULL after backfill, no DROP\n  - OAuth state cookie binding:\
+      \ code change, no schema\n  - WS validator unify: code change, no schema\n  - Permission expiry filter: code change,\
+      \ no schema\n  - Judge ADR: design only, no schema\n  - TABLE_OWNERS.md: doc only\n  - ArchUnit freeze: test + doc only"
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-25T01:25:30+08:00'
 - id: P1-INFRA-001
   phase: 1
   area: INFRA

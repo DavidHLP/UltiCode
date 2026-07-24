@@ -117,22 +117,15 @@ public class GithubOAuthClient implements OAuthClient {
             // Phase 0 / MICROSERVICE_MIGRATION_GUIDE.md §7.1: GitHub's
             // /user endpoint exposes `email` only when the user has set
             // it as PUBLIC AND verified it. A null/blank email means we
-            // cannot verify ownership, so we refuse to auto-link by
-            // email. (For richer verification, fetch /user/emails with
-            // the `user:email` scope — already requested per
-            // application.yml — and pick primary + verified. That is a
-            // Phase 2 enhancement; Phase 0's minimum is "don't merge
-            // unverified".)
+            // cannot verify ownership. The verified-email auto-link guard
+            // lives in OAuthService.createOrUpdateUser, not here.
             String email = userNode.has("email") && !userNode.get("email").isNull()
                     ? userNode.get("email").asText() : null;
-            if (email == null || email.isBlank()) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS,
-                    "GitHub account email is not public; cannot verify ownership");
-            }
             String avatar = userNode.has("avatar_url") ? userNode.get("avatar_url").asText() : null;
+            // GitHub public email implies verification; null/blank means unverified.
+            boolean emailVerified = (email != null && !email.isBlank());
 
-            // Public + verified by GitHub's privacy model.
-            return new OAuthUserInfo(githubId, name, email, avatar, true);
+            return new OAuthUserInfo(githubId, name, email, avatar, emailVerified);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse GitHub user response", e);
             throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Failed to get GitHub user info", e);

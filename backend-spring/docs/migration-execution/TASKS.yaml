@@ -160,10 +160,22 @@
       \ Phase 0 only addresses the verified-\n  email auto-link risk (R4 in guide §12). Production may have email\n  duplicates\
       \ from historical data drift; adding UNIQUE without\n  backfill is dangerous and is excluded from Phase 0 per guide\
       \ §15."
+  - command: /tmp/p0sec002_evidence.txt
+    result: "./mvnw test -B at 2026-07-25T01:10:40+08:00\nResult: BUILD SUCCESS\nAggregate: Tests run: 1799, Failures: 0,\
+      \ Errors: 0, Skipped: 4\n\nAcceptance criteria:\n  1. Provider identity table or columns capture (provider, provider_user_id)\n\
+      \     separately from users.email: V20260724165931__Create_OAuth_Provider_Identities.sql\n     creates table with (provider,\
+      \ provider_user_id) UNIQUE.\n  2. Verified-email enforcement for OAuth auto-link: OAuthUserInfo 5-arg\n     record (emailVerified\
+      \ field). Google client parses email_verified,\n     GitHub client infers from public email presence. OAuthService\n\
+      \     createOrUpdateUser refuses auto-link when existing user matches but\n     emailVerified=false.\n  3. Existing\
+      \ users.email uniqueness enforced at DB level: explicitly\n     deferred to Phase 5 (P5-SCHEMA-001 / P5-USERPROFILE-001)\
+      \ per\n     acceptance criterion text.\n\nTests:\n  OAuthServiceTest: 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n\
+      \  GithubOAuthClientTest: 8 -> 8 (no test count change, but emailVerified\n    parsing added).\n  GoogleOAuthClientTest:\
+      \ 3 -> 3 (no test count change, but emailVerified\n    parsing added).\n  All OAuth tests pass.\n\nMigration syntax-checked\
+      \ via MySQL at 2026-07-25T01:07:00+08:00: no errors."
   commits:
   - 252074d8a93dc58f4bd17313c3038e96e18a953d
   notes: Currently users.email has no UNIQUE constraint at DB level.
-  updated_at: '2026-07-25T00:59:00+08:00'
+  updated_at: '2026-07-25T01:11:00+08:00'
 - id: P0-SEC-003
   phase: 0
   area: SEC

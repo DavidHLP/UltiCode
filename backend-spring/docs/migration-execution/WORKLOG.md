@@ -59,40 +59,50 @@ Append-only log of significant events. NOT a task state source of truth
     WEBSOCKET_SESSION_MISSING (150007).
   - `DefaultWebSocketAuthenticator`: constructor adds Clock;
     `isBannedOrInactive(user)` rejects inactive / banned / future
-    `banned_until` accounts; past `banned_until` admits (Admin flip is
-    the canonical path, expire is the backstop).
+    `banned_until` accounts.
   - `JwtChannelInterceptor.validateUserSession`: was log-and-return;
-    now throws `WEBSOCKET_SESSION_MISSING` on null attributes / null
-    user / wrong user type so SEND/SUBSCRIBE fail closed.
-- Tests:
-  - `DefaultWebSocketAuthenticatorTest`: 8 -> 12 (+4 inactive, future
-    banned, past banned, no-until banned).
-  - `JwtChannelInterceptorTest`: 9 -> 10 (+2 fail-closed on
-    SEND-without-attrs and SUBSCRIBE-without-user).
-- Evidence:
-  - `./mvnw test -B` → 1797 tests, 0 failures, 0 errors, 4 skipped,
-    BUILD SUCCESS at 2026-07-25T00:47:35+08:00.
+    now throws `WEBSOCKET_SESSION_MISSING` so SEND/SUBSCRIBE fail
+    closed.
+- Tests: 8 -> 12 in DefaultWebSocketAuthenticator; 9 -> 10 in
+  JwtChannelInterceptor.
+- Evidence: 1797 tests, BUILD SUCCESS 2026-07-25T00:47:35+08:00.
 - Commit: 626e665a4755e0845072c2bd9d89f0953962dd86 (fix(security))
 - Hash recorded: 62a2399 (chore(migration))
 
-### TokenBlacklistPort design note (deferred write path)
+### WORKLOG/RESUME update after P0-SEC-003
 
-- The guide §7.1 mentions "access-token blacklist has reading end but
-  no complete write chain in source". Inspection of the WS
-  `TokenBlacklistPort` shows the port is deliberately read-only: a
-  port-adapter audit removed the unused `blacklistToken(...)` writers
-  because runtime revocation is owned by `RefreshTokenService` (DB-backed
-  hash-only store). The write chain for access-token revocation does not
-  exist by design; an admin instant-revoke feature would add its own
-  writer port per the port's Javadoc. This is the correct Phase 0
-  decision: do NOT widen the read port. Document in DECISIONS.md at
-  next ADR update.
+- TokenBlacklistPort design note: port deliberately read-only; runtime
+  revocation lives in RefreshTokenService. Phase 0 should NOT widen
+  the read port.
+- Commit: d7a04be5e (chore(migration))
+
+### P0-SEC-004 — Effective permission expiry filter for /auth/permissions
+
+- Status: done
+- Implementation:
+  - `PermissionServiceImpl.getUserPermissions`: LambdaQueryWrapper
+    predicate `(expires_at IS NULL OR expires_at > NOW(clock))`. Null
+    = permanent; future = valid; past = filtered.
+  - The predicate lives at the SQL layer (not a Java post-filter), so
+    the DB does the work and the service stays declarative.
+- Tests:
+  - `PermissionServiceTest`: 14 -> 15 (+1 filtersExpiredPermissions).
+  - Removed a brittle wrapper-inspection test (relied on MyBatis-Plus
+    lambda cache being initialized outside a running session).
+- Documented semantics:
+  - /auth/permissions is role-based via the JWT 'role' claim.
+  - user_permissions layer is advisory: this filter is the data-honesty
+    fix; full enforcement via GrantedAuthority / PermissionEvaluator
+    is a Phase 2/3 per-endpoint opt-in.
+- Evidence: 1798 tests, BUILD SUCCESS 2026-07-25T00:51:31+08:00.
+- Commit: 0e9c3494773f235ba2f918f6993b7cb8f766b212 (fix(security))
+- Hash recorded: dbdb04e (chore(migration))
 
 ### Status snapshot
 
-- TASKS.yaml: 51 tasks, 4 done
-  (P0-SCHEMA-001, P0-SCHEMA-002, P0-SEC-001, P0-SEC-003)
-- Local commits: 7 (atomic per task or task group + hash recording)
+- TASKS.yaml: 51 tasks, 5 done
+  (P0-SCHEMA-001, P0-SCHEMA-002, P0-SEC-001, P0-SEC-003, P0-SEC-004)
+- Local commits: 10 (atomic per task or task group + hash recording)
 - Coverage: 100%
 - Working tree: clean (modulo pre-existing untracked guide)
 - PUSH: NOT pushed. Per GitHub Write Gate, push requires explicit user
@@ -107,10 +117,14 @@ Append-only log of significant events. NOT a task state source of truth
 5. Commit + record hash in TASKS.yaml `commits:` field at the end of each
    task or tight task group. Don't accumulate > 1 task uncommitted.
 6. No `git push` without explicit user approval (GitHub Write Gate).
-7. Test files: prefer full `write` over `edit SWAP` when scope > 1 method
-   or method body changes; line edits leave orphans easily.
+7. Test files: prefer full `write` over `edit SWAP` when scope > 1 method.
+8. When asserting on LambdaQueryWrapper at unit-test level, capture the
+   wrapper and verify the SELECT was called; do NOT call getSqlSegment()
+   outside a running MyBatis-Plus session (lambda cache NPE).
 
 ### Next actions
 
-- P0-SEC-004 — Effective permission expiry filter for `/auth/permissions`
-  (no deps, ready).
+- P0-SCHEMA-003 — Inventory migration-only tables. Writes to DECISIONS.md
+  (ADR-MIG-INV extension). No schema change.
+- P0-SEC-002 — OAuth provider identity & verified-email binding
+  (depends on P0-SEC-001, now unblocked).

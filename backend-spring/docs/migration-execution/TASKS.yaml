@@ -1,0 +1,1195 @@
+- id: P0-SCHEMA-001
+  phase: 0
+  area: SCHEMA
+  title: Add canonical migration for `backups` table
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.1
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - New Flyway migration V{timestamp}__Create_Backups_Table.sql creates `backups` with id (varchar 40 PK), filename, size,
+    type enum, status enum, created_by, created_at, completed_at, metadata JSON, error — matching the Backup entity @TableName("backups").
+  - Migration is additive; no applied migration is modified.
+  - Backward-compatible with existing BackupMapper and BackupService CRUD.
+  validation:
+  - ./mvnw compile -B
+  - Migration listed at init-db/migrations/V20260724162738__Create_Backups_Table.sql
+  - Backup entity columns map 1:1 to new table columns
+  rollback:
+  - DROP TABLE backups; if data must be preserved first, dump before rollback.
+  evidence:
+  - file: init-db/migrations/V20260724162738__Create_Backups_Table.sql
+    result: created with columns id,filename,size,type enum,status enum,created_by,created_at,completed_at,metadata JSON,error
+      matching Backup entity
+  - file: backend-spring/src/main/java/com/ulticode/modules/backup/entity/Backup.java
+    result: 1:1 column mapping with new migration (10 fields)
+  - file: init-db/migrations/
+    result: no prior CREATE TABLE backups found - drift confirmed and resolved
+  - command: ./mvnw compile -B
+    result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
+  commits: []
+  notes: Code references backups (BackupMapper, BackupController, Backup entity); migration was missing — drift confirmed
+    and resolved.
+  updated_at: '2026-07-25T00:30:00+08:00'
+- id: P0-SCHEMA-002
+  phase: 0
+  area: SCHEMA
+  title: Converge `problem_notes` schema drift
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.1
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - Follow-up ALTER migration reconciles baseline `problem_notes` (id/problem_id/user_id/content/updated_at) with code-mapped
+    `create_time/update_time`, varchar(40) user_id, MEDIUMTEXT content.
+  - Existing data preserved; orphan references scanned before any FK add.
+  - content type widened to MEDIUMTEXT only (no narrowing).
+  validation:
+  - ./mvnw compile -B
+  - Migration listed at init-db/migrations/V20260724162800__Converge_Problem_Notes_Schema.sql
+  - ProblemNote entity columns map 1:1 to converged columns
+  rollback:
+  - Additive migration; rollback = restore backup taken before ALTER.
+  evidence:
+  - file: init-db/migrations/V20260724162800__Converge_Problem_Notes_Schema.sql
+    result: adds create_time nullable then backfills from updated_at; renames updated_at to update_time; widens content to
+      MEDIUMTEXT; adds idx_create_time. No FK (gated on orphan scan per P0-SCHEMA-003)
+  - file: backend-spring/src/main/java/com/ulticode/modules/problem/entity/ProblemNote.java
+    result: entity maps create_time/update_time directly via @TableField; column rename aligns with @TableField
+  - command: ./mvnw compile -B
+    result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
+  commits: []
+  notes: 'Baseline: id/problem_id/user_id/content/updated_at only. Code: create_time/update_time + MEDIUMTEXT. FKs deferred
+    to post-orphan-scan (P0-SCHEMA-003).'
+  updated_at: '2026-07-25T00:30:00+08:00'
+- id: P0-SCHEMA-003
+  phase: 0
+  area: SCHEMA
+  title: Inventory migration-only tables (production write audit)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.1
+  status: pending
+  depends_on: []
+  acceptance_criteria:
+  - Inventory document listing every migration-only table, last-known DDL, and placeholder in WORKLOG / DECISIONS.
+  - No DROP performed in Phase 0; flag candidates for future R-decision.
+  validation:
+  - DECISIONS.md ADR-MIG-INV entry written
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P0-SEC-001
+  phase: 0
+  area: SEC
+  title: Bind OAuth state cookie + atomic Redis consume
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.1
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: done
+  depends_on: []
+  acceptance_criteria:
+  - OAuth callback reads `oauth_state_<provider>` cookie value.
+  - Cookie state compared to callback state via constant-time compare.
+  - Redis state consumed atomically (GETDEL or DEL inside Redis script).
+  - State cookie cleared on response regardless of match outcome.
+  - Mismatch / replay / missing / blank path covered with tests.
+  validation:
+  - Unit test for OAuthStateModule.issueState + validateAndConsume on mismatch
+  - Integration test simulating callback without cookie / with stale cookie
+  - ./mvnw test -B
+  rollback:
+  - Application rollback; additive cookie binding preserved.
+  evidence:
+  - note: 'Cookie binding (constant-time MessageDigest.isEqual) added to OAuthStateModule.validateAndConsume. Tests run: 1791,
+      Failures: 0, Errors: 0, Skipped: 4. BUILD SUCCESS at 2026-07-25T00:39:16+08:00 (./mvnw test -B).'
+    ts: '2026-07-25T00:39:30+08:00'
+  commits: []
+  notes: Currently OAuthStateModule.issueState sets cookie; callback path calls validateAndConsume only against Redis.
+  updated_at: '2026-07-25T00:39:30+08:00'
+- id: P0-SEC-002
+  phase: 0
+  area: SEC
+  title: OAuth provider identity & verified-email binding
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.1
+  status: pending
+  depends_on:
+  - P0-SEC-001
+  acceptance_criteria:
+  - Provider identity table or columns capture `(provider, provider_user_id)` separately from `users.email`.
+  - Account merge requires verified-email flag from provider (Google email_verified=true; GitHub email must be primary and
+    verified).
+  - Existing `users.email` uniqueness enforced at DB level.
+  validation:
+  - 'Integration test: GitHub unverified email rejected from auto-link'
+  - 'Integration test: Google email_verified=false rejected'
+  rollback:
+  - Additive schema/columns; revert binding policy.
+  evidence: []
+  commits: []
+  notes: Currently users.email has no UNIQUE constraint at DB level.
+  updated_at: ''
+- id: P0-SEC-003
+  phase: 0
+  area: SEC
+  title: Unify HTTP + WebSocket JWT validator and active/ban checks
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.1
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: in_progress
+  depends_on: []
+  acceptance_criteria:
+  - CONNECT path validates active/ban/locked state (active=true, is_banned=false, banned_until not in future).
+  - SEND/SUBSCRIBE fail closed (throw WebSocketAuthenticationException) when principal/session missing — not log+return.
+  - Long-running sessions check expiry on subsequent frames or via heartbeat.
+  - Token blacklist writes a complete path; missing write chain is added.
+  - Single validator shared by HTTP filter and WS authenticator.
+  validation:
+  - WS auth integration tests for missing principal, banned user, expired token
+  - ./mvnw test -B
+  rollback:
+  - Application rollback to previous WS validator; additive ban fields preserved.
+  evidence: []
+  commits: []
+  notes: Currently WS SEND/SUBSCRIBE only logs and returns when principal missing.
+  updated_at: '2026-07-24T16:39:53+00:00'
+- id: P0-SEC-004
+  phase: 0
+  area: SEC
+  title: Effective permission expiry filter for `/auth/permissions`
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.1
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: pending
+  depends_on: []
+  acceptance_criteria:
+  - '`/auth/permissions` excludes user_permissions whose `expires_at` is in the past.'
+  - 'Document current role-only semantics: role enforcement is via JWT `role` claim; user_permissions are advisory, not in
+    GrantedAuthority.'
+  - Test coverage for expired / future / null expiry rows.
+  validation:
+  - ./mvnw test -B
+  rollback:
+  - Application rollback; column already added (V20260610140000).
+  evidence: []
+  commits: []
+  notes: user_permissions.expires_at column added; expiry filter not enforced in /auth/permissions.
+  updated_at: ''
+- id: P0-JUDGE-001
+  phase: 0
+  area: JUDGE
+  title: Plan judge outbox/fence/stream cutover design
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.1
+  - MICROSERVICE_MIGRATION_GUIDE.md#8.3
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: pending
+  depends_on: []
+  acceptance_criteria:
+  - 'Design document (DECISIONS.md) covering:'
+  - '  - Existing `judge_outbox` + `JudgeQueue` Redis Streams cutover'
+  - '  - Generation/attempt fence'
+  - '  - Result outbox (post-verdict) for Contest/Notification/Achievement'
+  - '  - Feature-flag driven dual-write window'
+  - '  - Exits criteria for legacy `RQueue` deprecation'
+  validation:
+  - DECISIONS.md ADR-MIG-JUDGE entry written
+  - /scripts/dev/test.sh quick or equivalent still passes
+  rollback: N/A (design only)
+  evidence: []
+  commits: []
+  notes: Phase 0 produces design only; implementation phases follow.
+  updated_at: ''
+- id: P0-ARCH-001
+  phase: 0
+  area: ARCH
+  title: Author table-owner manifest from data ownership matrix
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#5
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: pending
+  depends_on: []
+  acceptance_criteria:
+  - docs/migration-execution/TABLE_OWNERS.md lists every active table with target Owner (Auth/Admin/App), access method (I/Q/C/E/R).
+  - Cross-referenced from COVERAGE.md.
+  validation:
+  - File committed; no orphan tables.
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P0-ARCH-002
+  phase: 0
+  area: ARCH
+  title: ArchUnit baseline rules for owner boundaries
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  - MICROSERVICE_MIGRATION_GUIDE.md#10
+  status: pending
+  depends_on:
+  - P0-ARCH-001
+  acceptance_criteria:
+  - 'ArchUnit test(s) enforcing:'
+  - '  - No `com.ulticode.modules.admin.**` reaching `com.ulticode.modules.contest.**` mapper or entity directly.'
+  - '  - No `com.ulticode.modules.moderation.**` writing `users` directly.'
+  - '  - No `com.ulticode.modules.submission.**` reaching `com.ulticode.modules.queue.**` internals outside the published
+    port.'
+  - Failing tests show clear remediation messages.
+  validation:
+  - ./mvnw test -B
+  - ArchUnit suites pass with rules active
+  rollback:
+  - Disable / skip rules; record in DECISIONS.md.
+  evidence: []
+  commits: []
+  notes: Phase 0 baseline; strengthened per Phase in later gates.
+  updated_at: ''
+- id: P0-GATE
+  phase: 0
+  area: GATE
+  title: Phase 0 gate — schema/security/architecture baseline
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-0
+  status: pending
+  depends_on:
+  - P0-SCHEMA-001
+  - P0-SCHEMA-002
+  - P0-SCHEMA-003
+  - P0-SEC-001
+  - P0-SEC-002
+  - P0-SEC-003
+  - P0-SEC-004
+  - P0-JUDGE-001
+  - P0-ARCH-001
+  - P0-ARCH-002
+  acceptance_criteria:
+  - All Phase 0 tasks done
+  - Coverage audit shows 100% mapping for Phase 0 plan items
+  - ./mvnw verify -B PASS
+  - OAuth login-CSRF / refresh concurrency / WS ban/expiry tests PASS
+  - Legacy judge path still feature-flagged; new path covered by tests
+  - ArchUnit baseline green
+  - Rollback path verified (additive migrations + flag toggle)
+  validation:
+  - Full ./mvnw verify -B
+  - WORKLOG and RESUME updated
+  - Code review completed
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P1-INFRA-001
+  phase: 1
+  area: INFRA
+  title: Convert backend-spring POM to Maven reactor
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  - MICROSERVICE_MIGRATION_GUIDE.md#10
+  status: pending
+  depends_on:
+  - P0-GATE
+  acceptance_criteria:
+  - 'Root pom.xml packaging=pom with modules: backend-common, backend-api, backend-auth, backend-admin, backend-app, backend-legacy.'
+  - Existing single-module sources moved under backend-legacy for transitional period (no behavior change yet).
+  - ./mvnw -pl backend-legacy verify -B PASS (existing CI green).
+  validation:
+  - ./mvnw -pl backend-legacy verify -B
+  rollback:
+  - Revert to single-module pom; ensure git history preserved.
+  evidence: []
+  commits: []
+  notes: 'Strangler: keep all current behavior inside backend-legacy until Phase 4 cutover.'
+  updated_at: ''
+- id: P1-INFRA-002
+  phase: 1
+  area: INFRA
+  title: Establish `backend-common` minimal shared module
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  - MICROSERVICE_MIGRATION_GUIDE.md#10.1
+  status: pending
+  depends_on:
+  - P1-INFRA-001
+  acceptance_criteria:
+  - 'backend-common contains: Result, PageResult, RpcResult, ErrorCode base, trace/id metadata, namespaced error code types.
+    No Entity, Mapper, business service, or Spring bean scanning.'
+  - ArchUnit test confirms no MyBatis imports leak into backend-common.
+  validation:
+  - ./mvnw -pl backend-common test -B
+  rollback: revert module
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P1-API-001
+  phase: 1
+  area: API
+  title: Skeleton `backend-auth-api` and `backend-app-api` contract modules
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#6.2
+  - MICROSERVICE_MIGRATION_GUIDE.md#10
+  status: pending
+  depends_on:
+  - P1-INFRA-002
+  acceptance_criteria:
+  - backend-auth-api exposes minimal IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService interfaces
+    with String UUID DTOs only.
+  - backend-app-api exposes minimal ProblemAdministrationService interface.
+  - backend-admin-api NOT created until a real Consumer appears (per guide).
+  - DTOs use String UUIDs, version, commandId, trace/deadline metadata.
+  - No Entity/Mapper/ServiceImpl reachable.
+  validation:
+  - ./mvnw -pl backend-auth-api,backend-app-api compile -B
+  rollback: revert module
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P1-INFRA-003
+  phase: 1
+  area: INFRA
+  title: Wire Dubbo starter / Triple / Nacos registry in backend-legacy
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  - MICROSERVICE_MIGRATION_GUIDE.md#6
+  status: pending
+  depends_on:
+  - P1-INFRA-001
+  acceptance_criteria:
+  - Dubbo 3.3.6 starter (Triple protocol) added; no @DubboReference used yet.
+  - Nacos registry client configured; service registers successfully with dev namespace only.
+  - No business traffic moved; smoke registration only.
+  validation:
+  - ./mvnw -pl backend-legacy compile -B
+  - Smoke script verifies Nacos registry contains service name
+  rollback: revert additions
+  evidence: []
+  commits: []
+  notes: Phase 1 establishes wiring, not traffic.
+  updated_at: ''
+- id: P1-OBS-001
+  phase: 1
+  area: OBS
+  title: OpenTelemetry trace propagation through HTTP + Dubbo
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  - MICROSERVICE_MIGRATION_GUIDE.md#6.4
+  status: pending
+  depends_on:
+  - P1-INFRA-003
+  acceptance_criteria:
+  - HTTP filter extracts/creates W3C traceparent headers.
+  - Dubbo filter attaches trace context (RpcContext).
+  - A single test call traverses HTTP -> Dubbo with one trace id observed.
+  - Logs include traceId/service/interface/method/version/result fields.
+  validation:
+  - ./mvnw -pl backend-legacy verify -B
+  - Smoke run captures consistent trace id
+  rollback: revert additions
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P1-INFRA-004
+  phase: 1
+  area: INFRA
+  title: Nginx Gateway route inventory + cleanup baseline
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  - MICROSERVICE_MIGRATION_GUIDE.md#11.3
+  status: pending
+  depends_on: []
+  acceptance_criteria:
+  - 'Nginx Gateway config documents routes: `/auth/**`, `/admin/**`, `/moderation/**`, app business routes, `/ws/**`.'
+  - Gateway strips client-supplied `X-User-*`, `X-Role-*`, `X-Service-*` headers (security invariant).
+  - Default route still hits Legacy backend.
+  validation:
+  - ./scripts/dev/test.sh quick
+  - docker compose config passes
+  rollback: revert nginx config
+  evidence: []
+  commits: []
+  notes: Initial inventory; cutover happens in Phase 4.
+  updated_at: ''
+- id: P1-INFRA-005
+  phase: 1
+  area: INFRA
+  title: Independent service starter shells (backend-auth, backend-admin, backend-app)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  status: pending
+  depends_on:
+  - P1-INFRA-001
+  - P1-API-001
+  acceptance_criteria:
+  - Each shell boots, registers in Nacos, exposes /actuator/health (internal), and responds with placeholder controller.
+  - No business logic moved.
+  validation:
+  - Three processes start; health probes pass
+  - Nacos registry shows three services
+  rollback: remove shells
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P1-GATE
+  phase: 1
+  area: GATE
+  title: Phase 1 gate — multi-module skeleton, registry, observability
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
+  status: pending
+  depends_on:
+  - P1-INFRA-001
+  - P1-INFRA-002
+  - P1-API-001
+  - P1-INFRA-003
+  - P1-OBS-001
+  - P1-INFRA-004
+  - P1-INFRA-005
+  acceptance_criteria:
+  - Three services boot, register with Nacos, expose health probes
+  - OpenTelemetry traces traverse HTTP -> Dubbo with single trace id
+  - Gateway default still routes to Legacy; no business traffic moved
+  - Maven reactor compile + verify PASS
+  - Compose base/prod config passes; dev only on loopback
+  validation: full ./mvnw verify -B per service; smoke integration
+  rollback: stop shells; gateway still Legacy
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-AUTH-001
+  phase: 2
+  area: AUTH
+  title: Port Auth account / refresh / password reset into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  status: pending
+  depends_on:
+  - P1-GATE
+  acceptance_criteria:
+  - backend-auth owns AuthController, AuthService, OAuthService, refresh session, password reset.
+  - App/Admin LocalAuthShim proxies selected Auth HTTP endpoints with same cookie contract until Gateway cutover.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  - 'Integration tests: login/register/refresh/logout roundtrip'
+  rollback:
+  - LocalAuthShim resumes all traffic; backend-auth gateway route removed
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-AUTH-002
+  phase: 2
+  area: AUTH
+  title: Resource server JWT verifier in App/Admin (offline validation)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.3
+  status: pending
+  depends_on:
+  - P2-AUTH-001
+  acceptance_criteria:
+  - App and Admin install a shared JWT verifier that accepts Auth-issued tokens locally without RPC.
+  - Algorithm allowlist enforced (HS256 for compat window; RS256 path documented but not required yet).
+  - Verifier validates iss/aud/typ/exp/nbf.
+  validation:
+  - ./mvnw verify -B
+  - Unit tests for token claims verification
+  rollback: revert verifier; App/Admin fall back to current filter chain
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-AUTH-003
+  phase: 2
+  area: AUTH
+  title: Provider identity / authz version additive schema
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.5
+  status: pending
+  depends_on:
+  - P0-SEC-002
+  acceptance_criteria:
+  - Migrations for `oauth_provider_identities`, `account_authz_version`, session family columns.
+  - Auth writes additive rows; App/Admin read-only consumer path.
+  validation:
+  - Migration applies cleanly on fresh schema
+  - Auth integration tests cover new columns
+  rollback: DROP additive tables
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-AUTH-004
+  phase: 2
+  area: AUTH
+  title: Gateway cutover for `/auth/**` to backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  status: pending
+  depends_on:
+  - P2-AUTH-001
+  - P2-AUTH-002
+  acceptance_criteria:
+  - Nginx Gateway routes `/auth/**` to backend-auth service.
+  - Legacy backend retains `/users/me/password` compatibility path.
+  - Feature flag canary to disable cutover in seconds.
+  validation:
+  - Smoke run via ./scripts/dev/test.sh
+  - Manual login/logout/refresh through Gateway
+  rollback: gateway flag off; revert
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-RBAC-001
+  phase: 2
+  area: AUTH
+  title: Auth-only role/permission writer; App/Admin read-only RPC
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#7.5
+  status: pending
+  depends_on:
+  - P2-AUTH-003
+  acceptance_criteria:
+  - App/Admin stop direct writes to users.role, role_permissions, user_permissions.
+  - Admin role management calls Auth command (RPC or HTTP /admin/roles route).
+  - Auth publishes RoleChanged / PermissionChanged events to outbox (Phase 6).
+  validation:
+  - ArchUnit test confirms no foreign writer to users.role
+  - ./mvnw verify -B
+  rollback: revert command; restore direct write
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P2-GATE
+  phase: 2
+  area: GATE
+  title: Phase 2 gate — Auth extraction complete
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  status: pending
+  depends_on:
+  - P2-AUTH-001
+  - P2-AUTH-002
+  - P2-AUTH-003
+  - P2-AUTH-004
+  - P2-RBAC-001
+  acceptance_criteria:
+  - Only Auth writes credential / role / permission / refresh tables
+  - App/Admin hold no signing key material (HMAC secret still allowed in compat window with deletion date documented)
+  - Ordinary requests do not call Auth via RPC
+  - CSRF, WS cookie-only, OAuth tests PASS
+  - Gateway can fall back to Legacy in seconds
+  - 'Auth-down scenario: existing access tokens still verify locally'
+  validation: full ./mvnw verify -B; gateway failover drill
+  rollback: feature flag on Legacy Auth
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-OWNER-001
+  phase: 3
+  area: ARCH
+  title: Define owner-owned application API in App modules
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  status: pending
+  depends_on:
+  - P2-GATE
+  acceptance_criteria:
+  - Problem / Contest / Submission / Forum / Solution modules expose an Application Service API owned by App (ProblemAdministrationService
+    etc.).
+  - Admin module writes only through these APIs.
+  validation:
+  - ArchUnit test forbids Admin -> {Problem,Contest,Submission,Forum,Solution} mapper/entity imports
+  - ./mvnw verify -B
+  rollback: revert API seam; restore direct Admin writes
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-OWNER-002
+  phase: 3
+  area: ARCH
+  title: Account/Profile port seam for `users`
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#2.1
+  status: pending
+  depends_on:
+  - P3-OWNER-001
+  acceptance_criteria:
+  - Auth owns account-side fields (credential, role, ban). App owns profile fields (name, avatar, bio, ...).
+  - AuthAccountPort / UserProfilePort separate the writes.
+  - Same-JVM adapter; future RPC shape conforms.
+  validation:
+  - ArchUnit forbids cross-Owner writes to users.profile columns
+  - ./mvnw verify -B
+  rollback: revert port split
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-SEARCH-001
+  phase: 3
+  area: APP
+  title: Batch projection seam for Search / Dashboard
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#2.5
+  status: pending
+  depends_on:
+  - P3-OWNER-001
+  acceptance_criteria:
+  - SearchProjection uses App-internal batch reads rather than cross-table join fan-out. Distinct from any RPC batch query.
+  - Dashboard cards batch through owner projections.
+  validation:
+  - Integration tests for Search projection
+  - ./mvnw verify -B
+  rollback: revert projection
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-AUDIT-001
+  phase: 3
+  area: ARCH
+  title: Audit outbox seam (intra-JVM)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#8.3
+  status: pending
+  depends_on:
+  - P3-OWNER-001
+  acceptance_criteria:
+  - AuditRecorder writes to `integration_outbox` (or local audit_outbox) inside the same transaction. Async sink is replaced
+    by an in-JVM consumer that fans out to Admin's audit_logs.
+  - No ThreadLocal `AuditContext` reliance for actor identity.
+  validation:
+  - 'Unit test: audit row appears with explicit actor'
+  - 'Integration test: actor visible end-to-end'
+  - ./mvnw verify -B
+  rollback: revert to AuditSinkPort direct write
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-DBPERM-001
+  phase: 3
+  area: ARCH
+  title: Per-Owner DB user shadow + violation logging
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.2
+  status: pending
+  depends_on:
+  - P3-OWNER-001
+  acceptance_criteria:
+  - DB users `auth_rw`, `admin_rw`, `app_rw` exist with grants limited to owned tables (Phase 0 still single DB; grants enforced
+    by tests).
+  - Any cross-owner write attempt logged via interceptor for review.
+  validation:
+  - Integration test confirms cross-owner write blocked / logged
+  - ./mvnw verify -B
+  rollback: drop DB users
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P3-GATE
+  phase: 3
+  area: GATE
+  title: Phase 3 gate — Admin/App boundaries consolidated
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  status: pending
+  depends_on:
+  - P3-OWNER-001
+  - P3-OWNER-002
+  - P3-SEARCH-001
+  - P3-AUDIT-001
+  - P3-DBPERM-001
+  acceptance_criteria:
+  - Admin never reaches App module mapper/entity directly
+  - Auth/Profile seam clear
+  - Local service graph matches Admin -> Auth/App single-direction
+  - All previously passing tests still pass
+  - ArchUnit tests green
+  validation:
+  - ./mvnw verify -B
+  - ./mvnw -Dtest='*IT' test -B
+  rollback: revert ports; restore direct Admin writes
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-RPC-001
+  phase: 4
+  area: RPC
+  title: Implement provider-owned Contracts (Auth/App)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  - MICROSERVICE_MIGRATION_GUIDE.md#6.2
+  status: pending
+  depends_on:
+  - P3-GATE
+  acceptance_criteria:
+  - backend-auth-api exposes IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService as Triple interfaces
+    with serializable-safe DTOs.
+  - backend-app-api exposes ProblemAdministrationService, ContestAdministrationService, SubmissionAdministrationService, ContentModerationService.
+  - No Entity/Mapper/ServiceImpl leaked.
+  validation:
+  - Consumer contract test passes
+  - ./mvnw -pl backend-auth-api,backend-app-api verify -B
+  rollback: revert providers
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-RPC-002
+  phase: 4
+  area: RPC
+  title: Single-hop chain enforcement + RPC timeout/retry/idempotency policy
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#6.4
+  - MICROSERVICE_MIGRATION_GUIDE.md#6.5
+  status: pending
+  depends_on:
+  - P4-RPC-001
+  acceptance_criteria:
+  - 'Write commands: retry=0, idempotencyKey required, timeout 1-3s.'
+  - 'Queries: timeout 300-800ms, retry=1 with jitter.'
+  - Trace context propagates via Dubbo attachment.
+  - ArchUnit test asserts `controller -> dubbo A -> dubbo B` is forbidden.
+  validation:
+  - ./mvnw verify -B
+  - Failure-injection smoke tests
+  rollback: revert policy
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-CUTOVER-001
+  phase: 4
+  area: TRAFFIC
+  title: Problem family cutover (Admin -> App via Dubbo)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-RPC-002
+  acceptance_criteria:
+  - Admin problem create/update/publish routes use App Dubbo Provider.
+  - Local seam adapter still present; feature flag controls.
+  - Canary 1% then ramp; metrics compared.
+  validation:
+  - Smoke run for problem create/update/publish
+  - ./mvnw verify -B
+  rollback: feature flag flips back to local seam
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-CUTOVER-002
+  phase: 4
+  area: TRAFFIC
+  title: Contest/Submission family cutover
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-CUTOVER-001
+  acceptance_criteria:
+  - Admin contest/submission/forum/solution management routed through Dubbo.
+  - N&N-1 Provider version compatibility test passes.
+  validation:
+  - Smoke run
+  - ./mvnw verify -B
+  rollback: flag revert
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-CUTOVER-003
+  phase: 4
+  area: TRAFFIC
+  title: Judge/WS families cutover
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-CUTOVER-002
+  acceptance_criteria:
+  - Judge worker / WS / Notification runtime on App process.
+  - Multi-instance WS bridge uses sticky session or Redis broadcast.
+  validation:
+  - E2E submission judging roundtrip
+  - WS ban event propagation
+  - ./mvnw verify -B
+  rollback: revert WS to in-JVM Legacy path
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P4-GATE
+  phase: 4
+  area: GATE
+  title: Phase 4 gate — three services deployed, single-hop RPC
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-RPC-001
+  - P4-RPC-002
+  - P4-CUTOVER-001
+  - P4-CUTOVER-002
+  - P4-CUTOVER-003
+  acceptance_criteria:
+  - Three services deployed independently
+  - Sync calls single-hop; no Controller->DubboA->DubboB chain
+  - Network failure semantics clear (timeout/retry/idempotency)
+  - No shared Mapper jar
+  - Old Provider version still N-1 compatible
+  - Contract tests cover forward/backward compatibility
+  validation:
+  - ./mvnw verify -B per service
+  - Failure injection matrix PASS
+  - E2E core flows PASS
+  rollback: feature flags back to local seam
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P5-SCHEMA-001
+  phase: 5
+  area: SCHEMA
+  title: Per-Owner schema + DB user grants
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.2
+  status: pending
+  depends_on:
+  - P4-GATE
+  acceptance_criteria:
+  - Schemas `auth`, `admin`, `app` created in the same MySQL instance.
+  - DB users `auth_rw`, `admin_rw`, `app_rw` granted only to their schemas.
+  - Cross-owner SELECT/UPDATE/INSERT/DELETE returns error (verified by test).
+  - Backward-compat account kept with deletion date.
+  validation:
+  - Schema-level grant tests
+  - Migration job runs against each schema with its own history
+  rollback: re-grant legacy account
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P5-USERPROFILE-001
+  phase: 5
+  area: SCHEMA
+  title: Vertical split of `users` into account + profile
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
+  - MICROSERVICE_MIGRATION_GUIDE.md#5.2
+  status: pending
+  depends_on:
+  - P5-SCHEMA-001
+  acceptance_criteria:
+  - App `user_profiles(account_id PK, name, avatar, bio, company, github, location, twitter, website, preferred_language)`
+    table created.
+  - Backfill all existing rows from `users.*`.
+  - 'Checksum: account count == profile count == users count pre-cutover.'
+  - App writes profile; Auth writes account; dual-read shadow compare.
+  - After one business cycle, contract removes profile columns from users.
+  validation:
+  - 'Reconciliation job: row count and checksum equal'
+  - 'Shadow compare: App profile reads == old users.* reads for sampled IDs'
+  - Backfill failure cases covered
+  rollback:
+  - Dual-write remains; Auth falls back to reading users.* profile columns.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P5-RECONCILE-001
+  phase: 5
+  area: OPS
+  title: Reconciliation jobs + cross-owner orphan detection
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
+  status: pending
+  depends_on:
+  - P5-USERPROFILE-001
+  acceptance_criteria:
+  - Nightly reconciliation per Owner aggregate reports row count and checksum divergence.
+  - Orphan scanner identifies dangling references across owners.
+  validation:
+  - Reconciliation test reports zero drift on baseline data
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P5-GATE
+  phase: 5
+  area: GATE
+  title: Phase 5 gate — single Owner per active table
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
+  status: pending
+  depends_on:
+  - P5-SCHEMA-001
+  - P5-USERPROFILE-001
+  - P5-RECONCILE-001
+  acceptance_criteria:
+  - Each active table has exactly one schema Owner
+  - Service accounts cannot access the other schemas
+  - Legacy compat account deleted (or scheduled)
+  - Backup recovery drill covers three schemas
+  - users split into account + profile with reconciliation clean
+  validation:
+  - DB grant test PASS
+  - Reconciliation job clean for 1 business cycle
+  - ./mvnw verify -B PASS
+  rollback: revert grants; restore compat account
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P6-OUTBOX-001
+  phase: 6
+  area: EVENT
+  title: '`integration_outbox` + per-Owner dispatcher'
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
+  - MICROSERVICE_MIGRATION_GUIDE.md#8.3
+  status: pending
+  depends_on:
+  - P5-GATE
+  acceptance_criteria:
+  - Outbox table per Owner with eventId (PK), aggregateId/version, causationId, traceId, schemaVersion, payload.
+  - Dispatcher claims rows via CAS, publishes to Redis Streams integration bus, marks DELIVERED only after stream XADD ack.
+  - Oldest-outbox-age metric exported.
+  validation:
+  - 'Test: outbox row written in tx; published after commit'
+  - 'Test: poison event surfaces DLQ'
+  - ./mvnw verify -B
+  rollback: disable dispatcher; outbox preserved
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P6-INBOX-001
+  phase: 6
+  area: EVENT
+  title: '`consumer_inbox` dedup + reclaimable notification ledger'
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
+  status: pending
+  depends_on:
+  - P6-OUTBOX-001
+  acceptance_criteria:
+  - inbox (consumer, event_id) unique constraint; duplicate consume skipped.
+  - Notification ledger rows can reclaim FAILED/stale CLAIMED via lease.
+  validation:
+  - 'Duplicate event: inbox blocks; idempotent handler confirms'
+  - Stale claim reclaimed by next lease holder
+  - ./mvnw verify -B
+  rollback: revert inbox claim logic
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P6-RESULT-001
+  phase: 6
+  area: EVENT
+  title: Result outbox (verdict -> Contest/Notification/Achievement)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#8.3
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
+  status: pending
+  depends_on:
+  - P6-OUTBOX-001
+  acceptance_criteria:
+  - Verdict writes `submission_result_outbox` row in same tx
+  - Result dispatcher publishes Contest/Notification/Achievement events
+  - Replay tool drains backlog deterministically
+  validation:
+  - 'Crash-after-commit recovery test: events eventually delivered'
+  - Replay test PASS
+  - ./mvnw verify -B
+  rollback: disable result dispatcher
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P6-REPLAY-001
+  phase: 6
+  area: EVENT
+  title: Event replay / DLQ tooling
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
+  status: pending
+  depends_on:
+  - P6-INBOX-001
+  acceptance_criteria:
+  - CLI / endpoint can replay events for a given consumer or aggregate.
+  - DLQ queue holds poison events; tooling clears or re-routes.
+  validation:
+  - Manual replay run succeeds against seeded events
+  rollback: tooling optional, no impact on hot path
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P6-GATE
+  phase: 6
+  area: GATE
+  title: Phase 6 gate — reliable cross-service events
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
+  status: pending
+  depends_on:
+  - P6-OUTBOX-001
+  - P6-INBOX-001
+  - P6-RESULT-001
+  - P6-REPLAY-001
+  acceptance_criteria:
+  - Cross-service side effects are replayable, idempotent, observable
+  - JVM crash after tx commit does not permanently lose verdict/audit/notification events
+  - Outbox age, inbox duplicate rate, lease expiry all monitored
+  validation:
+  - Failure matrix (broker outage, consumer crash, duplicate, out-of-order, poison) all PASS
+  - ./mvnw verify -B
+  rollback: dispatcher off; outbox retained
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P7-LEGACY-001
+  phase: 7
+  area: ARCH
+  title: Remove `backend-legacy` module
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P6-GATE
+  acceptance_criteria:
+  - backend-legacy module deleted from reactor pom
+  - All routes / services previously in Legacy either removed or relocated
+  - Gateway no longer references Legacy upstream
+  validation:
+  - ./mvnw verify -B
+  - Gateway routes inventory shows no Legacy references
+  - ./scripts/dev/test.sh full + integration PASS
+  rollback: re-add backend-legacy branch and pin last version
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P7-LEGACY-002
+  phase: 7
+  area: ARCH
+  title: Drop unused contracts / duplicate JWT util
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-LEGACY-001
+  acceptance_criteria:
+  - No duplicate JWT signing utility
+  - No Contract interfaces without consumers (e.g. backend-admin-api unless justified)
+  validation:
+  - grep/ArchUnit tests confirm
+  rollback: revert removal
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P7-DB-001
+  phase: 7
+  area: SCHEMA
+  title: Contract migrations for retired columns / tables
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P5-GATE
+  acceptance_criteria:
+  - Contract migrations drop retired profile columns from users (after split)
+  - Migration-only tables either archived or formally retired (per inventory)
+  validation:
+  - Backup recovery from new schema only
+  - Archival storage verified
+  rollback: keep tables
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P7-DOCS-001
+  phase: 7
+  area: OPS
+  title: Update runbooks / scripts / docs
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
+  status: pending
+  depends_on:
+  - P7-LEGACY-001
+  acceptance_criteria:
+  - scripts/dev/ updated to start three services
+  - Compose base/prod configs publish no infrastructure ports
+  - runbook updated for outage/rollback procedures
+  - MICROSERVICE_MIGRATION_GUIDE.md replaced with stable architecture document pointing to code as truth
+  validation:
+  - ./scripts/dev/test.sh quick / full / integration PASS
+  - docker compose config PASS for base/prod
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''
+- id: P7-FINAL
+  phase: 7
+  area: GATE
+  title: Final migration gate
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#19
+  status: pending
+  depends_on:
+  - P7-LEGACY-001
+  - P7-LEGACY-002
+  - P7-DB-001
+  - P7-DOCS-001
+  acceptance_criteria:
+  - All Phase 0-7 GATES PASS
+  - TASKS pending/ready/in_progress/blocked all 0
+  - Coverage 100%
+  - All Critical/High Findings closed
+  - Full verify / integration / E2E PASS
+  - Gateway has no Legacy route
+  - No shared Mapper / Entity
+  - No cross-Owner DB grant
+  - Legacy module deleted
+  - Old Provider version cleaned
+  - Migration / deployment / runbook updated
+  - Backup recovery verified
+  - Event replay verified
+  - Working tree clean
+  validation: full ./mvnw verify -B; ./scripts/dev/test.sh full; integration suite
+  rollback: N/A
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: ''

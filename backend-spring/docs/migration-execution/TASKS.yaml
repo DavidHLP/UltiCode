@@ -300,7 +300,8 @@
       \ manifest.\n\n./scripts/dev/test.sh quick at 2026-07-25T01:14:00+08:00: All quick checks passed\n\nNo orphan tables\
       \ (verified via grep CREATE TABLE|create table against\ninit-db/migrations/V20260602_120000__Create_All_Tables.sql;\
       \ full list\nmatches manifest)."
-  commits: []
+  commits:
+  - fac3d61
   notes: ''
   updated_at: '2026-07-25T01:14:30+08:00'
 - id: P0-ARCH-002

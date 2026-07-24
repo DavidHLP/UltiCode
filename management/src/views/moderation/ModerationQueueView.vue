@@ -32,7 +32,7 @@ import {
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns, type ModerationActions } from './columns'
 import { useModerationFilters } from './composables/useModerationFilters'
-import { ACTION_CATALOG, isActionable, entityRoute } from './workflow/moderationWorkflow'
+import { ACTION_CATALOG, actionColorVar, isActionable, entityRoute } from './workflow/moderationWorkflow'
 import BatchActionDialog from './components/BatchActionDialog.vue'
 
 const { t } = useI18n()
@@ -192,22 +192,9 @@ const actionOptions = computed(() => ACTION_CATALOG.map((a) => ({
   value: a.value,
   label: t(a.labelKey),
   icon: a.icon,
-  color: ACTION_COLOR_VAR[a.color] ?? ACTION_COLOR_VAR.red,
+  color: actionColorVar(a.color),
   requiresDuration: a.requiresDuration,
 })))
-
-/**
- * Map a workflow ActionColorKey onto the existing CSS variable convention
- * used by the drawer. Kept here so the workflow module stays
- * framework-agnostic.
- */
-const ACTION_COLOR_VAR: Record<string, string> = {
-  red: 'text-[var(--terminal-red)]',
-  amber: 'text-[var(--terminal-amber)]',
-  green: 'text-[var(--terminal-green)]',
-  cyan: 'text-[var(--terminal-cyan)]',
-  purple: 'text-[var(--terminal-purple)]',
-}
 
 const selectedActionOption = computed(() =>
   actionOptions.value.find((opt) => opt.value === drawerAction.value),

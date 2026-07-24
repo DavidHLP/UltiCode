@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
 import {
   ACTION_CATALOG,
+  actionBgVar,
+  actionBorderVar,
+  actionColorVar,
   findAction,
 } from '../workflow/moderationWorkflow'
 
@@ -17,48 +20,7 @@ import {
  * used by the action panel chrome. Kept here so the workflow module stays
  * framework-agnostic.
  */
-type TerminalColorKey =
-  | 'red' | 'amber' | 'green' | 'cyan' | 'purple' | 'info' | 'error' | 'success' | 'warning' | 'neutral' | 'electric'
 
-const ACTION_COLOR_VAR: Record<TerminalColorKey, string> = {
-  red: 'text-[var(--terminal-red)]',
-  amber: 'text-[var(--terminal-amber)]',
-  green: 'text-[var(--terminal-green)]',
-  cyan: 'text-[var(--terminal-cyan)]',
-  purple: 'text-[var(--terminal-purple)]',
-  info: 'text-[var(--terminal-cyan)]',
-  error: 'text-[var(--terminal-red)]',
-  success: 'text-[var(--terminal-green)]',
-  warning: 'text-[var(--terminal-amber)]',
-  neutral: 'text-[var(--silver-500)]',
-  electric: 'text-[var(--accent-electric)]',
-}
-const ACTION_BG_VAR: Record<TerminalColorKey, string> = {
-  red: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-  amber: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-  green: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-  cyan: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
-  purple: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
-  info: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
-  error: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
-  success: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
-  warning: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
-  neutral: 'bg-[var(--surface-sunken)]',
-  electric: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
-}
-const ACTION_BORDER_VAR: Record<TerminalColorKey, string> = {
-  red: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-  amber: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-  green: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-  cyan: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
-  purple: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
-  info: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
-  error: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
-  success: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
-  warning: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
-  neutral: 'border-[var(--silver-200)]',
-  electric: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
-}
 
 interface Props {
   item: ModerationQueueItem
@@ -92,9 +54,9 @@ const actionOptions = computed(() =>
     label: t(a.labelKey),
     description: t(a.descriptionKey),
     icon: a.icon,
-    color: ACTION_COLOR_VAR[a.color] ?? ACTION_COLOR_VAR.red,
-    bgColor: ACTION_BG_VAR[a.color] ?? ACTION_BG_VAR.red,
-    borderColor: ACTION_BORDER_VAR[a.color] ?? ACTION_BORDER_VAR.red,
+    color: actionColorVar(a.color),
+    bgColor: actionBgVar(a.color),
+    borderColor: actionBorderVar(a.color),
     requiresDuration: a.requiresDuration,
   })),
 )

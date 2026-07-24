@@ -135,6 +135,19 @@ const initMainScene = () => {
     // (e.g. `scene.path[N].x`, `scene.mousePointer.params.size`) still
     // hit the underlying object because they are read-only state
     // that is part of the public subsystem interface.
+    //
+    // Documented exception — gsap tween targets. GSAP timelines
+    // (e.g. `gsap.to(scene.desert.particles.material.uniforms.uProgress,
+    // { value: 1 })`) hand the tween engine a target object whose
+    // properties the engine mutates at every animation frame.
+    // Wrapping these in a per-frame `onUpdate: () => scene.setX(...)`
+    // would add per-frame work for marginal architectural gain and
+    // change tween semantics. The tween is the orchestrator's
+    // *intent* — `uProgress` from 0 to 1 — the seam method call
+    // before/after the tween is what the seam covers. This is a
+    // bounded, documented exception: imperative *writes* go through
+    // the seam; per-frame *reads* inside gsap onUpdate callbacks
+    // are not sealed by design.
     // ----------------------------------------------------------------
 
     const siteAudio = (() => {

@@ -216,3 +216,55 @@ export const entityRoute = (entity: ModeratableEntityType, entityId: string): st
  */
 export const isActionable = (item: ModerationQueueItem): boolean =>
   item.status === ModerationStatus.PENDING || item.status === ModerationStatus.UNDER_REVIEW
+
+/**
+ * Centralised CSS variable mapping for the moderation chrome.
+ * The views (QueueView drawer, ActionPanel cards) consume these so
+ * the same ActionColorKey produces the same visual treatment in every
+ * call site. Adding a new color is a one-line change here.
+ */
+const ACTION_COLOR_VAR: Readonly<Record<ActionColorKey, string>> = {
+  red: 'text-[var(--terminal-red)]',
+  amber: 'text-[var(--terminal-amber)]',
+  green: 'text-[var(--terminal-green)]',
+  cyan: 'text-[var(--terminal-cyan)]',
+  purple: 'text-[var(--terminal-purple)]',
+  info: 'text-[var(--terminal-cyan)]',
+  error: 'text-[var(--terminal-red)]',
+  success: 'text-[var(--terminal-green)]',
+  warning: 'text-[var(--terminal-amber)]',
+  neutral: 'text-[var(--silver-500)]',
+  electric: 'text-[var(--accent-electric)]',
+} as const
+
+const ACTION_BG_VAR: Readonly<Record<ActionColorKey, string>> = {
+  red: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+  amber: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+  green: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+  cyan: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+  purple: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
+  info: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+  error: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+  success: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+  warning: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+  neutral: 'bg-[var(--surface-sunken)]',
+  electric: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
+} as const
+
+const ACTION_BORDER_VAR: Readonly<Record<ActionColorKey, string>> = {
+  red: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
+  amber: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+  green: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
+  cyan: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
+  purple: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
+  info: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
+  error: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
+  success: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
+  warning: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+  neutral: 'border-[var(--silver-200)]',
+  electric: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
+} as const
+
+export const actionColorVar = (key: ActionColorKey): string => ACTION_COLOR_VAR[key]
+export const actionBgVar = (key: ActionColorKey): string => ACTION_BG_VAR[key]
+export const actionBorderVar = (key: ActionColorKey): string => ACTION_BORDER_VAR[key]

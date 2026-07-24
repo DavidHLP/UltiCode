@@ -173,7 +173,7 @@
       \ 3 -> 3 (no test count change, but emailVerified\n    parsing added).\n  All OAuth tests pass.\n\nMigration syntax-checked\
       \ via MySQL at 2026-07-25T01:07:00+08:00: no errors."
   commits:
-  - 252074d8a93dc58f4bd17313c3038e96e18a953d
+  - f1be01b8a93dc58f4bd17313c3038e96e18a953d
   notes: Currently users.email has no UNIQUE constraint at DB level.
   updated_at: '2026-07-25T01:11:00+08:00'
 - id: P0-SEC-003

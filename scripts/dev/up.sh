@@ -230,7 +230,13 @@ if [[ "$SKIP_INSTALL" != true ]]; then
       echo "  $package: node_modules missing, running pnpm install..."
       (cd "$ROOT_DIR/$package" && pnpm install)
     else
-      (cd "$ROOT_DIR/$package" && pnpm install --frozen-lockfile)
+      # frozen-lockfile 快且 CI 安全, 但 lockfile 与 package.json 漂移 (如新增依赖未同步 lockfile) 时
+      # 会硬失败 ERR_PNPM_OUTDATED_LOCKFILE。历史 bug: 此处失败被吞, PM2 未起却退出 0, 误导运维。
+      # 回退普通 install 让 lockfile 自愈并告警; 真正失败则显式 exit 1, 绝不静默成功。
+      if ! (cd "$ROOT_DIR/$package" && pnpm install --frozen-lockfile); then
+        echo "  $package: frozen-lockfile 不一致, 回退 pnpm install 同步 lockfile..." >&2
+        (cd "$ROOT_DIR/$package" && pnpm install) || { echo "Error: pnpm install failed for $package" >&2; exit 1; }
+      fi
     fi
   done
 else
@@ -261,17 +267,25 @@ check_url() {
   curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "$1" 2>/dev/null || true
 }
 
+# 同时尝试 IPv4 与 IPv6 回环, 任一返回 200 即就绪, 避免绑定地址族导致的假性失败。
+check_port() {
+  local port="$1" path="${2:-/}"
+  [[ "$(check_url "http://127.0.0.1:${port}${path}")" == "200" ]] && return 0
+  [[ "$(check_url "http://[::1]:${port}${path}")" == "200" ]] && return 0
+  return 1
+}
+
 apps_csv=",$PM2_APPS,"
 for _ in $(seq 1 90); do
   all_ok=true
   if [[ "$apps_csv" == *",ulticode-9001,"* ]]; then
-    [[ "$(check_url 'http://127.0.0.1:9001/contest?page=1&size=1')" == "200" ]] || all_ok=false
+    check_port 9001 '/contest?page=1&size=1' || all_ok=false
   fi
   if [[ "$apps_csv" == *",ulticode-9002,"* ]]; then
-    [[ "$(check_url 'http://127.0.0.1:9002/')" == "200" ]] || all_ok=false
+    check_port 9002 '/' || all_ok=false
   fi
   if [[ "$apps_csv" == *",ulticode-9003,"* ]]; then
-    [[ "$(check_url 'http://127.0.0.1:9003/')" == "200" ]] || all_ok=false
+    check_port 9003 '/' || all_ok=false
   fi
   if [[ "$all_ok" == true ]]; then
     cat <<EOF

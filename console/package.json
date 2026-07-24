@@ -53,6 +53,7 @@
     "markdown-it": "^14.1.1",
     "monaco-editor": "^0.55.1",
     "pinia": "^3.0.4",
+    "postprocessing": "6.39.0",
     "reka-ui": "^2.9.8",
     "sockjs-client": "^1.6.1",
     "tailwind-merge": "^3.6.0",

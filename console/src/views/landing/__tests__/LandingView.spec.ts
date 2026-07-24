@@ -1,92 +1,71 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import type { LandingSceneHandle } from "../composables/useLandingScene";
-import type { LandingFaderHandle } from "../composables/useLandingFader";
+import { i18n } from "../../../i18n";
 
-// Mock the WebGL composables so no Three.js/WebGL runs under jsdom.
-vi.mock("../composables/useLandingScene", () => ({
-  createLandingScene: vi.fn(),
-}));
-vi.mock("../composables/useLandingFader", () => ({
-  createLandingFader: vi.fn(),
+// jsdom cannot run the WebGL experience — mock the entry module.
+vi.mock("../../experience/main.js", () => ({
+  initLandingExperience: vi.fn(() => () => {}),
 }));
 
 import LandingView from "../LandingView.vue";
-import { createLandingScene } from "../composables/useLandingScene";
-import { createLandingFader } from "../composables/useLandingFader";
 
-const sceneDispose = vi.fn();
-const renderOnce = vi.fn();
-const sceneHandle = {
-  desert: { uniforms: {} },
-  fog: {},
-  camera: {},
-  yaw: {},
-  pitch: {},
-  renderOnce,
-  dispose: sceneDispose,
-} as unknown as LandingSceneHandle;
-const faderHandle = { dispose: vi.fn() } as unknown as LandingFaderHandle;
-
-const scene = vi.mocked(createLandingScene);
-const fader = vi.mocked(createLandingFader);
-
-function stubMatchMedia(matches: (query: string) => boolean) {
-  window.matchMedia = ((query: string): MediaQueryList => ({
-    matches: matches(query),
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  scene.mockReturnValue(sceneHandle);
-  fader.mockReturnValue(faderHandle);
-  // Default: reduced-motion preferred → exercises the a11y-critical branch.
-  stubMatchMedia((q) => /reduce/i.test(q));
-});
+const RouterLinkStub = {
+  props: ["to"],
+  template: '<a :href="to"><slot /></a>',
+};
 
 describe("LandingView", () => {
-  it("mounts the canvas and wires scene + fader with reduced-motion detected", () => {
-    const wrapper = mount(LandingView, { attachTo: document.body });
+  it("renders the UltiCode landing DOM skeleton", () => {
+    i18n.global.locale.value = "zh-CN";
 
-    expect(wrapper.find("canvas.landing__canvas").exists()).toBe(true);
-    expect(scene).toHaveBeenCalledOnce();
-    expect(fader).toHaveBeenCalledOnce();
-    // Scene must be created before the fader (fader calls renderOnce at init).
-    expect(scene.mock.invocationCallOrder[0]).toBeLessThan(
-      fader.mock.invocationCallOrder[0],
-    );
-    const opts = (scene.mock.calls[0] as unknown[])[1] as {
-      reducedMotion: boolean;
-    };
-    expect(opts.reducedMotion).toBe(true);
+    const wrapper = mount(LandingView, {
+      global: {
+        plugins: [i18n],
+        stubs: { RouterLink: RouterLinkStub },
+      },
+    });
 
-    wrapper.unmount();
-    expect(sceneDispose).toHaveBeenCalledOnce();
-  });
+    // loader
+    const loader = wrapper.find(".loader");
+    expect(loader.exists()).toBe(true);
+    expect(loader.find("i").text()).toContain("加载中");
+    expect(loader.find("a").text()).toContain("进入");
+    expect(loader.find("span").exists()).toBe(true);
 
-  it("renders the three act labels in the overlay", () => {
-    const wrapper = mount(LandingView, { attachTo: document.body });
-    const acts = wrapper.findAll(".landing__act");
-    expect(acts).toHaveLength(3);
-    expect(acts.map((a) => a.text())).toEqual(["VISION", "CRAFT", "EXPERIENCE"]);
-    wrapper.unmount();
-  });
+    // canvas mount point
+    expect(wrapper.find(".canvas").exists()).toBe(true);
 
-  it("passes reducedMotion=false when the user prefers motion", () => {
-    stubMatchMedia(() => false);
-    const wrapper = mount(LandingView, { attachTo: document.body });
-    const opts = (scene.mock.calls[0] as unknown[])[1] as {
-      reducedMotion: boolean;
-    };
-    expect(opts.reducedMotion).toBe(false);
+    // header
+    expect(wrapper.find("header.header .header__lnk").text()).toBe("UltiCode");
+    const cta = wrapper.find("header.header .header__lnk--2");
+    expect(cta.text()).toBe("开始刷题");
+    expect(cta.attributes("href")).toBe("/problemset");
+
+    // scroll track: 24 steps
+    expect(wrapper.find("#scroller").exists()).toBe(true);
+    expect(wrapper.find("#content").exists()).toBe(true);
+    expect(wrapper.findAll(".steps .step")).toHaveLength(24);
+
+    // awards: 6 feature cards with data-title 1-6
+    const awards = wrapper.findAll("#awards img");
+    expect(awards).toHaveLength(6);
+    awards.forEach((img, i) => {
+      expect(img.attributes("data-title")).toBe(String(i + 1));
+    });
+
+    // footer: quick links + audio toggle
+    const links = wrapper.findAll(".footer__social-lnk");
+    expect(links).toHaveLength(3);
+    expect(links.map((l) => l.attributes("href"))).toEqual([
+      "/problemset",
+      "/contest",
+      "/forum",
+    ]);
+    const audioToggle = wrapper.find(".footer__audio-toggle.js-audio-toggle");
+    expect(audioToggle.exists()).toBe(true);
+    expect(audioToggle.attributes("aria-label")).toBe("关闭声音");
+    expect(wrapper.find(".js-audio-wave").exists()).toBe(true);
+
     wrapper.unmount();
   });
 });

@@ -276,9 +276,9 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      // Root → landing. A native Vue 3 + Three.js scene (composables under
-      // views/landing/composables) renders the immersive particle narrative;
-      // no iframe or static mirror. Public: guests and signed-in users both see it.
+      // Root → landing. A 1:1 Vue 3 port of the mirrored WebGL single-page
+      // landing (experience modules under views/landing/experience); no iframe
+      // or static mirror. Public: guests and signed-in users both see it.
       path: "/",
       name: "landing",
       component: () => import("@/views/landing/LandingView.vue"),

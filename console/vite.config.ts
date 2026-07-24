@@ -132,6 +132,9 @@ export default defineConfig({
     dedupe: ["vue", "@vue/runtime-core"],
   },
   server: {
+    // 监听所有接口 (0.0.0.0 + IPv6), 使 localhost 与 127.0.0.1 均可访问
+    // (默认仅绑 localhost, 在 IPv6 优先的机器上只监听 [::1], IPv4 回环访问失败)
+    host: true,
     port: 9002,
     fs: {
       // Allow serving files from workspace root for pnpm monorepo

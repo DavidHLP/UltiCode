@@ -48,8 +48,14 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
 
 # Copy nginx config (listen on 8080 since non-root cannot bind port 80)
+# Drop the alpine default conf so only ours loads.
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY management/nginx.conf /etc/nginx/templates/default.conf.template
+# Security-headers.conf contains ${API_ORIGIN}; it MUST go through the
+# envsubst pipeline, so copy it under templates/ as a .template and let
+# the alpine entrypoint render it into /etc/nginx/conf.d/includes/.
+COPY infrastructure/nginx/includes/security-headers.conf /etc/nginx/templates/includes/security-headers.conf.template
+COPY infrastructure/nginx/includes/backend-proxy.conf /etc/nginx/conf.d/includes/backend-proxy.conf
 ENV API_ORIGIN="http://localhost:9001"
 
 # Grant write access to nginx runtime directories and conf.d (for envsubst)

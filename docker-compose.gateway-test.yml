@@ -1,0 +1,59 @@
+# Gateway topology smoke test (used by scripts/test/gateway-baseline.sh).
+#
+# Mirrors docker-compose.prod.yml's wiring at the network layer (the
+# `gateway` service resolves `backend` via Docker DNS exactly as the
+# production console/management containers would), but with the production
+# console nginx.conf + a deterministic echo backend on 9001.
+#
+# Usage (called by the script — don't run directly):
+#   docker compose -f docker-compose.gateway-test.yml up -d
+#   docker compose -f docker-compose.gateway-test.yml down
+#
+# The gateway port is published on loopback only, matching the production
+# compose behaviour. The backend port is NOT published.
+services:
+  backend:
+    image: python:3.12-alpine
+    container_name: gateway-test-backend
+    working_dir: /opt
+    command:
+      - sh
+      - -c
+      - "apk add --no-cache curl >/dev/null 2>&1 && python3 fake-backend.py 9001"
+    volumes:
+      - ./infrastructure/nginx/fake-backend.py:/opt/fake-backend.py:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/_probe"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    networks:
+      - gw-net
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: gateway-test-frontend
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      # console/nginx.conf carries ${API_ORIGIN}; mounted as a
+      # default.conf.template so the alpine entrypoint runs envsubst.
+      - ./console/nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      # security-headers.conf also carries ${API_ORIGIN}; mounted
+      # under templates/includes/ so envsubst renders it into
+      # /etc/nginx/conf.d/includes/security-headers.conf (the path
+      # the include directive in our confs expects).
+      - ./infrastructure/nginx/includes/security-headers.conf:/etc/nginx/templates/includes/security-headers.conf.template:ro
+      # backend-proxy.conf has no env vars; mount it directly.
+      - ./infrastructure/nginx/includes/backend-proxy.conf:/etc/nginx/conf.d/includes/backend-proxy.conf:ro
+    environment:
+      API_ORIGIN: "http://localhost:9001"
+    networks:
+      - gw-net
+
+networks:
+  gw-net:
+    driver: bridge

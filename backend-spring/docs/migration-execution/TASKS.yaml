@@ -543,7 +543,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#11.3
-  status: in_progress
+  status: done
   depends_on: []
   acceptance_criteria:
   - 'Nginx Gateway config documents routes: `/auth/**`, `/admin/**`, `/moderation/**`, app business routes, `/ws/**`.'
@@ -557,9 +557,21 @@
   - note: Independent Phase 1 task with no dependencies; beginning Nginx Gateway route inventory and identity-header cleanup
       baseline.
     ts: '2026-07-25T02:33:45+00:00'
+  - command: /tmp/p1infra004_evidence.txt
+    result: "P1-INFRA-004 verification at 2026-07-25\n\n./scripts/test/gateway-baseline.sh\nResult: 74 PASS, 0 FAIL, 0 SKIP.\n\
+      Live Docker smoke verified:\n- auth/admin/moderation/app/ws route prefix translation to Legacy backend:9001\n- 25 identity/service/actor\
+      \ headers stripped on all 6 proxy locations\n- underscore-named identity headers absent upstream\n- REST Connection=close,\
+      \ WebSocket=upgrade, SockJS fallback=close\n- production Compose config valid\n\nImplementation:\n- Explicit /api/auth/,\
+      \ /api/admin/, /api/moderation/, /api/, /api/ws/, /ws/\n  route families in both frontend gateways; all still target\
+      \ Legacy.\n- Shared backend-proxy.conf centralizes forwarding and identity header removal.\n- Shared security-headers.conf\
+      \ preserves CSP/frame/nosniff/referrer headers in\n  static asset locations.\n- WS routes disable proxy buffering/cache\
+      \ and keep long timeouts.\n- Console and management images copy both snippets and remove stock default.conf.\n\nReview:\n\
+      - Initial Standards/Spec findings fixed: default.conf regression, identity-header\n  set, WS buffering, static asset\
+      \ header inheritance, dead test helper.\n- Final review PASS, 0 exploitable blockers; two documentation nits corrected.\n\
+      - git diff --check PASS."
   commits: []
   notes: Initial inventory; cutover happens in Phase 4.
-  updated_at: '2026-07-25T02:33:45+00:00'
+  updated_at: '2026-07-25T03:13:45+00:00'
 - id: P1-INFRA-005
   phase: 1
   area: INFRA

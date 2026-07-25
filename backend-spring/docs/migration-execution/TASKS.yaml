@@ -569,7 +569,8 @@
       - Initial Standards/Spec findings fixed: default.conf regression, identity-header\n  set, WS buffering, static asset\
       \ header inheritance, dead test helper.\n- Final review PASS, 0 exploitable blockers; two documentation nits corrected.\n\
       - git diff --check PASS."
-  commits: []
+  commits:
+  - 0901c38
   notes: Initial inventory; cutover happens in Phase 4.
   updated_at: '2026-07-25T03:13:45+00:00'
 - id: P1-INFRA-005

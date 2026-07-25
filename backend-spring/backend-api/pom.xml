@@ -12,5 +12,7 @@
 	<name>UltiCode Backend (provider-owned API aggregator)</name>
 	<description>Phase 1 aggregator placeholder for provider-owned Dubbo contract modules (backend-auth-api, backend-app-api, etc.). P1-API-001 will populate it.</description>
 	<modules>
+		<module>backend-auth-api</module>
+		<module>backend-app-api</module>
 	</modules>
 </project>

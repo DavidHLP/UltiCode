@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.ulticode</groupId>
+		<artifactId>ulticode-backend</artifactId>
+		<version>1.0.0</version>
+		<relativePath>../../pom.xml</relativePath>
+	</parent>
+	<artifactId>backend-app-api</artifactId>
+	<name>UltiCode Backend (app contract module)</name>
+	<description>
+		Provider-owned Dubbo contract module for backend-app (P1-API-001).
+		Holds ProblemAdministrationService and ContentModerationService
+		interfaces, their request/response DTOs and write commands, plus
+		the namespaced AppErrorCode catalog. All IDs are String UUID;
+		write commands carry commandId, IdMetadata (idempotencyKey) and
+		TraceMetadata; actor delegation is captured on each command via
+		ActorDelegation.
+		Must NOT depend on Entity, Mapper, ServiceImpl, Repository, MyBatis
+		annotations, Spring beans, Spring Security context, or any
+		implementation module.
+	</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-common</artifactId>
+		</dependency>
+
+		<!--
+		  Test surface. archunit-junit5 enforces the no-Entity / no-Mapper /
+		  no-ServiceImpl / no-Repository / no-MyBatis / no-Spring-bean /
+		  no-Spring-Security / no-implementation-module rules.
+		-->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!--
+					  backend-app-api carries no jacoco agent, so the parent's
+					  @{argLine} placeholder is never resolved and would be
+					  passed to the forked JVM as the literal '@{argLine}'
+					  (which crashes `java -jar`). The plain attach flag is
+					  enough to make ByteBuddy's inline mock maker usable
+					  under JDK 17.0.2 — mirrors backend-common's workaround.
+					-->
+					<argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>

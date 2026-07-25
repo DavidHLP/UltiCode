@@ -1,0 +1,130 @@
+package com.ulticode.auth.api.architecture;
+
+import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+/**
+ * Architectural gate for {@code backend-auth-api} (P1-API-001).
+ *
+ * <p>Mirrors {@code BackendCommonArchTest} and adds the contract
+ * module's own constraints: no Entity / Mapper / ServiceImpl /
+ * Repository, no MyBatis annotation surface, no Spring bean
+ * scanning, no Spring Security context, and no transitive dependency
+ * on any implementation module. The
+ * {@code COMMON_MUST_NOT_DEPEND_ON_INTERNAL_MODULES}-style allowlist
+ * is used in place of a blanket forbid so the rule does not collide
+ * with the module's own package.
+ */
+@AnalyzeClasses(
+        packages = "com.ulticode.auth.api",
+        importOptions = {ImportOption.DoNotIncludeTests.class})
+public class BackendAuthApiArchTest {
+
+    private static final String AUTH_API_PKG = "com.ulticode.auth.api..";
+
+    /* ===== dependency rules ============================================ */
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEPEND_ON_MYBATIS =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "com.baomidou..",
+                            "org.apache.ibatis..",
+                            "org.mybatis..")
+                    .because("backend-auth-api is a contract module; "
+                            + "MyBatis belongs to the implementation.");
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEPEND_ON_SPRING_BEANS =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "org.springframework.stereotype..",
+                            "org.springframework.context.annotation..",
+                            "org.springframework.beans.factory.annotation..")
+                    .because("Spring bean scanning (@Component, @Service, "
+                            + "@Configuration, @Bean) belongs to the "
+                            + "implementation module, not the contract.");
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEPEND_ON_SPRING_SECURITY =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            "org.springframework.security..")
+                    .because("Spring Security context must stay inside "
+                            + "backend-auth implementation; the contract "
+                            + "only exposes pure Java interfaces.");
+
+    /* ===== class-naming rules ========================================== */
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEFINE_ENTITY_CLASSES =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().haveSimpleNameEndingWith("Entity")
+                    .because("backend-auth-api holds no persistent "
+                            + "entities; only DTOs / commands / enums.");
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEFINE_MAPPER_CLASSES =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().haveSimpleNameEndingWith("Mapper")
+                    .because("backend-auth-api holds no MyBatis mappers.");
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEFINE_SERVICE_IMPL_CLASSES =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().haveSimpleNameEndingWith("ServiceImpl")
+                    .because("backend-auth-api holds no business service "
+                            + "implementations; only contract interfaces.");
+
+    @ArchTest
+    static final ArchRule AUTH_API_MUST_NOT_DEFINE_REPOSITORY_CLASSES =
+            noClasses()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().haveSimpleNameEndingWith("Repository")
+                    .because("backend-auth-api does not own persistence "
+                            + "abstractions.");
+
+    /* ===== implementation-leakage allowlist =========================== */
+
+    /**
+     * The contract module may only depend on its own package, the
+     * shared {@code backend-common} contract, and JDK / standard
+     * library packages. Any transitively-pulled dependency on an
+     * Entity / Mapper / ServiceImpl / Repository / controller
+     * package under {@code com.ulticode.*} (including
+     * {@code com.ulticode.auth.entity..},
+     * {@code com.ulticode.auth.mapper..},
+     * {@code com.ulticode.modules..}, {@code com.ulticode.security..},
+     * {@code com.ulticode.app..},
+     * {@code com.ulticode.admin..},
+     * {@code com.ulticode.legacy..}) is a violation.
+     *
+     * <p>An allowlist (rather than a blanket forbid) is used so the
+     * rule does not collide with the module's own package
+     * {@code com.ulticode.auth.api..}.
+     */
+    @ArchTest
+    static final ArchRule AUTH_API_ONLY_DEPENDS_ON_CONTRACT_AND_COMMON =
+            classes()
+                    .that().resideInAPackage(AUTH_API_PKG)
+                    .should().onlyDependOnClassesThat().resideInAnyPackage(
+                            "com.ulticode.auth.api..",
+                            "com.ulticode.common..",
+                            "java..",
+                            "javax..",
+                            "jakarta..")
+                    .because("contract module may only depend on its "
+                            + "own package and backend-common; no "
+                            + "impl/Entity/legacy leakage.");
+ }

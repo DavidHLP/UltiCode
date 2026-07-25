@@ -474,7 +474,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#6.2
   - MICROSERVICE_MIGRATION_GUIDE.md#10
-  status: pending
+  status: done
   depends_on:
   - P1-INFRA-002
   acceptance_criteria:
@@ -487,10 +487,24 @@
   validation:
   - ./mvnw -pl backend-auth-api,backend-app-api compile -B
   rollback: revert module
-  evidence: []
+  evidence:
+  - note: Dependencies P1-INFRA-001 and P1-INFRA-002 are done; beginning provider-owned auth/app API module skeletons.
+    ts: '2026-07-25T03:14:16+00:00'
+  - command: /tmp/p1api001_evidence.txt
+    result: "P1-API-001 verification at 2026-07-25T11:35:42+08:00\n\n./mvnw -pl backend-api/backend-auth-api,backend-api/backend-app-api\
+      \ -am test -B\nBUILD SUCCESS: backend-common 62 tests, backend-auth-api 21,\nbackend-app-api 18; 101 total, 0 failures/errors/skips.\n\
+      \nContracts:\n- backend-auth-api: IdentityQueryService, AccountAdministrationService,\n  AuthorizationSnapshotService,\
+      \ DTOs, commands and AuthErrorCode.\n- backend-app-api: ProblemAdministrationService, ContentModerationService,\n  DTOs,\
+      \ commands, typed moderation/content-state enums and AppErrorCode.\n- All IDs are String; write commands carry commandId,\
+      \ IdMetadata,\n  ActorDelegation and TraceMetadata; expectedVersion required where applicable.\n- Permission Sets defensively\
+      \ copied and null/blank elements rejected.\n- ArchUnit prohibits MyBatis, Spring beans/Security, Entity, Mapper,\n \
+      \ ServiceImpl, Repository and implementation-module dependencies.\n- No backend-admin-api created.\n\nReview:\n- Initial\
+      \ missing AuthorizationSnapshotService, nullable version, mutable Set\n  and stringly moderation findings fixed.\n-\
+      \ Final review PASS, 0 blockers. P3 coverage suggestions deferred as non-blocking\n  to later consumer-contract/N&N-1\
+      \ task P4-RPC-001.\n- git diff --check PASS."
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-25T03:40:14+00:00'
 - id: P1-INFRA-003
   phase: 1
   area: INFRA

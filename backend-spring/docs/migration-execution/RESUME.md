@@ -1,32 +1,32 @@
 # Migration Resume
 
 Current Phase: Phase 1
-Current Task: P1-INFRA-004 (in_progress)
+Current Task: P1-INFRA-003 (next ready)
 
 Last Verified Commit:
-c93aad9 chore(migration): record P1-INFRA-002 commit hash
+a8cf667 chore(migration): record P1-API-001 commit hash
 
 Completed:
-13 / 51 (Phase 0 gate, P1-INFRA-001, P1-INFRA-002)
+15 / 51 (Phase 0 gate plus four Phase 1 tasks)
 
 Blocked:
 (none)
 
 Current Work:
-P1-INFRA-004 inventories Gateway route families and enforces removal of
-client-supplied identity/role/service headers while retaining Legacy routing.
+P1-INFRA-001, P1-INFRA-002, P1-INFRA-004 and P1-API-001 are complete.
+Next is Dubbo Triple/Nacos registry wiring in backend-legacy.
 
 Last Validation:
-./mvnw -pl backend-common,backend-legacy -am test -B
-PASS — backend-common 62 tests; backend-legacy existing unit suite green.
+./mvnw -pl backend-api/backend-auth-api,backend-api/backend-app-api -am test -B
+PASS — 101 tests across common/auth-api/app-api.
 
 Next:
-1. Complete P1-INFRA-004 Gateway baseline
-2. P1-API-001 — provider-owned API submodules
-3. P1-INFRA-003 — Dubbo Triple/Nacos registry wiring
+1. P1-INFRA-003 — Dubbo Triple/Nacos registry wiring
+2. P1-OBS-001 — HTTP/Dubbo trace propagation
+3. P1-INFRA-005 — independent service starter shells
 
 Dirty Worktree:
-Yes — P1-INFRA-004 is in progress. Pre-existing untracked
+No task changes. Pre-existing untracked
 backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md remains outside task diffs.
 
 PUSH: NOT PUSHED. GitHub writes require explicit user approval.

@@ -176,3 +176,22 @@ Append-only log of significant events. NOT a task state source of truth
 - `./mvnw -pl backend-common,backend-legacy -am test -B`: PASS;
   backend-common 62 tests, legacy suite green.
 - Standards and Spec review PASS after all findings were fixed.
+
+### P1-INFRA-004 — Gateway route/header baseline
+
+- Status: done.
+- Commit: 0901c38 (`feat(gateway)`); hash recorded by 81e920d.
+- Added explicit Legacy-backed auth/admin/moderation/app/WS route families.
+- Centralized identity-header removal and security headers.
+- Full Docker smoke: 74 PASS, 0 FAIL, 0 SKIP.
+- Standards/Spec/final review findings closed; final review 0 blockers.
+
+### P1-API-001 — provider-owned contract modules
+
+- Status: done.
+- Commit: 3c2b0dc (`feat(rpc)`); hash recorded by a8cf667.
+- Added `backend-auth-api` and `backend-app-api` with String-ID DTOs,
+  idempotent commands, actor delegation and trace/deadline metadata.
+- Added contract ArchUnit and shape tests; no implementation dependencies.
+- Targeted reactor: 101 tests PASS.
+- Standards/Spec/final review findings closed; final review 0 blockers.

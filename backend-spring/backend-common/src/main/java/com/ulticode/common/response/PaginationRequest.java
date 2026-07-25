@@ -81,17 +81,57 @@ public record PaginationRequest(int page, int pageSize) {
     }
 
     /**
-     * Zero-based offset for SQL {@code LIMIT ? OFFSET ?} queries.
+     * Zero-based SQL offset as a {@code long}.
      *
-     * <p>Overflow-safe: uses {@link Math#multiplyExact} to detect the (extremely
-     * unlikely on a capped page-size) case where {@code (page - 1) * pageSize}
-     * would overflow {@code int}. Callers receiving an {@link ArithmeticException}
-     * should treat the request as out-of-range.
+     * <p>Returns {@code (page - 1) * pageSize} widened to a {@code long} so
+     * that callers using MyBatis {@code LIMIT ? OFFSET ?} or JDBC
+     * {@code PreparedStatement.setLong(...)} do not have to insert their own
+     * widening casts. The 100-page-size cap makes {@code int} overflow
+     * practically impossible for {@code page * pageSize}, but we still
+     * compute the widened form here so the boundary check lives in one
+     * place.
      *
-     * @return {@code (page - 1) * pageSize}
-     * @throws ArithmeticException if the computation overflows {@code int}
+     * <p>Overflow behaviour: with {@link #MAX_PAGE_SIZE} = 100, a {@code page}
+     * of {@link Integer#MAX_VALUE} yields an offset of about
+     * {@code 2.1e11}, comfortably inside the {@code long} range and still
+     * far below {@link Long#MAX_VALUE}. {@link #isOffsetOverflow()} returns
+     * {@code true} when the offset would not fit in a 32-bit {@code int}
+     * (defensive: callers that have to write the offset to a narrow
+     * parameter type can branch on this).
+     *
+     * @return the zero-based offset, widened to {@code long}
      */
-    public int offset() {
+    public long offset() {
+        return (long) (page - 1) * (long) pageSize;
+    }
+
+    /**
+     * Strict zero-based offset for callers that must surface the offset on
+     * the wire as a 32-bit signed integer (rare; SQL drivers accept long).
+     *
+     * <p>{@link ArithmeticException} is reserved for genuine integer
+     * overflow that a {@code long} cannot help with. With the
+     * {@link #MAX_PAGE_SIZE} cap the only way to overflow {@code long} is
+     * if {@code page} exceeds roughly 92 quadrillion &mdash; which Java
+     * cannot represent as an {@code int} anyway.
+     *
+     * @return the zero-based offset as an {@code int}
+     * @throws ArithmeticException if the widened offset does not fit in
+     *         an {@code int} (defensive: never expected with the
+     *         page-size cap in effect)
+     */
+    public int offsetExact() {
         return Math.multiplyExact(page - 1, pageSize);
+    }
+
+    /**
+     * @return {@code true} when the widened offset no longer fits in a
+     *         32-bit signed {@code int}; a defensive signal so callers
+     *         using narrow types can branch without computing the
+     *         offset themselves.
+     */
+    public boolean isOffsetOverflow() {
+        long widened = offset();
+        return widened < Integer.MIN_VALUE || widened > Integer.MAX_VALUE;
     }
 }

@@ -3,6 +3,8 @@ package com.ulticode.common.exception;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+import com.ulticode.common.error.BaseErrorCode;
+
 /**
  * Application-wide error codes.
  * MUST match NestJS error codes exactly for frontend compatibility.
@@ -17,22 +19,36 @@ import org.springframework.http.HttpStatus;
  * - CONTEST     = 7xxxx  Contest module
  * - BOOKMARK    = 8xxxx  Bookmark module
  * - PROBLEM_LIST = 9xxxx Problem list module
+ *
+ * <p>The 11 generic / protocol-level codes (SUCCESS, BAD_REQUEST,
+ * VALIDATION_FAILED, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, METHOD_NOT_ALLOWED,
+ * CONFLICT, TOO_MANY_REQUESTS, UNKNOWN_ERROR, DATABASE_ERROR) delegate their
+ * integer code + English message to {@link BaseErrorCode} so the
+ * {@code RpcResult.ErrorPayload} wire projection and the legacy HTTP
+ * envelope share one source of truth. The {@code HttpStatus} mapping is
+ * intentionally retained here because Spring's {@code HttpStatus} is not
+ * part of backend-common.
  */
 @Getter
 public enum ErrorCode {
 
-    // Generic errors (0xxxx)
-    SUCCESS(0, "success", HttpStatus.OK),
-    UNKNOWN_ERROR(50000, "Unknown error", HttpStatus.INTERNAL_SERVER_ERROR),
-    DATABASE_ERROR(50001, "Database error", HttpStatus.INTERNAL_SERVER_ERROR),
-    BAD_REQUEST(40000, "Bad request", HttpStatus.BAD_REQUEST),
-    VALIDATION_FAILED(49999, "Validation failed", HttpStatus.BAD_REQUEST),
-    UNAUTHORIZED(40100, "Unauthorized", HttpStatus.UNAUTHORIZED),
-    FORBIDDEN(40300, "Forbidden", HttpStatus.FORBIDDEN),
-    NOT_FOUND(40400, "Not found", HttpStatus.NOT_FOUND),
-    METHOD_NOT_ALLOWED(40500, "Method not allowed", HttpStatus.METHOD_NOT_ALLOWED),
-    CONFLICT(40900, "Conflict", HttpStatus.CONFLICT),
-    TOO_MANY_REQUESTS(42900, "Too many requests", HttpStatus.TOO_MANY_REQUESTS),
+
+    // Generic errors (0xxxx). Code + message literals are delegated to
+    // {@link BaseErrorCode} so the cross-service transport payload and the
+    // legacy HTTP envelope share one source of truth. The HttpStatus
+    // mapping stays local because Spring's HttpStatus is intentionally
+    // not exposed from backend-common.
+    SUCCESS(BaseErrorCode.SUCCESS.code(), BaseErrorCode.SUCCESS.message(), HttpStatus.OK),
+    UNKNOWN_ERROR(BaseErrorCode.UNKNOWN_ERROR.code(), BaseErrorCode.UNKNOWN_ERROR.message(), HttpStatus.INTERNAL_SERVER_ERROR),
+    DATABASE_ERROR(BaseErrorCode.DATABASE_ERROR.code(), BaseErrorCode.DATABASE_ERROR.message(), HttpStatus.INTERNAL_SERVER_ERROR),
+    BAD_REQUEST(BaseErrorCode.BAD_REQUEST.code(), BaseErrorCode.BAD_REQUEST.message(), HttpStatus.BAD_REQUEST),
+    VALIDATION_FAILED(BaseErrorCode.VALIDATION_FAILED.code(), BaseErrorCode.VALIDATION_FAILED.message(), HttpStatus.BAD_REQUEST),
+    UNAUTHORIZED(BaseErrorCode.UNAUTHORIZED.code(), BaseErrorCode.UNAUTHORIZED.message(), HttpStatus.UNAUTHORIZED),
+    FORBIDDEN(BaseErrorCode.FORBIDDEN.code(), BaseErrorCode.FORBIDDEN.message(), HttpStatus.FORBIDDEN),
+    NOT_FOUND(BaseErrorCode.NOT_FOUND.code(), BaseErrorCode.NOT_FOUND.message(), HttpStatus.NOT_FOUND),
+    METHOD_NOT_ALLOWED(BaseErrorCode.METHOD_NOT_ALLOWED.code(), BaseErrorCode.METHOD_NOT_ALLOWED.message(), HttpStatus.METHOD_NOT_ALLOWED),
+    CONFLICT(BaseErrorCode.CONFLICT.code(), BaseErrorCode.CONFLICT.message(), HttpStatus.CONFLICT),
+    TOO_MANY_REQUESTS(BaseErrorCode.TOO_MANY_REQUESTS.code(), BaseErrorCode.TOO_MANY_REQUESTS.message(), HttpStatus.TOO_MANY_REQUESTS),
 
     // Auth module (1xxxx)
     AUTH_INVALID_CREDENTIALS(10001, "Invalid credentials", HttpStatus.UNAUTHORIZED),

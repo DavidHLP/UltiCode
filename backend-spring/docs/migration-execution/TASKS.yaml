@@ -439,7 +439,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#10.1
-  status: pending
+  status: done
   depends_on:
   - P1-INFRA-001
   acceptance_criteria:
@@ -449,10 +449,23 @@
   validation:
   - ./mvnw -pl backend-common test -B
   rollback: revert module
-  evidence: []
+  evidence:
+  - note: Dependency P1-INFRA-001 completed and committed at 0cf0136; beginning backend-common extraction.
+    ts: '2026-07-25T01:54:30+00:00'
+  - command: /tmp/p1infra002_evidence.txt
+    result: "P1-INFRA-002 verification at 2026-07-25T10:25:06+08:00\n\n./mvnw -pl backend-common,backend-legacy -am test -B\n\
+      BUILD SUCCESS.\nbackend-common: 62 tests, 0 failures/errors/skips.\nbackend-legacy: existing unit suite green.\n\nImplementation:\n\
+      - Moved Result, PageResult, PaginationRequest, TraceIdUtil, TimeSource,\n  TimeSourceHolder and FakeTimeSource to backend-common\
+      \ with package/API stability.\n- Added RpcResult with concrete ErrorPayload JSON contract, BaseErrorCode,\n  NamespacedErrorCode,\
+      \ TraceMetadata and IdMetadata.\n- backend-legacy depends on backend-common; generic ErrorCode values delegate to\n\
+      \  BaseErrorCode while retaining HTTP status mapping.\n- BackendCommonArchTest prohibits MyBatis, Spring bean annotations,\
+      \ internal\n  modules, Entity/Mapper/ServiceImpl/Repository classes.\n- Contract tests cover RpcResult JSON round-trip,\
+      \ error values and pagination\n  overflow semantics.\n\nReview:\n- Spec review PASS.\n- Standards initial findings fixed:\
+      \ concrete JSON error payload, no shadow\n  accessors, public-contract tests, long offset semantics, single generic\n\
+      \  error-code source.\n- Final review PASS, 0 blockers.\n- git diff --check PASS."
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-25T02:33:07+00:00'
 - id: P1-API-001
   phase: 1
   area: API

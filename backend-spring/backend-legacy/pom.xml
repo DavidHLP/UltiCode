@@ -12,6 +12,18 @@
 	<description>Transitional module that preserves the pre-reactor single-module layout. Phase 7 of the microservice migration retires this module.</description>
 
 	<dependencies>
+		<!--
+		  P1-INFRA-002: backend-common holds the dependency-free atoms
+		  (Result, PageResult, PaginationRequest, TraceIdUtil, TimeSource,
+		  TimeSourceHolder, RpcResult, namespaced error-code base types,
+		  trace/id metadata). The version is pinned by the reactor parent's
+		  dependencyManagement, so no explicit <version> is needed here.
+		-->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-common</artifactId>
+		</dependency>
+
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

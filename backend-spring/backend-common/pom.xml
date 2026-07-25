@@ -9,5 +9,93 @@
 	</parent>
 	<artifactId>backend-common</artifactId>
 	<name>UltiCode Backend (shared common)</name>
-	<description>Phase 1 placeholder for the shared common module (Result/PageResult/ErrorCode/trace metadata). P1-INFRA-002 will populate it.</description>
+	<description>
+		Phase 1 (P1-INFRA-002) shared contract module. Holds the dependency-free
+		HTTP envelope (Result, PageResult, PaginationRequest), RPC envelope
+		(RpcResult), namespaced error-code base types, and trace/id metadata.
+		Must NOT depend on MyBatis, JPA, Spring beans, Entity, Mapper, or
+		ServiceImpl implementations.
+	</description>
+
+	<dependencies>
+		<!--
+		  Jackson annotations (@JsonInclude on Result) — managed by
+		  spring-boot-starter-parent in the reactor BOM, so no explicit
+		  version is needed. No JSON parser/databind is required; legacy
+		  and downstream modules continue to provide the runtime.
+		-->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+		</dependency>
+
+		<!--
+		  Lombok is optional but the moved Result / PageResult are
+		  annotated with @Data. Leaving it as a true compile dep keeps
+		  the existing POJO surface stable without rewriting the moved
+		  classes to manual getters/setters.
+		-->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!--
+		  Test surface. archunit-junit5 enforces "no MyBatis / no
+		  Spring beans / no business impl" on the module itself, which
+		  is the architectural gate for P1-INFRA-002.
+		-->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
+		  jackson-databind is required test-scope for the RpcResult
+		  JSON round-trip boundary test. Production runtime is provided
+		  by downstream Spring Boot modules.
+		-->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-surefire-plugin</artifactId>
+			<configuration>
+				<!--
+				  backend-common carries no jacoco agent, so the parent's
+				  @{argLine} placeholder is never resolved and would be
+				  passed to the forked JVM as the literal '@{argLine}'
+				  (which crashes `java -jar`). The plain attach flag is
+				  enough to make ByteBuddy's inline mock maker usable
+				  under JDK 17.0.2.
+				-->
+				<argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+			</configuration>
+		</plugin>
+	</plugins>
+	</build>
 </project>

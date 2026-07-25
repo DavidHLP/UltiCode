@@ -463,7 +463,8 @@
       \ error values and pagination\n  overflow semantics.\n\nReview:\n- Spec review PASS.\n- Standards initial findings fixed:\
       \ concrete JSON error payload, no shadow\n  accessors, public-contract tests, long offset semantics, single generic\n\
       \  error-code source.\n- Final review PASS, 0 blockers.\n- git diff --check PASS."
-  commits: []
+  commits:
+  - 49dca6d
   notes: ''
   updated_at: '2026-07-25T02:33:07+00:00'
 - id: P1-API-001

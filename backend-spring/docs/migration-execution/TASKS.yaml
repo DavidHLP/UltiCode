@@ -543,7 +543,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#11.3
-  status: pending
+  status: in_progress
   depends_on: []
   acceptance_criteria:
   - 'Nginx Gateway config documents routes: `/auth/**`, `/admin/**`, `/moderation/**`, app business routes, `/ws/**`.'
@@ -553,10 +553,13 @@
   - ./scripts/dev/test.sh quick
   - docker compose config passes
   rollback: revert nginx config
-  evidence: []
+  evidence:
+  - note: Independent Phase 1 task with no dependencies; beginning Nginx Gateway route inventory and identity-header cleanup
+      baseline.
+    ts: '2026-07-25T02:33:45+00:00'
   commits: []
   notes: Initial inventory; cutover happens in Phase 4.
-  updated_at: ''
+  updated_at: '2026-07-25T02:33:45+00:00'
 - id: P1-INFRA-005
   phase: 1
   area: INFRA

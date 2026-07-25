@@ -1,35 +1,33 @@
 # Migration Resume
 
 Current Phase: Phase 1
-Current Task: P1-INFRA-002 (next ready)
+Current Task: P1-INFRA-004 (in_progress)
 
 Last Verified Commit:
-e4a3453f7 chore(migration): record P0-GATE in WORKLOG
-(P1-INFRA-001 verified but not committed yet)
+c93aad9 chore(migration): record P1-INFRA-002 commit hash
 
 Completed:
-12 / 51 (Phase 0 gate plus P1-INFRA-001)
+13 / 51 (Phase 0 gate, P1-INFRA-001, P1-INFRA-002)
 
 Blocked:
 (none)
 
 Current Work:
-P1-INFRA-001 converted backend-spring to a Maven reactor. Existing monolith,
-tests, resources and ArchUnit freeze store now live under backend-legacy.
+P1-INFRA-004 inventories Gateway route families and enforces removal of
+client-supplied identity/role/service headers while retaining Legacy routing.
 
 Last Validation:
-./mvnw verify -B
-PASS — 7 reactor projects; 1804 tests, 0 failures, 0 errors, 4 skipped.
+./mvnw -pl backend-common,backend-legacy -am test -B
+PASS — backend-common 62 tests; backend-legacy existing unit suite green.
 
 Next:
-1. Commit P1-INFRA-001 and record its hash
-2. P1-INFRA-002 — establish backend-common
-3. P1-API-001 — create provider-owned API submodules
+1. Complete P1-INFRA-004 Gateway baseline
+2. P1-API-001 — provider-owned API submodules
+3. P1-INFRA-003 — Dubbo Triple/Nacos registry wiring
 
 Dirty Worktree:
-Yes — verified P1-INFRA-001 reactor migration awaiting local commit.
-Pre-existing untracked backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md
-remains outside the task diff.
+Yes — P1-INFRA-004 is in progress. Pre-existing untracked
+backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md remains outside task diffs.
 
 PUSH: NOT PUSHED. GitHub writes require explicit user approval.
 

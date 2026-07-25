@@ -164,3 +164,15 @@ Append-only log of significant events. NOT a task state source of truth
   • ArchUnit baseline green
   • Legacy judge feature-flagged
   • All migrations additive
+
+### P1-INFRA-002 — backend-common extraction
+
+- Status: done.
+- Commit: 49dca6d (`refactor(common)`); hash recorded by c93aad9.
+- Moved stable HTTP envelopes, trace/time primitives into `backend-common`.
+- Added `RpcResult` with concrete JSON `ErrorPayload`, namespaced/base error
+  types, and explicit trace/id metadata.
+- Added ArchUnit dependency boundary rules and JSON/edge-case tests.
+- `./mvnw -pl backend-common,backend-legacy -am test -B`: PASS;
+  backend-common 62 tests, legacy suite green.
+- Standards and Spec review PASS after all findings were fixed.

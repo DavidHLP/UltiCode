@@ -47,7 +47,7 @@
 # 3. 后端 (Spring Boot / Java 17)
 # =====================================================================
 !backend-spring/**
-backend-spring/target/
+backend-spring/**/target/
 backend-spring/arthas-output/
 backend-spring/*.jar
 backend-spring/*.class

@@ -30,9 +30,12 @@ const pathAdditions = [
 ].filter(existsSync);
 const newPath = [...pathAdditions, process.env.PATH || ''].join(';');
 
+// P1-INFRA-001: backend-spring is now a Maven reactor root with no
+// Spring Boot application. The boot lives in backend-legacy/, so we
+// select it via -pl from the reactor root.
 const proc = spawn(
   bash,
-  [mvnw, 'spring-boot:run', '-Dmaven.test.skip=true', '-Dspring-boot.run.jvmArguments=-XX:-UseContainerSupport'],
+  [mvnw, '-pl', 'backend-legacy', '-am', 'spring-boot:run', '-Dmaven.test.skip=true', '-Dspring-boot.run.jvmArguments=-XX:-UseContainerSupport'],
   {
     cwd: __dirname,
     stdio: 'inherit',

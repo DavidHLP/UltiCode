@@ -1,61 +1,37 @@
 # Migration Resume
 
-Current Phase: Phase 0
-Current Task: P0-SCHEMA-003 (about to start)
+Current Phase: Phase 1
+Current Task: P1-INFRA-002 (next ready)
 
 Last Verified Commit:
-dbdb04e chore(migration): record P0-SEC-004 commit hash in TASKS.yaml
-(HEAD — local only, NOT pushed to origin)
+e4a3453f7 chore(migration): record P0-GATE in WORKLOG
+(P1-INFRA-001 verified but not committed yet)
 
 Completed:
-5 / 51
-- P0-SCHEMA-001 (done, BUILD SUCCESS 2026-07-25T00:29:24+08:00)
-  commit: 3f1c61fd16f26a5686228e3f87ef7aac01bba462 (feat(db))
-- P0-SCHEMA-002 (done, BUILD SUCCESS 2026-07-25T00:29:24+08:00)
-  commit: 3f1c61fd16f26a5686228e3f87ef7aac01bba462 (feat(db))
-- P0-SEC-001 (done, 1791 tests pass 2026-07-25T00:39:16+08:00)
-  commit: 90c6a0965838aec1e7b14fcad29870b902489080 (fix(security))
-- P0-SEC-003 (done, 1797 tests pass 2026-07-25T00:47:35+08:00)
-  commit: 626e665a4755e0845072c2bd9d89f0953962dd86 (fix(security))
-- P0-SEC-004 (done, 1798 tests pass 2026-07-25T00:51:31+08:00)
-  commit: 0e9c3494773f235ba2f918f6993b7cb8f766b212 (fix(security))
-
-Local commit chain (10 commits, oldest first):
-  9172541e chore(migration): phase 0-7 task DAG + persistence
-  3f1c61fd feat(db): backups + problem_notes migrations
-  90c6a096 fix(security): bind oauth state cookie
-  65cc4af6 chore(migration): record P0-SCHEMA/SEC-001 hashes
-  4a60c4aa chore(migration): update RESUME + WORKLOG with hashes
-  626e665a fix(security): ws validator unification + active/ban + fail closed
-  62a2399 chore(migration): record P0-SEC-003 hash
-  d7a04be chore(migration): WORKLOG + RESUME after P0-SEC-003
-  0e9c349 fix(security): filter expired user_permissions
-  dbdb04e chore(migration): record P0-SEC-004 hash
-
-PUSH: NOT PUSHED. Per GitHub Write Gate, push requires explicit user
-approval. Local commits only.
+12 / 51 (Phase 0 gate plus P1-INFRA-001)
 
 Blocked:
 (none)
 
 Current Work:
-P0-SCHEMA-003 — Inventory migration-only tables per ADR-MIG-INV.
-Updates DECISIONS.md with the table list, last-known DDL, and
-R-decision classification. No SQL changes.
+P1-INFRA-001 converted backend-spring to a Maven reactor. Existing monolith,
+tests, resources and ArchUnit freeze store now live under backend-legacy.
 
 Last Validation:
-- ./mvnw test -B → 1798 tests, 0 failures, 0 errors, 4 skipped
-  BUILD SUCCESS at 2026-07-25T00:51:31+08:00 (commit 0e9c349)
+./mvnw verify -B
+PASS — 7 reactor projects; 1804 tests, 0 failures, 0 errors, 4 skipped.
 
-Next (ready queue):
-1. P0-SCHEMA-003 — migration-only table inventory (no deps)
-2. P0-SEC-002 — OAuth provider identity (depends on P0-SEC-001, unblocked)
-3. P0-JUDGE-001 — judge outbox/fence/stream design (no deps)
-4. P0-ARCH-001 — table owner manifest (no deps)
-5. P0-ARCH-002 — ArchUnit baseline (depends on P0-ARCH-001)
+Next:
+1. Commit P1-INFRA-001 and record its hash
+2. P1-INFRA-002 — establish backend-common
+3. P1-API-001 — create provider-owned API submodules
 
 Dirty Worktree:
-No
+Yes — verified P1-INFRA-001 reactor migration awaiting local commit.
+Pre-existing untracked backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md
+remains outside the task diff.
+
+PUSH: NOT PUSHED. GitHub writes require explicit user approval.
 
 Key references:
 - backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md
@@ -64,3 +40,22 @@ Key references:
 - backend-spring/docs/migration-execution/DECISIONS.md
 - backend-spring/docs/migration-execution/WORKLOG.md
 - backend-spring/docs/migration-execution/_tools/update_task.py
+
+[backend-spring/docs/migration-execution/WORKLOG.md#9EE2]
+INS.TAIL:
+
+### P1-INFRA-001 — Maven reactor conversion
+
+- Status: done; local commit pending.
+- Root `pom.xml` is now a `packaging=pom` reactor with `backend-common`,
+  `backend-api`, `backend-auth`, `backend-admin`, `backend-app`, and
+  `backend-legacy`.
+- Existing monolith source/resources/tests and ArchUnit freeze store moved
+  unchanged into `backend-legacy`.
+- Dockerfile, `backend-spring/start.cjs`, and `ecosystem.config.cjs` now select
+  `backend-legacy`.
+- Review fixes: reactor-wide `target/` ignore and CI surefire artifact glob.
+- `./mvnw -pl backend-legacy verify -B`: PASS, 1804 tests.
+- `./mvnw verify -B`: PASS across 7 reactor projects, 1804 tests.
+- Standards review PASS; Spec findings closed or explicitly assigned to
+  dependent task P1-API-001.

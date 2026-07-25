@@ -3,19 +3,22 @@ FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for dependency caching
+# Copy Maven wrapper and reactor pom first for dependency caching.
 COPY backend-spring/.mvn/ ./.mvn/
 COPY backend-spring/mvnw ./mvnw
 COPY backend-spring/pom.xml ./pom.xml
+COPY backend-spring/backend-legacy/pom.xml ./backend-legacy/pom.xml
 
 # Download backend dependencies (recommendation/ module was removed in
 # commit 65dd5cc51; do not re-introduce the COPY lines without a real module.)
 WORKDIR /app
-RUN chmod +x ./mvnw && ./mvnw dependency:go-offline -B
+RUN chmod +x ./mvnw && ./mvnw -pl backend-legacy -am -B dependency:go-offline
 
-# Copy source and build
-COPY backend-spring/src ./src
-RUN ./mvnw package -DskipTests -B
+# Copy source and build the legacy module (the only Spring Boot boot
+# module under the P1-INFRA-001 reactor; future P1-INFRA-005 service
+# modules will publish their own images).
+COPY backend-spring/backend-legacy/src ./backend-legacy/src
+RUN ./mvnw -pl backend-legacy -am package -DskipTests -B
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine AS runtime
@@ -26,7 +29,7 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy built JAR
-COPY --from=builder /app/target/app.jar ./app.jar
+COPY --from=builder /app/backend-legacy/target/app.jar ./app.jar
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

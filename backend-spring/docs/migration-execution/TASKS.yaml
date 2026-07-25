@@ -400,7 +400,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#10
-  status: pending
+  status: done
   depends_on:
   - P0-GATE
   acceptance_criteria:
@@ -411,10 +411,26 @@
   - ./mvnw -pl backend-legacy verify -B
   rollback:
   - Revert to single-module pom; ensure git history preserved.
-  evidence: []
+  evidence:
+  - note: 'Recovery reconciliation: repository HEAD e4a3453f7; Phase 0 is complete (10/10 plus P0-GATE), superseding stale
+      RESUME snapshot at dbdb04e. Only pre-existing untracked MICROSERVICE_MIGRATION_GUIDE.md remains.'
+    ts: '2026-07-25T01:37:57+00:00'
+  - command: /tmp/p1infra001_evidence.txt
+    result: "P1-INFRA-001 verification at 2026-07-25T09:52:19+08:00\n\n1. ./mvnw -pl backend-legacy verify -B\n   BUILD SUCCESS;\
+      \ Tests run: 1804, Failures: 0, Errors: 0, Skipped: 4.\n   JaCoCo verify passed and backend-legacy/target/app.jar was\
+      \ built.\n\n2. ./mvnw verify -B (full reactor after review fixes)\n   BUILD SUCCESS across 7 reactor projects:\n   root,\
+      \ backend-common, backend-api, backend-auth, backend-admin,\n   backend-app, backend-legacy.\n   Tests run: 1804, Failures:\
+      \ 0, Errors: 0, Skipped: 4.\n\n3. Review closure\n   Standards review: PASS; one P2 target-ignore finding fixed by\n\
+      \   changing .gitignore to backend-spring/**/target/.\n   Spec review: initial FAIL with three findings:\n   - target\
+      \ ignore fixed.\n   - CI surefire upload paths fixed to backend-spring/**/target/surefire-reports/.\n   - backend-auth-api/backend-app-api\
+      \ submodules remain intentionally assigned\n     to dependent task P1-API-001; P1-INFRA-001 acceptance only requires\
+      \ the\n     backend-api top-level aggregator shell.\n   Revalidation: full reactor verify PASS.\n\n4. Compatibility\
+      \ paths\n   Dockerfile, backend-spring/start.cjs and ecosystem.config.cjs select\n   backend-legacy via -pl/-am; Docker\
+      \ runtime copies backend-legacy/target/app.jar.\n   Existing source, resources, tests and ArchUnit freeze store moved\
+      \ without\n   source-content changes into backend-legacy.\n\n5. git diff --check: PASS."
   commits: []
   notes: 'Strangler: keep all current behavior inside backend-legacy until Phase 4 cutover.'
-  updated_at: ''
+  updated_at: '2026-07-25T01:52:37+00:00'
 - id: P1-INFRA-002
   phase: 1
   area: INFRA

@@ -8,7 +8,9 @@ module.exports = {
       name: 'ulticode-9001',
       cwd: path.join(ROOT, 'backend-spring'),
       script: 'mvn',
-      args: 'spring-boot:run -Dspring-boot.run.profiles=dev',
+      // P1-INFRA-001: backend-spring is a Maven reactor; select the legacy
+      // module which holds the Spring Boot boot.
+      args: '-pl backend-legacy -am spring-boot:run -Dspring-boot.run.profiles=dev',
       interpreter: 'none',
       env_file: path.join(ROOT, '.env'),
       env: { SERVER_PORT: '9001' },

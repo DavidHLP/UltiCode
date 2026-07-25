@@ -502,7 +502,8 @@
       \ missing AuthorizationSnapshotService, nullable version, mutable Set\n  and stringly moderation findings fixed.\n-\
       \ Final review PASS, 0 blockers. P3 coverage suggestions deferred as non-blocking\n  to later consumer-contract/N&N-1\
       \ task P4-RPC-001.\n- git diff --check PASS."
-  commits: []
+  commits:
+  - 3c2b0dc
   notes: ''
   updated_at: '2026-07-25T03:40:14+00:00'
 - id: P1-INFRA-003

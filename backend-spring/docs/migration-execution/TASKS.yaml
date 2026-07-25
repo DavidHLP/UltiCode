@@ -428,7 +428,8 @@
       \ paths\n   Dockerfile, backend-spring/start.cjs and ecosystem.config.cjs select\n   backend-legacy via -pl/-am; Docker\
       \ runtime copies backend-legacy/target/app.jar.\n   Existing source, resources, tests and ArchUnit freeze store moved\
       \ without\n   source-content changes into backend-legacy.\n\n5. git diff --check: PASS."
-  commits: []
+  commits:
+  - 0cf0136
   notes: 'Strangler: keep all current behavior inside backend-legacy until Phase 4 cutover.'
   updated_at: '2026-07-25T01:52:37+00:00'
 - id: P1-INFRA-002

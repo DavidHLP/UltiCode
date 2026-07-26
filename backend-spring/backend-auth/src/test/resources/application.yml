@@ -1,0 +1,7 @@
+# P1-INFRA-005: test profile for service shell context-load tests.
+# Unit tests only assert HTTP actuator + placeholder controller.
+# Nacos registration is validated by the manual smoke script, not here.
+dubbo:
+  registry:
+    register: false
+    subscribe: false

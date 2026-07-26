@@ -1,0 +1,5 @@
+# P1-INFRA-005: test profile for service shell context-load tests.
+dubbo:
+  registry:
+    register: false
+    subscribe: false

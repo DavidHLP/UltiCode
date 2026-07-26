@@ -1,0 +1,85 @@
+server:
+  port: ${SERVER_PORT:9001}
+
+spring:
+  application:
+    name: backend-auth
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+    db:
+      enabled: false
+    redis:
+      enabled: false
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: 5s
+
+# P1-INFRA-003: Dubbo 3.3.6 + Nacos registry.
+# The same defaults as backend-legacy; services share the dev namespace and
+# register with the same Nacos cluster. A missing registry at boot time is
+# tolerated because Dubbo's consumer check is disabled and the registry will
+# retry asynchronously.
+dubbo:
+  application:
+    name: ${DUBBO_APPLICATION_NAME:backend-auth}
+    register-mode: instance
+    qos-enable: false
+    protocol: tri
+    metadata-type: local
+  protocol:
+    name: tri
+    port: 20881
+    triple:
+      max-requests-per-connection: 50
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
+    username: ${DUBBO_REGISTRY_USERNAME:}
+    password: ${DUBBO_REGISTRY_PASSWORD:}
+    timeout: 5000
+    use-as-config-center: false
+    use-as-metadata-center: false
+    parameters:
+      namespace: ${DUBBO_NAMESPACE:dev}
+      group: DEFAULT_GROUP
+  scan:
+    base-packages: com.ulticode.auth.dubbo.provider
+  consumer:
+    check: false
+  provider:
+    filter: default
+  cloud:
+    subscribed-services: ''
+
+logging:
+  level:
+    root: INFO
+    com.ulticode: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"

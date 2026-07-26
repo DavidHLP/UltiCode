@@ -721,7 +721,7 @@
   title: Independent service starter shells (backend-auth, backend-admin, backend-app)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
-  status: pending
+  status: done
   depends_on:
   - P1-INFRA-001
   - P1-API-001
@@ -732,10 +732,31 @@
   - Three processes start; health probes pass
   - Nacos registry shows three services
   rollback: remove shells
-  evidence: []
+  evidence:
+  - command: /tmp/p1infra005_evidence.txt
+    result: "P1-INFRA-005 evidence (2026-07-26):\n\n1) Module skeletons:\n   - backend-auth/pom.xml, BackendAuthApplication,\
+      \ application.yml,\n     AuthPlaceholderController (/api/v1/auth/health), AuthRpcHealthProvider\n     (Dubbo @DubboService\
+      \ group=backend-auth, version=1.0.0).\n   - backend-admin/pom.xml, BackendAdminApplication, application.yml,\n     AdminPlaceholderController\
+      \ (/api/v1/admin/health), AdminRpcHealthProvider\n     (group=backend-admin).\n   - backend-app/pom.xml, BackendAppApplication,\
+      \ application.yml,\n     AppPlaceholderController (/api/v1/app/health), AppRpcHealthProvider\n     (group=backend-app).\n\
+      \   - backend-common: shared RpcHealthService placeholder interface.\n   - scripts/dev/start-service-shells.sh: helper\
+      \ to start Nacos + three\n     services and verify health / Nacos service list.\n\n2) Configuration defaults:\n   -\
+      \ HTTP ports: 9001 (auth), 9002 (admin), 9003 (app).\n   - Dubbo triple ports: 20881 (auth), 20882 (admin), 20883 (app).\n\
+      \   - Dubbo registry: nacos://127.0.0.1:28848?namespace=dev.\n   - Autoconfiguration excludes datasource/flyway/redis/security\
+      \ so the\n     shells start without infrastructure dependencies.\n\n3) Build validation:\n   - ./mvnw -pl backend-auth,backend-admin,backend-app\
+      \ -am -B verify\n     BUILD SUCCESS. Each module: 2 tests (health + placeholder), 0 failures.\n\n4) Runtime validation\
+      \ (local Nacos standalone):\n   - Started nacos/nacos-server:v2.5.1 in standalone mode, auth disabled.\n   - Started\
+      \ the three target/app.jar processes on ports 9001/9002/9003.\n   - ss -tlnp showed HTTP ports 9001,9002,9003 and Dubbo\
+      \ triple ports\n     20881,20882,20883 all listening.\n   - Health endpoints returned {\"status\":\"UP\"} for all three.\n\
+      \   - Placeholder endpoints returned Result{code=0, message=success,\n     data=\"backend-{auth,admin,app} shell up\"\
+      }.\n   - Nacos service list (namespace=dev, group=DEFAULT_GROUP, pageSize=50):\n     {\"count\":3,\"doms\":[\"backend-auth\"\
+      ,\"backend-admin\",\"backend-app\"]}\n   - Nacos instance list for each service showed one healthy ephemeral\n     instance\
+      \ with the correct Dubbo triple port and metadata.\n\n5) Cleanup: processes stopped and Nacos container removed after\
+      \ evidence\n   capture.\n\n6) No business logic moved. Rollback is simply stopping the shell\n   processes and deleting\
+      \ the helper script."
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-26T20:00:00+00:00'
 - id: P1-GATE
   phase: 1
   area: GATE

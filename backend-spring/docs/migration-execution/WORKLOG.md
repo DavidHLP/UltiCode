@@ -268,3 +268,16 @@ Append-only log of significant events. NOT a task state source of truth
     ulticode_mysql_data` wipes the Nacos schema too; wait for
     `nacos_config.users` to appear before running
     bootstrap-nacos-user.sh.
+
+2026-07-26
+P1-INFRA-005
+- Added backend-auth / backend-admin / backend-app service shells.
+- backend-common RpcHealthService placeholder; per-service @DubboService providers.
+- Assigned distinct HTTP (9001/9002/9003) and triple (20881/20882/20883) ports.
+- application.yml excludes DB/Flyway/Redis/Security so shells boot standalone.
+- Added scripts/dev/start-service-shells.sh helper.
+- Runtime verification: Nacos standalone + three jars; Nacos service list
+  showed count=3 with [backend-auth, backend-admin, backend-app]; each had
+  one healthy instance with correct Dubbo metadata.
+- ./mvnw -pl backend-auth,backend-admin,backend-app -am -B verify PASS.
+- P1-INFRA-005 marked done.

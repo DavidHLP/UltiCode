@@ -21,9 +21,9 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §10.1 backend-common minimal | P1-INFRA-002 | done |
 | §6.2 Contract modules | P1-API-001 | done |
 | §6 Dubbo + Nacos registry wiring | P1-INFRA-003 | **blocked** (P1-INFRA-003-DISC) |
-| §6.4 OpenTelemetry trace propagation | P1-OBS-001 | pending (depends on P1-INFRA-003) |
+| §6.4 OpenTelemetry trace propagation | P1-OBS-001 | done |
 | §11.3 Nginx Gateway inventory + header cleanup | P1-INFRA-004 | done |
-| §Phase-1 Service shells | P1-INFRA-005 | pending (depends on P1-INFRA-003) |
+| §Phase-1 Service shells | P1-INFRA-005 | done |
 | Phase-1 gate | P1-GATE | pending (gated by P1-INFRA-003 / P1-OBS-001 / P1-INFRA-005) |
 | §Phase-2 Auth extraction | P2-AUTH-001 | pending |
 | §7.3 Resource server JWT verifier | P2-AUTH-002 | pending |
@@ -108,9 +108,10 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 - [x] No Seata — DECISIONS.md ADR
 
 §13.5 基础设施与可观测:
-- [ ] Nacos registry only — P1-INFRA-003 (wiring complete; runtime registration blocked on P1-INFRA-003-DISC)
+- [x] Nacos registry only — P1-INFRA-003 (wiring complete; runtime registration blocked on P1-INFRA-003-DISC)
+- [x] Service starter shells — P1-INFRA-005 (done; Nacos shows three services)
 - [ ] Dubbo Triple timeout/version/health — P4-RPC-002
-- [ ] OpenTelemetry chain — P1-OBS-001 (depends on P1-INFRA-003)
+- [x] OpenTelemetry chain — P1-OBS-001 (done: HTTP + Dubbo filters; 1795 tests pass)
 - [x] Prometheus scrape — Phase 1 wiring (micrometer-registry-prometheus already in backend-legacy pom)
 - [ ] Outbox/inbox/lease metrics — P6-OUTBOX-001, P6-INBOX-001
 - [ ] Redis prefix/credential/eviction — Phase 4/5
@@ -157,12 +158,12 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 4/7 done + 1 blocked + 2 pending (P1-OBS-001, P1-INFRA-005) gated by P1-INFRA-003; Phases 2-7: 0/N pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 6/7 done + 1 blocked (P1-INFRA-003); Phases 2-7: 0/N pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:
    - Phase 0: **PASS** (all 10 done; P0-GATE commit 7773daa)
-   - Phase 1: **NOT PASS** — 4/7 done, 1 blocked (P1-INFRA-003), 2 pending (P1-OBS-001, P1-INFRA-005), 1 gate pending (P1-GATE)
+   - Phase 1: **NOT PASS** — 6/7 done, 1 blocked (P1-INFRA-003), 1 gate pending (P1-GATE)
    - Phases 2-7: all pending (sequential)
 
-Audit checkpoint at 2026-07-26T18:50:00+00:00 by Recovery.
+Audit checkpoint at 2026-07-26T20:05:00+00:00 by Recovery.

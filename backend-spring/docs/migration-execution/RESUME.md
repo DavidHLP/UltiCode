@@ -4,10 +4,11 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-001 (refresh-token rotation extraction to backend-auth)
 
 Last Verified Commit:
-5174e98 chore(migration): record P1-INFRA-003 and P1-GATE commit hashes
+- c1875d2 chore(auth): bootstrap backend-auth runtime dependencies and config (P2-AUTH-001)
+- (pending) backend-auth test-fix commit
 
 Completed:
-18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)
+- 18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)
 
 Blocked:
 None
@@ -15,27 +16,38 @@ None
 Current Work:
 - Phase 1 is fully closed. All P1-INFRA-* tasks, P1-API-001, P1-OBS-001,
   P1-INFRA-003-DISC, and P1-GATE are done/superseded.
-- P2-AUTH-001 in progress. Setup complete: backend-auth pom dependencies and
-  application.yml added (datasource, Redis, Flyway, JWT, mail, MyBatis-Plus,
-  Security, Dubbo/Nacos). backend-auth compiles.
-- Next sub-task: copy auth entities/mappers from legacy, then move
-  AuthController/Service/Security code and add tests.
+- P2-AUTH-001 in progress. Runtime setup complete:
+  - backend-auth pom dependencies (Spring Security, validation, Redis, mail,
+    MyBatis-Plus, MySQL, Redisson, JJWT) added.
+  - backend-auth application.yml with datasource, Redis/Redisson, Flyway, JWT,
+    mail, MyBatis-Plus, management/tracing, Dubbo/Nacos settings.
+  - H2 test-scope dependency and backend-auth test application.yml added;
+    disabled Redis/Redisson/Security/ManagementWebSecurity autoconfig and mail
+    health indicator for context-load tests.
+  - `./mvnw -pl backend-auth -am -B verify` PASS.
+  - Full reactor `./mvnw verify -B` PASS.
+- Scout inventory complete: all auth/security/refresh/permission/OAuth classes in
+  backend-legacy mapped and an extraction order produced.
+- Next sub-task: move refresh-token ownership into backend-auth as the first
+  self-contained auth subdomain (RefreshToken entity, mapper, service, table).
 
 Last Validation:
-- `./mvnw verify -B` across backend-spring reactor: PASS (40.6 s).
-- `scripts/dev/dubbo-nacos-smoke.sh`: PASS (ulticode-backend-legacy registered
-  in Nacos dev namespace with one healthy instance).
+- `./mvnw verify -B` full backend-spring reactor: PASS (39.1 s, all modules).
 
 Next:
-1. P2-AUTH-001: extract refresh-token rotation into backend-auth.
-2. P2-AUTH-002: resource-server JWT verifier per service.
-3. P2-AUTH-003: provider identity / authz version.
-4. P2-AUTH-004: Gateway `/auth/**` cutover.
-5. P2-RBAC-001: auth-only RBAC writer.
-6. P2-GATE.
+1. P2-AUTH-001-A: move refresh-token ownership (entity/mapper/service/table)
+   into backend-auth with tests.
+2. P2-AUTH-001-B: move JWT/security plumbing into backend-auth.
+3. P2-AUTH-001-C: move AuthController + session/account adapters.
+4. P2-AUTH-002: resource-server JWT verifier per service.
+5. P2-AUTH-003: provider identity / authz version additive migration.
+6. P2-AUTH-004: Gateway `/auth/**` cutover.
+7. P2-RBAC-001: auth-only RBAC writer.
+8. P2-GATE.
 
 Dirty Worktree:
-Yes — Phase 1 close-out files + P1-INFRA-003 fix files not yet committed.
+Yes — backend-auth pom/test-resources changes + TASKS.yaml/WORKLOG.md updates
+not yet committed.
 
 PUSH: NOT pushed. GitHub writes require explicit user approval.
 

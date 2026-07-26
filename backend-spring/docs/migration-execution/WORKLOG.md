@@ -319,3 +319,16 @@ P2-AUTH-001 setup
   Security, and Flyway.
 - Verified backend-auth compiles with `./mvnw -pl backend-auth -am -B compile`.
 - Next: copy auth entities/mappers from legacy, then AuthController/Service/Security.
+
+2026-07-27 (continued)
+P2-AUTH-001 setup (fix)
+- backend-auth placeholder test failed after adding runtime security/datasource config:
+  DataSource URL missing and default security blocked placeholder endpoint.
+- Added H2 test-scope dependency to backend-auth pom.
+- Wrote backend-auth src/test/resources/application.yml:
+  - H2 in-memory datasource (MySQL compatibility mode)
+  - Disabled Redis/Redisson/Security/ManagementWebSecurity autoconfig for tests
+  - Disabled mail health indicator to avoid 503 on actuator/health
+  - JWT test secret and Dubbo register/subscribe false
+- Verified `./mvnw -pl backend-auth -am -B verify` PASS.
+- Verified full `./mvnw verify -B` PASS (all modules).

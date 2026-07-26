@@ -5378,9 +5378,297 @@
   - note: 'Phase 2 setup: added backend-auth pom dependencies (security, validation, redis, mail, mybatis-plus, mysql, redisson,
       jjwt) and application.yml datasource/redis/flyway/jwt/mail/dubbo/management config. backend-auth compiles.'
     ts: '2026-07-26T20:26:47+00:00'
+  - command: /tmp/backend-auth-test3.log
+    result: "[INFO] Scanning for projects...\n[INFO] ------------------------------------------------------------------------\n\
+      [INFO] Reactor Build Order:\n[INFO] \n[INFO] UltiCode Backend                                                   [pom]\n\
+      [INFO] UltiCode Backend (shared common)                                   [jar]\n[INFO] UltiCode Backend (auth contract\
+      \ module)                            [jar]\n[INFO] UltiCode Backend (auth service shell)                           \
+      \   [jar]\n[INFO] \n[INFO] -------------------< com.ulticode:ulticode-backend >--------------------\n[INFO] Building\
+      \ UltiCode Backend 1.0.0                                    [1/4]\n[INFO]   from pom.xml\n[INFO] --------------------------------[\
+      \ pom ]---------------------------------\n[INFO] \n[INFO] --------------------< com.ulticode:backend-common >---------------------\n\
+      [INFO] Building UltiCode Backend (shared common) 1.0.0                    [2/4]\n[INFO]   from backend-common/pom.xml\n\
+      [INFO] --------------------------------[ jar ]---------------------------------\n[INFO] \n[INFO] --- resources:3.3.1:resources\
+      \ (default-resources) @ backend-common ---\n[INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-common/src/main/resources\n\
+      [INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-common/src/main/resources\n\
+      [INFO] \n[INFO] --- compiler:3.11.0:compile (default-compile) @ backend-common ---\n[INFO] Nothing to compile - all\
+      \ classes are up to date\n[INFO] \n[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-common\
+      \ ---\n[INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-common/src/test/resources\n\
+      [INFO] \n[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ backend-common ---\n[INFO] Nothing to compile\
+      \ - all classes are up to date\n[INFO] \n[INFO] --- surefire:3.1.2:test (default-test) @ backend-common ---\n[INFO]\
+      \ Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider\n[INFO] \n[INFO] -------------------------------------------------------\n\
+      [INFO]  T E S T S\n[INFO] -------------------------------------------------------\nSLF4J(W): No SLF4J providers were\
+      \ found.\nSLF4J(W): Defaulting to no-operation (NOP) logger implementation\nSLF4J(W): See https://www.slf4j.org/codes.html#noProviders\
+      \ for further details.\n[INFO] Running com.ulticode.common.response.ResultTest\n[INFO] Tests run: 6, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.016 s -- in com.ulticode.common.response.ResultTest\n[INFO] Running com.ulticode.common.response.PaginationRequestTest\n\
+      [INFO] Running com.ulticode.common.response.PaginationRequestTest$OffsetExact\n[INFO] Tests run: 2, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.014 s -- in com.ulticode.common.response.PaginationRequestTest$OffsetExact\n[INFO]\
+      \ Running com.ulticode.common.response.PaginationRequestTest$OverflowSignal\n[INFO] Tests run: 2, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ulticode.common.response.PaginationRequestTest$OverflowSignal\n[INFO]\
+      \ Running com.ulticode.common.response.PaginationRequestTest$Offset\n[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped:\
+      \ 0, Time elapsed: 0.002 s -- in com.ulticode.common.response.PaginationRequestTest$Offset\n[INFO] Running com.ulticode.common.response.PaginationRequestTest$Normalization\n\
+      [INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ulticode.common.response.PaginationRequestTest$Normalization\n\
+      [INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in com.ulticode.common.response.PaginationRequestTest\n\
+      [INFO] Running com.ulticode.common.architecture.BackendCommonArchTest\n[INFO] Tests run: 1, Failures: 0, Errors: 0,\
+      \ Skipped: 0, Time elapsed: 0.002 s -- in com.ulticode.common.architecture.BackendCommonArchTest\n[INFO] Running com.ulticode.common.time.FakeTimeSourceTest\n\
+      [INFO] Running com.ulticode.common.time.FakeTimeSourceTest$MonotonicClock\n[INFO] Tests run: 3, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.time.FakeTimeSourceTest$MonotonicClock\n[INFO] Running\
+      \ com.ulticode.common.time.FakeTimeSourceTest$WallClock\n[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time\
+      \ elapsed: 0.001 s -- in com.ulticode.common.time.FakeTimeSourceTest$WallClock\n[INFO] Running com.ulticode.common.time.FakeTimeSourceTest$Construction\n\
+      [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.time.FakeTimeSourceTest$Construction\n\
+      [INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in com.ulticode.common.time.FakeTimeSourceTest\n\
+      [INFO] Running com.ulticode.common.time.TimeSourceHolderTest\n[INFO] Running com.ulticode.common.time.TimeSourceHolderTest$Reset\n\
+      [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.time.TimeSourceHolderTest$Reset\n\
+      [INFO] Running com.ulticode.common.time.TimeSourceHolderTest$InstallAndGet\n[INFO] Tests run: 3, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.time.TimeSourceHolderTest$InstallAndGet\n[INFO] Tests\
+      \ run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ulticode.common.time.TimeSourceHolderTest\n\
+      [INFO] Running com.ulticode.common.error.BaseErrorCodeTest\n[INFO] Running com.ulticode.common.error.BaseErrorCodeTest$RpcResultProjection\n\
+      [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.error.BaseErrorCodeTest$RpcResultProjection\n\
+      [INFO] Running com.ulticode.common.error.BaseErrorCodeTest$BaseContracts\n[INFO] Tests run: 3, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.002 s -- in com.ulticode.common.error.BaseErrorCodeTest$BaseContracts\n[INFO] Tests\
+      \ run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in com.ulticode.common.error.BaseErrorCodeTest\n\
+      [INFO] Running com.ulticode.common.error.BaseErrorCodeValuePinningTest\n[INFO] Tests run: 1, Failures: 0, Errors: 0,\
+      \ Skipped: 0, Time elapsed: 0.001 s -- in com.ulticode.common.error.BaseErrorCodeValuePinningTest\n[INFO] Running com.ulticode.common.rpc.RpcResultTest\n\
+      [INFO] Running com.ulticode.common.rpc.RpcResultTest$AccessorShape\n[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped:\
+      \ 0, Time elapsed: 0.043 s -- in com.ulticode.common.rpc.RpcResultTest$AccessorShape\n[INFO] Running com.ulticode.common.rpc.RpcResultTest$JsonRoundTrip\n\
+      [INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s -- in com.ulticode.common.rpc.RpcResultTest$JsonRoundTrip\n\
+      [INFO] Running com.ulticode.common.rpc.RpcResultTest$FactoryContracts\n[INFO] Tests run: 9, Failures: 0, Errors: 0,\
+      \ Skipped: 0, Time elapsed: 0.004 s -- in com.ulticode.common.rpc.RpcResultTest$FactoryContracts\n[INFO] Tests run:\
+      \ 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.078 s -- in com.ulticode.common.rpc.RpcResultTest\n[INFO] Running\
+      \ com.ulticode.common.architecture.BackendCommonArchTest\n[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time\
+      \ elapsed: 0.240 s -- in com.ulticode.common.architecture.BackendCommonArchTest\n[INFO] \n[INFO] Results:\n[INFO] \n\
+      [INFO] Tests run: 62, Failures: 0, Errors: 0, Skipped: 0\n[INFO] \n[INFO] \n[INFO] --- jar:3.3.0:jar (default-jar) @\
+      \ backend-common ---\n[INFO] \n[INFO] -------------------< com.ulticode:backend-auth-api >--------------------\n[INFO]\
+      \ Building UltiCode Backend (auth contract module) 1.0.0             [3/4]\n[INFO]   from backend-api/backend-auth-api/pom.xml\n\
+      [INFO] --------------------------------[ jar ]---------------------------------\n[INFO] \n[INFO] --- resources:3.3.1:resources\
+      \ (default-resources) @ backend-auth-api ---\n[INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-api/backend-auth-api/src/main/resources\n\
+      [INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-api/backend-auth-api/src/main/resources\n\
+      [INFO] \n[INFO] --- compiler:3.11.0:compile (default-compile) @ backend-auth-api ---\n[INFO] Nothing to compile - all\
+      \ classes are up to date\n[INFO] \n[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-auth-api\
+      \ ---\n[INFO] skip non existing resourceDirectory /home/davidhlp/project/UltiCode/backend-spring/backend-api/backend-auth-api/src/test/resources\n\
+      [INFO] \n[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ backend-auth-api ---\n[INFO] Nothing to compile\
+      \ - all classes are up to date\n[INFO] \n[INFO] --- surefire:3.1.2:test (default-test) @ backend-auth-api ---\n[INFO]\
+      \ Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider\n[INFO] \n[INFO] -------------------------------------------------------\n\
+      [INFO]  T E S T S\n[INFO] -------------------------------------------------------\nSLF4J(W): No SLF4J providers were\
+      \ found.\nSLF4J(W): Defaulting to no-operation (NOP) logger implementation\nSLF4J(W): See https://www.slf4j.org/codes.html#noProviders\
+      \ for further details.\n[INFO] Running com.ulticode.auth.api.architecture.BackendAuthApiContractShapeTest\n[INFO] Tests\
+      \ run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 s -- in com.ulticode.auth.api.architecture.BackendAuthApiContractShapeTest\n\
+      [INFO] Running com.ulticode.auth.api.architecture.BackendAuthApiArchTest\n[INFO] Tests run: 8, Failures: 0, Errors:\
+      \ 0, Skipped: 0, Time elapsed: 0.241 s -- in com.ulticode.auth.api.architecture.BackendAuthApiArchTest\n[INFO] \n[INFO]\
+      \ Results:\n[INFO] \n[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0\n[INFO] \n[INFO] \n[INFO] --- jar:3.3.0:jar\
+      \ (default-jar) @ backend-auth-api ---\n[INFO] \n[INFO] ---------------------< com.ulticode:backend-auth >----------------------\n\
+      [INFO] Building UltiCode Backend (auth service shell) 1.0.0               [4/4]\n[INFO]   from backend-auth/pom.xml\n\
+      [INFO] --------------------------------[ jar ]---------------------------------\n[INFO] \n[INFO] --- jacoco:0.8.14:prepare-agent\
+      \ (default) @ backend-auth ---\n[INFO] argLine set to -javaagent:/home/davidhlp/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/home/davidhlp/project/UltiCode/backend-spring/backend-auth/target/jacoco.exec,excludes=**/*Application.class:**/*Configuration.class\n\
+      [INFO] \n[INFO] --- resources:3.3.1:resources (default-resources) @ backend-auth ---\n[INFO] Copying 1 resource from\
+      \ src/main/resources to target/classes\n[INFO] Copying 0 resource from src/main/resources to target/classes\n[INFO]\
+      \ \n[INFO] --- compiler:3.11.0:compile (default-compile) @ backend-auth ---\n[INFO] Nothing to compile - all classes\
+      \ are up to date\n[INFO] \n[INFO] --- resources:3.3.1:testResources (default-testResources) @ backend-auth ---\n[INFO]\
+      \ Copying 1 resource from src/test/resources to target/test-classes\n[INFO] \n[INFO] --- compiler:3.11.0:testCompile\
+      \ (default-testCompile) @ backend-auth ---\n[INFO] Nothing to compile - all classes are up to date\n[INFO] \n[INFO]\
+      \ --- surefire:3.1.2:test (default-test) @ backend-auth ---\n[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider\n\
+      [INFO] \n[INFO] -------------------------------------------------------\n[INFO]  T E S T S\n[INFO] -------------------------------------------------------\n\
+      [INFO] Running com.ulticode.BackendAuthApplicationTest\n04:31:00.349 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils\
+      \ -- Could not detect default configuration classes for test class [com.ulticode.BackendAuthApplicationTest]: BackendAuthApplicationTest\
+      \ does not declare any static, non-private, non-final, nested classes annotated with @Configuration.\n04:31:00.427 [main]\
+      \ INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.ulticode.BackendAuthApplication\
+      \ for test class com.ulticode.BackendAuthApplicationTest\n\n  .   ____          _            __ _ _\n /\\\\ / ___'_\
+      \ __ _ _(_)_ __  __ _ \\ \\ \\ \\\n( ( )\\___ | '_ | '_| | '_ \\/ _` | \\ \\ \\ \\\n \\\\/  ___)| |_)| | | | | || (_|\
+      \ |  ) ) ) )\n  '  |____| .__|_| |_|_| |_\\__, | / / / /\n =========|_|==============|___/=/_/_/_/\n :: Spring Boot\
+      \ ::                (v3.2.5)\n\n2026-07-27T04:31:00.823+08:00  INFO 203769 --- [backend-auth] [           main] [  \
+      \                                               ] d.s.b.c.e.WelcomeLogoApplicationListener :  [DUBBO] \n\n :: Dubbo\
+      \ (v3.3.6) : https://github.com/apache/dubbo\n :: Discuss group : dev@dubbo.apache.org\n, dubbo version: 3.3.6, current\
+      \ host: 172.17.0.1\n2026-07-27T04:31:00.825+08:00  INFO 203769 --- [backend-auth] [           main] [              \
+      \                                   ] c.ulticode.BackendAuthApplicationTest    : Starting BackendAuthApplicationTest\
+      \ using Java 17.0.2 with PID 203769 (started by davidhlp in /home/davidhlp/project/UltiCode/backend-spring/backend-auth)\n\
+      2026-07-27T04:31:00.826+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] c.ulticode.BackendAuthApplicationTest    : No active profile set, falling back to 1 default profile:\
+      \ \"default\"\n2026-07-27T04:31:01.243+08:00  INFO 203769 --- [backend-auth] [           main] [                   \
+      \                              ] o.apache.dubbo.rpc.model.FrameworkModel  :  [DUBBO] Dubbo Framework[1] is created,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.251+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.r.GlobalResourcesRepository      :  [DUBBO]\
+      \ Creating global shared handler ..., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.331+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.dubbo.rpc.model.ApplicationModel\
+      \     :  [DUBBO] Dubbo Application[1.0](unknown) is created, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.332+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] org.apache.dubbo.rpc.model.ScopeModel\
+      \    :  [DUBBO] Dubbo Module[1.0.0] is created, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.352+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.context.AbstractConfigManager\
+      \    :  [DUBBO] Config settings: {dubbo.config.mode=STRICT, dubbo.config.ignore-duplicated-interface=false}, dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.352+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.d.c.context.AbstractConfigManager    :  [DUBBO] Config settings:\
+      \ {dubbo.config.mode=STRICT, dubbo.config.ignore-duplicated-interface=false}, dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:01.354+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.d.c.utils.SerializeSecurityManager   :  [DUBBO] Serialize check serializable: true, dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.355+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO] Read serialize\
+      \ allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.367+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.368+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.389+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.509+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.dubbo.rpc.model.ApplicationModel     :  [DUBBO]\
+      \ Dubbo Application[1.1](unknown) is created, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.509+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] org.apache.dubbo.rpc.model.ScopeModel\
+      \    :  [DUBBO] Dubbo Module[1.1.0] is created, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.511+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.context.AbstractConfigManager\
+      \    :  [DUBBO] Config settings: {dubbo.config.mode=STRICT, dubbo.config.ignore-duplicated-interface=false}, dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.511+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.d.c.context.AbstractConfigManager    :  [DUBBO] Config settings:\
+      \ {dubbo.config.mode=STRICT, dubbo.config.ignore-duplicated-interface=false}, dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:01.512+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO] Read serialize allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.512+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.512+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.512+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.518+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.s.c.DubboSpringInitializer       :  [DUBBO]\
+      \ Use default application: Dubbo Application[1.0](unknown), dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.518+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] org.apache.dubbo.rpc.model.ScopeModel\
+      \    :  [DUBBO] Dubbo Module[1.0.1] is created, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.521+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.context.AbstractConfigManager\
+      \    :  [DUBBO] Config settings: {dubbo.config.mode=STRICT, dubbo.config.ignore-duplicated-interface=false}, dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.522+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO] Read serialize\
+      \ allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.522+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize allow list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.allowlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.522+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.522+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.u.SerializeSecurityConfigurator  :  [DUBBO]\
+      \ Read serialize blocked list from jar:file:/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.3.6/dubbo-common-3.3.6.jar!/security/serialize.blockedlist,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:01.523+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.s.c.DubboSpringInitializer       :  [DUBBO]\
+      \ Use default module model of target application: Dubbo Module[1.0.1], dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:01.523+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.d.c.s.c.DubboSpringInitializer       :  [DUBBO] Bind Dubbo Module[1.0.1] to spring container:\
+      \ org.springframework.beans.factory.support.DefaultListableBeanFactory@73385d3f, dubbo version: 3.3.6, current host:\
+      \ 172.17.0.1\n2026-07-27T04:31:01.677+08:00  WARN 203769 --- [backend-auth] [           main] [                    \
+      \                             ] o.m.s.mapper.ClassPathMapperScanner      : No MyBatis mapper was found in '[com.ulticode]'\
+      \ package. Please check your configuration.\n2026-07-27T04:31:01.921+08:00  INFO 203769 --- [backend-auth] [       \
+      \    main] [                                                 ] f.a.ReferenceAnnotationBeanPostProcessor :  [DUBBO] class\
+      \ org.apache.dubbo.config.spring.beans.factory.annotation.ReferenceAnnotationBeanPostProcessor was destroying!, dubbo\
+      \ version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.218+08:00  INFO 203769 --- [backend-auth] [        \
+      \   main] [                                                 ] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized\
+      \ with port 0 (http)\n2026-07-27T04:31:02.227+08:00  INFO 203769 --- [backend-auth] [           main] [            \
+      \                                     ] o.apache.catalina.core.StandardService   : Starting service [Tomcat]\n2026-07-27T04:31:02.227+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.apache.catalina.core.StandardEngine\
+      \    : Starting Servlet engine: [Apache Tomcat/10.1.20]\n2026-07-27T04:31:02.261+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing\
+      \ Spring embedded WebApplicationContext\n2026-07-27T04:31:02.261+08:00  INFO 203769 --- [backend-auth] [           main]\
+      \ [                                                 ] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext:\
+      \ initialization completed in 1417 ms\n2026-07-27T04:31:02.400+08:00  INFO 203769 --- [backend-auth] [           main]\
+      \ [                                                 ] o.a.d.c.s.c.DubboConfigBeanInitializer   :  [DUBBO] loading dubbo\
+      \ config beans ..., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.402+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.d.c.s.c.DubboConfigBeanInitializer   : \
+      \ [DUBBO] dubbo config beans are loaded., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.425+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] No value is configured in the registry, the DynamicConfigurationFactory extension[name : null] does\
+      \ not support as the config center, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.426+08:00  INFO\
+      \ 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] The registry[<dubbo:registry register=\"false\" subscribe=\"false\" />] will be not used as the config\
+      \ center, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.443+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.dubbo.config.context.ConfigManager   : \
+      \ [DUBBO] The current configurations or effective configurations are as follows:, dubbo version: 3.3.6, current host:\
+      \ 172.17.0.1\n2026-07-27T04:31:02.444+08:00  INFO 203769 --- [backend-auth] [           main] [                    \
+      \                             ] o.a.dubbo.config.context.ConfigManager   :  [DUBBO] <dubbo:application enableFileCache=\"\
+      true\" executorManagementMode=\"isolation\" parameters=\"{}\" name=\"backend-auth\" protocol=\"dubbo\" />, dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.444+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.dubbo.config.context.ConfigManager   :  [DUBBO] <dubbo:protocol\
+      \ preferSerialization=\"hessian2,fastjson2\" port=\"-1\" name=\"dubbo\" />, dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:02.444+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.dubbo.config.context.ConfigManager   :  [DUBBO] <dubbo:registry register=\"false\" subscribe=\"\
+      false\" />, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.444+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.dubbo.config.context.ConfigManager   : \
+      \ [DUBBO] <dubbo:ssl />, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.452+08:00  INFO 203769\
+      \ --- [backend-auth] [           main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer\
+      \     :  [DUBBO] Dubbo Module[1.0.0] has been initialized!, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.455+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer\
+      \     :  [DUBBO] Dubbo Module[1.0.1] has been initialized!, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.529+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] No value is configured in the registry, the MetadataReportFactory extension[name : null] does not support\
+      \ as the metadata center, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.529+08:00  INFO 203769\
+      \ --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] The registry[<dubbo:registry register=\"false\" subscribe=\"false\" />] will be not used as the metadata\
+      \ center, dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.529+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer     : \
+      \ [DUBBO] Dubbo Application[1.0](backend-auth) has been initialized!, dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      \ _ _   |_  _ _|_. ___ _ |    _ \n| | |\\/|_)(_| | |_\\  |_)||_|_\\ \n     /               |         \n            \
+      \            3.5.16 \n2026-07-27T04:31:02.739+08:00  INFO 203769 --- [backend-auth] [           main] [            \
+      \                                     ] m.e.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances\
+      \ org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@6ac45c0c\n2026-07-27T04:31:02.837+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.s.b.a.e.web.EndpointLinksResolver\
+      \      : Exposing 1 endpoint(s) beneath base path '/actuator'\n2026-07-27T04:31:02.990+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat\
+      \ started on port 38679 (http) with context path ''\n2026-07-27T04:31:02.997+08:00  INFO 203769 --- [backend-auth] [\
+      \           main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer     :  [DUBBO]\
+      \ Dubbo Module[1.0.1] is starting., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.997+08:00  INFO\
+      \ 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] Dubbo Application[1.0](backend-auth) is starting., dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:02.997+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.d.c.deploy.DefaultModuleDeployer     :  [DUBBO] Dubbo Module[1.0.0] is starting., dubbo version:\
+      \ 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.997+08:00  INFO 203769 --- [backend-auth] [           main] [\
+      \                                                 ] o.a.d.c.deploy.DefaultModuleDeployer     :  [DUBBO] Dubbo Module[1.0.0]\
+      \ has started., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.997+08:00  INFO 203769 --- [backend-auth]\
+      \ [           main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer     : \
+      \ [DUBBO] Dubbo Module[1.0.0] has completed., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.997+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer\
+      \     :  [DUBBO] Dubbo Module[1.0.1] has started., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.998+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultMetricsServiceExporter\
+      \  :  [DUBBO] The MetricsConfig not exist, will not export metrics service., dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:02.998+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] o.a.d.c.d.DefaultApplicationDeployer     :  [DUBBO] Dubbo Application[1.0](backend-auth) is ready.,\
+      \ dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.999+08:00  INFO 203769 --- [backend-auth] [  \
+      \         main] [                                                 ] o.a.d.c.deploy.DefaultModuleDeployer     :  [DUBBO]\
+      \ Dubbo Module[1.0.1] has completed., dubbo version: 3.3.6, current host: 172.17.0.1\n2026-07-27T04:31:02.999+08:00\
+      \  INFO 203769 --- [backend-auth] [           main] [                                                 ] o.a.d.c.d.DefaultApplicationDeployer\
+      \     :  [DUBBO] Dubbo Application[1.0](backend-auth) has completed., dubbo version: 3.3.6, current host: 172.17.0.1\n\
+      2026-07-27T04:31:02.999+08:00  INFO 203769 --- [backend-auth] [           main] [                                  \
+      \               ] c.ulticode.BackendAuthApplicationTest    : Started BackendAuthApplicationTest in 2.459 seconds (process\
+      \ running for 3.136)\nOpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap\
+      \ classpath has been appended\n2026-07-27T04:31:03.523+08:00  INFO 203769 --- [backend-auth] [o-auto-1-exec-1] [   \
+      \                                              ] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet\
+      \ 'dispatcherServlet'\n2026-07-27T04:31:03.523+08:00  INFO 203769 --- [backend-auth] [o-auto-1-exec-1] [           \
+      \                                      ] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'\n\
+      2026-07-27T04:31:03.524+08:00  INFO 203769 --- [backend-auth] [o-auto-1-exec-1] [                                  \
+      \               ] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms\n2026-07-27T04:31:03.645+08:00\
+      \  INFO 203769 --- [backend-auth] [o-auto-1-exec-2] [286b24575ff3f5c50640a014c8163762-13174a508f6f1750] com.zaxxer.hikari.HikariDataSource\
+      \       : HikariPool-1 - Starting...\n2026-07-27T04:31:03.809+08:00  INFO 203769 --- [backend-auth] [o-auto-1-exec-2]\
+      \ [286b24575ff3f5c50640a014c8163762-13174a508f6f1750] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added\
+      \ connection conn0: url=jdbc:h2:mem:testdb user=SA\n2026-07-27T04:31:03.811+08:00  INFO 203769 --- [backend-auth] [o-auto-1-exec-2]\
+      \ [286b24575ff3f5c50640a014c8163762-13174a508f6f1750] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start\
+      \ completed.\n[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.603 s -- in com.ulticode.BackendAuthApplicationTest\n\
+      [INFO] \n[INFO] Results:\n[INFO] \n[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0\n[INFO] \n[INFO] \n[INFO]\
+      \ --- jar:3.3.0:jar (default-jar) @ backend-auth ---\n[INFO] Building jar: /home/davidhlp/project/UltiCode/backend-spring/backend-auth/target/app.jar\n\
+      [INFO] \n[INFO] --- spring-boot:3.2.5:repackage (repackage) @ backend-auth ---\n[INFO] Replacing main artifact /home/davidhlp/project/UltiCode/backend-spring/backend-auth/target/app.jar\
+      \ with repackaged archive, adding nested dependencies in BOOT-INF/.\n[INFO] The original artifact has been renamed to\
+      \ /home/davidhlp/project/UltiCode/backend-spring/backend-auth/target/app.jar.original\n[INFO] \n[INFO] --- jacoco:0.8.14:check\
+      \ (check) @ backend-auth ---\n[INFO] Loading execution data file /home/davidhlp/project/UltiCode/backend-spring/backend-auth/target/jacoco.exec\n\
+      [INFO] Analyzed bundle 'backend-auth' with 2 classes\n[INFO] All coverage checks have been met.\n[INFO] ------------------------------------------------------------------------\n\
+      [INFO] Reactor Summary for UltiCode Backend 1.0.0:\n[INFO] \n[INFO] UltiCode Backend ...................................\
+      \ SUCCESS [  0.001 s]\n[INFO] UltiCode Backend (shared common) ................... SUCCESS [  0.939 s]\n[INFO] UltiCode\
+      \ Backend (auth contract module) ............ SUCCESS [  0.538 s]\n[INFO] UltiCode Backend (auth service shell) ..............\
+      \ SUCCESS [  4.523 s]\n[INFO] ------------------------------------------------------------------------\n[INFO] BUILD\
+      \ SUCCESS\n[INFO] ------------------------------------------------------------------------\n[INFO] Total time:  6.115\
+      \ s\n[INFO] Finished at: 2026-07-27T04:31:04+08:00\n[INFO] ------------------------------------------------------------------------"
+    note: backend-auth verify PASS after adding H2 test dependency and test application.yml (datasource H2, disabled Redis/Redisson/Security
+      autoconfig, disabled mail health).
   commits: []
   notes: ''
-  updated_at: '2026-07-26T20:26:47+00:00'
+  updated_at: '2026-07-26T20:31:57+00:00'
 - id: P2-AUTH-002
   phase: 2
   area: AUTH

@@ -5683,9 +5683,10 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-4-refresh-token
-  status: ready
+  status: pending
   depends_on:
   - P1-GATE
+  - P2-AUTH-001-B
   acceptance_criteria:
   - RefreshToken entity, mapper, and service live in backend-auth under com.ulticode.auth.refreshtoken.
   - Refresh token rotation logic (validate hash, revoke old, create new) is preserved and unit-tested.
@@ -5697,7 +5698,7 @@
   evidence: []
   commits: []
   notes: ''
-  updated_at: '2026-07-26T20:35:07+00:00'
+  updated_at: '2026-07-26T20:35:52+00:00'
 - id: P2-AUTH-001-B
   phase: 2
   area: AUTH
@@ -5706,9 +5707,9 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-5-jwt-security
-  status: pending
+  status: in_progress
   depends_on:
-  - P2-AUTH-001-A
+  - P1-GATE
   acceptance_criteria:
   - JwtProperties, JwtTokenProvider, JwtAuthenticationFilter, CsrfService, CsrfValidationFilter copied/adapted to backend-auth.
   - SecurityConfig permits public auth endpoints and secures the rest with JWT.
@@ -5717,10 +5718,13 @@
   - ./mvnw -pl backend-auth verify -B
   rollback:
   - Remove backend-auth security beans; rely on legacy security.
-  evidence: []
+  evidence:
+  - note: Begin moving JWT/security plumbing into backend-auth. Delegating implementation to a worker subagent with full scout
+      inventory.
+    ts: '2026-07-26T20:36:05+00:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-26T20:35:07+00:00'
+  updated_at: '2026-07-26T20:36:05+00:00'
 - id: P2-AUTH-001-E
   phase: 2
   area: AUTH

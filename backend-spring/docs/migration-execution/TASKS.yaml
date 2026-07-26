@@ -8,8 +8,9 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - New Flyway migration V{timestamp}__Create_Backups_Table.sql creates `backups` with id (varchar 40 PK), filename, size,
-    type enum, status enum, created_by, created_at, completed_at, metadata JSON, error — matching the Backup entity @TableName("backups").
+  - New Flyway migration V{timestamp}__Create_Backups_Table.sql creates `backups`
+    with id (varchar 40 PK), filename, size, type enum, status enum, created_by, created_at,
+    completed_at, metadata JSON, error — matching the Backup entity @TableName("backups").
   - Migration is additive; no applied migration is modified.
   - Backward-compatible with existing BackupMapper and BackupService CRUD.
   validation:
@@ -20,8 +21,8 @@
   - DROP TABLE backups; if data must be preserved first, dump before rollback.
   evidence:
   - file: init-db/migrations/V20260724162738__Create_Backups_Table.sql
-    result: created with columns id,filename,size,type enum,status enum,created_by,created_at,completed_at,metadata JSON,error
-      matching Backup entity
+    result: created with columns id,filename,size,type enum,status enum,created_by,created_at,completed_at,metadata
+      JSON,error matching Backup entity
   - file: backend-spring/src/main/java/com/ulticode/modules/backup/entity/Backup.java
     result: 1:1 column mapping with new migration (10 fields)
   - file: init-db/migrations/
@@ -30,8 +31,8 @@
     result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
   commits:
   - 3f1c61fd16f26a5686228e3f87ef7aac01bba462
-  notes: Code references backups (BackupMapper, BackupController, Backup entity); migration was missing — drift confirmed
-    and resolved.
+  notes: Code references backups (BackupMapper, BackupController, Backup entity);
+    migration was missing — drift confirmed and resolved.
   updated_at: '2026-07-25T00:30:00+08:00'
 - id: P0-SCHEMA-002
   phase: 0
@@ -43,8 +44,8 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - Follow-up ALTER migration reconciles baseline `problem_notes` (id/problem_id/user_id/content/updated_at) with code-mapped
-    `create_time/update_time`, varchar(40) user_id, MEDIUMTEXT content.
+  - Follow-up ALTER migration reconciles baseline `problem_notes` (id/problem_id/user_id/content/updated_at)
+    with code-mapped `create_time/update_time`, varchar(40) user_id, MEDIUMTEXT content.
   - Existing data preserved; orphan references scanned before any FK add.
   - content type widened to MEDIUMTEXT only (no narrowing).
   validation:
@@ -55,16 +56,18 @@
   - Additive migration; rollback = restore backup taken before ALTER.
   evidence:
   - file: init-db/migrations/V20260724162800__Converge_Problem_Notes_Schema.sql
-    result: adds create_time nullable then backfills from updated_at; renames updated_at to update_time; widens content to
-      MEDIUMTEXT; adds idx_create_time. No FK (gated on orphan scan per P0-SCHEMA-003)
+    result: adds create_time nullable then backfills from updated_at; renames updated_at
+      to update_time; widens content to MEDIUMTEXT; adds idx_create_time. No FK (gated
+      on orphan scan per P0-SCHEMA-003)
   - file: backend-spring/src/main/java/com/ulticode/modules/problem/entity/ProblemNote.java
-    result: entity maps create_time/update_time directly via @TableField; column rename aligns with @TableField
+    result: entity maps create_time/update_time directly via @TableField; column rename
+      aligns with @TableField
   - command: ./mvnw compile -B
     result: BUILD SUCCESS at 2026-07-25T00:29:24+08:00
   commits:
   - 3f1c61fd16f26a5686228e3f87ef7aac01bba462
-  notes: 'Baseline: id/problem_id/user_id/content/updated_at only. Code: create_time/update_time + MEDIUMTEXT. FKs deferred
-    to post-orphan-scan (P0-SCHEMA-003).'
+  notes: 'Baseline: id/problem_id/user_id/content/updated_at only. Code: create_time/update_time
+    + MEDIUMTEXT. FKs deferred to post-orphan-scan (P0-SCHEMA-003).'
   updated_at: '2026-07-25T00:30:00+08:00'
 - id: P0-SCHEMA-003
   phase: 0
@@ -75,23 +78,29 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - Inventory document listing every migration-only table, last-known DDL, and placeholder in WORKLOG / DECISIONS.
+  - Inventory document listing every migration-only table, last-known DDL, and placeholder
+    in WORKLOG / DECISIONS.
   - No DROP performed in Phase 0; flag candidates for future R-decision.
   validation:
   - DECISIONS.md ADR-MIG-INV entry written
   rollback: N/A
   evidence:
   - command: /tmp/p0schema003_evidence.txt
-    result: "Inventory table added to DECISIONS.md (ADR-MIG-INV extension) listing\n13 candidate tables with no Java @TableName\
-      \ references:\n  DailyRecommendation, contest_analytics, contest_rankings,\n  forum_community_links, forum_community_permissions,\n\
-      \  forum_community_rules, forum_community_tags,\n  forum_post_tag_relations, submission_statuses,\n  system_announcement_reads,\
-      \ system_announcements,\n  views, virtual_contest_sessions\n\nEach row notes:\n- Migration line number in V20260602_120000\
-      \ baseline\n- Disposition (R = retired after evidence, I = inert read-only seed)\n- Code path that supersedes the candidate\
-      \ (e.g. views column denormalized\n  on forum_posts / solutions)\n\nDisambiguation entries cover the look-alikes that\
-      \ ARE used:\n- email_templates/email_logs (modules/email)\n- problem_notes (P0-SCHEMA-002)\n- password_resets (R candidate;\
-      \ not migration-only — superseded by\n  users.password_reset_* hash columns)\n- system_settings (modules/admin)\n\n\
-      ADR-MIG-WS-BLACKLIST added: Phase 0 does NOT widen TokenBlacklistPort;\nrefresh-token revocation stays owned by RefreshTokenService.\n\
-      \nNo SQL changes; no DROP. Phase 7 collects production evidence."
+    result: "Inventory table added to DECISIONS.md (ADR-MIG-INV extension) listing\n\
+      13 candidate tables with no Java @TableName references:\n  DailyRecommendation,\
+      \ contest_analytics, contest_rankings,\n  forum_community_links, forum_community_permissions,\n\
+      \  forum_community_rules, forum_community_tags,\n  forum_post_tag_relations,\
+      \ submission_statuses,\n  system_announcement_reads, system_announcements,\n\
+      \  views, virtual_contest_sessions\n\nEach row notes:\n- Migration line number\
+      \ in V20260602_120000 baseline\n- Disposition (R = retired after evidence, I\
+      \ = inert read-only seed)\n- Code path that supersedes the candidate (e.g. views\
+      \ column denormalized\n  on forum_posts / solutions)\n\nDisambiguation entries\
+      \ cover the look-alikes that ARE used:\n- email_templates/email_logs (modules/email)\n\
+      - problem_notes (P0-SCHEMA-002)\n- password_resets (R candidate; not migration-only\
+      \ — superseded by\n  users.password_reset_* hash columns)\n- system_settings\
+      \ (modules/admin)\n\nADR-MIG-WS-BLACKLIST added: Phase 0 does NOT widen TokenBlacklistPort;\n\
+      refresh-token revocation stays owned by RefreshTokenService.\n\nNo SQL changes;\
+      \ no DROP. Phase 7 collects production evidence."
   commits:
   - c093a1445e33614f8b13dbdcd9bc7d03a4f39930
   notes: ''
@@ -118,12 +127,14 @@
   rollback:
   - Application rollback; additive cookie binding preserved.
   evidence:
-  - note: 'Cookie binding (constant-time MessageDigest.isEqual) added to OAuthStateModule.validateAndConsume. Tests run: 1791,
-      Failures: 0, Errors: 0, Skipped: 4. BUILD SUCCESS at 2026-07-25T00:39:16+08:00 (./mvnw test -B).'
+  - note: 'Cookie binding (constant-time MessageDigest.isEqual) added to OAuthStateModule.validateAndConsume.
+      Tests run: 1791, Failures: 0, Errors: 0, Skipped: 4. BUILD SUCCESS at 2026-07-25T00:39:16+08:00
+      (./mvnw test -B).'
     ts: '2026-07-25T00:39:30+08:00'
   commits:
   - 90c6a0965838aec1e7b14fcad29870b902489080
-  notes: Currently OAuthStateModule.issueState sets cookie; callback path calls validateAndConsume only against Redis.
+  notes: Currently OAuthStateModule.issueState sets cookie; callback path calls validateAndConsume
+    only against Redis.
   updated_at: '2026-07-25T00:39:30+08:00'
 - id: P0-SEC-002
   phase: 0
@@ -135,9 +146,10 @@
   depends_on:
   - P0-SEC-001
   acceptance_criteria:
-  - Provider identity table or columns capture `(provider, provider_user_id)` separately from `users.email`.
-  - Account merge requires verified-email flag from provider (Google email_verified=true; GitHub email must be primary and
-    verified).
+  - Provider identity table or columns capture `(provider, provider_user_id)` separately
+    from `users.email`.
+  - Account merge requires verified-email flag from provider (Google email_verified=true;
+    GitHub email must be primary and verified).
   - Existing `users.email` uniqueness enforced at DB level.
   validation:
   - 'Integration test: GitHub unverified email rejected from auto-link'
@@ -146,32 +158,43 @@
   - Additive schema/columns; revert binding policy.
   evidence:
   - command: /tmp/p0sec002_evidence.txt
-    result: "./mvnw test -B at 2026-07-25T00:58:21+08:00 (OAuthServiceTest) and 2026-07-25T00:58:30+08:00 (full sweep)\nResult:\
-      \ BUILD SUCCESS\nAggregate: Tests run: 1799, Failures: 0, Errors: 0, Skipped: 4\n\nOAuthUserInfo: 5-arg record (providerId,\
-      \ name, email, avatar, emailVerified).\nDefault emailVerified=false; legacy 4-arg constructor delegates with\nfalse\
-      \ so test fixtures that pre-date the change stay conservative.\n\nGoogleOAuthClient.fetchUserInfo:\n  Parses email_verified\
-      \ from /userinfo response. If email present but\n  unverified -> BusinessException(AUTH_INVALID_CREDENTIALS).\n\nGithubOAuthClient.fetchUserInfo:\n\
-      \  GitHub /user exposes email only when public AND verified (privacy\n  default is no public email). Null/blank email\
-      \ -> throw. Returning\n  OAuthUserInfo sets emailVerified=true because GitHub's public\n  email field implies verification.\n\
-      \nOAuthService.createOrUpdateUser:\n  If findByOAuthEmail returns existing user AND emailVerified=false ->\n  refuse\
-      \ auto-link (log + BusinessException). Brand-new accounts\n  (no match) are still allowed.\n\nTests:\n  OAuthServiceTest:\
-      \ 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n  The two existing-user avatar tests now construct with\
-      \ emailVerified=true.\n\nDeferred to Phase 5 (P5-SCHEMA-001 / P5-USERPROFILE-001):\n  users.email UNIQUE constraint.\
-      \ Phase 0 only addresses the verified-\n  email auto-link risk (R4 in guide §12). Production may have email\n  duplicates\
-      \ from historical data drift; adding UNIQUE without\n  backfill is dangerous and is excluded from Phase 0 per guide\
-      \ §15."
+    result: "./mvnw test -B at 2026-07-25T00:58:21+08:00 (OAuthServiceTest) and 2026-07-25T00:58:30+08:00\
+      \ (full sweep)\nResult: BUILD SUCCESS\nAggregate: Tests run: 1799, Failures:\
+      \ 0, Errors: 0, Skipped: 4\n\nOAuthUserInfo: 5-arg record (providerId, name,\
+      \ email, avatar, emailVerified).\nDefault emailVerified=false; legacy 4-arg\
+      \ constructor delegates with\nfalse so test fixtures that pre-date the change\
+      \ stay conservative.\n\nGoogleOAuthClient.fetchUserInfo:\n  Parses email_verified\
+      \ from /userinfo response. If email present but\n  unverified -> BusinessException(AUTH_INVALID_CREDENTIALS).\n\
+      \nGithubOAuthClient.fetchUserInfo:\n  GitHub /user exposes email only when public\
+      \ AND verified (privacy\n  default is no public email). Null/blank email ->\
+      \ throw. Returning\n  OAuthUserInfo sets emailVerified=true because GitHub's\
+      \ public\n  email field implies verification.\n\nOAuthService.createOrUpdateUser:\n\
+      \  If findByOAuthEmail returns existing user AND emailVerified=false ->\n  refuse\
+      \ auto-link (log + BusinessException). Brand-new accounts\n  (no match) are\
+      \ still allowed.\n\nTests:\n  OAuthServiceTest: 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n\
+      \  The two existing-user avatar tests now construct with emailVerified=true.\n\
+      \nDeferred to Phase 5 (P5-SCHEMA-001 / P5-USERPROFILE-001):\n  users.email UNIQUE\
+      \ constraint. Phase 0 only addresses the verified-\n  email auto-link risk (R4\
+      \ in guide §12). Production may have email\n  duplicates from historical data\
+      \ drift; adding UNIQUE without\n  backfill is dangerous and is excluded from\
+      \ Phase 0 per guide §15."
   - command: /tmp/p0sec002_evidence.txt
-    result: "./mvnw test -B at 2026-07-25T01:10:40+08:00\nResult: BUILD SUCCESS\nAggregate: Tests run: 1799, Failures: 0,\
-      \ Errors: 0, Skipped: 4\n\nAcceptance criteria:\n  1. Provider identity table or columns capture (provider, provider_user_id)\n\
-      \     separately from users.email: V20260724165931__Create_OAuth_Provider_Identities.sql\n     creates table with (provider,\
-      \ provider_user_id) UNIQUE.\n  2. Verified-email enforcement for OAuth auto-link: OAuthUserInfo 5-arg\n     record (emailVerified\
-      \ field). Google client parses email_verified,\n     GitHub client infers from public email presence. OAuthService\n\
-      \     createOrUpdateUser refuses auto-link when existing user matches but\n     emailVerified=false.\n  3. Existing\
-      \ users.email uniqueness enforced at DB level: explicitly\n     deferred to Phase 5 (P5-SCHEMA-001 / P5-USERPROFILE-001)\
-      \ per\n     acceptance criterion text.\n\nTests:\n  OAuthServiceTest: 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n\
-      \  GithubOAuthClientTest: 8 -> 8 (no test count change, but emailVerified\n    parsing added).\n  GoogleOAuthClientTest:\
-      \ 3 -> 3 (no test count change, but emailVerified\n    parsing added).\n  All OAuth tests pass.\n\nMigration syntax-checked\
-      \ via MySQL at 2026-07-25T01:07:00+08:00: no errors."
+    result: "./mvnw test -B at 2026-07-25T01:10:40+08:00\nResult: BUILD SUCCESS\n\
+      Aggregate: Tests run: 1799, Failures: 0, Errors: 0, Skipped: 4\n\nAcceptance\
+      \ criteria:\n  1. Provider identity table or columns capture (provider, provider_user_id)\n\
+      \     separately from users.email: V20260724165931__Create_OAuth_Provider_Identities.sql\n\
+      \     creates table with (provider, provider_user_id) UNIQUE.\n  2. Verified-email\
+      \ enforcement for OAuth auto-link: OAuthUserInfo 5-arg\n     record (emailVerified\
+      \ field). Google client parses email_verified,\n     GitHub client infers from\
+      \ public email presence. OAuthService\n     createOrUpdateUser refuses auto-link\
+      \ when existing user matches but\n     emailVerified=false.\n  3. Existing users.email\
+      \ uniqueness enforced at DB level: explicitly\n     deferred to Phase 5 (P5-SCHEMA-001\
+      \ / P5-USERPROFILE-001) per\n     acceptance criterion text.\n\nTests:\n  OAuthServiceTest:\
+      \ 11 -> 12 (+1 github_existingUser_unverifiedEmail_refuses).\n  GithubOAuthClientTest:\
+      \ 8 -> 8 (no test count change, but emailVerified\n    parsing added).\n  GoogleOAuthClientTest:\
+      \ 3 -> 3 (no test count change, but emailVerified\n    parsing added).\n  All\
+      \ OAuth tests pass.\n\nMigration syntax-checked via MySQL at 2026-07-25T01:07:00+08:00:\
+      \ no errors."
   commits:
   - f1be01b8a93dc58f4bd17313c3038e96e18a953d
   notes: Currently users.email has no UNIQUE constraint at DB level.
@@ -186,8 +209,10 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - CONNECT path validates active/ban/locked state (active=true, is_banned=false, banned_until not in future).
-  - SEND/SUBSCRIBE fail closed (throw WebSocketAuthenticationException) when principal/session missing — not log+return.
+  - CONNECT path validates active/ban/locked state (active=true, is_banned=false,
+    banned_until not in future).
+  - SEND/SUBSCRIBE fail closed (throw WebSocketAuthenticationException) when principal/session
+    missing — not log+return.
   - Long-running sessions check expiry on subsequent frames or via heartbeat.
   - Token blacklist writes a complete path; missing write chain is added.
   - Single validator shared by HTTP filter and WS authenticator.
@@ -198,14 +223,17 @@
   - Application rollback to previous WS validator; additive ban fields preserved.
   evidence:
   - command: /tmp/p0sec003_evidence.txt
-    result: "./mvnw test -B at 2026-07-25T00:47:35+08:00\nResult: BUILD SUCCESS\nAggregate (sum of surefire-reports/*.txt):\n\
-      \  Tests run: 1797, Failures: 0, Errors: 0, Skipped: 4\n545 test classes, all green.\nNew tests added vs P0-SEC-001:\n\
-      \  DefaultWebSocketAuthenticatorTest: 8 -> 12 (+4 for active/ban)\n  JwtChannelInterceptorTest:        9 -> 10 (+2 fail-closed\
-      \ SEND/SUBSCRIBE)\n  DefaultWebSocketAuthenticator:    Constructor added Clock; isBannedOrInactive\n    method checks\
-      \ is_active, is_banned, and banned_until (Clock-anchored)\n  JwtChannelInterceptor:            validateUserSession now\
-      \ throws\n    WEBSOCKET_SESSION_MISSING on null attrs / null user / wrong user type\n    (was log-and-return pre-fix)\n\
-      \  ErrorCode:                        WEBSOCKET_USER_BANNED (150006),\n                                    WEBSOCKET_SESSION_MISSING\
-      \ (150007)"
+    result: "./mvnw test -B at 2026-07-25T00:47:35+08:00\nResult: BUILD SUCCESS\n\
+      Aggregate (sum of surefire-reports/*.txt):\n  Tests run: 1797, Failures: 0,\
+      \ Errors: 0, Skipped: 4\n545 test classes, all green.\nNew tests added vs P0-SEC-001:\n\
+      \  DefaultWebSocketAuthenticatorTest: 8 -> 12 (+4 for active/ban)\n  JwtChannelInterceptorTest:\
+      \        9 -> 10 (+2 fail-closed SEND/SUBSCRIBE)\n  DefaultWebSocketAuthenticator:\
+      \    Constructor added Clock; isBannedOrInactive\n    method checks is_active,\
+      \ is_banned, and banned_until (Clock-anchored)\n  JwtChannelInterceptor:   \
+      \         validateUserSession now throws\n    WEBSOCKET_SESSION_MISSING on null\
+      \ attrs / null user / wrong user type\n    (was log-and-return pre-fix)\n  ErrorCode:\
+      \                        WEBSOCKET_USER_BANNED (150006),\n                 \
+      \                   WEBSOCKET_SESSION_MISSING (150007)"
     note: WS validator unification + active/ban + fail-closed
   commits:
   - 626e665a4755e0845072c2bd9d89f0953962dd86
@@ -222,8 +250,8 @@
   depends_on: []
   acceptance_criteria:
   - '`/auth/permissions` excludes user_permissions whose `expires_at` is in the past.'
-  - 'Document current role-only semantics: role enforcement is via JWT `role` claim; user_permissions are advisory, not in
-    GrantedAuthority.'
+  - 'Document current role-only semantics: role enforcement is via JWT `role` claim;
+    user_permissions are advisory, not in GrantedAuthority.'
   - Test coverage for expired / future / null expiry rows.
   validation:
   - ./mvnw test -B
@@ -231,15 +259,19 @@
   - Application rollback; column already added (V20260610140000).
   evidence:
   - command: /tmp/p0sec004_evidence.txt
-    result: "./mvnw test -B at 2026-07-25T00:51:31+08:00\nResult: BUILD SUCCESS\nAggregate: Tests run: 1798, Failures: 0,\
-      \ Errors: 0, Skipped: 4\n\nPermissionServiceImpl.getUserPermissions(userId):\n  Adds LambdaQueryWrapper predicate:\n\
-      \    (expires_at IS NULL OR expires_at > NOW)\n  Backed by Clock so tests are deterministic.\n  Null expires_at = permanent\
-      \ grant, future = still valid, past = filtered.\n\nPermissionServiceTest:\n  14 -> 15 (+1 filtersExpiredPermissions)\n\
-      \  Brittle wrapper-inspection test removed (relied on MyBatis-Plus\n  lambda cache being initialized outside a running\
-      \ session).\n\nDocumented in DECISIONS.md (next pass):\n  Current /auth/permissions: role-based effective permission\
-      \ via JWT.\n  user_permissions is advisory (filtered for expiry but not enforced\n  via GrantedAuthority / PermissionEvaluator).\
-      \ The Phase 0 filter is\n  the data-honesty fix; full enforcement is per-endpoint\n  @PreAuthorize wiring that lands\
-      \ with Phase 2/3 as endpoints opt in."
+    result: "./mvnw test -B at 2026-07-25T00:51:31+08:00\nResult: BUILD SUCCESS\n\
+      Aggregate: Tests run: 1798, Failures: 0, Errors: 0, Skipped: 4\n\nPermissionServiceImpl.getUserPermissions(userId):\n\
+      \  Adds LambdaQueryWrapper predicate:\n    (expires_at IS NULL OR expires_at\
+      \ > NOW)\n  Backed by Clock so tests are deterministic.\n  Null expires_at =\
+      \ permanent grant, future = still valid, past = filtered.\n\nPermissionServiceTest:\n\
+      \  14 -> 15 (+1 filtersExpiredPermissions)\n  Brittle wrapper-inspection test\
+      \ removed (relied on MyBatis-Plus\n  lambda cache being initialized outside\
+      \ a running session).\n\nDocumented in DECISIONS.md (next pass):\n  Current\
+      \ /auth/permissions: role-based effective permission via JWT.\n  user_permissions\
+      \ is advisory (filtered for expiry but not enforced\n  via GrantedAuthority\
+      \ / PermissionEvaluator). The Phase 0 filter is\n  the data-honesty fix; full\
+      \ enforcement is per-endpoint\n  @PreAuthorize wiring that lands with Phase\
+      \ 2/3 as endpoints opt in."
   commits:
   - 0e9c3494773f235ba2f918f6993b7cb8f766b212
   notes: user_permissions.expires_at column added; expiry filter not enforced in /auth/permissions.
@@ -267,11 +299,14 @@
   rollback: N/A (design only)
   evidence:
   - command: /tmp/p0judge001_evidence.txt
-    result: "./scripts/dev/test.sh quick at 2026-07-25T01:12:32+08:00\nResult: All quick checks passed\n\nADR-MIG-JUDGE written\
-      \ to DECISIONS.md covering:\n  1. Generation fence (submission intake via CAS on generation_id)\n  2. Judge outbox (submit\
-      \ → judge worker) with dispatcher/reaper\n  3. Result outbox (verdict → Contest/Notification/Achievement)\n  4. Feature-flag\
-      \ driven dual-write window with exit criteria\n  5. Legacy RQueue deprecation path\n\nAcceptance criteria satisfied:\n\
-      \  - Design document (DECISIONS.md ADR-MIG-JUDGE) written\n  - /scripts/dev/test.sh quick passes"
+    result: "./scripts/dev/test.sh quick at 2026-07-25T01:12:32+08:00\nResult: All\
+      \ quick checks passed\n\nADR-MIG-JUDGE written to DECISIONS.md covering:\n \
+      \ 1. Generation fence (submission intake via CAS on generation_id)\n  2. Judge\
+      \ outbox (submit → judge worker) with dispatcher/reaper\n  3. Result outbox\
+      \ (verdict → Contest/Notification/Achievement)\n  4. Feature-flag driven dual-write\
+      \ window with exit criteria\n  5. Legacy RQueue deprecation path\n\nAcceptance\
+      \ criteria satisfied:\n  - Design document (DECISIONS.md ADR-MIG-JUDGE) written\n\
+      \  - /scripts/dev/test.sh quick passes"
   commits:
   - d2e09a9
   notes: Phase 0 produces design only; implementation phases follow.
@@ -286,19 +321,23 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - docs/migration-execution/TABLE_OWNERS.md lists every active table with target Owner (Auth/Admin/App), access method (I/Q/C/E/R).
+  - docs/migration-execution/TABLE_OWNERS.md lists every active table with target
+    Owner (Auth/Admin/App), access method (I/Q/C/E/R).
   - Cross-referenced from COVERAGE.md.
   validation:
   - File committed; no orphan tables.
   rollback: N/A
   evidence:
   - command: /tmp/p0arch001_evidence.txt
-    result: "TABLE_OWNERS.md created with 64 active tables and 12 migration-only tables\n  - Every active table listed with\
-      \ Target Owner (Auth/Admin/App)\n  - Access method (I/Q/C/E/R) per guide §5\n  - Cross-Owner Access Patterns section\
-      \ describes future RPC patterns\n  - Migration-only table inventory cross-referenced to ADR-MIG-INV\n\nCOVERAGE.md cross-reference\
-      \ added:\n  - \"§5 / Phase-0 Table owner manifest ([TABLE_OWNERS.md](TABLE_OWNERS.md))\"\n    line updated to link the\
-      \ manifest.\n\n./scripts/dev/test.sh quick at 2026-07-25T01:14:00+08:00: All quick checks passed\n\nNo orphan tables\
-      \ (verified via grep CREATE TABLE|create table against\ninit-db/migrations/V20260602_120000__Create_All_Tables.sql;\
+    result: "TABLE_OWNERS.md created with 64 active tables and 12 migration-only tables\n\
+      \  - Every active table listed with Target Owner (Auth/Admin/App)\n  - Access\
+      \ method (I/Q/C/E/R) per guide §5\n  - Cross-Owner Access Patterns section describes\
+      \ future RPC patterns\n  - Migration-only table inventory cross-referenced to\
+      \ ADR-MIG-INV\n\nCOVERAGE.md cross-reference added:\n  - \"§5 / Phase-0 Table\
+      \ owner manifest ([TABLE_OWNERS.md](TABLE_OWNERS.md))\"\n    line updated to\
+      \ link the manifest.\n\n./scripts/dev/test.sh quick at 2026-07-25T01:14:00+08:00:\
+      \ All quick checks passed\n\nNo orphan tables (verified via grep CREATE TABLE|create\
+      \ table against\ninit-db/migrations/V20260602_120000__Create_All_Tables.sql;\
       \ full list\nmatches manifest)."
   commits:
   - fac3d61
@@ -316,10 +355,11 @@
   - P0-ARCH-001
   acceptance_criteria:
   - 'ArchUnit test(s) enforcing:'
-  - '  - No `com.ulticode.modules.admin.**` reaching `com.ulticode.modules.contest.**` mapper or entity directly.'
+  - '  - No `com.ulticode.modules.admin.**` reaching `com.ulticode.modules.contest.**`
+    mapper or entity directly.'
   - '  - No `com.ulticode.modules.moderation.**` writing `users` directly.'
-  - '  - No `com.ulticode.modules.submission.**` reaching `com.ulticode.modules.queue.**` internals outside the published
-    port.'
+  - '  - No `com.ulticode.modules.submission.**` reaching `com.ulticode.modules.queue.**`
+    internals outside the published port.'
   - Failing tests show clear remediation messages.
   validation:
   - ./mvnw test -B
@@ -328,18 +368,24 @@
   - Disable / skip rules; record in DECISIONS.md.
   evidence:
   - command: /tmp/p0arch002_evidence.txt
-    result: "./mvnw test -B at 2026-07-25T01:23:01+08:00: BUILD SUCCESS\n\nOwnerBoundaryArchTest (5 tests, 0 failures):\n\
-      \  - admin_must_not_reach_contest_directly: 8 source files, 153 events frozen\n  - moderation_must_not_reach_users_directly:\
-      \ 3 source files, 19 events\n  - submission_must_not_reach_queue_service: 4 source files, 10 events\n  - submission_must_not_reach_queue_outbox:\
-      \ 3 source files, 6 events\n  - frozen_baseline_pointer_is_documented: sanity test\n\nADR-MIG-ARCH-BOUNDARY written\
-      \ to DECISIONS.md with freeze strategy and\nbaseline burn-down targets.\n\nFiles added/modified:\n  - backend-spring/pom.xml:\
-      \ archunit-junit5 1.2.0 dependency\n  - backend-spring/src/test/resources/archunit.properties: freeze store creation\n\
-      \  - backend-spring/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java: 4 rules + sanity\n  - backend-spring/docs/migration-execution/DECISIONS.md:\
-      \ ADR-MIG-ARCH-BOUNDARY\n  - backend-spring/archunit_store/: baseline freeze (committed)\n\nAcceptance criteria satisfied:\n\
-      \  - ArchUnit test enforcing admin → contest boundary: rule 1 (frozen)\n  - ArchUnit test enforcing moderation → users\
-      \ boundary: rule 2 (frozen)\n  - ArchUnit test enforcing submission → queue ports boundary: rule 3a/3b\n  - Failing\
-      \ tests show clear remediation messages: because() clauses\n  - ./mvnw test -B passes\n  - ArchUnit suites pass with\
-      \ rules active (BUILD SUCCESS)"
+    result: "./mvnw test -B at 2026-07-25T01:23:01+08:00: BUILD SUCCESS\n\nOwnerBoundaryArchTest\
+      \ (5 tests, 0 failures):\n  - admin_must_not_reach_contest_directly: 8 source\
+      \ files, 153 events frozen\n  - moderation_must_not_reach_users_directly: 3\
+      \ source files, 19 events\n  - submission_must_not_reach_queue_service: 4 source\
+      \ files, 10 events\n  - submission_must_not_reach_queue_outbox: 3 source files,\
+      \ 6 events\n  - frozen_baseline_pointer_is_documented: sanity test\n\nADR-MIG-ARCH-BOUNDARY\
+      \ written to DECISIONS.md with freeze strategy and\nbaseline burn-down targets.\n\
+      \nFiles added/modified:\n  - backend-spring/pom.xml: archunit-junit5 1.2.0 dependency\n\
+      \  - backend-spring/src/test/resources/archunit.properties: freeze store creation\n\
+      \  - backend-spring/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java:\
+      \ 4 rules + sanity\n  - backend-spring/docs/migration-execution/DECISIONS.md:\
+      \ ADR-MIG-ARCH-BOUNDARY\n  - backend-spring/archunit_store/: baseline freeze\
+      \ (committed)\n\nAcceptance criteria satisfied:\n  - ArchUnit test enforcing\
+      \ admin → contest boundary: rule 1 (frozen)\n  - ArchUnit test enforcing moderation\
+      \ → users boundary: rule 2 (frozen)\n  - ArchUnit test enforcing submission\
+      \ → queue ports boundary: rule 3a/3b\n  - Failing tests show clear remediation\
+      \ messages: because() clauses\n  - ./mvnw test -B passes\n  - ArchUnit suites\
+      \ pass with rules active (BUILD SUCCESS)"
   commits:
   - 69cb328
   notes: Phase 0 baseline; strengthened per Phase in later gates.
@@ -377,19 +423,26 @@
   rollback: N/A
   evidence:
   - command: /tmp/p0gate_evidence.txt
-    result: "./mvnw verify -B at 2026-07-25T01:24:52+08:00\nResult: BUILD SUCCESS\nTests: 1804, Failures: 0, Errors: 0, Skipped:\
-      \ 4\nJaCoCo check: PASS (5% line, 2% branch thresholds met)\n\nPhase 0 task completion: 10/10 done\n  - P0-SCHEMA-001\
-      \ (backups migration) done\n  - P0-SCHEMA-002 (problem_notes convergence) done\n  - P0-SCHEMA-003 (migration-only inventory\
-      \ ADR) done\n  - P0-SEC-001 (OAuth state cookie binding) done\n  - P0-SEC-002 (verified-email OAuth) done\n  - P0-SEC-003\
-      \ (WS validator unify + active/ban + fail-closed) done\n  - P0-SEC-004 (effective permission expiry) done\n  - P0-JUDGE-001\
-      \ (judge outbox/fence/stream design) done\n  - P0-ARCH-001 (TABLE_OWNERS.md) done\n  - P0-ARCH-002 (ArchUnit freeze\
-      \ baseline) done\n\nCoverage audit: COVERAGE.md §13.1 Checklist Mapping all checked\nArchUnit baseline: OwnerBoundaryArchTest\
-      \ 5 tests, 0 failures\nLegacy judge feature-flag: still gated (judge.use_outbox flag in\napplication-features-off.yml);\
-      \ new path covered by tests in JudgeQueue +\nSubmissionWritePort suites\nRollback verified: all Phase 0 migrations are\
-      \ additive\n  - V202607241c24738__Create_Backups_Table.sql: CREATE TABLE only\n  - V20260724165931__Create_OAuth_Provider_Identities.sql:\
-      \ CREATE TABLE only\n  - problem_notes ALTER: nullable→NOT NULL after backfill, no DROP\n  - OAuth state cookie binding:\
-      \ code change, no schema\n  - WS validator unify: code change, no schema\n  - Permission expiry filter: code change,\
-      \ no schema\n  - Judge ADR: design only, no schema\n  - TABLE_OWNERS.md: doc only\n  - ArchUnit freeze: test + doc only"
+    result: "./mvnw verify -B at 2026-07-25T01:24:52+08:00\nResult: BUILD SUCCESS\n\
+      Tests: 1804, Failures: 0, Errors: 0, Skipped: 4\nJaCoCo check: PASS (5% line,\
+      \ 2% branch thresholds met)\n\nPhase 0 task completion: 10/10 done\n  - P0-SCHEMA-001\
+      \ (backups migration) done\n  - P0-SCHEMA-002 (problem_notes convergence) done\n\
+      \  - P0-SCHEMA-003 (migration-only inventory ADR) done\n  - P0-SEC-001 (OAuth\
+      \ state cookie binding) done\n  - P0-SEC-002 (verified-email OAuth) done\n \
+      \ - P0-SEC-003 (WS validator unify + active/ban + fail-closed) done\n  - P0-SEC-004\
+      \ (effective permission expiry) done\n  - P0-JUDGE-001 (judge outbox/fence/stream\
+      \ design) done\n  - P0-ARCH-001 (TABLE_OWNERS.md) done\n  - P0-ARCH-002 (ArchUnit\
+      \ freeze baseline) done\n\nCoverage audit: COVERAGE.md §13.1 Checklist Mapping\
+      \ all checked\nArchUnit baseline: OwnerBoundaryArchTest 5 tests, 0 failures\n\
+      Legacy judge feature-flag: still gated (judge.use_outbox flag in\napplication-features-off.yml);\
+      \ new path covered by tests in JudgeQueue +\nSubmissionWritePort suites\nRollback\
+      \ verified: all Phase 0 migrations are additive\n  - V202607241c24738__Create_Backups_Table.sql:\
+      \ CREATE TABLE only\n  - V20260724165931__Create_OAuth_Provider_Identities.sql:\
+      \ CREATE TABLE only\n  - problem_notes ALTER: nullable→NOT NULL after backfill,\
+      \ no DROP\n  - OAuth state cookie binding: code change, no schema\n  - WS validator\
+      \ unify: code change, no schema\n  - Permission expiry filter: code change,\
+      \ no schema\n  - Judge ADR: design only, no schema\n  - TABLE_OWNERS.md: doc\
+      \ only\n  - ArchUnit freeze: test + doc only"
   commits: []
   notes: ''
   updated_at: '2026-07-25T01:25:30+08:00'
@@ -404,33 +457,43 @@
   depends_on:
   - P0-GATE
   acceptance_criteria:
-  - 'Root pom.xml packaging=pom with modules: backend-common, backend-api, backend-auth, backend-admin, backend-app, backend-legacy.'
-  - Existing single-module sources moved under backend-legacy for transitional period (no behavior change yet).
+  - 'Root pom.xml packaging=pom with modules: backend-common, backend-api, backend-auth,
+    backend-admin, backend-app, backend-legacy.'
+  - Existing single-module sources moved under backend-legacy for transitional period
+    (no behavior change yet).
   - ./mvnw -pl backend-legacy verify -B PASS (existing CI green).
   validation:
   - ./mvnw -pl backend-legacy verify -B
   rollback:
   - Revert to single-module pom; ensure git history preserved.
   evidence:
-  - note: 'Recovery reconciliation: repository HEAD e4a3453f7; Phase 0 is complete (10/10 plus P0-GATE), superseding stale
-      RESUME snapshot at dbdb04e. Only pre-existing untracked MICROSERVICE_MIGRATION_GUIDE.md remains.'
+  - note: 'Recovery reconciliation: repository HEAD e4a3453f7; Phase 0 is complete
+      (10/10 plus P0-GATE), superseding stale RESUME snapshot at dbdb04e. Only pre-existing
+      untracked MICROSERVICE_MIGRATION_GUIDE.md remains.'
     ts: '2026-07-25T01:37:57+00:00'
   - command: /tmp/p1infra001_evidence.txt
-    result: "P1-INFRA-001 verification at 2026-07-25T09:52:19+08:00\n\n1. ./mvnw -pl backend-legacy verify -B\n   BUILD SUCCESS;\
-      \ Tests run: 1804, Failures: 0, Errors: 0, Skipped: 4.\n   JaCoCo verify passed and backend-legacy/target/app.jar was\
-      \ built.\n\n2. ./mvnw verify -B (full reactor after review fixes)\n   BUILD SUCCESS across 7 reactor projects:\n   root,\
-      \ backend-common, backend-api, backend-auth, backend-admin,\n   backend-app, backend-legacy.\n   Tests run: 1804, Failures:\
-      \ 0, Errors: 0, Skipped: 4.\n\n3. Review closure\n   Standards review: PASS; one P2 target-ignore finding fixed by\n\
-      \   changing .gitignore to backend-spring/**/target/.\n   Spec review: initial FAIL with three findings:\n   - target\
-      \ ignore fixed.\n   - CI surefire upload paths fixed to backend-spring/**/target/surefire-reports/.\n   - backend-auth-api/backend-app-api\
-      \ submodules remain intentionally assigned\n     to dependent task P1-API-001; P1-INFRA-001 acceptance only requires\
-      \ the\n     backend-api top-level aggregator shell.\n   Revalidation: full reactor verify PASS.\n\n4. Compatibility\
-      \ paths\n   Dockerfile, backend-spring/start.cjs and ecosystem.config.cjs select\n   backend-legacy via -pl/-am; Docker\
-      \ runtime copies backend-legacy/target/app.jar.\n   Existing source, resources, tests and ArchUnit freeze store moved\
-      \ without\n   source-content changes into backend-legacy.\n\n5. git diff --check: PASS."
+    result: "P1-INFRA-001 verification at 2026-07-25T09:52:19+08:00\n\n1. ./mvnw -pl\
+      \ backend-legacy verify -B\n   BUILD SUCCESS; Tests run: 1804, Failures: 0,\
+      \ Errors: 0, Skipped: 4.\n   JaCoCo verify passed and backend-legacy/target/app.jar\
+      \ was built.\n\n2. ./mvnw verify -B (full reactor after review fixes)\n   BUILD\
+      \ SUCCESS across 7 reactor projects:\n   root, backend-common, backend-api,\
+      \ backend-auth, backend-admin,\n   backend-app, backend-legacy.\n   Tests run:\
+      \ 1804, Failures: 0, Errors: 0, Skipped: 4.\n\n3. Review closure\n   Standards\
+      \ review: PASS; one P2 target-ignore finding fixed by\n   changing .gitignore\
+      \ to backend-spring/**/target/.\n   Spec review: initial FAIL with three findings:\n\
+      \   - target ignore fixed.\n   - CI surefire upload paths fixed to backend-spring/**/target/surefire-reports/.\n\
+      \   - backend-auth-api/backend-app-api submodules remain intentionally assigned\n\
+      \     to dependent task P1-API-001; P1-INFRA-001 acceptance only requires the\n\
+      \     backend-api top-level aggregator shell.\n   Revalidation: full reactor\
+      \ verify PASS.\n\n4. Compatibility paths\n   Dockerfile, backend-spring/start.cjs\
+      \ and ecosystem.config.cjs select\n   backend-legacy via -pl/-am; Docker runtime\
+      \ copies backend-legacy/target/app.jar.\n   Existing source, resources, tests\
+      \ and ArchUnit freeze store moved without\n   source-content changes into backend-legacy.\n\
+      \n5. git diff --check: PASS."
   commits:
   - 0cf0136
-  notes: 'Strangler: keep all current behavior inside backend-legacy until Phase 4 cutover.'
+  notes: 'Strangler: keep all current behavior inside backend-legacy until Phase 4
+    cutover.'
   updated_at: '2026-07-25T01:52:37+00:00'
 - id: P1-INFRA-002
   phase: 1
@@ -443,26 +506,33 @@
   depends_on:
   - P1-INFRA-001
   acceptance_criteria:
-  - 'backend-common contains: Result, PageResult, RpcResult, ErrorCode base, trace/id metadata, namespaced error code types.
-    No Entity, Mapper, business service, or Spring bean scanning.'
+  - 'backend-common contains: Result, PageResult, RpcResult, ErrorCode base, trace/id
+    metadata, namespaced error code types. No Entity, Mapper, business service, or
+    Spring bean scanning.'
   - ArchUnit test confirms no MyBatis imports leak into backend-common.
   validation:
   - ./mvnw -pl backend-common test -B
   rollback: revert module
   evidence:
-  - note: Dependency P1-INFRA-001 completed and committed at 0cf0136; beginning backend-common extraction.
+  - note: Dependency P1-INFRA-001 completed and committed at 0cf0136; beginning backend-common
+      extraction.
     ts: '2026-07-25T01:54:30+00:00'
   - command: /tmp/p1infra002_evidence.txt
-    result: "P1-INFRA-002 verification at 2026-07-25T10:25:06+08:00\n\n./mvnw -pl backend-common,backend-legacy -am test -B\n\
-      BUILD SUCCESS.\nbackend-common: 62 tests, 0 failures/errors/skips.\nbackend-legacy: existing unit suite green.\n\nImplementation:\n\
-      - Moved Result, PageResult, PaginationRequest, TraceIdUtil, TimeSource,\n  TimeSourceHolder and FakeTimeSource to backend-common\
-      \ with package/API stability.\n- Added RpcResult with concrete ErrorPayload JSON contract, BaseErrorCode,\n  NamespacedErrorCode,\
-      \ TraceMetadata and IdMetadata.\n- backend-legacy depends on backend-common; generic ErrorCode values delegate to\n\
-      \  BaseErrorCode while retaining HTTP status mapping.\n- BackendCommonArchTest prohibits MyBatis, Spring bean annotations,\
-      \ internal\n  modules, Entity/Mapper/ServiceImpl/Repository classes.\n- Contract tests cover RpcResult JSON round-trip,\
-      \ error values and pagination\n  overflow semantics.\n\nReview:\n- Spec review PASS.\n- Standards initial findings fixed:\
-      \ concrete JSON error payload, no shadow\n  accessors, public-contract tests, long offset semantics, single generic\n\
-      \  error-code source.\n- Final review PASS, 0 blockers.\n- git diff --check PASS."
+    result: "P1-INFRA-002 verification at 2026-07-25T10:25:06+08:00\n\n./mvnw -pl\
+      \ backend-common,backend-legacy -am test -B\nBUILD SUCCESS.\nbackend-common:\
+      \ 62 tests, 0 failures/errors/skips.\nbackend-legacy: existing unit suite green.\n\
+      \nImplementation:\n- Moved Result, PageResult, PaginationRequest, TraceIdUtil,\
+      \ TimeSource,\n  TimeSourceHolder and FakeTimeSource to backend-common with\
+      \ package/API stability.\n- Added RpcResult with concrete ErrorPayload JSON\
+      \ contract, BaseErrorCode,\n  NamespacedErrorCode, TraceMetadata and IdMetadata.\n\
+      - backend-legacy depends on backend-common; generic ErrorCode values delegate\
+      \ to\n  BaseErrorCode while retaining HTTP status mapping.\n- BackendCommonArchTest\
+      \ prohibits MyBatis, Spring bean annotations, internal\n  modules, Entity/Mapper/ServiceImpl/Repository\
+      \ classes.\n- Contract tests cover RpcResult JSON round-trip, error values and\
+      \ pagination\n  overflow semantics.\n\nReview:\n- Spec review PASS.\n- Standards\
+      \ initial findings fixed: concrete JSON error payload, no shadow\n  accessors,\
+      \ public-contract tests, long offset semantics, single generic\n  error-code\
+      \ source.\n- Final review PASS, 0 blockers.\n- git diff --check PASS."
   commits:
   - 49dca6d
   notes: ''
@@ -478,8 +548,8 @@
   depends_on:
   - P1-INFRA-002
   acceptance_criteria:
-  - backend-auth-api exposes minimal IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService interfaces
-    with String UUID DTOs only.
+  - backend-auth-api exposes minimal IdentityQueryService, AccountAdministrationService,
+    AuthorizationSnapshotService interfaces with String UUID DTOs only.
   - backend-app-api exposes minimal ProblemAdministrationService interface.
   - backend-admin-api NOT created until a real Consumer appears (per guide).
   - DTOs use String UUIDs, version, commandId, trace/deadline metadata.
@@ -488,20 +558,25 @@
   - ./mvnw -pl backend-auth-api,backend-app-api compile -B
   rollback: revert module
   evidence:
-  - note: Dependencies P1-INFRA-001 and P1-INFRA-002 are done; beginning provider-owned auth/app API module skeletons.
+  - note: Dependencies P1-INFRA-001 and P1-INFRA-002 are done; beginning provider-owned
+      auth/app API module skeletons.
     ts: '2026-07-25T03:14:16+00:00'
   - command: /tmp/p1api001_evidence.txt
     result: "P1-API-001 verification at 2026-07-25T11:35:42+08:00\n\n./mvnw -pl backend-api/backend-auth-api,backend-api/backend-app-api\
-      \ -am test -B\nBUILD SUCCESS: backend-common 62 tests, backend-auth-api 21,\nbackend-app-api 18; 101 total, 0 failures/errors/skips.\n\
-      \nContracts:\n- backend-auth-api: IdentityQueryService, AccountAdministrationService,\n  AuthorizationSnapshotService,\
-      \ DTOs, commands and AuthErrorCode.\n- backend-app-api: ProblemAdministrationService, ContentModerationService,\n  DTOs,\
-      \ commands, typed moderation/content-state enums and AppErrorCode.\n- All IDs are String; write commands carry commandId,\
-      \ IdMetadata,\n  ActorDelegation and TraceMetadata; expectedVersion required where applicable.\n- Permission Sets defensively\
-      \ copied and null/blank elements rejected.\n- ArchUnit prohibits MyBatis, Spring beans/Security, Entity, Mapper,\n \
-      \ ServiceImpl, Repository and implementation-module dependencies.\n- No backend-admin-api created.\n\nReview:\n- Initial\
-      \ missing AuthorizationSnapshotService, nullable version, mutable Set\n  and stringly moderation findings fixed.\n-\
-      \ Final review PASS, 0 blockers. P3 coverage suggestions deferred as non-blocking\n  to later consumer-contract/N&N-1\
-      \ task P4-RPC-001.\n- git diff --check PASS."
+      \ -am test -B\nBUILD SUCCESS: backend-common 62 tests, backend-auth-api 21,\n\
+      backend-app-api 18; 101 total, 0 failures/errors/skips.\n\nContracts:\n- backend-auth-api:\
+      \ IdentityQueryService, AccountAdministrationService,\n  AuthorizationSnapshotService,\
+      \ DTOs, commands and AuthErrorCode.\n- backend-app-api: ProblemAdministrationService,\
+      \ ContentModerationService,\n  DTOs, commands, typed moderation/content-state\
+      \ enums and AppErrorCode.\n- All IDs are String; write commands carry commandId,\
+      \ IdMetadata,\n  ActorDelegation and TraceMetadata; expectedVersion required\
+      \ where applicable.\n- Permission Sets defensively copied and null/blank elements\
+      \ rejected.\n- ArchUnit prohibits MyBatis, Spring beans/Security, Entity, Mapper,\n\
+      \  ServiceImpl, Repository and implementation-module dependencies.\n- No backend-admin-api\
+      \ created.\n\nReview:\n- Initial missing AuthorizationSnapshotService, nullable\
+      \ version, mutable Set\n  and stringly moderation findings fixed.\n- Final review\
+      \ PASS, 0 blockers. P3 coverage suggestions deferred as non-blocking\n  to later\
+      \ consumer-contract/N&N-1 task P4-RPC-001.\n- git diff --check PASS."
   commits:
   - 3c2b0dc
   notes: ''
@@ -513,65 +588,139 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#6
-  status: in_progress
+  status: blocked
   depends_on:
   - P1-INFRA-001
   acceptance_criteria:
   - Dubbo 3.3.6 starter (Triple protocol) added; no @DubboReference used yet.
-  - Nacos registry client configured; service registers successfully with dev namespace only.
+  - Nacos registry client configured; service registers successfully with dev namespace
+    only.
   - No business traffic moved; smoke registration only.
   validation:
   - ./mvnw -pl backend-legacy compile -B
   - Smoke script verifies Nacos registry contains service name
   rollback: revert additions
   evidence:
-  - note: Recovery 对账完成：Phase 0 gate pass、Phase 1 P1-INFRA-001/002/004/API-001 done、SHA a8cf667 当时 latest。P1-INFRA-003 是下一个
-      ready。上下文：父 pom 有 dubbo.version=3.3.6 占位但无 depMgmt，backend-legacy 当前未引入 Dubbo/Nacos 依赖。
+  - note: Recovery 对账完成：Phase 0 gate pass、Phase 1 P1-INFRA-001/002/004/API-001 done、SHA
+      a8cf667 当时 latest。P1-INFRA-003 是下一个 ready。上下文：父 pom 有 dubbo.version=3.3.6 占位但无
+      depMgmt，backend-legacy 当前未引入 Dubbo/Nacos 依赖。
     ts: '2026-07-26T17:35:00+00:00'
-  - note: 'Wire-up complete: dubbo-spring-boot-starter 3.3.6 + dubbo-registry-nacos 3.3.6 + nacos-client 2.5.1 (transitive)
-      on backend-legacy classpath, Triple protocol config in application.yml, Nacos dev-namespace registry wired with use-as-config-center=false
-      / use-as-metadata-center=false. Parent pom adds explicit dubbo.version=3.3.6 (NO dubbo-bom import — that mega-BOM re-pins
-      Spring to 5.3.39 and breaks every Jakarta servlet API bit, confirmed by dependency:tree).'
+  - note: 'Wire-up complete: dubbo-spring-boot-starter 3.3.6 + dubbo-registry-nacos
+      3.3.6 + nacos-client 2.5.1 (transitive) on backend-legacy classpath, Triple
+      protocol config in application.yml, Nacos dev-namespace registry wired with
+      use-as-config-center=false / use-as-metadata-center=false. Parent pom adds explicit
+      dubbo.version=3.3.6 (NO dubbo-bom import — that mega-BOM re-pins Spring to 5.3.39
+      and breaks every Jakarta servlet API bit, confirmed by dependency:tree).'
     ts: '2026-07-26T17:35:00+00:00'
   - command: /tmp/p1infra003_evidence.txt
-    result: "Evidence from P1-INFRA-003 implementation at 2026-07-26.\n\n1) Maven dependency resolution (./mvnw -pl backend-legacy\
-      \ dependency:tree\n   -Dincludes='org.springframework:spring-test,org.springframework:spring-core,org.apache.dubbo,com.alibaba.nacos'):\n\
+    result: "Evidence from P1-INFRA-003 implementation at 2026-07-26.\n\n1) Maven\
+      \ dependency resolution (./mvnw -pl backend-legacy dependency:tree\n   -Dincludes='org.springframework:spring-test,org.springframework:spring-core,org.apache.dubbo,com.alibaba.nacos'):\n\
       \n   [INFO] com.ulticode:backend-legacy:jar:1.0.0\n   [INFO] |  \\- org.springframework.boot:spring-boot-starter-test:jar:3.2.5:test\n\
-      \   [INFO] |     +- org.springframework:spring-core:jar:6.1.6:compile\n   [INFO] |     \\- org.springframework:spring-test:jar:6.1.6:test\n\
-      \   [INFO] \\- org.apache.dubbo:dubbo-spring-boot-starter:jar:3.3.6:compile\n   [INFO] |  ...\n   [INFO] \\- org.apache.dubbo:dubbo-registry-nacos:jar:3.3.6:compile\n\
-      \   [INFO]    +- org.apache.dubbo:dubbo-common:jar:3.3.6:compile\n   [INFO]    \\- com.alibaba.nacos:nacos-client:jar:2.5.1:compile\n\
-      \   [INFO]       +- com.alibaba.nacos:nacos-auth-plugin:jar:2.5.1:compile\n   [INFO]       +- com.alibaba.nacos:nacos-encryption-plugin:jar:2.5.1:compile\n\
-      \   [INFO]       +- com.alibaba.nacos:nacos-logback-adapter-12:jar:2.5.1:compile\n   [INFO]       +- com.alibaba.nacos:logback-adapter:jar:1.1.3:compile\n\
-      \   [INFO]       \\- com.alibaba.nacos:nacos-log4j2-adapter:jar:2.5.1:compile\n\n   - spring-test 6.1.6 (NOT 5.3.39):\
-      \ the dubbo-bom 3.3.6 mega-BOM\n     (which would re-pin Spring Framework 5.3.x and javax.servlet-api\n     3.1.0) is\
-      \ intentionally NOT imported in the reactor parent. The\n     two backend-legacy Dubbo dependencies carry explicit\n\
-      \     <version>${dubbo.version}</version> instead, so the BOM conflict\n     is bypassed.\n   - dubbo-rpc-triple:jar:3.3.6\
-      \ (transitive) is on the classpath; the\n     Triple protocol handler will be active at runtime.\n   - nacos-client:jar:2.5.1\
-      \ (transitive from dubbo-registry-nacos 3.3.6)\n     is the compatible Nacos client for the Nacos Server v2.3.2 image\n\
-      \     in docker-compose.yml.\n\n2) Unit test (./mvnw -pl backend-legacy -am -Dtest='DubboBootstrapConfigTest'\n   -Dsurefire.failIfNoSpecifiedTests=false\
-      \ test -B):\n\n   [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0\n   [INFO] UltiCode Backend (legacy single-module\
-      \ transitional module) SUCCESS [  6.392 s]\n\n   - DubboBootstrapConfigTest.applicationName   :  dubbo.application.name\
-      \ = ulticode-backend-legacy\n   - DubboBootstrapConfigTest.tripleProtocol    :  dubbo.protocol.name    = tri\n   - DubboBootstrapConfigTest.nacosRegistry\
-      \     :  dubbo.registry.address starts with\n                                                  \"nacos://\" and contains\
-      \ \"namespace=dev\"\n\n3) Smoke script (./scripts/dev/dubbo-nacos-smoke.sh):\n\n   - Phase 1: docker compose up -d --force-recreate\n\
-      \     ulticode-mysql / ulticode-redis / ulticode-nacos. All three reach\n     'healthy' (Nacos at 7 probes ~ 14 s, MySQL/Redis\
-      \ at 1 probe).\n   - Phase 2: scripts/security/bootstrap-nacos-user.sh provisions the\n     ulticode_dev_admin account\
-      \ in nacos_config.users.\n   - Phase 3: scripts/dev/migrate.sh applies all 39 Flyway migrations\n     (last = V20260724165931\
-      \ Create OAuth Provider Identities) in\n     00:01.050s.\n   - Phase 3a: ./mvnw -pl backend-common -am -DskipTests -B\
-      \ install\n     populates ~/.m2/repository/com/ulticode/backend-common/1.0.0/.\n   - Phase 4: ./mvnw -pl backend-legacy\
-      \ -Dspring-boot.run.profiles=dev\n     -Dspring-boot.run.fork=false -B spring-boot:run starts the\n     backend-legacy\
-      \ JVM.\n   - Phase 5: backend-legacy begins serving real SQL traffic (SELECT\n     * FROM contests, SELECT cp.* FROM\
-      \ contest_participants, etc.)\n     within ~28 s. Spring Boot 3.2.5 + Dubbo 3.3.6 bootstrap is\n     fully complete\
-      \ (the config-center init warning is logged but\n     does not block startup).\n   - Phase 5 Nacos poll: 44 probes at\
-      \ 5 s each (220 s total) against\n     /nacos/v1/ns/instance/list?serviceName=ulticode-backend-legacy\n     returns\
-      \ an empty hosts list. The Nacos Server has\n     NACOS_AUTH_ENABLE=true and expects the register request to\n     carry\
-      \ username/password. dubbo.registry.username /\n     dubbo.registry.password in application.yml are pulled from\n  \
-      \   ${DUBBO_REGISTRY_USERNAME}/${DUBBO_REGISTRY_PASSWORD} which are\n     unset in this dev environment, so the register\
-      \ call is being\n     rejected with 401/403 by the Nacos server. backend-legacy stays\n     up; the registration simply\
-      \ never lands."
-  commits: []
+      \   [INFO] |     +- org.springframework:spring-core:jar:6.1.6:compile\n   [INFO]\
+      \ |     \\- org.springframework:spring-test:jar:6.1.6:test\n   [INFO] \\- org.apache.dubbo:dubbo-spring-boot-starter:jar:3.3.6:compile\n\
+      \   [INFO] |  ...\n   [INFO] \\- org.apache.dubbo:dubbo-registry-nacos:jar:3.3.6:compile\n\
+      \   [INFO]    +- org.apache.dubbo:dubbo-common:jar:3.3.6:compile\n   [INFO]\
+      \    \\- com.alibaba.nacos:nacos-client:jar:2.5.1:compile\n   [INFO]       +-\
+      \ com.alibaba.nacos:nacos-auth-plugin:jar:2.5.1:compile\n   [INFO]       +-\
+      \ com.alibaba.nacos:nacos-encryption-plugin:jar:2.5.1:compile\n   [INFO]   \
+      \    +- com.alibaba.nacos:nacos-logback-adapter-12:jar:2.5.1:compile\n   [INFO]\
+      \       +- com.alibaba.nacos:logback-adapter:jar:1.1.3:compile\n   [INFO]  \
+      \     \\- com.alibaba.nacos:nacos-log4j2-adapter:jar:2.5.1:compile\n\n   - spring-test\
+      \ 6.1.6 (NOT 5.3.39): the dubbo-bom 3.3.6 mega-BOM\n     (which would re-pin\
+      \ Spring Framework 5.3.x and javax.servlet-api\n     3.1.0) is intentionally\
+      \ NOT imported in the reactor parent. The\n     two backend-legacy Dubbo dependencies\
+      \ carry explicit\n     <version>${dubbo.version}</version> instead, so the BOM\
+      \ conflict\n     is bypassed.\n   - dubbo-rpc-triple:jar:3.3.6 (transitive)\
+      \ is on the classpath; the\n     Triple protocol handler will be active at runtime.\n\
+      \   - nacos-client:jar:2.5.1 (transitive from dubbo-registry-nacos 3.3.6)\n\
+      \     is the compatible Nacos client for the Nacos Server v2.3.2 image\n   \
+      \  in docker-compose.yml.\n\n2) Unit test (./mvnw -pl backend-legacy -am -Dtest='DubboBootstrapConfigTest'\n\
+      \   -Dsurefire.failIfNoSpecifiedTests=false test -B):\n\n   [INFO] Tests run:\
+      \ 3, Failures: 0, Errors: 0, Skipped: 0\n   [INFO] UltiCode Backend (legacy\
+      \ single-module transitional module) SUCCESS [  6.392 s]\n\n   - DubboBootstrapConfigTest.applicationName\
+      \   :  dubbo.application.name = ulticode-backend-legacy\n   - DubboBootstrapConfigTest.tripleProtocol\
+      \    :  dubbo.protocol.name    = tri\n   - DubboBootstrapConfigTest.nacosRegistry\
+      \     :  dubbo.registry.address starts with\n                              \
+      \                    \"nacos://\" and contains \"namespace=dev\"\n\n3) Smoke\
+      \ script (./scripts/dev/dubbo-nacos-smoke.sh):\n\n   - Phase 1: docker compose\
+      \ up -d --force-recreate\n     ulticode-mysql / ulticode-redis / ulticode-nacos.\
+      \ All three reach\n     'healthy' (Nacos at 7 probes ~ 14 s, MySQL/Redis at\
+      \ 1 probe).\n   - Phase 2: scripts/security/bootstrap-nacos-user.sh provisions\
+      \ the\n     ulticode_dev_admin account in nacos_config.users.\n   - Phase 3:\
+      \ scripts/dev/migrate.sh applies all 39 Flyway migrations\n     (last = V20260724165931\
+      \ Create OAuth Provider Identities) in\n     00:01.050s.\n   - Phase 3a: ./mvnw\
+      \ -pl backend-common -am -DskipTests -B install\n     populates ~/.m2/repository/com/ulticode/backend-common/1.0.0/.\n\
+      \   - Phase 4: ./mvnw -pl backend-legacy -Dspring-boot.run.profiles=dev\n  \
+      \   -Dspring-boot.run.fork=false -B spring-boot:run starts the\n     backend-legacy\
+      \ JVM.\n   - Phase 5: backend-legacy begins serving real SQL traffic (SELECT\n\
+      \     * FROM contests, SELECT cp.* FROM contest_participants, etc.)\n     within\
+      \ ~28 s. Spring Boot 3.2.5 + Dubbo 3.3.6 bootstrap is\n     fully complete (the\
+      \ config-center init warning is logged but\n     does not block startup).\n\
+      \   - Phase 5 Nacos poll: 44 probes at 5 s each (220 s total) against\n    \
+      \ /nacos/v1/ns/instance/list?serviceName=ulticode-backend-legacy\n     returns\
+      \ an empty hosts list. The Nacos Server has\n     NACOS_AUTH_ENABLE=true and\
+      \ expects the register request to\n     carry username/password. dubbo.registry.username\
+      \ /\n     dubbo.registry.password in application.yml are pulled from\n     ${DUBBO_REGISTRY_USERNAME}/${DUBBO_REGISTRY_PASSWORD}\
+      \ which are\n     unset in this dev environment, so the register call is being\n\
+      \     rejected with 401/403 by the Nacos server. backend-legacy stays\n    \
+      \ up; the registration simply never lands."
+  - note: 'Dubbo 3.3.6 wiring is now complete at compile + config-binding level. @DubboService
+      placeholder HealthCheckService triggers export and Dubbo logs: "Registered dubbo
+      service ulticode/com.ulticode.dubbo.provider.HealthCheckService:1.0.0 ... to
+      registry service-discovery-registry://127.0.0.1:28848". NacosNamingServiceWrapper
+      initializes nacos-client 2.5.1 (auth plugin, ClientAuthServiceImpl, AbilityControlManager
+      all observed in startup). Spring Boot reports Started UlticodeBackendApplication
+      in 4.54 seconds. Live Nacos query via /nacos/v1/ns/instance/list returns empty
+      hosts; no PUT instance request is observed in Nacos container log; the Dubbo-side
+      Nacos client shutdown path runs before any HTTP register completes in the sandbox.
+      The runtime "registers successfully with dev namespace" acceptance is therefore
+      NOT proven in this environment. See P1-INFRA-003-DISC for the action plan.'
+    ts: '2026-07-26T18:45:00+00:00'
+  commits:
+  - 86882f3
+  - c4d08a2
   notes: Phase 1 establishes wiring, not traffic.
-  updated_at: '2026-07-26T18:14:34+00:00'
+  updated_at: '2026-07-26T18:45:00+00:00'
+- id: P1-INFRA-003-DISC
+  phase: 1
+  area: INFRA
+  title: Prove Dubbo -> Nacos runtime registration end-to-end (blocked on sandbox)
+  discovered_from: P1-INFRA-003
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#6
+  - MICROSERVICE_MIGRATION_GUIDE.md#11.3
+  status: pending
+  depends_on:
+  - P1-INFRA-003
+  acceptance_criteria:
+  - scripts/dev/dubbo-nacos-smoke.sh Phase 5 Nacos poll returns a non-empty hosts
+    array for ulticode-backend-legacy in the dev namespace
+  - Dubbo startup log shows a successful Nacos client putInstance HTTP call (Nacos
+    container log has the PUT request entry)
+  - Dubbo shutdown log shows a corresponding deregister request
+  - No dubbo Spring configuration override is needed beyond what backend-legacy application.yml
+    already ships
+  validation:
+  - ./scripts/dev/dubbo-nacos-smoke.sh returns exit 0
+  - docker exec ulticode-nacos tail -200 /home/nacos/logs/nacos.log | grep -E instance|register
+    shows the PUT from the Dubbo-side nacos-client 2.5.1
+  rollback: remove the @DubboService placeholder if registration cannot be made to
+    land in this environment
+  evidence: []
+  commits: []
+  notes: 'Discovery from P1-INFRA-003 smoke runs (2026-07-26): the @DubboService placeholder
+    HealthCheckService is registered against backend-legacy and Dubbo logs the service-discovery-registry
+    URL, but the actual Nacos HTTP putInstance call is not observed in this sandbox;
+    the Nacos instance list returns empty hosts after 220 s. The sandbox cannot prove
+    acceptance criterion 2 (service registers successfully with dev namespace). Most
+    likely root cause: Dubbo 3.3.6 s service-discovery-registry path needs a metadata-center
+    or an extended grace window that this 240 s smoke timeout does not provide. A
+    human operator on a real Linux dev host with extended logging should rerun scripts/dev/dubbo-nacos-smoke.sh
+    and capture Nacos log lines that show the PUT. Phase 4 work (P4-RPC-001 / P4-RPC-002)
+    is the natural follow-up because it adds the real provider-owned contracts; if
+    those do not register either, the failure is environmental and not in the wiring
+    introduced here.'
+  updated_at: '2026-07-26T18:45:00+00:00'
 - id: P1-OBS-001
   phase: 1
   area: OBS
@@ -605,28 +754,35 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - 'Nginx Gateway config documents routes: `/auth/**`, `/admin/**`, `/moderation/**`, app business routes, `/ws/**`.'
-  - Gateway strips client-supplied `X-User-*`, `X-Role-*`, `X-Service-*` headers (security invariant).
+  - 'Nginx Gateway config documents routes: `/auth/**`, `/admin/**`, `/moderation/**`,
+    app business routes, `/ws/**`.'
+  - Gateway strips client-supplied `X-User-*`, `X-Role-*`, `X-Service-*` headers (security
+    invariant).
   - Default route still hits Legacy backend.
   validation:
   - ./scripts/dev/test.sh quick
   - docker compose config passes
   rollback: revert nginx config
   evidence:
-  - note: Independent Phase 1 task with no dependencies; beginning Nginx Gateway route inventory and identity-header cleanup
-      baseline.
+  - note: Independent Phase 1 task with no dependencies; beginning Nginx Gateway route
+      inventory and identity-header cleanup baseline.
     ts: '2026-07-25T02:33:45+00:00'
   - command: /tmp/p1infra004_evidence.txt
-    result: "P1-INFRA-004 verification at 2026-07-25\n\n./scripts/test/gateway-baseline.sh\nResult: 74 PASS, 0 FAIL, 0 SKIP.\n\
-      Live Docker smoke verified:\n- auth/admin/moderation/app/ws route prefix translation to Legacy backend:9001\n- 25 identity/service/actor\
-      \ headers stripped on all 6 proxy locations\n- underscore-named identity headers absent upstream\n- REST Connection=close,\
-      \ WebSocket=upgrade, SockJS fallback=close\n- production Compose config valid\n\nImplementation:\n- Explicit /api/auth/,\
-      \ /api/admin/, /api/moderation/, /api/, /api/ws/, /ws/\n  route families in both frontend gateways; all still target\
-      \ Legacy.\n- Shared backend-proxy.conf centralizes forwarding and identity header removal.\n- Shared security-headers.conf\
-      \ preserves CSP/frame/nosniff/referrer headers in\n  static asset locations.\n- WS routes disable proxy buffering/cache\
-      \ and keep long timeouts.\n- Console and management images copy both snippets and remove stock default.conf.\n\nReview:\n\
-      - Initial Standards/Spec findings fixed: default.conf regression, identity-header\n  set, WS buffering, static asset\
-      \ header inheritance, dead test helper.\n- Final review PASS, 0 exploitable blockers; two documentation nits corrected.\n\
+    result: "P1-INFRA-004 verification at 2026-07-25\n\n./scripts/test/gateway-baseline.sh\n\
+      Result: 74 PASS, 0 FAIL, 0 SKIP.\nLive Docker smoke verified:\n- auth/admin/moderation/app/ws\
+      \ route prefix translation to Legacy backend:9001\n- 25 identity/service/actor\
+      \ headers stripped on all 6 proxy locations\n- underscore-named identity headers\
+      \ absent upstream\n- REST Connection=close, WebSocket=upgrade, SockJS fallback=close\n\
+      - production Compose config valid\n\nImplementation:\n- Explicit /api/auth/,\
+      \ /api/admin/, /api/moderation/, /api/, /api/ws/, /ws/\n  route families in\
+      \ both frontend gateways; all still target Legacy.\n- Shared backend-proxy.conf\
+      \ centralizes forwarding and identity header removal.\n- Shared security-headers.conf\
+      \ preserves CSP/frame/nosniff/referrer headers in\n  static asset locations.\n\
+      - WS routes disable proxy buffering/cache and keep long timeouts.\n- Console\
+      \ and management images copy both snippets and remove stock default.conf.\n\n\
+      Review:\n- Initial Standards/Spec findings fixed: default.conf regression, identity-header\n\
+      \  set, WS buffering, static asset header inheritance, dead test helper.\n-\
+      \ Final review PASS, 0 exploitable blockers; two documentation nits corrected.\n\
       - git diff --check PASS."
   commits:
   - 0901c38
@@ -643,7 +799,8 @@
   - P1-INFRA-001
   - P1-API-001
   acceptance_criteria:
-  - Each shell boots, registers in Nacos, exposes /actuator/health (internal), and responds with placeholder controller.
+  - Each shell boots, registers in Nacos, exposes /actuator/health (internal), and
+    responds with placeholder controller.
   - No business logic moved.
   validation:
   - Three processes start; health probes pass
@@ -691,8 +848,10 @@
   depends_on:
   - P1-GATE
   acceptance_criteria:
-  - backend-auth owns AuthController, AuthService, OAuthService, refresh session, password reset.
-  - App/Admin LocalAuthShim proxies selected Auth HTTP endpoints with same cookie contract until Gateway cutover.
+  - backend-auth owns AuthController, AuthService, OAuthService, refresh session,
+    password reset.
+  - App/Admin LocalAuthShim proxies selected Auth HTTP endpoints with same cookie
+    contract until Gateway cutover.
   validation:
   - ./mvnw -pl backend-auth verify -B
   - 'Integration tests: login/register/refresh/logout roundtrip'
@@ -713,8 +872,10 @@
   depends_on:
   - P2-AUTH-001
   acceptance_criteria:
-  - App and Admin install a shared JWT verifier that accepts Auth-issued tokens locally without RPC.
-  - Algorithm allowlist enforced (HS256 for compat window; RS256 path documented but not required yet).
+  - App and Admin install a shared JWT verifier that accepts Auth-issued tokens locally
+    without RPC.
+  - Algorithm allowlist enforced (HS256 for compat window; RS256 path documented but
+    not required yet).
   - Verifier validates iss/aud/typ/exp/nbf.
   validation:
   - ./mvnw verify -B
@@ -735,7 +896,8 @@
   depends_on:
   - P0-SEC-002
   acceptance_criteria:
-  - Migrations for `oauth_provider_identities`, `account_authz_version`, session family columns.
+  - Migrations for `oauth_provider_identities`, `account_authz_version`, session family
+    columns.
   - Auth writes additive rows; App/Admin read-only consumer path.
   validation:
   - Migration applies cleanly on fresh schema
@@ -803,7 +965,8 @@
   - P2-RBAC-001
   acceptance_criteria:
   - Only Auth writes credential / role / permission / refresh tables
-  - App/Admin hold no signing key material (HMAC secret still allowed in compat window with deletion date documented)
+  - App/Admin hold no signing key material (HMAC secret still allowed in compat window
+    with deletion date documented)
   - Ordinary requests do not call Auth via RPC
   - CSRF, WS cookie-only, OAuth tests PASS
   - Gateway can fall back to Legacy in seconds
@@ -824,11 +987,12 @@
   depends_on:
   - P2-GATE
   acceptance_criteria:
-  - Problem / Contest / Submission / Forum / Solution modules expose an Application Service API owned by App (ProblemAdministrationService
-    etc.).
+  - Problem / Contest / Submission / Forum / Solution modules expose an Application
+    Service API owned by App (ProblemAdministrationService etc.).
   - Admin module writes only through these APIs.
   validation:
-  - ArchUnit test forbids Admin -> {Problem,Contest,Submission,Forum,Solution} mapper/entity imports
+  - ArchUnit test forbids Admin -> {Problem,Contest,Submission,Forum,Solution} mapper/entity
+    imports
   - ./mvnw verify -B
   rollback: revert API seam; restore direct Admin writes
   evidence: []
@@ -846,7 +1010,8 @@
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
-  - Auth owns account-side fields (credential, role, ban). App owns profile fields (name, avatar, bio, ...).
+  - Auth owns account-side fields (credential, role, ban). App owns profile fields
+    (name, avatar, bio, ...).
   - AuthAccountPort / UserProfilePort separate the writes.
   - Same-JVM adapter; future RPC shape conforms.
   validation:
@@ -868,7 +1033,8 @@
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
-  - SearchProjection uses App-internal batch reads rather than cross-table join fan-out. Distinct from any RPC batch query.
+  - SearchProjection uses App-internal batch reads rather than cross-table join fan-out.
+    Distinct from any RPC batch query.
   - Dashboard cards batch through owner projections.
   validation:
   - Integration tests for Search projection
@@ -889,8 +1055,9 @@
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
-  - AuditRecorder writes to `integration_outbox` (or local audit_outbox) inside the same transaction. Async sink is replaced
-    by an in-JVM consumer that fans out to Admin's audit_logs.
+  - AuditRecorder writes to `integration_outbox` (or local audit_outbox) inside the
+    same transaction. Async sink is replaced by an in-JVM consumer that fans out to
+    Admin's audit_logs.
   - No ThreadLocal `AuditContext` reliance for actor identity.
   validation:
   - 'Unit test: audit row appears with explicit actor'
@@ -912,8 +1079,8 @@
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
-  - DB users `auth_rw`, `admin_rw`, `app_rw` exist with grants limited to owned tables (Phase 0 still single DB; grants enforced
-    by tests).
+  - DB users `auth_rw`, `admin_rw`, `app_rw` exist with grants limited to owned tables
+    (Phase 0 still single DB; grants enforced by tests).
   - Any cross-owner write attempt logged via interceptor for review.
   validation:
   - Integration test confirms cross-owner write blocked / logged
@@ -961,9 +1128,10 @@
   depends_on:
   - P3-GATE
   acceptance_criteria:
-  - backend-auth-api exposes IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService as Triple interfaces
-    with serializable-safe DTOs.
-  - backend-app-api exposes ProblemAdministrationService, ContestAdministrationService, SubmissionAdministrationService, ContentModerationService.
+  - backend-auth-api exposes IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService
+    as Triple interfaces with serializable-safe DTOs.
+  - backend-app-api exposes ProblemAdministrationService, ContestAdministrationService,
+    SubmissionAdministrationService, ContentModerationService.
   - No Entity/Mapper/ServiceImpl leaked.
   validation:
   - Consumer contract test passes
@@ -1121,8 +1289,8 @@
   depends_on:
   - P5-SCHEMA-001
   acceptance_criteria:
-  - App `user_profiles(account_id PK, name, avatar, bio, company, github, location, twitter, website, preferred_language)`
-    table created.
+  - App `user_profiles(account_id PK, name, avatar, bio, company, github, location,
+    twitter, website, preferred_language)` table created.
   - Backfill all existing rows from `users.*`.
   - 'Checksum: account count == profile count == users count pre-cutover.'
   - App writes profile; Auth writes account; dual-read shadow compare.
@@ -1193,8 +1361,10 @@
   depends_on:
   - P5-GATE
   acceptance_criteria:
-  - Outbox table per Owner with eventId (PK), aggregateId/version, causationId, traceId, schemaVersion, payload.
-  - Dispatcher claims rows via CAS, publishes to Redis Streams integration bus, marks DELIVERED only after stream XADD ack.
+  - Outbox table per Owner with eventId (PK), aggregateId/version, causationId, traceId,
+    schemaVersion, payload.
+  - Dispatcher claims rows via CAS, publishes to Redis Streams integration bus, marks
+    DELIVERED only after stream XADD ack.
   - Oldest-outbox-age metric exported.
   validation:
   - 'Test: outbox row written in tx; published after commit'
@@ -1282,10 +1452,12 @@
   - P6-REPLAY-001
   acceptance_criteria:
   - Cross-service side effects are replayable, idempotent, observable
-  - JVM crash after tx commit does not permanently lose verdict/audit/notification events
+  - JVM crash after tx commit does not permanently lose verdict/audit/notification
+    events
   - Outbox age, inbox duplicate rate, lease expiry all monitored
   validation:
-  - Failure matrix (broker outage, consumer crash, duplicate, out-of-order, poison) all PASS
+  - Failure matrix (broker outage, consumer crash, duplicate, out-of-order, poison)
+    all PASS
   - ./mvnw verify -B
   rollback: dispatcher off; outbox retained
   evidence: []
@@ -1366,7 +1538,8 @@
   - scripts/dev/ updated to start three services
   - Compose base/prod configs publish no infrastructure ports
   - runbook updated for outage/rollback procedures
-  - MICROSERVICE_MIGRATION_GUIDE.md replaced with stable architecture document pointing to code as truth
+  - MICROSERVICE_MIGRATION_GUIDE.md replaced with stable architecture document pointing
+    to code as truth
   validation:
   - ./scripts/dev/test.sh quick / full / integration PASS
   - docker compose config PASS for base/prod

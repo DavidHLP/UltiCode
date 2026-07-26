@@ -4,7 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-001 (refresh-token rotation extraction to backend-auth)
 
 Last Verified Commit:
-TBD (Phase 1 gate commit pending)
+5174e98 chore(migration): record P1-INFRA-003 and P1-GATE commit hashes
 
 Completed:
 18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)

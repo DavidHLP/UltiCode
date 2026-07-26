@@ -109,6 +109,27 @@
 			<version>${redisson.version}</version>
 		</dependency>
 
+		<!--
+		  P1-INFRA-003: Dubbo 3.3.6 starter + Triple protocol + Nacos registry.
+		  Registry-only; no @DubboReference or @DubboService is introduced in
+		  Phase 1. The Nacos registry adapter is `dubbo-registry-nacos`,
+		  loaded by Dubbo via SPI when `dubbo.registry.address=nacos://...`.
+		  The reactor parent does NOT import `dubbo-bom` (avoids the
+		  Spring Boot 2.x transitives) so explicit <version> tags here pin
+		  the two artifacts at ${dubbo.version}=3.3.6; Dubbo's own
+		  transitive `nacos-client:2.5.1` is shipped by `dubbo-registry-nacos`.
+		-->
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-spring-boot-starter</artifactId>
+			<version>${dubbo.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-registry-nacos</artifactId>
+			<version>${dubbo.version}</version>
+		</dependency>
+
 		<!-- JWT -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

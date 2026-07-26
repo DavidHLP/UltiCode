@@ -303,3 +303,43 @@ oauth:
     token-url: https://oauth2.googleapis.com/token
     user-url: https://www.googleapis.com/oauth2/v2/userinfo
     scopes: email,profile
+
+
+# Dubbo 3.3.6 + Nacos registry baseline (P1-INFRA-003).
+# Phase 1 introduces the runtime, NOT a service. No @DubboService or
+# @DubboReference is added yet; the JVM still registers itself as an
+# empty Provider so smoke can confirm the registry contract works.
+# NOTE: dubbo.config-center and dubbo.metadata-report are deliberately
+# NOT configured here. DefaultApplicationDeployer.startConfigCenter in
+# Dubbo 3.3.6 calls useRegistryAsConfigCenterIfNecessary(); setting
+# `use-as-config-center: false` on the registry short-circuits that
+# path. Setting `config-center: { address: "" }` would create an empty
+# ConfigCenterConfig and break the `isEmpty(configCenters)` predicate.
+dubbo:
+  application:
+    name: ${DUBBO_APPLICATION_NAME:ulticode-backend-legacy}
+    register-mode: instance
+    qos-enable: false
+  protocol:
+    name: tri
+    port: ${DUBBO_PROTOCOL_PORT:-1}
+    triple:
+      max-requests-per-connection: 50
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:8848?namespace=${DUBBO_NAMESPACE:dev}}
+    username: ${DUBBO_REGISTRY_USERNAME:}
+    password: ${DUBBO_REGISTRY_PASSWORD:}
+    timeout: 5000
+    use-as-config-center: false
+    use-as-metadata-center: false
+    parameters:
+      namespace: ${DUBBO_NAMESPACE:dev}
+      group: DEFAULT_GROUP
+  scan:
+    base-packages: com.ulticode.dubbo.provider
+  consumer:
+    check: false
+  provider:
+    filter: default
+  cloud:
+    subscribed-services: ''

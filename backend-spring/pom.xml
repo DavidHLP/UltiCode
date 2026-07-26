@@ -86,6 +86,19 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!--
+			  P1-INFRA-003: NO dubbo-bom import on purpose. The `dubbo-bom`
+			  3.3.6 is a mega-BOM that re-pins Spring Framework, Spring
+			  Security, javax.servlet-api, and ~80 other artifacts to the
+			  Spring Boot 2.x line (spring-test 5.3.39 etc.), which silently
+			  overrides the parent pom's spring-boot-dependencies-bom 3.2.5
+			  and breaks every jakarta.servlet API bit (e.g. existing
+			  OAuthStateModuleTest compiles MockHttpServletResponse from
+			  Spring 5.3 → javax.servlet, but the production code uses
+			  jakarta.servlet). Backend-legacy declares its two Dubbo
+			  dependencies with explicit <version>${dubbo.version}</version>
+			  so the BOM is unnecessary.
+			-->
 		</dependencies>
 	</dependencyManagement>
 

@@ -513,7 +513,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-1
   - MICROSERVICE_MIGRATION_GUIDE.md#6
-  status: pending
+  status: in_progress
   depends_on:
   - P1-INFRA-001
   acceptance_criteria:
@@ -524,10 +524,13 @@
   - ./mvnw -pl backend-legacy compile -B
   - Smoke script verifies Nacos registry contains service name
   rollback: revert additions
-  evidence: []
+  evidence:
+  - note: Recovery 对账完成：Phase 0 gate pass、Phase 1 P1-INFRA-001/002/004/API-001 done、SHA a8cf667 当时 latest。P1-INFRA-003 是下一个
+      ready。上下文：父 pom 有 dubbo.version=3.3.6 占位但无 depMgmt，backend-legacy 当前未引入 Dubbo/Nacos 依赖。
+    ts: '2026-07-26T17:35:00+00:00'
   commits: []
   notes: Phase 1 establishes wiring, not traffic.
-  updated_at: ''
+  updated_at: '2026-07-26T17:35:00+00:00'
 - id: P1-OBS-001
   phase: 1
   area: OBS

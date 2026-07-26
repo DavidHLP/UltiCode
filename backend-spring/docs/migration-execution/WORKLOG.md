@@ -332,3 +332,12 @@ P2-AUTH-001 setup (fix)
   - JWT test secret and Dubbo register/subscribe false
 - Verified `./mvnw -pl backend-auth -am -B verify` PASS.
 - Verified full `./mvnw verify -B` PASS (all modules).
+
+2026-07-27 (continued)
+P2-AUTH-001 planning
+- Closed Phase 1 (P1-GATE done).
+- Bootstrapped backend-auth runtime dependencies and application.yml.
+- Fixed backend-auth placeholder tests with H2 test DB.
+- Split P2-AUTH-001 into A-G subtasks; reordered so JWT/security (B) precedes
+  refresh-token extraction (A).
+- Delegated P2-AUTH-001-B (JWT/security plumbing) to worker subagent P2Auth001B.

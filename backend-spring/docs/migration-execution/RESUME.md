@@ -4,7 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-001 (refresh-token rotation extraction to backend-auth)
 
 Last Verified Commit:
-- 0b1cc84 test(auth): fix backend-auth placeholder tests with H2 and disabled infra autoconfig (P2-AUTH-001)
+- e50c84b chore(migration): log Phase 2 setup and P2-AUTH-001-B delegation
 
 Completed:
 - 18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)

@@ -5362,7 +5362,13 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   status: in_progress
   depends_on:
-  - P1-GATE
+  - P2-AUTH-001-A
+  - P2-AUTH-001-B
+  - P2-AUTH-001-E
+  - P2-AUTH-001-C
+  - P2-AUTH-001-D
+  - P2-AUTH-001-F
+  - P2-AUTH-001-G
   acceptance_criteria:
   - backend-auth owns AuthController, AuthService, OAuthService, refresh session, password reset.
   - App/Admin LocalAuthShim proxies selected Auth HTTP endpoints with same cookie contract until Gateway cutover.
@@ -5667,8 +5673,179 @@
     note: backend-auth verify PASS after adding H2 test dependency and test application.yml (datasource H2, disabled Redis/Redisson/Security
       autoconfig, disabled mail health).
   commits: []
+  notes: Split into subtasks P2-AUTH-001-A through P2-AUTH-001-G. This task tracks overall completion.
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-A
+  phase: 2
+  area: AUTH
+  title: Move refresh-token ownership into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-4-refresh-token
+  status: ready
+  depends_on:
+  - P1-GATE
+  acceptance_criteria:
+  - RefreshToken entity, mapper, and service live in backend-auth under com.ulticode.auth.refreshtoken.
+  - Refresh token rotation logic (validate hash, revoke old, create new) is preserved and unit-tested.
+  - backend-auth compiles and placeholder verify passes.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  rollback:
+  - Revert backend-auth changes; legacy refresh-token code remains untouched.
+  evidence: []
+  commits: []
   notes: ''
-  updated_at: '2026-07-26T20:31:57+00:00'
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-B
+  phase: 2
+  area: AUTH
+  title: Move JWT/security plumbing into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-5-jwt-security
+  status: pending
+  depends_on:
+  - P2-AUTH-001-A
+  acceptance_criteria:
+  - JwtProperties, JwtTokenProvider, JwtAuthenticationFilter, CsrfService, CsrfValidationFilter copied/adapted to backend-auth.
+  - SecurityConfig permits public auth endpoints and secures the rest with JWT.
+  - Access/refresh JWT signing and verification unit tests pass.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  rollback:
+  - Remove backend-auth security beans; rely on legacy security.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-E
+  phase: 2
+  area: AUTH
+  title: Move RBAC/permission ownership into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-5-permission
+  status: pending
+  depends_on:
+  - P2-AUTH-001-B
+  acceptance_criteria:
+  - PermissionService, PermissionVocabulary, UserPermission, RolePermission, mappers live in backend-auth.
+  - Permission read APIs return user permission strings; write APIs enforce role isolation.
+  - Unit tests for permission vocabulary and service pass.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  rollback:
+  - Revert permission files; legacy permission service remains.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-C
+  phase: 2
+  area: AUTH
+  title: Move AuthController + session/account adapters into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-1-controllers
+  - scout-inventory-section-2-services
+  status: pending
+  depends_on:
+  - P2-AUTH-001-E
+  acceptance_criteria:
+  - AuthController exposes /auth/** endpoints in backend-auth.
+  - AuthServiceImpl, AuthSessionPort/Module, AuthAccountPort/Adapter, DTOs and LoginResponse are present.
+  - Login/register/refresh/logout integration tests pass against backend-auth.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  - integration tests
+  rollback:
+  - Gateway /auth/** routes back to legacy.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-D
+  phase: 2
+  area: AUTH
+  title: Move OAuth state and provider adapters into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-4-oauth
+  status: pending
+  depends_on:
+  - P2-AUTH-001-C
+  acceptance_criteria:
+  - OAuthService, OAuthClient, GitHub/Google adapters, OAuthStateModule live in backend-auth.
+  - OAuth state cookie binding + constant-time compare preserved.
+  - GitHub/Google callback integration tests pass.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  - OAuth integration tests
+  rollback:
+  - Legacy OAuth endpoints restored.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-F
+  phase: 2
+  area: AUTH
+  title: Move password reset and email integration into backend-auth
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - scout-inventory-section-4-password-reset
+  status: pending
+  depends_on:
+  - P2-AUTH-001-C
+  acceptance_criteria:
+  - PasswordResetService, forgot/reset endpoints, and email dispatch live in backend-auth.
+  - Password reset token hashing and rotation race handling preserved.
+  - Password reset integration tests pass.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  - password reset integration tests
+  rollback:
+  - Legacy password reset endpoints restored.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
+- id: P2-AUTH-001-G
+  phase: 2
+  area: AUTH
+  title: backend-auth standalone startup and integration test suite
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
+  - MICROSERVICE_MIGRATION_GUIDE.md#4.1
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2-Validation
+  status: pending
+  depends_on:
+  - P2-AUTH-001-A
+  - P2-AUTH-001-B
+  - P2-AUTH-001-C
+  - P2-AUTH-001-D
+  - P2-AUTH-001-E
+  - P2-AUTH-001-F
+  acceptance_criteria:
+  - backend-auth starts with all components (DB, Redis, mail, JWT, Dubbo).
+  - Full integration test suite for login/register/refresh/logout/OAuth/password reset passes.
+  - Full reactor `./mvnw verify -B` passes with all modules.
+  validation:
+  - ./mvnw -pl backend-auth verify -B
+  - ./mvnw verify -B
+  rollback:
+  - Gateway /auth/** routes back to legacy; backend-auth scaled to zero.
+  evidence: []
+  commits: []
+  notes: ''
+  updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-002
   phase: 2
   area: AUTH

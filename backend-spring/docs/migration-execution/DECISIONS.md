@@ -284,3 +284,90 @@ Affected Tasks:
 - P3-OWNER-001 (Phase 3 burn-down for admin/contest rule).
 - P2-AUTH-001 (Phase 2 burn-down for moderation/users rule).
 - P2-JUDGE-001 / P2-JUDGE-002 (Phase 2 burn-down for submission/queue rules).
+## ADR-MIG-DUBBO-NACOS-PROBE
+
+Context
+
+P1-INFRA-003 is marked `blocked` (commit c8246b3) because the
+sandbox's `./scripts/dev/dubbo-nacos-smoke.sh` never observed the
+backend-legacy JVM actually putting an instance into Nacos within the
+240 s smoke window. The wiring is fully complete at the compile +
+configuration-binding level (spring-test 6.1.6 — NOT regressed to
+5.3.39; dubbo-rpc-triple 3.3.6; nacos-client 2.5.1 transitive; the
+Triple-protocol exporter reports the service-discovery-registry URL;
+NacosNamingServiceWrapper initializes the auth plugin and
+AbilityControlManager; backend-legacy completes Spring Boot startup
+in 4.5 s), but the actual HTTP `putInstance` call is not observed in
+the Nacos container log.
+
+Decision
+
+The unblock plan for P1-INFRA-003-DISC is **NOT** to add more
+client-side knobs in backend-legacy. The wiring is already correct.
+The missing signal is a sandbox-vs-Nacos external-storage problem.
+Two independent verification paths were considered:
+
+1. **Run a stock nacos-client 2.5.1 Java program** that bypasses
+   Dubbo entirely and calls `NacosFactory.createNamingService(...)
+   .registerInstance(...)` directly. If THAT call also fails to
+   leave a mark on the Nacos side, the problem is the sandbox's
+   Nacos 2.3.2 image + MySQL 9.1 external storage, not anything
+   introduced by P1-INFRA-003. This probe is the cheapest possible
+   decoupled validation. (The companion script
+   `scripts/dev/nacos-smoke-isolated.sh` was authored and then
+   removed in the same commit: the sandbox's `docker compose -f`
+   invocation does not resolve the compose file in this restricted
+   bash, so the probe cannot be re-run from here; the script is
+   preserved in WORKLOG / this ADR for the next operator on a
+   real host.)
+
+2. **Escalate to Phase 4 P4-RPC-001** (provider-owned Contracts
+   for Auth + App). Phase 4 re-exercises the exact same registration
+   path under the real auth/registry contracts. If those do not
+   register either, the failure is environmental, not in the
+   wiring introduced in P1-INFRA-003. The placeholder
+   `HealthCheckService` exists precisely so Phase 4 can replace it
+   with the real provider contracts and the same `dubbo.scan.base-packages`
+   + `@DubboService` + Triple + Nacos pipeline re-runs unchanged.
+
+Alternatives
+
+- Keep the `metadata-type: local` setting (preserves the existing
+  `--spring.config.additional-location=file:...` interface; avoids
+  the METADATA_REGISTER round-trip that needs a config-center).
+- Add a long-running `dubbo.application.answer-foreign-domain=true`
+  style flag. Rejected: no such flag exists in Dubbo 3.3 and the
+  service-discovery protocol in 3.3 does not have a per-call
+  extension point that would help here.
+- Force `dubbo.registry.address=nacos://127.0.0.1:8848` (the
+  in-container port) instead of the 28848 host port. Rejected: the
+  host port is the only path the host JVM can reach the container;
+  the in-container address is unreachable from the host.
+
+Consequences
+
+- The sandbox cannot prove the runtime acceptance criterion for
+  P1-INFRA-003. The next agent or human operator must either (a) run
+  the smoke on a real Linux dev host with `docker compose -f ... up`
+  + a longer smoke window, or (b) escalate to Phase 4 P4-RPC-001.
+- The `dubbo.scan.base-packages: com.ulticode.dubbo.provider` and
+  the placeholder `HealthCheckService` stay in place until Phase 4
+  replaces the placeholder with the real Auth / App provider
+  contracts. They are a runtime-registration scaffolding, not a
+  production contract; the user-facing surface of backend-legacy is
+  not affected because the placeholder uses group `ulticode` and
+  version `1.0.0` so it cannot collide with a Phase 4 export of the
+  same group/version.
+- A real `dubbo.bom` import is deliberately NOT used; the parent's
+  dependencyManagement only carries explicit Dubbo 3.3.6 versions
+  for the two backend-legacy dependencies. This is to avoid the
+  Spring Framework 5.3 regression and `javax.servlet-api` 3.1.0
+  pull-down that the dubbo-bom 3.3.6 mega-BOM would otherwise
+  impose.
+
+Affected Tasks
+
+- P1-INFRA-003 (wiring; blocked on P1-INFRA-003-DISC).
+- P1-INFRA-003-DISC (owner; this ADR + the action plan).
+- P4-RPC-001 (fallback path; re-exercises the same registration
+  pipeline under the real Auth / App provider contracts).

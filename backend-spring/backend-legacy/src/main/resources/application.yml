@@ -352,3 +352,25 @@ dubbo:
     filter: default
   cloud:
     subscribed-services: ''
+
+# P1-OBS-001: OpenTelemetry / Micrometer Tracing.
+# Spring Boot 3.2.5 + micrometer-tracing-bridge-otel gives us W3C
+# traceparent extraction and injection on HTTP and (via our
+# DubboTraceFilter) on Dubbo RPC. Phase 1 ships with the OTLP
+# exporter pointed at a no-op default; the smoke can flip the
+# endpoint to a real OTLP collector by setting
+# MANAGEMENT_OTLP_TRACING_ENDPOINT.
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: 5s
+
+# Make the active trace id and span id visible in every log line.
+# This is the log shape the smoke + integration tests will grep for.
+logging:
+  pattern:
+    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"

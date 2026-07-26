@@ -76,6 +76,26 @@
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
 
+		<!--
+		  P1-OBS-001: OpenTelemetry trace propagation through HTTP + Dubbo.
+		  Spring Boot 3.2.5 manages both versions through its own BOM, so
+		  we do NOT need a separate opentelemetry-bom import. The Micrometer
+		  Tracing bridge maps Observation API to the OpenTelemetry SDK; the
+		  OTLP exporter is optional at Phase 1 — a no-op default keeps the
+		  pipeline active without a collector reachable. The
+		  W3C traceparent header is the default propagation type, so an
+		  inbound HTTP request with `traceparent: 00-<id>-<span>-01` gets
+		  joined into the same trace.
+		-->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+		</dependency>
+
 		<!-- Caffeine: in-process L1 cache for monitoring endpoints -->
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>

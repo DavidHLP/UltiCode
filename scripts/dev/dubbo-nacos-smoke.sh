@@ -47,6 +47,14 @@ export NACOS_HOST NACOS_PORT NACOS_NAMESPACE NACOS_GROUP NACOS_USERNAME NACOS_PA
 export NACOS_AUTH_TOKEN NACOS_AUTH_IDENTITY_KEY NACOS_AUTH_IDENTITY_VALUE
 export NACOS_SERVER_ADDR NACOS_GRPC_PORT
 export JWT_SECRET
+# Nacos Server runs with NACOS_AUTH_ENABLE=true; the dev admin account
+# is created by scripts/security/bootstrap-nacos-user.sh into
+# nacos_config.users. The Dubbo Nacos registry client must carry those
+# same credentials or the register call is rejected (HTTP 403) and the
+# instance never lands. application.yml reads DUBBO_REGISTRY_USERNAME /
+# DUBBO_REGISTRY_PASSWORD; alias them to the .env values here.
+export DUBBO_REGISTRY_USERNAME="$NACOS_USERNAME"
+export DUBBO_REGISTRY_PASSWORD="$NACOS_PASSWORD"
 
 SERVICE_NAME="${DUBBO_APPLICATION_NAME:-ulticode-backend-legacy}"
 NACOS_BASE="http://127.0.0.1:${NACOS_PORT:-28848}"
@@ -104,14 +112,35 @@ wait_for_container_health ulticode-mysql
 wait_for_container_health ulticode-redis
 wait_for_container_health ulticode-nacos
 
-echo "--- 2. Provisioning Nacos administrator ---"
-set +e
-"$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
-rc=$?
-set -e
-if [[ $rc -ne 0 ]]; then
-  echo "Nacos admin provisioning failed (rc=$rc); continuing — Nacos console still accepts requests." >&2
+# Wait for Nacos Server to finish its own MySQL schema bootstrap
+# (initdb/01-nacos-init.sql runs the first time MySQL starts up; the
+# nacos_config database and its tables only land after MySQL is
+# healthy AND the init container has finished). The container health
+# check above only proves the JVM is up. Without this sleep, the
+# bootstrap-nacos-user.sh INSERTs would fail with "Table
+# 'nacos_config.users' doesn't exist".
+echo "Waiting for Nacos schema to initialise (up to 30 s)..."
+schema_ok=0
+for i in $(seq 1 15); do
+  if docker exec -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" ulticode-mysql mysql -uroot nacos_config -e "SHOW TABLES LIKE 'users';" 2>/dev/null | grep -q users; then
+    schema_ok=1
+    break
+  fi
+  sleep 2
+done
+if [[ "$schema_ok" -ne 1 ]]; then
+  echo "nacos_config schema did not initialise in 30 s; aborting." >&2
+  exit 1
 fi
+echo "  nacos_config.users present."
+
+echo "--- 2. Provisioning Nacos administrator ---"
+# Fail fast: if the admin account never lands, every subsequent
+# DUBBO_REGISTRY_USERNAME/PASSWORD auth attempt to Nacos Server is
+# rejected (HTTP 403) and the register call silently fails — the
+# smoke would then time out at 220 s without anything to show. So
+# surface the error here and abort.
+"$ROOT_DIR/scripts/security/bootstrap-nacos-user.sh"
 
 echo "--- 3. Running Flyway migrations ---"
 set +e

@@ -320,13 +320,22 @@ dubbo:
     name: ${DUBBO_APPLICATION_NAME:ulticode-backend-legacy}
     register-mode: instance
     qos-enable: false
+    # ApplicationConfig.protocol defaults to "dubbo"; in a Triple-only
+    # deployment that makes ServiceInstanceHostPortCustomizer fall back
+    # to "first found protocol" and warn (FAQ 4-2). Pin it to tri.
+    protocol: tri
+    # metadata-type=local avoids the INSTANCE_REGISTER -> METADATA_REGISTER
+    # round trip that requires a config-center (which Phase 1 has not
+    # configured) and currently logs the 5-10 "configuration server
+    # disconnected" ERROR every cold start.
+    metadata-type: local
   protocol:
     name: tri
     port: ${DUBBO_PROTOCOL_PORT:-1}
     triple:
       max-requests-per-connection: 50
   registry:
-    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:8848?namespace=${DUBBO_NAMESPACE:dev}}
+    address: ${DUBBO_REGISTRY_ADDRESS:nacos://127.0.0.1:${NACOS_PORT:28848}?namespace=${DUBBO_NAMESPACE:dev}}
     username: ${DUBBO_REGISTRY_USERNAME:}
     password: ${DUBBO_REGISTRY_PASSWORD:}
     timeout: 5000

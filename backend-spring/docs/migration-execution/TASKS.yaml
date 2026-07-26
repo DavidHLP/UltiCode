@@ -619,6 +619,7 @@
   commits:
   - 86882f3
   - c4d08a2
+  - f7a8e7c
   notes: Phase 1 establishes wiring, not traffic.
   updated_at: '2026-07-26T20:15:04+00:00'
 - id: P1-INFRA-003-DISC
@@ -5348,7 +5349,8 @@
       \ time:  40.634 s\n[INFO] Finished at: 2026-07-27T04:16:03+08:00\n[INFO] ------------------------------------------------------------------------"
     note: 'Phase 1 Gate: full reactor verify PASS; all P1 tasks done/superseded; P1-INFRA-003 runtime registration smoke PASS
       (see P1-INFRA-003 evidence).'
-  commits: []
+  commits:
+  - 36d4e63
   notes: ''
   updated_at: '2026-07-26T20:16:14+00:00'
 - id: P2-AUTH-001

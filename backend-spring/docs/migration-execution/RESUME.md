@@ -1,41 +1,43 @@
 # Migration Resume
 
-Current Phase: Phase 1
-Current Task: Resolve P1-INFRA-003-DISC (Dubbo → Nacos runtime registration with backend-legacy)
+Current Phase: Phase 2
+Current Task: P2-AUTH-001 (refresh-token rotation extraction to backend-auth)
 
 Last Verified Commit:
-8e3264409 feat(obs): OpenTelemetry trace propagation through HTTP + Dubbo (P1-OBS-001)
+TBD (Phase 1 gate commit pending)
 
 Completed:
-17 / 51 (Phase 0 gate + six Phase 1 tasks done; P1-INFRA-003 wiring blocked on runtime evidence)
+18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)
 
 Blocked:
-P1-INFRA-003 (Dubbo → Nacos runtime registration not yet proven for backend-legacy)
+None
 
 Current Work:
-- P1-OBS-001 done: HttpTraceparentFilter + DubboTraceFilter + Micrometer Tracing
-  bridge + OTLP exporter; 1795 tests pass; ./mvnw verify -B green.
-- P1-INFRA-005 done: backend-auth / backend-admin / backend-app service shells
-  with placeholder controllers, distinct HTTP/Dubbo ports, @DubboService
-  RpcHealthProvider per service. Nacos standalone smoke shows three services
-  [backend-auth, backend-admin, backend-app] each with one healthy instance.
-- P1-INFRA-003 wiring remains in place in backend-legacy. The next step is to
-  rerun the registration smoke against the same Nacos container to prove
-  backend-legacy's HealthCheckService placeholder also registers, which will
-  unblock P1-INFRA-003 and then P1-GATE.
+- Phase 1 is fully closed. All P1-INFRA-* tasks, P1-API-001, P1-OBS-001,
+  P1-INFRA-003-DISC, and P1-GATE are done/superseded.
+- P1-INFRA-003 final fix: okhttp 4.12.0 for Nacos client compatibility,
+  merged duplicate `management:` / `logging:` blocks in
+  `backend-legacy/src/main/resources/application.yml`, added
+  `TracerHolder` bridge so `DubboTraceFilter` can be SPI-instantiated by
+  Dubbo, and switched `scripts/dev/dubbo-nacos-smoke.sh` to Nacos JWT
+  `accessToken` auth.
+- P1-GATE validation: `./mvnw verify -B` PASS (full reactor, 0 failures).
 
 Last Validation:
-./mvnw -pl backend-auth,backend-admin,backend-app -am -B verify
-PASS — each shell: 2 tests, 0 failures; Nacos service list count=3.
+- `./mvnw verify -B` across backend-spring reactor: PASS (40.6 s).
+- `scripts/dev/dubbo-nacos-smoke.sh`: PASS (ulticode-backend-legacy registered
+  in Nacos dev namespace with one healthy instance).
 
 Next:
-1. Resolve P1-INFRA-003-DISC by starting Nacos + backend-legacy and verifying
-   HealthCheckService registers.
-2. Mark P1-INFRA-003 done.
-3. P1-GATE — Phase 1 gate (all of P1-INFRA-001..005 + P1-OBS-001).
+1. P2-AUTH-001: extract refresh-token rotation into backend-auth.
+2. P2-AUTH-002: resource-server JWT verifier per service.
+3. P2-AUTH-003: provider identity / authz version.
+4. P2-AUTH-004: Gateway `/auth/**` cutover.
+5. P2-RBAC-001: auth-only RBAC writer.
+6. P2-GATE.
 
 Dirty Worktree:
-Yes — P1-INFRA-005 implementation files + TASKS.yaml + COVERAGE.md + RESUME.md + WORKLOG.md uncommitted.
+Yes — Phase 1 close-out files + P1-INFRA-003 fix files not yet committed.
 
 PUSH: NOT pushed. GitHub writes require explicit user approval.
 

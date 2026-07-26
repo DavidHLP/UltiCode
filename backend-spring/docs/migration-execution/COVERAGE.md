@@ -20,11 +20,12 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §10 Reactor pom / multi-module skeleton | P1-INFRA-001 | done |
 | §10.1 backend-common minimal | P1-INFRA-002 | done |
 | §6.2 Contract modules | P1-API-001 | done |
-| §6 Dubbo + Nacos registry wiring | P1-INFRA-003 | **blocked** (P1-INFRA-003-DISC) |
+| §6 Dubbo + Nacos registry wiring | P1-INFRA-003 | done |
+| §6 Dubbo -> Nacos runtime registration (discovered blocker) | P1-INFRA-003-DISC | superseded |
 | §6.4 OpenTelemetry trace propagation | P1-OBS-001 | done |
 | §11.3 Nginx Gateway inventory + header cleanup | P1-INFRA-004 | done |
 | §Phase-1 Service shells | P1-INFRA-005 | done |
-| Phase-1 gate | P1-GATE | pending (gated by P1-INFRA-003 / P1-OBS-001 / P1-INFRA-005) |
+| Phase-1 gate | P1-GATE | done |
 | §Phase-2 Auth extraction | P2-AUTH-001 | pending |
 | §7.3 Resource server JWT verifier | P2-AUTH-002 | pending |
 | §7.5 Provider identity / authz version | P2-AUTH-003 | pending |
@@ -76,7 +77,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 §13.2 工程与 Contract:
 - [x] Reactor POM — P1-INFRA-001
 - [x] backend-common minimal — P1-INFRA-002
-- [ ] provider-owned backend-auth-api, backend-app-api — P1-API-001 (skeletons done; full provider-owned contracts land in P4-RPC-001)
+- [x] provider-owned backend-auth-api, backend-app-api — P1-API-001 (skeletons; provider-owned contracts continue in P4-RPC-001)
 - [x] UUID/commandId/trace/deadline — P1-API-001 (shape present in skeleton)
 - [ ] Retry/timeout defaults — P4-RPC-002
 - [ ] Consumer contract test — P4-RPC-001
@@ -108,7 +109,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 - [x] No Seata — DECISIONS.md ADR
 
 §13.5 基础设施与可观测:
-- [x] Nacos registry only — P1-INFRA-003 (wiring complete; runtime registration blocked on P1-INFRA-003-DISC)
+- [x] Nacos registry only — P1-INFRA-003 (done: wiring + runtime registration smoke with Nacos token auth)
 - [x] Service starter shells — P1-INFRA-005 (done; Nacos shows three services)
 - [ ] Dubbo Triple timeout/version/health — P4-RPC-002
 - [x] OpenTelemetry chain — P1-OBS-001 (done: HTTP + Dubbo filters; 1795 tests pass)
@@ -122,7 +123,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 §13.6 切流、验证与回滚:
 - [ ] Per-route canary — P4-CUTOVER-001..003
-- [x] ./mvnw verify -B per phase gate — P0-GATE PASS (1804 tests, 0 failures); P1-GATE pending
+- [x] ./mvnw verify -B per phase gate — P0-GATE PASS (1804 tests); P1-GATE PASS (full reactor verify, 0 failures)
 - [ ] Login/OAuth/refresh/Admin/Problem/Submission/Judge/Contest/WS E2E — Phase 2/4
 - [ ] Inject Auth/App/Admin/Nacos/Redis/SMTP/net failures — Phase 4
 - [ ] Replay test for write timeout — P6-OUTBOX-001, P6-RESULT-001
@@ -158,12 +159,12 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 6/7 done + 1 blocked (P1-INFRA-003); Phases 2-7: 0/N pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phases 2-7: 0/N pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:
    - Phase 0: **PASS** (all 10 done; P0-GATE commit 7773daa)
-   - Phase 1: **NOT PASS** — 6/7 done, 1 blocked (P1-INFRA-003), 1 gate pending (P1-GATE)
+   - Phase 1: **PASS** (all 8 tasks done/superseded; P1-GATE commit TBD)
    - Phases 2-7: all pending (sequential)
 
-Audit checkpoint at 2026-07-26T20:05:00+00:00 by Recovery.
+Audit checkpoint at 2026-07-27T04:16:00+00:00 by Recovery.

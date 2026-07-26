@@ -281,3 +281,29 @@ P1-INFRA-005
   one healthy instance with correct Dubbo metadata.
 - ./mvnw -pl backend-auth,backend-admin,backend-app -am -B verify PASS.
 - P1-INFRA-005 marked done.
+
+2026-07-27
+P1-INFRA-003 (unblock + done)
+- Fixed okhttp 5.3.2 placeholder Kotlin-Multiplatform jar (no classes) by
+  downgrading backend-legacy pom to okhttp 4.12.0, matching Nacos 2.5.1 client
+  expectation for okhttp3.Interceptor.
+- Merged duplicate `management:` and `logging:` keys introduced by P1-OBS-001
+  into single blocks in backend-legacy application.yml; YAML now loads cleanly.
+- Added `TracerHolder` (ApplicationContextAware bridge) and made
+  `DubboTraceFilter` SPI-friendly (no-arg constructor + lazy tracer lookup).
+  Dubbo 3.3 ExtensionLoader can now instantiate the filter; unit tests still
+  use the test constructor with a mock Tracer.
+- Updated `scripts/dev/dubbo-nacos-smoke.sh` to obtain Nacos JWT accessToken via
+  `/nacos/v1/auth/users/login` and query the instance list with that token
+  (basic auth is rejected by Nacos 2.x).
+- Runtime evidence: smoke PASS; Nacos instance list shows one healthy
+  `ulticode-backend-legacy` instance in dev namespace / DEFAULT_GROUP.
+- `./mvnw verify -B` reactor PASS after fixes.
+- P1-INFRA-003 marked done; P1-INFRA-003-DISC marked superseded.
+
+P1-GATE (closed)
+- All Phase 1 tasks done or superseded.
+- Coverage audit: 100% mapped, no empty acceptance criteria.
+- `./mvnw verify -B` full reactor PASS.
+- `dubbo-nacos-smoke.sh` PASS (Nacos registration with auth).
+- P1-GATE marked done; moving to Phase 2.

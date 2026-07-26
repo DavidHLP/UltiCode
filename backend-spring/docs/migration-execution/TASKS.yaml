@@ -5360,7 +5360,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
-  status: pending
+  status: in_progress
   depends_on:
   - P1-GATE
   acceptance_criteria:
@@ -5371,10 +5371,16 @@
   - 'Integration tests: login/register/refresh/logout roundtrip'
   rollback:
   - LocalAuthShim resumes all traffic; backend-auth gateway route removed
-  evidence: []
+  evidence:
+  - note: Starting Phase 2 auth extraction. Reading legacy AuthController/AuthService/OAuth/Refresh/Permission code and existing
+      backend-auth skeleton.
+    ts: '2026-07-26T20:22:11+00:00'
+  - note: 'Phase 2 setup: added backend-auth pom dependencies (security, validation, redis, mail, mybatis-plus, mysql, redisson,
+      jjwt) and application.yml datasource/redis/flyway/jwt/mail/dubbo/management config. backend-auth compiles.'
+    ts: '2026-07-26T20:26:47+00:00'
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-26T20:26:47+00:00'
 - id: P2-AUTH-002
   phase: 2
   area: AUTH

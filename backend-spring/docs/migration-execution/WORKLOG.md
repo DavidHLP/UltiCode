@@ -307,3 +307,15 @@ P1-GATE (closed)
 - `./mvnw verify -B` full reactor PASS.
 - `dubbo-nacos-smoke.sh` PASS (Nacos registration with auth).
 - P1-GATE marked done; moving to Phase 2.
+
+2026-07-27 (continued)
+P2-AUTH-001 setup
+- Marked P2-AUTH-001 in_progress.
+- Added backend-auth pom dependencies for Spring Security, validation, Redis, mail,
+  MyBatis-Plus, MySQL connector, Redisson, JJWT.
+- Wrote backend-auth application.yml with datasource, Redis/Redisson, Flyway, JWT,
+  mail, MyBatis-Plus, management/tracing, and Dubbo/Nacos registry settings.
+- Removed Phase 1 autoconfigure exclusions so backend-auth loads DataSource, Redis,
+  Security, and Flyway.
+- Verified backend-auth compiles with `./mvnw -pl backend-auth -am -B compile`.
+- Next: copy auth entities/mappers from legacy, then AuthController/Service/Security.

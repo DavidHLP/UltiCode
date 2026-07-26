@@ -15,13 +15,11 @@ None
 Current Work:
 - Phase 1 is fully closed. All P1-INFRA-* tasks, P1-API-001, P1-OBS-001,
   P1-INFRA-003-DISC, and P1-GATE are done/superseded.
-- P1-INFRA-003 final fix: okhttp 4.12.0 for Nacos client compatibility,
-  merged duplicate `management:` / `logging:` blocks in
-  `backend-legacy/src/main/resources/application.yml`, added
-  `TracerHolder` bridge so `DubboTraceFilter` can be SPI-instantiated by
-  Dubbo, and switched `scripts/dev/dubbo-nacos-smoke.sh` to Nacos JWT
-  `accessToken` auth.
-- P1-GATE validation: `./mvnw verify -B` PASS (full reactor, 0 failures).
+- P2-AUTH-001 in progress. Setup complete: backend-auth pom dependencies and
+  application.yml added (datasource, Redis, Flyway, JWT, mail, MyBatis-Plus,
+  Security, Dubbo/Nacos). backend-auth compiles.
+- Next sub-task: copy auth entities/mappers from legacy, then move
+  AuthController/Service/Security code and add tests.
 
 Last Validation:
 - `./mvnw verify -B` across backend-spring reactor: PASS (40.6 s).

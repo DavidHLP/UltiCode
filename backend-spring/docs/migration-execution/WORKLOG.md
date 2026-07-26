@@ -195,3 +195,76 @@ Append-only log of significant events. NOT a task state source of truth
 - Added contract ArchUnit and shape tests; no implementation dependencies.
 - Targeted reactor: 101 tests PASS.
 - Standards/Spec/final review findings closed; final review 0 blockers.
+
+### P1-INFRA-003 — Dubbo 3.3.6 Triple + Nacos registry (BLOCKED in sandbox)
+
+- Status: blocked; P1-INFRA-003-DISC filed.
+- Commits: c4d08a2 (parent pom dubbo-bom removed; backend-legacy
+  pom wired with explicit dubbo-spring-boot-starter:3.3.6 +
+  dubbo-registry-nacos:3.3.6), 86882f3 (placeholder
+  HealthCheckService @DubboService + dubbo.application.protocol:tri +
+  metadata-type:local + registry use-as-config-center/use-as-metadata-
+  center as registry properties, not URL params, + 28848 host port),
+  c8246b3 (TASKS.yaml: status blocked; P1-INFRA-003-DISC added;
+  RESUME.md updated).
+
+- Wiring is complete at compile + config-binding level:
+  - dependency:tree shows spring-test 6.1.6 (NOT regressed to 5.3.39
+    despite dubbo-bom 3.3.6 mega-BOM pinning Spring 5.3.x — we do
+    NOT import dubbo-bom, only declare the two dependencies with
+    explicit versions), dubbo-rpc-triple 3.3.6, nacos-client 2.5.1
+    (transitive from dubbo-registry-nacos 3.3.6).
+  - DubboBootstrapConfigTest (configuration-binding only) passes
+    3/3: dubbo.application.name=ulticode-backend-legacy,
+    dubbo.protocol.name=tri, dubbo.registry.address points to
+    nacos://127.0.0.1:28848 with namespace=dev.
+  - scripts/dev/dubbo-nacos-smoke.sh brings up MySQL + Redis + Nacos
+    via docker compose, runs Flyway, installs backend-common into
+    the local repo, starts backend-legacy in the same JVM, polls
+    the Nacos instance list.
+
+- Why this is blocked:
+  - Spring Boot 3.2.5 + Dubbo 3.3.6 bootstrap completes in 4.5 s.
+  - Dubbo logs: "Registered dubbo service
+    ulticode/com.ulticode.dubbo.provider.HealthCheckService:1.0.0
+    ... to registry service-discovery-registry://127.0.0.1:28848/...
+    REGISTRY_CLUSTER=default:dev".
+  - NacosNamingServiceWrapper initializes the nacos-client 2.5.1
+    (auth plugin, ClientAuthServiceImpl, AbilityControlManager all
+    observed).
+  - The actual Nacos HTTP putInstance call is not observed in the
+    Nacos container log within the 240 s smoke window; the
+    /nacos/v1/ns/instance/list call returns an empty hosts array
+    after 44 × 5 s probes.
+  - P1-INFRA-003-DISC owns the action plan: rerun the smoke on a
+    real Linux dev host, or escalate to Phase 4 P4-RPC-001 (real
+    provider-owned contracts) which would re-exercise the same
+    registration path under the real auth/registry contract.
+
+- Lessons (sticky):
+  - Phase 1 must ship at least one @DubboService. Dubbo does NOT
+    register application instances on its own; it only registers
+    exported service interfaces. An empty provider means no Nacos
+    registry client is ever created and the smoke is a no-op.
+  - dubbo.application.protocol defaults to "dubbo" in Dubbo 3.3;
+    pin it to the actual protocol (here: tri) to avoid the
+    ServiceInstanceHostPortCustomizer FAQ 4-2 fallback.
+  - dubbo.application.metadata-type=local in Phase 1 avoids the
+    METADATA_REGISTER round-trip that requires a config-center.
+  - Phase 1 should NOT set `dubbo.config-center: { address: "" }`
+    — that creates a placeholder ConfigCenterConfig and breaks
+    `isEmpty(configCenters)` in
+    DefaultApplicationDeployer.useRegistryAsConfigCenterIfNecessary.
+    Leave config-center / metadata-report sections out entirely
+    and pin `registry.use-as-config-center: false` /
+    `use-as-metadata-center: false` as registry properties (not URL
+    params).
+  - scripts/security/bootstrap-nacos-user.sh requires
+    MYSQL_ROOT_PASSWORD + NACOS_USERNAME + NACOS_PASSWORD exported
+    in the calling shell. A `set +e` wrapper that "continues" on
+    failure hides the missing-account root cause. Surface
+    bootstrap errors and fail fast.
+  - scripts/dev/dubbo-nacos-smoke.sh's `docker volume rm
+    ulticode_mysql_data` wipes the Nacos schema too; wait for
+    `nacos_config.users` to appear before running
+    bootstrap-nacos-user.sh.

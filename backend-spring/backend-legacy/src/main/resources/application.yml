@@ -128,7 +128,7 @@ logging:
     org.springframework.security: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
+    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"
 # MeiliSearch Configuration (optional - for full-text search)
 meilisearch:
   enabled: ${MEILISEARCH_ENABLED:false}
@@ -285,6 +285,13 @@ management:
     # prod preserves full system/jvm/tomcat metrics.
 
 # OAuth Configuration
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: 5s
 oauth:
   github:
     client-id: ${GITHUB_CLIENT_ID:}
@@ -360,17 +367,3 @@ dubbo:
 # exporter pointed at a no-op default; the smoke can flip the
 # endpoint to a real OTLP collector by setting
 # MANAGEMENT_OTLP_TRACING_ENDPOINT.
-management:
-  tracing:
-    sampling:
-      probability: 1.0
-  otlp:
-    tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://localhost:4318/v1/traces}
-      timeout: 5s
-
-# Make the active trace id and span id visible in every log line.
-# This is the log shape the smoke + integration tests will grep for.
-logging:
-  pattern:
-    level: "%5p [traceId=%X{traceId:-},spanId=%X{spanId:-}]"

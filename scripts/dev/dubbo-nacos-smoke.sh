@@ -174,17 +174,42 @@ echo "--- 4. Starting backend-legacy (Dubbo Triple + Nacos registry) ---"
 BACKEND_PID="$(cat "$LOG_DIR/backend.pid")"
 echo "  backend-legacy pid=$BACKEND_PID (logs: $LOG_DIR/backend-legacy.log)"
 
-echo "--- 5. Waiting for backend-legacy to register with Nacos ---"
+# Nacos 2.x with auth enabled requires a JWT accessToken for Open API calls.
+# The registry client (Dubbo Nacos client) already performs login internally;
+# this script mirrors the same flow so the smoke test can verify the instance
+# list without relying on basic auth, which Nacos does not accept.
+echo "--- 5. Obtaining Nacos access token ---"
+NACOS_TOKEN=""
+for attempt in $(seq 1 10); do
+  token_response="$(curl -fsS -X POST \
+      -d "username=${NACOS_USERNAME}" \
+      -d "password=${NACOS_PASSWORD}" \
+      "${NACOS_BASE}/nacos/v1/auth/users/login" 2>/dev/null || true)"
+  if [[ -n "$token_response" ]] && [[ "$token_response" == *"accessToken"* ]]; then
+    NACOS_TOKEN="$(echo "$token_response" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("accessToken",""))' 2>/dev/null || true)"
+    if [[ -n "$NACOS_TOKEN" ]]; then
+      echo "  Nacos token acquired."
+      break
+    fi
+  fi
+  sleep 2
+done
+if [[ -z "$NACOS_TOKEN" ]]; then
+  echo "Failed to obtain Nacos access token; see Nacos log." >&2
+  exit 1
+fi
+
+echo "--- 6. Waiting for backend-legacy to register with Nacos ---"
 REGISTERED=0
 response=""
+NACOS_INSTANCE_LIST_URL_WITH_TOKEN="${NACOS_INSTANCE_LIST_URL}&accessToken=${NACOS_TOKEN}"
 for attempt in $(seq 1 44); do
   if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
     echo "backend-legacy exited before registering (see $LOG_DIR/backend-legacy.log)." >&2
     tail -120 "$LOG_DIR/backend-legacy.log" >&2
     exit 1
   fi
-  response="$(curl -fsS -u "${NACOS_USERNAME}:${NACOS_PASSWORD}" \
-      "$NACOS_INSTANCE_LIST_URL" 2>/dev/null || true)"
+  response="$(curl -fsS "${NACOS_INSTANCE_LIST_URL_WITH_TOKEN}" 2>/dev/null || true)"
   if [[ -n "$response" ]] && [[ "$response" != *"\"hosts\":[]"* ]] \
       && [[ "$response" == *'"ip"'* ]]; then
     echo "  registered after ${attempt} probes (5s each):"
@@ -204,7 +229,7 @@ if [[ "$REGISTERED" -ne 1 ]]; then
   exit 1
 fi
 
-echo "--- 6. Verifying instance metadata ---"
+echo "--- 7. Verifying instance metadata ---"
 ip_count="$(echo "$response" | grep -o '"ip":"[^"]*"' | wc -l | tr -d ' ')"
 if [[ "$ip_count" -lt 1 ]]; then
   echo "Instance list returned but no 'ip' field found." >&2

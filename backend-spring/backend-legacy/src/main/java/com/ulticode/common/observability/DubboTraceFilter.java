@@ -40,18 +40,32 @@ import org.apache.dubbo.rpc.RpcException;
  */
 @Slf4j
 @Activate(group = {"provider", "consumer"}, order = 100)
-@RequiredArgsConstructor
 public class DubboTraceFilter implements Filter {
 
     public static final String TRACE_ID_ATTACHMENT_KEY = "X-Ulticode-Trace-Id";
     public static final String W3C_TRACEPARENT_HEADER = "traceparent";
 
-    private final Tracer tracer;
+    private Tracer tracer;
+
+    /**
+     * No-arg constructor required by the Dubbo SPI extension loader.
+     * The actual tracer is resolved lazily via {@link TracerHolder}.
+     */
+    public DubboTraceFilter() {
+    }
+
+    /**
+     * Test constructor that wires a mock tracer directly.
+     */
+    public DubboTraceFilter(Tracer tracer) {
+        this.tracer = tracer;
+    }
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         boolean consumerSide = RpcContext.getServiceContext().isConsumerSide();
         String side = consumerSide ? "consumer" : "provider";
+        Tracer activeTracer = tracer != null ? tracer : TracerHolder.getTracer();
         // Dubbo 3.3's public Invocation interface exposes only the
         // service interface FQN and the method name; group / version
         // are carried in the URL, not on the Invocation itself. They
@@ -66,7 +80,7 @@ public class DubboTraceFilter implements Filter {
         if (consumerSide) {
             // Attach the current trace id to the outbound invocation
             // so the provider can pick it up and continue the trace.
-            Span current = tracer.currentSpan();
+            Span current = activeTracer.currentSpan();
             String traceId = current == null ? null : current.context().traceId();
             if (traceId != null) {
                 invocation.setAttachment(TRACE_ID_ATTACHMENT_KEY, traceId);
@@ -81,7 +95,7 @@ public class DubboTraceFilter implements Filter {
             // the W3C traceparent extraction; we just log the active
             // trace so the smoke can assert the id matches the
             // consumer's id.
-            Span active = tracer.currentSpan();
+            Span active = activeTracer.currentSpan();
             String inbound = invocation.getAttachment(TRACE_ID_ATTACHMENT_KEY);
             if (log.isDebugEnabled()) {
                 log.debug("Dubbo provider call iface={} method={} group={} version={} "

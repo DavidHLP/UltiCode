@@ -445,3 +445,130 @@ Affected Tasks
 - P2-AUTH-002 (next; extract verify-only into backend-common).
 - P7-LEGACY-001 (final; remove backend-legacy copies).
 - P7-LEGACY-002 (drop duplicate JWT utility once verify is shared).
+
+## ADR-MIG-AUTH-EXCEPTION-PLACEMENT
+
+Context
+
+P2-AUTH-001-A (refresh-token ownership into backend-auth) depends on
+`com.ulticode.common.exception.BusinessException` and the AUTH
+sub-range (`AUTH_*`, 1xxxx) of `com.ulticode.common.exception.ErrorCode`.
+Both classes currently live only in backend-legacy, which violates the
+new "backend-auth must not depend on backend-legacy" rule introduced by
+P1-INFRA-001.
+
+Two options were weighed:
+
+- **Option C** (promote to backend-common now): lift `BusinessException`
+  + the whole `ErrorCode` enum to `com.ulticode.common.exception` in
+  backend-common. This eliminates the duplication entirely and matches
+  the P1-INFRA-002 pattern (Result, PageResult, TraceIdUtil, etc.).
+  Cost: P2-AUTH-001-A scope grows from 3 source files to ~250 lines of
+  enum body + ~30 lines of exception + delegation test rewiring. It
+  also forces backend-common to depend on `org.springframework.http.HttpStatus`
+  for the `getHttpStatus()` accessor on `BusinessException`, which
+  contradicts the NamespacedErrorCode javadoc that explicitly keeps
+  HTTP mapping out of backend-common.
+
+- **Option D** (local thin AuthBusinessException in backend-auth):
+  create a backend-auth-private `AuthBusinessException` + a backend-auth
+  `AuthErrorCode` enum restricted to the AUTH 1xxxx range (9 constants
+  today, byte-identical numeric values to backend-legacy's enum).
+  Cost: temporary duplication of `BusinessException` semantics across
+  backend-auth and backend-legacy; convergence will need a follow-up.
+
+Decision
+
+**Option D**, because:
+
+1. P2-AUTH-001-A's acceptance_criteria explicitly scope the work to
+   the three refresh-token source files; promoting
+   `BusinessException`/`ErrorCode` would either expand that scope
+   (silently violating §11's "no silent architecture changes") or
+   require splitting the task into two sub-commits — but those two
+   sub-commits have no incremental value at the current moment (the
+   legacy enum is still in use by every module).
+2. The current `AuthErrorCode` is intentionally a 9-constant subset,
+   not a copy of the full 200-line enum. This makes the eventual
+   Option C promotion strictly an additive merge: backend-legacy's
+   ErrorCode AUTH 1xxxx values stay byte-identical and the
+   `BusinessException` shape is preserved. The migration cost is
+   deferred to a single follow-up task instead of being smeared
+   across P2-AUTH-001-A's commit history.
+3. NamespacedErrorCode explicitly says HTTP-status mapping stays in
+   each module's enum; making `AuthErrorCode` own its HTTP mapping
+   aligns with the documented contract.
+
+Affected Tasks
+
+- P2-AUTH-001-A (current): builds on `AuthErrorCode` +
+  `AuthBusinessException` instead of legacy's.
+- P2-DISC-001 (new, owned by P2-AUTH-001-A): retro-fit
+  backend-legacy's `ErrorCode` to delegate to
+  `com.ulticode.common.error.BaseErrorCode` + the new backend-auth
+  `AuthErrorCode` for the AUTH 1xxxx range; consider promoting the
+  non-AUTH codes to module-local enums (UserErrorCode,
+  ProblemErrorCode, etc.) when each respective service extraction
+  lands. Eventually, `BusinessException` itself can be promoted
+  once the HTTP-status coupling is removed (or generalised to
+  accept a generic `HttpStatusAware` interface).
+- P7-LEGACY-001 (final): delete backend-legacy's
+  `com.ulticode.common.exception.ErrorCode` once every consumer has
+  moved to a module-local enum.
+
+## ADR-MIG-CLOCK-PLACEMENT
+
+Context
+
+P2-AUTH-001-A copied `RefreshTokenService` into backend-auth. The
+service has `private final Clock clock;` (injected by Lombok
+`@RequiredArgsConstructor`). backend-legacy provides the `Clock` bean
+via `com.ulticode.common.config.ClockConfig`. Because backend-auth must
+not depend on backend-legacy (P1-INFRA-001), the bean is invisible and
+the unit-test slice fails to start the Spring context.
+
+`TimeSource` / `TimeSourceHolder` were already promoted to backend-common
+by P1-INFRA-002, but the *bean wiring* stayed in backend-legacy
+(`com.ulticode.common.time.TimeConfig` + `SystemTimeSource`). So the
+*type* is shared but the *instance* is not.
+
+Decision
+
+P2-AUTH-001-A carries a private `com.ulticode.auth.config.AuthClockConfig`
+(Clock.systemDefaultZone()) so the auth service can start. The bean
+shape matches the legacy config byte-for-byte; tests use `@MockBean`
+or `@Primary` to inject a fixed clock as before.
+
+A follow-up task, P2-DISC-002, will promote both the `Clock` and
+`TimeSource` bean configuration into backend-common. After that:
+
+- `backend-common` ships `@Configuration` that declares both beans.
+- `backend-legacy` deletes `com.ulticode.common.config.ClockConfig` and
+  `com.ulticode.common.time.TimeConfig` (P7-LEGACY-001 in the final
+  clean-up).
+- Extracted services stop adding per-module `AuthClockConfig` /
+  `AdminClockConfig` / `AppClockConfig` copies; they just depend on
+  backend-common.
+
+Alternatives
+
+- Promote only the `Clock` bean (skip TimeSource) — rejected because
+  the two share the same configuration concern and promoting one
+  without the other leaves a confusing split.
+- Keep `ClockConfig` in backend-legacy forever — rejected because
+  P1-INFRA-001 already declared cross-service visibility of any
+  backend-legacy bean is forbidden.
+- Make every service ship its own `*ClockConfig` — explicitly rejected
+  as a maintenance footgun; the discovery that prompted this ADR is
+  the second time the same kind of copy has been needed
+  (P1-INFRA-005 also hit a similar wiring problem with service shells).
+
+Affected Tasks
+
+- P2-AUTH-001-A (current): carries `AuthClockConfig` as a local
+  workaround.
+- P2-DISC-002 (new, owned by P2-AUTH-001-A): promote bean config
+  to backend-common.
+- P2-AUTH-001-G (later): drop `AuthClockConfig` once P2-DISC-002 lands.
+- P7-LEGACY-001 (final): delete `ClockConfig` and `TimeConfig` from
+  backend-legacy.

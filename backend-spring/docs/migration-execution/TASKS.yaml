@@ -6562,3 +6562,68 @@
   commits: []
   notes: ''
   updated_at: ''
+- id: P2-DISC-001
+  phase: 2
+  area: DISC
+  discovered_from: P2-AUTH-001-A
+  title: Promote BusinessException + ErrorCode to backend-common (Option C follow-up)
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#11
+  - DECISIONS.md#ADR-MIG-AUTH-EXCEPTION-PLACEMENT
+  status: pending
+  depends_on:
+  - P2-AUTH-001-A
+  acceptance_criteria:
+  - backend-common gains com.ulticode.common.exception.BusinessException accepting NamespacedErrorCode.
+  - backend-legacy's com.ulticode.common.exception.ErrorCode either (a) implements NamespacedErrorCode so it can be passed
+    to the new BusinessException, or (b) is split into per-module enums (UserErrorCode, ProblemErrorCode, ...) that implement
+    NamespacedErrorCode.
+  - 'No source-of-truth duplication: any value in legacy ErrorCode is reachable through the new backend-common path.'
+  - HttpStatus mapping stays in module-local enums (AuthErrorCode, future UserErrorCode, etc.) so backend-common is not coupled
+    to org.springframework.http.HttpStatus for the shared path.
+  - ErrorCodeDelegationTest continues to pass; byte-for-byte equality with BaseErrorCode preserved for the 11 generic codes.
+  validation:
+  - ./mvnw verify -B
+  - ErrorCodeDelegationTest passes
+  rollback: Revert backend-common additions; legacy ErrorCode/BusinessException remain in place; backend-auth keeps its private
+    AuthErrorCode/AuthBusinessException.
+  evidence: []
+  commits: []
+  notes: 'Discovered from P2-AUTH-001-A: backend-legacy''s ErrorCode/BusinessException cannot be lifted to backend-common
+    in a single task because legacy enum still has ~150 business codes; this discovery is a follow-up that runs once the auth
+    extraction is stable enough to absorb the promotion without contention. ADR-MIG-AUTH-EXCEPTION-PLACEMENT records the decision
+    to defer.'
+  updated_at: '2026-07-27T10:10:00+08:00'
+- id: P2-DISC-002
+  phase: 2
+  area: DISC
+  discovered_from: P2-AUTH-001-A
+  title: Promote Clock + TimeSource bean config to backend-common
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#11
+  - DECISIONS.md#ADR-MIG-CLOCK-PLACEMENT
+  status: pending
+  depends_on:
+  - P2-AUTH-001-A
+  acceptance_criteria:
+  - backend-common installs the TimeSource bean (SystemTimeSource implementation) so any module that depends on backend-common
+    can inject TimeSource without copying the bean config.
+  - backend-common also installs the java.time.Clock bean (Clock.systemDefaultZone()) so extracted services can inject Clock
+    directly when they prefer the JDK type.
+  - Each new module extraction (P2-AUTH-001-G, P3-AUTH-001, etc.) no longer needs a per-module ClockConfig/TimeConfig copy.
+  - Backend-legacy's com.ulticode.common.time.TimeConfig and SystemTimeSource are removed; consumers move to the new backend-common
+    beans.
+  - TimeSourceHolderTest + TimeSource contract tests still pass; Clock injection in existing services still works (no API
+    change).
+  validation:
+  - ./mvnw verify -B
+  - All extracted services (backend-auth, backend-admin, backend-app) start without per-module ClockConfig
+  rollback: Re-add the per-module ClockConfig; backend-common keeps the bean but consumers fall back to local config until
+    P7-LEGACY-001 deletes the legacy wiring.
+  evidence: []
+  commits: []
+  notes: 'Discovered from P2-AUTH-001-A: backend-auth extracted RefreshTokenService but the unit-test context could not resolve
+    a Clock bean because backend-legacy''s com.ulticode.common.config.ClockConfig is not visible to backend-auth (P1-INFRA-001
+    prohibition). backend-auth now carries an AuthClockConfig copy. Every future module extraction will hit the same wall
+    unless backend-common owns the bean.'
+  updated_at: '2026-07-27T10:09:00+08:00'

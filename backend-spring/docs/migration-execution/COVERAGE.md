@@ -26,12 +26,15 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §11.3 Nginx Gateway inventory + header cleanup | P1-INFRA-004 | done |
 | §Phase-1 Service shells | P1-INFRA-005 | done |
 | Phase-1 gate | P1-GATE | done |
-| §Phase-2 Auth extraction | P2-AUTH-001 | pending |
-| §7.3 Resource server JWT verifier | P2-AUTH-002 | pending |
+| §Phase-2 Auth extraction | P2-AUTH-001 | done |
+| §7.3 Resource server JWT verifier | P2-AUTH-002 | done |
 | §7.5 Provider identity / authz version | P2-AUTH-003 | pending |
-| §Phase-2 Gateway /auth/** cutover | P2-AUTH-004 | pending |
+| §Phase-2 Gateway /auth/** cutover | P2-AUTH-004 | done |
 | §7.5 Auth-only RBAC writer | P2-RBAC-001 | pending |
 | Phase-2 gate | P2-GATE | pending |
+| §7.1 OPSEC secret hygiene scan | P2-SEC-HYGIENE-001, P2-SEC-HYGIENE-002 | done |
+| §4 Coverage & Done Evidence Audit | P2-COV-AUDIT-001, P2-DONE-EVIDENCE-AUDIT-001 | done |
+| §11 Cross-cutting promotions (BusinessException/Clock/Ports) | P2-DISC-001, P2-DISC-002, P2-DISC-003 | done |
 | §Phase-3 Owner-owned Application APIs | P3-OWNER-001 | pending |
 | §Phase-3 Account/Profile seam | P3-OWNER-002 | pending |
 | §Phase-3 Search/Dashboard batch projection | P3-SEARCH-001 | pending |
@@ -86,11 +89,11 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 §13.3 Gateway 与安全:
 - [x] Gateway /auth/** /admin/** /moderation/** routes — P1-INFRA-004
 - [x] Strip client identity headers — P1-INFRA-004
-- [ ] Local JWT verifier per service — P2-AUTH-002
+- [x] Local JWT verifier per service — P2-AUTH-002
 - [ ] JWKS / asymmetric key — Phase 2 (future; see DECISIONS)
-- [ ] alg/iss/aud/typ/kid/exp/nbf — P2-AUTH-002
-- [ ] Refresh only in Auth, hash-only + CAS + family — P2-AUTH-001
-- [ ] Browser CSRF separate from service bearer — P2-AUTH-002
+- [x] alg/iss/aud/typ/kid/exp/nbf — P2-AUTH-002
+- [x] Refresh only in Auth, hash-only + CAS + family — P2-AUTH-001
+- [x] Browser CSRF separate from service bearer — P2-AUTH-002
 - [x] /admin/** + method security — Phase 3/4 (covered by existing @PreAuthorize; burn-down target per P3-OWNER-001)
 - [ ] Dubbo service principal vs end-user delegation — P4-RPC-002
 
@@ -159,7 +162,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phases 2-7: 0/N pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2 (non-DB): 100%; Phases 3-7: pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:

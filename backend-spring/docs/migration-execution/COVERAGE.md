@@ -28,7 +28,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | Phase-1 gate | P1-GATE | done |
 | §Phase-2 Auth extraction | P2-AUTH-001 | done |
 | §7.3 Resource server JWT verifier | P2-AUTH-002 | done |
-| §7.5 Provider identity / authz version | P2-AUTH-003 | pending |
+| §7.5 Provider identity / authz version | P2-AUTH-003 | blocked |
 | §Phase-2 Gateway /auth/** cutover | P2-AUTH-004 | done |
 | §7.5 Auth-only RBAC writer | P2-RBAC-001 | pending |
 | Phase-2 gate | P2-GATE | pending |
@@ -162,12 +162,17 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2 (non-DB): 100%; Phases 3-7: pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2: 18/20 done (1 blocked: P2-AUTH-003 on credential incident, 1 pending: P2-RBAC-001 awaiting P2-AUTH-003); Phases 3-7: pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:
    - Phase 0: **PASS** (all 10 done; P0-GATE commit 7773daa)
    - Phase 1: **PASS** (all 8 tasks done/superseded; P1-GATE commit TBD)
-   - Phases 2-7: all pending (sequential)
+   - Phase 2: 18/20 done; P2-AUTH-003 blocked on credential exposure incident; P2-RBAC-001 pending (dependency); P2-GATE pending. Dynamic MySQL verify cycle deferred until operator authorises secret rotation and MySQL volume recreation.
+   - Phase 3: pending
+   - Phase 4: pending
+   - Phase 5: pending
+   - Phase 6: pending
+   - Phase 7: pending
 
-Audit checkpoint at 2026-07-27T04:16:00+00:00 by Recovery.
+Audit checkpoint at 2026-07-27T12:00:00+00:00 by Recovery (post-credential-incident reconciliation).

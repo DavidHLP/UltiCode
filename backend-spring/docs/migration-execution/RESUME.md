@@ -50,9 +50,9 @@ Current Work:
   performed in this session.
 - P2-AUTH-001-A and P2-AUTH-001-B remain done; their commits
   (da6f598, 9b4aaf9) carry no secret values.
-- P2-AUTH-001-E is still blocked on the cross-cutting port
-  promotion batch (P2-DISC-001/002/003) per
-  ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION.
+- P2-AUTH-001-E is `done` (commit 409d615); the cross-cutting
+  port promotion batch (P2-DISC-001/002/003) is also `done` per
+  TASKS.yaml — see ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (49.8 s,
@@ -88,8 +88,7 @@ Operator actions required (NOT performed by the agent):
   expose material that must not propagate.
 
 Dirty Worktree:
-No — `git status` clean. Local ahead of origin/main: 116 commits.
-No push performed in this session.
+No — `git status` clean. No push performed in this session.
 
 PUSH: NOT pushed. Per AGENTS.md GitHub Write Gate, push requires
 explicit user approval.

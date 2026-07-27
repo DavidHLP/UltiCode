@@ -6634,3 +6634,30 @@
     prohibition). backend-auth now carries an AuthClockConfig copy. Every future module extraction will hit the same wall
     unless backend-common owns the bean.'
   updated_at: '2026-07-27T10:09:00+08:00'
+- id: P2-DISC-003
+  phase: 2
+  area: DISC
+  discovered_from: P2-AUTH-001-E
+  title: Cross-cutting ports (UuidGenerator + CurrentUserProvider) promotion deferred to P2-DISC-001 batch
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#11
+  - DECISIONS.md#ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION
+  status: pending
+  depends_on:
+  - P2-AUTH-001-E
+  acceptance_criteria:
+  - P2-DISC-001 (BusinessException / ErrorCode promotion batch) absorbs the UuidGenerator and CurrentUserProvider port promotion
+    as additional acceptance items.
+  - 'Phase 2 continues with Option D: each new module that needs these ports copies them locally; no in-place promote is attempted
+    mid-extraction.'
+  validation:
+  - DECISIONS.md ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION records the deferred decision with rationale.
+  rollback: N/A — this is a discovery/decision record, not a code change.
+  evidence: []
+  commits: []
+  notes: 'Discovered from P2-AUTH-001-E: PermissionServiceImpl needs com.ulticode.common.uuid.UuidGenerator, com.ulticode.common.auth.CurrentUserProvider,
+    and com.ulticode.common.exception.{BusinessException, ErrorCode}. backend-legacy has the original copies; backend-auth
+    needs local copies for this extraction. ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION records the decision to defer all four promotions
+    to a single Phase 3 / Phase 7 batch owned by P2-DISC-001, because each one is a 5-50 file import rewrite and the combined
+    batch is more reviewable.'
+  updated_at: '2026-07-27T10:15:00+08:00'

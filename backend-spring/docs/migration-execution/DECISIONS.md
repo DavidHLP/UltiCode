@@ -572,3 +572,98 @@ Affected Tasks
 - P2-AUTH-001-G (later): drop `AuthClockConfig` once P2-DISC-002 lands.
 - P7-LEGACY-001 (final): delete `ClockConfig` and `TimeConfig` from
   backend-legacy.
+
+## ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION
+
+Context
+
+P2-AUTH-001-E (RBAC/permission ownership into backend-auth) requires
+backend-auth-local copies of two cross-cutting ports that currently
+live in backend-legacy:
+
+- `com.ulticode.common.uuid.UuidGenerator` (port) +
+  `com.ulticode.common.uuid.ProdUuidGenerator` (`@Component` adapter)
+- `com.ulticode.common.auth.CurrentUserProvider` (port) +
+  `com.ulticode.common.auth.SecurityCurrentUserProvider`
+  (`@Component` adapter)
+
+`grep` over backend-legacy finds **112 files** that import one or both
+of these ports. Promoting the *ports* (interfaces) to backend-common
+without breaking the existing backend-legacy consumers would require
+either:
+
+1. **In-place rename** of backend-legacy's
+   `com.ulticode.common.uuid.UuidGenerator` to
+   `com.ulticode.common.uuid.UuidGenerator` in a new home
+   (`com.ulticode.common.uuid.UuidGenerator` in backend-common), then
+   rewriting the 112 import statements. This is a
+   cross-cutting-ripple change touching every service module and every
+   test. It contradicts the Phase 2 Strangler Fig contract (no silent
+   changes to backend-legacy) and the §15 "additive only" rule for
+   schema-equivalent code paths.
+
+2. **Bridge**: backend-legacy keeps its own copy; backend-common
+   installs the canonical version; backend-legacy's copy becomes a
+   `extends` or a deprecated facade that delegates. This preserves
+   source compatibility but duplicates the type system across two
+   modules and creates a future migration tax when the legacy copies
+   are removed.
+
+Decision
+
+**Continue Option D** (per-call local copies in backend-auth) and
+**defer** the promotion of `UuidGenerator` and `CurrentUserProvider`
+ports until Phase 3 or Phase 7.
+
+Rationale:
+
+- P2-AUTH-001-E's acceptance_criteria explicitly scope the work to
+  the permission domain (PermissionService, PermissionVocabulary,
+  UserPermission, RolePermission, mappers). Promoting cross-cutting
+  ports is not in scope and not blocked by P2-AUTH-001-E (the ports
+  can be copied locally without service interruption).
+- The cost of in-place promotion (rewriting 112 import statements,
+  re-verifying the entire backend-legacy test matrix, and risking a
+  boot-time circular wiring surprise) is too high for a
+  Strangler-Fig Phase 2 task whose goal is *extraction*, not
+  *consolidation*.
+- P2-DISC-001 (BusinessException / ErrorCode), P2-DISC-002 (Clock /
+  TimeSource beans), and the new P2-DISC-003 (UuidGenerator /
+  CurrentUserProvider ports) together describe a single follow-up
+  effort: a **Phase 3 / Phase 7 cross-cutting promotion batch** that
+  moves all four families of cross-cutting types from backend-legacy
+  to backend-common in a coordinated commit series. The four
+  discoveries are intentionally *not* promoted piecemeal because each
+  one is a 5-50 file import-rewrite and the combined batch will be
+  more reviewable as a single PR.
+
+Alternatives
+
+- Single promotion batch **now** (per the advisory that prompted
+  this ADR): rejected because the 112-file import-rewrite is a
+  cross-cutting break that requires its own Phase, its own gate, and
+  its own rollback plan. Phase 2's job is to *extract* without
+  *consolidating*.
+- Per-port promotion as each task needs it: rejected because four
+  separate promotions will quadruple the test-matrix hits without
+  saving any time.
+- Promote adapters (ProdUuidGenerator, SecurityCurrentUserProvider)
+  too: rejected because adapters depend on the security/UUID
+  libraries a given module wires in, so adapters stay module-local;
+  only the *port interfaces* belong to backend-common.
+
+Affected Tasks
+
+- P2-AUTH-001-E (current): carries
+  `com.ulticode.auth.uuid.{UuidGenerator, ProdUuidGenerator}` and
+  `com.ulticode.auth.authport.{CurrentUserProvider,
+  SecurityCurrentUserProvider}` as local copies.
+- P2-DISC-003 (new, owned by P2-AUTH-001-E): add to the
+  cross-cutting promotion batch alongside P2-DISC-001 and
+  P2-DISC-002; the batch is owned by a single Phase 3 follow-up
+  task that covers all four port families in one reviewed PR.
+- P7-LEGACY-001 (final): delete backend-legacy's
+  `com.ulticode.common.uuid.*` and
+  `com.ulticode.common.auth.{CurrentUserProvider,
+  SecurityCurrentUserProvider}` once every consumer has moved to
+  the backend-common ports.

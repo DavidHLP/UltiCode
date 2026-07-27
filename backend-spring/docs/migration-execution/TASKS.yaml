@@ -5933,7 +5933,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#7.3
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001
   acceptance_criteria:
@@ -5944,8 +5944,21 @@
   - ./mvnw verify -B
   - Unit tests for token claims verification
   rollback: revert verifier; App/Admin fall back to current filter chain
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw -pl backend-app,backend-admin -am test -B"
+    result: "BUILD SUCCESS — ResourceServerJwtVerifier unit tests pass in both backend-app and backend-admin"
+  - command: "./mvnw test -B"
+    result: "BUILD SUCCESS — All 9 Maven reactor modules built and passed unit/integration tests in 43.9s with 0 failures"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
+  - file: "backend-app/src/main/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifier.java"
+  - file: "backend-admin/src/main/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifier.java"
+  - file: "backend-app/src/test/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifierTest.java"
+  - file: "backend-admin/src/test/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifierTest.java"
+  - note: 'P2-AUTH-002 complete: installed offline ResourceServerJwtVerifier in App and Admin services. Claims (iss, aud, typ, exp, nbf) and algorithm allowlists verified locally without RPC.'
+    ts: '2026-07-27T11:45:00+08:00'
+  commits:
+  - fd9bc37b6
   notes: ''
   updated_at: ''
 - id: P2-AUTH-003

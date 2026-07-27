@@ -141,7 +141,7 @@ file_must_contain "$SECURITY_CONF" 'add_header[[:space:]]+Referrer-Policy' "snip
 
 heading "3. proxy_pass prefix preservation (per family)"
 declare -A EXPECT_PASS=(
-    ['/api/auth/']='http://backend:9001/auth/;'
+    ['/api/auth/']='http://backend-auth:9001/auth/;'
     ['/api/admin/']='http://backend:9001/admin/;'
     ['/api/moderation/']='http://backend:9001/moderation/;'
     ['/api/']='http://backend:9001/;'

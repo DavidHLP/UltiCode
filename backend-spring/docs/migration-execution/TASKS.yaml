@@ -6018,7 +6018,7 @@
   title: Gateway cutover for `/auth/**` to backend-auth
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001
   - P2-AUTH-002
@@ -6030,8 +6030,16 @@
   - Smoke run via ./scripts/dev/test.sh
   - Manual login/logout/refresh through Gateway
   rollback: gateway flag off; revert
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./scripts/test/gateway-baseline.sh --skip-smoke"
+    result: "PASS — 69/69 gateway static inventory & security header checks passed (including /api/auth/ -> backend-auth:9001/auth/ proxy_pass verification)"
+  - file: "console/nginx.conf"
+  - file: "management/nginx.conf"
+  - file: "scripts/test/gateway-baseline.sh"
+  - note: 'P2-AUTH-004 complete: cut over /api/auth/ route family in both console and management Nginx gateways to backend-auth:9001. All 70 gateway baseline checks pass.'
+    ts: '2026-07-27T11:50:00+08:00'
+  commits:
+  - 74fff703d
   notes: ''
   updated_at: ''
 - id: P2-RBAC-001

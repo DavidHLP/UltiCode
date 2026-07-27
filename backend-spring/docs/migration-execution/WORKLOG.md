@@ -484,3 +484,9 @@ Next authorised actions (require external approval):
 P2-AUTH-003 stays in_progress. P2-AUTH-001-E stays blocked on
 P2-DISC-001/002/003 promotion batch. No further migration work
 this session.
+
+### 2026-07-27 (P2-SEC-HYGIENE-001/002 & Audits)
+- P2-SEC-HYGIENE-001: OPSEC secret scan complete. Verified 0 production secret hits across properties, yml, java, xml sources. Log saved to /tmp/p2-sec-hygiene-001.log (chmod 600). Status: done.
+- P2-COV-AUDIT-001: Migration guide coverage audit complete. 100% of guide sections mapped across 66 tasks. Status: done.
+- P2-DONE-EVIDENCE-AUDIT-001: Evidence audit complete over 21 done tasks. All 21 tasks have verifiable evidence. Status: done.
+- P2-SEC-HYGIENE-002: Added `.env`, `.env.*`, and `!.env.example` rules to `backend-spring/.gitignore`. Verified `.env` check-ignore and git tracked status. Status: done. Commit: 02e2ad8b8.

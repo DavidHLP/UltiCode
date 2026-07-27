@@ -4,6 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-003 (blocked on credential exposure incident)
 
 Last Verified Commit:
+- 9c63135 feat(sec): install offline resource server JWT verifiers in App and Admin (P2-AUTH-002)
 - 169b7e4 feat(auth): complete backend-auth standalone extraction (P2-AUTH-001 & P2-AUTH-001-G)
 - ac47294 feat(auth): move password reset and email integration into backend-auth (P2-AUTH-001-F)
 - 2b8447e feat(auth): move OAuth state and provider adapters into backend-auth (P2-AUTH-001-D)
@@ -20,7 +21,7 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 31 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-A +
+- 32 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-A +
   P2-AUTH-001-B + P2-SEC-HYGIENE-001 + P2-COV-AUDIT-001 +
   P2-DONE-EVIDENCE-AUDIT-001 + P2-SEC-HYGIENE-002 + P2-AUTH-003 EXPAND-phase SQL landed
   P2-AUTH-001-B + P2-AUTH-003 EXPAND-phase SQL landed in 133ae48

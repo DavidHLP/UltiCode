@@ -506,3 +506,6 @@ this session.
 ### 2026-07-27 (P2-AUTH-001 & P2-AUTH-001-G)
 - P2-AUTH-001-G: `backend-auth` standalone extraction validation complete. Full reactor build (`./mvnw test -B`) passes all 9 modules in 38.6s with 0 failures. Status: done. Commit: 169b7e4cc.
 - P2-AUTH-001: Parent task complete! All subtasks A, B, C, D, E, F, G are landed and verified. Status: done. Commit: 169b7e4cc.
+
+### 2026-07-27 (P2-AUTH-002)
+- P2-AUTH-002: Installed offline `ResourceServerJwtVerifier` in `backend-app` and `backend-admin`. Tokens issued by `backend-auth` are verified locally without RPC (validating `iss`, `aud`, `typ`, `exp`, `nbf`, and algorithm allowlist). Full reactor build passes (`./mvnw test -B`). Status: done. Commit: 9c6313507.

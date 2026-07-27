@@ -5683,7 +5683,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-4-refresh-token
-  status: pending
+  status: done
   depends_on:
   - P1-GATE
   - P2-AUTH-001-B
@@ -5695,10 +5695,17 @@
   - ./mvnw -pl backend-auth verify -B
   rollback:
   - Revert backend-auth changes; legacy refresh-token code remains untouched.
-  evidence: []
+  evidence:
+  - note: 'P2-AUTH-001-A done. Copied com.ulticode.modules.refreshtoken.{entity,mapper,service}.* into com.ulticode.auth.refreshtoken.*.
+      Created AuthErrorCode (9 AUTH 1xxxx constants) + AuthBusinessException (accepts NamespacedErrorCode). Added AuthClockConfig
+      (Clock.systemDefaultZone bean) for Clock injection. 4 new unit tests (RefreshTokenServiceTest). Full reactor ./mvnw
+      verify -B PASS, 1795 tests, 0 failures, 4 skipped. Commit: da6f598. Discovered: P2-DISC-001 (BusinessException/ErrorCode
+      promotion) and P2-DISC-002 (Clock/TimeSource bean promotion) — ADRs ADR-MIG-AUTH-EXCEPTION-PLACEMENT and ADR-MIG-CLOCK-PLACEMENT
+      recorded.'
+    ts: '2026-07-27T10:08:30+08:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-26T20:35:52+00:00'
+  updated_at: '2026-07-27T10:08:30+08:00'
 - id: P2-AUTH-001-B
   phase: 2
   area: AUTH

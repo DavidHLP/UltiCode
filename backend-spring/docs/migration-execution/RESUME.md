@@ -4,6 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-003 (blocked on credential exposure incident)
 
 Last Verified Commit:
+- 409d615 feat(auth): move RBAC and permission ownership into backend-auth (P2-AUTH-001-E)
 - 02e2ad8 fix(sec): add .env patterns to .gitignore (P2-SEC-HYGIENE-002)
 - 96daeab chore(migration): record non-sensitive credential exposure incident
 - 6d65f59 chore(migration): mark P2-AUTH-003 blocked on credential exposure incident
@@ -15,7 +16,7 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 25 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-A +
+- 26 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-A +
   P2-AUTH-001-B + P2-SEC-HYGIENE-001 + P2-COV-AUDIT-001 +
   P2-DONE-EVIDENCE-AUDIT-001 + P2-SEC-HYGIENE-002 + P2-AUTH-003 EXPAND-phase SQL landed
   P2-AUTH-001-B + P2-AUTH-003 EXPAND-phase SQL landed in 133ae48

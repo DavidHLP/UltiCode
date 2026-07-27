@@ -490,3 +490,6 @@ this session.
 - P2-COV-AUDIT-001: Migration guide coverage audit complete. 100% of guide sections mapped across 66 tasks. Status: done.
 - P2-DONE-EVIDENCE-AUDIT-001: Evidence audit complete over 21 done tasks. All 21 tasks have verifiable evidence. Status: done.
 - P2-SEC-HYGIENE-002: Added `.env`, `.env.*`, and `!.env.example` rules to `backend-spring/.gitignore`. Verified `.env` check-ignore and git tracked status. Status: done. Commit: 02e2ad8b8.
+
+### 2026-07-27 (P2-AUTH-001-E)
+- P2-AUTH-001-E: Ported RBAC and permission ownership (`PermissionService`, `PermissionVocabulary`, `UserPermission`/`RolePermission` entities and mappers, `UserRoleReadPort`) into `backend-auth`. All unit tests in `PermissionServiceTest` pass (38 tests in `backend-auth` total). Status: done. Commit: 409d61569.

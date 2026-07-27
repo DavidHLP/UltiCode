@@ -499,3 +499,6 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-001-D)
 - P2-AUTH-001-D: Ported `OAuthService` coordinator, `OAuthStatePort`/`OAuthStateModule` (cookie binding + constant-time comparison), `GithubOAuthClient`, `GoogleOAuthClient`, `OAuthHttpTransport`/`OAuthHttp`, and `OAuthProperties` into `backend-auth`. Unit test suite `OAuthServiceTest` passes (49 tests total in `backend-auth`). Status: done. Commit: 2b8447e7d.
+
+### 2026-07-27 (P2-AUTH-001-F)
+- P2-AUTH-001-F: Ported `PasswordResetService`, `AuthEmailService`/`SpringAuthEmailService`, and forgot/reset password logic into `backend-auth`. Unit test suite `PasswordResetServiceTest` passes (53 tests total in `backend-auth`). Status: done. Commit: ac4729416.

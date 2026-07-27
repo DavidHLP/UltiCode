@@ -6403,7 +6403,8 @@
       rule) will forbid the now-removed write method calls even if a
       future PR reintroduces them.'
     ts: '2026-07-27T22:55:00+08:00'
-  commits: []
+  commits:
+  - bd72cfee8
   notes: "Problem is the first domain because it is the largest single source of Admin cross-writes (create, update, publish, restore, flag, moderate, bulk). Its port defines the shape every later domain follows."
   updated_at: '2026-07-27T22:55:00+08:00'
 - id: P3-OWNER-001-B

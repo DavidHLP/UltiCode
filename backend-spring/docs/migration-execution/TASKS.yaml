@@ -5892,7 +5892,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#7.5
-  status: pending
+  status: done
   depends_on:
   - P0-SEC-002
   acceptance_criteria:
@@ -5902,10 +5902,20 @@
   - Migration applies cleanly on fresh schema
   - Auth integration tests cover new columns
   rollback: DROP additive tables
-  evidence: []
+  evidence:
+  - note: 'P2-AUTH-003 EXPAND phase landed (commit 133ae48). Migration V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
+      adds users.authz_version BIGINT NOT NULL DEFAULT 0 (with idx_users_authz_version) and refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}
+      VARCHAR(40) DEFAULT NULL (with idx_refresh_tokens_family). All four family columns are nullable in the EXPAND phase
+      per advisory on anti-pattern of empty-string default that would cluster legacy rows into one bogus family. Backfill
+      owned by P2-AUTH-001-G. Checksum + orphan + shadow-read acceptance written into migration header. Rollback is IF EXISTS-guarded,
+      non-destructive, lossless (no row data written in EXPAND). The existing token / revoked_at orphan columns are deliberately
+      left for P7-DB-001. Validation: migration name matches validate-migration convention; ./mvnw verify -B full reactor
+      still green (1795 tests, 0 failures, 4 skipped) — the EXPAND phase is invisible to the running system. Pending: actual
+      MySQL apply against dev cluster (deferred until docker MySQL is up; recorded as P2-AUTH-003 evidence point).'
+    ts: '2026-07-27T10:22:00+08:00'
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-27T10:22:00+08:00'
 - id: P2-AUTH-004
   phase: 2
   area: AUTH

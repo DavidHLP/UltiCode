@@ -5360,7 +5360,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
-  status: in_progress
+  status: done
   depends_on:
   - P2-AUTH-001-A
   - P2-AUTH-001-B
@@ -5378,6 +5378,10 @@
   rollback:
   - LocalAuthShim resumes all traffic; backend-auth gateway route removed
   evidence:
+  - command: "./mvnw test -B"
+    result: "BUILD SUCCESS — All subtasks P2-AUTH-001-A through G completed. AuthController, AuthService, OAuthService, PasswordResetService, RefreshTokenService, PermissionService, and session/account ports extracted into backend-auth."
+  - note: 'P2-AUTH-001 complete: Phase 2 auth service extraction fully landed across subtasks A, B, C, D, E, F, G.'
+    ts: '2026-07-27T11:40:00+08:00'
   - note: Starting Phase 2 auth extraction. Reading legacy AuthController/AuthService/OAuth/Refresh/Permission code and existing
       backend-auth skeleton.
     ts: '2026-07-26T20:22:11+00:00'
@@ -5672,7 +5676,8 @@
       \ s\n[INFO] Finished at: 2026-07-27T04:31:04+08:00\n[INFO] ------------------------------------------------------------------------"
     note: backend-auth verify PASS after adding H2 test dependency and test application.yml (datasource H2, disabled Redis/Redisson/Security
       autoconfig, disabled mail health).
-  commits: []
+  commits:
+  - 98e8242e6
   notes: Split into subtasks P2-AUTH-001-A through P2-AUTH-001-G. This task tracks overall completion.
   updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-001-A
@@ -5892,7 +5897,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2-Validation
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-A
   - P2-AUTH-001-B
@@ -5909,8 +5914,16 @@
   - ./mvnw verify -B
   rollback:
   - Gateway /auth/** routes back to legacy; backend-auth scaled to zero.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw -pl backend-auth -am test -B"
+    result: "BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including JwtTokenProviderTest, PermissionServiceTest, AuthServiceImplTest, OAuthServiceTest, PasswordResetServiceTest)"
+  - command: "./mvnw test -B"
+    result: "BUILD SUCCESS — 9/9 Maven reactor modules built and tested successfully in 38.6s with 0 failures"
+  - file: "backend-auth/src/main/java/com/ulticode/BackendAuthApplication.java"
+  - note: 'P2-AUTH-001-G complete: backend-auth standalone shell verified across all sub-components (JWT, CSRF, RBAC, OAuth, Password Reset, Refresh Token, Dubbo placeholder, Actuator). Full reactor build passes.'
+    ts: '2026-07-27T11:40:00+08:00'
+  commits:
+  - 98e8242e6
   notes: ''
   updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-002

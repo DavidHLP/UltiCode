@@ -341,3 +341,50 @@ P2-AUTH-001 planning
 - Split P2-AUTH-001 into A-G subtasks; reordered so JWT/security (B) precedes
   refresh-token extraction (A).
 - Delegated P2-AUTH-001-B (JWT/security plumbing) to worker subagent P2Auth001B.
+
+2026-07-27 (continued)
+P2-AUTH-001-B (picked up from vanished worker subagent)
+- Copied com.ulticode.security.{jwt,csrf}.* to
+  com.ulticode.auth.security.{jwt,csrf}.* in backend-auth so the
+  auth service can independently sign/verify JWTs and run CSRF.
+  backend-legacy keeps its own copies unchanged (Strangler Fig
+  dual-run contract).
+- Added hutool-all 5.8.44 to backend-auth/pom.xml for CSRF
+  IdUtil.simpleUUID() generation.
+- Added AuthSecurityConfig (narrower than legacy SecurityConfig:
+  /auth/** + /actuator/health + /api/v1/auth/** permitAll,
+  STATELESS, JWT filter chain, CSRF only when CsrfService bean
+  is available) and AuthAuthenticationEntryPoint (returns
+  Result.error with BaseErrorCode.UNAUTHORIZED).
+- CsrfService rewritten with ObjectProvider<RedisTemplate> so
+  the unit-test slice (which excludes RedisAutoConfiguration)
+  can load the Spring context. requireRedis() throws
+  IllegalStateException on null — prod-inert (Redis is always
+  present at runtime), loud-fail at startup misconfig.
+- CsrfValidationFilter and AuthAuthenticationEntryPoint
+  reference BaseErrorCode (not ErrorCode) so backend-auth does
+  not depend on backend-legacy. Byte values are kept identical
+  per ErrorCodeDelegationTest's contract.
+- 17 new unit tests added: JwtTokenProviderTest (10 tests
+  across ValidateSecret/SignAndVerify/Expiration nested classes)
+  and CsrfServiceTest (7 tests covering generate/rotate/clear/
+  format/missing-Redis).
+- ADR-MIG-AUTH-JWT-PLACEMENT written: records the two-step
+  placement strategy (now: copy to backend-auth for task B
+  acceptance; next: extract verify-only into backend-common in
+  P2-AUTH-002 per guide §7.3/§11 App/Admin offline-verify
+  requirement).
+- RESUME.md refreshed: removed stale "Dirty Worktree: Yes"
+  snapshot (TASKS.yaml/WORKLOG.md updates from the P2-AUTH-001
+  split landed in e50c84b, before the most recent commit).
+- Validation: ./mvnw verify -B full reactor PASS, 1795 tests,
+  0 failures, 4 skipped.
+- Commits:
+  9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth
+  ddf7faa chore(migration): mark P2-AUTH-001-B done; record hash
+
+Next:
+- P2-AUTH-001-A: refresh-token entity/mapper/service extraction
+  into backend-auth (depends on B; A can now begin).
+- P2-AUTH-001-E: RBAC/permission ownership (depends on B; can
+  also begin in parallel with A — no shared files yet).

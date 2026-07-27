@@ -5857,7 +5857,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-4-password-reset
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-C
   acceptance_criteria:
@@ -5869,8 +5869,19 @@
   - password reset integration tests
   rollback:
   - Legacy password reset endpoints restored.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw -pl backend-auth -am test -B"
+    result: "BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including PasswordResetServiceTest, OAuthServiceTest, AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest)"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/service/PasswordResetService.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/mail/AuthEmailService.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/mail/SpringAuthEmailService.java"
+  - file: "backend-auth/src/test/java/com/ulticode/auth/service/PasswordResetServiceTest.java"
+  - note: 'P2-AUTH-001-F complete: ported PasswordResetService, AuthEmailService / SpringAuthEmailService, and forgot/reset password logic into backend-auth. All 53 tests pass.'
+    ts: '2026-07-27T11:35:00+08:00'
+  commits:
+  - a743aa3b3
   notes: ''
   updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-001-G

@@ -22,6 +22,7 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,274 +87,192 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
     private final Clock clock;
     private final AdminContestProjection adminContestProjection;
     private final CurrentUserProvider currentUserProvider;
+    /**
+     * P3-OWNER-001-B: owner-only write surface for the {@code contests},
+     * {@code contest_problems}, and {@code contest_announcements}
+     * tables. Replaces the direct foreign-mapper write calls
+     * (contestMapper.insert / updateById, contestProblemMapper
+     * deleteByContestId / batchInsert, contestAnnouncementMapper
+     * insert / updateById / deleteById) that lived here before
+     * the Phase 3 owner boundary was established. The
+     * contest problem shaping (score / index / base-score rule)
+     * and the slug generation move with the writes into the
+     * port's default adapter.
+     */
+    private final ContestOwnerPort contestOwnerPort;
 
     @Override
     @Transactional
     @Audited(action = AuditVocabulary.CREATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, captureOldState = false)
     public AdminContestVO createContest(CreateContestDTO dto, String userId) {
-        Contest contest = new Contest();
-        contest.setTitle(dto.getTitle());
-        contest.setDescription(dto.getDescription());
-        contest.setStartTime(dto.getStartTime());
-        contest.setDurationMinutes(dto.getDuration());
-        contest.setEndTime(dto.getStartTime().plusMinutes(dto.getDuration()));
-        contest.setMaxParticipants(dto.getMaxParticipants());
-        contest.setIsVisible(dto.getIsPublished() != null ? dto.getIsPublished() : false);
-        contest.setCreatedBy(userId);
-        contest.setStatus(ContestStatus.UPCOMING.name());
-        contest.setRegisteredCount(0);
-        contest.setParticipantCount(0);
-        contest.setSubmissionCount(0);
-        contest.setIsDeleted(false);
+        // P3-OWNER-001-B: the contest row + contest-problem attachments
+        // are owned by ContestOwnerPort. The port returns the new id;
+        // the admin re-fetches via the projection for VO composition.
+        final String newId = contestOwnerPort.createContest(dto, userId);
 
-        String slug = (dto.getSlug() != null && !dto.getSlug().isBlank())
-                ? dto.getSlug().trim()
-                : adminContestProjection.generateSlug(dto.getTitle());
-        contest.setSlug(slug);
-
-        try {
-            contestMapper.insert(contest);
-        } catch (DataIntegrityViolationException e) {
-            // P0-5 / H2: uk_contest_slug rejected. Catch the parent class so we
-            // surface 409 regardless of whether the driver throws
-            // DuplicateKeyException (mysql-connector-j) or the parent
-            // DataIntegrityViolationException (some MariaDB / older drivers).
-            throw new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS,
-                    "Contest slug '" + slug + "' already exists");
-        }
-
-        // Bulk-insert scored contest problems atomically with the contest row
-        // (C01 deepening). buildScoredContestProblems concentrates the score,
-        // index, and base-score rule shared by create and update; a failure
-        // here rolls back the whole @Transactional create so no partial
-        // contest persists.
-        List<ContestProblem> contestProblems = buildScoredContestProblems(
-                contest.getId(), dto.getProblems(), dto.getProblemIds());
-        if (!contestProblems.isEmpty()) {
-            contestProblemMapper.batchInsert(contestProblems);
-        }
-
-        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "slug", contest.getSlug()));
+        // Map.of does not allow null values; the empty CreateContestDTO
+        // case has both title and slug null. Build a HashMap so the
+        // audit context is always populated with placeholders.
+        final Map<String, Object> newValues = new HashMap<>();
+        newValues.put("title", dto.getTitle() != null ? dto.getTitle() : "<unspecified>");
+        newValues.put("slug", dto.getSlug() != null ? dto.getSlug() : "<generated>");
+        AuditContext.setNewValues(newValues);
         AuditContext.setUserId(userId);
 
-        log.info("Admin created contest: {} by user {}", contest.getId(), userId);
-        return adminContestProjection.toAdminVO(contest);
+        log.info("Admin created contest: {} by user {}", newId, userId);
+        return adminContestProjection.getContest(newId);
     }
 
     @Override
     @Transactional
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
-        Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
+        // P3-OWNER-001-B: capture the old values for the audit before
+        // the port mutates the row. The status-guard is also port-side.
+        final Contest before = contestMapper.selectById(id);
+        if (before == null) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
-
-        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
-        }
-
         Map<String, Object> oldValues = new HashMap<>();
-        oldValues.put("title", contest.getTitle());
-        oldValues.put("status", contest.getStatus());
-        oldValues.put("description", contest.getDescription());
-        oldValues.put("startTime", contest.getStartTime());
-        oldValues.put("durationMinutes", contest.getDurationMinutes());
-        oldValues.put("maxParticipants", contest.getMaxParticipants());
-        oldValues.put("isVisible", contest.getIsVisible());
+        oldValues.put("title", before.getTitle());
+        oldValues.put("status", before.getStatus());
+        oldValues.put("description", before.getDescription());
+        oldValues.put("startTime", before.getStartTime());
+        oldValues.put("durationMinutes", before.getDurationMinutes());
+        oldValues.put("maxParticipants", before.getMaxParticipants());
+        oldValues.put("isVisible", before.getIsVisible());
 
-        PartialUpdate.setIfPresentText(dto, UpdateContestDTO::getTitle, contest::setTitle);
-        PartialUpdate.setIfPresentText(dto, UpdateContestDTO::getDescription, contest::setDescription);
-        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getStartTime, contest::setStartTime);
-        // Duration has a coupled side effect (recompute endTime) so it stays inline.
-        if (dto.getDuration() != null) {
-            contest.setDurationMinutes(dto.getDuration());
-            contest.setEndTime(dto.getStartTime() != null
-                    ? dto.getStartTime().plusMinutes(dto.getDuration())
-                    : contest.getStartTime().plusMinutes(dto.getDuration()));
-        }
-        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getMaxParticipants, contest::setMaxParticipants);
-        PartialUpdate.setIfPresent(dto, UpdateContestDTO::getIsPublished, contest::setIsVisible);
-
-        // Replace contest problems when scored problems or legacy problemIds
-        // are provided. The delete + scored bulk-insert runs in this
-        // @Transactional update, so a mid-list failure rolls back the whole
-        // update (no half-replaced problem set).
-        if (dto.getProblems() != null || dto.getProblemIds() != null) {
-            contestProblemMapper.deleteByContestId(id);
-            List<ContestProblem> contestProblems = buildScoredContestProblems(
-                    id, dto.getProblems(), dto.getProblemIds());
-            if (!contestProblems.isEmpty()) {
-                contestProblemMapper.batchInsert(contestProblems);
-            }
-        }
-
-        contestMapper.updateById(contest);
+        // The port owns the status guard (UPCOMING-only) and the
+        // partial-update + problem-replace mechanics.
+        contestOwnerPort.updateContest(id, dto);
 
         AuditContext.setOldValues(oldValues);
-        Map<String, Object> newValues = new HashMap<>();
-        newValues.put("title", contest.getTitle());
-        newValues.put("status", contest.getStatus());
-        AuditContext.setNewValues(newValues);
+        AuditContext.setNewValues(Map.of("title", dto.getTitle() != null ? dto.getTitle() : before.getTitle(),
+                "status", before.getStatus()));
 
         log.info("Admin updated contest: {}", id);
-        return adminContestProjection.toAdminVO(contest);
+        return adminContestProjection.getContest(id);
     }
 
     @Override
     @Audited(action = AuditVocabulary.DELETE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
-        Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        String status = contest.getStatus();
-        if (!ContestStatus.UPCOMING.name().equals(status)
-                && !ContestStatus.FINISHED.name().equals(status)) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        contest.setIsDeleted(true);
-        contest.setDeletedAt(LocalDateTime.now(clock));
-        contest.setDeletedBy(currentUserProvider.getCurrentUserId());
-        contestMapper.updateById(contest);
-
+        // P3-OWNER-001-B: the soft-delete write is owned by the
+        // port. The admin captures the old values for the audit
+        // and records the actor for the port.
+        final Contest before = contestMapper.selectById(id);
         Map<String, Object> oldValues = new HashMap<>();
-        oldValues.put("title", contest.getTitle());
-        oldValues.put("status", contest.getStatus());
+        if (before != null) {
+            oldValues.put("title", before.getTitle());
+            oldValues.put("status", before.getStatus());
+        }
+        final String deletedBy = currentUserProvider.getCurrentUserId();
+        contestOwnerPort.deleteContest(id, deletedBy);
+
         AuditContext.setOldValues(oldValues);
         AuditContext.setNewValues(null);
 
-        log.info("Admin deleted contest: {}", id);
+        log.info("Admin deleted contest: {} by user={}", id, deletedBy);
     }
 
     @Override
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO startContest(String id) {
-        Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        // P3-OWNER-001-B: the port owns the status guard, the
+        // problem-existence check, and the status transition. The
+        // admin re-fetches via the projection for VO composition.
+        final Contest before = contestMapper.selectById(id);
+        if (before != null) {
+            AuditContext.setOldValues(Map.of("status", before.getStatus()));
         }
-
-        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED);
-        }
-
-        long problemCount = contestReadPort.countProblemsByContestId(id);
-        if (problemCount == 0) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        contest.setStatus(ContestStatus.RUNNING.name());
-        contestMapper.updateById(contest);
-
-        AuditContext.setOldValues(Map.of("status", ContestStatus.UPCOMING.name()));
+        contestOwnerPort.startContest(id);
         AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
-
         log.info("Admin started contest: {}", id);
-        return adminContestProjection.toAdminVO(contest);
+        return adminContestProjection.getContest(id);
     }
 
     @Override
     @Audited(action = AuditVocabulary.UPDATE_CONTEST, entityType = AuditVocabulary.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO endContest(String id) {
-        Contest contest = contestMapper.selectById(id);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        final Contest before = contestMapper.selectById(id);
+        if (before != null) {
+            AuditContext.setOldValues(Map.of("status", before.getStatus()));
         }
-
-        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ENDED);
-        }
-
-        contest.setStatus(ContestStatus.FINISHED.name());
-        contestMapper.updateById(contest);
-
-        AuditContext.setOldValues(Map.of("status", ContestStatus.RUNNING.name()));
+        contestOwnerPort.endContest(id);
         AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
-
         log.info("Admin ended contest: {}", id);
-        return adminContestProjection.toAdminVO(contest);
+        return adminContestProjection.getContest(id);
     }
 
     @Override
     @Transactional
     @Audited(action = AuditVocabulary.CREATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, captureOldState = false)
     public ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
-        Contest contest = contestMapper.selectById(contestId);
-        if (contest == null) {
-            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
-        }
+        // P3-OWNER-001-B: the announcement row is owned by the
+        // port. The WebSocket push (D-12) stays in admin because
+        // it is an outbound side effect on the admin's
+        // ContestAnnouncementPushPort; the port intentionally does
+        // not know about it. Note the subtle semantic change:
+        // the push is no longer in the same @Transactional as the
+        // DB insert. A push failure no longer rolls back the
+        // announcement row, which is the correct behavior for a
+        // fire-and-forget WebSocket effect (the port's
+        // @Transactional commits independently).
+        final String newId = contestOwnerPort.createAnnouncement(contestId, title, content, isPinned);
 
-        ContestAnnouncement announcement = new ContestAnnouncement();
-        announcement.setContestId(contestId);
-        announcement.setTitle(title);
-        announcement.setContent(content);
-        announcement.setIsPinned(isPinned != null ? isPinned : false);
-
-        contestAnnouncementMapper.insert(announcement);
-
-        // WebSocket push (D-12) via ContestAnnouncementPushPort
         contestAnnouncementPushPort.emitAnnouncement(contestId,
-                AnnouncementPayload.of(announcement.getId(), contestId, title, content));
+                AnnouncementPayload.of(newId, contestId, title, content));
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("title", title);
         newValues.put("contestId", contestId);
         AuditContext.setNewValues(newValues);
 
-        log.info("Admin created announcement {} for contest {}", announcement.getId(), contestId);
-        return announcement;
+        log.info("Admin created announcement {} for contest {}", newId, contestId);
+        // Re-fetch the entity for the caller; the read is a
+        // sanctioned admin path (the existing findByContestIdAndId).
+        return contestAnnouncementMapper.findByContestIdAndId(contestId, newId);
     }
 
     @Override
     @Audited(action = AuditVocabulary.UPDATE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
-        ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
-        if (announcement == null) {
+        // Capture old values for the audit before the port
+        // mutates the row.
+        final ContestAnnouncement before = contestAnnouncementMapper
+                .findByContestIdAndId(contestId, announcementId);
+        if (before == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
-
         Map<String, Object> oldValues = new HashMap<>();
-        oldValues.put("title", announcement.getTitle());
-        oldValues.put("isPinned", announcement.getIsPinned());
+        oldValues.put("title", before.getTitle());
+        oldValues.put("isPinned", before.getIsPinned());
 
-        if (title != null) {
-            announcement.setTitle(title);
-        }
-        if (content != null) {
-            announcement.setContent(content);
-        }
-        if (isPinned != null) {
-            announcement.setIsPinned(isPinned);
-        }
-
-        contestAnnouncementMapper.updateById(announcement);
+        contestOwnerPort.updateAnnouncement(contestId, announcementId, title, content, isPinned);
 
         AuditContext.setOldValues(oldValues);
         Map<String, Object> newValues = new HashMap<>();
-        newValues.put("title", announcement.getTitle());
-        newValues.put("isPinned", announcement.getIsPinned());
+        newValues.put("title", title != null ? title : before.getTitle());
+        newValues.put("isPinned", isPinned != null ? isPinned : before.getIsPinned());
         AuditContext.setNewValues(newValues);
 
         log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
-        return announcement;
+        return contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
     }
 
     @Override
     @Audited(action = AuditVocabulary.DELETE_CONTEST_ANNOUNCEMENT, entityType = AuditVocabulary.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public void deleteAnnouncement(String contestId, String announcementId) {
-        ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
-        if (announcement == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        final ContestAnnouncement before = contestAnnouncementMapper
+                .findByContestIdAndId(contestId, announcementId);
+        Map<String, Object> oldValues = new HashMap<>();
+        if (before != null) {
+            oldValues.put("title", before.getTitle());
+            oldValues.put("contestId", contestId);
         }
 
-        contestAnnouncementMapper.deleteById(announcementId);
+        contestOwnerPort.deleteAnnouncement(contestId, announcementId);
 
-        Map<String, Object> oldValues = new HashMap<>();
-        oldValues.put("title", announcement.getTitle());
-        oldValues.put("contestId", contestId);
         AuditContext.setOldValues(oldValues);
         AuditContext.setNewValues(null);
 
@@ -371,71 +290,10 @@ public class AdminContestMutationServiceImpl implements AdminContestMutationServ
      * rule so create and the update replacement share one transactional
      * bulk-insert path.
      *
-     * <p>Each problem receives the author's score (default {@code 100}) in
-     * both {@code score} &mdash; the field {@link ContestAdjudicationServiceImpl}
-     * reads for ranking &mdash; and {@code baseScore}, a letter problem-index
-     * ({@code "A"+i}, matching the live add-problem seam in
-     * {@link ContestServiceImpl}), and zeroed counters. The previous
-     * inline paths wrote {@code score=0} and a {@code "Q"+n} index, which was
-     * either dead (create bulk-insert was never reached by any caller) or
-     * inconsistent with the ranking reader.
-     *
-     * @param contestId  the contest the problems attach to
-     * @param problems   scored attachments; wins over {@code problemIds} when present
-     * @param problemIds legacy unscored ids; each attaches with the default score
-     * @return the shaped contest-problem list (empty when neither input is given)
+     * <p>P3-OWNER-001-B: the contest problem shaping (score / index /
+     * base-score rule) and the slug generation have moved to
+     * {@link com.ulticode.modules.contest.port.DefaultContestOwnerPort}.
+     * This class no longer holds the helper; the port owns the
+     * contest-domain invariants.
      */
-    private List<ContestProblem> buildScoredContestProblems(
-            String contestId, List<AddContestProblemDTO> problems, List<Long> problemIds) {
-        List<AddContestProblemDTO> source;
-        if (problems != null && !problems.isEmpty()) {
-            source = problems;
-        } else if (problemIds != null && !problemIds.isEmpty()) {
-            source = new ArrayList<>(problemIds.size());
-            for (Long pid : problemIds) {
-                AddContestProblemDTO item = new AddContestProblemDTO();
-                item.setProblemId(pid);
-                source.add(item);
-            }
-        } else {
-            return List.of();
-        }
-
-        List<ContestProblem> list = new ArrayList<>(source.size());
-        for (int i = 0; i < source.size(); i++) {
-            AddContestProblemDTO item = source.get(i);
-            int score = item.getScore() != null ? item.getScore() : DEFAULT_PROBLEM_SCORE;
-            ContestProblem cp = new ContestProblem();
-            cp.setContestId(contestId);
-            cp.setProblemId(item.getProblemId());
-            cp.setProblemIndex(problemIndex(i));
-            cp.setScore(score);
-            cp.setBaseScore(score);
-            cp.setSolvedCount(0);
-            cp.setSubmissionCount(0);
-            list.add(cp);
-        }
-        return list;
-    }
-
-    /**
-     * Default per-problem score when the author did not supply one, applied to
-     * both {@code score} (the field {@link ContestAdjudicationServiceImpl}
-     * reads for ranking) and {@code baseScore}.
-     */
-    private static final int DEFAULT_PROBLEM_SCORE = 100;
-
-    /**
-     * Compute a stable, human-readable problem index for the zero-based slot
-     * {@code i}. Slots 0&ndash;25 map to the single letters A&ndash;Z; slot
-     * 26+ (a contest with more than 26 problems) falls back to a deterministic
-     * {@code P<i+1>} label instead of the silent non-letter overflow that a
-     * bare {@code (char) ('A' + i)} would produce.
-     */
-    private static String problemIndex(int i) {
-        if (i >= 0 && i < 26) {
-            return String.valueOf((char) ('A' + i));
-        }
-        return "P" + (i + 1);
-    }
 }

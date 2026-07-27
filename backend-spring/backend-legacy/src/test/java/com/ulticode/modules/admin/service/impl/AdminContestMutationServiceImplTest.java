@@ -13,11 +13,11 @@ import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
-import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.port.ContestOwnerPort;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -39,27 +38,30 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link AdminContestMutationServiceImpl} &mdash; the
- * contest write state machine lifted out of the legacy
- * {@code AdminContestServiceImpl} per the admin-write deepening.
+ * P3-OWNER-001-B: unit tests for {@link AdminContestMutationServiceImpl}
+ * after the owner-write port seam.
  *
- * <p>Covers every mutation invariant the module owns, with a pure
- * mock-mapper graph and no database: status-transition guards, write
- * invariants (existence, slug conflict, duplicate problem), the
- * fire-and-forget announcement push (D-12), the audit-context payloads,
- * the problem-count read seam, and the partial-update shape.
+ * <p>The legacy test pinned the foreign-mapper write contract
+ * (contestMapper.insert, contestProblemMapper.batchInsert,
+ * contestAnnouncementMapper.insert / updateById / deleteById).
+ * The new contract is the {@link ContestOwnerPort} boundary;
+ * the test now stubs the port to return the expected ids and
+ * asserts the port is called with the right commands, plus the
+ * surviving read-path assertions (re-fetch via the projection,
+ * existence checks, audit-context payloads, announcement push).
  *
- * <p>Behavior is preserved exactly from the legacy single service; these
- * cases pin that contract against the new write seam.
+ * <p>The status-guard, slug generation, problem shaping, and
+ * write-mechanics are owned by the port; they have their own
+ * contract tests in {@code DefaultContestOwnerPortTest} (added
+ * separately).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -69,14 +71,27 @@ class AdminContestMutationServiceImplTest {
     private static final String ADMIN_USER_ID = "admin-1";
     private static final String CONTEST_ID = "contest-1";
 
+    /** Read-side mappers still used by the admin for the re-fetch + before-state snapshot. */
     @Mock private ContestMapper contestMapper;
-    @Mock private ContestProblemMapper contestProblemMapper;
     @Mock private ContestAnnouncementMapper contestAnnouncementMapper;
     @Mock private ContestAnnouncementPushPort contestAnnouncementPushPort;
     @Mock private AdminContestReadPort contestReadPort;
-    private final Clock clock = Clock.systemUTC();
     @Mock private AdminContestProjection adminContestProjection;
     @Mock private CurrentUserProvider currentUserProvider;
+
+    /**
+     * P3-OWNER-001-B: the foreign write contract now flows through
+     * this port. The test stubs the port to return the new ids.
+     */
+    @Mock private ContestOwnerPort contestOwnerPort;
+    /**
+     * Kept as a mock so the @BeforeEach constructor call still
+     * resolves; the test never sets a stub or verifies a call on it
+     * because the port owns the contest-problem write path.
+     */
+    @Mock private ContestProblemMapper contestProblemMapper;
+
+    private final Clock clock = Clock.systemUTC();
 
     private AdminContestMutationServiceImpl service;
 
@@ -85,14 +100,14 @@ class AdminContestMutationServiceImplTest {
         service = new AdminContestMutationServiceImpl(
                 contestMapper, contestProblemMapper, contestAnnouncementMapper,
                 contestAnnouncementPushPort, contestReadPort, clock,
-                adminContestProjection, currentUserProvider);
+                adminContestProjection, currentUserProvider, contestOwnerPort);
+        when(currentUserProvider.getCurrentUserId()).thenReturn(ADMIN_USER_ID);
     }
 
     @AfterEach
     void tearDown() {
-        // createContest/updateContest/etc. populate AuditContext ThreadLocals that
-        // the @Audited aspect would clear in production but unit tests never invoke.
-        // Without this, userId leaks into later test classes on the same Surefire thread.
+        // Service populates AuditContext ThreadLocals that the @Audited
+        // aspect would clear in production but unit tests never invoke.
         AuditContext.clear();
     }
 
@@ -101,151 +116,40 @@ class AdminContestMutationServiceImplTest {
     // ----------------------------------------------------------------------
 
     @Nested
-    @DisplayName("createContest — create + optional problem bulk-insert")
+    @DisplayName("createContest — owner port seam")
     class CreateContest {
 
         @Test
-        @DisplayName("inserts the contest, generates a slug, and returns the projected VO")
-        void happyPath_insertsAndProjects() {
-            CreateContestDTO dto = buildCreateDto("Weekly #21", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    180, false, null);
-            when(adminContestProjection.generateSlug("Weekly #21")).thenReturn("weekly-21");
-            AdminContestVO vo = new AdminContestVO();
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(vo);
+        @DisplayName("forwards the DTO + userId to ContestOwnerPort.createContest and re-fetches via projection")
+        void routesToOwnerPort() {
+            when(contestOwnerPort.createContest(any(CreateContestDTO.class), eq(ADMIN_USER_ID)))
+                    .thenReturn(CONTEST_ID);
+            final AdminContestVO expected = new AdminContestVO();
+            expected.setId(CONTEST_ID);
+            when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
 
-            AdminContestVO result = service.createContest(dto, ADMIN_USER_ID);
+            final AdminContestVO vo = service.createContest(new CreateContestDTO(), ADMIN_USER_ID);
 
-            assertThat(result).isSameAs(vo);
-
-            ArgumentCaptor<Contest> captor = ArgumentCaptor.forClass(Contest.class);
-            verify(contestMapper).insert(captor.capture());
-            Contest saved = captor.getValue();
-            assertThat(saved.getSlug()).isEqualTo("weekly-21");
-            assertThat(saved.getStatus()).isEqualTo(ContestStatus.UPCOMING.name());
-            assertThat(saved.getEndTime()).isEqualTo(dto.getStartTime().plusMinutes(180));
-            assertThat(saved.getIsVisible()).isFalse();
-            assertThat(saved.getIsDeleted()).isFalse();
+            assertThat(vo).isSameAs(expected);
+            final ArgumentCaptor<CreateContestDTO> cmdCaptor = ArgumentCaptor.forClass(CreateContestDTO.class);
+            verify(contestOwnerPort).createContest(cmdCaptor.capture(), eq(ADMIN_USER_ID));
+            assertThat(cmdCaptor.getValue()).isNotNull();
+            // P3-OWNER-001-B: the admin no longer calls the foreign
+            // mapper for the contest row insert.
+            verify(contestMapper, never()).insert(any(Contest.class));
             verify(contestProblemMapper, never()).batchInsert(any());
         }
 
         @Test
-        @DisplayName("isPublished=true flips isVisible on the created contest")
-        void publishedFlag_setsVisible() {
-            CreateContestDTO dto = buildCreateDto("Open Cup", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    120, true, null);
-            when(adminContestProjection.generateSlug(anyString())).thenReturn("open-cup");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
+        @DisplayName("surfaces owner-port CONTEST_SLUG_EXISTS as a BusinessException")
+        void slugConflictFromPort() {
+            when(contestOwnerPort.createContest(any(CreateContestDTO.class), anyString()))
+                    .thenThrow(new BusinessException(ErrorCode.CONTEST_SLUG_EXISTS, "duplicate"));
 
-            service.createContest(dto, ADMIN_USER_ID);
-
-            ArgumentCaptor<Contest> captor = ArgumentCaptor.forClass(Contest.class);
-            verify(contestMapper).insert(captor.capture());
-            assertThat(captor.getValue().getIsVisible()).isTrue();
-        }
-
-        @Test
-        @DisplayName("bulk-inserts contest problems with letter index + default score when only problemIds is provided")
-        void withProblemIds_bulkInserts() {
-            CreateContestDTO dto = buildCreateDto("With Problems", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    120, false, List.of(101L, 102L, 103L));
-            when(adminContestProjection.generateSlug(anyString())).thenReturn("with-problems");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-
-            service.createContest(dto, ADMIN_USER_ID);
-
-            ArgumentCaptor<List<ContestProblem>> captor = ArgumentCaptor.forClass(List.class);
-            verify(contestProblemMapper).batchInsert(captor.capture());
-            List<ContestProblem> inserted = captor.getValue();
-            assertThat(inserted).hasSize(3);
-            assertThat(inserted.get(0).getProblemId()).isEqualTo(101L);
-            assertThat(inserted.get(0).getProblemIndex()).isEqualTo("A");
-            assertThat(inserted.get(0).getScore()).isEqualTo(100);
-            assertThat(inserted.get(0).getBaseScore()).isEqualTo(100);
-            assertThat(inserted.get(1).getProblemIndex()).isEqualTo("B");
-            assertThat(inserted.get(2).getProblemIndex()).isEqualTo("C");
-        }
-
-        @Test
-        @DisplayName("C01: bulk-inserts scored problems atomically with the contest row")
-        void withScoredProblems_bulkInsertsAtomically() {
-            CreateContestDTO dto = buildCreateDto("Scored", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    120, false, null);
-            dto.setProblems(List.of(scoredProblem(201L, 250), scoredProblem(202L, null)));
-            when(adminContestProjection.generateSlug(anyString())).thenReturn("scored");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-
-            service.createContest(dto, ADMIN_USER_ID);
-
-            ArgumentCaptor<List<ContestProblem>> captor = ArgumentCaptor.forClass(List.class);
-            verify(contestProblemMapper).batchInsert(captor.capture());
-            List<ContestProblem> inserted = captor.getValue();
-            assertThat(inserted).hasSize(2);
-            assertThat(inserted.get(0).getProblemId()).isEqualTo(201L);
-            assertThat(inserted.get(0).getScore()).isEqualTo(250);
-            assertThat(inserted.get(0).getBaseScore()).isEqualTo(250);
-            // null score defaults to 100 so ranking reads a real max score
-            assertThat(inserted.get(1).getScore()).isEqualTo(100);
-            assertThat(inserted.get(1).getProblemIndex()).isEqualTo("B");
-        }
-
-        @Test
-        @DisplayName("does NOT call batchInsert when problemIds is empty (null-or-empty guard)")
-        void emptyProblemIds_skipsBatchInsert() {
-            CreateContestDTO dto = buildCreateDto("No Problems", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    120, false, List.of());
-            when(adminContestProjection.generateSlug(anyString())).thenReturn("no-problems");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-
-            service.createContest(dto, ADMIN_USER_ID);
-
-            verify(contestProblemMapper, never()).batchInsert(any());
-        }
-
-        @Test
-        @DisplayName("P0-5 / H2: slug unique-constraint violation maps to CONTEST_SLUG_EXISTS")
-        void slugConflict_mapsToSlugExists() {
-            CreateContestDTO dto = buildCreateDto("Dup", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    120, false, null);
-            when(adminContestProjection.generateSlug(anyString())).thenReturn("dup");
-            org.springframework.dao.DataIntegrityViolationException violation =
-                    new DataIntegrityViolationException("uk_contest_slug");
-            org.mockito.Mockito.doThrow(violation).when(contestMapper).insert(any(Contest.class));
-
-            assertThatThrownBy(() -> service.createContest(dto, ADMIN_USER_ID))
+            assertThatThrownBy(() -> service.createContest(new CreateContestDTO(), ADMIN_USER_ID))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_SLUG_EXISTS);
-        }
-
-        @Test
-        @DisplayName("uses the DTO slug when provided instead of generating from title")
-        void dtoSlugProvided_usesDtoSlug() {
-            CreateContestDTO dto = buildCreateDto("Weekly #21", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    180, false, null);
-            dto.setSlug("custom-slug");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-
-            service.createContest(dto, ADMIN_USER_ID);
-
-            verify(adminContestProjection, never()).generateSlug(anyString());
-            ArgumentCaptor<Contest> captor = ArgumentCaptor.forClass(Contest.class);
-            verify(contestMapper).insert(captor.capture());
-            assertThat(captor.getValue().getSlug()).isEqualTo("custom-slug");
-        }
-
-        @Test
-        @DisplayName("trims surrounding whitespace from a provided DTO slug before persisting it")
-        void dtoSlugWithWhitespace_isTrimmed() {
-            CreateContestDTO dto = buildCreateDto("Weekly #21", LocalDateTime.of(2026, 7, 1, 10, 0),
-                    180, false, null);
-            dto.setSlug("  custom-slug  ");
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-
-            service.createContest(dto, ADMIN_USER_ID);
-
-            verify(adminContestProjection, never()).generateSlug(anyString());
-            ArgumentCaptor<Contest> captor = ArgumentCaptor.forClass(Contest.class);
-            verify(contestMapper).insert(captor.capture());
-            assertThat(captor.getValue().getSlug()).isEqualTo("custom-slug");
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.CONTEST_SLUG_EXISTS));
         }
     }
 
@@ -254,98 +158,65 @@ class AdminContestMutationServiceImplTest {
     // ----------------------------------------------------------------------
 
     @Nested
-    @DisplayName("updateContest — UPCOMING-only partial update")
+    @DisplayName("updateContest — owner port seam")
     class UpdateContest {
 
         @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest does not exist")
-        void missingContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(null);
-            UpdateContestDTO dto = new UpdateContestDTO();
+        @DisplayName("forwards id + DTO to ContestOwnerPort.updateContest and re-fetches via projection")
+        void routesToOwnerPort() {
+            final Contest before = new Contest();
+            before.setId(CONTEST_ID);
+            before.setTitle("Old");
+            before.setStatus(ContestStatus.UPCOMING.name());
+            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            final AdminContestVO expected = new AdminContestVO();
+            expected.setId(CONTEST_ID);
+            when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
 
-            assertThatThrownBy(() -> service.updateContest(CONTEST_ID, dto))
+            final AdminContestVO vo = service.updateContest(CONTEST_ID, new UpdateContestDTO());
+
+            assertThat(vo).isSameAs(expected);
+            verify(contestOwnerPort).updateContest(eq(CONTEST_ID), any(UpdateContestDTO.class));
+            // P3-OWNER-001-B: the admin no longer calls the foreign
+            // mapper for the contest row update or the problem
+            // replacement.
+            verify(contestMapper, never()).updateById(any(Contest.class));
+            verify(contestProblemMapper, never()).deleteByContestId(anyString());
+            verify(contestProblemMapper, never()).batchInsert(any());
+        }
+
+        @Test
+        @DisplayName("CONTEST_NOT_FOUND when the contest does not exist")
+        void notFound() {
+            when(contestMapper.selectById("missing")).thenReturn(null);
+
+            assertThatThrownBy(() -> service.updateContest("missing", new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.CONTEST_NOT_FOUND));
+            verify(contestOwnerPort, never()).updateContest(anyString(), any());
         }
 
         @Test
-        @DisplayName("throws CONTEST_ONLY_REGISTER_UPCOMING when the contest is RUNNING")
-        void runningContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.RUNNING));
-            UpdateContestDTO dto = new UpdateContestDTO();
+        @DisplayName("CONTEST_ONLY_REGISTER_UPCOMING when the contest is not UPCOMING (raised by the port)")
+        void notUpcoming() {
+            final Contest before = new Contest();
+            before.setId(CONTEST_ID);
+            before.setTitle("Running contest");
+            before.setStatus(ContestStatus.RUNNING.name());
+            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            // The port is the layer that owns the status guard; the
+            // service delegates the write so the port raises the
+            // exception. The test simulates that by having the port
+            // throw on the matching call. updateContest is a void
+            // return, so use doThrow instead of thenThrow.
+            org.mockito.Mockito.doThrow(new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING))
+                    .when(contestOwnerPort).updateContest(eq(CONTEST_ID), any(UpdateContestDTO.class));
 
-            assertThatThrownBy(() -> service.updateContest(CONTEST_ID, dto))
+            assertThatThrownBy(() -> service.updateContest(CONTEST_ID, new UpdateContestDTO()))
                     .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
-        }
-
-        @Test
-        @DisplayName("applies partial fields and persists the update")
-        void happyPath_appliesPartialFields() {
-            Contest contest = buildContest(ContestStatus.UPCOMING);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-            UpdateContestDTO dto = new UpdateContestDTO();
-            dto.setTitle("Renamed");
-            dto.setDescription("new desc");
-
-            service.updateContest(CONTEST_ID, dto);
-
-            verify(contestMapper).updateById(contest);
-            assertThat(contest.getTitle()).isEqualTo("Renamed");
-            assertThat(contest.getDescription()).isEqualTo("new desc");
-        }
-
-        @Test
-        @DisplayName("duration change recomputes the coupled endTime from the new startTime")
-        void durationChange_recomputesEndTime() {
-            Contest contest = buildContest(ContestStatus.UPCOMING);
-            LocalDateTime newStart = LocalDateTime.of(2026, 8, 1, 9, 0);
-            contest.setStartTime(LocalDateTime.of(2026, 7, 1, 10, 0));
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-            UpdateContestDTO dto = new UpdateContestDTO();
-            dto.setStartTime(newStart);
-            dto.setDuration(90);
-
-            service.updateContest(CONTEST_ID, dto);
-
-            assertThat(contest.getEndTime()).isEqualTo(newStart.plusMinutes(90));
-            assertThat(contest.getDurationMinutes()).isEqualTo(90);
-        }
-
-        @Test
-        @DisplayName("duration change without startTime recomputes endTime from the existing startTime")
-        void durationChangeWithoutStartTime_usesExistingStartTime() {
-            Contest contest = buildContest(ContestStatus.UPCOMING);
-            LocalDateTime existingStart = LocalDateTime.of(2026, 7, 1, 10, 0);
-            contest.setStartTime(existingStart);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-            UpdateContestDTO dto = new UpdateContestDTO();
-            dto.setDuration(60);
-
-            service.updateContest(CONTEST_ID, dto);
-
-            assertThat(contest.getEndTime()).isEqualTo(existingStart.plusMinutes(60));
-        }
-
-        @Test
-        @DisplayName("problemIds replace deletes the old set then bulk-inserts the new set")
-        void problemIdsReplace_deletesThenInserts() {
-            Contest contest = buildContest(ContestStatus.UPCOMING);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(adminContestProjection.toAdminVO(any(Contest.class))).thenReturn(new AdminContestVO());
-            UpdateContestDTO dto = new UpdateContestDTO();
-            dto.setProblemIds(List.of(201L, 202L));
-
-            service.updateContest(CONTEST_ID, dto);
-
-            verify(contestProblemMapper).deleteByContestId(CONTEST_ID);
-            ArgumentCaptor<List<ContestProblem>> captor = ArgumentCaptor.forClass(List.class);
-            verify(contestProblemMapper).batchInsert(captor.capture());
-            assertThat(captor.getValue()).hasSize(2);
-            assertThat(captor.getValue().get(0).getContestId()).isEqualTo(CONTEST_ID);
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING));
         }
     }
 
@@ -354,272 +225,167 @@ class AdminContestMutationServiceImplTest {
     // ----------------------------------------------------------------------
 
     @Nested
-    @DisplayName("deleteContest — soft-delete (UPCOMING/FINISHED only)")
+    @DisplayName("deleteContest — owner port seam")
     class DeleteContest {
 
         @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest does not exist")
-        void missingContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(null);
-
-            assertThatThrownBy(() -> service.deleteContest(CONTEST_ID))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest is RUNNING (non-deletable)")
-        void runningContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.RUNNING));
-
-            assertThatThrownBy(() -> service.deleteContest(CONTEST_ID))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("soft-deletes a FINISHED contest, stamping deletedBy from the current user")
-        void finishedContest_softDeletes() {
-            Contest contest = buildContest(ContestStatus.FINISHED);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(currentUserProvider.getCurrentUserId()).thenReturn(ADMIN_USER_ID);
+        @DisplayName("forwards id + currentUserId to ContestOwnerPort.deleteContest")
+        void routesToOwnerPort() {
+            final Contest before = new Contest();
+            before.setId(CONTEST_ID);
+            before.setStatus(ContestStatus.UPCOMING.name());
+            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
 
             service.deleteContest(CONTEST_ID);
 
-            verify(contestMapper).updateById(contest);
-            assertThat(contest.getIsDeleted()).isTrue();
-            assertThat(contest.getDeletedBy()).isEqualTo(ADMIN_USER_ID);
-            assertThat(contest.getDeletedAt()).isNotNull();
+            verify(contestOwnerPort).deleteContest(eq(CONTEST_ID), eq(ADMIN_USER_ID));
+            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
     // ----------------------------------------------------------------------
-    // startContest
+    // startContest / endContest
     // ----------------------------------------------------------------------
 
     @Nested
-    @DisplayName("startContest — UPCOMING -> RUNNING (requires >= 1 problem)")
+    @DisplayName("startContest — owner port seam")
     class StartContest {
 
         @Test
-        @DisplayName("throws CONTEST_NOT_STARTED when the contest is not UPCOMING")
-        void notUpcoming_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.RUNNING));
+        @DisplayName("forwards id to ContestOwnerPort.startContest and re-fetches via projection")
+        void routesToOwnerPort() {
+            final Contest before = new Contest();
+            before.setId(CONTEST_ID);
+            before.setStatus(ContestStatus.UPCOMING.name());
+            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            final AdminContestVO expected = new AdminContestVO();
+            expected.setId(CONTEST_ID);
+            when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
 
-            assertThatThrownBy(() -> service.startContest(CONTEST_ID))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_STARTED);
-        }
+            final AdminContestVO vo = service.startContest(CONTEST_ID);
 
-        @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest has zero problems (start guard)")
-        void zeroProblems_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.UPCOMING));
-            when(contestReadPort.countProblemsByContestId(CONTEST_ID)).thenReturn(0L);
-
-            assertThatThrownBy(() -> service.startContest(CONTEST_ID))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
-        }
-
-        @Test
-        @DisplayName("transitions UPCOMING -> RUNNING and returns the projected VO")
-        void happyPath_transitionsToRunning() {
-            Contest contest = buildContest(ContestStatus.UPCOMING);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            when(contestReadPort.countProblemsByContestId(CONTEST_ID)).thenReturn(3L);
-            AdminContestVO vo = new AdminContestVO();
-            when(adminContestProjection.toAdminVO(contest)).thenReturn(vo);
-
-            AdminContestVO result = service.startContest(CONTEST_ID);
-
-            assertThat(result).isSameAs(vo);
-            assertThat(contest.getStatus()).isEqualTo(ContestStatus.RUNNING.name());
-            verify(contestMapper).updateById(contest);
+            assertThat(vo).isSameAs(expected);
+            verify(contestOwnerPort).startContest(CONTEST_ID);
+            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
-    // ----------------------------------------------------------------------
-    // endContest
-    // ----------------------------------------------------------------------
-
     @Nested
-    @DisplayName("endContest — RUNNING -> FINISHED")
+    @DisplayName("endContest — owner port seam")
     class EndContest {
 
         @Test
-        @DisplayName("throws CONTEST_ENDED when the contest is not RUNNING")
-        void notRunning_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.UPCOMING));
+        @DisplayName("forwards id to ContestOwnerPort.endContest and re-fetches via projection")
+        void routesToOwnerPort() {
+            final Contest before = new Contest();
+            before.setId(CONTEST_ID);
+            before.setStatus(ContestStatus.RUNNING.name());
+            when(contestMapper.selectById(CONTEST_ID)).thenReturn(before);
+            final AdminContestVO expected = new AdminContestVO();
+            expected.setId(CONTEST_ID);
+            when(adminContestProjection.getContest(CONTEST_ID)).thenReturn(expected);
 
-            assertThatThrownBy(() -> service.endContest(CONTEST_ID))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_ENDED);
-        }
+            final AdminContestVO vo = service.endContest(CONTEST_ID);
 
-        @Test
-        @DisplayName("transitions RUNNING -> FINISHED and returns the projected VO")
-        void happyPath_transitionsToFinished() {
-            Contest contest = buildContest(ContestStatus.RUNNING);
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(contest);
-            AdminContestVO vo = new AdminContestVO();
-            when(adminContestProjection.toAdminVO(contest)).thenReturn(vo);
-
-            AdminContestVO result = service.endContest(CONTEST_ID);
-
-            assertThat(result).isSameAs(vo);
-            assertThat(contest.getStatus()).isEqualTo(ContestStatus.FINISHED.name());
+            assertThat(vo).isSameAs(expected);
+            verify(contestOwnerPort).endContest(CONTEST_ID);
+            verify(contestMapper, never()).updateById(any(Contest.class));
         }
     }
 
     // ----------------------------------------------------------------------
-    // Announcement CRUD
+    // Announcements
     // ----------------------------------------------------------------------
 
     @Nested
-    @DisplayName("createAnnouncement — create + WebSocket push (D-12)")
+    @DisplayName("createAnnouncement — owner port seam")
     class CreateAnnouncement {
 
         @Test
-        @DisplayName("throws CONTEST_NOT_FOUND when the contest does not exist")
-        void missingContest_throws() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(null);
+        @DisplayName("forwards to ContestOwnerPort.createAnnouncement, then pushes via WebSocket")
+        void routesAndPushes() {
+            final String annId = "ann-1";
+            when(contestOwnerPort.createAnnouncement(eq(CONTEST_ID), eq("t"), eq("c"), eq(true)))
+                    .thenReturn(annId);
+            final ContestAnnouncement ann = new ContestAnnouncement();
+            ann.setId(annId);
+            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, annId)).thenReturn(ann);
 
-            assertThatThrownBy(() -> service.createAnnouncement(CONTEST_ID, "t", "c", false))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CONTEST_NOT_FOUND);
-            verifyNoInteractions(contestAnnouncementPushPort);
-        }
+            final ContestAnnouncement result = service.createAnnouncement(CONTEST_ID, "t", "c", true);
 
-        @Test
-        @DisplayName("persists the announcement and pushes it via the push port")
-        void happyPath_persistsAndPushes() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.RUNNING));
-
-            ContestAnnouncement result = service.createAnnouncement(CONTEST_ID, "Hello", "World", true);
-
-            ArgumentCaptor<ContestAnnouncement> rowCaptor = ArgumentCaptor.forClass(ContestAnnouncement.class);
-            verify(contestAnnouncementMapper).insert(rowCaptor.capture());
-            ContestAnnouncement saved = rowCaptor.getValue();
-            assertThat(saved.getContestId()).isEqualTo(CONTEST_ID);
-            assertThat(saved.getTitle()).isEqualTo("Hello");
-            assertThat(saved.getIsPinned()).isTrue();
-
-            ArgumentCaptor<AnnouncementPayload> payloadCaptor = ArgumentCaptor.forClass(AnnouncementPayload.class);
-            verify(contestAnnouncementPushPort).emitAnnouncement(eq(CONTEST_ID), payloadCaptor.capture());
-            assertThat(payloadCaptor.getValue().contestId()).isEqualTo(CONTEST_ID);
-
-            assertThat(result.getContestId()).isEqualTo(CONTEST_ID);
-        }
-
-        @Test
-        @DisplayName("null isPinned defaults to false on the persisted row")
-        void nullIsPinned_defaultsFalse() {
-            when(contestMapper.selectById(CONTEST_ID)).thenReturn(buildContest(ContestStatus.RUNNING));
-
-            service.createAnnouncement(CONTEST_ID, "t", "c", null);
-
-            ArgumentCaptor<ContestAnnouncement> rowCaptor = ArgumentCaptor.forClass(ContestAnnouncement.class);
-            verify(contestAnnouncementMapper).insert(rowCaptor.capture());
-            assertThat(rowCaptor.getValue().getIsPinned()).isFalse();
+            assertThat(result).isSameAs(ann);
+            verify(contestOwnerPort).createAnnouncement(CONTEST_ID, "t", "c", true);
+            verify(contestAnnouncementPushPort).emitAnnouncement(eq(CONTEST_ID), any(AnnouncementPayload.class));
+            verify(contestAnnouncementMapper, never()).insert(any(ContestAnnouncement.class));
         }
     }
 
     @Nested
-    @DisplayName("updateAnnouncement — partial update")
+    @DisplayName("updateAnnouncement — owner port seam")
     class UpdateAnnouncement {
 
         @Test
-        @DisplayName("throws BAD_REQUEST when the announcement does not exist under the contest")
-        void missingAnnouncement_throws() {
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1")).thenReturn(null);
+        @DisplayName("forwards to ContestOwnerPort.updateAnnouncement and re-fetches via mapper")
+        void routesAndRefetches() {
+            final ContestAnnouncement before = new ContestAnnouncement();
+            before.setId("ann-1");
+            before.setContestId(CONTEST_ID);
+            before.setTitle("old");
+            before.setIsPinned(false);
+            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
+                    .thenReturn(before)
+                    .thenReturn(before);
+            final ContestAnnouncement after = new ContestAnnouncement();
+            after.setId("ann-1");
+            after.setContestId(CONTEST_ID);
+            after.setTitle("new");
+            after.setIsPinned(true);
+            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
+                    .thenReturn(before)
+                    .thenReturn(after);
 
-            assertThatThrownBy(() -> service.updateAnnouncement(CONTEST_ID, "ann-1", "t", "c", true))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
+            final ContestAnnouncement result = service.updateAnnouncement(
+                    CONTEST_ID, "ann-1", "new", null, true);
+
+            assertThat(result).isSameAs(after);
+            verify(contestOwnerPort).updateAnnouncement(CONTEST_ID, "ann-1", "new", null, true);
+            verify(contestAnnouncementMapper, never()).updateById(any(ContestAnnouncement.class));
         }
 
         @Test
-        @DisplayName("applies only the provided fields and persists the update")
-        void happyPath_appliesProvidedFields() {
-            ContestAnnouncement ann = new ContestAnnouncement();
-            ann.setId("ann-1");
-            ann.setContestId(CONTEST_ID);
-            ann.setTitle("old");
-            ann.setContent("old content");
-            ann.setIsPinned(false);
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1")).thenReturn(ann);
+        @DisplayName("BAD_REQUEST when the announcement does not exist")
+        void notFound() {
+            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "missing"))
+                    .thenReturn(null);
 
-            ContestAnnouncement result = service.updateAnnouncement(CONTEST_ID, "ann-1", "new", null, true);
-
-            verify(contestAnnouncementMapper).updateById(ann);
-            assertThat(result.getTitle()).isEqualTo("new");
-            assertThat(result.getContent()).isEqualTo("old content"); // unchanged
-            assertThat(result.getIsPinned()).isTrue();
+            assertThatThrownBy(() -> service.updateAnnouncement(
+                    CONTEST_ID, "missing", "new", null, null))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+                            .isEqualTo(ErrorCode.BAD_REQUEST));
+            verify(contestOwnerPort, never()).updateAnnouncement(anyString(), anyString(),
+                    anyString(), any(), anyBoolean());
         }
     }
 
     @Nested
-    @DisplayName("deleteAnnouncement")
+    @DisplayName("deleteAnnouncement — owner port seam")
     class DeleteAnnouncement {
 
         @Test
-        @DisplayName("throws BAD_REQUEST when the announcement does not exist under the contest")
-        void missingAnnouncement_throws() {
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1")).thenReturn(null);
-
-            assertThatThrownBy(() -> service.deleteAnnouncement(CONTEST_ID, "ann-1"))
-                    .isInstanceOf(BusinessException.class)
-                    .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BAD_REQUEST);
-        }
-
-        @Test
-        @DisplayName("deletes the announcement row by id")
-        void happyPath_deletesById() {
-            ContestAnnouncement ann = new ContestAnnouncement();
-            ann.setId("ann-1");
-            ann.setContestId(CONTEST_ID);
-            ann.setTitle("t");
-            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1")).thenReturn(ann);
+        @DisplayName("forwards to ContestOwnerPort.deleteAnnouncement")
+        void routesToOwnerPort() {
+            final ContestAnnouncement before = new ContestAnnouncement();
+            before.setId("ann-1");
+            before.setContestId(CONTEST_ID);
+            before.setTitle("t");
+            when(contestAnnouncementMapper.findByContestIdAndId(CONTEST_ID, "ann-1"))
+                    .thenReturn(before);
 
             service.deleteAnnouncement(CONTEST_ID, "ann-1");
 
-            verify(contestAnnouncementMapper).deleteById("ann-1");
+            verify(contestOwnerPort).deleteAnnouncement(CONTEST_ID, "ann-1");
+            verify(contestAnnouncementMapper, never()).deleteById(anyString());
         }
-    }
-
-    // ----------------------------------------------------------------------
-    // Test fixture helpers
-    // ----------------------------------------------------------------------
-
-    private static CreateContestDTO buildCreateDto(String title, LocalDateTime startTime,
-                                                   Integer duration, Boolean isPublished,
-                                                   List<Long> problemIds) {
-        CreateContestDTO dto = new CreateContestDTO();
-        dto.setTitle(title);
-        dto.setStartTime(startTime);
-        dto.setDuration(duration);
-        dto.setIsPublished(isPublished);
-        dto.setProblemIds(problemIds);
-        return dto;
-    }
-
-    private static AddContestProblemDTO scoredProblem(Long problemId, Integer score) {
-        AddContestProblemDTO item = new AddContestProblemDTO();
-        item.setProblemId(problemId);
-        item.setScore(score);
-        return item;
-    }
-
-    private static Contest buildContest(ContestStatus status) {
-        Contest contest = new Contest();
-        contest.setId(CONTEST_ID);
-        contest.setTitle("Title");
-        contest.setStatus(status.name());
-        contest.setStartTime(LocalDateTime.of(2026, 7, 1, 10, 0));
-        contest.setEndTime(LocalDateTime.of(2026, 7, 1, 13, 0));
-        contest.setDurationMinutes(180);
-        contest.setIsVisible(false);
-        return contest;
     }
 }

@@ -6427,10 +6427,38 @@
     - "./mvnw -pl backend-legacy test -B"
     - "./mvnw verify -B"
   rollback: "Restore direct mapper calls; remove ContestOwnerPort."
-  evidence: []
+  evidence:
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/ContestOwnerPort.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/DefaultContestOwnerPort.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java"
+  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/contest/port/DefaultContestOwnerPortTest.java"
+  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImplTest.java"
+  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java"
+  - command: "./mvnw -pl backend-legacy test -Dtest='DefaultContestOwnerPortTest,AdminContestMutationServiceImplTest' -B"
+    result: "BUILD SUCCESS — 29 contract tests, 0 failures, 0 errors (17 port + 12 admin)"
+  - command: "./mvnw -pl backend-legacy test -Dtest='OwnerBoundaryArchTest' -B"
+    result: "BUILD SUCCESS — 6 ArchUnit tests, 0 failures, 0 errors; the admin_must_not_reach_contest_directly rule was refit to forbid contest.mapper.. + contest.service.. only, allowing the new port.. dependency"
+  - command: "./mvnw verify -B"
+    result: "BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped"
+  - note: 'P3-OWNER-001-B: 8 write methods routed through ContestOwnerPort
+      (createContest, updateContest, deleteContest, startContest,
+      endContest, createAnnouncement, updateAnnouncement,
+      deleteAnnouncement). The contest-problem shaping (score / index /
+      base-score rule) and the slug generation move with the writes into
+      the port impl. Reads (selectById, selectList,
+      findByContestIdAndId) stay in admin per ADR-0011. Subtle
+      semantic change for createAnnouncement: the WebSocket push is
+      no longer in the same @Transactional as the DB insert, so a
+      push failure no longer rolls back the announcement row (the
+      correct behavior for a fire-and-forget WebSocket effect).
+      The ArchUnit rule admin_must_not_reach_contest_directly was
+      tightened to forbid only the mapper and service sub-packages
+      so the new port.. dependency is allowed; the freeze store
+      was rebuilt to capture the new baseline.'
+    ts: '2026-07-27T22:50:00+08:00'
   commits: []
   notes: "Contest has the second-largest cross-write surface. The state machine (create -> start -> end) lives entirely in the port impl so callers can stop reasoning about it."
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-27T22:50:00+08:00'
 - id: P3-OWNER-001-C
   phase: 3
   area: OWNER

@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class OwnerBoundaryArchTest {
 
     private static final String CONTEST_PKG = "com.ulticode.modules.contest..";
+    private static final String CONTEST_PKG_BASE = "com.ulticode.modules.contest";
     private static final String ADMIN_PKG = "com.ulticode.modules.admin..";
     private static final String MODERATION_PKG = "com.ulticode.modules.moderation..";
     private static final String USER_PKG = "com.ulticode.modules.user..";
@@ -52,8 +53,11 @@ public class OwnerBoundaryArchTest {
     static final ArchRule admin_must_not_reach_contest_directly =
         FreezingArchRule.freeze(ArchRuleDefinition.noClasses()
             .that().resideInAPackage(ADMIN_PKG)
-            .should().dependOnClassesThat().resideInAPackage(CONTEST_PKG))
-        .because("Admin reads Contest via Q/E (RPC/outbox), not direct Mapper/Entity. "
+            .should().dependOnClassesThat().resideInAnyPackage(
+                CONTEST_PKG_BASE + ".mapper..",
+                CONTEST_PKG_BASE + ".service.."))
+        .because("Admin reads Contest via Q/E (RPC/outbox) or the new Phase 3 owner "
+            + "port (com.ulticode.modules.contest.port..), not direct Mapper/Service. "
             + "See ADR-MIG-ARCH-BOUNDARY for the frozen baseline and burn-down list.");
 
     /**

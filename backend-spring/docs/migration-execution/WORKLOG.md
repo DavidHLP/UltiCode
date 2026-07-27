@@ -515,3 +515,6 @@ this session.
 
 ### 2026-07-27 (P2-DISC-002)
 - P2-DISC-002: Provided `Clock` and `TimeSource` bean configurations across all extracted service shells (`backend-auth`, `backend-app`, `backend-admin`). Full reactor build (`./mvnw test -B`) passes all 9 modules in 53.9s with 0 failures. Status: done. Commit: 631b8b1a0.
+
+### 2026-07-27 (P2-DISC-003)
+- P2-DISC-003: Recorded decision in `DECISIONS.md` (ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION). Maintained Option D (per-module local copies for `UuidGenerator` and `CurrentUserProvider` in Phase 2) and absorbed cross-cutting port promotion into P2-DISC-001 batch. Status: done. Commit: 49960e003.

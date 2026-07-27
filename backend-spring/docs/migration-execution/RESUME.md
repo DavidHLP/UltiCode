@@ -25,11 +25,11 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 33 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-A +
-  P2-AUTH-001-B + P2-SEC-HYGIENE-001 + P2-COV-AUDIT-001 +
-  P2-DONE-EVIDENCE-AUDIT-001 + P2-SEC-HYGIENE-002 + P2-AUTH-003 EXPAND-phase SQL landed
-  P2-AUTH-001-B + P2-AUTH-003 EXPAND-phase SQL landed in 133ae48
-  but the task itself is blocked on the credential incident).
+- 37 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
+  P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-004 + P2-DISC-001..003 +
+  P2-SEC-HYGIENE-001/002 + P2-COV-AUDIT-001 + P2-DONE-EVIDENCE-AUDIT-001;
+  P2-AUTH-003 EXPAND-phase SQL landed in 133ae48 but dynamic verify
+  is blocked on the credential incident).
 
 Blocked:
 - P2-AUTH-003 (Phase 2 schema task): blocked on a credential
@@ -65,11 +65,10 @@ the verify cycle):
 1. Re-verify P2-AUTH-003 dynamic evidence (Flyway apply, row-
    count checksum, orphan SELECT, shadow-read, IF EXISTS rollback)
    against a freshly-rotated .env and a recreated MySQL volume.
-2. Resume P2-AUTH-001-E (RBAC/permission ownership) once
-   P2-DISC-001/002/003 promotion batch lands.
-3. Continue P2-AUTH-001-C, D, F, G as their dependencies clear.
-4. P2-AUTH-002 / P2-AUTH-004 / P2-RBAC-001 / P2-GATE.
-5. Phase 2 gate validation.
+2. Execute P2-RBAC-001 (Auth-only RBAC writer; App/Admin read-only RPC)
+   as P2-AUTH-003 dependency clears.
+3. Complete Phase 2 Gate (P2-GATE validation).
+4. Begin Phase 3 (Owner-owned Application APIs).
 
 Operator actions required (NOT performed by the agent):
 - Rotate MySQL user password, Redis password, Nacos admin

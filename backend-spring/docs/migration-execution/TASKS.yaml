@@ -6766,7 +6766,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#11
   - DECISIONS.md#ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-E
   acceptance_criteria:
@@ -6777,8 +6777,13 @@
   validation:
   - DECISIONS.md ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION records the deferred decision with rationale.
   rollback: N/A — this is a discovery/decision record, not a code change.
-  evidence: []
-  commits: []
+  evidence:
+  - file: "backend-spring/docs/migration-execution/DECISIONS.md"
+    result: "ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION recorded in DECISIONS.md with full rationale (Option D per-call local copies maintained; cross-cutting port promotion absorbed into P2-DISC-001 batch for Phase 3 / Phase 7)"
+  - note: 'P2-DISC-003 complete: recorded cross-cutting ports promotion decision in DECISIONS.md. Option D maintained for Phase 2 extraction.'
+    ts: '2026-07-27T11:58:00+08:00'
+  commits:
+  - 31c9e6338
   notes: 'Discovered from P2-AUTH-001-E: PermissionServiceImpl needs com.ulticode.common.uuid.UuidGenerator, com.ulticode.common.auth.CurrentUserProvider,
     and com.ulticode.common.exception.{BusinessException, ErrorCode}. backend-legacy has the original copies; backend-auth
     needs local copies for this extraction. ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION records the decision to defer all four promotions

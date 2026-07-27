@@ -1,61 +1,59 @@
 # Migration Resume
 
 Current Phase: Phase 2
-Current Task: P2-AUTH-001-B (move JWT/security plumbing into backend-auth)
+Current Task: P2-AUTH-001-A (move refresh-token ownership into backend-auth)
 
 Last Verified Commit:
-- e835c7d chore(migration): update RESUME after delegation
+- e3cc4c5 chore(migration): RESUME + WORKLOG after P2-AUTH-001-B closure
+- ddf7faa chore(migration): mark P2-AUTH-001-B done; record commit 9b4aaf9
+- 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 19 / 59 (Phase 0 gate + nine Phase 1 tasks done; P1-GATE closed)
-- P2-AUTH-001 in progress; B subtask accepted from vanished worker subagent.
+- 20 / 59 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001-B done;
+  P1-GATE closed).
+- P2-AUTH-001 parent in_progress; A-G subtasks: B done, A/E next.
 
 Blocked:
 - None.
 
 Current Work:
-- P2-AUTH-001-B picked up after P2Auth001B worker subagent exited without
-  producing any backend-auth code changes.
-- Strategy: copy legacy `com.ulticode.security.{jwt,csrf}.*` to
-  `com.ulticode.auth.security.{jwt,csrf}.*` inside backend-auth so the auth
-  service can independently sign/verify JWTs and run CSRF. backend-legacy
-  keeps its own copies untouched (Strangler Fig dual-run).
-- deviation recorded in DECISIONS.md (ADR-MIG-AUTH-JWT-PLACEMENT):
-  verify-only shared utility will later move to backend-common so App/Admin
-  can offline-verify (§7.3 / §11); P2-AUTH-002 owns that extraction.
-- next: backend-auth AuthSecurityConfig (permitAll on /auth/**, /actuator/**,
-  JWT filter chain) + AuthAuthenticationEntryPoint; unit tests for
-  JwtTokenProvider sign/verify/expire/secret-validation and CsrfService
-  generate/validate/clear.
+- P2-AUTH-001-B closed. backend-auth has its own JWT signing/verifying
+  + CSRF components under com.ulticode.auth.security.* with its own
+  AuthSecurityConfig (narrower than legacy) and AuthAuthenticationEntryPoint.
+  17 unit tests added; full reactor ./mvnw verify -B PASS, 1795 tests,
+  0 failures, 4 skipped.
+- ADR-MIG-AUTH-JWT-PLACEMENT records the two-step placement: verify-only
+  shared utility is owned by P2-AUTH-002 (extract to backend-common so
+  App/Admin can offline-verify per guide §7.3/§11).
+- next: P2-AUTH-001-A (refresh-token extraction) and P2-AUTH-001-E
+  (RBAC/permission) — both have all dependencies satisfied after B.
 
 Last Validation:
-- ./mvnw verify -B full backend-spring reactor: PASS (39.1 s, all modules).
-- ./mvnw -pl backend-auth -am -B verify: PASS (placeholder shell).
+- ./mvnw verify -B full backend-spring reactor: PASS (41 s, 1795 tests,
+  0 failures, 4 skipped).
 
 Next:
-1. P2-AUTH-001-B: AuthSecurityConfig + AuthAuthenticationEntryPoint +
-   unit tests for JwtTokenProvider / CsrfService; ./mvnw -pl backend-auth
-   -am verify; commit.
-2. P2-AUTH-001-A: refresh-token entity/mapper/service extraction (depends on B).
-3. P2-AUTH-001-E: RBAC/permission ownership (depends on B).
-4. P2-AUTH-001-C: AuthController + session/account adapters (depends on E).
-5. P2-AUTH-001-D: OAuth state and provider adapters (depends on C).
-6. P2-AUTH-001-F: password reset and email (depends on C).
-7. P2-AUTH-001-G: backend-auth standalone integration test suite.
-8. P2-AUTH-002: resource-server JWT verifier in App/Admin (extract verify-only
-   utility to backend-common per ADR-MIG-AUTH-JWT-PLACEMENT).
-9. P2-AUTH-003: provider identity / authz version additive schema.
-10. P2-AUTH-004: Gateway /auth/** cutover.
-11. P2-RBAC-001: Auth-only role/permission writer; App/Admin read-only RPC.
-12. P2-GATE: Phase 2 gate.
+1. P2-AUTH-001-A: refresh-token entity/mapper/service extraction.
+2. P2-AUTH-001-E: RBAC/permission ownership (parallel with A; no shared files).
+3. P2-AUTH-001-C: AuthController + session/account adapters (depends on E).
+4. P2-AUTH-001-D: OAuth state and provider adapters (depends on C).
+5. P2-AUTH-001-F: password reset and email (depends on C).
+6. P2-AUTH-001-G: backend-auth standalone integration test suite.
+7. P2-AUTH-002: resource-server JWT verifier in App/Admin (extract
+   verify-only utility to backend-common per ADR-MIG-AUTH-JWT-PLACEMENT).
+8. P2-AUTH-003: provider identity / authz version additive schema.
+9. P2-AUTH-004: Gateway /auth/** cutover.
+10. P2-RBAC-001: Auth-only role/permission writer; App/Admin read-only RPC.
+11. P2-GATE: Phase 2 gate.
 
 Dirty Worktree:
-No — `git status` clean. Last commit e835c7d incorporated all earlier
-uncommitted files (TASKS.yaml + WORKLOG.md updates from P2-AUTH-001
-split + delegation). The previous "Dirty Worktree: Yes" line in this file
-was a stale snapshot that survived the P2-AUTH-001 split commit (e50c84b).
+No — `git status` clean. Last 3 commits: 9b4aaf9 (B implementation),
+ddf7faa (TASKS.yaml evidence), e3cc4c5 (RESUME+WORKLOG). The previous
+"Dirty Worktree: Yes" line in this file was a stale snapshot that
+survived the P2-AUTH-001 split commit (e50c84b) and is now corrected.
 
-PUSH: NOT pushed. GitHub writes require explicit user approval.
+PUSH: NOT pushed. GitHub writes require explicit user approval. Local
+ahead of origin/main: 106 commits.
 
 Key references:
 - backend-spring/docs/MICROSERVICE_MIGRATION_GUIDE.md

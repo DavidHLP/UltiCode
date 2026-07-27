@@ -4,6 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-RBAC-001 (Auth-only role/permission writer; App/Admin read-only RPC)
 
 Last Verified Commit:
+- f786117 chore(migration): P2-AUTH-003 done after disposable-env dynamic verify
 - 97af963 chore(migration): append P2-AUTH-003 EXPAND-phase static validation evidence
 - d1c5ee8 chore(migration): reconcile P2-AUTH-003 blocked state in derived docs
 - c2386f0 feat(gateway): cut over /api/auth/ route family to backend-auth service (P2-AUTH-004)

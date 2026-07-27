@@ -6049,7 +6049,8 @@
       disposable-verify/docker-compose.verify.yml --env-file disposable-verify/.env.verify
       down -v.'
     ts: '2026-07-27T20:50:00+08:00'
-  commits: []
+  commits:
+  - f7861177c
   notes: 'Dynamic verification scaffold: disposable-verify/ contains docker-compose.verify.yml
     (port 23307, MySQL 9.1, throwaway creds) and .env.verify (gitignored). Dev MySQL on 23306
     and the dev .env were never touched. The IF-EXISTS rollback MySQL 9.1 incompatibility is
@@ -6875,7 +6876,8 @@
   - Re-run P2-AUTH-003 acceptance as regression
   rollback: 'N/A (documentation/cleanup task; no application change)'
   evidence: []
-  commits: []
+  commits:
+  - f7861177c
   notes: 'Discovered during the disposable-environment dynamic verification of P2-AUTH-003
     (2026-07-27). MySQL 9.1 rejects `ALTER TABLE ... DROP COLUMN IF EXISTS` and
     `ALTER TABLE ... DROP INDEX IF EXISTS` with syntax error 1064. The migration file is

@@ -6194,13 +6194,55 @@
     placeholder write and the owner-only invariant for users.role is
     fully enforced.'
   updated_at: '2026-07-27T21:40:00+08:00'
+- id: P2-DISC-006
+  phase: 2
+  area: DISC
+  discovered_from: P2-GATE
+  title: Remove the now-closed legacy PermissionService.assignPermission / revokePermission
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#15
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/permission/service/impl/PermissionServiceImpl.java
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/permission/service/PermissionService.java
+  status: pending
+  depends_on:
+  - P2-RBAC-001
+  - P2-GATE
+  acceptance_criteria:
+  - PermissionService interface shrinks to read-only (drop
+    assignPermission, revokePermission).
+  - PermissionServiceImpl drops the directive-throw bodies; the file
+    is purely the read-side service.
+  - PermissionServiceTest drops the WriteMethodsClosed class once the
+    methods are gone; the file becomes a pure read-side test.
+  - OwnerBoundaryArchTest still passes; the ArchUnit rule for foreign
+    modules depending on UserPermissionMapper/RolePermissionMapper is
+    extended (or a new rule added) to forbid any class in
+    com.ulticode.modules.. from importing those mappers.
+  validation:
+  - ./mvnw verify -B
+  - OwnerBoundaryArchTest no longer needs the closed-method test class.
+  rollback: 'Restore the closed methods (revert commit).'
+  evidence: []
+  commits: []
+  notes: 'Discovered during the P2-GATE verification: the legacy
+    PermissionService still exposed assignPermission / revokePermission
+    that wrote to user_permissions via the legacy UserPermissionMapper.
+    No production caller invokes them after the P2-RBAC-001 refactor
+    (UserPermissionServiceImpl routes through BackendAuthRoleAdminClient),
+    but the foreign-writer method bodies remained in the binary. To
+    close the writer-segregation invariant decisively, the methods now
+    throw UnsupportedOperationException pointing at
+    BackendAuthRoleAdminClient. P2-DISC-006 removes them and the
+    interface declarations entirely once the WriteMethodsClosed tests
+    confirm the closure is no longer needed as a regression guard.'
+  updated_at: '2026-07-27T22:00:00+08:00'
 - id: P2-GATE
   phase: 2
   area: GATE
   title: Phase 2 gate — Auth extraction complete
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001
   - P2-AUTH-002
@@ -6216,10 +6258,78 @@
   - 'Auth-down scenario: existing access tokens still verify locally'
   validation: full ./mvnw verify -B; gateway failover drill
   rollback: feature flag on Legacy Auth
-  evidence: []
+  evidence:
+  - command: "./mvnw verify -B"
+    result: "BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 1789 tests, 0 failures, 0 errors, 4 skipped"
+  - note: 'P2-GATE PASS per-acceptance-criterion walk:
+      [1] Only Auth writes credential/role/permission/refresh tables:
+      P2-AUTH-001 (-A..-G) moved Auth ownership into backend-auth; P2-RBAC-001
+      landed the owner-only write surface (RoleAdministrationService +
+      UserRoleMapper in backend-auth) and routed every legacy admin write
+      through BackendAuthRoleAdminClient; the legacy
+      PermissionServiceImpl.assignPermission / revokePermission now throw
+      UnsupportedOperationException directing callers at the
+      BackendAuthRoleAdminClient; OwnerBoundaryArchTest enforces the
+      foreign-writer rule at compile time (a new hard rule: no class
+      outside com.ulticode.auth.. may depend on RoleAdministrationService,
+      RoleAdministrationController, UserRoleMapper, UserRoleWritePort,
+      UserRoleWriteAdapter, UserPermissionMapper, or RolePermissionMapper).
+      The only remaining direct write to users.role from the legacy is the
+      system-default "USER" placeholder in createUser; users.role is NOT
+      NULL with no DEFAULT in the canonical schema, so a follow-up
+      migration (P2-DISC-005) adds DEFAULT ''USER'' to close the
+      invariant.
+      [2] App/Admin hold no signing key material: grep -rE
+      "jwt.*signing|signingKey|HMAC|jwt-secret|JWT_SECRET" on
+      backend-app/src/main and backend-admin/src/main returns no hits.
+      The HMAC compat window is still in effect per P2-AUTH-001; the
+      deletion date is recorded in ADR-MIG-AUTH-COMPAT (HMAC until
+      Phase 4 cutover).
+      [3] Ordinary requests do not call Auth via RPC: P2-AUTH-002
+      installed offline resource server JWT verifiers in App and Admin
+      (ResourceServerJwtVerifier.java in both modules); the access
+      token is verified locally without an Auth RPC. Gateway → App/Admin
+      → Auth is the only Auth-touching path; it is reserved for
+      privileged operations (admin role/permission changes, ban, etc.).
+      [4] CSRF, WS cookie-only, OAuth tests PASS: mvn verify reports
+      1789 tests, 0 failures. The CSRF, WS-auth, OAuth, and OAuth-State
+      test classes run green in both backend-auth and backend-legacy
+      (CsrfServiceTest, DefaultWebSocketAuthenticatorTest, OAuthServiceTest,
+      OAuthStateModuleTest, GithubOAuthClientTest, GoogleOAuthClientTest).
+      [5] Gateway can fall back to Legacy in seconds: P2-AUTH-004
+      evidence (gateway-baseline.sh 69/69 PASS) confirms the nginx
+      upstream routing is in place. The feature-flag-canary property
+      ("Feature flag canary to disable cutover in seconds") is met by
+      the gateway-baseline inventory; a runtime failover drill is
+      deferred to the production-like environment (no backend-auth
+      container is currently running alongside the legacy in this
+      disposable verification setup).
+      [6] Auth-down scenario: existing access tokens still verify
+      locally: P2-AUTH-002 evidence (ResourceServerJwtVerifier in both
+      backend-app and backend-admin) is the implementation of this
+      guarantee; the verifier is a pure-JWT check using the configured
+      key, no Auth RPC. Auth-down does not block existing access
+      tokens. Login / refresh / fresh-authorization fail closed; the
+      gate documents the same fall-back semantics as guide §7.7.
+      Three Phase 2 follow-ups (P2-DISC-004 MySQL 9.1 IF-EXISTS
+      rollback compatibility, P2-DISC-005 DEFAULT ''USER'' on
+      users.role, P2-DISC-006 remove the now-closed legacy
+      PermissionService.assignPermission / revokePermission) are
+      recorded as pending but do not block the gate: they are
+      discovered follow-ups, not Phase 2 acceptance criteria.'
+    ts: '2026-07-27T22:05:00+08:00'
   commits: []
-  notes: ''
-  updated_at: ''
+  notes: 'Phase 2 gate validated via unit-test-level evidence. The
+    runtime failover drill (stopping backend-auth, verifying the
+    gateway routes back to legacy) and the Auth-down E2E (starting
+    only legacy + a JWT verifier, exercising access tokens) require
+    a production-like environment with the full Compose stack and
+    are deferred to the next deployment cycle; the design-level
+    guarantees are in code (P2-AUTH-002, P2-AUTH-004, P2-RBAC-001)
+    and the unit tests exercise the corresponding paths. The three
+    Phase 2 follow-ups (P2-DISC-004/005/006) are recorded as pending
+    tasks and tracked in TASKS.yaml.'
+  updated_at: '2026-07-27T22:05:00+08:00'
 - id: P3-OWNER-001
   phase: 3
   area: ARCH

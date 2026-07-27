@@ -1,7 +1,7 @@
 # Migration Resume
 
-Current Phase: Phase 2
-Current Task: P2-GATE (Phase 2 gate — Auth extraction complete)
+Current Phase: Phase 3
+Current Task: P3-OWNER-001 (Phase 3 — owner-owned Application APIs)
 
 Last Verified Commit:
 - df35f0c feat(rbac): land Auth-only role/permission writer (P2-RBAC-001)
@@ -29,11 +29,11 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 39 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
-  P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-003 + P2-AUTH-004 +
+- 40 / 66 (Phase 0 gate + nine Phase 1 tasks + Phase 2: P2-AUTH-001
+  + P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-003 + P2-AUTH-004 +
   P2-RBAC-001 + P2-DISC-001..003 + P2-SEC-HYGIENE-001/002 +
-  P2-COV-AUDIT-001 + P2-DONE-EVIDENCE-AUDIT-001; remaining:
-  P2-GATE + 2 follow-ups P2-DISC-004/005).
+  P2-COV-AUDIT-001 + P2-DONE-EVIDENCE-AUDIT-001 + P2-GATE;
+  remaining: P3-OWNER-001 + 3 Phase 2 follow-ups P2-DISC-004/005/006).
 
 Blocked:
 - None. P2-AUTH-003 unblocked and closed after disposable-env

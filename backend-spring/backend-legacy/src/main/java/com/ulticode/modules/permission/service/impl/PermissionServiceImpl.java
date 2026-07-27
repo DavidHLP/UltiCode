@@ -96,58 +96,33 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public UserPermission assignPermission(String userId, String action, String resource,
                                             LocalDateTime expiresAt) {
-        validatePermissionArgs(userId, action, resource);
-        if (expiresAt != null && !expiresAt.isAfter(LocalDateTime.now(clock))) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                "expiresAt must be in the future");
-        }
-
-        UserPermission existing = userPermissionMapper.selectOne(
-            new LambdaQueryWrapper<UserPermission>()
-                .eq(UserPermission::getUserId, userId)
-                .eq(UserPermission::getAction, action)
-                .eq(UserPermission::getResource, resource)
-        );
-
-        UserPermission record = new UserPermission();
-        record.setUserId(userId);
-        record.setAction(action);
-        record.setResource(resource);
-        record.setGrantedAt(LocalDateTime.now(clock));
-        record.setGrantedBy(currentAdminId());
-        record.setExpiresAt(expiresAt);
-
-        if (existing == null) {
-            record.setId(uuidGenerator.newId());
-            userPermissionMapper.insert(record);
-            log.info("Permission granted (new): user={} {}:{} expiresAt={}",
-                userId, action, resource, expiresAt);
-        } else {
-            record.setId(existing.getId());
-            userPermissionMapper.updateById(record);
-            log.info("Permission re-granted (updated): user={} {}:{} expiresAt={}",
-                userId, action, resource, expiresAt);
-        }
-        return record;
+        // P2-RBAC-001: backend-auth is the sole owner of the
+        // user_permissions write path. The legacy's read-side
+        // (getUserPermissionStrings etc.) stays; the write side
+        // was routed through the BackendAuthRoleAdminClient in
+        // UserPermissionServiceImpl. This method remains for
+        // binary compatibility (PermissionService interface) but
+        // throws a directive error if anything still calls it.
+        // P2-DISC-006 removes it entirely once the old
+        // PermissionServiceTest cases are deleted.
+        throw new UnsupportedOperationException(
+            "P2-RBAC-001: legacy PermissionService.assignPermission is closed. "
+                + "Use BackendAuthRoleAdminClient.grantPermission "
+                + "(proxied to backend-auth /auth/admin/users/{id}/permissions).");
     }
 
     @Override
     public boolean revokePermission(String userId, String action, String resource) {
-        validatePermissionArgs(userId, action, resource);
-
-        int rows = userPermissionMapper.delete(
-            new LambdaQueryWrapper<UserPermission>()
-                .eq(UserPermission::getUserId, userId)
-                .eq(UserPermission::getAction, action)
-                .eq(UserPermission::getResource, resource)
-        );
-        if (rows > 0) {
-            log.info("Permission revoked: user={} {}:{}", userId, action, resource);
-            return true;
-        }
-        log.debug("Permission revoke no-op (not present): user={} {}:{}",
-            userId, action, resource);
-        return false;
+        // P2-RBAC-001: see assignPermission above. The legacy
+        // revoke path is closed; production callers must use
+        // BackendAuthRoleAdminClient.revokePermission (proxied to
+        // backend-auth /auth/admin/users/{id}/permissions). The
+        // method is kept only for binary compatibility with the
+        // PermissionService interface; P2-DISC-006 removes it.
+        throw new UnsupportedOperationException(
+            "P2-RBAC-001: legacy PermissionService.revokePermission is closed. "
+                + "Use BackendAuthRoleAdminClient.revokePermission "
+                + "(proxied to backend-auth /auth/admin/users/{id}/permissions).");
     }
 
     private void validatePermissionArgs(String userId, String action, String resource) {

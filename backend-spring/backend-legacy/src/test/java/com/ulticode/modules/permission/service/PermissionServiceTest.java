@@ -2,24 +2,22 @@ package com.ulticode.modules.permission.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.auth.CurrentUserProvider;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.permission.PermissionVocabulary;
 import com.ulticode.modules.permission.entity.RolePermission;
 import com.ulticode.modules.permission.entity.UserPermission;
 import com.ulticode.modules.permission.mapper.RolePermissionMapper;
 import com.ulticode.modules.permission.mapper.UserPermissionMapper;
-import com.ulticode.modules.permission.service.impl.PermissionServiceImpl;
 import com.ulticode.modules.permission.port.UserRoleReadPort;
+import com.ulticode.modules.permission.service.impl.PermissionServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -31,23 +29,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
-// 明示导入以消除 BaseMapper 重载歧义
-import static org.mockito.ArgumentMatchers.anyCollection;
 
 /**
- * MEDIUM-4:覆盖 PermissionService 的安全敏感路径 —
- * 通配符拒绝、过期时间拒绝、insert/update 路径选择、revoke 幂等。
+ * {@link PermissionService} unit tests.
  *
- * <p><strong>Cache seam removed (architecture review 2026-07-08).</strong>
- * The previous test verified three {@code redisTemplate.delete(...)} calls
- * against a write-only cache. The cache was deleted with the seam; this
- * test now verifies the underlying contract (insert/update/delete are
- * called, no extra side effects) without the obsolete cache-touching
- * assertions.
+ * <p><strong>P2-RBAC-001:</strong> the legacy service is now read-only
+ * for the {@code user_permissions} table. The write methods
+ * ({@code assignPermission}, {@code revokePermission}) are kept on
+ * the {@link PermissionService} interface for binary compatibility
+ * but throw a directive {@link UnsupportedOperationException} that
+ * points callers at
+ * {@code com.ulticode.modules.admin.client.BackendAuthRoleAdminClient}
+ * (proxied to backend-auth's owner-only command surface). The
+ * read-side tests ({@code getUserPermissionStrings}) keep their
+ * Phase 0 §7.1 expiry-filter coverage.
+ *
+ * <p>The closed-method test cases that previously verified
+ * insert / update / delete behaviour are removed; the closed
+ * behaviour is now verified by {@code WriteMethodsClosed} below.
+ * P2-DISC-006 will delete the closed methods and this test class
+ * entirely.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -81,174 +85,39 @@ class PermissionServiceTest {
             new FixedUuidGenerator(), new PermissionVocabulary(), currentUserProvider);
     }
 
+    /**
+     * P2-RBAC-001: the legacy write methods are closed. The
+     * exceptions are the only signal callers will see; the test
+     * pins the message so a follow-up refactor doesn't silently
+     * re-open the foreign-writer path.
+     */
     @Nested
-    @DisplayName("assignPermission()")
-    class AssignPermission {
+    @DisplayName("P2-RBAC-001: write methods are closed")
+    class WriteMethodsClosed {
 
         @Test
-        @DisplayName("inserts new row when no existing record")
-        void insertsNewRow() {
-            when(userPermissionMapper.selectOne(any(LambdaQueryWrapper.class)))
-                .thenReturn(null);
-
-            UserPermission result = permissionService.assignPermission(
-                "user-1", "CREATE", "PROBLEM", null);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getUserId()).isEqualTo("user-1");
-            assertThat(result.getAction()).isEqualTo("CREATE");
-            assertThat(result.getResource()).isEqualTo("PROBLEM");
-            assertThat(result.getId()).isNotBlank();
-            verify(userPermissionMapper, times(1)).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
+        @DisplayName("assignPermission throws UnsupportedOperationException pointing at BackendAuthRoleAdminClient")
+        void assignPermission_throws() {
+            assertThatThrownBy(() -> permissionService.assignPermission(
+                    "user-1", "CREATE", "PROBLEM", null))
+                    .isInstanceOf(UnsupportedOperationException.class)
+                    .hasMessageContaining("BackendAuthRoleAdminClient.grantPermission");
+            // The legacy mapper must NOT be touched on the closed path.
+            verify(userPermissionMapper, never()).insert(any(UserPermission.class));
             verify(userPermissionMapper, never()).updateById(any(UserPermission.class));
         }
 
         @Test
-        @DisplayName("updates existing row when (userId, action, resource) collides")
-        void updatesExistingRow() {
-            UserPermission existing = new UserPermission();
-            existing.setId("existing-uuid");
-            existing.setUserId("user-1");
-            existing.setAction("READ");
-            existing.setResource("USER");
-            existing.setGrantedAt(LocalDateTime.now().minusDays(1));
-            when(userPermissionMapper.selectOne(any(LambdaQueryWrapper.class)))
-                .thenReturn(existing);
-
-            LocalDateTime future = LocalDateTime.now().plusDays(7);
-            UserPermission result = permissionService.assignPermission(
-                "user-1", "READ", "USER", future);
-
-            // 复用原 ID 而非生成新的
-            assertThat(result.getId()).isEqualTo("existing-uuid");
-            assertThat(result.getExpiresAt()).isEqualTo(future);
-            verify(userPermissionMapper, times(1)).updateById(any(UserPermission.class));
-            verify(userPermissionMapper, never()).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
-        }
-
-        @Test
-        @DisplayName("rejects past expiresAt with VALIDATION_FAILED")
-        void rejectsPastExpiresAt() {
-            LocalDateTime past = LocalDateTime.now().minusSeconds(1);
-
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "READ", "USER", past))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.VALIDATION_FAILED));
-
-            verify(userPermissionMapper, never()).insert(org.mockito.ArgumentMatchers.<UserPermission>any());
-            verify(userPermissionMapper, never()).updateById(any(UserPermission.class));
+        @DisplayName("revokePermission throws UnsupportedOperationException pointing at BackendAuthRoleAdminClient")
+        void revokePermission_throws() {
+            assertThatThrownBy(() -> permissionService.revokePermission(
+                    "user-1", "READ", "USER"))
+                    .isInstanceOf(UnsupportedOperationException.class)
+                    .hasMessageContaining("BackendAuthRoleAdminClient.revokePermission");
+            verify(userPermissionMapper, never()).delete(any(LambdaQueryWrapper.class));
         }
     }
 
-    @Nested
-    @DisplayName("validatePermissionArgs() — via public API")
-    class ValidatePermissionArgs {
-
-        @Test
-        @DisplayName("HIGH-2: rejects action not in ENUM whitelist with VALIDATION_FAILED")
-        void rejectsUnknownAction() {
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "FOOBAR", "USER", null))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.VALIDATION_FAILED));
-        }
-
-        @Test
-        @DisplayName("HIGH-2: rejects resource not in ENUM whitelist")
-        void rejectsUnknownResource() {
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "READ", "NOT_A_RESOURCE", null))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                    .isEqualTo(ErrorCode.VALIDATION_FAILED));
-        }
-
-        @Test
-        @DisplayName("rejects '*' wildcard action")
-        void rejectsWildcardAction() {
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "*", "USER", null))
-                .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
-        @DisplayName("rejects '*' wildcard resource")
-        void rejectsWildcardResource() {
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "READ", "*", null))
-                .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
-        @DisplayName("rejects blank userId/action/resource")
-        void rejectsBlankArgs() {
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "", "READ", "USER", null))
-                .isInstanceOf(BusinessException.class);
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "  ", "USER", null))
-                .isInstanceOf(BusinessException.class);
-            assertThatThrownBy(() -> permissionService.assignPermission(
-                "user-1", "READ", null, null))
-                .isInstanceOf(BusinessException.class);
-        }
-
-        @Test
-        @DisplayName("accepts all 8 actions and 9 resources (whitelist coverage)")
-        void acceptsAllWhitelistedValues() {
-            String[] actions = {
-                "CREATE", "READ", "UPDATE", "DELETE",
-                "MODERATE", "PUBLISH", "MANAGE_USERS", "MANAGE_PERMISSIONS"
-            };
-            String[] resources = {
-                "USER", "PROBLEM", "CONTEST", "SOLUTION",
-                "FORUM_POST", "FORUM_COMMENT", "SYSTEM", "PROBLEM_LIST", "TAG"
-            };
-            // 只测校验阶段 —— mock 抛 NPE 也无所谓,只要不在 validatePermissionArgs 抛 BusinessException
-            for (String act : actions) {
-                for (String res : resources) {
-                    // 用 revoke(无 mapper 交互即可让 validatePermissionArgs 先执行)
-                    boolean result;
-                    try {
-                        result = permissionService.revokePermission("user-1", act, res);
-                    } catch (BusinessException e) {
-                        throw new AssertionError(
-                            "Whitelisted (" + act + ":" + res + ") was rejected", e);
-                    }
-                    // revoke 路径默认返回 false(未匹配行)
-                    assertThat(result).isFalse();
-                }
-            }
-        }
-    }
-
-    @Nested
-    @DisplayName("revokePermission()")
-    class RevokePermission {
-
-        @Test
-        @DisplayName("returns true when row exists")
-        void returnsTrue() {
-            when(userPermissionMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(1);
-
-            boolean result = permissionService.revokePermission("user-1", "READ", "USER");
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        @DisplayName("returns false (no-op) when row does not exist")
-        void returnsFalseNoOp() {
-            when(userPermissionMapper.delete(any(LambdaQueryWrapper.class))).thenReturn(0);
-
-            boolean result = permissionService.revokePermission("user-1", "READ", "USER");
-
-            assertThat(result).isFalse();
-        }
-    }
     @Nested
     @DisplayName("getUserPermissionStrings()")
     class GetUserPermissionStrings {
@@ -319,12 +188,5 @@ class PermissionServiceTest {
             assertThat(permissionService.getUserPermissionStrings("user-1"))
                 .containsExactly("READ:USER");
         }
-
-        // (Removed a brittle wrapper-inspection test that tried to call
-        // LambdaQueryWrapper.getSqlSegment() outside a running MyBatis-Plus
-        // session. The functional test above verifies the same contract:
-        // userPermissionMapper.selectList is called, and only the valid row
-        // passes through to the merged result set.)
     }
-
 }

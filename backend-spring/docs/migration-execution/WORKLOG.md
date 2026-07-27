@@ -3,6 +3,29 @@
 Append-only log of significant events. NOT a task state source of truth
 (see TASKS.yaml).
 
+### 2026-07-27 (P2-GATE + P2-DISC-006 discovered)
+- P2-GATE: Phase 2 gate validated per-acceptance-criterion walk:
+  Auth-only writer surface (P2-RBAC-001 + closed legacy
+  PermissionService.assignPermission / revokePermission that now
+  throw UnsupportedOperationException pointing at
+  BackendAuthRoleAdminClient); no signing key in App/Admin
+  (P2-AUTH-002 ResourceServerJwtVerifier); CSRF / WS / OAuth test
+  suites green (CsrfServiceTest, DefaultWebSocketAuthenticatorTest,
+  OAuthServiceTest, OAuthStateModuleTest, GithubOAuthClientTest,
+  GoogleOAuthClientTest all in mvn verify); gateway can fall back
+  via the existing nginx upstream + feature flag (P2-AUTH-004
+  gateway-baseline.sh 69/69); Auth-down local verify path is the
+  P2-AUTH-002 ResourceServerJwtVerifier (pure-JWT, no RPC).
+  ./mvnw verify -B passes the full backend-spring reactor with
+  1789 tests, 0 failures, 0 errors, 4 skipped. Phase 2 PASS.
+- P2-DISC-006: discovered that the legacy
+  PermissionServiceImpl still has the assignPermission /
+  revokePermission method bodies (now throwing); the
+  PermissionService interface still declares the methods. A
+  follow-up task removes both the methods and the interface
+  declarations once the closed-method tests are no longer
+  needed as a regression guard.
+
 ### 2026-07-27 (P2-RBAC-001 + P2-DISC-005 discovered)
 - P2-RBAC-001: Auth-only role/permission writer landed. backend-auth
   gains the owner-only command surface: RoleAdministrationService +

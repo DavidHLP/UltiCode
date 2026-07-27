@@ -493,3 +493,6 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-001-E)
 - P2-AUTH-001-E: Ported RBAC and permission ownership (`PermissionService`, `PermissionVocabulary`, `UserPermission`/`RolePermission` entities and mappers, `UserRoleReadPort`) into `backend-auth`. All unit tests in `PermissionServiceTest` pass (38 tests in `backend-auth` total). Status: done. Commit: 409d61569.
+
+### 2026-07-27 (P2-AUTH-001-C)
+- P2-AUTH-001-C: Ported `AuthController` (`/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout`, `/auth/me`, `/auth/permissions`), `AuthServiceImpl`, `AuthSessionPort`/`DefaultAuthSessionAdapter`, `AuthAccountPort`/`AuthAccountRecord`/`DefaultAuthAccountAdapter`, and DTOs into `backend-auth`. Unit test suite `AuthServiceImplTest` passes (45 tests total in `backend-auth`). Status: done. Commit: 90030e6e7.

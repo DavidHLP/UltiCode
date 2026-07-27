@@ -6351,8 +6351,188 @@
   rollback: revert API seam; restore direct Admin writes
   evidence: []
   commits: []
-  notes: ''
-  updated_at: ''
+  notes: 'Decomposed into 7 subtasks for incremental delivery:
+    P3-OWNER-001-A Problem ownership, P3-OWNER-001-B Contest ownership,
+    P3-OWNER-001-C Submission ownership, P3-OWNER-001-D Forum ownership,
+    P3-OWNER-001-E Solution ownership, P3-OWNER-001-F Architecture
+    enforcement (ArchUnit), P3-OWNER-001-G Integration validation +
+    final review. Each subtask is its own TASKS entry; the parent
+    P3-OWNER-001 is marked done when all 7 are done. ArchUnit
+    rules in -F forbid Admin -> {Problem,Contest,Submission,Forum,
+    Solution} mapper WRITE methods (read access through projections
+    is preserved per ADR-0011).'
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-A
+  phase: 3
+  area: OWNER
+  discovered_from: P3-OWNER-001
+  title: "Problem ownership: port seam for problem writes"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java
+  status: pending
+  depends_on:
+    - P3-OWNER-001
+  acceptance_criteria:
+    - "Add com.ulticode.modules.problem.port.ProblemOwnerPort with write methods (createProblem, updateProblem, deleteProblem, publishProblem, unpublishProblem, flagProblem, moderateProblem, restoreDeletedByIds, batchModerateProblems). Each method takes a Command DTO (not a Problem entity) and returns a VO (not an entity)."
+    - "DefaultProblemOwnerPort lives in the problem module and uses ProblemMapper. @Transactional on each write method."
+    - "AdminProblemServiceImpl stops calling ProblemMapper write methods directly; every write goes through ProblemOwnerPort. Reads via ProblemMapper (for projections) are preserved per ADR-0011."
+    - "All existing AdminProblemServiceImpl unit tests still pass."
+  validation:
+    - "./mvnw -pl backend-legacy test -B"
+    - "./mvnw verify -B"
+  rollback: "Restore AdminProblemServiceImpl direct mapper calls; remove ProblemOwnerPort."
+  evidence: []
+  commits: []
+  notes: "Problem is the first domain because it is the largest single source of Admin cross-writes (create, update, publish, restore, flag, moderate, bulk). Its port defines the shape every later domain follows."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-B
+  phase: 3
+  area: OWNER
+  discovered_from: P3-OWNER-001
+  title: "Contest ownership: port seam for contest writes"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java
+  status: pending
+  depends_on:
+    - P3-OWNER-001-A
+  acceptance_criteria:
+    - "Add com.ulticode.modules.contest.port.ContestOwnerPort with write methods (createContest, updateContest, deleteContest, startContest, endContest, addAnnouncement, updateAnnouncement, deleteAnnouncement, setProblems, setScoringRule, setRegistration). Each takes a Command DTO."
+    - "DefaultContestOwnerPort lives in the contest module and uses ContestMapper + ContestProblemMapper + ContestAnnouncementMapper. @Transactional on each write method."
+    - "AdminContestMutationServiceImpl routes every write through ContestOwnerPort. Reads via contest mappers (for projections) are preserved."
+    - "Existing AdminContestMutationServiceImplTest still passes."
+  validation:
+    - "./mvnw -pl backend-legacy test -B"
+    - "./mvnw verify -B"
+  rollback: "Restore direct mapper calls; remove ContestOwnerPort."
+  evidence: []
+  commits: []
+  notes: "Contest has the second-largest cross-write surface. The state machine (create -> start -> end) lives entirely in the port impl so callers can stop reasoning about it."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-C
+  phase: 3
+  area: OWNER
+  discovered_from: P3-OWNER-001
+  title: "Submission ownership: port seam for submission / rejudge writes"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  status: pending
+  depends_on:
+    - P3-OWNER-001-B
+  acceptance_criteria:
+    - "Add com.ulticode.modules.submission.port.SubmissionOwnerPort with write methods (rejudgeSubmission, batchRejudge, cancelPendingSubmission, markInQueue). Each takes a Command DTO."
+    - "DefaultSubmissionOwnerPort lives in the submission module; the actual outbox / fence / queue dispatch stays in the queue module (P0-JUDGE-001 already established the seam), the port only re-issues commands and updates status."
+    - "AdminSubmissionService (legacy) routes writes through the port."
+    - "Existing tests pass."
+  validation:
+    - "./mvnw -pl backend-legacy test -B"
+    - "./mvnw verify -B"
+  rollback: "Restore direct mapper calls; remove SubmissionOwnerPort."
+  evidence: []
+  commits: []
+  notes: "Submission writes are mostly status transitions; the heavy lifting (verdict, dispatch) is already in the queue module per P0-JUDGE-001. The port is the admin-facing command surface."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-D
+  phase: 3
+  area: OWNER
+  discovered_from: P3-OWNER-001
+  title: "Forum ownership: port seam for forum moderation writes"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumFlagPolicyImpl.java
+    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java
+  status: pending
+  depends_on:
+    - P3-OWNER-001-A
+  acceptance_criteria:
+    - "Add com.ulticode.modules.forum.port.ForumOwnerPort with write methods (flagPost, unflagPost, lockPost, unlockPost, pinPost, unpinPost, setFieldVisibility). Each takes a Command."
+    - "DefaultForumOwnerPort lives in the forum module; uses ForumPostMapper. @Transactional on each write."
+    - "ForumFlagPolicyImpl and ForumPostFieldToggleImpl route through ForumOwnerPort; no direct ForumPostMapper write calls."
+    - "Existing tests pass."
+  validation:
+    - "./mvnw -pl backend-legacy test -B"
+    - "./mvnw verify -B"
+  rollback: "Restore direct mapper calls; remove ForumOwnerPort."
+  evidence: []
+  commits: []
+  notes: "Forum moderation is a pure admin write path; no normal-user writer to share."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-E
+  phase: 3
+  area: OWNER
+  discovered_from: P3-OWNER-001
+  title: "Solution ownership: port seam for solution moderation writes"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminSolutionServiceImpl.java
+  status: pending
+  depends_on:
+    - P3-OWNER-001-A
+  acceptance_criteria:
+    - "Add com.ulticode.modules.solution.port.SolutionOwnerPort with write methods (pinSolution, unpinSolution, featureSolution, unfeatureSolution, deleteSolution). Each takes a Command."
+    - "DefaultSolutionOwnerPort lives in the solution module; uses SolutionMapper. @Transactional on each write."
+    - "AdminSolutionServiceImpl routes writes through SolutionOwnerPort."
+    - "Existing tests pass."
+  validation:
+    - "./mvnw -pl backend-legacy test -B"
+    - "./mvnw verify -B"
+  rollback: "Restore direct mapper calls; remove SolutionOwnerPort."
+  evidence: []
+  commits: []
+  notes: "Solution moderation is lighter than Problem but follows the same port shape."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-F
+  phase: 3
+  area: ARCH
+  discovered_from: P3-OWNER-001
+  title: "Architecture enforcement: ArchUnit for owner write boundary"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+    - backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
+  status: pending
+  depends_on:
+    - P3-OWNER-001-A
+    - P3-OWNER-001-B
+    - P3-OWNER-001-C
+    - P3-OWNER-001-D
+    - P3-OWNER-001-E
+  acceptance_criteria:
+    - "OwnerBoundaryArchTest gains a hard rule - no class in com.ulticode.modules.admin.. may invoke any of {insert, update, updateById, delete, deleteById, deleteBatch} on {ProblemMapper, ContestMapper, ContestProblemMapper, ContestAnnouncementMapper, SubmissionMapper, ForumPostMapper, SolutionMapper, TestCaseMapper}. The rule targets the call shape (write method on a foreign mapper), not a brittle allowlist of class names."
+    - "Read methods (selectById, selectList, etc.) on the same mappers remain allowed for the admin projection / VO composition, per ADR-0011."
+    - "The rule compiles green against the post A..E codebase."
+  validation:
+    - "./mvnw -pl backend-legacy test -B (ArchUnit runs in unit-test phase)"
+    - "OwnerBoundaryArchTest passes; intentional violation introduced in a scratch test confirms the rule would fail."
+  rollback: "Revert the rule addition; the seam APIs are still in place."
+  evidence: []
+  commits: []
+  notes: "The rule is a structural check on the foreign-write boundary. Reads stay open (admin projections are a real read seam). A future enhancement can also forbid cross-Owner ServiceImpl imports, but that is P3-GATE scope."
+  updated_at: '2026-07-27T22:30:00+08:00'
+- id: P3-OWNER-001-G
+  phase: 3
+  area: ARCH
+  discovered_from: P3-OWNER-001
+  title: "Integration validation + final review for owner write boundary"
+  source:
+    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  status: pending
+  depends_on:
+    - P3-OWNER-001-F
+  acceptance_criteria:
+    - "./mvnw verify -B passes the full backend-spring reactor with no new test failures."
+    - "Focused review: every Admin service that previously wrote to a foreign mapper now goes through the corresponding owner port; no new cross-Owner Entity contract; no new ServiceImpl contract; transaction boundaries preserved (the port implementations own their @Transactional)."
+    - "OwnerBoundaryArchTest -F rule is the regression guard."
+    - "Code review covering caller, callee, transaction, mapper, entity, tests, callers (controllers, projections, policies, services)."
+  validation:
+    - "./mvnw verify -B"
+    - "Focused CR per the migration plan section 13."
+  rollback: "Revert each subtask in reverse order; ports stay additive so partial rollback is possible."
+  evidence: []
+  commits: []
+  notes: "This is the parent close-out; once -G is done, P3-OWNER-001 is also marked done (the parent tracks the union of the subtask evidence)."
+  updated_at: '2026-07-27T22:30:00+08:00'
+
 - id: P3-OWNER-002
   phase: 3
   area: ARCH

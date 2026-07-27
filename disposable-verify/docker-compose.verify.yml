@@ -1,0 +1,43 @@
+# Disposable MySQL 9.1 for P2-AUTH-003 dynamic verification.
+# Isolated from the development stack: different port, different volume,
+# different container name, throwaway creds, project name `ulticode_p2auth003_verify`.
+# Tear down with: docker compose -f disposable-verify/docker-compose.verify.yml
+#                 --env-file disposable-verify/.env.verify down -v
+#
+# This file is part of the verification scaffold; it is not part of the
+# production or development Compose stack.
+
+services:
+  mysql-verify:
+    container_name: ulticode-p2auth003-mysql
+    image: mysql:9.1
+    command:
+      - --bind-address=0.0.0.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:${DB_PORT}:3306"
+    volumes:
+      - p2a3_mysql_data:/var/lib/mysql
+    networks:
+      - p2a3_verify
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+
+volumes:
+  p2a3_mysql_data:
+    name: ulticode_p2auth003_mysql_data
+
+networks:
+  p2a3_verify:
+    name: ulticode_p2auth003_net
+    driver: bridge

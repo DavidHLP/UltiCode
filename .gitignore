@@ -292,3 +292,6 @@ __pycache__/
 venv/
 .env/
 .venv/
+disposable-verify/.env.verify
+!/disposable-verify/
+!/disposable-verify/docker-compose.verify.yml

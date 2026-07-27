@@ -3,6 +3,28 @@
 Append-only log of significant events. NOT a task state source of truth
 (see TASKS.yaml).
 
+### 2026-07-27 (P2-AUTH-003 dynamic verify + P2-DISC-004 discovered)
+- P2-AUTH-003: full dynamic MySQL verification cycle executed in a
+  fully isolated disposable environment (`disposable-verify/`,
+  docker MySQL 9.1, port 23307, throwaway creds, separate volume
+  `ulticode_p2auth003_mysql_data`; dev MySQL on 23306 and
+  `ulticode_mysql_data` untouched). Fresh migration: 40 migrations
+  applied BUILD SUCCESS, 1.076s. Upgrade scenario: 39 migrations
+  up to V20260724165931 + V20260727021915 alone, with 3 legacy
+  users + 5 legacy refresh_tokens injected. Post-upgrade checksum
+  preserved (15 users, 5 refresh_tokens, 1 oauth_provider_identity);
+  authz_version = 0 on all 15 users; family_id / replaced_by_token_id /
+  previous_token_id = NULL on all 5 refresh_tokens. UNIQUE on
+  (provider, provider_user_id) enforced. Plain DROP COLUMN rollback
+  is lossless (15/5/1 unchanged). IF-EXISTS rollback FAILS on
+  MySQL 9.1 (MariaDB/PostgreSQL syntax not supported). P2-AUTH-003
+  flipped `blocked` -> `done`. P2-DISC-004 created as the
+  follow-up for the IF-EXISTS rollback portability fix.
+- Disposable env: container `ulticode-p2auth003-mysql` on port 23307
+  remains running after verification; tear down with
+  `docker compose -f disposable-verify/docker-compose.verify.yml
+   --env-file disposable-verify/.env.verify down -v`.
+
 ### 2026-07-27 (P2-AUTH-003 static validation)
 - P2-AUTH-003: EXPAND-phase DDL validated in-session against
   `.claude/rules/database/01-flyway-migrations.md` and

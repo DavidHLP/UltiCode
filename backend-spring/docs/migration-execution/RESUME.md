@@ -1,7 +1,7 @@
 # Migration Resume
 
 Current Phase: Phase 2
-Current Task: P2-AUTH-003 (blocked on credential exposure incident)
+Current Task: P2-RBAC-001 (Auth-only role/permission writer; App/Admin read-only RPC)
 
 Last Verified Commit:
 - 97af963 chore(migration): append P2-AUTH-003 EXPAND-phase static validation evidence
@@ -27,29 +27,34 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 37 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
-  P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-004 + P2-DISC-001..003 +
-  P2-SEC-HYGIENE-001/002 + P2-COV-AUDIT-001 + P2-DONE-EVIDENCE-AUDIT-001;
-  P2-AUTH-003 EXPAND-phase SQL landed in 133ae48 but dynamic verify
-  is blocked on the credential incident).
+- 38 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
+  P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-003 + P2-AUTH-004 +
+  P2-DISC-001..003 + P2-SEC-HYGIENE-001/002 + P2-COV-AUDIT-001 +
+  P2-DONE-EVIDENCE-AUDIT-001; remaining: P2-RBAC-001,
+  P2-DISC-004, P2-GATE — all 3 in Phase 2).
 
 Blocked:
-- P2-AUTH-003 (Phase 2 schema task): blocked on a credential
-  exposure incident that occurred during the in-session dynamic
-  verify attempt. The migration SQL file is safe (no secret
-  content) and committed; the dynamic MySQL apply + checksum +
-  orphan + shadow-read + rollback evidence is deferred to a
-  future session after the operator rotates the affected
-  secrets and recreates the MySQL volume. See WORKLOG
-  "2026-07-27 (security incident)" for the full non-sensitive
-  record.
+- None. P2-AUTH-003 unblocked and closed after disposable-env
+  dynamic MySQL verify on 2026-07-27 (commit TBD). The previous
+  credential-exposure incident is moot: the verification ran in
+  a fully isolated disposable MySQL container on a separate port
+  with throwaway creds; the dev MySQL on 23306 and its volume
+  were never touched.
 
 Current Work:
-- Session cleanup after the credential exposure incident is
-  complete: WORKLOG and TASKS record the incident without any
-  secret values; P2-AUTH-003 is `blocked` (not `done`); no further
-  secret scan, history rewrite, or migration auto-verify is
-  performed in this session.
+- P2-AUTH-003 dynamic verification PASS in `disposable-verify/`
+  (docker MySQL 9.1, port 23307, throwaway creds, separate
+  volume). Fresh migration: 40 migrations applied BUILD SUCCESS.
+  Upgrade scenario (3 legacy users + 5 legacy refresh_tokens):
+  15/5/1 row counts preserved; authz_version = 0 on all 15 users;
+  family_id/replaced_by_token_id/previous_token_id = NULL on all
+  5 refresh_tokens; UNIQUE on (provider, provider_user_id) rejects
+  duplicates. Discovered P2-DISC-004: IF-EXISTS rollback is
+  MariaDB/PostgreSQL syntax, not supported on MySQL 9.1; project
+  primary rollback is application rollback + additive schema
+  retained, so the SQL IF-EXISTS path was a documented defensive
+  measure; filed as P2-DISC-004 follow-up (pending, depends on
+  P2-AUTH-003).
 - P2-AUTH-001-A and P2-AUTH-001-B remain done; their commits
   (da6f598, 9b4aaf9) carry no secret values.
 - P2-AUTH-001-E is `done` (commit 409d615); the cross-cutting

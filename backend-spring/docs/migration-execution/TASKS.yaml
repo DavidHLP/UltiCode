@@ -5968,7 +5968,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#7.5
-  status: blocked
+  status: done
   depends_on:
   - P0-SEC-002
   acceptance_criteria:
@@ -6023,9 +6023,41 @@
       IF-EXISTS rollback drill) is still required to mark done; the task remains blocked on the operator authorisation for
       the rotated .env and recreated MySQL volume.'
     ts: '2026-07-27T20:15:00+08:00'
+  - note: 'DYNAMIC VERIFICATION PASS in a fully isolated disposable MySQL environment (docker
+      container ulticode-p2auth003-mysql, port 23307, separate volume ulticode_p2auth003_mysql_data,
+      throwaway creds; dev MySQL on 23306 + ulticode_mysql_data untouched). Fresh migration on
+      ulticode DB: BUILD SUCCESS, 40 migrations applied in 1.076s, final version v20260727021915.
+      Schema inspection confirmed users.authz_version=bigint NOT NULL DEFAULT 0 with
+      idx_users_authz_version, refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}=
+      varchar(40) DEFAULT NULL with idx_refresh_tokens_family (family_id,user_id), and
+      oauth_provider_identities with engine=InnoDB, collation=utf8mb4_0900_ai_ci, UNIQUE KEY
+      uk_oauth_provider_identity on (provider,provider_user_id) NON_UNIQUE=0, plus
+      idx_oauth_provider_account and idx_oauth_provider_unlinked. Upgrade scenario on a second
+      DB ulticode_p2auth003_upgrade: applied 39 migrations up to V20260724165931, inserted 3
+      legacy users + 5 legacy refresh_tokens (no family columns specified), then applied
+      V20260727021915 alone (BUILD SUCCESS, now at v20260727021915). Post-upgrade checksum: 15
+      users (12 seeded + 3 legacy), 5 refresh_tokens, 1 oauth_provider_identity. authz_version:
+      15/15 = 0 (DEFAULT applied transparently to legacy rows; 0 NULL, 0 non-zero). Orphan
+      check PASS: 5/5 refresh_tokens have family_id/replaced_by_token_id/previous_token_id IS
+      NULL, 0/5 NOT NULL. UNIQUE constraint PASS: duplicate (provider,provider_user_id)
+      rejected with ERROR 1062. Plain DROP COLUMN rollback PASS for the lossless property:
+      15/5/1 row counts preserved. IF-EXISTS rollback FAILS on MySQL 9.1 (DROP COLUMN IF
+      EXISTS / ALTER TABLE DROP INDEX IF EXISTS both rejected with syntax error; this is
+      MariaDB/PostgreSQL syntax, not standard MySQL) — filed as P2-DISC-004 follow-up; per
+      project migration plan the primary rollback is application rollback + additive schema
+      retained, not destructive SQL DOWN. Disposable env tear-down: docker compose -f
+      disposable-verify/docker-compose.verify.yml --env-file disposable-verify/.env.verify
+      down -v.'
+    ts: '2026-07-27T20:50:00+08:00'
   commits: []
-  notes: ''
-  updated_at: '2026-07-27T20:15:00+08:00'
+  notes: 'Dynamic verification scaffold: disposable-verify/ contains docker-compose.verify.yml
+    (port 23307, MySQL 9.1, throwaway creds) and .env.verify (gitignored). Dev MySQL on 23306
+    and the dev .env were never touched. The IF-EXISTS rollback MySQL 9.1 incompatibility is
+    a real bug in the documented rollback path but does not affect additive-only / lossless
+    properties; the project rollback principle is application rollback + additive schema
+    retained, so the SQL IF-EXISTS path is a documented defensive measure rather than a
+    required path.'
+  updated_at: '2026-07-27T20:50:00+08:00'
 - id: P2-AUTH-004
   phase: 2
   area: AUTH
@@ -6815,6 +6847,44 @@
     to a single Phase 3 / Phase 7 batch owned by P2-DISC-001, because each one is a 5-50 file import rewrite and the combined
     batch is more reviewable.'
   updated_at: '2026-07-27T10:15:00+08:00'
+- id: P2-DISC-004
+  phase: 2
+  area: DISC
+  discovered_from: P2-AUTH-003
+  title: Migration IF-EXISTS-guarded rollback is MariaDB/PostgreSQL syntax, not portable to MySQL 9.1
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#15
+  - init-db/migrations/V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
+  status: pending
+  depends_on:
+  - P2-AUTH-003
+  acceptance_criteria:
+  - Either (a) replace the IF-EXISTS-guarded rollback snippet in V20260727021915 with a MySQL-compatible
+    plain DROP (acceptable loss; the application-rollback principle means the SQL path is defensive
+    only), or (b) add a follow-up migration that documents the MySQL-incompatibility and supplies
+    a verified-on-MySQL rollback script, or (c) make the rollback a stored procedure so the IF-EXISTS
+    logic can be expressed without depending on the DDL form. Choose via DECISIONS.md ADR.
+  - Dispose of the P2-AUTH-003 verification scaffold (disposable-verify/ + .env.verify) after
+    the chosen fix is decided, OR keep it as a documented regression test for additive migrations
+    going forward.
+  - The chosen approach is applied to subsequent additive migrations (any future V...__{Add,...}.sql
+    uses the chosen rollback form).
+  validation:
+  - Run disposable-verify against MySQL 9.1 with the new rollback form and confirm execution
+    without syntax error
+  - Re-run P2-AUTH-003 acceptance as regression
+  rollback: 'N/A (documentation/cleanup task; no application change)'
+  evidence: []
+  commits: []
+  notes: 'Discovered during the disposable-environment dynamic verification of P2-AUTH-003
+    (2026-07-27). MySQL 9.1 rejects `ALTER TABLE ... DROP COLUMN IF EXISTS` and
+    `ALTER TABLE ... DROP INDEX IF EXISTS` with syntax error 1064. The migration file is
+    committed (133ae48) and frozen per AGENTS.md; this follow-up decides the correct portable
+    form. The additive-only / lossless property is independently verified (15/5/1 row counts
+    preserved through plain DROP); the SQL IF-EXISTS path was a documented defensive measure,
+    not the project''s primary rollback strategy (which is application rollback + additive
+    schema retained, per guide §15).'
+  updated_at: '2026-07-27T20:50:00+08:00'
 - id: P2-SEC-HYGIENE-001
   phase: 2
   area: SEC

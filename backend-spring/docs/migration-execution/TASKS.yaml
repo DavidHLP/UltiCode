@@ -6370,7 +6370,7 @@
   source:
     - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
     - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java
-  status: pending
+  status: done
   depends_on:
     - P3-OWNER-001
   acceptance_criteria:
@@ -6382,10 +6382,30 @@
     - "./mvnw -pl backend-legacy test -B"
     - "./mvnw verify -B"
   rollback: "Restore AdminProblemServiceImpl direct mapper calls; remove ProblemOwnerPort."
-  evidence: []
+  evidence:
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/ProblemOwnerPort.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPort.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java"
+  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPortTest.java"
+  - command: "./mvnw -pl backend-legacy test -Dtest='DefaultProblemOwnerPortTest' -B"
+    result: "BUILD SUCCESS — 9 port contract tests, 0 failures, 0 errors"
+  - command: "./mvnw verify -B"
+    result: "BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped"
+  - note: 'P3-OWNER-001-A: 5 write methods (flagProblem, moderateProblem,
+      restoreDeletedByIds, moderateProblems, updateDifficulty) routed
+      through the new port. Reads (selectById, selectList,
+      selectFlaggedProblems, countFlaggedProblems) stay in admin
+      per ADR-0011. The existing AdminProblemPort (publish / unpublish
+      / delete lifecycle + toVO / findBySlug / findSubmissions) is
+      NOT changed in this subtask; a future consolidation will move
+      its write methods onto ProblemOwnerPort. P3-OWNER-001-F (ArchUnit
+      rule) will forbid the now-removed write method calls even if a
+      future PR reintroduces them.'
+    ts: '2026-07-27T22:55:00+08:00'
   commits: []
   notes: "Problem is the first domain because it is the largest single source of Admin cross-writes (create, update, publish, restore, flag, moderate, bulk). Its port defines the shape every later domain follows."
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-27T22:55:00+08:00'
 - id: P3-OWNER-001-B
   phase: 3
   area: OWNER

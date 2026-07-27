@@ -163,4 +163,19 @@ public interface ProblemMapper extends BaseMapper<Problem> {
             "</script>")
     int batchModerateProblems(@Param("ids") List<Long> ids, @Param("status") String status,
                               @Param("notes") String notes, @Param("reviewedBy") String reviewedBy);
+
+    /**
+     * P3-OWNER-001-A: column-targeted difficulty update so the
+     * {@link com.ulticode.modules.problem.port.ProblemOwnerPort}
+     * can own the write without smuggling a full {@code Problem}
+     * entity through the port boundary. Idempotent: writing the
+     * same difficulty the row already has is a no-op (the WHERE
+     * guard).
+     *
+     * @return 1 if the row existed and the difficulty changed;
+     *     0 if the row did not exist (the caller maps this to
+     *     {@code USER_NOT_FOUND}) or the value was unchanged
+     */
+    @Update("UPDATE problems SET difficulty = #{difficulty} WHERE id = #{id} AND difficulty <> #{difficulty}")
+    int updateDifficulty(@Param("id") Long id, @Param("difficulty") String difficulty);
 }

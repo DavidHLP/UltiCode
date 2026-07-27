@@ -25,6 +25,7 @@ import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
+import com.ulticode.modules.problem.port.ProblemOwnerPort;
 import com.ulticode.modules.submission.entity.Submission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,17 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final AdminProblemMapper mapper;
     private final AdminProblemPort problemPort;
+    /**
+     * P3-OWNER-001-A: owner-only write surface for the {@code problems}
+     * row. Replaces the direct {@code problemMapper.flagProblem /
+     * moderateProblem / restoreDeletedByIds / batchModerateProblems}
+     * calls that lived here before the Phase 3 owner boundary was
+     * established. Read paths (selectById, selectList, custom
+     * queries) still go through {@code problemMapper} because the
+     * admin projection / VO composition is a real read seam per
+     * ADR-0011; only the WRITES are routed through the owner port.
+     */
+    private final ProblemOwnerPort problemOwnerPort;
     private final AuditService auditService;
     private final CurrentUserProvider currentUserProvider;
     private final AdminBulkExecutor bulkExecutor;
@@ -112,7 +124,8 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                 case unpublish -> problemPort.unpublishProblem(id);
                 case delete -> problemPort.deleteProblem(id);
                 case restore -> {
-                    int restored = problemMapper.restoreDeletedByIds(List.of(id));
+                    // P3-OWNER-001-A: route restore through the owner port.
+                    int restored = problemOwnerPort.restoreDeletedByIds(List.of(id));
                     if (restored > 0) {
                         log.info("Problem id={} restored by user={}", id, currentUserProvider.getCurrentUserId());
                     }
@@ -124,10 +137,15 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                         if (!isValidDifficulty(difficulty)) {
                             throw new IllegalArgumentException("Invalid difficulty value: " + difficulty);
                         }
+                        // P3-OWNER-001-A: the difficulty write is a
+                        // foreign-mapper UPDATE; route it through
+                        // ProblemOwnerPort. The existence check
+                        // (Problem != null) stays in admin because
+                        // it drives the user-facing error path;
+                        // the port owns the actual write.
                         Problem problem = problemMapper.selectById(id);
                         if (problem != null) {
-                            problem.setDifficulty(difficulty);
-                            problemMapper.updateById(problem);
+                            problemOwnerPort.updateDifficulty(id, difficulty);
                         }
                     }
                 }
@@ -144,9 +162,11 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Override
     @Transactional
     public ProblemVO flagProblem(Long id, String reason) {
+        // P3-OWNER-001-A: foreign write goes through the owner port;
+        // the read re-fetch + toVO stays in admin (read seam).
         Problem problem = findProblemById(id);
         String reportedBy = currentUserProvider.getCurrentUserId();
-        problemMapper.flagProblem(id, reason, reportedBy);
+        problemOwnerPort.flagProblem(id, reason, reportedBy);
         problem = findProblemById(id);
         return problemPort.toVO(problem);
     }
@@ -154,9 +174,10 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     @Override
     @Transactional
     public ProblemVO moderateProblem(Long id, String status, String notes) {
+        // P3-OWNER-001-A: same pattern as flagProblem.
         Problem problem = findProblemById(id);
         String reviewedBy = currentUserProvider.getCurrentUserId();
-        problemMapper.moderateProblem(id, status, notes, reviewedBy);
+        problemOwnerPort.moderateProblem(id, status, notes, reviewedBy);
         problem = findProblemById(id);
         return problemPort.toVO(problem);
     }
@@ -181,7 +202,10 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                 .map(Long::parseLong)
                 .collect(Collectors.toList());
         String reviewedBy = currentUserProvider.getCurrentUserId();
-        int affected = problemMapper.batchModerateProblems(ids, request.getStatus(), request.getNotes(), reviewedBy);
+        // P3-OWNER-001-A: bulk moderate is a foreign write; route
+        // through the owner port. The port's @Transactional joins the
+        // caller's transaction so a mid-list failure rolls back.
+        int affected = problemOwnerPort.moderateProblems(ids, request.getStatus(), request.getNotes(), reviewedBy);
 
         if (affected != ids.size()) {
             log.warn("batchModerateProblems: requested {} but only {} rows affected", ids.size(), affected);

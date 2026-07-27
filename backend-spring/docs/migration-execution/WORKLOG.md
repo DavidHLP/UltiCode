@@ -496,3 +496,6 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-001-C)
 - P2-AUTH-001-C: Ported `AuthController` (`/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout`, `/auth/me`, `/auth/permissions`), `AuthServiceImpl`, `AuthSessionPort`/`DefaultAuthSessionAdapter`, `AuthAccountPort`/`AuthAccountRecord`/`DefaultAuthAccountAdapter`, and DTOs into `backend-auth`. Unit test suite `AuthServiceImplTest` passes (45 tests total in `backend-auth`). Status: done. Commit: 90030e6e7.
+
+### 2026-07-27 (P2-AUTH-001-D)
+- P2-AUTH-001-D: Ported `OAuthService` coordinator, `OAuthStatePort`/`OAuthStateModule` (cookie binding + constant-time comparison), `GithubOAuthClient`, `GoogleOAuthClient`, `OAuthHttpTransport`/`OAuthHttp`, and `OAuthProperties` into `backend-auth`. Unit test suite `OAuthServiceTest` passes (49 tests total in `backend-auth`). Status: done. Commit: 2b8447e7d.

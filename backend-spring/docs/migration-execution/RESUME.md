@@ -1,52 +1,59 @@
 # Migration Resume
 
 Current Phase: Phase 2
-Current Task: P2-AUTH-001 (refresh-token rotation extraction to backend-auth)
+Current Task: P2-AUTH-001-B (move JWT/security plumbing into backend-auth)
 
 Last Verified Commit:
-- e50c84b chore(migration): log Phase 2 setup and P2-AUTH-001-B delegation
+- e835c7d chore(migration): update RESUME after delegation
 
 Completed:
-- 18 / 51 (Phase 0 gate + seven Phase 1 tasks done; P1-GATE closed)
+- 19 / 59 (Phase 0 gate + nine Phase 1 tasks done; P1-GATE closed)
+- P2-AUTH-001 in progress; B subtask accepted from vanished worker subagent.
 
 Blocked:
-None
+- None.
 
 Current Work:
-- Phase 1 is fully closed. All P1-INFRA-* tasks, P1-API-001, P1-OBS-001,
-  P1-INFRA-003-DISC, and P1-GATE are done/superseded.
-- P2-AUTH-001 in progress. Runtime setup complete:
-  - backend-auth pom dependencies (Spring Security, validation, Redis, mail,
-    MyBatis-Plus, MySQL, Redisson, JJWT) added.
-  - backend-auth application.yml with datasource, Redis/Redisson, Flyway, JWT,
-    mail, MyBatis-Plus, management/tracing, Dubbo/Nacos settings.
-  - H2 test-scope dependency and backend-auth test application.yml added;
-    disabled Redis/Redisson/Security/ManagementWebSecurity autoconfig and mail
-    health indicator for context-load tests.
-  - `./mvnw -pl backend-auth -am -B verify` PASS.
-  - Full reactor `./mvnw verify -B` PASS.
-- Scout inventory complete: all auth/security/refresh/permission/OAuth classes in
-  backend-legacy mapped and an extraction order produced.
-- Next sub-task: move refresh-token ownership into backend-auth as the first
-  self-contained auth subdomain (RefreshToken entity, mapper, service, table).
+- P2-AUTH-001-B picked up after P2Auth001B worker subagent exited without
+  producing any backend-auth code changes.
+- Strategy: copy legacy `com.ulticode.security.{jwt,csrf}.*` to
+  `com.ulticode.auth.security.{jwt,csrf}.*` inside backend-auth so the auth
+  service can independently sign/verify JWTs and run CSRF. backend-legacy
+  keeps its own copies untouched (Strangler Fig dual-run).
+- deviation recorded in DECISIONS.md (ADR-MIG-AUTH-JWT-PLACEMENT):
+  verify-only shared utility will later move to backend-common so App/Admin
+  can offline-verify (§7.3 / §11); P2-AUTH-002 owns that extraction.
+- next: backend-auth AuthSecurityConfig (permitAll on /auth/**, /actuator/**,
+  JWT filter chain) + AuthAuthenticationEntryPoint; unit tests for
+  JwtTokenProvider sign/verify/expire/secret-validation and CsrfService
+  generate/validate/clear.
 
 Last Validation:
-- `./mvnw verify -B` full backend-spring reactor: PASS (39.1 s, all modules).
+- ./mvnw verify -B full backend-spring reactor: PASS (39.1 s, all modules).
+- ./mvnw -pl backend-auth -am -B verify: PASS (placeholder shell).
 
 Next:
-1. P2-AUTH-001-A: move refresh-token ownership (entity/mapper/service/table)
-   into backend-auth with tests.
-2. P2-AUTH-001-B: move JWT/security plumbing into backend-auth.
-3. P2-AUTH-001-C: move AuthController + session/account adapters.
-4. P2-AUTH-002: resource-server JWT verifier per service.
-5. P2-AUTH-003: provider identity / authz version additive migration.
-6. P2-AUTH-004: Gateway `/auth/**` cutover.
-7. P2-RBAC-001: auth-only RBAC writer.
-8. P2-GATE.
+1. P2-AUTH-001-B: AuthSecurityConfig + AuthAuthenticationEntryPoint +
+   unit tests for JwtTokenProvider / CsrfService; ./mvnw -pl backend-auth
+   -am verify; commit.
+2. P2-AUTH-001-A: refresh-token entity/mapper/service extraction (depends on B).
+3. P2-AUTH-001-E: RBAC/permission ownership (depends on B).
+4. P2-AUTH-001-C: AuthController + session/account adapters (depends on E).
+5. P2-AUTH-001-D: OAuth state and provider adapters (depends on C).
+6. P2-AUTH-001-F: password reset and email (depends on C).
+7. P2-AUTH-001-G: backend-auth standalone integration test suite.
+8. P2-AUTH-002: resource-server JWT verifier in App/Admin (extract verify-only
+   utility to backend-common per ADR-MIG-AUTH-JWT-PLACEMENT).
+9. P2-AUTH-003: provider identity / authz version additive schema.
+10. P2-AUTH-004: Gateway /auth/** cutover.
+11. P2-RBAC-001: Auth-only role/permission writer; App/Admin read-only RPC.
+12. P2-GATE: Phase 2 gate.
 
 Dirty Worktree:
-Yes — backend-auth pom/test-resources changes + TASKS.yaml/WORKLOG.md updates
-not yet committed.
+No — `git status` clean. Last commit e835c7d incorporated all earlier
+uncommitted files (TASKS.yaml + WORKLOG.md updates from P2-AUTH-001
+split + delegation). The previous "Dirty Worktree: Yes" line in this file
+was a stale snapshot that survived the P2-AUTH-001 split commit (e50c84b).
 
 PUSH: NOT pushed. GitHub writes require explicit user approval.
 

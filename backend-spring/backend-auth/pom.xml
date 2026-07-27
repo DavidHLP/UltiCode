@@ -71,6 +71,12 @@
 			<artifactId>redisson-spring-boot-starter</artifactId>
 			<version>${redisson.version}</version>
 		</dependency>
+		<!-- P2-AUTH-001-B: hutool IdUtil for CSRF token generation. -->
+		<dependency>
+			<groupId>cn.hutool</groupId>
+			<artifactId>hutool-all</artifactId>
+			<version>${hutool.version}</version>
+		</dependency>
 
 		<!-- P2-AUTH-001: JWT signing/verification. -->
 		<dependency>

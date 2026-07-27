@@ -1,0 +1,166 @@
+package com.ulticode.auth.security.jwt;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import java.util.Date;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Unit tests for {@link JwtTokenProvider}.
+ *
+ * <p>Covers the JWT plumbing extracted to backend-auth under P2-AUTH-001-B:
+ * the same HS256 secret + claims shape that backend-legacy still issues,
+ * so a token minted here is verifiable by backend-legacy and vice versa
+ * (Strangler Fig dual-run contract). Also pins the secret-length and
+ * token-expiration contract that the guide §7.3 hot path relies on.
+ */
+class JwtTokenProviderTest {
+
+    private static final String SECRET = "test-secret-32-chars-or-more-yes!!!";
+
+    private static JwtTokenProvider newProvider() {
+        JwtProperties properties = new JwtProperties();
+        properties.setSecret(SECRET);
+        properties.getAccessToken().setExpiration(60_000L);
+        properties.getRefreshToken().setExpiration(120_000L);
+        return new JwtTokenProvider(properties);
+    }
+
+    @Nested
+    @DisplayName("validateSecret")
+    class ValidateSecret {
+
+        @Test
+        @DisplayName("accepts a secret >= 32 chars")
+        void acceptsValidSecret() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret(SECRET);
+            properties.validateSecret();
+        }
+
+        @Test
+        @DisplayName("rejects a null secret")
+        void rejectsNullSecret() {
+            JwtProperties properties = new JwtProperties();
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("JWT secret must not be null");
+        }
+
+        @Test
+        @DisplayName("rejects a blank secret")
+        void rejectsBlankSecret() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret("   ");
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("must not be blank");
+        }
+
+        @Test
+        @DisplayName("rejects a secret shorter than 32 chars")
+        void rejectsShortSecret() {
+            JwtProperties properties = new JwtProperties();
+            properties.setSecret("too-short");
+            assertThatThrownBy(properties::validateSecret)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("at least 32 characters");
+        }
+    }
+
+    @Nested
+    @DisplayName("sign and verify")
+    class SignAndVerify {
+
+        @Test
+        @DisplayName("access token round-trips claims through the same provider")
+        void accessTokenRoundTrip() {
+            JwtTokenProvider provider = newProvider();
+            String token = provider.generateAccessToken("user-1", "alice", "USER");
+
+            assertThat(provider.validateToken(token)).isTrue();
+            assertThat(provider.getUserIdFromToken(token)).isEqualTo("user-1");
+            assertThat(provider.getUsernameFromToken(token)).isEqualTo("alice");
+            assertThat(provider.getRoleFromToken(token)).isEqualTo("USER");
+        }
+
+        @Test
+        @DisplayName("refresh token carries the type=refresh claim and is distinct from access")
+        void refreshTokenShape() {
+            JwtTokenProvider provider = newProvider();
+            String refresh = provider.generateRefreshToken("user-2");
+
+            assertThat(provider.validateToken(refresh)).isTrue();
+            assertThat(provider.getUserIdFromRefreshToken(refresh)).isEqualTo("user-2");
+            Claims claims = provider.parseToken(refresh);
+            assertThat(claims.get("type", String.class)).isEqualTo("refresh");
+        }
+
+        @Test
+        @DisplayName("two providers sharing the same secret verify each other's tokens")
+        void twoProvidersShareSecret() {
+            JwtTokenProvider signer = newProvider();
+            JwtTokenProvider verifier = newProvider();
+
+            String token = signer.generateAccessToken("user-3", "bob", "ADMIN");
+            assertThat(verifier.validateToken(token)).isTrue();
+            assertThat(verifier.getUserIdFromToken(token)).isEqualTo("user-3");
+            assertThat(verifier.getRoleFromToken(token)).isEqualTo("ADMIN");
+        }
+
+        @Test
+        @DisplayName("a token signed with a different secret is rejected")
+        void differentSecretFailsToVerify() {
+            JwtTokenProvider signer = newProvider();
+
+            JwtProperties otherProps = new JwtProperties();
+            otherProps.setSecret("other-secret-32-chars-or-more-yes!!!");
+            otherProps.getAccessToken().setExpiration(60_000L);
+            otherProps.getRefreshToken().setExpiration(120_000L);
+            JwtTokenProvider verifier = new JwtTokenProvider(otherProps);
+
+            String token = signer.generateAccessToken("user-4", "carol", "USER");
+            assertThat(verifier.validateToken(token)).isFalse();
+            assertThat(verifier.parseToken(token)).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("expiration")
+    class Expiration {
+
+        @Test
+        @DisplayName("a token with past expiration is detected and parseToken throws")
+        void expiredTokenIsDetected() {
+            JwtProperties props = new JwtProperties();
+            props.setSecret(SECRET);
+            props.getAccessToken().setExpiration(-1L);
+            props.getRefreshToken().setExpiration(-1L);
+            JwtTokenProvider provider = new JwtTokenProvider(props);
+
+            String token = provider.generateAccessToken("user-5", "dave", "USER");
+            assertThat(provider.isTokenExpired(token)).isTrue();
+            assertThatThrownBy(() -> provider.parseToken(token)).isInstanceOf(ExpiredJwtException.class);
+        }
+
+        @Test
+        @DisplayName("issuedAt is set to the current second (jjwt truncates to second resolution)")
+        void issuedAtIsNow() {
+            JwtTokenProvider provider = newProvider();
+            long before = System.currentTimeMillis() / 1000L;
+            String token = provider.generateAccessToken("user-6", "erin", "USER");
+            long after = System.currentTimeMillis() / 1000L;
+
+            Claims claims = provider.parseToken(token);
+            Date issuedAt = claims.getIssuedAt();
+            assertThat(issuedAt).isNotNull();
+            // jjwt writes issuedAt at second resolution; tolerate one-second skew.
+            assertThat(issuedAt.getTime() / 1000L).isBetween(before, after);
+        }
+    }
+}

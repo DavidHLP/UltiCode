@@ -371,3 +371,77 @@ Affected Tasks
 - P1-INFRA-003-DISC (owner; this ADR + the action plan).
 - P4-RPC-001 (fallback path; re-exercises the same registration
   pipeline under the real Auth / App provider contracts).
+
+## ADR-MIG-AUTH-JWT-PLACEMENT
+
+Context
+
+P2-AUTH-001-B acceptance text says: "JwtProperties, JwtTokenProvider,
+JwtAuthenticationFilter, CsrfService, CsrfValidationFilter copied/adapted
+to backend-auth". The task title is "Move JWT/security plumbing into
+backend-auth". At the same time, the guide §7.3 and §11 require
+"App/Admin use resource-server style local JWT verification" and
+"App/Admin offline-verify with public key", which means the **verify**
+half of JWT must be reachable from App/Admin, not just from backend-auth.
+
+Today JwtTokenProvider lives only in backend-legacy under
+`com.ulticode.security.jwt`. App/Admin will live in separate Maven
+modules and must not depend on backend-legacy or backend-auth. The
+shared place for cross-service utilities is `backend-common` (P1-INFRA-002
+extraction established the pattern: Result, PageResult, TraceIdUtil,
+TimeSource, RpcResult).
+
+Decision
+
+Two-step placement:
+
+1. **Phase 2 (P2-AUTH-001-B)**: copy `JwtProperties`, `JwtTokenProvider`,
+   `CsrfService` (and the HTTP filter pair) into `backend-auth` under
+   `com.ulticode.auth.security.{jwt,csrf}.*`. backend-legacy keeps its
+   own copies untouched. This satisfies the P2-AUTH-001-B acceptance and
+   keeps the Strangler Fig dual-run contract: Auth can independently
+   sign tokens before the Gateway cutover while Legacy continues to
+   verify them with the same HMAC secret.
+
+2. **Phase 2 (P2-AUTH-002)**: extract a **verify-only** utility
+   (`JwtVerifier` / `JwtTokenVerifier`) into `backend-common` so App/Admin
+   can offline-verify tokens without pulling in the signer, the Redis
+   CSRF service, or the SecurityFilterChain wiring. backend-legacy
+   migrates to the shared verifier; backend-auth keeps the signer
+   private. This addresses the §7.3 hot-path requirement and the
+   §11 risk R3 ("verifier must not be able to sign").
+
+Alternatives
+
+- Put JwtTokenProvider directly in `backend-common` now (skip
+  backend-auth copy): rejected because task B's acceptance
+  explicitly says "copied/adapted to backend-auth", and the auth
+  service must own its own signer before issuing tokens independently
+  of Legacy. The verify-only extraction is cleaner when both sides
+  exist.
+- Keep JWT in `backend-legacy` and expose it via Dubbo: rejected
+  because §11.2 / R3 explicitly forbids "verifier that can also
+  sign" exposure beyond Auth; every request would incur an RPC.
+- Move JWT to a new `backend-jwt` module: rejected — extra
+  module for one class family is unjustified; backend-common
+  already hosts cross-service utilities and P1-INFRA-002 is the
+  established extraction path.
+
+Consequences
+
+- backend-auth gains a private JWT signing capability, sufficient
+  to issue tokens for /auth/login, /auth/register, /auth/refresh.
+- App/Admin continue to verify via their own (currently shared with
+  backend-legacy) verifier; once P2-AUTH-002 lands, that verifier
+  becomes a backend-common read-only utility.
+- backend-legacy's copies stay until Phase 4 cutover, at which point
+  both services drop the duplicated sources.
+- A future task in Phase 7 (LEGACY-001) collapses the duplicate
+  packages into the single backend-common verify utility.
+
+Affected Tasks
+
+- P2-AUTH-001-B (current; copy into backend-auth).
+- P2-AUTH-002 (next; extract verify-only into backend-common).
+- P7-LEGACY-001 (final; remove backend-legacy copies).
+- P7-LEGACY-002 (drop duplicate JWT utility once verify is shared).

@@ -509,3 +509,6 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-002)
 - P2-AUTH-002: Installed offline `ResourceServerJwtVerifier` in `backend-app` and `backend-admin`. Tokens issued by `backend-auth` are verified locally without RPC (validating `iss`, `aud`, `typ`, `exp`, `nbf`, and algorithm allowlist). Full reactor build passes (`./mvnw test -B`). Status: done. Commit: 9c6313507.
+
+### 2026-07-27 (P2-AUTH-004)
+- P2-AUTH-004: Cut over `/api/auth/` route family in both `console/nginx.conf` and `management/nginx.conf` to `backend-auth:9001/auth/`. Verified via `./scripts/test/gateway-baseline.sh --skip-smoke` (69/69 static inventory and security header checks pass). Status: done. Commit: c2386f026.

@@ -512,3 +512,6 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-004)
 - P2-AUTH-004: Cut over `/api/auth/` route family in both `console/nginx.conf` and `management/nginx.conf` to `backend-auth:9001/auth/`. Verified via `./scripts/test/gateway-baseline.sh --skip-smoke` (69/69 static inventory and security header checks pass). Status: done. Commit: c2386f026.
+
+### 2026-07-27 (P2-DISC-002)
+- P2-DISC-002: Provided `Clock` and `TimeSource` bean configurations across all extracted service shells (`backend-auth`, `backend-app`, `backend-admin`). Full reactor build (`./mvnw test -B`) passes all 9 modules in 53.9s with 0 failures. Status: done. Commit: 631b8b1a0.

@@ -6,6 +6,7 @@ Current Task: P2-AUTH-003 (blocked on credential exposure incident)
 Last Verified Commit:
 - c2386f0 feat(gateway): cut over /api/auth/ route family to backend-auth service (P2-AUTH-004)
 - 9c63135 feat(sec): install offline resource server JWT verifiers in App and Admin (P2-AUTH-002)
+- 631b8b1 feat(time): provide Clock and TimeSource bean configurations across extracted service shells (P2-DISC-002)
 - 169b7e4 feat(auth): complete backend-auth standalone extraction (P2-AUTH-001 & P2-AUTH-001-G)
 - ac47294 feat(auth): move password reset and email integration into backend-auth (P2-AUTH-001-F)
 - 2b8447e feat(auth): move OAuth state and provider adapters into backend-auth (P2-AUTH-001-D)

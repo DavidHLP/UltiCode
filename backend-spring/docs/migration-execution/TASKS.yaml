@@ -5746,7 +5746,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-5-permission
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-B
   acceptance_criteria:
@@ -5757,8 +5757,23 @@
   - ./mvnw -pl backend-auth verify -B
   rollback:
   - Revert permission files; legacy permission service remains.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw -pl backend-auth -am test -B"
+    result: "BUILD SUCCESS — 38 tests run, 0 failures, 0 errors in backend-auth (including PermissionServiceTest and JwtTokenProviderTest)"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/PermissionServiceImpl.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/PermissionVocabulary.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/entity/UserPermission.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/entity/RolePermission.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserPermissionMapper.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/mapper/RolePermissionMapper.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleReadPort.java"
+  - file: "backend-auth/src/test/java/com/ulticode/auth/permission/service/PermissionServiceTest.java"
+  - note: 'P2-AUTH-001-E complete: ported PermissionService, PermissionVocabulary, UserPermission/RolePermission entities & mappers, and UserRoleReadPort into backend-auth. All 15 unit tests in PermissionServiceTest pass.'
+    ts: '2026-07-27T11:20:00+08:00'
+  commits:
+  - fa6b0b289
   notes: ''
   updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-001-C

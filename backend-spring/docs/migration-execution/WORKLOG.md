@@ -518,3 +518,6 @@ this session.
 
 ### 2026-07-27 (P2-DISC-003)
 - P2-DISC-003: Recorded decision in `DECISIONS.md` (ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION). Maintained Option D (per-module local copies for `UuidGenerator` and `CurrentUserProvider` in Phase 2) and absorbed cross-cutting port promotion into P2-DISC-001 batch. Status: done. Commit: 49960e003.
+
+### 2026-07-27 (P2-DISC-001)
+- P2-DISC-001: Promoted `BusinessException` to `backend-common` accepting `NamespacedErrorCode` (dependency-free, zero Spring coupling). Retrofitted `ErrorCode` in `backend-legacy` to implement `NamespacedErrorCode`. Full reactor build (`./mvnw test -B`) passes all 9 modules in 1m 06s with 0 failures (including `ErrorCodeDelegationTest`). Status: done. Commit: 17e9f6bec.

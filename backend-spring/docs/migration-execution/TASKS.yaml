@@ -5707,7 +5707,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-5-jwt-security
-  status: in_progress
+  status: done
   depends_on:
   - P1-GATE
   acceptance_criteria:
@@ -5722,9 +5722,15 @@
   - note: Begin moving JWT/security plumbing into backend-auth. Delegating implementation to a worker subagent with full scout
       inventory.
     ts: '2026-07-26T20:36:05+00:00'
+  - note: 'P2-AUTH-001-B done. Copied com.ulticode.security.{jwt,csrf}.* into com.ulticode.auth.security.{jwt,csrf}.* in backend-auth.
+      Added AuthSecurityConfig + AuthAuthenticationEntryPoint (BaseErrorCode-backed). 17 new unit tests for JwtTokenProvider
+      (sign/verify/secret-length/expiration) and CsrfService (generate/rotate/clear/format/missing-Redis). Full reactor ./mvnw
+      verify -B PASS, 1795 tests, 0 failures, 4 skipped. Commit: 9b4aaf9. ADR-MIG-AUTH-JWT-PLACEMENT records deviation: verify-only
+      shared utility extraction owned by P2-AUTH-002.'
+    ts: '2026-07-27T10:03:24+08:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-26T20:36:05+00:00'
+  updated_at: '2026-07-27T10:03:24+08:00'
 - id: P2-AUTH-001-E
   phase: 2
   area: AUTH

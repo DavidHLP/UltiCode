@@ -5892,7 +5892,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#7.5
-  status: done
+  status: blocked
   depends_on:
   - P0-SEC-002
   acceptance_criteria:
@@ -5913,9 +5913,29 @@
       still green (1795 tests, 0 failures, 4 skipped) — the EXPAND phase is invisible to the running system. Pending: actual
       MySQL apply against dev cluster (deferred until docker MySQL is up; recorded as P2-AUTH-003 evidence point).'
     ts: '2026-07-27T10:22:00+08:00'
+  - note: 'REVERTED: P2-AUTH-003 was prematurely marked done in commit 2af78d4; the migration file V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
+      was written and committed in 133ae48 but the dev MySQL cluster was not available for the full verify cycle (./scripts/dev/migrate.sh
+      failed with Communications link failure when MySQL was briefly up). The expansion-phase design, the orphan condition
+      (refresh_tokens.family_id IS NULL count must equal pre-migration row count), the shadow-read invariant, the IF EXISTS-guarded
+      non-destructive rollback, and the validate-migration naming convention are all satisfied as static design. The dynamic
+      verification (real checksum before/after, real orphan SELECT, real Flyway apply output) was NOT performed and is the
+      missing evidence. Container ulticode-mysql was started, failed to authenticate, then stopped and removed; no schema
+      state was changed. The migration file is in working tree (commit 133ae48) and is safe to apply later when MySQL is available.
+      Per the protocol, P2-AUTH-003 stays in_progress until the dynamic evidence is captured. Next: obtain a reachable MySQL
+      8.0.29+ / 9.x instance, run scripts/dev/migrate.sh migrate, capture the row-count checksum and the orphan SELECT COUNT(*)
+      FROM refresh_tokens WHERE family_id IS NULL output, then re-apply done. Updated at: 2026-07-27T10:25:00+08:00'
+    ts: '2026-07-27T10:25:00+08:00'
+  - note: 'P2-AUTH-003 blocked: dynamic MySQL verify cycle cannot proceed in-session due to a credential exposure incident.
+      The migration file V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql is committed (133ae48) as static
+      design only — no secret values in the file. Per advisory, no further git history scan / secret search / MySQL container
+      start is allowed in-session. The full Flyway apply + row-count checksum + orphan SELECT + shadow-read + IF EXISTS rollback
+      cycle is deferred to a future session after (1) operator rotates the affected secrets in the authorised secret store,
+      (2) the named MySQL volume is dropped and the container is recreated against the rotated env, and (3) the agent is granted
+      explicit approval to re-verify. Until then the task is blocked on the security incident, not on the design.'
+    ts: '2026-07-27T10:30:00+08:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-27T10:22:00+08:00'
+  updated_at: '2026-07-27T10:30:00+08:00'
 - id: P2-AUTH-004
   phase: 2
   area: AUTH

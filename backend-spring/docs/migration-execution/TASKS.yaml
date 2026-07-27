@@ -5821,7 +5821,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-2
   - MICROSERVICE_MIGRATION_GUIDE.md#4.1
   - scout-inventory-section-4-oauth
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-C
   acceptance_criteria:
@@ -5833,8 +5833,20 @@
   - OAuth integration tests
   rollback:
   - Legacy OAuth endpoints restored.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw -pl backend-auth -am test -B"
+    result: "BUILD SUCCESS — 49 tests run, 0 failures, 0 errors in backend-auth (including OAuthServiceTest, AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest)"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/service/OAuthService.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/GithubOAuthClient.java"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/GoogleOAuthClient.java"
+  - file: "backend-auth/src/test/java/com/ulticode/auth/service/OAuthServiceTest.java"
+  - note: 'P2-AUTH-001-D complete: ported OAuthService coordinator, OAuthStatePort/Module (cookie binding + constant-time comparison), GithubOAuthClient, GoogleOAuthClient, and OAuthProperties into backend-auth. All 49 tests pass.'
+    ts: '2026-07-27T11:30:00+08:00'
+  commits:
+  - f61f3176d
   notes: ''
   updated_at: '2026-07-26T20:35:07+00:00'
 - id: P2-AUTH-001-F

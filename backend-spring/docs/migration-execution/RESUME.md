@@ -4,6 +4,7 @@ Current Phase: Phase 3
 Current Task: P3-OWNER-001 (Phase 3 — owner-owned Application APIs)
 
 Last Verified Commit:
+- 533a40e chore(migration): P2-GATE Phase 2 gate validation PASS + closed legacy writers
 - df35f0c feat(rbac): land Auth-only role/permission writer (P2-RBAC-001)
 - f786117 chore(migration): P2-AUTH-003 done after disposable-env dynamic verify
 - 97af963 chore(migration): append P2-AUTH-003 EXPAND-phase static validation evidence

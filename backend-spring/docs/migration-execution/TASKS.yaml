@@ -6223,7 +6223,8 @@
   - OwnerBoundaryArchTest no longer needs the closed-method test class.
   rollback: 'Restore the closed methods (revert commit).'
   evidence: []
-  commits: []
+  commits:
+  - 533a40e81
   notes: 'Discovered during the P2-GATE verification: the legacy
     PermissionService still exposed assignPermission / revokePermission
     that wrote to user_permissions via the legacy UserPermissionMapper.
@@ -6318,7 +6319,8 @@
       recorded as pending but do not block the gate: they are
       discovered follow-ups, not Phase 2 acceptance criteria.'
     ts: '2026-07-27T22:05:00+08:00'
-  commits: []
+  commits:
+  - 533a40e81
   notes: 'Phase 2 gate validated via unit-test-level evidence. The
     runtime failover drill (stopping backend-auth, verifying the
     gateway routes back to legacy) and the Auth-down E2E (starting

@@ -6149,7 +6149,8 @@
       adds DEFAULT ''USER'' to users.role would let the legacy drop the
       placeholder write entirely — recorded as P2-DISC-005.'
     ts: '2026-07-27T21:40:00+08:00'
-  commits: []
+  commits:
+  - df35f0cf1
   notes: 'Follow-up P2-DISC-005: add DEFAULT ''USER'' to users.role via a
     later migration, then remove the placeholder user.setRole("USER") in
     UserManagementServiceImpl.createUser. The current placeholder write
@@ -6183,7 +6184,8 @@
   - ./mvnw verify -B
   rollback: 'Revert migration; restore user.setRole("USER") placeholder.'
   evidence: []
-  commits: []
+  commits:
+  - df35f0cf1
   notes: 'Discovered during the P2-RBAC-001 refactor of
     UserManagementServiceImpl. The "USER" default is the only remaining
     direct write to users.role from the legacy; it is a system invariant

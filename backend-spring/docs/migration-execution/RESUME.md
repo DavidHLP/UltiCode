@@ -4,6 +4,7 @@ Current Phase: Phase 2
 Current Task: P2-GATE (Phase 2 gate — Auth extraction complete)
 
 Last Verified Commit:
+- df35f0c feat(rbac): land Auth-only role/permission writer (P2-RBAC-001)
 - f786117 chore(migration): P2-AUTH-003 done after disposable-env dynamic verify
 - 97af963 chore(migration): append P2-AUTH-003 EXPAND-phase static validation evidence
 - d1c5ee8 chore(migration): reconcile P2-AUTH-003 blocked state in derived docs

@@ -4,6 +4,7 @@ Current Phase: Phase 3
 Current Task: P3-OWNER-001 (Phase 3 — owner-owned Application APIs)
 
 Last Verified Commit:
+- 11f56ff refactor(contest): route mutations through owner API (P3-OWNER-001-B)
 - bd72cfe refactor(problem): establish owner write port (P3-OWNER-001-A)
 - 533a40e chore(migration): P2-GATE Phase 2 gate validation PASS + closed legacy writers
 - df35f0c feat(rbac): land Auth-only role/permission writer (P2-RBAC-001)

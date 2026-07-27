@@ -6456,7 +6456,8 @@
       so the new port.. dependency is allowed; the freeze store
       was rebuilt to capture the new baseline.'
     ts: '2026-07-27T22:50:00+08:00'
-  commits: []
+  commits:
+  - 11f56fff6
   notes: "Contest has the second-largest cross-write surface. The state machine (create -> start -> end) lives entirely in the port impl so callers can stop reasoning about it."
   updated_at: '2026-07-27T22:50:00+08:00'
 - id: P3-OWNER-001-C

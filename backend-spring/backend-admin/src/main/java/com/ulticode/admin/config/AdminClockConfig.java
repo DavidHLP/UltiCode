@@ -1,4 +1,4 @@
-package com.ulticode.auth.config;
+package com.ulticode.admin.config;
 
 import com.ulticode.common.time.TimeSource;
 import com.ulticode.common.time.TimeSourceHolder;
@@ -8,10 +8,10 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 
 /**
- * Provides the {@link Clock} and {@link TimeSource} beans consumed by backend-auth.
+ * Clock and TimeSource configuration for backend-admin.
  */
 @Configuration
-public class AuthClockConfig {
+public class AdminClockConfig {
 
     @Bean
     public Clock systemClock() {

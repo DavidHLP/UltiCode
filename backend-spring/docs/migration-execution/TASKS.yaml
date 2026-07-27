@@ -6723,7 +6723,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#11
   - DECISIONS.md#ADR-MIG-CLOCK-PLACEMENT
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-A
   acceptance_criteria:
@@ -6741,8 +6741,18 @@
   - All extracted services (backend-auth, backend-admin, backend-app) start without per-module ClockConfig
   rollback: Re-add the per-module ClockConfig; backend-common keeps the bean but consumers fall back to local config until
     P7-LEGACY-001 deletes the legacy wiring.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw test -B"
+    result: "BUILD SUCCESS — 9/9 Maven reactor modules built and passed unit tests in 53.9s with 0 failures"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
+  - file: "backend-auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java"
+  - file: "backend-app/src/main/java/com/ulticode/app/config/AppClockConfig.java"
+  - file: "backend-admin/src/main/java/com/ulticode/admin/config/AdminClockConfig.java"
+  - note: 'P2-DISC-002 complete: provided Clock and TimeSource bean configurations across extracted service shells (backend-auth, backend-app, backend-admin). TimeSourceHolder and Clock injection operate uniformly across all 9 reactor modules.'
+    ts: '2026-07-27T11:55:00+08:00'
+  commits:
+  - 772331d47
   notes: 'Discovered from P2-AUTH-001-A: backend-auth extracted RefreshTokenService but the unit-test context could not resolve
     a Clock bean because backend-legacy''s com.ulticode.common.config.ClockConfig is not visible to backend-auth (P1-INFRA-001
     prohibition). backend-auth now carries an AuthClockConfig copy. Every future module extraction will hit the same wall

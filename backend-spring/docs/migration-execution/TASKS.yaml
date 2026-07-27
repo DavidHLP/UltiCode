@@ -6691,7 +6691,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#11
   - DECISIONS.md#ADR-MIG-AUTH-EXCEPTION-PLACEMENT
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-001-A
   acceptance_criteria:
@@ -6708,8 +6708,19 @@
   - ErrorCodeDelegationTest passes
   rollback: Revert backend-common additions; legacy ErrorCode/BusinessException remain in place; backend-auth keeps its private
     AuthErrorCode/AuthBusinessException.
-  evidence: []
-  commits: []
+  evidence:
+  - command: "./mvnw test -B"
+    result: "BUILD SUCCESS — All 9 Maven reactor modules built and tested in 1m 6s with 0 failures (including ErrorCodeDelegationTest)"
+  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
+    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
+  - file: "backend-common/src/main/java/com/ulticode/common/exception/BusinessException.java"
+  - file: "backend-legacy/src/main/java/com/ulticode/common/exception/ErrorCode.java"
+  - file: "backend-legacy/src/main/java/com/ulticode/common/exception/BusinessException.java"
+  - file: "backend-legacy/src/test/java/com/ulticode/common/exception/ErrorCodeDelegationTest.java"
+  - note: 'P2-DISC-001 complete: promoted BusinessException to backend-common accepting NamespacedErrorCode (dependency-free, no HttpStatus in backend-common). Retrofilled ErrorCode in backend-legacy to implement NamespacedErrorCode. All ErrorCodeDelegationTest assertions pass.'
+    ts: '2026-07-27T12:00:00+08:00'
+  commits:
+  - eb6f3312d
   notes: 'Discovered from P2-AUTH-001-A: backend-legacy''s ErrorCode/BusinessException cannot be lifted to backend-common
     in a single task because legacy enum still has ~150 business codes; this discovery is a follow-up that runs once the auth
     extraction is stable enough to absorb the promotion without contention. ADR-MIG-AUTH-EXCEPTION-PLACEMENT records the decision

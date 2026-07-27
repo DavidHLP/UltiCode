@@ -2,13 +2,13 @@ package com.ulticode.common.exception;
 
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.util.TraceIdUtil;
-import org.springframework.http.HttpStatus;
+import lombok.Getter;
 
 /**
- * Business exception in backend-legacy.
- * Accepts any {@link NamespacedErrorCode} (including legacy {@link ErrorCode} and {@link com.ulticode.common.error.BaseErrorCode})
- * while preserving legacy getHttpStatus() and getCode() accessors (P2-DISC-001).
+ * Base business exception in backend-common carrying a {@link NamespacedErrorCode} and trace ID.
+ * Free of Spring dependencies so it can be safely used across all service contracts (P2-DISC-001).
  */
+@Getter
 public class BusinessException extends RuntimeException {
 
     private final NamespacedErrorCode errorCode;
@@ -44,22 +44,7 @@ public class BusinessException extends RuntimeException {
         this.traceId = traceId;
     }
 
-    public NamespacedErrorCode getErrorCode() {
-        return errorCode;
-    }
-
-    public String getTraceId() {
-        return traceId;
-    }
-
     public Integer getCode() {
         return errorCode != null ? errorCode.code() : null;
-    }
-
-    public HttpStatus getHttpStatus() {
-        if (errorCode instanceof ErrorCode legacyCode) {
-            return legacyCode.getHttpStatus();
-        }
-        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

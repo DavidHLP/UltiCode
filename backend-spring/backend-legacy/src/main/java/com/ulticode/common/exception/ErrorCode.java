@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.error.NamespacedErrorCode;
 
 /**
  * Application-wide error codes.
@@ -30,7 +31,7 @@ import com.ulticode.common.error.BaseErrorCode;
  * part of backend-common.
  */
 @Getter
-public enum ErrorCode {
+public enum ErrorCode implements NamespacedErrorCode {
 
 
     // Generic errors (0xxxx). Code + message literals are delegated to
@@ -228,8 +229,34 @@ public enum ErrorCode {
         return this.httpStatus;
     }
 
+
+    @Override
+    public String namespace() {
+        if (code >= 10000 && code < 20000) return "auth";
+        if (code >= 20000 && code < 30000) return "user";
+        if (code >= 30000 && code < 40000) return "problem";
+        if (code >= 40000 && code < 50000) return "submission";
+        if (code >= 50000 && code < 60000) return "solution";
+        if (code >= 60000 && code < 70000) return "forum";
+        if (code >= 70000 && code < 80000) return "contest";
+        if (code >= 80000 && code < 90000) return "bookmark";
+        if (code >= 90000 && code < 100000) return "problemlist";
+        return "common";
+    }
+
+    @Override
+    public int code() {
+        return code;
+    }
+
+    @Override
+    public String message() {
+        return message;
+    }
+
     /**
      * Find ErrorCode by code value
+
      *
      * @param code the error code value
      * @return the matching ErrorCode, or UNKNOWN_ERROR if not found

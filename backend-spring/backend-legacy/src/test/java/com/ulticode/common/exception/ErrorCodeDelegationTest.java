@@ -1,6 +1,7 @@
 package com.ulticode.common.exception;
 
 import com.ulticode.common.error.BaseErrorCode;
+import com.ulticode.common.error.NamespacedErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -8,13 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Cross-module regression: legacy {@link ErrorCode} must mirror the
- * {@link BaseErrorCode} literals for the 11 generic / protocol-level codes
- * (HTTP envelope ⇄ RPC envelope). A drift here means the legacy HTTP
- * response codes stopped matching the wire-stable RPC codes that backend-common
- * publishes.
- *
- * <p>Lives in backend-legacy because it references the legacy {@code ErrorCode}
- * enum, which is intentionally not exported to backend-common.
+ * {@link BaseErrorCode} literals and implement {@link NamespacedErrorCode} (P2-DISC-001).
  */
 @DisplayName("ErrorCode ⇄ BaseErrorCode delegation")
 class ErrorCodeDelegationTest {
@@ -52,5 +47,29 @@ class ErrorCodeDelegationTest {
                 .isEqualTo(BaseErrorCode.NOT_FOUND.message());
         assertThat(ErrorCode.DATABASE_ERROR.getMessage())
                 .isEqualTo(BaseErrorCode.DATABASE_ERROR.message());
+    }
+
+    @Test
+    @DisplayName("P2-DISC-001: ErrorCode implements NamespacedErrorCode and maps namespaces correctly")
+    void implementsNamespacedErrorCode() {
+        assertThat(ErrorCode.SUCCESS).isInstanceOf(NamespacedErrorCode.class);
+        assertThat(ErrorCode.SUCCESS.namespace()).isEqualTo("common");
+        assertThat(ErrorCode.AUTH_INVALID_CREDENTIALS.namespace()).isEqualTo("auth");
+        assertThat(ErrorCode.USER_NOT_FOUND.namespace()).isEqualTo("user");
+        assertThat(ErrorCode.PROBLEM_NOT_FOUND.namespace()).isEqualTo("problem");
+
+        assertThat(ErrorCode.AUTH_INVALID_CREDENTIALS.code()).isEqualTo(10001);
+        assertThat(ErrorCode.AUTH_INVALID_CREDENTIALS.message()).isEqualTo("Invalid credentials");
+    }
+
+    @Test
+    @DisplayName("P2-DISC-001: BusinessException in backend-legacy extends backend-common BusinessException")
+    void legacyBusinessExceptionExtendsCommon() {
+        BusinessException ex = new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "custom msg");
+        assertThat(ex).isInstanceOf(com.ulticode.common.exception.BusinessException.class);
+        assertThat(ex.getCode()).isEqualTo(10001);
+        assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS);
+        assertThat(ex.getMessage()).isEqualTo("custom msg");
+        assertThat(ex.getHttpStatus().value()).isEqualTo(401);
     }
 }

@@ -502,3 +502,7 @@ this session.
 
 ### 2026-07-27 (P2-AUTH-001-F)
 - P2-AUTH-001-F: Ported `PasswordResetService`, `AuthEmailService`/`SpringAuthEmailService`, and forgot/reset password logic into `backend-auth`. Unit test suite `PasswordResetServiceTest` passes (53 tests total in `backend-auth`). Status: done. Commit: ac4729416.
+
+### 2026-07-27 (P2-AUTH-001 & P2-AUTH-001-G)
+- P2-AUTH-001-G: `backend-auth` standalone extraction validation complete. Full reactor build (`./mvnw test -B`) passes all 9 modules in 38.6s with 0 failures. Status: done. Commit: 169b7e4cc.
+- P2-AUTH-001: Parent task complete! All subtasks A, B, C, D, E, F, G are landed and verified. Status: done. Commit: 169b7e4cc.

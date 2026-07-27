@@ -44,7 +44,8 @@ public enum AuthErrorCode implements NamespacedErrorCode {
     AUTH_TOKEN_EXPIRED(10006, "Token expired", HttpStatus.UNAUTHORIZED),
     AUTH_INVALID_RESET_TOKEN(10007, "Invalid reset token", HttpStatus.BAD_REQUEST),
     AUTH_RESET_TOKEN_ALREADY_USED(10008, "Reset token already used", HttpStatus.BAD_REQUEST),
-    AUTH_RESET_TOKEN_EXPIRED(10009, "Reset token expired", HttpStatus.BAD_REQUEST);
+    AUTH_RESET_TOKEN_EXPIRED(10009, "Reset token expired", HttpStatus.BAD_REQUEST),
+    AUTH_INVALID_REQUEST(10010, "Invalid request", HttpStatus.BAD_REQUEST);
 
     public static final String NAMESPACE = "auth";
 

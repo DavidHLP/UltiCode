@@ -30,12 +30,13 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §7.3 Resource server JWT verifier | P2-AUTH-002 | done |
 | §7.5 Provider identity / authz version | P2-AUTH-003 | done |
 | §Phase-2 Gateway /auth/** cutover | P2-AUTH-004 | done |
-| §7.5 Auth-only RBAC writer | P2-RBAC-001 | pending |
+| §7.5 Auth-only RBAC writer | P2-RBAC-001 | done |
 | Phase-2 gate | P2-GATE | pending |
 | §7.1 OPSEC secret hygiene scan | P2-SEC-HYGIENE-001, P2-SEC-HYGIENE-002 | done |
 | §4 Coverage & Done Evidence Audit | P2-COV-AUDIT-001, P2-DONE-EVIDENCE-AUDIT-001 | done |
 | §11 Cross-cutting promotions (BusinessException/Clock/Ports) | P2-DISC-001, P2-DISC-002, P2-DISC-003 | done |
 | §15 Migration IF-EXISTS rollback MySQL 9.1 incompatibility (discovered during P2-AUTH-003 dynamic verify) | P2-DISC-004 | pending |
+| §15 Add DEFAULT 'USER' to users.role so legacy createUser stops writing the placeholder (discovered during P2-RBAC-001 refactor) | P2-DISC-005 | pending |
 | §Phase-3 Owner-owned Application APIs | P3-OWNER-001 | pending |
 | §Phase-3 Account/Profile seam | P3-OWNER-002 | pending |
 | §Phase-3 Search/Dashboard batch projection | P3-SEARCH-001 | pending |
@@ -163,17 +164,17 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2: 19/22 done (1 pending: P2-RBAC-001 awaiting P2-GATE; 2 pending: P2-DISC-004 follow-up from P2-AUTH-003 verify, P2-GATE); Phases 3-7: pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2: 20/24 done (1 pending: P2-GATE; 2 follow-ups: P2-DISC-004 MySQL 9.1 IF-EXISTS rollback, P2-DISC-005 DEFAULT 'USER' on users.role); Phases 3-7: pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:
    - Phase 0: **PASS** (all 10 done; P0-GATE commit 7773daa)
    - Phase 1: **PASS** (all 8 tasks done/superseded; P1-GATE commit TBD)
-   - Phase 2: 19/22 done; P2-AUTH-003 done after disposable-env dynamic MySQL verify (commit TBD); P2-DISC-004 pending (MySQL 9.1 IF-EXISTS rollback compatibility follow-up); P2-RBAC-001 + P2-GATE pending.
+   - Phase 2: 20/24 done; P2-AUTH-003 done after disposable-env dynamic MySQL verify (commit f786117); P2-RBAC-001 done after backend-auth owner-only write surface landed (commit TBD); P2-DISC-004 + P2-DISC-005 pending follow-ups; P2-GATE pending.
    - Phase 3: pending
    - Phase 4: pending
    - Phase 5: pending
    - Phase 6: pending
    - Phase 7: pending
 
-Audit checkpoint at 2026-07-27T20:50:00+08:00 by Recovery (post-disposable-env P2-AUTH-003 dynamic verify).
+Audit checkpoint at 2026-07-27T21:40:00+08:00 by Recovery (post-P2-RBAC-001 ArchUnit + mvn verify).

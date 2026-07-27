@@ -3,11 +3,10 @@ package com.ulticode.modules.admin.service.impl;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.permission.PermissionVocabulary;
-import com.ulticode.modules.permission.entity.UserPermission;
-import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,15 +28,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 /**
- * {@link UserPermissionServiceImpl} 单元测试。
+ * {@link UserPermissionServiceImpl} unit tests.
  *
- * <p>从原 {@code AdminUserServiceImplTest} 拆分而来（架构评审 Candidate 1）：
- * 授权 / 撤销相关用例归属本测试；
- * 用户档案 / 封禁 / 批量操作相关用例移至 {@link UserManagementServiceImplTest}。
- *
- * <p>{@link AdminUserProjection} 以 mock 注入，验证授权 / 撤销后通过
- * {@link AdminUserProjection#getUserById(String)} 组合最新 VO 的契约
- * （ADR-0011 Stage 2：读路径从 UserManagementService 迁至 AdminUserProjection）。
+ * <p>P2-RBAC-001: the legacy no longer delegates to the local
+ * {@code PermissionService} for write paths (that would be a
+ * foreign write to {@code user_permissions}); it forwards every
+ * grant / revoke through {@link BackendAuthRoleAdminClient} to
+ * backend-auth's owner-only command surface. The before-snapshot
+ * for the audit comes from {@link AdminUserProjection}, which is
+ * the single read-side seam (per ADR-0011 Stage 2).
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -48,7 +47,7 @@ class UserPermissionServiceImplTest {
     private UserMapper userMapper;
 
     @Mock
-    private PermissionService permissionService;
+    private BackendAuthRoleAdminClient backendAuthRoleAdminClient;
 
     @Mock
     private AdminUserProjection adminUserProjection;
@@ -71,7 +70,7 @@ class UserPermissionServiceImplTest {
         lenient().when(currentUserProvider.hasRole("SUPER_ADMIN")).thenReturn(true);
         lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-super-admin");
         userPermissionService = new UserPermissionServiceImpl(
-                userMapper, permissionService, adminUserProjection, clock,
+                userMapper, backendAuthRoleAdminClient, adminUserProjection, clock,
                 new PermissionVocabulary(), currentUserProvider);
     }
 
@@ -87,32 +86,48 @@ class UserPermissionServiceImplTest {
         return user;
     }
 
+    /**
+     * Helper: a fresh {@link AdminUserVO} with an empty permission
+     * list (no direct user_permissions for the target user). The
+     * {@code assignUserPermission} / {@code revokeUserPermission}
+     * tests use this as the before-snapshot returned by
+     * {@code AdminUserProjection}.
+     */
+    private AdminUserVO emptyPermissionsVo(String userId) {
+        AdminUserVO vo = new AdminUserVO();
+        vo.setId(userId);
+        vo.setPermissions(List.of());
+        return vo;
+    }
+
     @Nested
     @DisplayName("assignUserPermission()")
     class AssignUserPermission {
 
         @Test
-        @DisplayName("delegates to PermissionService and returns VO via AdminUserProjection")
+        @DisplayName("forwards to BackendAuthRoleAdminClient and returns VO via AdminUserProjection")
         void grantNew_delegatesAndReturnsVO() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            // before-snapshot: empty
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.assignPermission(eq("user-123"), eq("MANAGE_PERMISSIONS"),
-                    eq("SYSTEM"), any())).thenReturn(new UserPermission());
+            when(adminUserProjection.getUserById("user-123"))
+                    .thenReturn(emptyPermissionsVo("user-123"));
 
             AdminUserVO expectedVo = new AdminUserVO();
             expectedVo.setId("user-123");
-            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
+            when(adminUserProjection.getUserById("user-123"))
+                    .thenReturn(emptyPermissionsVo("user-123"))
+                    .thenReturn(expectedVo);
 
             AdminUserVO vo = userPermissionService.assignUserPermission(
                     "user-123", "MANAGE_PERMISSIONS", "SYSTEM", null);
 
             assertThat(vo).isNotNull();
             assertThat(vo.getId()).isEqualTo("user-123");
-            verify(permissionService).assignPermission("user-123",
-                    "MANAGE_PERMISSIONS", "SYSTEM", null);
-            verify(adminUserProjection).getUserById("user-123");
+            // P2-RBAC-001: the actual write must be the client, not the
+            // legacy local PermissionService (which was the foreign writer).
+            verify(backendAuthRoleAdminClient).grantPermission(
+                    eq("user-123"), eq("MANAGE_PERMISSIONS"), eq("SYSTEM"), any());
+            verify(adminUserProjection, times(2)).getUserById("user-123");
         }
 
         @Test
@@ -126,7 +141,8 @@ class UserPermissionServiceImplTest {
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
 
-            verify(permissionService, never()).assignPermission(any(), any(), any(), any());
+            verify(backendAuthRoleAdminClient, never())
+                    .grantPermission(any(), any(), any(), any());
             verify(adminUserProjection, never()).getUserById(any());
         }
     }
@@ -136,41 +152,45 @@ class UserPermissionServiceImplTest {
     class RevokeUserPermission {
 
         @Test
-        @DisplayName("delegates and returns VO when permission exists")
+        @DisplayName("forwards revoke to BackendAuthRoleAdminClient and returns VO when permission exists")
         void revokeExisting_delegates() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(true);
-
-            AdminUserVO expectedVo = new AdminUserVO();
-            expectedVo.setId("user-123");
-            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
+            // before-snapshot: existing direct permission READ:USER for the actor
+            AdminUserVO.PermissionInfo existing = new AdminUserVO.PermissionInfo();
+            existing.setAction("READ");
+            existing.setResource("USER");
+            AdminUserVO before = new AdminUserVO();
+            before.setId("user-123");
+            before.setPermissions(List.of(existing));
+            when(adminUserProjection.getUserById("user-123"))
+                    .thenReturn(before)
+                    .thenReturn(emptyPermissionsVo("user-123"));
 
             AdminUserVO vo = userPermissionService.revokeUserPermission(
                     "user-123", "READ", "USER");
 
             assertThat(vo).isNotNull();
-            verify(permissionService).revokePermission("user-123", "READ", "USER");
-            verify(adminUserProjection).getUserById("user-123");
+            verify(backendAuthRoleAdminClient).revokePermission(
+                    "user-123", "READ", "USER");
+            verify(adminUserProjection, times(2)).getUserById("user-123");
         }
 
         @Test
-        @DisplayName("returns VO without throwing when permission did not exist (REST idempotent)")
+        @DisplayName("returns VO without throwing when permission did not exist (idempotent)")
         void revokeMissing_doesNotThrow() {
             User user = createValidUser();
             when(userMapper.selectById("user-123")).thenReturn(user);
-            when(permissionService.getUserPermissions("user-123")).thenReturn(List.of());
-            when(permissionService.revokePermission("user-123", "READ", "USER")).thenReturn(false);
-
-            AdminUserVO expectedVo = new AdminUserVO();
-            expectedVo.setId("user-123");
-            when(adminUserProjection.getUserById("user-123")).thenReturn(expectedVo);
+            when(adminUserProjection.getUserById("user-123"))
+                    .thenReturn(emptyPermissionsVo("user-123"))
+                    .thenReturn(emptyPermissionsVo("user-123"));
 
             AdminUserVO vo = userPermissionService.revokeUserPermission(
                     "user-123", "READ", "USER");
 
             assertThat(vo).isNotNull();
+            verify(backendAuthRoleAdminClient).revokePermission(
+                    "user-123", "READ", "USER");
         }
 
         @Test
@@ -184,7 +204,8 @@ class UserPermissionServiceImplTest {
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.USER_NOT_FOUND));
 
-            verify(permissionService, never()).revokePermission(any(), any(), any());
+            verify(backendAuthRoleAdminClient, never())
+                    .revokePermission(any(), any(), any());
             verify(adminUserProjection, never()).getUserById(any());
         }
     }
@@ -209,7 +230,8 @@ class UserPermissionServiceImplTest {
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.FORBIDDEN));
 
-            verify(permissionService, never()).assignPermission(any(), any(), any(), any());
+            verify(backendAuthRoleAdminClient, never())
+                    .grantPermission(any(), any(), any(), any());
         }
 
         @Test
@@ -221,7 +243,8 @@ class UserPermissionServiceImplTest {
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.FORBIDDEN));
 
-            verify(permissionService, never()).revokePermission(any(), any(), any());
+            verify(backendAuthRoleAdminClient, never())
+                    .revokePermission(any(), any(), any());
         }
     }
 }

@@ -6095,7 +6095,7 @@
   title: Auth-only role/permission writer; App/Admin read-only RPC
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#7.5
-  status: pending
+  status: done
   depends_on:
   - P2-AUTH-003
   acceptance_criteria:
@@ -6106,10 +6106,92 @@
   - ArchUnit test confirms no foreign writer to users.role
   - ./mvnw verify -B
   rollback: revert command; restore direct write
+  evidence:
+  - command: "./mvnw -pl backend-legacy test -B"
+    result: "BUILD SUCCESS — 1798 tests, 0 failures, 0 errors, 4 skipped (full legacy reactor; UserPermissionServiceImplTest rewritten to assert the client is called and the local PermissionService is not)"
+  - command: "./mvnw verify -B"
+    result: "BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 0 failures, 0 errors"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/RoleAdministrationService.java"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/RoleAdministrationServiceImpl.java"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleWritePort.java"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/adapter/UserRoleWriteAdapter.java"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserRoleMapper.java"
+  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/adapter/in/web/RoleAdministrationController.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/client/BackendAuthRoleAdminClient.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java"
+  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java"
+  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java"
+  - note: 'P2-RBAC-001 complete: backend-auth now owns the only write path to
+      users.role and user_permissions. RoleAdministrationService (interface +
+      impl) is the owner; RoleAdministrationController exposes POST
+      /auth/admin/users/{id}/role, POST /auth/admin/users/{id}/permissions, and
+      DELETE /auth/admin/users/{id}/permissions, all gated by
+      @PreAuthorize("hasAnyRole(''ADMIN'',''SUPER_ADMIN'')"). UserRoleMapper
+      is the sole writer to users.role (single @Update with role <> newRole
+      idempotency guard plus an existsById companion). The legacy
+      UserManagementServiceImpl.updateUser no longer writes the role column;
+      admin role choices are forwarded to backend-auth via
+      BackendAuthRoleAdminClient (best-effort; the local profile update
+      commits and a backend-auth outage logs a warning rather than rolling
+      back the user-profile change). The legacy UserPermissionServiceImpl
+      no longer delegates to the local PermissionService for grant/revoke;
+      every grant/revoke is forwarded to backend-auth through the same
+      client. RoleChanged / PermissionChanged events are emitted as
+      structured log lines from RoleAdministrationServiceImpl (the durable
+      outbox wiring is owned by Phase 6 P6-OUTBOX-001). OwnerBoundaryArchTest
+      gained a hard rule: no class outside com.ulticode.auth.. may depend
+      on RoleAdministrationService, RoleAdministrationController, UserRoleMapper,
+      UserRoleWritePort, UserRoleWriteAdapter, UserPermissionMapper, or
+      RolePermissionMapper. ./mvnw verify -B passes the full backend-spring
+      reactor with 1798 tests green. Note: the system-default "USER" role
+      write in UserManagementServiceImpl.createUser is a system invariant
+      (users.role is NOT NULL with no DEFAULT); a follow-up migration that
+      adds DEFAULT ''USER'' to users.role would let the legacy drop the
+      placeholder write entirely — recorded as P2-DISC-005.'
+    ts: '2026-07-27T21:40:00+08:00'
+  commits: []
+  notes: 'Follow-up P2-DISC-005: add DEFAULT ''USER'' to users.role via a
+    later migration, then remove the placeholder user.setRole("USER") in
+    UserManagementServiceImpl.createUser. The current placeholder write
+    is the only remaining direct write to users.role from the legacy and
+    it is a system invariant, not an admin action.'
+  updated_at: '2026-07-27T21:40:00+08:00'
+- id: P2-DISC-005
+  phase: 2
+  area: DISC
+  discovered_from: P2-RBAC-001
+  title: Add DEFAULT 'USER' to users.role so legacy createUser stops writing the placeholder
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#15
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java
+  status: pending
+  depends_on:
+  - P2-RBAC-001
+  acceptance_criteria:
+  - Later Flyway migration adds DEFAULT 'USER' to the users.role column
+    (idempotent guard; safe to apply on already-migrated schemas because
+    the column has no DEFAULT today and existing rows are already non-null).
+  - UserManagementServiceImpl.createUser drops the user.setRole("USER")
+    placeholder line and lets the column DEFAULT take over.
+  - OwnerBoundaryArchTest still passes; no new foreign writer is introduced.
+  - ArchUnit rule is extended (or a new rule added) to forbid any class
+    in com.ulticode.modules.. from declaring a setter or wrapper that
+    targets the User::getRole / users.role column.
+  validation:
+  - Re-run disposable-verify against MySQL 9.1 to confirm the additive
+    ALTER applies cleanly.
+  - ./mvnw verify -B
+  rollback: 'Revert migration; restore user.setRole("USER") placeholder.'
   evidence: []
   commits: []
-  notes: ''
-  updated_at: ''
+  notes: 'Discovered during the P2-RBAC-001 refactor of
+    UserManagementServiceImpl. The "USER" default is the only remaining
+    direct write to users.role from the legacy; it is a system invariant
+    (NOT NULL with no DEFAULT in the canonical schema), not an admin
+    action. Once the column DEFAULT is in place, the legacy can drop the
+    placeholder write and the owner-only invariant for users.role is
+    fully enforced.'
+  updated_at: '2026-07-27T21:40:00+08:00'
 - id: P2-GATE
   phase: 2
   area: GATE

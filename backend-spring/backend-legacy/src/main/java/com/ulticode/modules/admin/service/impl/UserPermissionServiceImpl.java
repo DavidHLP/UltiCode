@@ -6,12 +6,11 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserPermissionService;
 import com.ulticode.modules.permission.PermissionVocabulary;
-import com.ulticode.modules.permission.entity.UserPermission;
-import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +49,16 @@ import java.util.Map;
 public class UserPermissionServiceImpl implements UserPermissionService {
 
     private final UserMapper userMapper;
-    private final PermissionService permissionService;
+    /**
+     * P2-RBAC-001: removed direct {@code PermissionService} dependency
+     * (the legacy service that wrote to {@code user_permissions}
+     * via the legacy {@code UserPermissionMapper}). Permission
+     * grant / revoke is now routed through
+     * {@link BackendAuthRoleAdminClient} to backend-auth's
+     * owner-only command surface, where the only legitimate writer
+     * to the {@code user_permissions} table lives.
+     */
+    private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
     private final PermissionVocabulary vocabulary;
@@ -84,8 +92,11 @@ public class UserPermissionServiceImpl implements UserPermissionService {
 
     /**
      * assign / revoke 公共逻辑：用户存在性校验 + before 快照 + AuditContext +
-     * 委托底层 PermissionService + 返回最新 VO。{@code isRevoke} 决定调哪个底层方法
-     * 以及 newValues 中写 removed 还是 grantedAt。
+     * 委托 backend-auth（via {@link BackendAuthRoleAdminClient}）+ 返回最新 VO。
+     * {@code isRevoke} 决定调哪个 HTTP 命令以及 newValues 中写
+     * removed 还是 grantedAt。P2-RBAC-001: the legacy no longer
+     * touches the {@code user_permissions} table directly; the
+     * actual write lives in backend-auth.
      */
     private AdminUserVO performPermissionChange(String id, String action, String resource,
                                                  LocalDateTime expiresAt, boolean isRevoke) {
@@ -94,45 +105,52 @@ public class UserPermissionServiceImpl implements UserPermissionService {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
-        // 抓 before 状态供审计（expiresAt 可为 null，Map.of 禁用，改用 HashMap）
-        UserPermission before = permissionService.getUserPermissions(id).stream()
-            .filter(p -> action.equals(p.getAction()) && resource.equals(p.getResource()))
-            .findFirst()
-            .orElse(null);
+        // Before-snapshot for the audit. The legacy still reads
+        // (the projection is the single source of read-side truth per
+        // ADR-0011), so the "before" view here is consistent with what
+        // the admin UI shows.
+        final AdminUserVO beforeVo = adminUserProjection.getUserById(id);
+        final boolean alreadyPresent = beforeVo != null
+                && beforeVo.getPermissions() != null
+                && beforeVo.getPermissions().stream().anyMatch(p ->
+                        action.equals(p.getAction()) && resource.equals(p.getResource()));
 
         Map<String, Object> oldValues = new HashMap<>();
         oldValues.put("action", action);
         oldValues.put("resource", resource);
-        oldValues.put("expiresAt", before != null && before.getExpiresAt() != null
-            ? before.getExpiresAt() : "");
-        oldValues.put("grantedAt", before != null && before.getGrantedAt() != null
-            ? before.getGrantedAt() : "");
+        oldValues.put("alreadyPresent", alreadyPresent);
         AuditContext.setOldValues(oldValues);
 
-        boolean removed;
+        // P2-RBAC-001: forward the permission change to backend-auth.
+        // The HTTP call carries the same JWT as the admin's request
+        // (see BackendAuthRoleAdminClient#extractAccessToken) and is
+        // authorised by backend-auth's @PreAuthorize.
         if (isRevoke) {
-            removed = permissionService.revokePermission(id, action, resource);
+            backendAuthRoleAdminClient.revokePermission(id, action, resource);
         } else {
-            permissionService.assignPermission(id, action, resource, expiresAt);
-            removed = false;
+            final String expiresAtIso = expiresAt == null ? null
+                    : expiresAt.atZone(java.time.ZoneId.systemDefault())
+                              .toOffsetDateTime()
+                              .toString();
+            backendAuthRoleAdminClient.grantPermission(id, action, resource, expiresAtIso);
         }
 
         Map<String, Object> newValues = new HashMap<>();
         newValues.put("action", action);
         newValues.put("resource", resource);
         if (isRevoke) {
-            newValues.put("removed", removed);
+            newValues.put("removed", alreadyPresent);
         } else {
             newValues.put("expiresAt", expiresAt != null ? expiresAt : "");
             newValues.put("grantedAt", LocalDateTime.now(clock));
         }
         AuditContext.setNewValues(newValues);
 
-        if (isRevoke && !removed) {
+        if (isRevoke && !alreadyPresent) {
             log.info("Revoke no-op (permission not present): user={} {}:{}",
                 id, action, resource);
         } else if (!isRevoke) {
-            log.info("Permission assigned: user={} {}:{} expiresAt={}",
+            log.info("Permission assigned via backend-auth: user={} {}:{} expiresAt={}",
                 id, action, resource, expiresAt);
         }
         return adminUserProjection.getUserById(id);

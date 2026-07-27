@@ -106,4 +106,53 @@ public class OwnerBoundaryArchTest {
         assertThat(SUBMISSION_PKG).isNotEmpty();
         assertThat(MODERATION_PKG).isNotEmpty();
     }
+
+    /* ===== P2-RBAC-001: foreign modules may not depend on the
+     * backend-auth role / permission owner classes directly. The
+     * owner-only write path lives in com.ulticode.auth..; foreign
+     * modules (com.ulticode.modules..) must call the HTTP command
+     * surface (BackendAuthRoleAdminClient) instead. Hard rule, not
+     * frozen: P2-RBAC-001 closes the writer-segregation contract
+     * and any new foreign dependency is a regression. ===== */
+
+    private static final String RBAC_OWNER_CONTROLLER =
+            "com.ulticode.auth.adapter.in.web.RoleAdministrationController";
+    private static final String RBAC_OWNER_SERVICE =
+            "com.ulticode.auth.permission.service.RoleAdministrationService";
+    private static final String RBAC_OWNER_USER_ROLE_MAPPER =
+            "com.ulticode.auth.permission.mapper.UserRoleMapper";
+    private static final String RBAC_OWNER_USER_PERM_MAPPER =
+            "com.ulticode.auth.permission.mapper.UserPermissionMapper";
+    private static final String RBAC_OWNER_ROLE_PERM_MAPPER =
+            "com.ulticode.auth.permission.mapper.RolePermissionMapper";
+    private static final String RBAC_OWNER_PORT =
+            "com.ulticode.auth.permission.port.UserRoleWritePort";
+    private static final String RBAC_OWNER_ADAPTER =
+            "com.ulticode.auth.permission.adapter.UserRoleWriteAdapter";
+
+    @ArchTest
+    static final ArchRule p2_rbac_001_foreign_modules_must_not_use_auth_role_admin =
+            ArchRuleDefinition.noClasses()
+                    .that().resideOutsideOfPackage("com.ulticode.auth..")
+                    .should().dependOnClassesThat().resideInAnyPackage(
+                            RBAC_OWNER_CONTROLLER,
+                            RBAC_OWNER_CONTROLLER + "..",
+                            RBAC_OWNER_SERVICE,
+                            RBAC_OWNER_SERVICE + "..",
+                            RBAC_OWNER_USER_ROLE_MAPPER,
+                            RBAC_OWNER_USER_ROLE_MAPPER + "..",
+                            RBAC_OWNER_USER_PERM_MAPPER,
+                            RBAC_OWNER_USER_PERM_MAPPER + "..",
+                            RBAC_OWNER_ROLE_PERM_MAPPER,
+                            RBAC_OWNER_ROLE_PERM_MAPPER + "..",
+                            RBAC_OWNER_PORT,
+                            RBAC_OWNER_PORT + "..",
+                            RBAC_OWNER_ADAPTER,
+                            RBAC_OWNER_ADAPTER + "..")
+                    .because("P2-RBAC-001: backend-auth is the sole owner of the "
+                            + "users.role / user_permissions / role_permissions write "
+                            + "path. Foreign modules (com.ulticode.modules..) must call "
+                            + "the HTTP command surface (BackendAuthRoleAdminClient) "
+                            + "rather than depending on the Auth owner classes directly. "
+                            + "See MICROSERVICE_MIGRATION_GUIDE.md §7.5 and ADR-MIG-AUTH-OWNER.");
 }

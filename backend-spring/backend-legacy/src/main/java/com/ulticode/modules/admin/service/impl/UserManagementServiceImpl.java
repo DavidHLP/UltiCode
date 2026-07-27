@@ -10,6 +10,7 @@ import com.ulticode.common.audit.AuditVocabulary;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.common.util.PartialUpdate;
+import com.ulticode.modules.admin.client.BackendAuthRoleAdminClient;
 import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
@@ -74,6 +75,17 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final AdminUserProjection adminUserProjection;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    /**
+     * P2-RBAC-001: HTTP client that forwards role changes to
+     * {@code backend-auth}'s owner-only command surface. The legacy
+     * no longer writes to {@code users.role} directly when the admin
+     * makes an explicit role choice; the system-default
+     * ({@code "USER"} on create) remains a local write because
+     * {@code users.role} is NOT NULL with no DEFAULT — a follow-up
+     * migration is the proper long-term fix (see DECISIONS ADR for
+     * the deferred user-creation refactor).
+     */
+    private final BackendAuthRoleAdminClient backendAuthRoleAdminClient;
 
     @Override
     @Transactional
@@ -100,7 +112,11 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setUsername(dto.getUsername());
         user.setName(dto.getName());
         user.setEmail(dto.getEmail());
-        user.setRole(dto.getRole() != null ? dto.getRole() : "USER");
+        // P2-RBAC-001: the system-default role "USER" remains a local
+        // write because users.role is NOT NULL with no DEFAULT. If the
+        // admin picks a non-USER role at create time, the explicit
+        // choice is forwarded to backend-auth after the local insert.
+        user.setRole("USER");
         user.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
         user.setIsBanned(false);
         user.setJoinedAt(LocalDateTime.now(clock));
@@ -110,6 +126,20 @@ public class UserManagementServiceImpl implements UserManagementService {
         }
 
         userMapper.insert(user);
+
+        // P2-RBAC-001: route the admin's non-default role choice
+        // through backend-auth. Best-effort: a backend-auth outage
+        // logs a warning and leaves the new user at role=USER; an
+        // admin can re-run the role change via updateUser.
+        if (StringUtils.hasText(dto.getRole()) && !"USER".equalsIgnoreCase(dto.getRole())) {
+            try {
+                backendAuthRoleAdminClient.changeRole(user.getId(), dto.getRole());
+            } catch (RuntimeException e) {
+                log.warn("Backend-auth role change failed for new user {}: {} (user created at role=USER; role pending)",
+                        user.getId(), e.getMessage());
+            }
+        }
+
         log.info("User created: {} by admin", user.getId());
         // ADR-0011 Stage 2: post-write VO composed via the projection so the
         // admin UI sees the freshly created user's role permission snapshot
@@ -158,10 +188,16 @@ public class UserManagementServiceImpl implements UserManagementService {
         // Partial-update set clauses — null / blank values are silently
         // skipped, so the row's existing value is preserved. The wrapper
         // pattern accumulates the SET clauses and applies them in one UPDATE.
+        //
+        // P2-RBAC-001: the role field is intentionally NOT part of the
+        // local wrapper. The admin's role choice is routed through
+        // backend-auth's owner-only command surface (see
+        // BackendAuthRoleAdminClient#changeRole below). The
+        // users.role column is owned by backend-auth from this point
+        // on.
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getName, User::getName);
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getEmail, User::getEmail);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getRole, User::getRole);
         PartialUpdate.setIfPresentWrapper(wrapper, dto, AdminUpdateUserDTO::getIsActive, User::getIsActive);
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getAvatar, User::getAvatar);
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getBio, User::getBio);
@@ -173,6 +209,22 @@ public class UserManagementServiceImpl implements UserManagementService {
         PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getPreferredLanguage, User::getPreferredLanguage);
 
         userMapper.update(null, wrapper);
+
+        // P2-RBAC-001: forward the admin's role choice to backend-auth.
+        // The local write above has already committed; a backend-auth
+        // failure is logged but does not roll back the local profile
+        // update, so the admin sees a successful profile update with a
+        // warning that the role change is pending. The alternative
+        // (call backend-auth first) is worse because a backend-auth
+        // outage would block the rest of the profile update.
+        if (StringUtils.hasText(dto.getRole())) {
+            try {
+                backendAuthRoleAdminClient.changeRole(id, dto.getRole());
+            } catch (RuntimeException e) {
+                log.warn("Backend-auth role change failed for user {}: {} (profile change preserved; role pending)",
+                        id, e.getMessage());
+            }
+        }
 
         AuditContext.setNewValues(Map.of(
             "username", dto.getUsername() != null ? dto.getUsername() : user.getUsername(),

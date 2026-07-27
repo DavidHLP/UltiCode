@@ -1,7 +1,7 @@
 # Migration Resume
 
 Current Phase: Phase 2
-Current Task: P2-RBAC-001 (Auth-only role/permission writer; App/Admin read-only RPC)
+Current Task: P2-GATE (Phase 2 gate — Auth extraction complete)
 
 Last Verified Commit:
 - f786117 chore(migration): P2-AUTH-003 done after disposable-env dynamic verify
@@ -28,19 +28,20 @@ Last Verified Commit:
 - 9b4aaf9 feat(auth): move JWT/CSRF plumbing into backend-auth (P2-AUTH-001-B)
 
 Completed:
-- 38 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
+- 39 / 66 (Phase 0 gate + nine Phase 1 tasks + P2-AUTH-001 +
   P2-AUTH-001-A..G + P2-AUTH-002 + P2-AUTH-003 + P2-AUTH-004 +
-  P2-DISC-001..003 + P2-SEC-HYGIENE-001/002 + P2-COV-AUDIT-001 +
-  P2-DONE-EVIDENCE-AUDIT-001; remaining: P2-RBAC-001,
-  P2-DISC-004, P2-GATE — all 3 in Phase 2).
+  P2-RBAC-001 + P2-DISC-001..003 + P2-SEC-HYGIENE-001/002 +
+  P2-COV-AUDIT-001 + P2-DONE-EVIDENCE-AUDIT-001; remaining:
+  P2-GATE + 2 follow-ups P2-DISC-004/005).
 
 Blocked:
 - None. P2-AUTH-003 unblocked and closed after disposable-env
-  dynamic MySQL verify on 2026-07-27 (commit TBD). The previous
+  dynamic MySQL verify on 2026-07-27 (commit f786117). The previous
   credential-exposure incident is moot: the verification ran in
   a fully isolated disposable MySQL container on a separate port
   with throwaway creds; the dev MySQL on 23306 and its volume
-  were never touched.
+  were never touched. P2-RBAC-001 also done; the writer-segregation
+  rule is enforced by OwnerBoundaryArchTest.
 
 Current Work:
 - P2-AUTH-003 dynamic verification PASS in `disposable-verify/`

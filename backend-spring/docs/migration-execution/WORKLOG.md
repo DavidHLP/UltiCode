@@ -3,6 +3,36 @@
 Append-only log of significant events. NOT a task state source of truth
 (see TASKS.yaml).
 
+### 2026-07-27 (P2-RBAC-001 + P2-DISC-005 discovered)
+- P2-RBAC-001: Auth-only role/permission writer landed. backend-auth
+  gains the owner-only command surface: RoleAdministrationService +
+  impl (P2-RBAC-001 owner-only write path), UserRoleMapper (sole
+  writer to users.role with role <> newRole idempotency guard),
+  UserRoleWritePort + UserRoleWriteAdapter, RoleAdministrationController
+  at /auth/admin/users/{id}/{role,permissions} gated by
+  @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')"). The legacy
+  UserManagementServiceImpl.updateUser no longer writes the role
+  column (removed from the partial-update wrapper); admin role
+  choices are forwarded to backend-auth via BackendAuthRoleAdminClient
+  (best-effort; the local profile update commits and a backend-auth
+  outage logs a warning rather than rolling back the profile change).
+  The legacy UserPermissionServiceImpl no longer delegates to the local
+  PermissionService for grant/revoke; every grant/revoke is forwarded
+  to backend-auth. OwnerBoundaryArchTest gained a hard rule: no class
+  outside com.ulticode.auth.. may depend on RoleAdministrationService,
+  RoleAdministrationController, UserRoleMapper, UserRoleWritePort,
+  UserRoleWriteAdapter, UserPermissionMapper, or RolePermissionMapper.
+  ./mvnw verify -B passes the full backend-spring reactor with 1798
+  tests green. RoleChanged / PermissionChanged events emitted as
+  structured log lines (durable outbox wiring is owned by Phase 6
+  P6-OUTBOX-001).
+- P2-DISC-005: discovered that the system-default "USER" role write in
+  UserManagementServiceImpl.createUser is the only remaining direct
+  write to users.role from the legacy. users.role is NOT NULL with no
+  DEFAULT in the canonical schema, so the placeholder write is a
+  system invariant. A follow-up migration that adds DEFAULT 'USER' to
+  users.role would let the legacy drop the placeholder write entirely.
+
 ### 2026-07-27 (P2-AUTH-003 dynamic verify + P2-DISC-004 discovered)
 - P2-AUTH-003: full dynamic MySQL verification cycle executed in a
   fully isolated disposable environment (`disposable-verify/`,

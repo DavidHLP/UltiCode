@@ -6009,9 +6009,23 @@
       (2) the named MySQL volume is dropped and the container is recreated against the rotated env, and (3) the agent is granted
       explicit approval to re-verify. Until then the task is blocked on the security incident, not on the design.'
     ts: '2026-07-27T10:30:00+08:00'
+  - note: 'Static validation of the EXPAND-phase DDL (no MySQL required). Two migrations cover the acceptance
+      criteria: V20260724165931__Create_OAuth_Provider_Identities.sql (oauth_provider_identities table, additive,
+      utf8mb4_0900_ai_ci, no FK to users so Phase 5 split is unobstructed) and V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
+      (users.authz_version BIGINT NOT NULL DEFAULT 0 with idx_users_authz_version; refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}
+      VARCHAR(40) DEFAULT NULL with idx_refresh_tokens_family (family_id, user_id)). Filenames match the V[0-9]{14}__[A-Za-z_]+
+      convention; ALTERs are additive-only with IF-EXISTS-guarded non-destructive rollback; collation is consistent with
+      the existing users/refresh_tokens tables (utf8mb4_0900_ai_ci); identifiers are lowercase and not MySQL reserved words;
+      nullability follows the anti-sentinel-default advisory (family columns nullable rather than empty-string default that
+      would cluster legacy rows). Cross-references .claude/rules/database/01-flyway-migrations.md and 02-mysql-coding.md; no
+      seed credentials, no leading-wildcard search, no implicit type conversion, no destructive update/delete DML. The
+      dynamic MySQL verify cycle (row-count checksum, family_id IS NULL orphan SELECT, legacy JVM shadow-read of login + refresh,
+      IF-EXISTS rollback drill) is still required to mark done; the task remains blocked on the operator authorisation for
+      the rotated .env and recreated MySQL volume.'
+    ts: '2026-07-27T20:15:00+08:00'
   commits: []
   notes: ''
-  updated_at: '2026-07-27T10:30:00+08:00'
+  updated_at: '2026-07-27T20:15:00+08:00'
 - id: P2-AUTH-004
   phase: 2
   area: AUTH

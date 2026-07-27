@@ -388,3 +388,42 @@ Next:
   into backend-auth (depends on B; A can now begin).
 - P2-AUTH-001-E: RBAC/permission ownership (depends on B; can
   also begin in parallel with A — no shared files yet).
+
+2026-07-27 (continued)
+P2-AUTH-001-A (refresh-token ownership into backend-auth)
+- Copied com.ulticode.modules.refreshtoken.{entity,mapper,service}.*
+  to com.ulticode.auth.refreshtoken.{entity,mapper,service}.* so
+  the auth service owns the refresh-token table, mapper, and
+  rotation service. backend-legacy keeps its own copies
+  unchanged (Strangler Fig dual-run).
+- New backend-auth AuthErrorCode enum (9 AUTH 1xxxx constants,
+  byte-identical to backend-legacy's ErrorCode AUTH sub-range)
+  + AuthBusinessException that accepts NamespacedErrorCode so
+  callers can throw AuthErrorCode (with HttpStatus) or
+  BaseErrorCode (without HttpStatus) uniformly.
+- Added AuthClockConfig providing Clock.systemDefaultZone bean.
+  P1-INFRA-001 forbids backend-auth from depending on
+  backend-legacy's com.ulticode.common.config.ClockConfig, so
+  the bean had to be installed locally. The follow-up
+  P2-DISC-002 owns the promotion to backend-common.
+- 4 new unit tests added (RefreshTokenServiceTest): hash-only
+  storage, atomic revoke-and-reissue, access-token rejection,
+  replay-race detection. Mirror backend-legacy's existing
+  RefreshTokenServiceTest contract.
+- Discovery: P2-DISC-001 (BusinessException/ErrorCode promotion
+  to backend-common) and P2-DISC-002 (Clock/TimeSource bean
+  promotion). ADRs ADR-MIG-AUTH-EXCEPTION-PLACEMENT and
+  ADR-MIG-CLOCK-PLACEMENT record the deferral decisions.
+- Validation: ./mvnw verify -B full reactor PASS, 1795 tests,
+  0 failures, 4 skipped.
+- Commits:
+  da6f598 feat(auth): move refresh-token ownership into backend-auth
+  (P2-AUTH-001-A evidence will follow in the next commit)
+
+Next:
+- P2-AUTH-001-E: RBAC/permission ownership into backend-auth
+  (depends on B; can begin in parallel with A — no shared files
+  beyond the AuthErrorCode/AuthBusinessException plumbing now in
+  place).
+- P2-AUTH-001-C: AuthController + session/account adapters
+  (depends on E and the gateway cutover plan).

@@ -4,6 +4,8 @@ Current Phase: Phase 2
 Current Task: P2-AUTH-003 (blocked on credential exposure incident)
 
 Last Verified Commit:
+- 97af963 chore(migration): append P2-AUTH-003 EXPAND-phase static validation evidence
+- d1c5ee8 chore(migration): reconcile P2-AUTH-003 blocked state in derived docs
 - c2386f0 feat(gateway): cut over /api/auth/ route family to backend-auth service (P2-AUTH-004)
 - 9c63135 feat(sec): install offline resource server JWT verifiers in App and Admin (P2-AUTH-002)
 - 17e9f6b feat(exception): promote BusinessException to backend-common accepting NamespacedErrorCode (P2-DISC-001)

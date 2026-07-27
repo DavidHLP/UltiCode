@@ -3,6 +3,22 @@
 Append-only log of significant events. NOT a task state source of truth
 (see TASKS.yaml).
 
+### 2026-07-27 (P2-AUTH-003 static validation)
+- P2-AUTH-003: EXPAND-phase DDL validated in-session against
+  `.claude/rules/database/01-flyway-migrations.md` and
+  `02-mysql-coding.md` without touching MySQL. Two migrations
+  cover the acceptance criteria (V20260724165931 for
+  `oauth_provider_identities`, V20260727021915 for
+  `users.authz_version` + `refresh_tokens` family columns).
+  Filenames match `V[0-9]{14}__[A-Za-z_]+`; ALTERs are additive
+  with IF-EXISTS-guarded non-destructive rollback; collation
+  consistent (`utf8mb4_0900_ai_ci`); nullability follows the
+  anti-sentinel-default advisory; no seed credentials, no
+  destructive DML. Evidence note appended to `TASKS.yaml`; status
+  remains `blocked` pending the operator-authorised dynamic
+  Flyway apply + checksum + orphan + shadow-read + rollback cycle.
+  Commit: 97af9634. Prior hygiene commit: d1c5ee8c.
+
 ## 2026-07-25
 
 ### Initial scaffold

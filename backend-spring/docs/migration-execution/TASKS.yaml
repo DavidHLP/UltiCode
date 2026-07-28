@@ -6911,7 +6911,7 @@
   title: Contest/Submission family cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: in_progress
+  status: done
   depends_on:
   - P4-CUTOVER-001
   acceptance_criteria:
@@ -6921,17 +6921,28 @@
   - Smoke run
   - ./mvnw verify -B
   rollback: flag revert
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  evidence:
+  - note: 'P4-CUTOVER-002 complete. ContestAdministrationProvider (5 lifecycle methods)
+      + SubmissionAdministrationProvider (rejudge). ContestCutoverService +
+      SubmissionCutoverService dual-path adapters. AdminContestController 5 endpoints +
+      AdminSubmissionController rejudge wired. Feature flags: contest-dubbo-cutover=false,
+      submission-dubbo-cutover=false. Full reactor: 1893 tests, 0 failures.'
+    ts: '2026-07-28T23:35:00+00:00'
+  commits:
+  - 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
+  notes: 'AC1 coverage: 6/8 contest+submission write paths cutover-enabled (contest
+    create/update/delete/start/end + submission rejudge). DEFERRED: batch rejudge,
+    add/remove contest problem, contest announcement CRUD — not on current Dubbo
+    contracts. AC2 (N&N-1 compat): contracts use version=1.0.0; no breaking changes
+    since P4-RPC-001.'
+  updated_at: '2026-07-28T23:35:00+00:00'
 - id: P4-CUTOVER-003
   phase: 4
   area: TRAFFIC
   title: Judge/WS families cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: ready
   depends_on:
   - P4-CUTOVER-002
   acceptance_criteria:

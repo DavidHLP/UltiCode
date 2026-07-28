@@ -680,3 +680,15 @@ this session.
   - **Deferred to P4-CUTOVER-002**: bulkAction (publish/unpublish/delete/restore/edit), flagProblem, moderateProblem, batchModerateProblems — these contain multi-id batch semantics and moderation state transitions not on the current ProblemAdministrationService contract.
   - Commit: 3db1fcc. Full reactor: 1879 tests, 0 failures.
 - **Next**: P4-CUTOVER-002 (Contest/Submission family cutover) is ready.
+
+## 2026-07-28 P4-CUTOVER-002 — Contest/Submission Dubbo providers + routing
+
+- **P4-CUTOVER-002**: implemented Contest/Submission Dubbo Providers and feature-flagged Consumer routing.
+  -  (@DubboService): create/update/delete/start/end, delegates to AdminContestMutationService.
+  -  (@DubboService): rejudge, delegates to AdminSubmissionService (RejudgePolicy).
+  -  + : dual-path adapters. flag=off (default): local; flag=on: Dubbo write + local read-back.
+  - AdminContestController: 5 lifecycle endpoints + AdminSubmissionController: rejudge wired through cutover services.
+  - Feature flags: contest-dubbo-cutover=false, submission-dubbo-cutover=false.
+  - Deferred: batch rejudge, add/remove problem, announcement CRUD.
+  - Commit: 574cda3. Full reactor: 1893 tests, 0 failures.
+- **Next**: P4-CUTOVER-003 (Judge/WS families cutover) is ready.

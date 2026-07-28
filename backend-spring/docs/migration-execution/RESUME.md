@@ -1,9 +1,10 @@
 # Migration Resume
 
 Current Phase: Phase 4 (P3-GATE closed)
-Current Task: P4-CUTOVER-002 (ready) — Contest/Submission family cutover
+Current Task: P4-CUTOVER-003 (ready) — Judge/WS families cutover
 
 Last Verified Commit:
+- 574cda3 feat(cutover): implement Contest/Submission Dubbo providers + routing (P4-CUTOVER-002)
 - 3db1fcc feat(cutover): implement Problem Dubbo provider + feature-flagged routing (P4-CUTOVER-001)
 - 5c4d1e3 feat(rpc): enforce single-hop chain + timeout/retry/idempotency policy (P4-RPC-002)
 - 219e256 feat(api): add ContestAdministrationService + SubmissionAdministrationService contracts (P4-RPC-001)
@@ -34,7 +35,8 @@ Current Work:
 - P3-BURNDOWN-001 established a sibling TestCaseOwnerPort (problem-domain) rather than overloading ProblemOwnerPort for test_cases rows (separate table → sibling port preserves module cohesion); import row defaults + PartialUpdate null-skip semantics moved into DefaultProblemOwnerPort.
 - P4-RPC-002: enforced single-hop RPC chain prevention (ArchUnit) + centralized timeout/retry/idempotency policy (RpcPolicy) + consumer defaults in all service YAMLs.
 - P4-CUTOVER-001: ProblemAdministrationProvider + ProblemCutoverService (feature-flagged dual-path; bulk/moderation paths deferred to CUTOVER-002).
-- Next: P4-CUTOVER-002 (Contest/Submission family cutover) is ready.
+- P4-CUTOVER-002: ContestAdministrationProvider + SubmissionAdministrationProvider + dual-path adapters.
+- Next: P4-CUTOVER-003 (Judge/WS families cutover) is ready.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (1863 tests run, 0 failures, 0 errors, 4 skipped).

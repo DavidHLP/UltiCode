@@ -6409,7 +6409,7 @@
   title: 'Submission ownership: port seam for submission / rejudge writes'
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001-B
   acceptance_criteria:
@@ -6430,8 +6430,14 @@
   - ./mvnw -pl backend-legacy test -B
   - ./mvnw verify -B
   rollback: Restore direct mapper calls; remove SubmissionOwnerPort.
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P3-OWNER-001-C completed via Plan X package relocation: moved RejudgePolicy, DefaultRejudgePolicy, LegacyRejudgeStrategy
+      from com.ulticode.modules.submission.policy to com.ulticode.modules.submission.port (and .port.impl). AdminSubmissionServiceImpl
+      and its tests updated to import from .submission.port.RejudgePolicy. Refroze ArchUnit store for package movement. Full
+      reactor build PASS: 1798 tests run, 0 failures, 0 errors in 43.8s.'
+    ts: '2026-07-28T09:27:38+00:00'
+  commits:
+  - 1968ac257
   notes: 'RESCOPED 2026-07-28 during P3 recovery: the original acceptance criteria listed 4 methods (rejudgeSubmission, batchRejudge,
     cancelPendingSubmission, markInQueue). Exhaustive grep over backend-legacy/src/main/java found cancelPendingSubmission
     and markInQueue do not exist anywhere. The real admin->submission write surface is rejudge + batchRejudge, and that path
@@ -6440,7 +6446,7 @@
     SubmissionMapper write calls. So the residual work for -C is the *.port package symmetry (admin depends on submission.port.SubmissionOwnerPort
     not submission.policy.RejudgePolicy) + the P4 Dubbo RPC seam, NOT new write logic. This matches the Problem/Contest owner-port
     shape established by -A/-B.'
-  updated_at: '2026-07-28T09:30:00+08:00'
+  updated_at: '2026-07-28T09:27:38+00:00'
 - id: P3-OWNER-001-D
   phase: 3
   area: OWNER

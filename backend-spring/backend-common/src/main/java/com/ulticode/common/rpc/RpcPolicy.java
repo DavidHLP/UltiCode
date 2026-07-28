@@ -19,6 +19,24 @@ package com.ulticode.common.rpc;
  *     <td>{@value #QUERY_RETRIES} (one retry with jitter)</td><td>Not applicable</td></tr>
  * </table>
  *
+ * <h2>YAML global default = WRITE boundary (fail-safe)</h2>
+ * The global Dubbo consumer default in every service module's
+ * {@code application.yml} is {@code timeout=3000, retries=0} &mdash; the
+ * write-safe boundary. This is deliberate: a write RPC that accidentally
+ * inherits the query retry count ({@code retry=1}) can double-apply a
+ * side effect (critical correctness bug), whereas a query RPC that
+ * accidentally inherits the write retry count ({@code retry=0}) is merely
+ * conservative (safe but suboptimal). CUTOVER consumers MUST override
+ * query references explicitly:
+ * <pre>{@code
+ * // Write reference — uses global default (no override needed)
+ * @DubboReference // timeout=3000, retries=0 from YAML
+ *
+ * // Query reference — MUST override
+ * @DubboReference(timeout = RpcPolicy.QUERY_TIMEOUT_MS,
+ *                 retries = RpcPolicy.QUERY_RETRIES)
+ * }</pre>
+ *
  * <h2>Rationale (per &sect;6.4)</h2>
  * <ul>
  *   <li><b>Write retry=0:</b> an auto-retried write may double-apply the side

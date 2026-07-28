@@ -48,17 +48,17 @@ class DubboBootstrapConfigTest {
     }
 
     @Test
-    @DisplayName("P4-RPC-002: consumer default timeout is 800ms (query RPC)")
-    void consumerTimeoutQueryDefault() {
+    @DisplayName("P4-RPC-002: consumer default timeout is 3000ms (write-safe fail-safe)")
+    void consumerTimeoutWriteSafeDefault() {
         assertThat(env.getProperty("dubbo.consumer.timeout", Integer.class))
-                .isEqualTo(800);
+                .isEqualTo(3000);
     }
 
     @Test
-    @DisplayName("P4-RPC-002: consumer default retries is 1 (query RPC with jitter)")
-    void consumerRetriesQueryDefault() {
+    @DisplayName("P4-RPC-002: consumer default retries is 0 (write-safe: no auto-retry)")
+    void consumerRetriesWriteSafeDefault() {
         assertThat(env.getProperty("dubbo.consumer.retries", Integer.class))
-                .isEqualTo(1);
+                .isEqualTo(0);
     }
 
     @Configuration

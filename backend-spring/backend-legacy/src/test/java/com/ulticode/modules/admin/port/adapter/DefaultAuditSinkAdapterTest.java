@@ -1,6 +1,6 @@
 package com.ulticode.modules.admin.port.adapter;
 
-import com.ulticode.modules.admin.outbox.AuditOutboxMapper;
+import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 import com.ulticode.modules.admin.outbox.AuditOutboxRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

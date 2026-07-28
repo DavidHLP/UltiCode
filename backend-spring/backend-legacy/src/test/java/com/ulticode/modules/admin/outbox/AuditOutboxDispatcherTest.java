@@ -1,4 +1,5 @@
 package com.ulticode.modules.admin.outbox;
+import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

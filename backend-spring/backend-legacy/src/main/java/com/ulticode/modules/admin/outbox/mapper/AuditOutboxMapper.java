@@ -1,4 +1,6 @@
-package com.ulticode.modules.admin.outbox;
+package com.ulticode.modules.admin.outbox.mapper;
+
+import com.ulticode.modules.admin.outbox.AuditOutboxRecord;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;

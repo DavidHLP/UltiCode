@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.port.adapter;
 
 import com.ulticode.common.audit.AuditSinkPort;
-import com.ulticode.modules.admin.outbox.AuditOutboxMapper;
+import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 import com.ulticode.modules.admin.outbox.AuditOutboxRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

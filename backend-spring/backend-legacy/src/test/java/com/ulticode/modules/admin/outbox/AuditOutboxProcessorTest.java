@@ -1,4 +1,5 @@
 package com.ulticode.modules.admin.outbox;
+import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 
 import com.ulticode.modules.admin.entity.AuditLog;
 import com.ulticode.modules.admin.mapper.AuditLogMapper;

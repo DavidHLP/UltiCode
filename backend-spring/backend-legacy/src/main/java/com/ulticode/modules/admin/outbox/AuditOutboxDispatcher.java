@@ -1,4 +1,5 @@
 package com.ulticode.modules.admin.outbox;
+import com.ulticode.modules.admin.outbox.mapper.AuditOutboxMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

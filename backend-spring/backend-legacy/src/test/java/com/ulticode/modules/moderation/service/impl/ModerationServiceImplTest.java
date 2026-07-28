@@ -33,7 +33,7 @@ import com.ulticode.modules.moderation.mapper.UserBanMapper;
 import com.ulticode.modules.moderation.mapper.UserWarningMapper;
 import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -62,7 +62,7 @@ class ModerationServiceImplTest {
   @Mock private AppealMapper appealMapper;
   @Mock private UserWarningMapper warningMapper;
   @Mock private UserBanMapper banMapper;
-  @Mock private UserMapper userMapper;
+  @Mock private AuthAccountPort accountPort;
   @Mock private ContentModerationPort contentModerationPort;
   @Mock private ModerationProjection moderationProjection;
   @Mock private CurrentUserProvider currentUserProvider;
@@ -75,7 +75,7 @@ class ModerationServiceImplTest {
         appealMapper,
         warningMapper,
         banMapper,
-        userMapper,
+        accountPort,
         contentModerationPort,
         moderationProjection,
         CLOCK,

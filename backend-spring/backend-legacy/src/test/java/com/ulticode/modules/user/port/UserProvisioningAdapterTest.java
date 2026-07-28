@@ -11,6 +11,7 @@ import com.ulticode.common.uuid.FixedUuidGenerator;
 import com.ulticode.modules.admin.port.UserProvisioningPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -33,17 +34,18 @@ class UserProvisioningAdapterTest {
   @Test
   void createAppliesSeamIdsAndTimestampsAndEncodesPassword() {
     UserMapper userMapper = mock(UserMapper.class);
+    AuthAccountPort accountPort = mock(AuthAccountPort.class);
     PasswordEncoderStub encoder = new PasswordEncoderStub();
     UserProvisioningAdapter adapter =
         new UserProvisioningAdapter(
-            userMapper, encoder, new FixedUuidGenerator("admin-id-1"), FIXED_CLOCK);
+            userMapper, accountPort, encoder, new FixedUuidGenerator("admin-id-1"), FIXED_CLOCK);
 
     adapter.createAdministrator(
         new UserProvisioningPort.AdministratorSpec(
             "root", "Root Admin", "root@example.com", "raw-secret", "SUPER_ADMIN"));
 
     ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(userMapper).insert(captor.capture());
+    verify(accountPort).create(captor.capture());
     User persisted = captor.getValue();
     assertThat(persisted.getId()).isEqualTo("admin-id-1");
     assertThat(persisted.getUsername()).isEqualTo("root");
@@ -61,10 +63,11 @@ class UserProvisioningAdapterTest {
   @Test
   void restoreRewritesActiveFieldsAndClearsBanMetadataWithoutNewIdOrTimestamp() {
     UserMapper userMapper = mock(UserMapper.class);
+    AuthAccountPort accountPort = mock(AuthAccountPort.class);
     PasswordEncoderStub encoder = new PasswordEncoderStub();
     UserProvisioningAdapter adapter =
         new UserProvisioningAdapter(
-            userMapper, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
+            userMapper, accountPort, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
 
     User existing = new User();
     existing.setId("original-id");
@@ -82,27 +85,19 @@ class UserProvisioningAdapterTest {
         new UserProvisioningPort.AdministratorSpec(
             "admin", "Development Administrator", "admin@localhost.test", "admin123", "ADMIN"));
 
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(userMapper).updateById(captor.capture());
-    User persisted = captor.getValue();
-    assertThat(persisted.getId()).isEqualTo("original-id");
-    assertThat(persisted.getUsername()).isEqualTo("admin");
-    assertThat(persisted.getJoinedAt()).isEqualTo(LocalDateTime.parse("2024-01-01T00:00:00"));
-    assertThat(persisted.getPassword()).isEqualTo("encoded(admin123)");
-    assertThat(persisted.getRole()).isEqualTo("ADMIN");
-    assertThat(persisted.getIsActive()).isTrue();
-    assertThat(persisted.getIsBanned()).isFalse();
-    assertThat(persisted.getBannedUntil()).isNull();
-    assertThat(persisted.getBannedReason()).isNull();
+    verify(accountPort).updateBanStatus("original-id", false, null);
+    verify(accountPort).updatePassword("original-id", "encoded(admin123)");
+    verify(accountPort).updateAccountCredentials("original-id", "admin", "admin@localhost.test", "ADMIN");
   }
 
   @Test
   void restoreThrowsAndMutatesNothingWhenAccountVanished() {
     UserMapper userMapper = mock(UserMapper.class);
+    AuthAccountPort accountPort = mock(AuthAccountPort.class);
     PasswordEncoderStub encoder = new PasswordEncoderStub();
     UserProvisioningAdapter adapter =
         new UserProvisioningAdapter(
-            userMapper, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
+            userMapper, accountPort, encoder, new FixedUuidGenerator("unused-id"), FIXED_CLOCK);
     when(userMapper.selectById("ghost-id")).thenReturn(null);
 
     assertThatThrownBy(

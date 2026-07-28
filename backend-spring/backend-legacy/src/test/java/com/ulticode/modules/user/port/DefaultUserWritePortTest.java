@@ -1,57 +1,48 @@
 package com.ulticode.modules.user.port;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.uuid.UuidGenerator;
+import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.modules.user.dto.ChangePasswordDTO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import java.time.Clock;
-
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import com.ulticode.common.auth.CurrentUserProvider;
 
-/**
- * Unit tests for {@link DefaultUserWritePort}.
- *
- * <p>These tests cover the write-side mutating operations that the
- * deleted {@code UserService} facade used to inline. With the deep
- * module in place, every write is tested through the same seam and the
- * cross-module mapper dependencies stay out of the way.
- */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultUserWritePortTest {
 
     @Mock
-    private UserMapper userMapper;
+    private UserProfilePort userProfilePort;
 
     @Mock
-    private Clock clock;
+    private AuthAccountPort authAccountPort;
 
     @Mock
-    private UuidGenerator uuidGenerator;
+    private PasswordEncoder passwordEncoder;
+
     @Mock
     private CurrentUserProvider currentUserProvider;
 
@@ -62,13 +53,14 @@ class DefaultUserWritePortTest {
 
     @BeforeEach
     void setUp() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
-        lenient().when(clock.instant()).thenReturn(java.time.Instant.now());
-        lenient().when(clock.getZone()).thenReturn(java.time.ZoneId.systemDefault());
-
         testUser = new User();
         testUser.setId("test-user-id");
+        testUser.setUsername("testuser");
+        testUser.setName("Test User");
         testUser.setEmail("test@example.com");
+        testUser.setPassword("encoded-password");
+
+        lenient().when(currentUserProvider.getCurrentUserId()).thenReturn("test-user-id");
     }
 
     @Nested
@@ -76,54 +68,21 @@ class DefaultUserWritePortTest {
     class UpdateCurrentUserTests {
 
         @Test
-        @DisplayName("should update user profile successfully")
+        @DisplayName("should update user profile successfully via userProfilePort")
         void shouldUpdateUserProfileSuccessfully() {
             UpdateUserDTO updateDTO = new UpdateUserDTO();
             updateDTO.setName("Updated Name");
-            updateDTO.setBio("Updated bio");
 
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-            when(userMapper.updateById(any(User.class))).thenReturn(1);
+            UserVO expectedVO = new UserVO();
+            expectedVO.setName("Updated Name");
+
+            when(userProfilePort.updateProfile("test-user-id", updateDTO)).thenReturn(expectedVO);
 
             UserVO result = userWritePort.updateCurrentUser(updateDTO);
 
             assertNotNull(result);
             assertEquals("Updated Name", result.getName());
-            verify(userMapper).updateById(any(User.class));
-        }
-
-        @Test
-        @DisplayName("should throw AUTH_EMAIL_TAKEN when email already exists")
-        void shouldThrowEmailTakenWhenEmailExists() {
-            UpdateUserDTO updateDTO = new UpdateUserDTO();
-            updateDTO.setEmail("new@example.com");
-
-            User existingUser = new User();
-            existingUser.setId("other-user-id");
-            existingUser.setEmail("new@example.com");
-
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existingUser);
-
-            BusinessException ex = assertThrows(
-                    BusinessException.class,
-                    () -> userWritePort.updateCurrentUser(updateDTO));
-            assertEquals(ErrorCode.AUTH_EMAIL_TAKEN, ex.getErrorCode());
-        }
-
-        @Test
-        @DisplayName("should allow updating to same email")
-        void shouldAllowUpdatingToSameEmail() {
-            UpdateUserDTO updateDTO = new UpdateUserDTO();
-            updateDTO.setEmail("test@example.com"); // same as current
-            updateDTO.setName("New Name");
-
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
-            when(userMapper.updateById(any(User.class))).thenReturn(1);
-
-            UserVO result = userWritePort.updateCurrentUser(updateDTO);
-            assertNotNull(result);
-            assertEquals("New Name", result.getName());
+            verify(userProfilePort).updateProfile("test-user-id", updateDTO);
         }
 
         @Test
@@ -145,25 +104,24 @@ class DefaultUserWritePortTest {
     class UpdateLastLoginAtTests {
 
         @Test
-        @DisplayName("should update last login time")
+        @DisplayName("should delegate to authAccountPort")
         void shouldUpdateLastLoginTime() {
-            when(userMapper.updateById(any(User.class))).thenReturn(1);
             userWritePort.updateLastLoginAt("test-user-id");
-            verify(userMapper).updateById(any(User.class));
+            verify(authAccountPort).updateLastLoginAt("test-user-id");
         }
 
         @Test
-        @DisplayName("should not update for null userId")
+        @DisplayName("should pass null userId to authAccountPort")
         void shouldNotUpdateForNullUserId() {
             userWritePort.updateLastLoginAt(null);
-            verify(userMapper, never()).updateById(any(User.class));
+            verify(authAccountPort).updateLastLoginAt(null);
         }
 
         @Test
-        @DisplayName("should not update for blank userId")
+        @DisplayName("should pass blank userId to authAccountPort")
         void shouldNotUpdateForBlankUserId() {
             userWritePort.updateLastLoginAt("   ");
-            verify(userMapper, never()).updateById(any(User.class));
+            verify(authAccountPort).updateLastLoginAt("   ");
         }
     }
 }

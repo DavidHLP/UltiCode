@@ -29,7 +29,7 @@ import com.ulticode.modules.moderation.port.ContentModerationPort;
 import com.ulticode.modules.moderation.projection.ModerationProjection;
 import com.ulticode.modules.moderation.service.ModerationService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -81,7 +81,7 @@ public class ModerationServiceImpl implements ModerationService {
     private final AppealMapper appealMapper;
     private final UserWarningMapper warningMapper;
     private final UserBanMapper banMapper;
-    private final UserMapper userMapper;
+    private final AuthAccountPort accountPort;
     private final ContentModerationPort contentModerationPort;
     private final ModerationProjection moderationProjection;
     private final Clock clock;
@@ -117,7 +117,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
 
         // Verify the target moderator exists
-        User targetModerator = userMapper.selectById(assignedTo);
+        User targetModerator = accountPort.findById(assignedTo).orElse(null);
         if (targetModerator == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -481,16 +481,8 @@ public class ModerationServiceImpl implements ModerationService {
         }
         banMapper.insert(ban);
 
-        // Update user's ban status
-        User user = userMapper.selectById(userId);
-        if (user != null) {
-            user.setIsBanned(true);
-            if (!isPermanent && durationDays != null) {
-                user.setBannedUntil(now.plusDays(durationDays));
-            }
-            user.setBannedReason(reason);
-            userMapper.updateById(user);
-        }
+        // Update user's ban status via owner account port
+        accountPort.updateBanStatus(userId, true, reason);
     }
 
     void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {

@@ -5,6 +5,7 @@ import com.ulticode.common.uuid.UuidGenerator;
 import com.ulticode.modules.admin.port.UserProvisioningPort;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ import java.util.Optional;
 public class UserProvisioningAdapter implements UserProvisioningPort {
 
     private final UserMapper userMapper;
+    private final AuthAccountPort accountPort;
     private final PasswordEncoder passwordEncoder;
     private final UuidGenerator uuidGenerator;
     private final Clock clock;
@@ -76,7 +78,7 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
         user.setIsDeleted(0);
         user.setJoinedAt(LocalDateTime.now(clock));
         applyAdministratorFields(user, spec);
-        userMapper.insert(user);
+        accountPort.create(user);
     }
 
     @Override
@@ -86,9 +88,9 @@ public class UserProvisioningAdapter implements UserProvisioningPort {
             throw new IllegalStateException("Cannot restore nonexistent administrator: " + id);
         }
         applyAdministratorFields(existing, spec);
-        existing.setBannedUntil(null);
-        existing.setBannedReason(null);
-        userMapper.updateById(existing);
+        accountPort.updateBanStatus(id, false, null);
+        accountPort.updatePassword(id, passwordEncoder.encode(spec.rawPassword()));
+        accountPort.updateAccountCredentials(id, spec.username(), spec.email(), spec.role());
     }
 
     private void applyAdministratorFields(User user, AdministratorSpec spec) {

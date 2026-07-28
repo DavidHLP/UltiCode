@@ -14,6 +14,7 @@ import com.ulticode.modules.auth.service.oauth.OAuthTokenResponse;
 import com.ulticode.modules.auth.service.oauth.OAuthUserInfo;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.modules.user.port.UserProfilePort;
 import com.ulticode.security.oauth.OAuthProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -76,6 +77,8 @@ class OAuthServiceTest {
 
     @Mock
     private AuthAccountPort accountPort;
+    @Mock
+    private UserProfilePort userProfilePort;
 
     @Mock
     private AuthSessionPort authSessionPort;
@@ -217,7 +220,7 @@ class OAuthServiceTest {
             // DB upsert tail: selectOne by email then insert a new user.
             verify(accountPort).findByOAuthEmail(anyString());
             verify(accountPort).create(userCaptor.capture());
-            verify(accountPort, never()).updateAvatar(anyString(), anyString());
+            verify(userProfilePort, never()).updateAvatarUrl(anyString(), anyString());
 
             User created = userCaptor.getValue();
             assertThat(created.getUsername()).isEqualTo("github_" + GITHUB_ID);
@@ -251,7 +254,7 @@ class OAuthServiceTest {
 
             oauthService.handleGithubCallback(CODE, STATE, null, null);
 
-            verify(accountPort).updateAvatar(eq(existing.getId()), eq(AVATAR));
+            verify(userProfilePort).updateAvatarUrl(eq(existing.getId()), eq(AVATAR));
             verify(accountPort, never()).create(any(User.class));
         }
 
@@ -274,7 +277,7 @@ class OAuthServiceTest {
             oauthService.handleGithubCallback(CODE, STATE, null, null);
 
             verify(accountPort, never()).create(any(User.class));
-            verify(accountPort, never()).updateAvatar(anyString(), anyString());
+            verify(userProfilePort, never()).updateAvatarUrl(anyString(), anyString());
         }
 
         @Test
@@ -296,7 +299,7 @@ class OAuthServiceTest {
                     .isEqualTo(ErrorCode.AUTH_INVALID_CREDENTIALS));
 
             verify(accountPort, never()).create(any(User.class));
-            verify(accountPort, never()).updateAvatar(anyString(), anyString());
+            verify(userProfilePort, never()).updateAvatarUrl(anyString(), anyString());
             verify(authSessionPort, never()).completeLogin(any(User.class), any());
         }
 
@@ -372,7 +375,7 @@ class OAuthServiceTest {
         @DisplayName("empty client list → 400 BAD_REQUEST on first call")
         void emptyList_throwsBadRequest() {
             OAuthService bare = new OAuthService(
-                oauthProperties, accountPort, authSessionPort, oauthStatePort,
+                oauthProperties, accountPort, userProfilePort, authSessionPort, oauthStatePort,
                 List.of(), clock);
             bare.wireClientLookup();
 
@@ -388,7 +391,7 @@ class OAuthServiceTest {
             OAuthClient anotherGithub = new GithubOAuthClient(
                 oauthProperties, new com.fasterxml.jackson.databind.ObjectMapper(), new OAuthHttp());
             OAuthService dup = new OAuthService(
-                oauthProperties, accountPort, authSessionPort, oauthStatePort,
+                oauthProperties, accountPort, userProfilePort, authSessionPort, oauthStatePort,
                 List.of(githubClient, anotherGithub), clock);
 
             assertThatThrownBy(dup::wireClientLookup)

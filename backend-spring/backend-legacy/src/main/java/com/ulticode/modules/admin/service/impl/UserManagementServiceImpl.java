@@ -17,7 +17,9 @@ import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.UserManagementService;
 import com.ulticode.modules.user.entity.User;
-import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.modules.user.port.UserProfilePort;
+import com.ulticode.modules.user.dto.UpdateUserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -64,7 +66,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserManagementServiceImpl implements UserManagementService {
 
-    private final UserMapper userMapper;
+        private final AuthAccountPort accountPort;
+    private final UserProfilePort userProfilePort;
     private final PasswordEncoder passwordEncoder;
     private final AuditRecorder auditRecorder;
     /**
@@ -92,16 +95,14 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Audited(action = AuditVocabulary.CREATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "#result.id")
     public AdminUserVO createUser(AdminCreateUserDTO dto) {
         // 用户名唯一性校验
-        User existing = userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
+        User existing = accountPort.findByUsername(dto.getUsername()).orElse(null);
         if (existing != null) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
         }
 
         // 邮箱唯一性校验
         if (StringUtils.hasText(dto.getEmail())) {
-            User existingEmail = userMapper.selectOne(
-                    new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
+            User existingEmail = accountPort.findByEmail(dto.getEmail()).orElse(null);
             if (existingEmail != null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
             }
@@ -125,7 +126,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
-        userMapper.insert(user);
+        accountPort.create(user);
 
         // P2-RBAC-001: route the admin's non-default role choice
         // through backend-auth. Best-effort: a backend-auth outage
@@ -151,15 +152,14 @@ public class UserManagementServiceImpl implements UserManagementService {
     @Transactional
     @Audited(action = AuditVocabulary.UPDATE_USER, entityType = AuditVocabulary.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO updateUser(String id, AdminUpdateUserDTO dto) {
-        User user = userMapper.selectById(id);
+        User user = accountPort.findById(id).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
         // 用户名唯一性校验（排除当前用户）
         if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(user.getUsername())) {
-            User existingUsername = userMapper.selectOne(
-                    new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
+            User existingUsername = accountPort.findByUsername(dto.getUsername()).orElse(null);
             if (existingUsername != null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
             }
@@ -167,8 +167,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         // 邮箱唯一性校验（排除当前用户）
         if (StringUtils.hasText(dto.getEmail()) && !dto.getEmail().equals(user.getEmail())) {
-            User existingEmail = userMapper.selectOne(
-                    new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
+            User existingEmail = accountPort.findByEmail(dto.getEmail()).orElse(null);
             if (existingEmail != null) {
                 throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
             }
@@ -182,33 +181,21 @@ public class UserManagementServiceImpl implements UserManagementService {
             "isActive", user.getIsActive()
         ));
 
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id);
+        // Account credentials update (username / email) via AuthAccountPort
+        accountPort.updateAccountCredentials(id, dto.getUsername(), dto.getEmail(), null);
 
-        // Partial-update set clauses — null / blank values are silently
-        // skipped, so the row's existing value is preserved. The wrapper
-        // pattern accumulates the SET clauses and applies them in one UPDATE.
-        //
-        // P2-RBAC-001: the role field is intentionally NOT part of the
-        // local wrapper. The admin's role choice is routed through
-        // backend-auth's owner-only command surface (see
-        // BackendAuthRoleAdminClient#changeRole below). The
-        // users.role column is owned by backend-auth from this point
-        // on.
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getUsername, User::getUsername);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getName, User::getName);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getEmail, User::getEmail);
-        PartialUpdate.setIfPresentWrapper(wrapper, dto, AdminUpdateUserDTO::getIsActive, User::getIsActive);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getAvatar, User::getAvatar);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getBio, User::getBio);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getCompany, User::getCompany);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getGithub, User::getGithub);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getWebsite, User::getWebsite);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getLocation, User::getLocation);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getTwitter, User::getTwitter);
-        PartialUpdate.setIfPresentTextWrapper(wrapper, dto, AdminUpdateUserDTO::getPreferredLanguage, User::getPreferredLanguage);
-
-        userMapper.update(null, wrapper);
+        // Profile attributes update via UserProfilePort
+        UpdateUserDTO profileDTO = new UpdateUserDTO();
+        profileDTO.setName(dto.getName());
+        profileDTO.setAvatar(dto.getAvatar());
+        profileDTO.setBio(dto.getBio());
+        profileDTO.setCompany(dto.getCompany());
+        profileDTO.setGithub(dto.getGithub());
+        profileDTO.setWebsite(dto.getWebsite());
+        profileDTO.setLocation(dto.getLocation());
+        profileDTO.setTwitter(dto.getTwitter());
+        profileDTO.setPreferredLanguage(dto.getPreferredLanguage());
+        userProfilePort.updateProfile(id, profileDTO);
 
         // P2-RBAC-001: forward the admin's role choice to backend-auth.
         // The local write above has already committed; a backend-auth
@@ -279,7 +266,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * owns the mutation and stages {@link AuditContext} old/new values.
      */
     private void executeResetPassword(String id, String newPassword) {
-        User user = userMapper.selectById(id);
+        User user = accountPort.findById(id).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -288,11 +275,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         AuditContext.setNewValues(Map.of("passwordChanged", true));
 
         String hashedPassword = passwordEncoder.encode(newPassword);
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getPassword, hashedPassword);
-
-        userMapper.update(null, wrapper);
+        accountPort.updatePassword(id, hashedPassword);
     }
 
     /**
@@ -303,7 +286,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * aspect because a self-invoked method bypasses the Spring proxy.
      */
     private void executeBan(String id, String reason, String until) {
-        User user = userMapper.selectById(id);
+        User user = accountPort.findById(id).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -313,21 +296,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
         ));
 
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getIsBanned, true)
-                .set(User::getBannedReason, reason);
-
-        if (StringUtils.hasText(until)) {
-            try {
-                wrapper.set(User::getBannedUntil, LocalDateTime.parse(until));
-            } catch (DateTimeParseException e) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                    "Invalid banned_until date format: " + until);
-            }
-        }
-
-        userMapper.update(null, wrapper);
+        accountPort.updateBanStatus(id, true, reason);
 
         AuditContext.setNewValues(Map.of(
             "isBanned", true,
@@ -339,7 +308,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * Core unban mutation shared by {@link #unbanUser} and {@link #bulkUnban}.
      */
     private void executeUnban(String id) {
-        User user = userMapper.selectById(id);
+        User user = accountPort.findById(id).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -349,13 +318,7 @@ public class UserManagementServiceImpl implements UserManagementService {
             "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
         ));
 
-        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(User::getId, id)
-                .set(User::getIsBanned, false)
-                .set(User::getBannedReason, null)
-                .set(User::getBannedUntil, null);
-
-        userMapper.update(null, wrapper);
+        accountPort.updateBanStatus(id, false, null);
 
         AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
     }
@@ -366,7 +329,7 @@ public class UserManagementServiceImpl implements UserManagementService {
      * shape as the single path so audit entries do not drift between flows.
      */
     private void executeDelete(String id) {
-        User user = userMapper.selectById(id);
+        User user = accountPort.findById(id).orElse(null);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
@@ -374,7 +337,7 @@ public class UserManagementServiceImpl implements UserManagementService {
         AuditContext.setOldValues(Map.of("username", user.getUsername()));
         AuditContext.setNewValues(Map.of("deleted", true));
 
-        userMapper.deleteById(id);
+        accountPort.deleteAccount(id);
     }
 
     /**

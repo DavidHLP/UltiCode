@@ -156,4 +156,31 @@ public class OwnerBoundaryArchTest {
                 + "through owner ports (ProblemOwnerPort, ContestOwnerPort, SubmissionOwnerPort, "
                 + "ForumOwnerPort, SolutionOwnerPort) rather than calling foreign Mapper write methods directly. "
                 + "See MICROSERVICE_MIGRATION_GUIDE.md §10.");
+
+
+    /* ===== P3-OWNER-002: cross-owner writes to UserMapper are forbidden ===== */
+
+    @ArchTest
+    static final ArchRule p3_owner_002_forbid_cross_owner_user_writes =
+        FreezingArchRule.freeze(
+            ArchRuleDefinition.noClasses()
+                    .that().doNotHaveFullyQualifiedName("com.ulticode.modules.auth.account.DefaultAuthAccountAdapter")
+                    .and().doNotHaveFullyQualifiedName("com.ulticode.modules.user.port.DefaultUserProfileAdapter")
+                    .should().callMethodWhere(
+                            DescribedPredicate.describe(
+                                    "call a WRITE method (insert/update/delete) on UserMapper",
+                                    (JavaMethodCall call) -> {
+                                        String ownerName = call.getTargetOwner().getName();
+                                        if (!ownerName.endsWith("UserMapper")) {
+                                            return false;
+                                        }
+                                        String methodName = call.getTarget().getName();
+                                        return methodName.startsWith("insert")
+                                                || methodName.startsWith("update")
+                                                || methodName.startsWith("delete");
+                                    }
+                            )
+                    )
+        ).because("P3-OWNER-002: Only user port adapters (UserProfilePort) and auth account adapters (AuthAccountPort) "
+                + "may call WRITE methods on UserMapper. Foreign modules (admin, moderation, etc.) must use owner ports.");
 }

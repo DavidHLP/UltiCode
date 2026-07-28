@@ -9,6 +9,7 @@ import com.ulticode.modules.auth.session.OAuthStatePort;
 import com.ulticode.modules.auth.service.oauth.OAuthClient;
 import com.ulticode.modules.auth.service.oauth.OAuthUserInfo;
 import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.port.UserProfilePort;
 import com.ulticode.modules.auth.account.AuthAccountPort;
 import com.ulticode.security.oauth.OAuthProperties;
 import jakarta.annotation.PostConstruct;
@@ -65,6 +66,7 @@ public class OAuthService {
 
     private final OAuthProperties oauthProperties;
     private final AuthAccountPort accountPort;
+    private final UserProfilePort userProfilePort;
     private final AuthSessionPort authSessionPort;
     private final OAuthStatePort oauthStatePort;
     private final List<OAuthClient> oauthClients;
@@ -210,7 +212,7 @@ public class OAuthService {
             // 更新头像（如果需要）
             String avatar = userInfo.avatar();
             if (avatar != null && !avatar.equals(user.getAvatar())) {
-                accountPort.updateAvatar(user.getId(), avatar);
+                userProfilePort.updateAvatarUrl(user.getId(), avatar);
             }
         }
 

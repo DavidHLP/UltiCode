@@ -8,6 +8,8 @@ import com.ulticode.modules.admin.projection.AdminUserProjection;
 import com.ulticode.modules.admin.service.impl.UserManagementServiceImpl;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.auth.account.AuthAccountPort;
+import com.ulticode.modules.user.port.UserProfilePort;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -17,11 +19,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -39,10 +45,15 @@ import static org.mockito.Mockito.*;
  * old/new value shape as the single paths.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class UserManagementServiceImplTest {
 
     @Mock
     private UserMapper userMapper;
+    @Mock
+    private AuthAccountPort accountPort;
+    @Mock
+    private UserProfilePort userProfilePort;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
@@ -90,10 +101,10 @@ class UserManagementServiceImplTest {
         void recordsAuditPerBannedUser() {
             User alice = user("u1", "alice", false);
             User bob = user("u3", "bob", false);
-            when(userMapper.selectById("u1")).thenReturn(alice);
-            when(userMapper.selectById("u2")).thenReturn(null); // not found
-            when(userMapper.selectById("u3")).thenReturn(bob);
-            when(userMapper.update(isNull(), any())).thenReturn(1);
+            when(accountPort.findById("u1")).thenReturn(Optional.of(alice));
+            when(accountPort.findById("u2")).thenReturn(Optional.empty()); // not found
+            when(accountPort.findById("u3")).thenReturn(Optional.of(bob));
+            lenient().when(userMapper.update(isNull(), any())).thenReturn(1);
 
             List<UserManagementService.BanResult> results =
                     service.bulkBan(List.of("u1", "u2", "u3"), "spam");
@@ -126,8 +137,8 @@ class UserManagementServiceImplTest {
         @DisplayName("records a DELETE_USER audit with deleted:true new values (single-path shape)")
         void recordsAuditWithDeletedNewValues() {
             User alice = user("u1", "alice", false);
-            when(userMapper.selectById("u1")).thenReturn(alice);
-            when(userMapper.deleteById("u1")).thenReturn(1);
+            when(accountPort.findById("u1")).thenReturn(Optional.of(alice));
+            lenient().when(userMapper.deleteById("u1")).thenReturn(1);
 
             List<UserManagementService.DeleteResult> results = service.bulkDelete(List.of("u1"));
 
@@ -146,7 +157,7 @@ class UserManagementServiceImplTest {
         @Test
         @DisplayName("does not record audit for a missing user")
         void noAuditForMissingUser() {
-            when(userMapper.selectById("uX")).thenReturn(null);
+            when(accountPort.findById("uX")).thenReturn(Optional.empty());
 
             List<UserManagementService.DeleteResult> results = service.bulkDelete(List.of("uX"));
 
@@ -165,8 +176,8 @@ class UserManagementServiceImplTest {
         void recordsAuditPerUnbannedUser() {
             User alice = user("u1", "alice", true);
             alice.setBannedReason("spam");
-            when(userMapper.selectById("u1")).thenReturn(alice);
-            when(userMapper.update(isNull(), any())).thenReturn(1);
+            when(accountPort.findById("u1")).thenReturn(Optional.of(alice));
+            lenient().when(userMapper.update(isNull(), any())).thenReturn(1);
 
             List<UserManagementService.BanResult> results = service.bulkUnban(List.of("u1"));
 

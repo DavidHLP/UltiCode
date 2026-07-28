@@ -7,29 +7,21 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Default {@link AuthAccountPort} implementation. Concentrates every
- * user-table / OAuth-identity read and write that the auth services used
- * to do directly against {@code UserMapper} /
- * {@code UserOAuthIdentityMapper}.
- *
- * <p>Architecture-review candidate #5 — the previous code had
- * {@code AuthServiceImpl}, {@code OAuthService}, and
- * {@code PasswordResetService} all building {@code LambdaQueryWrapper}
- * against {@code User} and reading token columns directly. This adapter
- * is the only place that touches the user module's mappers on the
- * auth side.
- *
- * @author ulticode
+ * Default {@link AuthAccountPort} implementation (P3-OWNER-002).
+ * Concentrates user account/credential/ban state mutations on the auth side.
  */
 @Component
 @RequiredArgsConstructor
 public class DefaultAuthAccountAdapter implements AuthAccountPort {
 
     private final UserMapper userMapper;
+    private final Clock clock;
 
     @Override
     public Optional<User> findByUsername(String username) {
@@ -55,6 +47,17 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public void updateLastLoginAt(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+        User user = new User();
+        user.setId(userId);
+        user.setLastLoginAt(LocalDateTime.now(clock));
+        userMapper.updateById(user);
+    }
+
+    @Override
     public void updatePassword(String userId, String hashedPassword) {
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -65,11 +68,41 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
+    public void updateBanStatus(String userId, boolean isBanned, String bannedReason) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        user.setIsBanned(isBanned);
+        user.setBannedReason(bannedReason == null ? "" : bannedReason);
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void deleteAccount(String userId) {
+        userMapper.deleteById(userId);
+    }
+
+    @Override
+    public void updateAccountCredentials(String userId, String username, String email, String role) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        if (username != null) {
+            user.setUsername(username);
+        }
+        if (email != null) {
+            user.setEmail(email);
+        }
+        if (role != null) {
+            user.setRole(role);
+        }
+        userMapper.updateById(user);
+    }
+
+    @Override
     public Optional<PasswordResetRecord> findPasswordReset(String userId) {
-        // The reset token lives on the user row (User.passwordResetTokenHash +
-        // .passwordResetExpiresAt). We expose the (userId, token, expiresAt)
-        // triple to the auth service so it does not need to know the column
-        // layout.
         return Optional.ofNullable(userMapper.selectById(userId))
                 .filter(u -> u.getPasswordResetTokenHash() != null
                         && u.getPasswordResetExpiresAt() != null)
@@ -113,24 +146,8 @@ public class DefaultAuthAccountAdapter implements AuthAccountPort {
     }
 
     @Override
-    public void updateAvatar(String userId, String avatarUrl) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            return;
-        }
-        user.setAvatar(avatarUrl);
-        userMapper.updateById(user);
-    }
-
-    /**
-     * Find any user whose reset token is still active (non-null hash and
-     * non-expired). The auth service then BCrypt-matches the supplied
-     * token. This used to be an inline {@code LambdaQueryWrapper.isNotNull(...).gt(...)}
-     * in {@code PasswordResetService}.
-     */
-    @Override
     public List<User> findUsersWithActivePasswordReset(long nowEpochMs) {
-        java.time.LocalDateTime now = java.time.Instant.ofEpochMilli(nowEpochMs)
+        LocalDateTime now = java.time.Instant.ofEpochMilli(nowEpochMs)
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDateTime();
         return userMapper.selectList(

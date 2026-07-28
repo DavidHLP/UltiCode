@@ -6696,13 +6696,38 @@
     endpoints write app-owned tables via App owner ports; refined to per-domain prefixes, and audit_outbox demoted to
     owner-neutral shared seam to eliminate false-positive violations from audited business transactions.'
   updated_at: '2026-07-28T21:26:00+00:00'
+- id: P3-BURNDOWN-001
+  phase: 3
+  area: ARCH
+  title: Burn down frozen Admin foreign-mapper write violations
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - P3-GATE AC1 blocker
+  status: in_progress
+  depends_on:
+  - P3-OWNER-001
+  acceptance_criteria:
+  - AdminTestCaseService routes all 5 TestCaseMapper write calls through ProblemOwnerPort (App domain).
+  - ProblemImportServiceImpl routes all 3 ProblemMapper write calls through ProblemOwnerPort.
+  - OwnerBoundaryArchTest p3_owner_001_f passes with ZERO frozen write violations (store emptied/refrozen).
+  validation:
+  - ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B
+  - ./mvnw verify -B
+  rollback: revert port routing; restore freeze baseline
+  evidence: []
+  commits: []
+  notes: 'Discovered during P3-GATE evidence walk (2026-07-28): freeze store a550ee6a recorded 8 live
+    write-path violations (AdminTestCaseService x5 TestCaseMapper, ProblemImportServiceImpl x3 ProblemMapper).
+    Gate AC1 cannot close while write-path burn-down is pending.'
+  updated_at: '2026-07-28T21:45:00+00:00'
+
 - id: P3-GATE
   phase: 3
   area: GATE
   title: Phase 3 gate — Admin/App boundaries consolidated
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-  status: pending
+  status: in_progress
   depends_on:
   - P3-OWNER-001
   - P3-OWNER-002

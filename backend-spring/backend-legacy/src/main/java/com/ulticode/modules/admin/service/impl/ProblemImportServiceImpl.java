@@ -1,13 +1,12 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.common.util.PartialUpdate;
 import com.ulticode.modules.admin.dto.problem.ImportProblemItemDTO;
 import com.ulticode.modules.admin.dto.problem.ImportProblemsRequestDTO;
 import com.ulticode.modules.admin.dto.problem.ImportProblemsResponseDTO;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.port.ProblemOwnerPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -52,9 +51,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ProblemImportServiceImpl implements ProblemImportService {
 
-    private static final String DEFAULT_STATUS = "todo";
-
-    private final ProblemMapper problemMapper;
+    private final ProblemOwnerPort problemOwnerPort;
     private final AdminProblemPort problemPort;
 
     @Override
@@ -91,7 +88,10 @@ public class ProblemImportServiceImpl implements ProblemImportService {
     private ImportAction applyItem(String onConflictWire, ImportProblemItemDTO item) {
         Optional<Problem> existing = problemPort.findBySlug(item.getSlug());
         if (existing.isEmpty()) {
-            problemMapper.insert(createNew(item));
+            // P3-BURNDOWN-001: row construction + import defaults + insert all
+            // live behind the owner port; admin never touches ProblemMapper.
+            problemOwnerPort.insertImportedProblem(item.getSlug(), item.getTitle(), item.getDifficulty(),
+                    item.getStatus(), item.getIsPremium(), item.getIsPublished());
             return ImportAction.CREATED;
         }
         return resolveConflict(ConflictPolicy.from(onConflictWire), existing.get(), item);
@@ -101,42 +101,20 @@ public class ProblemImportServiceImpl implements ProblemImportService {
             ConflictPolicy policy, Problem existing, ImportProblemItemDTO item) {
         return switch (policy) {
             case UPDATE -> {
-                applyPartialUpdate(existing, item);
-                problemMapper.updateById(existing);
+                problemOwnerPort.applyImportedUpdate(existing.getId(), item.getTitle(), item.getDifficulty(),
+                        item.getStatus(), item.getIsPremium(), item.getIsPublished());
                 yield ImportAction.UPDATED;
             }
             case CREATE_NEW -> {
-                Problem created = createNew(item);
-                created.setSlug(item.getSlug() + "-" + System.currentTimeMillis());
-                problemMapper.insert(created);
+                problemOwnerPort.insertImportedProblem(item.getSlug() + "-" + System.currentTimeMillis(),
+                        item.getTitle(), item.getDifficulty(), item.getStatus(),
+                        item.getIsPremium(), item.getIsPublished());
                 yield ImportAction.CREATED;
             }
             case SKIP -> ImportAction.SKIPPED;
         };
     }
 
-    private Problem createNew(ImportProblemItemDTO item) {
-        Problem problem = new Problem();
-        problem.setSlug(item.getSlug());
-        problem.setTitle(item.getTitle());
-        problem.setDifficulty(item.getDifficulty());
-        problem.setStatus(item.getStatus() != null ? item.getStatus() : DEFAULT_STATUS);
-        problem.setIsPremium(item.getIsPremium() != null ? item.getIsPremium() : false);
-        problem.setIsPublished(item.getIsPublished() != null ? item.getIsPublished() : false);
-        problem.setHasSolution(false);
-        problem.setIsFlagged(false);
-        problem.setIsDeleted(false);
-        problem.setVersion(1);
-        return problem;
-    }
-
-    private void applyPartialUpdate(Problem existing, ImportProblemItemDTO item) {
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getTitle, existing::setTitle);
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getDifficulty, existing::setDifficulty);
-        PartialUpdate.setIfPresentText(item, ImportProblemItemDTO::getStatus, existing::setStatus);
-        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPremium, existing::setIsPremium);
-        PartialUpdate.setIfPresent(item, ImportProblemItemDTO::getIsPublished, existing::setIsPublished);
-    }
 
     private ImportProblemsResponseDTO.ImportResultItem success(String slug, ImportAction action) {
         return new ImportProblemsResponseDTO.ImportResultItem(slug, true, null, action.wireValue());

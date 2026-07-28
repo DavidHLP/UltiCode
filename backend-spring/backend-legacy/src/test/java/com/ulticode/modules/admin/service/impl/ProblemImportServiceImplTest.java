@@ -5,7 +5,7 @@ import com.ulticode.modules.admin.dto.problem.ImportProblemsRequestDTO;
 import com.ulticode.modules.admin.dto.problem.ImportProblemsResponseDTO;
 import com.ulticode.modules.admin.port.AdminProblemPort;
 import com.ulticode.modules.problem.entity.Problem;
-import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.port.ProblemOwnerPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,14 +45,14 @@ import static org.mockito.Mockito.when;
 @DisplayName("ProblemImportServiceImpl (problem batch import)")
 class ProblemImportServiceImplTest {
 
-    @Mock private ProblemMapper problemMapper;
+    @Mock private ProblemOwnerPort problemOwnerPort;
     @Mock private AdminProblemPort problemPort;
 
     private ProblemImportServiceImpl importService;
 
     @BeforeEach
     void setUp() {
-        importService = new ProblemImportServiceImpl(problemMapper, problemPort);
+        importService = new ProblemImportServiceImpl(problemOwnerPort, problemPort);
     }
 
     private ImportProblemItemDTO item(String slug) {
@@ -102,19 +102,10 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "skip"));
 
-            ArgumentCaptor<Problem> captor = ArgumentCaptor.forClass(Problem.class);
-            verify(problemMapper).insert(captor.capture());
-            Problem inserted = captor.getValue();
-            assertThat(inserted.getSlug()).isEqualTo("two-sum");
-            assertThat(inserted.getTitle()).isEqualTo("Two Sum");
-            assertThat(inserted.getDifficulty()).isEqualTo("Easy");
-            assertThat(inserted.getStatus()).isEqualTo("todo");
-            assertThat(inserted.getIsPremium()).isFalse();
-            assertThat(inserted.getIsPublished()).isFalse();
-            assertThat(inserted.getHasSolution()).isFalse();
-            assertThat(inserted.getIsFlagged()).isFalse();
-            assertThat(inserted.getIsDeleted()).isFalse();
-            assertThat(inserted.getVersion()).isEqualTo(1);
+            // P3-BURNDOWN-001: DTO fields pass straight through the owner
+            // port; default-value construction moved into the owner impl and
+            // is pinned in DefaultProblemOwnerPortTest.
+            verify(problemOwnerPort).insertImportedProblem("two-sum", "Two Sum", "Easy", null, null, null);
 
             assertThat(response.getTotal()).isEqualTo(1);
             assertThat(response.getCreated()).isEqualTo(1);
@@ -125,7 +116,7 @@ class ProblemImportServiceImplTest {
             assertThat(r.isSuccess()).isTrue();
             assertThat(r.getAction()).isEqualTo("created");
             assertThat(r.getError()).isNull();
-            verify(problemMapper, never()).updateById(any(Problem.class));
+            verify(problemOwnerPort, never()).applyImportedUpdate(any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -136,12 +127,7 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "skip"));
 
-            ArgumentCaptor<Problem> captor = ArgumentCaptor.forClass(Problem.class);
-            verify(problemMapper).insert(captor.capture());
-            Problem inserted = captor.getValue();
-            assertThat(inserted.getStatus()).isEqualTo("solved");
-            assertThat(inserted.getIsPremium()).isTrue();
-            assertThat(inserted.getIsPublished()).isTrue();
+            verify(problemOwnerPort).insertImportedProblem("three-sum", "Three Sum", "Hard", "solved", true, true);
             assertThat(response.getCreated()).isEqualTo(1);
         }
     }
@@ -161,8 +147,8 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "skip"));
 
-            verify(problemMapper, never()).insert(any(Problem.class));
-            verify(problemMapper, never()).updateById(any(Problem.class));
+            verify(problemOwnerPort, never()).insertImportedProblem(any(), any(), any(), any(), any(), any());
+            verify(problemOwnerPort, never()).applyImportedUpdate(any(), any(), any(), any(), any(), any());
             assertThat(existing.getTitle()).isEqualTo("Old");
             assertThat(response.getSkipped()).isEqualTo(1);
             assertThat(resultFor(response, "dup").getAction()).isEqualTo("skipped");
@@ -183,14 +169,10 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "update"));
 
-            verify(problemMapper).updateById(existing);
-            verify(problemMapper, never()).insert(any(Problem.class));
-            assertThat(existing.getTitle()).isEqualTo("New Title");
-            assertThat(existing.getDifficulty()).isEqualTo("Hard");
-            assertThat(existing.getStatus()).isEqualTo("solved");
-            assertThat(existing.getIsPremium()).isTrue();
-            // null DTO field must not overwrite the existing value
-            assertThat(existing.getIsPublished()).isFalse();
+            // The port receives the raw DTO fields; the null-skip merge
+            // semantics live in the owner impl (DefaultProblemOwnerPortTest).
+            verify(problemOwnerPort).applyImportedUpdate(existing.getId(), "New Title", "Hard", "solved", true, null);
+            verify(problemOwnerPort, never()).insertImportedProblem(any(), any(), any(), any(), any(), any());
             assertThat(response.getUpdated()).isEqualTo(1);
             assertThat(resultFor(response, "dup").getAction()).isEqualTo("updated");
         }
@@ -205,12 +187,11 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "create_new"));
 
-            ArgumentCaptor<Problem> captor = ArgumentCaptor.forClass(Problem.class);
-            verify(problemMapper).insert(captor.capture());
-            Problem inserted = captor.getValue();
-            assertThat(inserted.getSlug()).startsWith("dup-");
-            assertThat(inserted.getSlug()).isNotEqualTo("dup");
-            verify(problemMapper, never()).updateById(any(Problem.class));
+            ArgumentCaptor<String> slugCaptor = ArgumentCaptor.forClass(String.class);
+            verify(problemOwnerPort).insertImportedProblem(slugCaptor.capture(), any(), any(), any(), any(), any());
+            assertThat(slugCaptor.getValue()).startsWith("dup-");
+            assertThat(slugCaptor.getValue()).isNotEqualTo("dup");
+            verify(problemOwnerPort, never()).applyImportedUpdate(any(), any(), any(), any(), any(), any());
             assertThat(response.getCreated()).isEqualTo(1);
             assertThat(resultFor(response, "dup").getAction()).isEqualTo("created");
         }
@@ -225,8 +206,8 @@ class ProblemImportServiceImplTest {
 
             ImportProblemsResponseDTO response = importService.importProblems(request(List.of(item), "bogus"));
 
-            verify(problemMapper, never()).insert(any(Problem.class));
-            verify(problemMapper, never()).updateById(any(Problem.class));
+            verify(problemOwnerPort, never()).insertImportedProblem(any(), any(), any(), any(), any(), any());
+            verify(problemOwnerPort, never()).applyImportedUpdate(any(), any(), any(), any(), any(), any());
             assertThat(response.getSkipped()).isEqualTo(1);
             assertThat(resultFor(response, "dup").getAction()).isEqualTo("skipped");
         }

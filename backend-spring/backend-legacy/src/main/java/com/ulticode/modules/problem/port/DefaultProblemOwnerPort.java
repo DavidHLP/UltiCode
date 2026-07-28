@@ -1,7 +1,9 @@
 package com.ulticode.modules.problem.port;
 
+import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,5 +93,59 @@ public class DefaultProblemOwnerPort implements ProblemOwnerPort {
         final int affected = problemMapper.updateDifficulty(id, difficulty);
         log.info("ProblemOwnerPort.updateDifficulty id={} difficulty={} affected={}",
                 id, difficulty, affected);
+    }
+
+    private static final String IMPORT_DEFAULT_STATUS = "todo";
+
+    @Override
+    @Transactional
+    public void insertImportedProblem(String slug, String title, String difficulty, String status,
+                                      Boolean isPremium, Boolean isPublished) {
+        Problem problem = new Problem();
+        problem.setSlug(slug);
+        problem.setTitle(title);
+        problem.setDifficulty(difficulty);
+        problem.setStatus(status != null ? status : IMPORT_DEFAULT_STATUS);
+        problem.setIsPremium(isPremium != null ? isPremium : false);
+        problem.setIsPublished(isPublished != null ? isPublished : false);
+        problem.setHasSolution(false);
+        problem.setIsFlagged(false);
+        problem.setIsDeleted(false);
+        problem.setVersion(1);
+        problemMapper.insert(problem);
+        log.info("ProblemOwnerPort.insertImportedProblem slug={} id={}", slug, problem.getId());
+    }
+
+    @Override
+    @Transactional
+    public void applyImportedUpdate(Long id, String title, String difficulty, String status,
+                                    Boolean isPremium, Boolean isPublished) {
+        if (id == null) {
+            return;
+        }
+        Problem existing = problemMapper.selectById(id);
+        if (existing == null) {
+            // Row vanished between the admin caller's findBySlug and this
+            // update: the legacy detached-entity updateById would have
+            // affected zero rows too, so a no-op preserves semantics.
+            return;
+        }
+        if (StringUtils.hasText(title)) {
+            existing.setTitle(title);
+        }
+        if (StringUtils.hasText(difficulty)) {
+            existing.setDifficulty(difficulty);
+        }
+        if (StringUtils.hasText(status)) {
+            existing.setStatus(status);
+        }
+        if (isPremium != null) {
+            existing.setIsPremium(isPremium);
+        }
+        if (isPublished != null) {
+            existing.setIsPublished(isPublished);
+        }
+        problemMapper.updateById(existing);
+        log.info("ProblemOwnerPort.applyImportedUpdate id={}", id);
     }
 }

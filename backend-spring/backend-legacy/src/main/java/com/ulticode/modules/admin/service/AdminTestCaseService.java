@@ -14,6 +14,8 @@ import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.modules.problem.port.TestCaseOwnerPort;
+import com.ulticode.modules.problem.port.TestCaseOwnerPort.TestCaseWrite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,7 @@ public class AdminTestCaseService {
 
     private final TestCaseMapper testCaseMapper;
     private final ProblemMapper problemMapper;
+    private final TestCaseOwnerPort testCaseOwnerPort;
     private final ObjectMapper objectMapper;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
@@ -125,7 +128,9 @@ public class AdminTestCaseService {
         testCase.setCreatedAt(LocalDateTime.now(clock));
         testCase.setUpdatedAt(LocalDateTime.now(clock));
 
-        testCaseMapper.insert(testCase);
+        // P3-BURNDOWN-001: write routed through the problem-module owner port;
+        // TestCaseMapper stays read-only inside the admin module.
+        testCaseOwnerPort.insertTestCase(toWriteCommand(testCase));
         log.info("Test case created: {} for problem {}" , testCase.getId(), problemId);
         return testCase;
     }
@@ -148,6 +153,27 @@ public class AdminTestCaseService {
             throw new BusinessException(ErrorCode.TEST_CASE_INVALID_SCOPE);
         }
         return new boolean[]{sample, hidden};
+    }
+
+    /**
+     * Map a fully-built {@link TestCase} row onto the owner-port write command.
+     * Callers guarantee {@code is_sample} / {@code is_hidden} are non-null
+     * (insert resolves the XOR pair; update merges onto a persisted row).
+     */
+    private TestCaseWrite toWriteCommand(TestCase testCase) {
+        return new TestCaseWrite(
+                testCase.getId(),
+                testCase.getProblemId(),
+                Boolean.TRUE.equals(testCase.getIsSample()),
+                Boolean.TRUE.equals(testCase.getIsHidden()),
+                testCase.getTestOrder() != null ? testCase.getTestOrder() : 0,
+                testCase.getInputText(),
+                testCase.getOutputText(),
+                testCase.getExplanation(),
+                testCase.getConstraints(),
+                testCase.getInputs(),
+                testCase.getCreatedAt(),
+                testCase.getUpdatedAt());
     }
 
     @Transactional
@@ -176,7 +202,7 @@ public class AdminTestCaseService {
         PartialUpdate.setIfPresentText(dto, UpdateTestCaseDTO::getInputs, existing::setInputs);
         existing.setUpdatedAt(LocalDateTime.now(clock));
 
-        testCaseMapper.updateById(existing);
+        testCaseOwnerPort.updateTestCase(toWriteCommand(existing));
         log.info("Test case updated: {} for problem {}", testCaseId, problemId);
         return existing;
     }
@@ -184,7 +210,7 @@ public class AdminTestCaseService {
     @Transactional
     public void deleteTestCase(Long problemId, String testCaseId) {
         TestCase existing = getTestCase(problemId, testCaseId);
-        testCaseMapper.deleteById(existing.getId());
+        testCaseOwnerPort.deleteTestCase(existing.getId());
         log.info("Test case deleted: {} for problem {}", testCaseId, problemId);
     }
 
@@ -200,9 +226,7 @@ public class AdminTestCaseService {
 
         boolean replace = Boolean.TRUE.equals(dto.getReplaceExisting());
         if (replace) {
-            LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(TestCase::getProblemId, problemId);
-            testCaseMapper.delete(wrapper);
+            testCaseOwnerPort.deleteAllForProblem(problemId);
         }
 
         List<CreateTestCaseDTO> dtos = dto.getTestCases();
@@ -224,9 +248,7 @@ public class AdminTestCaseService {
         }
         for (int i = 0; i < testCaseIds.size(); i++) {
             TestCase existing = getTestCase(problemId, testCaseIds.get(i));
-            existing.setTestOrder(i);
-            existing.setUpdatedAt(LocalDateTime.now(clock));
-            testCaseMapper.updateById(existing);
+            testCaseOwnerPort.updateTestOrder(existing.getId(), i, LocalDateTime.now(clock));
         }
         log.info("Reordered {} test cases for problem {}", testCaseIds.size(), problemId);
     }

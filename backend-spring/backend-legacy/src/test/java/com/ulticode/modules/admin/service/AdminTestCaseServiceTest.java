@@ -11,6 +11,8 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
+import com.ulticode.modules.problem.port.TestCaseOwnerPort;
+import com.ulticode.modules.problem.port.TestCaseOwnerPort.TestCaseWrite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +32,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,6 +56,7 @@ class AdminTestCaseServiceTest {
 
     @Mock private TestCaseMapper testCaseMapper;
     @Mock private ProblemMapper problemMapper;
+    @Mock private TestCaseOwnerPort testCaseOwnerPort;
     @Mock private UuidGenerator uuidGenerator;
 
     private AdminTestCaseService service;
@@ -60,7 +64,7 @@ class AdminTestCaseServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-07-17T00:00:00Z"), ZoneOffset.UTC);
-        service = new AdminTestCaseService(testCaseMapper, problemMapper, new ObjectMapper(),
+        service = new AdminTestCaseService(testCaseMapper, problemMapper, testCaseOwnerPort, new ObjectMapper(),
                 clock, uuidGenerator);
         when(uuidGenerator.newId()).thenReturn("test-uuid");
     }
@@ -101,7 +105,7 @@ class AdminTestCaseServiceTest {
             assertThat(created.getIsHidden()).isTrue();
             assertThat(created.getTestOrder()).isZero();
             assertThat(created.getId()).isEqualTo("test-uuid".replace("-", ""));
-            verify(testCaseMapper).insert(any(TestCase.class));
+            verify(testCaseOwnerPort).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -112,7 +116,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, newCase("a", "b")))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -125,7 +129,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_FAILED);
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -141,7 +145,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -157,7 +161,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.createTestCase(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -179,7 +183,7 @@ class AdminTestCaseServiceTest {
 
             assertThat(created.getIsSample()).isTrue();
             assertThat(created.getIsHidden()).isFalse();
-            verify(testCaseMapper).insert(any(TestCase.class));
+            verify(testCaseOwnerPort).insertTestCase(any(TestCaseWrite.class));
         }
     }
 
@@ -197,8 +201,8 @@ class AdminTestCaseServiceTest {
             BulkImportResponse response = service.bulkImportTestCases(PROBLEM_ID, dto);
 
             assertThat(response.getCount()).isEqualTo(2);
-            verify(testCaseMapper, never()).delete(any());
-            verify(testCaseMapper, times(2)).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).deleteAllForProblem(any());
+            verify(testCaseOwnerPort, times(2)).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -212,8 +216,8 @@ class AdminTestCaseServiceTest {
             BulkImportResponse response = service.bulkImportTestCases(PROBLEM_ID, dto);
 
             assertThat(response.getCount()).isEqualTo(1);
-            verify(testCaseMapper).delete(any());
-            verify(testCaseMapper).insert(any(TestCase.class));
+            verify(testCaseOwnerPort).deleteAllForProblem(PROBLEM_ID);
+            verify(testCaseOwnerPort).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -234,7 +238,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -247,8 +251,8 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.bulkImportTestCases(PROBLEM_ID, dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.PROBLEM_NOT_FOUND);
-            verify(testCaseMapper, never()).delete(any());
-            verify(testCaseMapper, never()).insert(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).deleteAllForProblem(any());
+            verify(testCaseOwnerPort, never()).insertTestCase(any(TestCaseWrite.class));
         }
     }
 
@@ -265,7 +269,7 @@ class AdminTestCaseServiceTest {
 
             service.reorderTestCases(PROBLEM_ID, List.of("a", "b"));
 
-            verify(testCaseMapper, times(2)).updateById(any(TestCase.class));
+            verify(testCaseOwnerPort, times(2)).updateTestOrder(any(), anyInt(), any());
         }
 
         @Test
@@ -276,7 +280,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.reorderTestCases(PROBLEM_ID, List.of("a", "a")))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.BAD_REQUEST);
-            verify(testCaseMapper, never()).updateById(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).updateTestOrder(any(), anyInt(), any());
         }
     }
 
@@ -304,7 +308,7 @@ class AdminTestCaseServiceTest {
 
             assertThat(updated.getIsSample()).isTrue();
             assertThat(updated.getIsHidden()).isFalse();
-            verify(testCaseMapper).updateById(existing);
+            verify(testCaseOwnerPort).updateTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -323,7 +327,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
-            verify(testCaseMapper, never()).updateById(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).updateTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -341,7 +345,7 @@ class AdminTestCaseServiceTest {
             assertThatThrownBy(() -> service.updateTestCase(PROBLEM_ID, "a", dto))
                     .isInstanceOf(BusinessException.class)
                     .extracting("errorCode").isEqualTo(ErrorCode.TEST_CASE_INVALID_SCOPE);
-            verify(testCaseMapper, never()).updateById(any(TestCase.class));
+            verify(testCaseOwnerPort, never()).updateTestCase(any(TestCaseWrite.class));
         }
 
         @Test
@@ -352,7 +356,7 @@ class AdminTestCaseServiceTest {
 
             service.deleteTestCase(PROBLEM_ID, "a");
 
-            verify(testCaseMapper).deleteById("a");
+            verify(testCaseOwnerPort).deleteTestCase("a");
         }
 
         @Test

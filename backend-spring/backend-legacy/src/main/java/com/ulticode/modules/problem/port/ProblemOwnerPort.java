@@ -61,4 +61,24 @@ public interface ProblemOwnerPort {
      * the same difficulty the row already has is a no-op.
      */
     void updateDifficulty(Long id, String difficulty);
+
+    /**
+     * P3-BURNDOWN-001: insert a newly-imported problem row. The owner
+     * applies the import defaults: {@code status} falls back to
+     * {@code "todo"} when null, {@code isPremium} / {@code isPublished}
+     * default to false, and the row always starts with
+     * {@code has_solution=false, is_flagged=false, is_deleted=false, version=1}.
+     */
+    void insertImportedProblem(String slug, String title, String difficulty, String status,
+                               Boolean isPremium, Boolean isPublished);
+
+    /**
+     * P3-BURNDOWN-001: apply import conflict-update fields onto an
+     * existing row. String fields are only written when non-blank,
+     * Boolean fields when non-null (the legacy PartialUpdate semantics);
+     * a vanished row is a no-op, matching the previous detached-entity
+     * {@code updateById} outcome of zero affected rows.
+     */
+    void applyImportedUpdate(Long id, String title, String difficulty, String status,
+                             Boolean isPremium, Boolean isPublished);
 }

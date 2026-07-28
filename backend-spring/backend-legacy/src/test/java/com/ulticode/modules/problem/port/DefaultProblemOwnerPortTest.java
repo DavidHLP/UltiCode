@@ -1,11 +1,13 @@
 package com.ulticode.modules.problem.port;
 
+import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -148,6 +150,110 @@ class DefaultProblemOwnerPortTest {
             port.updateDifficulty(7L, "  ");
             port.updateDifficulty(7L, "");
             verify(problemMapper, never()).updateDifficulty(anyLong(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("insertImportedProblem() (P3-BURNDOWN-001)")
+    class InsertImportedProblem {
+
+        @Test
+        @DisplayName("applies import defaults when nullable fields are absent")
+        void appliesDefaults() {
+            port.insertImportedProblem("two-sum", "Two Sum", "Easy", null, null, null);
+
+            ArgumentCaptor<Problem> captor = ArgumentCaptor.forClass(Problem.class);
+            verify(problemMapper).insert(captor.capture());
+            Problem inserted = captor.getValue();
+            assertThat(inserted.getSlug()).isEqualTo("two-sum");
+            assertThat(inserted.getTitle()).isEqualTo("Two Sum");
+            assertThat(inserted.getDifficulty()).isEqualTo("Easy");
+            assertThat(inserted.getStatus()).isEqualTo("todo");
+            assertThat(inserted.getIsPremium()).isFalse();
+            assertThat(inserted.getIsPublished()).isFalse();
+            assertThat(inserted.getHasSolution()).isFalse();
+            assertThat(inserted.getIsFlagged()).isFalse();
+            assertThat(inserted.getIsDeleted()).isFalse();
+            assertThat(inserted.getVersion()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("honors explicit status / premium / published flags")
+        void honorsExplicitFlags() {
+            port.insertImportedProblem("three-sum", "Three Sum", "Hard", "solved", true, true);
+
+            ArgumentCaptor<Problem> captor = ArgumentCaptor.forClass(Problem.class);
+            verify(problemMapper).insert(captor.capture());
+            Problem inserted = captor.getValue();
+            assertThat(inserted.getStatus()).isEqualTo("solved");
+            assertThat(inserted.getIsPremium()).isTrue();
+            assertThat(inserted.getIsPublished()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("applyImportedUpdate() (P3-BURNDOWN-001)")
+    class ApplyImportedUpdate {
+
+        @Test
+        @DisplayName("merges non-null fields and leaves null DTO fields untouched")
+        void mergesNonNullOnly() {
+            Problem existing = new Problem();
+            existing.setId(42L);
+            existing.setSlug("dup");
+            existing.setTitle("Old");
+            existing.setDifficulty("Easy");
+            existing.setStatus("todo");
+            existing.setIsPremium(false);
+            existing.setIsPublished(false);
+            when(problemMapper.selectById(42L)).thenReturn(existing);
+
+            port.applyImportedUpdate(42L, "New Title", "Hard", "solved", true, null);
+
+            verify(problemMapper).updateById(existing);
+            assertThat(existing.getTitle()).isEqualTo("New Title");
+            assertThat(existing.getDifficulty()).isEqualTo("Hard");
+            assertThat(existing.getStatus()).isEqualTo("solved");
+            assertThat(existing.getIsPremium()).isTrue();
+            // null DTO field must not overwrite the stored value
+            assertThat(existing.getIsPublished()).isFalse();
+        }
+
+        @Test
+        @DisplayName("blank strings are treated as 'no change' (PartialUpdate text semantics)")
+        void blankStringsNoChange() {
+            Problem existing = new Problem();
+            existing.setId(42L);
+            existing.setTitle("Old");
+            existing.setDifficulty("Easy");
+            existing.setStatus("todo");
+            when(problemMapper.selectById(42L)).thenReturn(existing);
+
+            port.applyImportedUpdate(42L, "", "   ", "", null, null);
+
+            verify(problemMapper).updateById(existing);
+            assertThat(existing.getTitle()).isEqualTo("Old");
+            assertThat(existing.getDifficulty()).isEqualTo("Easy");
+            assertThat(existing.getStatus()).isEqualTo("todo");
+        }
+
+        @Test
+        @DisplayName("vanished row is a no-op (matches legacy zero-rows updateById)")
+        void vanishedRowNoOp() {
+            when(problemMapper.selectById(99L)).thenReturn(null);
+
+            port.applyImportedUpdate(99L, "T", "D", "s", true, true);
+
+            verify(problemMapper, never()).updateById(any(Problem.class));
+        }
+
+        @Test
+        @DisplayName("null id is a no-op without touching the mapper")
+        void nullIdNoOp() {
+            port.applyImportedUpdate(null, "T", "D", "s", true, true);
+
+            verify(problemMapper, never()).selectById(any());
+            verify(problemMapper, never()).updateById(any(Problem.class));
         }
     }
 }

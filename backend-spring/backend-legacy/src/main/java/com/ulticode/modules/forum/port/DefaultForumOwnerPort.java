@@ -1,0 +1,81 @@
+package com.ulticode.modules.forum.port;
+
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.forum.entity.ForumPost;
+import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+/**
+ * Default implementation of {@link ForumOwnerPort}.
+ *
+ * <p>Encapsulates all write operations on {@code forum_posts} rows.
+ *
+ * @author ulticode
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DefaultForumOwnerPort implements ForumOwnerPort {
+
+    private final ForumPostMapper forumPostMapper;
+
+    @Override
+    @Transactional
+    public String flagPost(String postId, String reason, LocalDateTime flaggedAt) {
+        ForumPost post = loadOrThrow(postId);
+        post.setIsFlagged(true);
+        post.setFlaggedReason(reason != null ? reason : "");
+        post.setFlaggedAt(flaggedAt);
+        forumPostMapper.updateById(post);
+        log.info("Flagged post {}", postId);
+        return post.getUserId();
+    }
+
+    @Override
+    @Transactional
+    public String unflagPost(String postId) {
+        ForumPost post = loadOrThrow(postId);
+        post.setIsFlagged(false);
+        post.setFlaggedReason(null);
+        post.setFlaggedAt(null);
+        forumPostMapper.updateById(post);
+        log.info("Unflagged post {}", postId);
+        return post.getUserId();
+    }
+
+    @Override
+    @Transactional
+    public ToggleResult setPinned(String postId, boolean pinned) {
+        ForumPost post = loadOrThrow(postId);
+        boolean previous = Boolean.TRUE.equals(post.getIsPinned());
+        post.setIsPinned(pinned);
+        forumPostMapper.updateById(post);
+        log.info("Set post {} pinned={}", postId, pinned);
+        return new ToggleResult(post.getUserId(), previous);
+    }
+
+    @Override
+    @Transactional
+    public ToggleResult setLocked(String postId, boolean locked) {
+        ForumPost post = loadOrThrow(postId);
+        boolean previous = Boolean.TRUE.equals(post.getIsLocked());
+        post.setIsLocked(locked);
+        forumPostMapper.updateById(post);
+        log.info("Set post {} locked={}", postId, locked);
+        return new ToggleResult(post.getUserId(), previous);
+    }
+
+    private ForumPost loadOrThrow(String postId) {
+        ForumPost post = forumPostMapper.selectById(postId);
+        if (post == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
+        }
+        return post;
+    }
+}

@@ -1,11 +1,8 @@
 package com.ulticode.modules.admin.policy.impl;
 
 import com.ulticode.common.audit.AuditRecorder;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
-import com.ulticode.modules.forum.entity.ForumPost;
-import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.modules.forum.port.ForumOwnerPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,15 +14,8 @@ import java.util.Map;
 /**
  * Default {@link ForumFlagPolicy} implementation.
  *
- * <p>Flagging captures the moderation reason and stamps the wall-clock time
- * via the injected {@link Clock}, mirroring the prior inline behaviour in
- * {@code AdminForumServiceImpl.flagPost} / {@code unflagPost}.
- *
- * <p><b>Audit seam (architecture-review candidate #5):</b> the policy emits
- * audit entries through {@link AuditRecorder} — the deep audit module's port
- * — rather than the deprecated {@code AuditHelper}. Cross-process shape stays
- * identical to {@code @Audited} methods; the proxy aspect is just bypassed
- * because policy classes are not transactional service entry points.
+ * <p>P3-OWNER-001-D: routes all forum_posts write operations through
+ * {@link ForumOwnerPort} rather than directly importing {@code ForumPostMapper}.
  *
  * @author ulticode
  */
@@ -43,30 +33,25 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
     /** Audit action constant for unflag operations. */
     private static final String ACTION_UNFLAG_POST = "UNFLAG_POST";
 
-    private final ForumPostMapper forumPostMapper;
+    private final ForumOwnerPort forumOwnerPort;
     private final AuditRecorder auditRecorder;
     private final Clock clock;
 
-    /**
-     * Flag the post for moderation.
-     *
-     * @param postId target post id
-     * @param reason human-readable reason (may be {@code null}, stored as empty string)
-     * @throws BusinessException with {@code NOT_FOUND} when the post does not exist
-     */
     @Override
     public void flag(String postId, String reason) {
-        ForumPost post = loadOrThrow(postId);
         String normalisedReason = reason != null ? reason : "";
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        String userId = forumOwnerPort.flagPost(postId, reason, now);
 
         auditRecorder.recordForUser(
             ACTION_FLAG_POST,
             ENTITY_FORUM_POST,
             postId,
-            post.getUserId(),
+            userId,
             Map.of(
-                "isFlagged", Boolean.TRUE.equals(post.getIsFlagged()),
-                "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""
+                "isFlagged", false,
+                "flaggedReason", ""
             ),
             Map.of(
                 "isFlagged", true,
@@ -74,31 +59,21 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
             )
         );
 
-        post.setIsFlagged(true);
-        post.setFlaggedReason(reason);
-        post.setFlaggedAt(LocalDateTime.now(clock));
-        forumPostMapper.updateById(post);
         log.info("Post flagged: {} reason: {}", postId, reason);
     }
 
-    /**
-     * Remove the moderation flag from the post.
-     *
-     * @param postId target post id
-     * @throws BusinessException with {@code NOT_FOUND} when the post does not exist
-     */
     @Override
     public void unflag(String postId) {
-        ForumPost post = loadOrThrow(postId);
+        String userId = forumOwnerPort.unflagPost(postId);
 
         auditRecorder.recordForUser(
             ACTION_UNFLAG_POST,
             ENTITY_FORUM_POST,
             postId,
-            post.getUserId(),
+            userId,
             Map.of(
-                "isFlagged", Boolean.TRUE.equals(post.getIsFlagged()),
-                "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""
+                "isFlagged", true,
+                "flaggedReason", ""
             ),
             Map.of(
                 "isFlagged", false,
@@ -106,24 +81,6 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
             )
         );
 
-        post.setIsFlagged(false);
-        post.setFlaggedReason(null);
-        post.setFlaggedAt(null);
-        forumPostMapper.updateById(post);
         log.info("Post unflagged: {}", postId);
-    }
-
-    /**
-     * Load the post or throw {@link BusinessException} with {@code NOT_FOUND}.
-     *
-     * @param postId target post id
-     * @return loaded post entity (never {@code null})
-     */
-    private ForumPost loadOrThrow(String postId) {
-        ForumPost post = forumPostMapper.selectById(postId);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND);
-        }
-        return post;
     }
 }

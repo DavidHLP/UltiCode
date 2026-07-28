@@ -3,16 +3,26 @@ package com.ulticode.app.api.architecture;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
+import com.ulticode.app.api.command.CreateContestCommand;
 import com.ulticode.app.api.command.CreateProblemCommand;
+import com.ulticode.app.api.command.DeleteContestCommand;
+import com.ulticode.app.api.command.EndContestCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
+import com.ulticode.app.api.command.RejudgeCommand;
+import com.ulticode.app.api.command.StartContestCommand;
+import com.ulticode.app.api.command.UpdateContestCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.command.WriteCommand;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
+import com.ulticode.app.api.dto.ContestAdminViewDTO;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
+import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.app.api.service.ContestAdministrationService;
 import com.ulticode.app.api.service.ContentModerationService;
 import com.ulticode.app.api.service.ProblemAdministrationService;
+import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.error.NamespacedErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
@@ -74,6 +84,16 @@ class BackendAppApiContractShapeTest {
                 "com.ulticode.app.api.command.UpdateProblemCommand",
                 "com.ulticode.app.api.command.PublishProblemCommand",
                 "com.ulticode.app.api.command.ApplyModerationCommand",
+                "com.ulticode.app.api.command.CreateContestCommand",
+                "com.ulticode.app.api.command.UpdateContestCommand",
+                "com.ulticode.app.api.command.DeleteContestCommand",
+                "com.ulticode.app.api.command.StartContestCommand",
+                "com.ulticode.app.api.command.EndContestCommand",
+                "com.ulticode.app.api.command.RejudgeCommand",
+                "com.ulticode.app.api.dto.ContestAdminViewDTO",
+                "com.ulticode.app.api.dto.RejudgeResultDTO",
+                "com.ulticode.app.api.service.ContestAdministrationService",
+                "com.ulticode.app.api.service.SubmissionAdministrationService",
                 "com.ulticode.app.api.error.AppErrorCode");
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();
@@ -106,12 +126,20 @@ class BackendAppApiContractShapeTest {
     void id_typed_fields_are_String_on_every_command_and_dto() {
         Set<Class<?>> scanned = Set.of(
                 ProblemAdminViewDTO.class,
+                ContestAdminViewDTO.class,
+                RejudgeResultDTO.class,
                 ModerationApplyResultDTO.class,
                 ActorDelegation.class,
                 CreateProblemCommand.class,
                 UpdateProblemCommand.class,
                 PublishProblemCommand.class,
-                ApplyModerationCommand.class);
+                ApplyModerationCommand.class,
+                CreateContestCommand.class,
+                UpdateContestCommand.class,
+                DeleteContestCommand.class,
+                StartContestCommand.class,
+                EndContestCommand.class,
+                RejudgeCommand.class);
         Set<String> violations = new HashSet<>();
         for (Class<?> type : scanned) {
             for (Field field : type.getDeclaredFields()) {
@@ -139,6 +167,10 @@ class BackendAppApiContractShapeTest {
                 || name.equals("actorId")
                 || name.equals("delegatorId")
                 || name.equals("authorAccountId")
+                || name.equals("contestId")
+                || name.equals("creatorAccountId")
+                || name.equals("scoringRuleId")
+                || name.equals("submissionId")
                 || name.endsWith("Id");
     }
 
@@ -185,7 +217,63 @@ class BackendAppApiContractShapeTest {
                         uuid,
                         "forum_post",
                         ModerationAction.HIDE,
-                        "policy violation"));
+                        "policy violation"),
+                new CreateContestCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        "test-contest",
+                        "Test Contest",
+                        uuid,
+                        "ICPC",
+                        "ICPC",
+                        null,
+                        null,
+                        System.currentTimeMillis() + 86400000L,
+                        120),
+                new UpdateContestCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        1L,
+                        "Updated Title",
+                        null,
+                        null,
+                        "schedule change"),
+                new DeleteContestCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        1L,
+                        "cancelled"),
+                new StartContestCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        1L,
+                        "begin"),
+                new EndContestCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        1L,
+                        "finished"),
+                new RejudgeCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        true));
         for (WriteCommand cmd : samples) {
             assertThat(cmd.commandId())
                     .as("commandId must be a non-blank UUID String")
@@ -233,7 +321,9 @@ class BackendAppApiContractShapeTest {
     void service_methods_take_write_commands_and_return_rpc_result() {
         for (Class<?> serviceClass : List.of(
                 ProblemAdministrationService.class,
-                ContentModerationService.class)) {
+                ContentModerationService.class,
+                ContestAdministrationService.class,
+                SubmissionAdministrationService.class)) {
             for (Method method : serviceClass.getDeclaredMethods()) {
                 assertThat(method.getReturnType())
                         .as(serviceClass.getSimpleName() + "#"

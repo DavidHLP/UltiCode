@@ -1,5 +1,7 @@
 package com.ulticode.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -11,22 +13,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Phase 0 baseline owner-boundary rules (P0-ARCH-002).
- *
- * <p>Strategy: <em>freeze</em> the current cross-Owner import set as the
- * baseline. The test fails only when new violations are introduced. The
- * frozen baseline + the recorded counts in DECISIONS.md
- * (ADR-MIG-ARCH-BOUNDARY) form the burn-down list for Phase 2/3.
- *
- * <p>Why freeze: guide §5.1 §10 require cross-Owner Mapper/Entity
- * separation, but Phase 0 produces the baseline; Phase 2/3 enforces strict
- * separation. A hard rule today would fail ~40 times and block all CI;
- * freezing makes the test pass on day 1 and surface new leaks only.
- *
- * <p>Freeze store: archunit freezes store a record of currently-frozen
- * violations in a directory named {@code .archunit-freeze} (or
- * {@code archunit_store}). The location is resolved relative to the test
- * working directory by default.
+ * Phase 0 baseline owner-boundary rules (P0-ARCH-002) + Phase 3 Owner write rules (P3-OWNER-001-F).
  */
 @AnalyzeClasses(
     packages = "com.ulticode.modules",
@@ -46,8 +33,6 @@ public class OwnerBoundaryArchTest {
 
     /**
      * Rule 1: admin must not reach contest mapper/entity directly.
-     * Owner future split: Admin reads Contest via RPC (Q) / outbox (E).
-     * Frozen baseline = 30 imports across 8 files.
      */
     @ArchTest
     static final ArchRule admin_must_not_reach_contest_directly =
@@ -61,9 +46,7 @@ public class OwnerBoundaryArchTest {
             + "See ADR-MIG-ARCH-BOUNDARY for the frozen baseline and burn-down list.");
 
     /**
-     * Rule 2: moderation must not write to users directly.
-     * Owner future split: Moderation writes users via Auth RPC (C) or event (E).
-     * Frozen baseline = 3 violations.
+     * Rule 2: moderation must not reach users directly.
      */
     @ArchTest
     static final ArchRule moderation_must_not_reach_users_directly =
@@ -75,17 +58,12 @@ public class OwnerBoundaryArchTest {
 
     /**
      * Rule 3: submission must not reach queue internals outside published port.
-     * Owner future split: Submission depends on port only (JudgeQueue,
-     * SubmissionResultPushPort, JudgingCaseSource, VerdictMetricsParser).
-     * Forbidden: QueueService, JudgeOutboxRecord, JudgeOutboxMapper,
-     * dispatcher, reaper.
-     * Frozen baseline = 10 imports across 4 files.
      */
     @ArchTest
     static final ArchRule submission_must_not_reach_queue_outbox =
         FreezingArchRule.freeze(ArchRuleDefinition.noClasses()
             .that().resideInAPackage(SUBMISSION_PKG)
-            .should().dependOnClassesThat().resideInAPackage(QUEUE_OUTBOX_PKG))
+            .should().dependOnClassesThat().resideInAnyPackage(QUEUE_OUTBOX_PKG))
         .because("Submission depends on queue ports only. "
             + "Reaching queue.outbox (JudgeOutboxRecord/Mapper, dispatcher, reaper) "
             + "is internal to the queue module. See ADR-MIG-ARCH-BOUNDARY.");
@@ -99,11 +77,6 @@ public class OwnerBoundaryArchTest {
             + "QueueService is internal; JudgeQueue port is the public surface. "
             + "See ADR-MIG-ARCH-BOUNDARY.");
 
-    /**
-     * Sanity: surface baseline pointer for operators. If the freeze file is
-     * missing or rules silently no-op, this test fails with a human-readable
-     * pointer to DECISIONS.md.
-     */
     @Test
     void frozen_baseline_pointer_is_documented() {
         assertThat(ADMIN_PKG).isNotEmpty();
@@ -111,13 +84,7 @@ public class OwnerBoundaryArchTest {
         assertThat(MODERATION_PKG).isNotEmpty();
     }
 
-    /* ===== P2-RBAC-001: foreign modules may not depend on the
-     * backend-auth role / permission owner classes directly. The
-     * owner-only write path lives in com.ulticode.auth..; foreign
-     * modules (com.ulticode.modules..) must call the HTTP command
-     * surface (BackendAuthRoleAdminClient) instead. Hard rule, not
-     * frozen: P2-RBAC-001 closes the writer-segregation contract
-     * and any new foreign dependency is a regression. ===== */
+    /* ===== P2-RBAC-001: foreign modules may not depend on auth role/permission classes ===== */
 
     private static final String RBAC_OWNER_CONTROLLER =
             "com.ulticode.auth.adapter.in.web.RoleAdministrationController";
@@ -155,8 +122,38 @@ public class OwnerBoundaryArchTest {
                             RBAC_OWNER_ADAPTER + "..")
                     .because("P2-RBAC-001: backend-auth is the sole owner of the "
                             + "users.role / user_permissions / role_permissions write "
-                            + "path. Foreign modules (com.ulticode.modules..) must call "
-                            + "the HTTP command surface (BackendAuthRoleAdminClient) "
-                            + "rather than depending on the Auth owner classes directly. "
-                            + "See MICROSERVICE_MIGRATION_GUIDE.md §7.5 and ADR-MIG-AUTH-OWNER.");
+                            + "path.");
+
+    /* ===== P3-OWNER-001-F: admin module must not call WRITE methods on foreign mappers ===== */
+
+    @ArchTest
+    static final ArchRule p3_owner_001_f_admin_must_not_call_foreign_mapper_writes =
+        FreezingArchRule.freeze(
+            ArchRuleDefinition.noClasses()
+                    .that().resideInAPackage(ADMIN_PKG)
+                    .should().callMethodWhere(
+                            DescribedPredicate.describe(
+                                    "call a WRITE method (insert/update/delete) on a foreign mapper",
+                                    (JavaMethodCall call) -> {
+                                        String ownerName = call.getTargetOwner().getName();
+                                        boolean isForeignMapper = ownerName.endsWith("ProblemMapper")
+                                                || ownerName.endsWith("ContestMapper")
+                                                || ownerName.endsWith("SubmissionMapper")
+                                                || ownerName.endsWith("ForumPostMapper")
+                                                || ownerName.endsWith("SolutionMapper")
+                                                || ownerName.endsWith("TestCaseMapper");
+                                        if (!isForeignMapper) {
+                                            return false;
+                                        }
+                                        String methodName = call.getTarget().getName();
+                                        return methodName.startsWith("insert")
+                                                || methodName.startsWith("update")
+                                                || methodName.startsWith("delete");
+                                    }
+                            )
+                    )
+        ).because("P3-OWNER-001-F: Admin module must route all domain entity writes "
+                + "through owner ports (ProblemOwnerPort, ContestOwnerPort, SubmissionOwnerPort, "
+                + "ForumOwnerPort, SolutionOwnerPort) rather than calling foreign Mapper write methods directly. "
+                + "See MICROSERVICE_MIGRATION_GUIDE.md §10.");
 }

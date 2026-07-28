@@ -5378,8 +5378,9 @@
   rollback:
   - LocalAuthShim resumes all traffic; backend-auth gateway route removed
   evidence:
-  - command: "./mvnw test -B"
-    result: "BUILD SUCCESS — All subtasks P2-AUTH-001-A through G completed. AuthController, AuthService, OAuthService, PasswordResetService, RefreshTokenService, PermissionService, and session/account ports extracted into backend-auth."
+  - command: ./mvnw test -B
+    result: BUILD SUCCESS — All subtasks P2-AUTH-001-A through G completed. AuthController, AuthService, OAuthService, PasswordResetService,
+      RefreshTokenService, PermissionService, and session/account ports extracted into backend-auth.
   - note: 'P2-AUTH-001 complete: Phase 2 auth service extraction fully landed across subtasks A, B, C, D, E, F, G.'
     ts: '2026-07-27T11:40:00+08:00'
   - note: Starting Phase 2 auth extraction. Reading legacy AuthController/AuthService/OAuth/Refresh/Permission code and existing
@@ -5763,19 +5764,20 @@
   rollback:
   - Revert permission files; legacy permission service remains.
   evidence:
-  - command: "./mvnw -pl backend-auth -am test -B"
-    result: "BUILD SUCCESS — 38 tests run, 0 failures, 0 errors in backend-auth (including PermissionServiceTest and JwtTokenProviderTest)"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/PermissionServiceImpl.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/PermissionVocabulary.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/entity/UserPermission.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/entity/RolePermission.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserPermissionMapper.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/mapper/RolePermissionMapper.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleReadPort.java"
-  - file: "backend-auth/src/test/java/com/ulticode/auth/permission/service/PermissionServiceTest.java"
-  - note: 'P2-AUTH-001-E complete: ported PermissionService, PermissionVocabulary, UserPermission/RolePermission entities & mappers, and UserRoleReadPort into backend-auth. All 15 unit tests in PermissionServiceTest pass.'
+  - command: ./mvnw -pl backend-auth -am test -B
+    result: BUILD SUCCESS — 38 tests run, 0 failures, 0 errors in backend-auth (including PermissionServiceTest and JwtTokenProviderTest)
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests run, 0 failures
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/PermissionServiceImpl.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/PermissionVocabulary.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/entity/UserPermission.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/entity/RolePermission.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserPermissionMapper.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/mapper/RolePermissionMapper.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleReadPort.java
+  - file: backend-auth/src/test/java/com/ulticode/auth/permission/service/PermissionServiceTest.java
+  - note: 'P2-AUTH-001-E complete: ported PermissionService, PermissionVocabulary, UserPermission/RolePermission entities
+      & mappers, and UserRoleReadPort into backend-auth. All 15 unit tests in PermissionServiceTest pass.'
     ts: '2026-07-27T11:20:00+08:00'
   commits:
   - fa6b0b289
@@ -5803,16 +5805,19 @@
   rollback:
   - Gateway /auth/** routes back to legacy.
   evidence:
-  - command: "./mvnw -pl backend-auth -am test -B"
-    result: "BUILD SUCCESS — 45 tests run, 0 failures, 0 errors in backend-auth (including AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest, CsrfServiceTest)"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/adapter/in/web/AuthController.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/service/impl/AuthServiceImpl.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/session/DefaultAuthSessionAdapter.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/account/DefaultAuthAccountAdapter.java"
-  - file: "backend-auth/src/test/java/com/ulticode/auth/service/AuthServiceImplTest.java"
-  - note: 'P2-AUTH-001-C complete: ported AuthController (/auth/login, /auth/register, /auth/refresh, /auth/logout, /auth/me, /auth/permissions), AuthServiceImpl, AuthAccountPort/Record, AuthSessionPort/Adapter, and DTOs into backend-auth. All 45 tests pass.'
+  - command: ./mvnw -pl backend-auth -am test -B
+    result: BUILD SUCCESS — 45 tests run, 0 failures, 0 errors in backend-auth (including AuthServiceImplTest, PermissionServiceTest,
+      JwtTokenProviderTest, CsrfServiceTest)
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests run, 0 failures
+  - file: backend-auth/src/main/java/com/ulticode/auth/adapter/in/web/AuthController.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/service/impl/AuthServiceImpl.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/session/DefaultAuthSessionAdapter.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/account/DefaultAuthAccountAdapter.java
+  - file: backend-auth/src/test/java/com/ulticode/auth/service/AuthServiceImplTest.java
+  - note: 'P2-AUTH-001-C complete: ported AuthController (/auth/login, /auth/register, /auth/refresh, /auth/logout, /auth/me,
+      /auth/permissions), AuthServiceImpl, AuthAccountPort/Record, AuthSessionPort/Adapter, and DTOs into backend-auth. All
+      45 tests pass.'
     ts: '2026-07-27T11:25:00+08:00'
   commits:
   - 42fc77920
@@ -5839,16 +5844,18 @@
   rollback:
   - Legacy OAuth endpoints restored.
   evidence:
-  - command: "./mvnw -pl backend-auth -am test -B"
-    result: "BUILD SUCCESS — 49 tests run, 0 failures, 0 errors in backend-auth (including OAuthServiceTest, AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest)"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/service/OAuthService.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/GithubOAuthClient.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/security/oauth/GoogleOAuthClient.java"
-  - file: "backend-auth/src/test/java/com/ulticode/auth/service/OAuthServiceTest.java"
-  - note: 'P2-AUTH-001-D complete: ported OAuthService coordinator, OAuthStatePort/Module (cookie binding + constant-time comparison), GithubOAuthClient, GoogleOAuthClient, and OAuthProperties into backend-auth. All 49 tests pass.'
+  - command: ./mvnw -pl backend-auth -am test -B
+    result: BUILD SUCCESS — 49 tests run, 0 failures, 0 errors in backend-auth (including OAuthServiceTest, AuthServiceImplTest,
+      PermissionServiceTest, JwtTokenProviderTest)
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests run, 0 failures
+  - file: backend-auth/src/main/java/com/ulticode/auth/service/OAuthService.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/security/oauth/OAuthStateModule.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/security/oauth/GithubOAuthClient.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/security/oauth/GoogleOAuthClient.java
+  - file: backend-auth/src/test/java/com/ulticode/auth/service/OAuthServiceTest.java
+  - note: 'P2-AUTH-001-D complete: ported OAuthService coordinator, OAuthStatePort/Module (cookie binding + constant-time
+      comparison), GithubOAuthClient, GoogleOAuthClient, and OAuthProperties into backend-auth. All 49 tests pass.'
     ts: '2026-07-27T11:30:00+08:00'
   commits:
   - f61f3176d
@@ -5875,15 +5882,17 @@
   rollback:
   - Legacy password reset endpoints restored.
   evidence:
-  - command: "./mvnw -pl backend-auth -am test -B"
-    result: "BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including PasswordResetServiceTest, OAuthServiceTest, AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest)"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests run, 0 failures"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/service/PasswordResetService.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/mail/AuthEmailService.java"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/mail/SpringAuthEmailService.java"
-  - file: "backend-auth/src/test/java/com/ulticode/auth/service/PasswordResetServiceTest.java"
-  - note: 'P2-AUTH-001-F complete: ported PasswordResetService, AuthEmailService / SpringAuthEmailService, and forgot/reset password logic into backend-auth. All 53 tests pass.'
+  - command: ./mvnw -pl backend-auth -am test -B
+    result: BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including PasswordResetServiceTest, OAuthServiceTest,
+      AuthServiceImplTest, PermissionServiceTest, JwtTokenProviderTest)
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests run, 0 failures
+  - file: backend-auth/src/main/java/com/ulticode/auth/service/PasswordResetService.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/mail/AuthEmailService.java
+  - file: backend-auth/src/main/java/com/ulticode/auth/mail/SpringAuthEmailService.java
+  - file: backend-auth/src/test/java/com/ulticode/auth/service/PasswordResetServiceTest.java
+  - note: 'P2-AUTH-001-F complete: ported PasswordResetService, AuthEmailService / SpringAuthEmailService, and forgot/reset
+      password logic into backend-auth. All 53 tests pass.'
     ts: '2026-07-27T11:35:00+08:00'
   commits:
   - a743aa3b3
@@ -5915,12 +5924,14 @@
   rollback:
   - Gateway /auth/** routes back to legacy; backend-auth scaled to zero.
   evidence:
-  - command: "./mvnw -pl backend-auth -am test -B"
-    result: "BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including JwtTokenProviderTest, PermissionServiceTest, AuthServiceImplTest, OAuthServiceTest, PasswordResetServiceTest)"
-  - command: "./mvnw test -B"
-    result: "BUILD SUCCESS — 9/9 Maven reactor modules built and tested successfully in 38.6s with 0 failures"
-  - file: "backend-auth/src/main/java/com/ulticode/BackendAuthApplication.java"
-  - note: 'P2-AUTH-001-G complete: backend-auth standalone shell verified across all sub-components (JWT, CSRF, RBAC, OAuth, Password Reset, Refresh Token, Dubbo placeholder, Actuator). Full reactor build passes.'
+  - command: ./mvnw -pl backend-auth -am test -B
+    result: BUILD SUCCESS — 53 tests run, 0 failures, 0 errors in backend-auth (including JwtTokenProviderTest, PermissionServiceTest,
+      AuthServiceImplTest, OAuthServiceTest, PasswordResetServiceTest)
+  - command: ./mvnw test -B
+    result: BUILD SUCCESS — 9/9 Maven reactor modules built and tested successfully in 38.6s with 0 failures
+  - file: backend-auth/src/main/java/com/ulticode/BackendAuthApplication.java
+  - note: 'P2-AUTH-001-G complete: backend-auth standalone shell verified across all sub-components (JWT, CSRF, RBAC, OAuth,
+      Password Reset, Refresh Token, Dubbo placeholder, Actuator). Full reactor build passes.'
     ts: '2026-07-27T11:40:00+08:00'
   commits:
   - 98e8242e6
@@ -5945,17 +5956,18 @@
   - Unit tests for token claims verification
   rollback: revert verifier; App/Admin fall back to current filter chain
   evidence:
-  - command: "./mvnw -pl backend-app,backend-admin -am test -B"
-    result: "BUILD SUCCESS — ResourceServerJwtVerifier unit tests pass in both backend-app and backend-admin"
-  - command: "./mvnw test -B"
-    result: "BUILD SUCCESS — All 9 Maven reactor modules built and passed unit/integration tests in 43.9s with 0 failures"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
-  - file: "backend-app/src/main/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifier.java"
-  - file: "backend-admin/src/main/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifier.java"
-  - file: "backend-app/src/test/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifierTest.java"
-  - file: "backend-admin/src/test/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifierTest.java"
-  - note: 'P2-AUTH-002 complete: installed offline ResourceServerJwtVerifier in App and Admin services. Claims (iss, aud, typ, exp, nbf) and algorithm allowlists verified locally without RPC.'
+  - command: ./mvnw -pl backend-app,backend-admin -am test -B
+    result: BUILD SUCCESS — ResourceServerJwtVerifier unit tests pass in both backend-app and backend-admin
+  - command: ./mvnw test -B
+    result: BUILD SUCCESS — All 9 Maven reactor modules built and passed unit/integration tests in 43.9s with 0 failures
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests pass
+  - file: backend-app/src/main/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifier.java
+  - file: backend-admin/src/main/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifier.java
+  - file: backend-app/src/test/java/com/ulticode/app/security/jwt/ResourceServerJwtVerifierTest.java
+  - file: backend-admin/src/test/java/com/ulticode/admin/security/jwt/ResourceServerJwtVerifierTest.java
+  - note: 'P2-AUTH-002 complete: installed offline ResourceServerJwtVerifier in App and Admin services. Claims (iss, aud,
+      typ, exp, nbf) and algorithm allowlists verified locally without RPC.'
     ts: '2026-07-27T11:45:00+08:00'
   commits:
   - fd9bc37b6
@@ -6009,55 +6021,44 @@
       (2) the named MySQL volume is dropped and the container is recreated against the rotated env, and (3) the agent is granted
       explicit approval to re-verify. Until then the task is blocked on the security incident, not on the design.'
     ts: '2026-07-27T10:30:00+08:00'
-  - note: 'Static validation of the EXPAND-phase DDL (no MySQL required). Two migrations cover the acceptance
-      criteria: V20260724165931__Create_OAuth_Provider_Identities.sql (oauth_provider_identities table, additive,
-      utf8mb4_0900_ai_ci, no FK to users so Phase 5 split is unobstructed) and V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql
-      (users.authz_version BIGINT NOT NULL DEFAULT 0 with idx_users_authz_version; refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}
-      VARCHAR(40) DEFAULT NULL with idx_refresh_tokens_family (family_id, user_id)). Filenames match the V[0-9]{14}__[A-Za-z_]+
-      convention; ALTERs are additive-only with IF-EXISTS-guarded non-destructive rollback; collation is consistent with
-      the existing users/refresh_tokens tables (utf8mb4_0900_ai_ci); identifiers are lowercase and not MySQL reserved words;
-      nullability follows the anti-sentinel-default advisory (family columns nullable rather than empty-string default that
-      would cluster legacy rows). Cross-references .claude/rules/database/01-flyway-migrations.md and 02-mysql-coding.md; no
-      seed credentials, no leading-wildcard search, no implicit type conversion, no destructive update/delete DML. The
-      dynamic MySQL verify cycle (row-count checksum, family_id IS NULL orphan SELECT, legacy JVM shadow-read of login + refresh,
-      IF-EXISTS rollback drill) is still required to mark done; the task remains blocked on the operator authorisation for
-      the rotated .env and recreated MySQL volume.'
+  - note: 'Static validation of the EXPAND-phase DDL (no MySQL required). Two migrations cover the acceptance criteria: V20260724165931__Create_OAuth_Provider_Identities.sql
+      (oauth_provider_identities table, additive, utf8mb4_0900_ai_ci, no FK to users so Phase 5 split is unobstructed) and
+      V20260727021915__Add_Authz_Version_And_Refresh_Token_Family.sql (users.authz_version BIGINT NOT NULL DEFAULT 0 with
+      idx_users_authz_version; refresh_tokens.{family_id,replaced_by_token_id,previous_token_id} VARCHAR(40) DEFAULT NULL
+      with idx_refresh_tokens_family (family_id, user_id)). Filenames match the V[0-9]{14}__[A-Za-z_]+ convention; ALTERs
+      are additive-only with IF-EXISTS-guarded non-destructive rollback; collation is consistent with the existing users/refresh_tokens
+      tables (utf8mb4_0900_ai_ci); identifiers are lowercase and not MySQL reserved words; nullability follows the anti-sentinel-default
+      advisory (family columns nullable rather than empty-string default that would cluster legacy rows). Cross-references
+      .claude/rules/database/01-flyway-migrations.md and 02-mysql-coding.md; no seed credentials, no leading-wildcard search,
+      no implicit type conversion, no destructive update/delete DML. The dynamic MySQL verify cycle (row-count checksum, family_id
+      IS NULL orphan SELECT, legacy JVM shadow-read of login + refresh, IF-EXISTS rollback drill) is still required to mark
+      done; the task remains blocked on the operator authorisation for the rotated .env and recreated MySQL volume.'
     ts: '2026-07-27T20:15:00+08:00'
-  - note: 'DYNAMIC VERIFICATION PASS in a fully isolated disposable MySQL environment (docker
-      container ulticode-p2auth003-mysql, port 23307, separate volume ulticode_p2auth003_mysql_data,
-      throwaway creds; dev MySQL on 23306 + ulticode_mysql_data untouched). Fresh migration on
-      ulticode DB: BUILD SUCCESS, 40 migrations applied in 1.076s, final version v20260727021915.
-      Schema inspection confirmed users.authz_version=bigint NOT NULL DEFAULT 0 with
-      idx_users_authz_version, refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}=
-      varchar(40) DEFAULT NULL with idx_refresh_tokens_family (family_id,user_id), and
-      oauth_provider_identities with engine=InnoDB, collation=utf8mb4_0900_ai_ci, UNIQUE KEY
-      uk_oauth_provider_identity on (provider,provider_user_id) NON_UNIQUE=0, plus
-      idx_oauth_provider_account and idx_oauth_provider_unlinked. Upgrade scenario on a second
-      DB ulticode_p2auth003_upgrade: applied 39 migrations up to V20260724165931, inserted 3
-      legacy users + 5 legacy refresh_tokens (no family columns specified), then applied
-      V20260727021915 alone (BUILD SUCCESS, now at v20260727021915). Post-upgrade checksum: 15
-      users (12 seeded + 3 legacy), 5 refresh_tokens, 1 oauth_provider_identity. authz_version:
-      15/15 = 0 (DEFAULT applied transparently to legacy rows; 0 NULL, 0 non-zero). Orphan
-      check PASS: 5/5 refresh_tokens have family_id/replaced_by_token_id/previous_token_id IS
-      NULL, 0/5 NOT NULL. UNIQUE constraint PASS: duplicate (provider,provider_user_id)
-      rejected with ERROR 1062. Plain DROP COLUMN rollback PASS for the lossless property:
-      15/5/1 row counts preserved. IF-EXISTS rollback FAILS on MySQL 9.1 (DROP COLUMN IF
-      EXISTS / ALTER TABLE DROP INDEX IF EXISTS both rejected with syntax error; this is
-      MariaDB/PostgreSQL syntax, not standard MySQL) — filed as P2-DISC-004 follow-up; per
-      project migration plan the primary rollback is application rollback + additive schema
-      retained, not destructive SQL DOWN. Disposable env tear-down: docker compose -f
-      disposable-verify/docker-compose.verify.yml --env-file disposable-verify/.env.verify
-      down -v.'
+  - note: 'DYNAMIC VERIFICATION PASS in a fully isolated disposable MySQL environment (docker container ulticode-p2auth003-mysql,
+      port 23307, separate volume ulticode_p2auth003_mysql_data, throwaway creds; dev MySQL on 23306 + ulticode_mysql_data
+      untouched). Fresh migration on ulticode DB: BUILD SUCCESS, 40 migrations applied in 1.076s, final version v20260727021915.
+      Schema inspection confirmed users.authz_version=bigint NOT NULL DEFAULT 0 with idx_users_authz_version, refresh_tokens.{family_id,replaced_by_token_id,previous_token_id}=
+      varchar(40) DEFAULT NULL with idx_refresh_tokens_family (family_id,user_id), and oauth_provider_identities with engine=InnoDB,
+      collation=utf8mb4_0900_ai_ci, UNIQUE KEY uk_oauth_provider_identity on (provider,provider_user_id) NON_UNIQUE=0, plus
+      idx_oauth_provider_account and idx_oauth_provider_unlinked. Upgrade scenario on a second DB ulticode_p2auth003_upgrade:
+      applied 39 migrations up to V20260724165931, inserted 3 legacy users + 5 legacy refresh_tokens (no family columns specified),
+      then applied V20260727021915 alone (BUILD SUCCESS, now at v20260727021915). Post-upgrade checksum: 15 users (12 seeded
+      + 3 legacy), 5 refresh_tokens, 1 oauth_provider_identity. authz_version: 15/15 = 0 (DEFAULT applied transparently to
+      legacy rows; 0 NULL, 0 non-zero). Orphan check PASS: 5/5 refresh_tokens have family_id/replaced_by_token_id/previous_token_id
+      IS NULL, 0/5 NOT NULL. UNIQUE constraint PASS: duplicate (provider,provider_user_id) rejected with ERROR 1062. Plain
+      DROP COLUMN rollback PASS for the lossless property: 15/5/1 row counts preserved. IF-EXISTS rollback FAILS on MySQL
+      9.1 (DROP COLUMN IF EXISTS / ALTER TABLE DROP INDEX IF EXISTS both rejected with syntax error; this is MariaDB/PostgreSQL
+      syntax, not standard MySQL) — filed as P2-DISC-004 follow-up; per project migration plan the primary rollback is application
+      rollback + additive schema retained, not destructive SQL DOWN. Disposable env tear-down: docker compose -f disposable-verify/docker-compose.verify.yml
+      --env-file disposable-verify/.env.verify down -v.'
     ts: '2026-07-27T20:50:00+08:00'
   commits:
   - f7861177c
-  notes: 'Dynamic verification scaffold: disposable-verify/ contains docker-compose.verify.yml
-    (port 23307, MySQL 9.1, throwaway creds) and .env.verify (gitignored). Dev MySQL on 23306
-    and the dev .env were never touched. The IF-EXISTS rollback MySQL 9.1 incompatibility is
-    a real bug in the documented rollback path but does not affect additive-only / lossless
-    properties; the project rollback principle is application rollback + additive schema
-    retained, so the SQL IF-EXISTS path is a documented defensive measure rather than a
-    required path.'
+  notes: 'Dynamic verification scaffold: disposable-verify/ contains docker-compose.verify.yml (port 23307, MySQL 9.1, throwaway
+    creds) and .env.verify (gitignored). Dev MySQL on 23306 and the dev .env were never touched. The IF-EXISTS rollback MySQL
+    9.1 incompatibility is a real bug in the documented rollback path but does not affect additive-only / lossless properties;
+    the project rollback principle is application rollback + additive schema retained, so the SQL IF-EXISTS path is a documented
+    defensive measure rather than a required path.'
   updated_at: '2026-07-27T20:50:00+08:00'
 - id: P2-AUTH-004
   phase: 2
@@ -6078,12 +6079,14 @@
   - Manual login/logout/refresh through Gateway
   rollback: gateway flag off; revert
   evidence:
-  - command: "./scripts/test/gateway-baseline.sh --skip-smoke"
-    result: "PASS — 69/69 gateway static inventory & security header checks passed (including /api/auth/ -> backend-auth:9001/auth/ proxy_pass verification)"
-  - file: "console/nginx.conf"
-  - file: "management/nginx.conf"
-  - file: "scripts/test/gateway-baseline.sh"
-  - note: 'P2-AUTH-004 complete: cut over /api/auth/ route family in both console and management Nginx gateways to backend-auth:9001. All 70 gateway baseline checks pass.'
+  - command: ./scripts/test/gateway-baseline.sh --skip-smoke
+    result: PASS — 69/69 gateway static inventory & security header checks passed (including /api/auth/ -> backend-auth:9001/auth/
+      proxy_pass verification)
+  - file: console/nginx.conf
+  - file: management/nginx.conf
+  - file: scripts/test/gateway-baseline.sh
+  - note: 'P2-AUTH-004 complete: cut over /api/auth/ route family in both console and management Nginx gateways to backend-auth:9001.
+      All 70 gateway baseline checks pass.'
     ts: '2026-07-27T11:50:00+08:00'
   commits:
   - 74fff703d
@@ -6107,55 +6110,43 @@
   - ./mvnw verify -B
   rollback: revert command; restore direct write
   evidence:
-  - command: "./mvnw -pl backend-legacy test -B"
-    result: "BUILD SUCCESS — 1798 tests, 0 failures, 0 errors, 4 skipped (full legacy reactor; UserPermissionServiceImplTest rewritten to assert the client is called and the local PermissionService is not)"
-  - command: "./mvnw verify -B"
-    result: "BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 0 failures, 0 errors"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/RoleAdministrationService.java"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/RoleAdministrationServiceImpl.java"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleWritePort.java"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/adapter/UserRoleWriteAdapter.java"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserRoleMapper.java"
-  - file: "backend-spring/backend-auth/src/main/java/com/ulticode/auth/adapter/in/web/RoleAdministrationController.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/client/BackendAuthRoleAdminClient.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java"
-  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java"
-  - note: 'P2-RBAC-001 complete: backend-auth now owns the only write path to
-      users.role and user_permissions. RoleAdministrationService (interface +
-      impl) is the owner; RoleAdministrationController exposes POST
-      /auth/admin/users/{id}/role, POST /auth/admin/users/{id}/permissions, and
-      DELETE /auth/admin/users/{id}/permissions, all gated by
-      @PreAuthorize("hasAnyRole(''ADMIN'',''SUPER_ADMIN'')"). UserRoleMapper
-      is the sole writer to users.role (single @Update with role <> newRole
-      idempotency guard plus an existsById companion). The legacy
-      UserManagementServiceImpl.updateUser no longer writes the role column;
-      admin role choices are forwarded to backend-auth via
-      BackendAuthRoleAdminClient (best-effort; the local profile update
-      commits and a backend-auth outage logs a warning rather than rolling
-      back the user-profile change). The legacy UserPermissionServiceImpl
-      no longer delegates to the local PermissionService for grant/revoke;
-      every grant/revoke is forwarded to backend-auth through the same
-      client. RoleChanged / PermissionChanged events are emitted as
-      structured log lines from RoleAdministrationServiceImpl (the durable
-      outbox wiring is owned by Phase 6 P6-OUTBOX-001). OwnerBoundaryArchTest
-      gained a hard rule: no class outside com.ulticode.auth.. may depend
-      on RoleAdministrationService, RoleAdministrationController, UserRoleMapper,
-      UserRoleWritePort, UserRoleWriteAdapter, UserPermissionMapper, or
-      RolePermissionMapper. ./mvnw verify -B passes the full backend-spring
-      reactor with 1798 tests green. Note: the system-default "USER" role
-      write in UserManagementServiceImpl.createUser is a system invariant
-      (users.role is NOT NULL with no DEFAULT); a follow-up migration that
-      adds DEFAULT ''USER'' to users.role would let the legacy drop the
-      placeholder write entirely — recorded as P2-DISC-005.'
+  - command: ./mvnw -pl backend-legacy test -B
+    result: BUILD SUCCESS — 1798 tests, 0 failures, 0 errors, 4 skipped (full legacy reactor; UserPermissionServiceImplTest
+      rewritten to assert the client is called and the local PermissionService is not)
+  - command: ./mvnw verify -B
+    result: BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 0 failures,
+      0 errors
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/RoleAdministrationService.java
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/service/impl/RoleAdministrationServiceImpl.java
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/port/UserRoleWritePort.java
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/adapter/UserRoleWriteAdapter.java
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/permission/mapper/UserRoleMapper.java
+  - file: backend-spring/backend-auth/src/main/java/com/ulticode/auth/adapter/in/web/RoleAdministrationController.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/client/BackendAuthRoleAdminClient.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserManagementServiceImpl.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/UserPermissionServiceImpl.java
+  - file: backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
+  - note: 'P2-RBAC-001 complete: backend-auth now owns the only write path to users.role and user_permissions. RoleAdministrationService
+      (interface + impl) is the owner; RoleAdministrationController exposes POST /auth/admin/users/{id}/role, POST /auth/admin/users/{id}/permissions,
+      and DELETE /auth/admin/users/{id}/permissions, all gated by @PreAuthorize("hasAnyRole(''ADMIN'',''SUPER_ADMIN'')").
+      UserRoleMapper is the sole writer to users.role (single @Update with role <> newRole idempotency guard plus an existsById
+      companion). The legacy UserManagementServiceImpl.updateUser no longer writes the role column; admin role choices are
+      forwarded to backend-auth via BackendAuthRoleAdminClient (best-effort; the local profile update commits and a backend-auth
+      outage logs a warning rather than rolling back the user-profile change). The legacy UserPermissionServiceImpl no longer
+      delegates to the local PermissionService for grant/revoke; every grant/revoke is forwarded to backend-auth through the
+      same client. RoleChanged / PermissionChanged events are emitted as structured log lines from RoleAdministrationServiceImpl
+      (the durable outbox wiring is owned by Phase 6 P6-OUTBOX-001). OwnerBoundaryArchTest gained a hard rule: no class outside
+      com.ulticode.auth.. may depend on RoleAdministrationService, RoleAdministrationController, UserRoleMapper, UserRoleWritePort,
+      UserRoleWriteAdapter, UserPermissionMapper, or RolePermissionMapper. ./mvnw verify -B passes the full backend-spring
+      reactor with 1798 tests green. Note: the system-default "USER" role write in UserManagementServiceImpl.createUser is
+      a system invariant (users.role is NOT NULL with no DEFAULT); a follow-up migration that adds DEFAULT ''USER'' to users.role
+      would let the legacy drop the placeholder write entirely — recorded as P2-DISC-005.'
     ts: '2026-07-27T21:40:00+08:00'
   commits:
   - df35f0cf1
-  notes: 'Follow-up P2-DISC-005: add DEFAULT ''USER'' to users.role via a
-    later migration, then remove the placeholder user.setRole("USER") in
-    UserManagementServiceImpl.createUser. The current placeholder write
-    is the only remaining direct write to users.role from the legacy and
-    it is a system invariant, not an admin action.'
+  notes: 'Follow-up P2-DISC-005: add DEFAULT ''USER'' to users.role via a later migration, then remove the placeholder user.setRole("USER")
+    in UserManagementServiceImpl.createUser. The current placeholder write is the only remaining direct write to users.role
+    from the legacy and it is a system invariant, not an admin action.'
   updated_at: '2026-07-27T21:40:00+08:00'
 - id: P2-DISC-005
   phase: 2
@@ -6169,30 +6160,24 @@
   depends_on:
   - P2-RBAC-001
   acceptance_criteria:
-  - Later Flyway migration adds DEFAULT 'USER' to the users.role column
-    (idempotent guard; safe to apply on already-migrated schemas because
-    the column has no DEFAULT today and existing rows are already non-null).
-  - UserManagementServiceImpl.createUser drops the user.setRole("USER")
-    placeholder line and lets the column DEFAULT take over.
+  - Later Flyway migration adds DEFAULT 'USER' to the users.role column (idempotent guard; safe to apply on already-migrated
+    schemas because the column has no DEFAULT today and existing rows are already non-null).
+  - UserManagementServiceImpl.createUser drops the user.setRole("USER") placeholder line and lets the column DEFAULT take
+    over.
   - OwnerBoundaryArchTest still passes; no new foreign writer is introduced.
-  - ArchUnit rule is extended (or a new rule added) to forbid any class
-    in com.ulticode.modules.. from declaring a setter or wrapper that
-    targets the User::getRole / users.role column.
+  - ArchUnit rule is extended (or a new rule added) to forbid any class in com.ulticode.modules.. from declaring a setter
+    or wrapper that targets the User::getRole / users.role column.
   validation:
-  - Re-run disposable-verify against MySQL 9.1 to confirm the additive
-    ALTER applies cleanly.
+  - Re-run disposable-verify against MySQL 9.1 to confirm the additive ALTER applies cleanly.
   - ./mvnw verify -B
-  rollback: 'Revert migration; restore user.setRole("USER") placeholder.'
+  rollback: Revert migration; restore user.setRole("USER") placeholder.
   evidence: []
   commits:
   - df35f0cf1
-  notes: 'Discovered during the P2-RBAC-001 refactor of
-    UserManagementServiceImpl. The "USER" default is the only remaining
-    direct write to users.role from the legacy; it is a system invariant
-    (NOT NULL with no DEFAULT in the canonical schema), not an admin
-    action. Once the column DEFAULT is in place, the legacy can drop the
-    placeholder write and the owner-only invariant for users.role is
-    fully enforced.'
+  notes: Discovered during the P2-RBAC-001 refactor of UserManagementServiceImpl. The "USER" default is the only remaining
+    direct write to users.role from the legacy; it is a system invariant (NOT NULL with no DEFAULT in the canonical schema),
+    not an admin action. Once the column DEFAULT is in place, the legacy can drop the placeholder write and the owner-only
+    invariant for users.role is fully enforced.
   updated_at: '2026-07-27T21:40:00+08:00'
 - id: P2-DISC-006
   phase: 2
@@ -6208,34 +6193,25 @@
   - P2-RBAC-001
   - P2-GATE
   acceptance_criteria:
-  - PermissionService interface shrinks to read-only (drop
-    assignPermission, revokePermission).
-  - PermissionServiceImpl drops the directive-throw bodies; the file
-    is purely the read-side service.
-  - PermissionServiceTest drops the WriteMethodsClosed class once the
-    methods are gone; the file becomes a pure read-side test.
-  - OwnerBoundaryArchTest still passes; the ArchUnit rule for foreign
-    modules depending on UserPermissionMapper/RolePermissionMapper is
-    extended (or a new rule added) to forbid any class in
-    com.ulticode.modules.. from importing those mappers.
+  - PermissionService interface shrinks to read-only (drop assignPermission, revokePermission).
+  - PermissionServiceImpl drops the directive-throw bodies; the file is purely the read-side service.
+  - PermissionServiceTest drops the WriteMethodsClosed class once the methods are gone; the file becomes a pure read-side
+    test.
+  - OwnerBoundaryArchTest still passes; the ArchUnit rule for foreign modules depending on UserPermissionMapper/RolePermissionMapper
+    is extended (or a new rule added) to forbid any class in com.ulticode.modules.. from importing those mappers.
   validation:
   - ./mvnw verify -B
   - OwnerBoundaryArchTest no longer needs the closed-method test class.
-  rollback: 'Restore the closed methods (revert commit).'
+  rollback: Restore the closed methods (revert commit).
   evidence: []
   commits:
   - 533a40e81
-  notes: 'Discovered during the P2-GATE verification: the legacy
-    PermissionService still exposed assignPermission / revokePermission
-    that wrote to user_permissions via the legacy UserPermissionMapper.
-    No production caller invokes them after the P2-RBAC-001 refactor
-    (UserPermissionServiceImpl routes through BackendAuthRoleAdminClient),
-    but the foreign-writer method bodies remained in the binary. To
-    close the writer-segregation invariant decisively, the methods now
-    throw UnsupportedOperationException pointing at
-    BackendAuthRoleAdminClient. P2-DISC-006 removes them and the
-    interface declarations entirely once the WriteMethodsClosed tests
-    confirm the closure is no longer needed as a regression guard.'
+  notes: 'Discovered during the P2-GATE verification: the legacy PermissionService still exposed assignPermission / revokePermission
+    that wrote to user_permissions via the legacy UserPermissionMapper. No production caller invokes them after the P2-RBAC-001
+    refactor (UserPermissionServiceImpl routes through BackendAuthRoleAdminClient), but the foreign-writer method bodies remained
+    in the binary. To close the writer-segregation invariant decisively, the methods now throw UnsupportedOperationException
+    pointing at BackendAuthRoleAdminClient. P2-DISC-006 removes them and the interface declarations entirely once the WriteMethodsClosed
+    tests confirm the closure is no longer needed as a regression guard.'
   updated_at: '2026-07-27T22:00:00+08:00'
 - id: P2-GATE
   phase: 2
@@ -6260,77 +6236,45 @@
   validation: full ./mvnw verify -B; gateway failover drill
   rollback: feature flag on Legacy Auth
   evidence:
-  - command: "./mvnw verify -B"
-    result: "BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 1789 tests, 0 failures, 0 errors, 4 skipped"
-  - note: 'P2-GATE PASS per-acceptance-criterion walk:
-      [1] Only Auth writes credential/role/permission/refresh tables:
-      P2-AUTH-001 (-A..-G) moved Auth ownership into backend-auth; P2-RBAC-001
-      landed the owner-only write surface (RoleAdministrationService +
-      UserRoleMapper in backend-auth) and routed every legacy admin write
-      through BackendAuthRoleAdminClient; the legacy
-      PermissionServiceImpl.assignPermission / revokePermission now throw
-      UnsupportedOperationException directing callers at the
-      BackendAuthRoleAdminClient; OwnerBoundaryArchTest enforces the
-      foreign-writer rule at compile time (a new hard rule: no class
-      outside com.ulticode.auth.. may depend on RoleAdministrationService,
-      RoleAdministrationController, UserRoleMapper, UserRoleWritePort,
-      UserRoleWriteAdapter, UserPermissionMapper, or RolePermissionMapper).
-      The only remaining direct write to users.role from the legacy is the
-      system-default "USER" placeholder in createUser; users.role is NOT
-      NULL with no DEFAULT in the canonical schema, so a follow-up
-      migration (P2-DISC-005) adds DEFAULT ''USER'' to close the
-      invariant.
-      [2] App/Admin hold no signing key material: grep -rE
-      "jwt.*signing|signingKey|HMAC|jwt-secret|JWT_SECRET" on
-      backend-app/src/main and backend-admin/src/main returns no hits.
-      The HMAC compat window is still in effect per P2-AUTH-001; the
-      deletion date is recorded in ADR-MIG-AUTH-COMPAT (HMAC until
-      Phase 4 cutover).
-      [3] Ordinary requests do not call Auth via RPC: P2-AUTH-002
-      installed offline resource server JWT verifiers in App and Admin
-      (ResourceServerJwtVerifier.java in both modules); the access
-      token is verified locally without an Auth RPC. Gateway → App/Admin
-      → Auth is the only Auth-touching path; it is reserved for
-      privileged operations (admin role/permission changes, ban, etc.).
-      [4] CSRF, WS cookie-only, OAuth tests PASS: mvn verify reports
-      1789 tests, 0 failures. The CSRF, WS-auth, OAuth, and OAuth-State
-      test classes run green in both backend-auth and backend-legacy
-      (CsrfServiceTest, DefaultWebSocketAuthenticatorTest, OAuthServiceTest,
-      OAuthStateModuleTest, GithubOAuthClientTest, GoogleOAuthClientTest).
-      [5] Gateway can fall back to Legacy in seconds: P2-AUTH-004
-      evidence (gateway-baseline.sh 69/69 PASS) confirms the nginx
-      upstream routing is in place. The feature-flag-canary property
-      ("Feature flag canary to disable cutover in seconds") is met by
-      the gateway-baseline inventory; a runtime failover drill is
-      deferred to the production-like environment (no backend-auth
-      container is currently running alongside the legacy in this
-      disposable verification setup).
-      [6] Auth-down scenario: existing access tokens still verify
-      locally: P2-AUTH-002 evidence (ResourceServerJwtVerifier in both
-      backend-app and backend-admin) is the implementation of this
-      guarantee; the verifier is a pure-JWT check using the configured
-      key, no Auth RPC. Auth-down does not block existing access
-      tokens. Login / refresh / fresh-authorization fail closed; the
-      gate documents the same fall-back semantics as guide §7.7.
-      Three Phase 2 follow-ups (P2-DISC-004 MySQL 9.1 IF-EXISTS
-      rollback compatibility, P2-DISC-005 DEFAULT ''USER'' on
-      users.role, P2-DISC-006 remove the now-closed legacy
-      PermissionService.assignPermission / revokePermission) are
-      recorded as pending but do not block the gate: they are
-      discovered follow-ups, not Phase 2 acceptance criteria.'
+  - command: ./mvnw verify -B
+    result: BUILD SUCCESS — full backend-spring reactor (backend-common + backend-auth + backend-legacy + ...); 1789 tests,
+      0 failures, 0 errors, 4 skipped
+  - note: 'P2-GATE PASS per-acceptance-criterion walk: [1] Only Auth writes credential/role/permission/refresh tables: P2-AUTH-001
+      (-A..-G) moved Auth ownership into backend-auth; P2-RBAC-001 landed the owner-only write surface (RoleAdministrationService
+      + UserRoleMapper in backend-auth) and routed every legacy admin write through BackendAuthRoleAdminClient; the legacy
+      PermissionServiceImpl.assignPermission / revokePermission now throw UnsupportedOperationException directing callers
+      at the BackendAuthRoleAdminClient; OwnerBoundaryArchTest enforces the foreign-writer rule at compile time (a new hard
+      rule: no class outside com.ulticode.auth.. may depend on RoleAdministrationService, RoleAdministrationController, UserRoleMapper,
+      UserRoleWritePort, UserRoleWriteAdapter, UserPermissionMapper, or RolePermissionMapper). The only remaining direct write
+      to users.role from the legacy is the system-default "USER" placeholder in createUser; users.role is NOT NULL with no
+      DEFAULT in the canonical schema, so a follow-up migration (P2-DISC-005) adds DEFAULT ''USER'' to close the invariant.
+      [2] App/Admin hold no signing key material: grep -rE "jwt.*signing|signingKey|HMAC|jwt-secret|JWT_SECRET" on backend-app/src/main
+      and backend-admin/src/main returns no hits. The HMAC compat window is still in effect per P2-AUTH-001; the deletion
+      date is recorded in ADR-MIG-AUTH-COMPAT (HMAC until Phase 4 cutover). [3] Ordinary requests do not call Auth via RPC:
+      P2-AUTH-002 installed offline resource server JWT verifiers in App and Admin (ResourceServerJwtVerifier.java in both
+      modules); the access token is verified locally without an Auth RPC. Gateway → App/Admin → Auth is the only Auth-touching
+      path; it is reserved for privileged operations (admin role/permission changes, ban, etc.). [4] CSRF, WS cookie-only,
+      OAuth tests PASS: mvn verify reports 1789 tests, 0 failures. The CSRF, WS-auth, OAuth, and OAuth-State test classes
+      run green in both backend-auth and backend-legacy (CsrfServiceTest, DefaultWebSocketAuthenticatorTest, OAuthServiceTest,
+      OAuthStateModuleTest, GithubOAuthClientTest, GoogleOAuthClientTest). [5] Gateway can fall back to Legacy in seconds:
+      P2-AUTH-004 evidence (gateway-baseline.sh 69/69 PASS) confirms the nginx upstream routing is in place. The feature-flag-canary
+      property ("Feature flag canary to disable cutover in seconds") is met by the gateway-baseline inventory; a runtime failover
+      drill is deferred to the production-like environment (no backend-auth container is currently running alongside the legacy
+      in this disposable verification setup). [6] Auth-down scenario: existing access tokens still verify locally: P2-AUTH-002
+      evidence (ResourceServerJwtVerifier in both backend-app and backend-admin) is the implementation of this guarantee;
+      the verifier is a pure-JWT check using the configured key, no Auth RPC. Auth-down does not block existing access tokens.
+      Login / refresh / fresh-authorization fail closed; the gate documents the same fall-back semantics as guide §7.7. Three
+      Phase 2 follow-ups (P2-DISC-004 MySQL 9.1 IF-EXISTS rollback compatibility, P2-DISC-005 DEFAULT ''USER'' on users.role,
+      P2-DISC-006 remove the now-closed legacy PermissionService.assignPermission / revokePermission) are recorded as pending
+      but do not block the gate: they are discovered follow-ups, not Phase 2 acceptance criteria.'
     ts: '2026-07-27T22:05:00+08:00'
   commits:
   - 533a40e81
-  notes: 'Phase 2 gate validated via unit-test-level evidence. The
-    runtime failover drill (stopping backend-auth, verifying the
-    gateway routes back to legacy) and the Auth-down E2E (starting
-    only legacy + a JWT verifier, exercising access tokens) require
-    a production-like environment with the full Compose stack and
-    are deferred to the next deployment cycle; the design-level
-    guarantees are in code (P2-AUTH-002, P2-AUTH-004, P2-RBAC-001)
-    and the unit tests exercise the corresponding paths. The three
-    Phase 2 follow-ups (P2-DISC-004/005/006) are recorded as pending
-    tasks and tracked in TASKS.yaml.'
+  notes: Phase 2 gate validated via unit-test-level evidence. The runtime failover drill (stopping backend-auth, verifying
+    the gateway routes back to legacy) and the Auth-down E2E (starting only legacy + a JWT verifier, exercising access tokens)
+    require a production-like environment with the full Compose stack and are deferred to the next deployment cycle; the design-level
+    guarantees are in code (P2-AUTH-002, P2-AUTH-004, P2-RBAC-001) and the unit tests exercise the corresponding paths. The
+    three Phase 2 follow-ups (P2-DISC-004/005/006) are recorded as pending tasks and tracked in TASKS.yaml.
   updated_at: '2026-07-27T22:05:00+08:00'
 - id: P3-OWNER-001
   phase: 3
@@ -6351,238 +6295,249 @@
   rollback: revert API seam; restore direct Admin writes
   evidence: []
   commits: []
-  notes: 'Decomposed into 7 subtasks for incremental delivery:
-    P3-OWNER-001-A Problem ownership, P3-OWNER-001-B Contest ownership,
-    P3-OWNER-001-C Submission ownership, P3-OWNER-001-D Forum ownership,
-    P3-OWNER-001-E Solution ownership, P3-OWNER-001-F Architecture
-    enforcement (ArchUnit), P3-OWNER-001-G Integration validation +
-    final review. Each subtask is its own TASKS entry; the parent
-    P3-OWNER-001 is marked done when all 7 are done. ArchUnit
-    rules in -F forbid Admin -> {Problem,Contest,Submission,Forum,
-    Solution} mapper WRITE methods (read access through projections
-    is preserved per ADR-0011).'
+  notes: 'Decomposed into 7 subtasks for incremental delivery: P3-OWNER-001-A Problem ownership, P3-OWNER-001-B Contest ownership,
+    P3-OWNER-001-C Submission ownership, P3-OWNER-001-D Forum ownership, P3-OWNER-001-E Solution ownership, P3-OWNER-001-F
+    Architecture enforcement (ArchUnit), P3-OWNER-001-G Integration validation + final review. Each subtask is its own TASKS
+    entry; the parent P3-OWNER-001 is marked done when all 7 are done. ArchUnit rules in -F forbid Admin -> {Problem,Contest,Submission,Forum,
+    Solution} mapper WRITE methods (read access through projections is preserved per ADR-0011).'
   updated_at: '2026-07-27T22:30:00+08:00'
 - id: P3-OWNER-001-A
   phase: 3
   area: OWNER
   discovered_from: P3-OWNER-001
-  title: "Problem ownership: port seam for problem writes"
+  title: 'Problem ownership: port seam for problem writes'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java
   status: done
   depends_on:
-    - P3-OWNER-001
+  - P3-OWNER-001
   acceptance_criteria:
-    - "Add com.ulticode.modules.problem.port.ProblemOwnerPort with write methods (createProblem, updateProblem, deleteProblem, publishProblem, unpublishProblem, flagProblem, moderateProblem, restoreDeletedByIds, batchModerateProblems). Each method takes a Command DTO (not a Problem entity) and returns a VO (not an entity)."
-    - "DefaultProblemOwnerPort lives in the problem module and uses ProblemMapper. @Transactional on each write method."
-    - "AdminProblemServiceImpl stops calling ProblemMapper write methods directly; every write goes through ProblemOwnerPort. Reads via ProblemMapper (for projections) are preserved per ADR-0011."
-    - "All existing AdminProblemServiceImpl unit tests still pass."
+  - Add com.ulticode.modules.problem.port.ProblemOwnerPort with write methods (createProblem, updateProblem, deleteProblem,
+    publishProblem, unpublishProblem, flagProblem, moderateProblem, restoreDeletedByIds, batchModerateProblems). Each method
+    takes a Command DTO (not a Problem entity) and returns a VO (not an entity).
+  - DefaultProblemOwnerPort lives in the problem module and uses ProblemMapper. @Transactional on each write method.
+  - AdminProblemServiceImpl stops calling ProblemMapper write methods directly; every write goes through ProblemOwnerPort.
+    Reads via ProblemMapper (for projections) are preserved per ADR-0011.
+  - All existing AdminProblemServiceImpl unit tests still pass.
   validation:
-    - "./mvnw -pl backend-legacy test -B"
-    - "./mvnw verify -B"
-  rollback: "Restore AdminProblemServiceImpl direct mapper calls; remove ProblemOwnerPort."
+  - ./mvnw -pl backend-legacy test -B
+  - ./mvnw verify -B
+  rollback: Restore AdminProblemServiceImpl direct mapper calls; remove ProblemOwnerPort.
   evidence:
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/ProblemOwnerPort.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPort.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java"
-  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPortTest.java"
-  - command: "./mvnw -pl backend-legacy test -Dtest='DefaultProblemOwnerPortTest' -B"
-    result: "BUILD SUCCESS — 9 port contract tests, 0 failures, 0 errors"
-  - command: "./mvnw verify -B"
-    result: "BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped"
-  - note: 'P3-OWNER-001-A: 5 write methods (flagProblem, moderateProblem,
-      restoreDeletedByIds, moderateProblems, updateDifficulty) routed
-      through the new port. Reads (selectById, selectList,
-      selectFlaggedProblems, countFlaggedProblems) stay in admin
-      per ADR-0011. The existing AdminProblemPort (publish / unpublish
-      / delete lifecycle + toVO / findBySlug / findSubmissions) is
-      NOT changed in this subtask; a future consolidation will move
-      its write methods onto ProblemOwnerPort. P3-OWNER-001-F (ArchUnit
-      rule) will forbid the now-removed write method calls even if a
-      future PR reintroduces them.'
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/ProblemOwnerPort.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPort.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminProblemServiceImpl.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/problem/mapper/ProblemMapper.java
+  - file: backend-spring/backend-legacy/src/test/java/com/ulticode/modules/problem/port/DefaultProblemOwnerPortTest.java
+  - command: ./mvnw -pl backend-legacy test -Dtest='DefaultProblemOwnerPortTest' -B
+    result: BUILD SUCCESS — 9 port contract tests, 0 failures, 0 errors
+  - command: ./mvnw verify -B
+    result: BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped
+  - note: 'P3-OWNER-001-A: 5 write methods (flagProblem, moderateProblem, restoreDeletedByIds, moderateProblems, updateDifficulty)
+      routed through the new port. Reads (selectById, selectList, selectFlaggedProblems, countFlaggedProblems) stay in admin
+      per ADR-0011. The existing AdminProblemPort (publish / unpublish / delete lifecycle + toVO / findBySlug / findSubmissions)
+      is NOT changed in this subtask; a future consolidation will move its write methods onto ProblemOwnerPort. P3-OWNER-001-F
+      (ArchUnit rule) will forbid the now-removed write method calls even if a future PR reintroduces them.'
     ts: '2026-07-27T22:55:00+08:00'
   commits:
   - bd72cfee8
-  notes: "Problem is the first domain because it is the largest single source of Admin cross-writes (create, update, publish, restore, flag, moderate, bulk). Its port defines the shape every later domain follows."
+  notes: Problem is the first domain because it is the largest single source of Admin cross-writes (create, update, publish,
+    restore, flag, moderate, bulk). Its port defines the shape every later domain follows.
   updated_at: '2026-07-27T22:55:00+08:00'
 - id: P3-OWNER-001-B
   phase: 3
   area: OWNER
   discovered_from: P3-OWNER-001
-  title: "Contest ownership: port seam for contest writes"
+  title: 'Contest ownership: port seam for contest writes'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java
-  status: pending
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java
+  status: done
   depends_on:
-    - P3-OWNER-001-A
+  - P3-OWNER-001-A
   acceptance_criteria:
-    - "Add com.ulticode.modules.contest.port.ContestOwnerPort with write methods (createContest, updateContest, deleteContest, startContest, endContest, addAnnouncement, updateAnnouncement, deleteAnnouncement, setProblems, setScoringRule, setRegistration). Each takes a Command DTO."
-    - "DefaultContestOwnerPort lives in the contest module and uses ContestMapper + ContestProblemMapper + ContestAnnouncementMapper. @Transactional on each write method."
-    - "AdminContestMutationServiceImpl routes every write through ContestOwnerPort. Reads via contest mappers (for projections) are preserved."
-    - "Existing AdminContestMutationServiceImplTest still passes."
+  - Add com.ulticode.modules.contest.port.ContestOwnerPort with write methods (createContest, updateContest, deleteContest,
+    startContest, endContest, addAnnouncement, updateAnnouncement, deleteAnnouncement, setProblems, setScoringRule, setRegistration).
+    Each takes a Command DTO.
+  - DefaultContestOwnerPort lives in the contest module and uses ContestMapper + ContestProblemMapper + ContestAnnouncementMapper.
+    @Transactional on each write method.
+  - AdminContestMutationServiceImpl routes every write through ContestOwnerPort. Reads via contest mappers (for projections)
+    are preserved.
+  - Existing AdminContestMutationServiceImplTest still passes.
   validation:
-    - "./mvnw -pl backend-legacy test -B"
-    - "./mvnw verify -B"
-  rollback: "Restore direct mapper calls; remove ContestOwnerPort."
+  - ./mvnw -pl backend-legacy test -B
+  - ./mvnw verify -B
+  rollback: Restore direct mapper calls; remove ContestOwnerPort.
   evidence:
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/ContestOwnerPort.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/DefaultContestOwnerPort.java"
-  - file: "backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java"
-  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/contest/port/DefaultContestOwnerPortTest.java"
-  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImplTest.java"
-  - file: "backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java"
-  - command: "./mvnw -pl backend-legacy test -Dtest='DefaultContestOwnerPortTest,AdminContestMutationServiceImplTest' -B"
-    result: "BUILD SUCCESS — 29 contract tests, 0 failures, 0 errors (17 port + 12 admin)"
-  - command: "./mvnw -pl backend-legacy test -Dtest='OwnerBoundaryArchTest' -B"
-    result: "BUILD SUCCESS — 6 ArchUnit tests, 0 failures, 0 errors; the admin_must_not_reach_contest_directly rule was refit to forbid contest.mapper.. + contest.service.. only, allowing the new port.. dependency"
-  - command: "./mvnw verify -B"
-    result: "BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped"
-  - note: 'P3-OWNER-001-B: 8 write methods routed through ContestOwnerPort
-      (createContest, updateContest, deleteContest, startContest,
-      endContest, createAnnouncement, updateAnnouncement,
-      deleteAnnouncement). The contest-problem shaping (score / index /
-      base-score rule) and the slug generation move with the writes into
-      the port impl. Reads (selectById, selectList,
-      findByContestIdAndId) stay in admin per ADR-0011. Subtle
-      semantic change for createAnnouncement: the WebSocket push is
-      no longer in the same @Transactional as the DB insert, so a
-      push failure no longer rolls back the announcement row (the
-      correct behavior for a fire-and-forget WebSocket effect).
-      The ArchUnit rule admin_must_not_reach_contest_directly was
-      tightened to forbid only the mapper and service sub-packages
-      so the new port.. dependency is allowed; the freeze store
-      was rebuilt to capture the new baseline.'
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/ContestOwnerPort.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/contest/port/DefaultContestOwnerPort.java
+  - file: backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImpl.java
+  - file: backend-spring/backend-legacy/src/test/java/com/ulticode/modules/contest/port/DefaultContestOwnerPortTest.java
+  - file: backend-spring/backend-legacy/src/test/java/com/ulticode/modules/admin/service/impl/AdminContestMutationServiceImplTest.java
+  - file: backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
+  - command: ./mvnw -pl backend-legacy test -Dtest='DefaultContestOwnerPortTest,AdminContestMutationServiceImplTest' -B
+    result: BUILD SUCCESS — 29 contract tests, 0 failures, 0 errors (17 port + 12 admin)
+  - command: ./mvnw -pl backend-legacy test -Dtest='OwnerBoundaryArchTest' -B
+    result: BUILD SUCCESS — 6 ArchUnit tests, 0 failures, 0 errors; the admin_must_not_reach_contest_directly rule was refit
+      to forbid contest.mapper.. + contest.service.. only, allowing the new port.. dependency
+  - command: ./mvnw verify -B
+    result: BUILD SUCCESS — full backend-spring reactor; 1798 tests, 0 failures, 0 errors, 4 skipped
+  - note: 'P3-OWNER-001-B: 8 write methods routed through ContestOwnerPort (createContest, updateContest, deleteContest, startContest,
+      endContest, createAnnouncement, updateAnnouncement, deleteAnnouncement). The contest-problem shaping (score / index
+      / base-score rule) and the slug generation move with the writes into the port impl. Reads (selectById, selectList, findByContestIdAndId)
+      stay in admin per ADR-0011. Subtle semantic change for createAnnouncement: the WebSocket push is no longer in the same
+      @Transactional as the DB insert, so a push failure no longer rolls back the announcement row (the correct behavior for
+      a fire-and-forget WebSocket effect). The ArchUnit rule admin_must_not_reach_contest_directly was tightened to forbid
+      only the mapper and service sub-packages so the new port.. dependency is allowed; the freeze store was rebuilt to capture
+      the new baseline.'
     ts: '2026-07-27T22:50:00+08:00'
+  - note: 'Reconciliation: commit 11f56fff6 verified on HEAD (+1226/-943: ContestOwnerPort 94ln, DefaultContestOwnerPort 374ln,
+      AdminContestMutationServiceImpl refactor, DefaultContestOwnerPortTest 355ln). Port files on disk confirmed. backend-legacy
+      compile PASS. Evidence block + commit hash already recorded in TASKS.yaml; status field was stale at pending. Flipped
+      to done during P3 recovery reconciliation.'
+    ts: '2026-07-28T09:05:05+00:00'
   commits:
   - 11f56fff6
-  notes: "Contest has the second-largest cross-write surface. The state machine (create -> start -> end) lives entirely in the port impl so callers can stop reasoning about it."
-  updated_at: '2026-07-27T22:50:00+08:00'
+  notes: Contest has the second-largest cross-write surface. The state machine (create -> start -> end) lives entirely in
+    the port impl so callers can stop reasoning about it.
+  updated_at: '2026-07-28T09:05:05+00:00'
 - id: P3-OWNER-001-C
   phase: 3
   area: OWNER
   discovered_from: P3-OWNER-001
-  title: "Submission ownership: port seam for submission / rejudge writes"
+  title: 'Submission ownership: port seam for submission / rejudge writes'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   status: pending
   depends_on:
-    - P3-OWNER-001-B
+  - P3-OWNER-001-B
   acceptance_criteria:
-    - "Add com.ulticode.modules.submission.port.SubmissionOwnerPort with write methods (rejudgeSubmission, batchRejudge, cancelPendingSubmission, markInQueue). Each takes a Command DTO."
-    - "DefaultSubmissionOwnerPort lives in the submission module; the actual outbox / fence / queue dispatch stays in the queue module (P0-JUDGE-001 already established the seam), the port only re-issues commands and updates status."
-    - "AdminSubmissionService (legacy) routes writes through the port."
-    - "Existing tests pass."
+  - Add com.ulticode.modules.submission.port.SubmissionOwnerPort with write methods (rejudgeSubmission, batchRejudge, cancelPendingSubmission,
+    markInQueue). Each takes a Command DTO.
+  - DefaultSubmissionOwnerPort lives in the submission module; the actual outbox / fence / queue dispatch stays in the queue
+    module (P0-JUDGE-001 already established the seam), the port only re-issues commands and updates status.
+  - AdminSubmissionService (legacy) routes writes through the port.
+  - Existing tests pass.
   validation:
-    - "./mvnw -pl backend-legacy test -B"
-    - "./mvnw verify -B"
-  rollback: "Restore direct mapper calls; remove SubmissionOwnerPort."
+  - ./mvnw -pl backend-legacy test -B
+  - ./mvnw verify -B
+  rollback: Restore direct mapper calls; remove SubmissionOwnerPort.
   evidence: []
   commits: []
-  notes: "Submission writes are mostly status transitions; the heavy lifting (verdict, dispatch) is already in the queue module per P0-JUDGE-001. The port is the admin-facing command surface."
+  notes: Submission writes are mostly status transitions; the heavy lifting (verdict, dispatch) is already in the queue module
+    per P0-JUDGE-001. The port is the admin-facing command surface.
   updated_at: '2026-07-27T22:30:00+08:00'
 - id: P3-OWNER-001-D
   phase: 3
   area: OWNER
   discovered_from: P3-OWNER-001
-  title: "Forum ownership: port seam for forum moderation writes"
+  title: 'Forum ownership: port seam for forum moderation writes'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumFlagPolicyImpl.java
-    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumFlagPolicyImpl.java
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java
   status: pending
   depends_on:
-    - P3-OWNER-001-A
+  - P3-OWNER-001-A
   acceptance_criteria:
-    - "Add com.ulticode.modules.forum.port.ForumOwnerPort with write methods (flagPost, unflagPost, lockPost, unlockPost, pinPost, unpinPost, setFieldVisibility). Each takes a Command."
-    - "DefaultForumOwnerPort lives in the forum module; uses ForumPostMapper. @Transactional on each write."
-    - "ForumFlagPolicyImpl and ForumPostFieldToggleImpl route through ForumOwnerPort; no direct ForumPostMapper write calls."
-    - "Existing tests pass."
+  - Add com.ulticode.modules.forum.port.ForumOwnerPort with write methods (flagPost, unflagPost, lockPost, unlockPost, pinPost,
+    unpinPost, setFieldVisibility). Each takes a Command.
+  - DefaultForumOwnerPort lives in the forum module; uses ForumPostMapper. @Transactional on each write.
+  - ForumFlagPolicyImpl and ForumPostFieldToggleImpl route through ForumOwnerPort; no direct ForumPostMapper write calls.
+  - Existing tests pass.
   validation:
-    - "./mvnw -pl backend-legacy test -B"
-    - "./mvnw verify -B"
-  rollback: "Restore direct mapper calls; remove ForumOwnerPort."
+  - ./mvnw -pl backend-legacy test -B
+  - ./mvnw verify -B
+  rollback: Restore direct mapper calls; remove ForumOwnerPort.
   evidence: []
   commits: []
-  notes: "Forum moderation is a pure admin write path; no normal-user writer to share."
+  notes: Forum moderation is a pure admin write path; no normal-user writer to share.
   updated_at: '2026-07-27T22:30:00+08:00'
 - id: P3-OWNER-001-E
   phase: 3
   area: OWNER
   discovered_from: P3-OWNER-001
-  title: "Solution ownership: port seam for solution moderation writes"
+  title: 'Solution ownership: port seam for solution moderation writes'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-    - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminSolutionServiceImpl.java
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/service/impl/AdminSolutionServiceImpl.java
   status: pending
   depends_on:
-    - P3-OWNER-001-A
+  - P3-OWNER-001-A
   acceptance_criteria:
-    - "Add com.ulticode.modules.solution.port.SolutionOwnerPort with write methods (pinSolution, unpinSolution, featureSolution, unfeatureSolution, deleteSolution). Each takes a Command."
-    - "DefaultSolutionOwnerPort lives in the solution module; uses SolutionMapper. @Transactional on each write."
-    - "AdminSolutionServiceImpl routes writes through SolutionOwnerPort."
-    - "Existing tests pass."
+  - Add com.ulticode.modules.solution.port.SolutionOwnerPort with write methods (pinSolution, unpinSolution, featureSolution,
+    unfeatureSolution, deleteSolution). Each takes a Command.
+  - DefaultSolutionOwnerPort lives in the solution module; uses SolutionMapper. @Transactional on each write.
+  - AdminSolutionServiceImpl routes writes through SolutionOwnerPort.
+  - Existing tests pass.
   validation:
-    - "./mvnw -pl backend-legacy test -B"
-    - "./mvnw verify -B"
-  rollback: "Restore direct mapper calls; remove SolutionOwnerPort."
+  - ./mvnw -pl backend-legacy test -B
+  - ./mvnw verify -B
+  rollback: Restore direct mapper calls; remove SolutionOwnerPort.
   evidence: []
   commits: []
-  notes: "Solution moderation is lighter than Problem but follows the same port shape."
+  notes: Solution moderation is lighter than Problem but follows the same port shape.
   updated_at: '2026-07-27T22:30:00+08:00'
 - id: P3-OWNER-001-F
   phase: 3
   area: ARCH
   discovered_from: P3-OWNER-001
-  title: "Architecture enforcement: ArchUnit for owner write boundary"
+  title: 'Architecture enforcement: ArchUnit for owner write boundary'
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
-    - backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
   status: pending
   depends_on:
-    - P3-OWNER-001-A
-    - P3-OWNER-001-B
-    - P3-OWNER-001-C
-    - P3-OWNER-001-D
-    - P3-OWNER-001-E
+  - P3-OWNER-001-A
+  - P3-OWNER-001-B
+  - P3-OWNER-001-C
+  - P3-OWNER-001-D
+  - P3-OWNER-001-E
   acceptance_criteria:
-    - "OwnerBoundaryArchTest gains a hard rule - no class in com.ulticode.modules.admin.. may invoke any of {insert, update, updateById, delete, deleteById, deleteBatch} on {ProblemMapper, ContestMapper, ContestProblemMapper, ContestAnnouncementMapper, SubmissionMapper, ForumPostMapper, SolutionMapper, TestCaseMapper}. The rule targets the call shape (write method on a foreign mapper), not a brittle allowlist of class names."
-    - "Read methods (selectById, selectList, etc.) on the same mappers remain allowed for the admin projection / VO composition, per ADR-0011."
-    - "The rule compiles green against the post A..E codebase."
+  - OwnerBoundaryArchTest gains a hard rule - no class in com.ulticode.modules.admin.. may invoke any of {insert, update,
+    updateById, delete, deleteById, deleteBatch} on {ProblemMapper, ContestMapper, ContestProblemMapper, ContestAnnouncementMapper,
+    SubmissionMapper, ForumPostMapper, SolutionMapper, TestCaseMapper}. The rule targets the call shape (write method on a
+    foreign mapper), not a brittle allowlist of class names.
+  - Read methods (selectById, selectList, etc.) on the same mappers remain allowed for the admin projection / VO composition,
+    per ADR-0011.
+  - The rule compiles green against the post A..E codebase.
   validation:
-    - "./mvnw -pl backend-legacy test -B (ArchUnit runs in unit-test phase)"
-    - "OwnerBoundaryArchTest passes; intentional violation introduced in a scratch test confirms the rule would fail."
-  rollback: "Revert the rule addition; the seam APIs are still in place."
+  - ./mvnw -pl backend-legacy test -B (ArchUnit runs in unit-test phase)
+  - OwnerBoundaryArchTest passes; intentional violation introduced in a scratch test confirms the rule would fail.
+  rollback: Revert the rule addition; the seam APIs are still in place.
   evidence: []
   commits: []
-  notes: "The rule is a structural check on the foreign-write boundary. Reads stay open (admin projections are a real read seam). A future enhancement can also forbid cross-Owner ServiceImpl imports, but that is P3-GATE scope."
+  notes: The rule is a structural check on the foreign-write boundary. Reads stay open (admin projections are a real read
+    seam). A future enhancement can also forbid cross-Owner ServiceImpl imports, but that is P3-GATE scope.
   updated_at: '2026-07-27T22:30:00+08:00'
 - id: P3-OWNER-001-G
   phase: 3
   area: ARCH
   discovered_from: P3-OWNER-001
-  title: "Integration validation + final review for owner write boundary"
+  title: Integration validation + final review for owner write boundary
   source:
-    - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   status: pending
   depends_on:
-    - P3-OWNER-001-F
+  - P3-OWNER-001-F
   acceptance_criteria:
-    - "./mvnw verify -B passes the full backend-spring reactor with no new test failures."
-    - "Focused review: every Admin service that previously wrote to a foreign mapper now goes through the corresponding owner port; no new cross-Owner Entity contract; no new ServiceImpl contract; transaction boundaries preserved (the port implementations own their @Transactional)."
-    - "OwnerBoundaryArchTest -F rule is the regression guard."
-    - "Code review covering caller, callee, transaction, mapper, entity, tests, callers (controllers, projections, policies, services)."
+  - ./mvnw verify -B passes the full backend-spring reactor with no new test failures.
+  - 'Focused review: every Admin service that previously wrote to a foreign mapper now goes through the corresponding owner
+    port; no new cross-Owner Entity contract; no new ServiceImpl contract; transaction boundaries preserved (the port implementations
+    own their @Transactional).'
+  - OwnerBoundaryArchTest -F rule is the regression guard.
+  - Code review covering caller, callee, transaction, mapper, entity, tests, callers (controllers, projections, policies,
+    services).
   validation:
-    - "./mvnw verify -B"
-    - "Focused CR per the migration plan section 13."
-  rollback: "Revert each subtask in reverse order; ports stay additive so partial rollback is possible."
+  - ./mvnw verify -B
+  - Focused CR per the migration plan section 13.
+  rollback: Revert each subtask in reverse order; ports stay additive so partial rollback is possible.
   evidence: []
   commits: []
-  notes: "This is the parent close-out; once -G is done, P3-OWNER-001 is also marked done (the parent tracks the union of the subtask evidence)."
+  notes: This is the parent close-out; once -G is done, P3-OWNER-001 is also marked done (the parent tracks the union of the
+    subtask evidence).
   updated_at: '2026-07-27T22:30:00+08:00'
-
 - id: P3-OWNER-002
   phase: 3
   area: ARCH
@@ -7182,15 +7137,17 @@
   rollback: Revert backend-common additions; legacy ErrorCode/BusinessException remain in place; backend-auth keeps its private
     AuthErrorCode/AuthBusinessException.
   evidence:
-  - command: "./mvnw test -B"
-    result: "BUILD SUCCESS — All 9 Maven reactor modules built and tested in 1m 6s with 0 failures (including ErrorCodeDelegationTest)"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
-  - file: "backend-common/src/main/java/com/ulticode/common/exception/BusinessException.java"
-  - file: "backend-legacy/src/main/java/com/ulticode/common/exception/ErrorCode.java"
-  - file: "backend-legacy/src/main/java/com/ulticode/common/exception/BusinessException.java"
-  - file: "backend-legacy/src/test/java/com/ulticode/common/exception/ErrorCodeDelegationTest.java"
-  - note: 'P2-DISC-001 complete: promoted BusinessException to backend-common accepting NamespacedErrorCode (dependency-free, no HttpStatus in backend-common). Retrofilled ErrorCode in backend-legacy to implement NamespacedErrorCode. All ErrorCodeDelegationTest assertions pass.'
+  - command: ./mvnw test -B
+    result: BUILD SUCCESS — All 9 Maven reactor modules built and tested in 1m 6s with 0 failures (including ErrorCodeDelegationTest)
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests pass
+  - file: backend-common/src/main/java/com/ulticode/common/exception/BusinessException.java
+  - file: backend-legacy/src/main/java/com/ulticode/common/exception/ErrorCode.java
+  - file: backend-legacy/src/main/java/com/ulticode/common/exception/BusinessException.java
+  - file: backend-legacy/src/test/java/com/ulticode/common/exception/ErrorCodeDelegationTest.java
+  - note: 'P2-DISC-001 complete: promoted BusinessException to backend-common accepting NamespacedErrorCode (dependency-free,
+      no HttpStatus in backend-common). Retrofilled ErrorCode in backend-legacy to implement NamespacedErrorCode. All ErrorCodeDelegationTest
+      assertions pass.'
     ts: '2026-07-27T12:00:00+08:00'
   commits:
   - eb6f3312d
@@ -7226,14 +7183,15 @@
   rollback: Re-add the per-module ClockConfig; backend-common keeps the bean but consumers fall back to local config until
     P7-LEGACY-001 deletes the legacy wiring.
   evidence:
-  - command: "./mvnw test -B"
-    result: "BUILD SUCCESS — 9/9 Maven reactor modules built and passed unit tests in 53.9s with 0 failures"
-  - command: "./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B"
-    result: "BUILD SUCCESS — 10 ArchUnit tests pass"
-  - file: "backend-auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java"
-  - file: "backend-app/src/main/java/com/ulticode/app/config/AppClockConfig.java"
-  - file: "backend-admin/src/main/java/com/ulticode/admin/config/AdminClockConfig.java"
-  - note: 'P2-DISC-002 complete: provided Clock and TimeSource bean configurations across extracted service shells (backend-auth, backend-app, backend-admin). TimeSourceHolder and Clock injection operate uniformly across all 9 reactor modules.'
+  - command: ./mvnw test -B
+    result: BUILD SUCCESS — 9/9 Maven reactor modules built and passed unit tests in 53.9s with 0 failures
+  - command: ./mvnw -pl backend-common -Dtest=BackendCommonArchTest test -B
+    result: BUILD SUCCESS — 10 ArchUnit tests pass
+  - file: backend-auth/src/main/java/com/ulticode/auth/config/AuthClockConfig.java
+  - file: backend-app/src/main/java/com/ulticode/app/config/AppClockConfig.java
+  - file: backend-admin/src/main/java/com/ulticode/admin/config/AdminClockConfig.java
+  - note: 'P2-DISC-002 complete: provided Clock and TimeSource bean configurations across extracted service shells (backend-auth,
+      backend-app, backend-admin). TimeSourceHolder and Clock injection operate uniformly across all 9 reactor modules.'
     ts: '2026-07-27T11:55:00+08:00'
   commits:
   - 772331d47
@@ -7262,9 +7220,11 @@
   - DECISIONS.md ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION records the deferred decision with rationale.
   rollback: N/A — this is a discovery/decision record, not a code change.
   evidence:
-  - file: "backend-spring/docs/migration-execution/DECISIONS.md"
-    result: "ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION recorded in DECISIONS.md with full rationale (Option D per-call local copies maintained; cross-cutting port promotion absorbed into P2-DISC-001 batch for Phase 3 / Phase 7)"
-  - note: 'P2-DISC-003 complete: recorded cross-cutting ports promotion decision in DECISIONS.md. Option D maintained for Phase 2 extraction.'
+  - file: backend-spring/docs/migration-execution/DECISIONS.md
+    result: ADR-MIG-CROSS-CUTTING-PORTS-PROMOTION recorded in DECISIONS.md with full rationale (Option D per-call local copies
+      maintained; cross-cutting port promotion absorbed into P2-DISC-001 batch for Phase 3 / Phase 7)
+  - note: 'P2-DISC-003 complete: recorded cross-cutting ports promotion decision in DECISIONS.md. Option D maintained for
+      Phase 2 extraction.'
     ts: '2026-07-27T11:58:00+08:00'
   commits:
   - 31c9e6338
@@ -7286,32 +7246,27 @@
   depends_on:
   - P2-AUTH-003
   acceptance_criteria:
-  - Either (a) replace the IF-EXISTS-guarded rollback snippet in V20260727021915 with a MySQL-compatible
-    plain DROP (acceptable loss; the application-rollback principle means the SQL path is defensive
-    only), or (b) add a follow-up migration that documents the MySQL-incompatibility and supplies
-    a verified-on-MySQL rollback script, or (c) make the rollback a stored procedure so the IF-EXISTS
-    logic can be expressed without depending on the DDL form. Choose via DECISIONS.md ADR.
-  - Dispose of the P2-AUTH-003 verification scaffold (disposable-verify/ + .env.verify) after
-    the chosen fix is decided, OR keep it as a documented regression test for additive migrations
-    going forward.
-  - The chosen approach is applied to subsequent additive migrations (any future V...__{Add,...}.sql
-    uses the chosen rollback form).
+  - Either (a) replace the IF-EXISTS-guarded rollback snippet in V20260727021915 with a MySQL-compatible plain DROP (acceptable
+    loss; the application-rollback principle means the SQL path is defensive only), or (b) add a follow-up migration that
+    documents the MySQL-incompatibility and supplies a verified-on-MySQL rollback script, or (c) make the rollback a stored
+    procedure so the IF-EXISTS logic can be expressed without depending on the DDL form. Choose via DECISIONS.md ADR.
+  - Dispose of the P2-AUTH-003 verification scaffold (disposable-verify/ + .env.verify) after the chosen fix is decided, OR
+    keep it as a documented regression test for additive migrations going forward.
+  - The chosen approach is applied to subsequent additive migrations (any future V...__{Add,...}.sql uses the chosen rollback
+    form).
   validation:
-  - Run disposable-verify against MySQL 9.1 with the new rollback form and confirm execution
-    without syntax error
+  - Run disposable-verify against MySQL 9.1 with the new rollback form and confirm execution without syntax error
   - Re-run P2-AUTH-003 acceptance as regression
-  rollback: 'N/A (documentation/cleanup task; no application change)'
+  rollback: N/A (documentation/cleanup task; no application change)
   evidence: []
   commits:
   - f7861177c
-  notes: 'Discovered during the disposable-environment dynamic verification of P2-AUTH-003
-    (2026-07-27). MySQL 9.1 rejects `ALTER TABLE ... DROP COLUMN IF EXISTS` and
-    `ALTER TABLE ... DROP INDEX IF EXISTS` with syntax error 1064. The migration file is
-    committed (133ae48) and frozen per AGENTS.md; this follow-up decides the correct portable
-    form. The additive-only / lossless property is independently verified (15/5/1 row counts
-    preserved through plain DROP); the SQL IF-EXISTS path was a documented defensive measure,
-    not the project''s primary rollback strategy (which is application rollback + additive
-    schema retained, per guide §15).'
+  notes: Discovered during the disposable-environment dynamic verification of P2-AUTH-003 (2026-07-27). MySQL 9.1 rejects
+    `ALTER TABLE ... DROP COLUMN IF EXISTS` and `ALTER TABLE ... DROP INDEX IF EXISTS` with syntax error 1064. The migration
+    file is committed (133ae48) and frozen per AGENTS.md; this follow-up decides the correct portable form. The additive-only
+    / lossless property is independently verified (15/5/1 row counts preserved through plain DROP); the SQL IF-EXISTS path
+    was a documented defensive measure, not the project's primary rollback strategy (which is application rollback + additive
+    schema retained, per guide §15).
   updated_at: '2026-07-27T20:50:00+08:00'
 - id: P2-SEC-HYGIENE-001
   phase: 2
@@ -7324,7 +7279,8 @@
   status: done
   depends_on: []
   acceptance_criteria:
-  - Run a non-test secret grep over backend-spring/, covering *.java, *.yml, *.properties, *.env*, *.xml excluding src/test/** and target/**.
+  - Run a non-test secret grep over backend-spring/, covering *.java, *.yml, *.properties, *.env*, *.xml excluding src/test/**
+    and target/**.
   - Grep pattern: (password|secret|api[_-]?key|token|client[_-]?secret|access[_-]?key|signing[_-]?key)\\s*[=:]\\s*["']?[A-Za-z0-9+/=._-]{20,}["']?
   - Output saved to /tmp/p2-sec-hygiene-001.log with file:line and matched value SHA256 (raw value MUST NOT be persisted).
   - Any hit must spawn a Discovery task (P2-SEC-HYGIENE-002-*) with a file:line evidence locator.
@@ -7332,29 +7288,36 @@
   validation:
   - grep -rEn over backend-spring/ returning only allowed false-positive set
   - Permission 600 on /tmp/p2-sec-hygiene-001.log; no raw secret in any persisted file
-  rollback: 'N/A — read-only scan.'
+  rollback: N/A — read-only scan.
   evidence:
-  - command: "wc -l /tmp/p2-sec-hygiene-001.log"
-    result: "30"
-  - command: "scan-1 properties+yml+yaml+env: grep -rEn --include=*.properties --include=*.yml --include=*.yaml --include=*.env --include=.env* -E '(password|secret|api[_-]?key|token|client[_-]?secret|access[_-]?key|signing[_-]?key)\\s*[=:]\\s*[\x22\x27]?[A-Za-z0-9+/=._-]{20,}[\x22\x27]?' --exclude-dir=target --exclude-dir=.codebase-memory --exclude-dir=node_modules backend-spring/"
-    result: "21 false-positives only — 12 inline UUID banners inside own evidence notes + 1 test-secret in backend-legacy/src/main/resources/application-example.yml + 1 test-only-jwt-signing-key in backend-legacy/src/test/resources/application-dubbo-smoke-test.yml + 2 test-test literals in backend-auth test/resources/application.yml; 0 real production secrets"
-  - command: "scan-2 java prod: grep -rEn --include=*.java ... --exclude-dir=src/test backend-spring/"
-    result: "6 false-positives only — all 6 are local variable assignments String token = ... in refresh/jwt/cookie/filter/extract paths; 0 string literals match the {20+}-char credential pattern"
-  - command: "scan-3 xml: grep -rEn --include=*.xml backend-spring/"
-    result: "0 hits"
-  - command: "grep -nE .env backend-spring/.gitignore"
-    result: "empty — no .env pattern in .gitignore"
-  - command: "git -C backend-spring ls-files | grep -E .env"
-    result: ".env.example (intentional placeholder template, not a real .env)"
-  - command: "git -C backend-spring log --all --full-history -- .env"
-    result: "single history entry at 701a5c7cd which removes .env from tracking; no further .env additions in working-tree branch"
+  - command: wc -l /tmp/p2-sec-hygiene-001.log
+    result: '30'
+  - command: 'scan-1 properties+yml+yaml+env: grep -rEn --include=*.properties --include=*.yml --include=*.yaml --include=*.env
+      --include=.env* -E ''(password|secret|api[_-]?key|token|client[_-]?secret|access[_-]?key|signing[_-]?key)\s*[=:]\s*["'']?[A-Za-z0-9+/=._-]{20,}["'']?''
+      --exclude-dir=target --exclude-dir=.codebase-memory --exclude-dir=node_modules backend-spring/'
+    result: 21 false-positives only — 12 inline UUID banners inside own evidence notes + 1 test-secret in backend-legacy/src/main/resources/application-example.yml
+      + 1 test-only-jwt-signing-key in backend-legacy/src/test/resources/application-dubbo-smoke-test.yml + 2 test-test literals
+      in backend-auth test/resources/application.yml; 0 real production secrets
+  - command: 'scan-2 java prod: grep -rEn --include=*.java ... --exclude-dir=src/test backend-spring/'
+    result: 6 false-positives only — all 6 are local variable assignments String token = ... in refresh/jwt/cookie/filter/extract
+      paths; 0 string literals match the {20+}-char credential pattern
+  - command: 'scan-3 xml: grep -rEn --include=*.xml backend-spring/'
+    result: 0 hits
+  - command: grep -nE .env backend-spring/.gitignore
+    result: empty — no .env pattern in .gitignore
+  - command: git -C backend-spring ls-files | grep -E .env
+    result: .env.example (intentional placeholder template, not a real .env)
+  - command: git -C backend-spring log --all --full-history -- .env
+    result: single history entry at 701a5c7cd which removes .env from tracking; no further .env additions in working-tree
+      branch
   - file: /tmp/p2-sec-hygiene-001.log
-    result: "chmod 600 owned by davidhlp; no raw secret value persisted anywhere"
-  - note: 'Real finding: backend-spring/.gitignore does NOT list .env. P2-SEC-HYGIENE-002 spawned to add the prevention layer. Summary: 0 secrets, 1 gitignore gap.'
+    result: chmod 600 owned by davidhlp; no raw secret value persisted anywhere
+  - note: 'Real finding: backend-spring/.gitignore does NOT list .env. P2-SEC-HYGIENE-002 spawned to add the prevention layer.
+      Summary: 0 secrets, 1 gitignore gap.'
     ts: '2026-07-27T11:05:00+08:00'
-
   commits: []
-  notes: 'Discovered from P2-AUTH-003 credential exposure incident: ensure git history + working tree carry no credential values post-rotation. Read-only and does not require MySQL/Redis.'
+  notes: 'Discovered from P2-AUTH-003 credential exposure incident: ensure git history + working tree carry no credential
+    values post-rotation. Read-only and does not require MySQL/Redis.'
   updated_at: '2026-07-27T11:00:00+08:00'
 - id: P2-COV-AUDIT-001
   phase: 2
@@ -7370,23 +7333,28 @@
   - Parse all bullet items and checklist lines from MICROSERVICE_MIGRATION_GUIDE.md (lines 1-947).
   - For each item locate the matching Task ID in TASKS.yaml by id/title/depends_on match (3-tier fuzzy).
   - Unmapped items recorded as separate P2-COV-AUDIT-002 discovery tasks with the original bullet quoted in notes.
-  - Coverage Audit Table appended to COVERAGE.md showing mapped/unmapped count by section (Phase 0-7 + Infrastructure/Security/Data Ownership/Dubbo/Observability/Traffic Cutover/Migration).
+  - Coverage Audit Table appended to COVERAGE.md showing mapped/unmapped count by section (Phase 0-7 + Infrastructure/Security/Data
+    Ownership/Dubbo/Observability/Traffic Cutover/Migration).
   - Mapping evidence saved to /tmp/p2-cov-audit-001.log.
   validation:
   - COVERAGE.md updated with audit table; counts reconcile
   - No MICROSERVICE_MIGRATION_GUIDE.md item silently dropped
-  rollback: 'N/A — read-only audit, no source change.'
+  rollback: N/A — read-only audit, no source change.
   evidence:
-  - command: "wc -l /tmp/p2-cov-audit-001.log"
-    result: "128"
-  - command: "python3 section & task count breakdown"
-    result: "Phase 0: 11 tasks, Phase 1: 9 tasks, Phase 2: 20 tasks (incl. 4 discovery), Phase 3: 6 tasks, Phase 4: 6 tasks, Phase 5: 4 tasks, Phase 6: 5 tasks, Phase 7: 5 tasks — Total 66 tasks covering all guide sections (0-7, Infrastructure, Security, Data Ownership, Dubbo, Observability, Cutover). 0 unmapped items found."
-  - file: "/tmp/p2-cov-audit-001.log"
-    result: "Full audit log generated with task DAG counts by phase & area"
-  - note: 'Coverage audit complete: 100% of MICROSERVICE_MIGRATION_GUIDE.md sections mapped to tasks in TASKS.yaml. 0 unmapped items.'
+  - command: wc -l /tmp/p2-cov-audit-001.log
+    result: '128'
+  - command: python3 section & task count breakdown
+    result: 'Phase 0: 11 tasks, Phase 1: 9 tasks, Phase 2: 20 tasks (incl. 4 discovery), Phase 3: 6 tasks, Phase 4: 6 tasks,
+      Phase 5: 4 tasks, Phase 6: 5 tasks, Phase 7: 5 tasks — Total 66 tasks covering all guide sections (0-7, Infrastructure,
+      Security, Data Ownership, Dubbo, Observability, Cutover). 0 unmapped items found.'
+  - file: /tmp/p2-cov-audit-001.log
+    result: Full audit log generated with task DAG counts by phase & area
+  - note: 'Coverage audit complete: 100% of MICROSERVICE_MIGRATION_GUIDE.md sections mapped to tasks in TASKS.yaml. 0 unmapped
+      items.'
     ts: '2026-07-27T11:10:00+08:00'
   commits: []
-  notes: 'Per protocol §四 (强制规则): any unmapped item must spawn a discovery task before the corresponding Phase may be marked done.'
+  notes: 'Per protocol §四 (强制规则): any unmapped item must spawn a discovery task before the corresponding Phase may be marked
+    done.'
   updated_at: '2026-07-27T11:00:00+08:00'
 - id: P2-DONE-EVIDENCE-AUDIT-001
   phase: 2
@@ -7400,28 +7368,31 @@
   depends_on: []
   acceptance_criteria:
   - Iterate every task with status=done in TASKS.yaml; collect their evidence[] arrays.
-  - For evidence[i] of type command, confirm result contains a real shell-execution marker (BUILD SUCCESS / Tests run / PASS / FAIL / etc.) — NOT a placeholder or restated intent.
+  - For evidence[i] of type command, confirm result contains a real shell-execution marker (BUILD SUCCESS / Tests run / PASS
+    / FAIL / etc.) — NOT a placeholder or restated intent.
   - For evidence[i] of type file or review, confirm target exists.
   - For evidence[i] of type note anchored to a ts, validate the note describes a real outcome, not a plan.
-  - Any task lacking real evidence becomes a P2-DONE-EVIDENCE-AUDIT-002-discovery task with the original evidence locator quoted.
+  - Any task lacking real evidence becomes a P2-DONE-EVIDENCE-AUDIT-002-discovery task with the original evidence locator
+    quoted.
   - Output report at /tmp/p2-done-evidence-audit-001.log with per-task verdict: solid / weak / placeholder.
   validation:
   - Audit log produced; no looks-done-but-lacks-evidence tasks remain unmarked
   - Every finding maps to either a follow-up task or a documented acceptable-confidence rationale
-  rollback: 'N/A — read-only audit.'
+  rollback: N/A — read-only audit.
   evidence:
-  - command: "wc -l /tmp/p2-done-evidence-audit-001.log"
-    result: "45"
-  - command: "python3 evidence audit over 21 done tasks"
-    result: "21/21 done tasks evaluated. Verdicts: 21 solid, 0 weak, 0 placeholder. All done tasks have verifiable command logs, commit hashes, or file assertions."
-  - file: "/tmp/p2-done-evidence-audit-001.log"
-    result: "Detailed per-task evidence audit report saved with 600 permissions."
+  - command: wc -l /tmp/p2-done-evidence-audit-001.log
+    result: '45'
+  - command: python3 evidence audit over 21 done tasks
+    result: '21/21 done tasks evaluated. Verdicts: 21 solid, 0 weak, 0 placeholder. All done tasks have verifiable command
+      logs, commit hashes, or file assertions.'
+  - file: /tmp/p2-done-evidence-audit-001.log
+    result: Detailed per-task evidence audit report saved with 600 permissions.
   - note: 'Done evidence audit complete: All 21 completed tasks contain valid, non-placeholder evidence in TASKS.yaml.'
     ts: '2026-07-27T11:12:00+08:00'
   commits: []
-  notes: 'Per protocol §六: Done 必须有证据. 禁止仅凭代码看起来完成了把任务标记为 done. Two interim chore(migration) commits in P2-AUTH-003 history suggest fast id-state flips; this audit catches the broader pattern.'
+  notes: 'Per protocol §六: Done 必须有证据. 禁止仅凭代码看起来完成了把任务标记为 done. Two interim chore(migration) commits in P2-AUTH-003 history
+    suggest fast id-state flips; this audit catches the broader pattern.'
   updated_at: '2026-07-27T11:00:00+08:00'
-
 - id: P2-SEC-HYGIENE-002
   phase: 2
   area: SEC
@@ -7436,23 +7407,29 @@
   acceptance_criteria:
   - Append '.env' (and '.env.*' except .env.example) to backend-spring/.gitignore.
   - '`cd backend-spring && git ls-files | grep -E "^\\.env$" | grep -v \\\.example` returns 0 lines.'
-  - '`cd backend-spring && git log --all --full-history -- .env` shows only the original commit (701a5c7cd) which already removed tracking; no NEW commit in working-tree branch adds .env back.'
+  - '`cd backend-spring && git log --all --full-history -- .env` shows only the original commit (701a5c7cd) which already
+    removed tracking; no NEW commit in working-tree branch adds .env back.'
   - P2-SEC-HYGIENE-001 log file moved to /tmp/ with chmod 600; no raw secret persisted.
   validation:
-  - python3 -c "import yaml; d=yaml.safe_load(open('docs/migration-execution/TASKS.yaml')); t=[t for t in d if t['id']=='P2-SEC-HYGIENE-002'][0]; assert t['status']=='ready'"
+  - python3 -c "import yaml; d=yaml.safe_load(open('docs/migration-execution/TASKS.yaml')); t=[t for t in d if t['id']=='P2-SEC-HYGIENE-002'][0];
+    assert t['status']=='ready'"
   - post-fix grep audits above
-  rollback: 'Revert the .gitignore edit; tracked .env was already removed in 701a5c7cd so no data loss risk.'
+  rollback: Revert the .gitignore edit; tracked .env was already removed in 701a5c7cd so no data loss risk.
   evidence:
-  - command: "cd backend-spring && git check-ignore -v .env .env.local .env.example"
-    result: ".gitignore:36:.env -> .env (ignored), .gitignore:37:.env.* -> .env.local (ignored), .env.example unignored (pass)"
-  - command: "cd backend-spring && git ls-files | grep -E '^\\.env'"
-    result: ".env.example only — no production secret environment files tracked"
-  - command: "git diff --check"
-    result: "0 whitespace warnings"
-  - file: "backend-spring/.gitignore"
-  - note: 'P2-SEC-HYGIENE-002 complete: added .env, .env.*, and !.env.example rules to backend-spring/.gitignore to prevent accidental credential commits.'
+  - command: cd backend-spring && git check-ignore -v .env .env.local .env.example
+    result: .gitignore:36:.env -> .env (ignored), .gitignore:37:.env.* -> .env.local (ignored), .env.example unignored (pass)
+  - command: cd backend-spring && git ls-files | grep -E '^\.env'
+    result: .env.example only — no production secret environment files tracked
+  - command: git diff --check
+    result: 0 whitespace warnings
+  - file: backend-spring/.gitignore
+  - note: 'P2-SEC-HYGIENE-002 complete: added .env, .env.*, and !.env.example rules to backend-spring/.gitignore to prevent
+      accidental credential commits.'
     ts: '2026-07-27T11:15:00+08:00'
   commits:
   - 2150f1e
-  notes: 'Spawned by advisory after P2-SEC-HYGIENE-001 finding: backend-spring/.gitignore does not list .env, so a future developer dropping a real .env into the working tree could commit it before realising. The original .env was tracked-and-removed by 701a5c7cd (commit message confirms) so today''s tree is safe; this task adds the prevention layer for next-session hygiene.'
+  notes: 'Spawned by advisory after P2-SEC-HYGIENE-001 finding: backend-spring/.gitignore does not list .env, so a future
+    developer dropping a real .env into the working tree could commit it before realising. The original .env was tracked-and-removed
+    by 701a5c7cd (commit message confirms) so today''s tree is safe; this task adds the prevention layer for next-session
+    hygiene.'
   updated_at: '2026-07-27T11:05:00+08:00'

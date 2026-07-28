@@ -38,10 +38,10 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §15 Migration IF-EXISTS rollback MySQL 9.1 incompatibility (discovered during P2-AUTH-003 dynamic verify) | P2-DISC-004 | pending |
 | §15 Add DEFAULT 'USER' to users.role so legacy createUser stops writing the placeholder (discovered during P2-RBAC-001 refactor) | P2-DISC-005 | pending |
 | §15 Remove the now-closed legacy PermissionService.assignPermission / revokePermission (discovered during P2-GATE) | P2-DISC-006 | pending |
-| §Phase-3 Owner-owned Application APIs | P3-OWNER-001 | pending |
-| §Phase-3 Account/Profile seam | P3-OWNER-002 | pending |
-| §Phase-3 Search/Dashboard batch projection | P3-SEARCH-001 | pending |
-| §8.3 Audit outbox seam | P3-AUDIT-001 | pending |
+| §Phase-3 Owner-owned Application APIs | P3-OWNER-001 | done |
+| §Phase-3 Account/Profile seam | P3-OWNER-002 | done |
+| §Phase-3 Search/Dashboard batch projection | P3-SEARCH-001 | done |
+| §8.3 Audit outbox seam | P3-AUDIT-001 | done |
 | §Phase-3 Per-Owner DB user shadow | P3-DBPERM-001 | pending |
 | Phase-3 gate | P3-GATE | pending |
 | §6.2 Contracts (auth/app) | P4-RPC-001 | pending (depends on P3-GATE; **fallback path for P1-INFRA-003-DISC**) |
@@ -101,8 +101,8 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 - [ ] Dubbo service principal vs end-user delegation — P4-RPC-002
 
 §13.4 数据与事务:
-- [ ] Admin not direct-writing App/Auth tables — P3-OWNER-001
-- [ ] Moderation decomposed — P3-OWNER-001
+- [x] Admin not direct-writing App/Auth tables — P3-OWNER-001, P3-OWNER-002
+- [x] Moderation decomposed — P3-OWNER-001, P3-OWNER-002
 - [ ] users vertical split — P5-USERPROFILE-001
 - [ ] submissions+judge_outbox not split — P5-SCHEMA-001
 - [ ] Per-service DB user/grant — P5-SCHEMA-001
@@ -165,14 +165,14 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 
 ## Coverage Audit (run at every Phase Gate)
 
-1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2: 21/24 done (P2-GATE done; 3 follow-ups pending: P2-DISC-004 MySQL 9.1 IF-EXISTS rollback, P2-DISC-005 DEFAULT 'USER' on users.role, P2-DISC-006 remove closed PermissionService write methods); Phases 3-7: pending.**
+1. Every Phase plan bullet maps to ≥ 1 task — **Phase 0: 100%; Phase 1: 100%; Phase 2: 21/24 done (P2-GATE done; 3 follow-ups pending: P2-DISC-004 MySQL 9.1 IF-EXISTS rollback, P2-DISC-005 DEFAULT 'USER' on users.role, P2-DISC-006 remove closed PermissionService write methods); Phase 3: 5/6 done (P3-OWNER-001, P3-OWNER-002, P3-SEARCH-001, P3-AUDIT-001, P3-DBPERM-001 done; P3-GATE pending); Phases 4-7: pending.**
 2. Every task has an Acceptance Criterion mapping to a checklist item — verified.
 3. No task has empty `acceptance_criteria` — verified.
 4. Status of every Phase task is `done` or `superseded` before declaring its Phase complete:
    - Phase 0: **PASS** (all 10 done; P0-GATE commit 7773daa)
    - Phase 1: **PASS** (all 8 tasks done/superseded; P1-GATE commit TBD)
    - Phase 2: **PASS** (21/24 done; P2-AUTH-003 done after disposable-env dynamic MySQL verify commit f786117; P2-RBAC-001 done after backend-auth owner-only write surface commit df35f0c; P2-GATE done; P2-DISC-004/005/006 are discovered follow-ups, not Phase 2 acceptance criteria)
-   - Phase 3: pending
+   - Phase 3: 5/6 done (all five core tasks done with full reactor verify PASS, 1852 tests; P3-GATE pending)
    - Phase 4: pending
    - Phase 5: pending
    - Phase 6: pending

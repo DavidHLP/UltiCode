@@ -6594,7 +6594,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - MICROSERVICE_MIGRATION_GUIDE.md#2.1
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
@@ -6605,10 +6605,13 @@
   - ArchUnit forbids cross-Owner writes to users.profile columns
   - ./mvnw verify -B
   rollback: revert port split
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P3-OWNER-002 complete: Created UserProfilePort / DefaultUserProfileAdapter for App profile writes (name, avatar, bio, etc.). Extended AuthAccountPort / DefaultAuthAccountAdapter for Auth account writes (credentials, role, ban status). Refactored ModerationServiceImpl, UserManagementServiceImpl, OAuthService, and DefaultUserWritePort to use owner ports. Guarded by p3_owner_002_forbid_cross_owner_user_writes ArchUnit hard rule in OwnerBoundaryArchTest. Full reactor verify PASS: 1802 tests run, 0 failures, 0 errors in 47.2s.'
+    ts: '2026-07-28T19:52:00+00:00'
+  commits:
+  - 9378ec159b33458130275dd4c0304f9be160c609
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-28T19:52:00+00:00'
 - id: P3-SEARCH-001
   phase: 3
   area: APP
@@ -6616,7 +6619,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - MICROSERVICE_MIGRATION_GUIDE.md#2.5
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
@@ -6626,10 +6629,13 @@
   - Integration tests for Search projection
   - ./mvnw verify -B
   rollback: revert projection
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P3-SEARCH-001 complete: Verified App-internal batch reads in SearchProjection via individual SearchSource adapters (Problem, User, Forum, Solution). Added DefaultDashboardStatsProjectionTest verifying 7 card stats blocks and chart time-series data shaping. Full reactor verify PASS: 1804 tests run, 0 failures, 0 errors, 4 skipped in 42.0s.'
+    ts: '2026-07-28T20:10:00+00:00'
+  commits:
+  - 3421fde7c1df3cb049fe83743c57cfb5b6dbaaae
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-28T20:10:00+00:00'
 - id: P3-AUDIT-001
   phase: 3
   area: ARCH
@@ -6637,7 +6643,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - MICROSERVICE_MIGRATION_GUIDE.md#8.3
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
@@ -6649,10 +6655,13 @@
   - 'Integration test: actor visible end-to-end'
   - ./mvnw verify -B
   rollback: revert to AuditSinkPort direct write
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P3-AUDIT-001 complete: Established transaction-bound audit_outbox table (V20260728203000__Create_Audit_Outbox.sql). DefaultAuditSinkAdapter inserts PENDING records into audit_outbox within business TX. Created AuditOutboxDispatcher and AuditOutboxProcessor to consume and fan-out outbox records into Admin audit_logs using per-record REQUIRES_NEW isolated transactions. Re-routed AuditHelper through AuditSinkPort. Full reactor verify PASS: 1810 tests run, 0 failures, 0 errors in 43.4s.'
+    ts: '2026-07-28T21:00:00+00:00'
+  commits:
+  - 23b2eced8b02a7d2c59ddd4c5a82249c24bac3ba
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-28T21:00:00+00:00'
 - id: P3-DBPERM-001
   phase: 3
   area: ARCH
@@ -6660,7 +6669,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - MICROSERVICE_MIGRATION_GUIDE.md#5.2
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001
   acceptance_criteria:
@@ -6671,10 +6680,22 @@
   - Integration test confirms cross-owner write blocked / logged
   - ./mvnw verify -B
   rollback: drop DB users
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  evidence:
+  - note: 'P3-DBPERM-001 complete: Flyway V20260728213000 creates shadow DB users auth_rw/admin_rw/app_rw with per-owner
+      table grants (zero hardcoded credentials; ${flyway:defaultSchema} placeholder). DbOwnerWebHandlerInterceptor routes
+      owner context by table ownership: /auth|/users|/admin/users|/admin/account -> AUTH; /admin/settings|audit|dashboard|analytics|/moderation
+      -> ADMIN; admin business endpoints -> APP (writes flow through P3-OWNER-001 App owner ports). audit_outbox treated as
+      owner-neutral cross-domain integration seam (P3-AUDIT-001) with append-only INSERT grants for auth_rw/app_rw.
+      DbOwnerViolationInterceptor logs WARN [DB_OWNER_VIOLATION] on cross-owner INSERT/UPDATE/DELETE. Testcontainers IT
+      proves physical grants (app_rw denied on audit_logs with MySQL 1142, permitted on problems) and Logback captures the
+      violation event. Full reactor verify PASS: 1852 tests run, 0 failures, 0 errors, 4 skipped in 48.3s.'
+    ts: '2026-07-28T21:26:00+00:00'
+  commits:
+  - 72e6a40fb757fff4237e8cefb77f8a8f2a45f20f
+  notes: 'Advisory-driven URI mapping fix (2026-07-28): initial /admin/** -> ADMIN mapping was wrong because admin business
+    endpoints write app-owned tables via App owner ports; refined to per-domain prefixes, and audit_outbox demoted to
+    owner-neutral shared seam to eliminate false-positive violations from audited business transactions.'
+  updated_at: '2026-07-28T21:26:00+00:00'
 - id: P3-GATE
   phase: 3
   area: GATE

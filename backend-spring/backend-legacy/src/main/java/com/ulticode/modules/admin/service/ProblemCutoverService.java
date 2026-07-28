@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  * P4-CUTOVER-001: feature-flagged routing adapter for problem
  * create/update/publish/unpublish.
  *
- * <p>When {@code app.cutover.problem.dubbo-enabled=false} (default), the
+ * <p>When {@code app.features.problem-dubbo-cutover=false} (default), the
  * adapter delegates directly to the local {@link ProblemService} — zero
  * behavioral change from Phase 3. When the flag is flipped to {@code true},
  * the write goes through the Dubbo {@link ProblemAdministrationService}

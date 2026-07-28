@@ -6413,21 +6413,34 @@
   depends_on:
   - P3-OWNER-001-B
   acceptance_criteria:
-  - Add com.ulticode.modules.submission.port.SubmissionOwnerPort with write methods (rejudgeSubmission, batchRejudge, cancelPendingSubmission,
-    markInQueue). Each takes a Command DTO.
-  - DefaultSubmissionOwnerPort lives in the submission module; the actual outbox / fence / queue dispatch stays in the queue
-    module (P0-JUDGE-001 already established the seam), the port only re-issues commands and updates status.
-  - AdminSubmissionService (legacy) routes writes through the port.
-  - Existing tests pass.
+  - Add com.ulticode.modules.submission.port.SubmissionOwnerPort exposing rejudge(id, notifyUser) and batchRejudge(ids, notifyUser).
+    These are the only admin-facing submission write operations; cancelPendingSubmission and markInQueue listed in the original
+    task description do not exist in the codebase (verified by exhaustive grep — see note).
+  - DefaultSubmissionOwnerPort lives in com.ulticode.modules.submission.port and delegates to the existing RejudgePolicy (submission
+    module). It does NOT re-implement the fence/outbox logic — that stays in DefaultRejudgePolicy (P0-JUDGE-001 / ADR-003).
+    The port is a thin owner-boundary facade so admin depends on submission.port.. rather than submission.policy... Each method
+    is @Transactional.
+  - AdminSubmissionServiceImpl stops importing com.ulticode.modules.submission.policy.RejudgePolicy and instead depends on
+    submission.port.SubmissionOwnerPort. The rejudge/batchRejudge method bodies delegate to the port.
+  - AdminSubmissionServiceImpl no longer imports submission.entity.Submission across the write path (the port returns RejudgeResult
+    directly; the entity read stays via AdminSubmissionReadPort which is a read seam, not affected).
+  - All existing AdminSubmissionServiceImpl tests still pass; a new DefaultSubmissionOwnerPortTest covers the delegation contract
+    (port forwards to RejudgePolicy; not-found submission returns a failed RejudgeResult).
   validation:
   - ./mvnw -pl backend-legacy test -B
   - ./mvnw verify -B
   rollback: Restore direct mapper calls; remove SubmissionOwnerPort.
   evidence: []
   commits: []
-  notes: Submission writes are mostly status transitions; the heavy lifting (verdict, dispatch) is already in the queue module
-    per P0-JUDGE-001. The port is the admin-facing command surface.
-  updated_at: '2026-07-27T22:30:00+08:00'
+  notes: 'RESCOPED 2026-07-28 during P3 recovery: the original acceptance criteria listed 4 methods (rejudgeSubmission, batchRejudge,
+    cancelPendingSubmission, markInQueue). Exhaustive grep over backend-legacy/src/main/java found cancelPendingSubmission
+    and markInQueue do not exist anywhere. The real admin->submission write surface is rejudge + batchRejudge, and that path
+    is ALREADY mediated by RejudgePolicy (com.ulticode.modules.submission.policy) — DefaultRejudgePolicy owns SubmissionMapper
+    + QueueService + JudgeOutboxMapper and performs all fence/outbox writes inside the submission module. admin has ZERO direct
+    SubmissionMapper write calls. So the residual work for -C is the *.port package symmetry (admin depends on submission.port.SubmissionOwnerPort
+    not submission.policy.RejudgePolicy) + the P4 Dubbo RPC seam, NOT new write logic. This matches the Problem/Contest owner-port
+    shape established by -A/-B.'
+  updated_at: '2026-07-28T09:30:00+08:00'
 - id: P3-OWNER-001-D
   phase: 3
   area: OWNER

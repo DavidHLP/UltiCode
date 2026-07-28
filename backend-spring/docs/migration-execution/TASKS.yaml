@@ -6893,16 +6893,17 @@
     ts: '2026-07-28T23:10:00+00:00'
   commits:
   - 3db1fcc feat(cutover): implement Problem Dubbo provider + feature-flagged routing (P4-CUTOVER-001)
-  notes: 'AC1 scope: controller direct create/update/publish/unpublish/delete routes
-    are cutover-enabled. BULK PATH DEFERRED: AdminProblemController.bulkAction
-    (publish/unpublish/delete/restore/edit) and flagProblem/moderateProblem/
-    batchModerateProblems still call AdminProblemService directly — these contain
-    multi-id batch semantics and moderation state transitions not on the current
-    ProblemAdministrationService Dubbo contract. They are explicitly deferred to
-    P4-CUTOVER-002 when ContestAdministrationService (which has multi-state
-    transitions) is also cutover, so the bulk contract extension can be designed
-    holistically. AC3 (canary 1%): boolean flag, not percentage routing; percentage
-    deferred to Gateway/Mesh layer.'
+  notes: 'AC1 coverage: 5/11 admin problem write paths routed through ProblemCutoverService
+    (controller create/update/publish/unpublish/delete). DEFERRED to P4-CUTOVER-002:
+    6 remaining paths — (1) bulkAction [publish/unpublish/delete/restore/edit, multi-id
+    batch], (2) flagProblem, (3) moderateProblem, (4) batchModerateProblems [multi-id
+    batch], (5) restoreDeletedByIds [inside bulkAction], (6) ProblemImportServiceImpl
+    [insertImportedProblem x2 + applyImportedUpdate, batch import via ProblemOwnerPort
+    not CutoverService]. These 6 contain multi-id batch semantics, moderation state
+    transitions, or batch import flows not on the current ProblemAdministrationService
+    Dubbo contract; they are deferred to P4-CUTOVER-002 so the bulk/moderation/import
+    contract extension can be designed holistically. AC3 (canary 1%): boolean flag,
+    not percentage routing; percentage deferred to Gateway/Mesh layer.'
   updated_at: '2026-07-28T23:10:00+00:00'
 - id: P4-CUTOVER-002
   phase: 4

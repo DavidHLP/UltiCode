@@ -4,7 +4,7 @@ import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
-import com.ulticode.modules.submission.policy.RejudgePolicy;
+import com.ulticode.modules.submission.port.RejudgePolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -7,7 +7,7 @@ import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.policy.RejudgePolicy;
+import com.ulticode.modules.submission.port.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.ulticode.modules.submission.policy.impl;
+package com.ulticode.modules.submission.port.impl;
 
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.uuid.UuidGenerator;
@@ -11,8 +11,8 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.enums.SubmissionStatus;
 import com.ulticode.modules.submission.fence.SubmissionStateMachine;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
-import com.ulticode.modules.submission.policy.LegacyRejudgeStrategy;
-import com.ulticode.modules.submission.policy.RejudgePolicy;
+import com.ulticode.modules.submission.port.LegacyRejudgeStrategy;
+import com.ulticode.modules.submission.port.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.ulticode.modules.submission.policy;
+package com.ulticode.modules.submission.port;
 
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;

@@ -657,3 +657,15 @@ this session.
   - Contract design decisions recorded in ADR-P4-RPC-001 (Contest version vs state-machine, opaque fence token, rejudge no caller generation, create-minimum from schema, announcement deferral).
   - Commit: 219e256. Validation: `./mvnw -pl backend-api/backend-app-api verify -B` = 18/0; `./mvnw verify -B` = 1863/0.
 - **Next**: P4-RPC-002 (single-hop chain enforcement + RPC timeout/retry/idempotency policy) is ready.
+
+## 2026-07-28 P4-RPC-002 — Single-hop enforcement + RPC policy
+
+- **P4-RPC-002**: established Dubbo timeout/retry/idempotency policy and single-hop chain prevention.
+  - `RpcPolicy` constants in backend-common: WRITE_TIMEOUT_MS=3000, WRITE_RETRIES=0, QUERY_TIMEOUT_MS=800, QUERY_RETRIES=1. Used by CUTOVER @DubboReference annotations.
+  - Global consumer defaults (timeout=800, retries=1) in all 4 service module application.ymls.
+  - `AuthSingleHopArchTest` (backend-auth): 2 rules — no dep on app/admin API, no @DubboService+@DubboReference.
+  - `AppSingleHopArchTest` (backend-app): 2 rules — no dep on admin API, no @DubboService+@DubboReference.
+  - AC3 (trace propagation): DubboTraceFilter from P1-OBS-001 already propagates X-Ulticode-Trace-Id via RpcContext attachment in both consumer/provider sides.
+  - DubboBootstrapConfigTest extended with consumer timeout/retry binding assertions.
+  - Commit: 5c4d1e3. Full reactor: 1865 tests, 0 failures.
+- **Next**: P4-CUTOVER-001 (Problem family cutover) is ready.

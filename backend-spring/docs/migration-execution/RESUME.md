@@ -1,9 +1,10 @@
 # Migration Resume
 
 Current Phase: Phase 4 (P3-GATE closed)
-Current Task: P4-RPC-002 (ready) — single-hop chain enforcement + RPC timeout/retry/idempotency policy
+Current Task: P4-CUTOVER-001 (ready) — Problem family cutover (Admin → App via Dubbo)
 
 Last Verified Commit:
+- 5c4d1e3 feat(rpc): enforce single-hop chain + timeout/retry/idempotency policy (P4-RPC-002)
 - 219e256 feat(api): add ContestAdministrationService + SubmissionAdministrationService contracts (P4-RPC-001)
 - b9c66db fix(audit): move AuditOutboxMapper to admin.outbox.mapper for scan coverage (P3-AUDIT-001 follow-up)
 - 51af2a0 refactor(problem): burn down frozen admin foreign-mapper write violations (P3-BURNDOWN-001)
@@ -30,7 +31,8 @@ Blocked:
 Current Work:
 - Phase 3 complete. P3-GATE closed with code-health PASS and an honest IT report.
 - P3-BURNDOWN-001 established a sibling TestCaseOwnerPort (problem-domain) rather than overloading ProblemOwnerPort for test_cases rows (separate table → sibling port preserves module cohesion); import row defaults + PartialUpdate null-skip semantics moved into DefaultProblemOwnerPort.
-- Next: P4-RPC-002 (single-hop chain enforcement + RPC timeout/retry/idempotency policy) is ready.
+- P4-RPC-002: enforced single-hop RPC chain prevention (ArchUnit) + centralized timeout/retry/idempotency policy (RpcPolicy) + consumer defaults in all service YAMLs.
+- Next: P4-CUTOVER-001 (Problem family cutover) is ready.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (1863 tests run, 0 failures, 0 errors, 4 skipped).

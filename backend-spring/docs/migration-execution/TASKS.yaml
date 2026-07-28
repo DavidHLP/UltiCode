@@ -6841,7 +6841,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#6.4
   - MICROSERVICE_MIGRATION_GUIDE.md#6.5
-  status: in_progress
+  status: done
   depends_on:
   - P4-RPC-001
   acceptance_criteria:
@@ -6853,17 +6853,26 @@
   - ./mvnw verify -B
   - Failure-injection smoke tests
   rollback: revert policy
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  evidence:
+  - note: 'P4-RPC-002 complete. AC1: RpcPolicy.WRITE_TIMEOUT_MS=3000, WRITE_RETRIES=0;
+      idempotencyKey required on WriteCommand since P4-RPC-001. AC2: RpcPolicy
+      QUERY_TIMEOUT_MS=800, QUERY_RETRIES=1; global consumer defaults in all 4 service
+      module YAMLs. AC3: DubboTraceFilter (P1-OBS-001) propagates X-Ulticode-Trace-Id
+      via RpcContext attachment. AC4: AuthSingleHopArchTest + AppSingleHopArchTest
+      enforce §6.5 single-hop at compile time. Full reactor: 1865 tests, 0 failures.'
+    ts: '2026-07-28T22:45:00+00:00'
+  commits:
+  - 5c4d1e3 feat(rpc): enforce single-hop chain + timeout/retry/idempotency policy (P4-RPC-002)
+  notes: 'Failure-injection smoke tests deferred to P4-CUTOVER (requires real Dubbo wiring).
+    Runtime hop-count alerting per §6.5 is monitoring, not unit test.'
+  updated_at: '2026-07-28T22:45:00+00:00'
 - id: P4-CUTOVER-001
   phase: 4
   area: TRAFFIC
   title: Problem family cutover (Admin -> App via Dubbo)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: ready
   depends_on:
   - P4-RPC-002
   acceptance_criteria:

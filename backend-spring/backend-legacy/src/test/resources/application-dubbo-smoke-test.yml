@@ -57,6 +57,8 @@ dubbo:
     base-packages: com.ulticode.dubbo.provider
   consumer:
     check: false
+    timeout: 800
+    retries: 1
   provider:
     filter: default
   cloud:

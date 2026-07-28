@@ -66,6 +66,12 @@ dubbo:
     base-packages: com.ulticode.admin.dubbo.provider
   consumer:
     check: false
+    # P4-RPC-002: §6.4 global consumer defaults.
+    # Query RPCs use the safe 800 ms timeout + 1 retry-with-jitter.
+    # Write RPCs override per-reference via @DubboReference(timeout=3000, retries=0);
+    # see RpcPolicy.WRITE_TIMEOUT_MS / WRITE_RETRIES.
+    timeout: 800
+    retries: 1
   provider:
     filter: default
   cloud:

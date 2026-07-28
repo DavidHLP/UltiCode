@@ -6841,7 +6841,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#6.4
   - MICROSERVICE_MIGRATION_GUIDE.md#6.5
-  status: ready
+  status: in_progress
   depends_on:
   - P4-RPC-001
   acceptance_criteria:

@@ -1,0 +1,57 @@
+package com.ulticode.common.rpc;
+
+/**
+ * P4-RPC-002: centralized RPC timeout / retry / idempotency policy constants.
+ *
+ * <p>Codifies migration guide &sect;6.4 so every Dubbo Consumer reference
+ * in the P4-CUTOVER tasks reads from a single source of truth rather than
+ * hard-coding magic numbers. The constants are intentionally
+ * {@code public static final} so they can be used directly in
+ * {@code @DubboReference(timeout = ..., retries = ...)} annotations (annotation
+ * attributes require compile-time constants).
+ *
+ * <h2>Policy matrix</h2>
+ * <table border="1">
+ * <tr><th>Call type</th><th>Timeout</th><th>Auto-retry</th><th>Idempotency key</th></tr>
+ * <tr><td>Write (Command RPC)</td><td>{@value #WRITE_TIMEOUT_MS} ms (3 s)</td>
+ *     <td>{@value #WRITE_RETRIES} (no auto-retry)</td><td>Required (enforced by WriteCommand)</td></tr>
+ * <tr><td>Query (Read RPC)</td><td>{@value #QUERY_TIMEOUT_MS} ms (800 ms)</td>
+ *     <td>{@value #QUERY_RETRIES} (one retry with jitter)</td><td>Not applicable</td></tr>
+ * </table>
+ *
+ * <h2>Rationale (per &sect;6.4)</h2>
+ * <ul>
+ *   <li><b>Write retry=0:</b> an auto-retried write may double-apply the side
+ *       effect. Retries are only safe when the Caller re-sends the same
+ *       {@code commandId} explicitly; the framework's automatic retry is
+ *       disabled to prevent silent duplication.</li>
+ *   <li><b>Query retry=1:</b> a read is safe to retry once; the framework
+ *       adds jitter so a cluster-wide retry storm does not synchronise.</li>
+ *   <li><b>Timeout ranges:</b> the upper bounds (3 s / 800 ms) match the
+ *       guide's p99 guidance; concrete services may tighten them based on
+ *       observed p99 in production.</li>
+ * </ul>
+ *
+ * @see com.ulticode.common.tracing.TraceMetadata for deadline propagation
+ */
+public final class RpcPolicy {
+
+    private RpcPolicy() {
+    }
+
+    // ── Write (Command RPC) ──────────────────────────────────────
+
+    /** Upper-bound timeout for mutating RPC calls (3 seconds). */
+    public static final int WRITE_TIMEOUT_MS = 3000;
+
+    /** Auto-retry count for mutating RPC calls: zero (no automatic retry). */
+    public static final int WRITE_RETRIES = 0;
+
+    // ── Query (Read RPC) ─────────────────────────────────────────
+
+    /** Upper-bound timeout for read-only RPC calls (800 milliseconds). */
+    public static final int QUERY_TIMEOUT_MS = 800;
+
+    /** Auto-retry count for read-only RPC calls: one retry (with framework jitter). */
+    public static final int QUERY_RETRIES = 1;
+}

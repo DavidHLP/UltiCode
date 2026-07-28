@@ -47,6 +47,20 @@ class DubboBootstrapConfigTest {
         assertThat(address).contains("nacos://").contains("namespace=dev");
     }
 
+    @Test
+    @DisplayName("P4-RPC-002: consumer default timeout is 800ms (query RPC)")
+    void consumerTimeoutQueryDefault() {
+        assertThat(env.getProperty("dubbo.consumer.timeout", Integer.class))
+                .isEqualTo(800);
+    }
+
+    @Test
+    @DisplayName("P4-RPC-002: consumer default retries is 1 (query RPC with jitter)")
+    void consumerRetriesQueryDefault() {
+        assertThat(env.getProperty("dubbo.consumer.retries", Integer.class))
+                .isEqualTo(1);
+    }
+
     @Configuration
     static class EmptyConfig {
     }

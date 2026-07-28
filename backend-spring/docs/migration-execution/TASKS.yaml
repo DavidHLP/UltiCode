@@ -6456,7 +6456,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumFlagPolicyImpl.java
   - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/admin/policy/impl/ForumPostFieldToggleImpl.java
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001-A
   acceptance_criteria:
@@ -6469,10 +6469,18 @@
   - ./mvnw -pl backend-legacy test -B
   - ./mvnw verify -B
   rollback: Restore direct mapper calls; remove ForumOwnerPort.
-  evidence: []
-  commits: []
+  evidence:
+  - note: Starting P3-OWNER-001-D Forum ownership port extraction.
+    ts: '2026-07-28T09:28:04+00:00'
+  - note: 'P3-OWNER-001-D Forum ownership complete. Created com.ulticode.modules.forum.port.ForumOwnerPort and DefaultForumOwnerPort
+      in forum module (@Transactional, handles flagPost, unflagPost, setPinned, setLocked via ForumPostMapper). Refactored
+      Admin''s ForumFlagPolicyImpl and ForumPostFieldToggleImpl to route all forum_posts writes through ForumOwnerPort. Added
+      DefaultForumOwnerPortTest; updated policy tests. Full reactor build PASS: 1796 tests run, 0 failures, 0 errors in 43.6s.'
+    ts: '2026-07-28T09:31:07+00:00'
+  commits:
+  - 7265381d7
   notes: Forum moderation is a pure admin write path; no normal-user writer to share.
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-28T09:31:07+00:00'
 - id: P3-OWNER-001-E
   phase: 3
   area: OWNER

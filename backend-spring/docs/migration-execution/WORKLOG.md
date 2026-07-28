@@ -612,3 +612,11 @@ this session.
 
 ### 2026-07-27 (P2-DISC-001)
 - P2-DISC-001: Promoted `BusinessException` to `backend-common` accepting `NamespacedErrorCode` (dependency-free, zero Spring coupling). Retrofitted `ErrorCode` in `backend-legacy` to implement `NamespacedErrorCode`. Full reactor build (`./mvnw test -B`) passes all 9 modules in 1m 06s with 0 failures (including `ErrorCodeDelegationTest`). Status: done. Commit: 17e9f6bec.
+
+### 2026-07-28 (P3-OWNER-001 Complete — Subtasks A through G)
+- Reconciliation: P3-OWNER-001-B status reconciled to done after validating 17 contract tests on HEAD. Commit: 194403269.
+- P3-OWNER-001-C: Rescoped acceptance criteria to real write surface and relocated RejudgePolicy, DefaultRejudgePolicy, LegacyRejudgeStrategy into com.ulticode.modules.submission.port package. Status: done. Commit: 1968ac257 / 729abbe4d.
+- P3-OWNER-001-D: Extracted ForumOwnerPort and DefaultForumOwnerPort in forum module. Refactored Admin ForumFlagPolicyImpl and ForumPostFieldToggleImpl to route all writes through port. Preserved exact audit snapshot state. Status: done. Commit: 7265381d7 / 771859f4b / 0dab56eab.
+- P3-OWNER-001-E: Rescoped criteria and extracted SolutionOwnerPort & DefaultSolutionOwnerPort in solution module. Injected ProblemExistencePort to handle problem.has_solution side effect without importing ProblemMapper. Status: done. Commit: 31cbdcfc0 / 8c70f2012.
+- P3-OWNER-001-F: Added p3_owner_001_f_admin_must_not_call_foreign_mapper_writes ArchUnit hard rule to OwnerBoundaryArchTest guarding write calls (insert/update/delete) on foreign mappers. Status: done. Commit: d764ecf20 / ab73ee5ef.
+- P3-OWNER-001-G & P3-OWNER-001: Integration review complete and parent task closed! Full reactor build ./mvnw verify -B PASS: 1800 tests run, 0 failures, 0 errors in 41.8s.

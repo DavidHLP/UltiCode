@@ -73,6 +73,9 @@ class ContestControllerTest {
     private AdminContestMutationService adminContestMutation;
 
     @MockBean
+    private com.ulticode.modules.admin.service.ContestCutoverService contestCutoverService;
+
+    @MockBean
     private ContestProjection contestProjection;
 
     @MockBean
@@ -119,7 +122,7 @@ class ContestControllerTest {
         @DisplayName("should return 200 with created contest when admin creates contest")
         void createContest_success_asAdmin() throws Exception {
             AdminContestVO adminVO = createValidAdminContestVO();
-            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
                     .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
@@ -142,7 +145,7 @@ class ContestControllerTest {
         @DisplayName("should return 200 with created contest when super admin creates contest")
         void createContest_success_asSuperAdmin() throws Exception {
             AdminContestVO adminVO = createValidAdminContestVO();
-            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
                     .thenReturn(adminVO);
 
             CreateContestDTO dto = createValidDTO();
@@ -159,7 +162,7 @@ class ContestControllerTest {
         @WithMockUser(roles = {"USER"})
         @DisplayName("should return 403 when non-admin user tries to create contest")
         void createContest_forbidden_asUser() throws Exception {
-            when(adminContestMutation.createContest(any(CreateContestDTO.class), anyString()))
+            when(contestCutoverService.createContest(any(CreateContestDTO.class), anyString()))
                     .thenThrow(new BusinessException(ErrorCode.FORBIDDEN));
 
             CreateContestDTO dto = createValidDTO();

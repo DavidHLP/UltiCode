@@ -74,6 +74,9 @@ class AdminSubmissionControllerTest {
     private AdminSubmissionService adminSubmissionService;
 
     @MockBean
+    private com.ulticode.modules.admin.service.SubmissionCutoverService submissionCutoverService;
+
+    @MockBean
     private AdminSubmissionProjection adminSubmissionProjection;
 
     // SecurityConfig dependencies
@@ -218,7 +221,7 @@ class AdminSubmissionControllerTest {
             result.setNewStatus("Pending");
             result.setRejudgedAt(Instant.parse("2026-06-09T10:00:00Z"));
             result.setRetryCount(2);
-            when(adminSubmissionService.rejudge("sub-1", false)).thenReturn(result);
+            when(submissionCutoverService.rejudge("sub-1", false)).thenReturn(result);
 
             mockMvc.perform(post("/admin/submissions/sub-1/rejudge")
                     .contentType(MediaType.APPLICATION_JSON)

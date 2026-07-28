@@ -8,6 +8,7 @@ import com.ulticode.common.response.Result;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
+import com.ulticode.modules.admin.service.ContestCutoverService;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.projection.ContestProjection;
 import com.ulticode.modules.contest.service.ContestService;
@@ -32,6 +33,7 @@ public class AdminContestController {
 
     private final ContestService contestService;
     private final AdminContestMutationService adminContestMutation;
+    private final ContestCutoverService contestCutoverService;
     private final ContestProjection contestProjection;
     private final CurrentUserProvider currentUserProvider;
 
@@ -82,7 +84,7 @@ public class AdminContestController {
     public Result<AdminContestVO> createContest(@Valid @RequestBody CreateContestDTO dto) {
         rejectUnsafeTitleChars(dto.getTitle());
         String userId = getCurrentUserIdOrThrow();
-        return Result.success(adminContestMutation.createContest(dto, userId));
+        return Result.success(contestCutoverService.createContest(dto, userId));
     }
 
     @Operation(summary = "Update contest (partial)", description = "Partially update a contest")
@@ -96,7 +98,7 @@ public class AdminContestController {
             @Parameter(description = "Contest ID") @PathVariable String id,
             @Valid @RequestBody UpdateContestDTO dto) {
         rejectUnsafeTitleChars(dto.getTitle());
-        return Result.success(adminContestMutation.updateContest(id, dto));
+        return Result.success(contestCutoverService.updateContest(id, dto));
     }
 
     @Operation(summary = "Delete contest", description = "Soft delete a contest")
@@ -108,7 +110,7 @@ public class AdminContestController {
     public Result<Void> deleteContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        adminContestMutation.deleteContest(id);
+        contestCutoverService.deleteContest(id);
         return Result.success();
     }
 
@@ -164,7 +166,7 @@ public class AdminContestController {
     public Result<AdminContestVO> startContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        return Result.success(adminContestMutation.startContest(id));
+        return Result.success(contestCutoverService.startContest(id));
     }
 
     @Operation(summary = "End contest", description = "Transition a contest from RUNNING to FINISHED")
@@ -177,7 +179,7 @@ public class AdminContestController {
     public Result<AdminContestVO> endContest(
             @Parameter(description = "Contest ID") @PathVariable String id) {
 
-        return Result.success(adminContestMutation.endContest(id));
+        return Result.success(contestCutoverService.endContest(id));
     }
 
     private String getCurrentUserIdOrThrow() {

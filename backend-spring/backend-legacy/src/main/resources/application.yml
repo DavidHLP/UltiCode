@@ -237,6 +237,9 @@ app:
     # through the Dubbo ProblemAdministrationService Provider instead of
     # the local ProblemService. false (default) = Phase 3 local behavior.
     problem-dubbo-cutover: ${PROBLEM_DUBBO_CUTOVER:false}
+    # P4-CUTOVER-002: route contest/submission writes through Dubbo.
+    contest-dubbo-cutover: ${CONTEST_DUBBO_CUTOVER:false}
+    submission-dubbo-cutover: ${SUBMISSION_DUBBO_CUTOVER:false}
     # ADR-003 M3c-1: route judge dispatches through the JudgeQueue port
     # (Redisson Streams adapter) instead of the legacy RQueue. M3c-1 ships
     # the port interface; flipping this to true activates the M3c-2

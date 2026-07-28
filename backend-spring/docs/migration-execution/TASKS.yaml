@@ -6911,7 +6911,7 @@
   title: Contest/Submission family cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: ready
+  status: in_progress
   depends_on:
   - P4-CUTOVER-001
   acceptance_criteria:

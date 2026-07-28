@@ -6,6 +6,7 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.projection.AdminSubmissionProjection;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
+import com.ulticode.modules.admin.service.SubmissionCutoverService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,7 @@ public class AdminSubmissionController {
 
     private final AdminSubmissionProjection adminSubmissionProjection;
     private final AdminSubmissionService adminSubmissionService;
+    private final SubmissionCutoverService submissionCutoverService;
 
     @Operation(summary = "Get submissions", description = "Get paginated list of submissions with filters")
     @GetMapping
@@ -74,7 +76,7 @@ public class AdminSubmissionController {
     public Result<RejudgeResult> rejudge(
             @PathVariable String id,
             @Valid @RequestBody RejudgeRequest request) {
-        return Result.success(adminSubmissionService.rejudge(id, request.getNotifyUser()));
+        return Result.success(submissionCutoverService.rejudge(id, request.getNotifyUser()));
     }
 
     @Operation(summary = "Batch rejudge", description = "Rejudge multiple submissions")

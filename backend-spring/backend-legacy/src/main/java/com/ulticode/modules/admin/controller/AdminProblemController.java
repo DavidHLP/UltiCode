@@ -11,6 +11,7 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
+import com.ulticode.modules.admin.service.ProblemCutoverService;
 import com.ulticode.modules.admin.service.ProblemExportService;
 import com.ulticode.modules.admin.service.ProblemImportService;
 import com.ulticode.modules.admin.service.impl.ExportPayload;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminProblemController {
 
     private final ProblemService problemService;
+    private final ProblemCutoverService problemCutoverService;
     private final ProblemProjection problemProjection;
     private final AdminProblemService adminProblemService;
     private final ProblemExportService problemExportService;
@@ -84,7 +86,7 @@ public class AdminProblemController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
-        return Result.success(problemService.createProblem(createDTO));
+        return Result.success(problemCutoverService.createProblem(createDTO));
     }
 
     @Operation(summary = "Update problem", description = "Update an existing problem")
@@ -94,7 +96,7 @@ public class AdminProblemController {
     public Result<ProblemVO> updateProblem(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProblemDTO updateDTO) {
-        return Result.success(problemService.updateProblem(id, updateDTO));
+        return Result.success(problemCutoverService.updateProblem(id, updateDTO));
     }
 
     @Operation(summary = "Delete problem", description = "Delete a problem (soft delete)")
@@ -102,7 +104,7 @@ public class AdminProblemController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteProblem(@PathVariable Long id) {
-        problemService.deleteProblem(id);
+        problemCutoverService.deleteProblem(id);
         return Result.success();
     }
 
@@ -111,7 +113,7 @@ public class AdminProblemController {
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> publishProblem(@PathVariable Long id) {
-        return Result.success(problemService.publishProblem(id));
+        return Result.success(problemCutoverService.publishProblem(id));
     }
 
     @Operation(summary = "Unpublish problem", description = "Unpublish a problem")
@@ -119,7 +121,7 @@ public class AdminProblemController {
     @PostMapping("/{id}/unpublish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> unpublishProblem(@PathVariable Long id) {
-        return Result.success(problemService.unpublishProblem(id));
+        return Result.success(problemCutoverService.unpublishProblem(id));
     }
 
     @Operation(summary = "Bulk problem action", description = "Perform bulk action on multiple problems (publish, unpublish, delete, restore, edit)")

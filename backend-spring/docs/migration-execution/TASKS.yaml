@@ -6873,7 +6873,7 @@
   title: Problem family cutover (Admin -> App via Dubbo)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: ready
+  status: in_progress
   depends_on:
   - P4-RPC-002
   acceptance_criteria:

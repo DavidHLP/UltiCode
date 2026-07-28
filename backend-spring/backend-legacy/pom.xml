@@ -24,6 +24,19 @@
 			<artifactId>backend-common</artifactId>
 		</dependency>
 
+		<!--
+		  P4-CUTOVER-001: provider-owned Dubbo contract module for App.
+		  backend-legacy implements the Provider (ProblemAdministrationProvider)
+		  and consumes it via @DubboReference (ProblemCutoverService) while
+		  still running as a single JVM. When backend-app is physically
+		  separated, the Provider class moves to backend-app and the Consumer
+		  stays in backend-legacy.
+		-->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-app-api</artifactId>
+		</dependency>
+
 		<!-- Spring Boot Starters -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

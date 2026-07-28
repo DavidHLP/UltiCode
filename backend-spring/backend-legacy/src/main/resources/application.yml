@@ -233,6 +233,10 @@ app:
     # crashed JUDGING rows. flag-off behavior is byte-for-byte identical to the
     # legacy selectById+updateById path.
     use-generation-fence: ${USE_GENERATION_FENCE:false}
+    # P4-CUTOVER-001: route problem create/update/publish/unpublish writes
+    # through the Dubbo ProblemAdministrationService Provider instead of
+    # the local ProblemService. false (default) = Phase 3 local behavior.
+    problem-dubbo-cutover: ${PROBLEM_DUBBO_CUTOVER:false}
     # ADR-003 M3c-1: route judge dispatches through the JudgeQueue port
     # (Redisson Streams adapter) instead of the legacy RQueue. M3c-1 ships
     # the port interface; flipping this to true activates the M3c-2

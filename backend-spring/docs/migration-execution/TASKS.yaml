@@ -6863,6 +6863,7 @@
     ts: '2026-07-28T22:45:00+00:00'
   commits:
   - 5c4d1e3 feat(rpc): enforce single-hop chain + timeout/retry/idempotency policy (P4-RPC-002)
+  - 41a24e6 fix(rpc): flip consumer YAML default to write-safe boundary (P4-RPC-002)
   notes: 'Failure-injection smoke tests deferred to P4-CUTOVER (requires real Dubbo wiring).
     Runtime hop-count alerting per §6.5 is monitoring, not unit test.'
   updated_at: '2026-07-28T22:45:00+00:00'

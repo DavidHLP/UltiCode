@@ -1,9 +1,10 @@
 # Migration Resume
 
 Current Phase: Phase 4 (P3-GATE closed)
-Current Task: P4-RPC-001 (ready) — implement provider-owned Contracts (Auth/App)
+Current Task: P4-RPC-002 (ready) — single-hop chain enforcement + RPC timeout/retry/idempotency policy
 
 Last Verified Commit:
+- 219e256 feat(api): add ContestAdministrationService + SubmissionAdministrationService contracts (P4-RPC-001)
 - b9c66db fix(audit): move AuditOutboxMapper to admin.outbox.mapper for scan coverage (P3-AUDIT-001 follow-up)
 - 51af2a0 refactor(problem): burn down frozen admin foreign-mapper write violations (P3-BURNDOWN-001)
 - 72e6a40 feat(arch): implement per-owner DB user shadow grants and violation logging (P3-DBPERM-001)
@@ -20,7 +21,8 @@ Completed:
 - P3-DBPERM-001 (Per-Owner DB user shadow + violation logging) landed, verified, and closed.
 - P3-BURNDOWN-001: burned down the 8 frozen admin foreign-mapper write violations (AdminTestCaseService x5 TestCaseMapper, ProblemImportServiceImpl x3 ProblemMapper) via new TestCaseOwnerPort + ProblemOwnerPort import methods; refroze p3_owner_001_f with an empty store (da138919).
 - P3-GATE: Phase 3 gate CLOSED. verify 1863/0, ArchUnit 8/8, zero write violations. Found+fixed one production-startup regression (AuditOutboxMapper placed outside @MapperScan path → full-context NoSuchBeanDefinitionException; b9c66db). IT report: 65 pass / 13 fail, all 13 environment-only (Testcontainers Redis AUTH mismatch, sandbox namespace/seccomp fixtures).
-- Total tasks completed in TASKS.yaml: Phase 3 fully done; P4-RPC-001 now ready.
+- P4-RPC-001: completed backend-app-api Dubbo provider surface per §4.3 — added ContestAdministrationService (5 lifecycle methods) and SubmissionAdministrationService (rejudge). Contract design decisions recorded in ADR-P4-RPC-001.
+- Total tasks completed in TASKS.yaml: Phase 3 fully done; P4-RPC-001 done, P4-RPC-002 ready.
 
 Blocked:
 - None (code-health). Two environment/test-fixture follow-ups recorded (not gate blockers): (1) Testcontainers Redis AUTH config mismatch; (2) sandbox ITs need seccomp-profile.json fixture + privileged runtime.
@@ -28,12 +30,13 @@ Blocked:
 Current Work:
 - Phase 3 complete. P3-GATE closed with code-health PASS and an honest IT report.
 - P3-BURNDOWN-001 established a sibling TestCaseOwnerPort (problem-domain) rather than overloading ProblemOwnerPort for test_cases rows (separate table → sibling port preserves module cohesion); import row defaults + PartialUpdate null-skip semantics moved into DefaultProblemOwnerPort.
-- Next: P4-RPC-001 (provider-owned Contracts for Auth/App) is ready.
+- Next: P4-RPC-002 (single-hop chain enforcement + RPC timeout/retry/idempotency policy) is ready.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (1863 tests run, 0 failures, 0 errors, 4 skipped).
 - ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B: 8/8 green, freeze store refrozen empty (da138919).
-- ./mvnw -Dtest='*IT' test -B: 65 pass / 13 fail (all environment/infrastructure-only, not code regressions).
+- ./mvnw -pl backend-api/backend-app-api verify -B: 18 tests, 0 failures (ContractShapeTest extended for 8 new types).
+- ./mvnw verify -B full reactor: 1863 tests, 0 failures, 0 errors, 4 skipped.
 
 Dirty Worktree:
 - No. Code committed per task (51af2a0 / b9c66db); docs updates pending this commit.

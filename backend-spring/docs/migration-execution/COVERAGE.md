@@ -44,8 +44,8 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §8.3 Audit outbox seam | P3-AUDIT-001 | done |
 | §Phase-3 Per-Owner DB user shadow | P3-DBPERM-001 | pending |
 | Phase-3 gate | P3-GATE | pending |
-| §6.2 Contracts (auth/app) | P4-RPC-001 | pending (depends on P3-GATE; **fallback path for P1-INFRA-003-DISC**) |
-| §6.4 / §6.5 RPC policy | P4-RPC-002 | pending |
+| §6.2 Contracts (auth/app) | P4-RPC-001 | done |
+| §6.4 / §6.5 RPC policy | P4-RPC-002 | ready |
 | §Phase-4 Problem cutover | P4-CUTOVER-001 | pending |
 | §Phase-4 Contest/Submission cutover | P4-CUTOVER-002 | pending |
 | §Phase-4 Judge/WS cutover | P4-CUTOVER-003 | pending |

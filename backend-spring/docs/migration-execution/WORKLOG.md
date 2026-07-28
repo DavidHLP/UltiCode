@@ -645,3 +645,15 @@ this session.
   - These require the `scripts/dev/test.sh integration` path with full docker-compose infra, not bare `mvn`.
 - **Open follow-ups (recorded, not gate blockers)**: (1) Testcontainers Redis AUTH config mismatch; (2) sandbox IT seccomp fixture + privileged runtime.
 - **Next**: P4-RPC-001 (provider-owned Contracts for Auth/App) is now ready.
+
+## 2026-07-28 P4-RPC-001 — Provider-owned Contracts complete
+
+- **P4-RPC-001**: completed the backend-app-api Dubbo provider surface per migration guide §4.3.
+  - Added `ContestAdministrationService` (5 lifecycle methods: createContest / updateContest / deleteContest / startContest / endContest) and `SubmissionAdministrationService` (rejudge).
+  - Added `ContestAdminViewDTO` (3-field narrow projection: contestId / title / status — no version field; Contest entity is state-machine driven, not optimistic-lock), `RejudgeResultDTO` (submissionId / newStatus / rejudgedAtEpochMs / retryCount).
+  - Added 6 WriteCommands: CreateContestCommand (create-minimum driven by DB schema constraints — contestType/startEpochMs/durationMinutes required), UpdateContestCommand, DeleteContestCommand, StartContestCommand, EndContestCommand (all with `expectedVersion` as opaque state-machine fence token), RejudgeCommand (submissionId + notifyUser only — fence enforcement is server-side via RejudgePolicy CAS).
+  - Extended `BackendAppApiContractShapeTest` with 8 new types in the required-types set, ID-type scan, WriteCommand metadata samples, and service-method signature check.
+  - `BackendAppApiArchTest` needed no changes — package-level rules auto-cover new files.
+  - Contract design decisions recorded in ADR-P4-RPC-001 (Contest version vs state-machine, opaque fence token, rejudge no caller generation, create-minimum from schema, announcement deferral).
+  - Commit: 219e256. Validation: `./mvnw -pl backend-api/backend-app-api verify -B` = 18/0; `./mvnw verify -B` = 1863/0.
+- **Next**: P4-RPC-002 (single-hop chain enforcement + RPC timeout/retry/idempotency policy) is ready.

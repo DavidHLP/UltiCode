@@ -6797,7 +6797,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
   - MICROSERVICE_MIGRATION_GUIDE.md#6.2
-  status: ready
+  status: done
   depends_on:
   - P3-GATE
   acceptance_criteria:
@@ -6809,10 +6809,31 @@
   - Consumer contract test passes
   - ./mvnw -pl backend-auth-api,backend-app-api verify -B
   rollback: revert providers
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  evidence:
+  - note: 'P4-RPC-001 complete. backend-auth-api already exposed all 3 Triple providers
+      (IdentityQueryService, AccountAdministrationService, AuthorizationSnapshotService)
+      since P1-API-001. Added the 2 missing backend-app-api providers: ContestAdministrationService
+      (create/update/delete/start/end) and SubmissionAdministrationService (rejudge).'
+    ts: '2026-07-28T22:30:00+00:00'
+  - note: 'AC verification: (1) backend-auth-api — 3 Triple providers + ArchTest + ContractShapeTest
+      green (39 tests total). (2) backend-app-api — all 4 §4.3 providers present
+      (ProblemAdministrationService, ContestAdministrationService, SubmissionAdministrationService,
+      ContentModerationService); ContractShapeTest extended with 8 new types; 18 tests
+      green. (3) No Entity/Mapper/ServiceImpl leaked — ArchTest package-level rules
+      auto-cover new files (no changes needed to BackendAppApiArchTest). Full reactor:
+      ./mvnw verify -B = 1863 tests, 0 failures, 0 errors, 4 skipped.'
+    ts: '2026-07-28T22:30:00+00:00'
+  commits:
+  - 219e256 feat(api): add ContestAdministrationService + SubmissionAdministrationService contracts (P4-RPC-001)
+  notes: 'Contract design decisions recorded in ADR-P4-RPC-001: (1) ContestAdminViewDTO
+    has no version field — Contest entity is state-machine driven, not optimistic-lock;
+    (2) expectedVersion on Contest transition commands is an opaque state-machine
+    fence token; (3) RejudgeCommand carries no caller-supplied generation — fence enforcement
+    is server-side via RejudgePolicy.rejudgeFenced CAS; (4) CreateContestCommand create-minimum
+    driven by DB schema constraints (contestType/start_time/duration_minutes NOT NULL);
+    (5) Contest announcements deferred to App HTTP API only (ContentModerationService
+    is moderation-only).'
+  updated_at: '2026-07-28T22:30:00+00:00'
 - id: P4-RPC-002
   phase: 4
   area: RPC
@@ -6820,7 +6841,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#6.4
   - MICROSERVICE_MIGRATION_GUIDE.md#6.5
-  status: pending
+  status: ready
   depends_on:
   - P4-RPC-001
   acceptance_criteria:

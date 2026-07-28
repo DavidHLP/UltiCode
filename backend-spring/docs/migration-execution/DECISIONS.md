@@ -687,3 +687,25 @@ Affected Tasks
 **Decision.** Move `AuditOutboxMapper` to `com.ulticode.modules.admin.outbox.mapper`, matching the documented convention in `MapperConfig` (mappers live in `**.mapper` sub-packages; cf. `queue.outbox.mapper`, `notification.ledger.mapper`). The record/processor/dispatcher stay in `admin.outbox` (they are not mappers).
 
 **Consequences.** + Production startup works; the IT canary passes. + No special-casing of `@MapperScan`. - The mapper lives one package deeper than its record; acceptable and consistent with existing outbox/ledger precedents.
+
+### ADR-P4-RPC-001: Contract design decisions for Contest/Submission RPC providers
+
+**Date:** 2026-07-28  **Status:** Accepted
+
+**Context.** P4-RPC-001 required completing the backend-app-api Dubbo provider surface — ContestAdministrationService and SubmissionAdministrationService were missing. During implementation, four non-trivial design decisions surfaced that affect how the P4-CUTOVER tasks will wire the Provider implementations.
+
+**Decision 1 — ContestAdminViewDTO has no version field.** The Contest entity has no `@Version` column; it is state-machine driven (`status` ∈ DRAFT, UPCOMING, RUNNING, FINISHED, CANCELLED). Contest lifecycle transitions are protected by state validation (e.g. must be UPCOMING to start), not optimistic locking. Therefore the read-back DTO carries only `contestId / title / status`. Unlike ProblemAdminViewDTO, which includes `version` because the Problem entity has a `@Version` column.
+
+**Decision 2 — `expectedVersion` on Contest transition commands is an opaque state-machine fence token, not an optimistic-lock version.** The field name is retained for signature stability (a future provider might introduce a generation counter), but the javadoc explicitly disclaims the optimistic-lock interpretation. The provider interprets it as a status-level fence: rejecting the command when the contest's current status does not match. For UpdateContestCommand the fence may be relaxed in DRAFT (any edit is legal).
+
+**Decision 3 — RejudgeCommand carries no caller-supplied generation.** The existing admin HTTP `RejudgeRequest` carries only `submissionId + notifyUser`. The server-side `RejudgePolicy.rejudgeFenced` reads the submission's `generation` from the DB row inside an atomic `bumpGeneration` CAS — the caller cannot know the current generation without an extra read, and the CAS handles the race. Mirroring this shape keeps the RPC command aligned with the HTTP contract. A future caller-supplied optimistic-concurrency field would be a §6.4 additive change.
+
+**Decision 4 — CreateContestCommand create-minimum is driven by DB schema constraints, not by mirroring CreateProblemCommand.** The `contests` table has `contest_type`, `start_time`, and `duration_minutes` as `NOT NULL` with no DB default; `scoring_mode` is `NOT NULL DEFAULT 'SCORE'` (nullable on the command, provider applies the default). Unlike Problem, where the entity has safe defaults for status/version/flags, Contest cannot be created with `null` in these columns. Per §6.4 fields only grow additively, so locking the create-minimum now avoids a second command later.
+
+**Decision 5 — Contest announcements deferred to App HTTP API only.** The plan's original "Decision 1" said announcements defer to "ContentModerationService or App HTTP API." ContentModerationService is moderation-only (HIDE/RESTORE/DELETE/UNDELETE on existing content), not content creation. The corrected deferral target is App HTTP API only.
+
+**Alternatives considered.** (1) Add `@Version` to Contest entity to enable true optimistic locking — rejected as a data-model change beyond P4-RPC-001's contract-only scope. (2) Expose contest announcements on a separate RPC provider — rejected; no real Consumer justifies the cost yet (§4.2 "初期不强行创建无 Consumer 的 Provider").
+
+**Consequences.** Provider implementations in P4-CUTOVER-001/002 must: (a) apply state-machine validation, not version-column locking, for Contest transitions; (b) delegate rejudge to `RejudgePolicy` without expecting a caller generation; (c) apply DB defaults for `scoring_mode` when the CreateContestCommand field is null.
+
+**Affected Tasks:** P4-RPC-001 (done), P4-CUTOVER-001, P4-CUTOVER-002.

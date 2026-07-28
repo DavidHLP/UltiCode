@@ -48,15 +48,18 @@ class DefaultForumOwnerPortTest {
     class FlagPostTests {
 
         @Test
-        @DisplayName("flagPost sets isFlagged=true and stamps reason and time")
+        @DisplayName("flagPost sets isFlagged=true and stamps reason and time, returning FlagResult")
         void flagPostSuccess() {
             ForumPost post = createPost("p1", "u1");
             when(forumPostMapper.selectById("p1")).thenReturn(post);
 
             LocalDateTime now = LocalDateTime.now();
-            String userId = forumOwnerPort.flagPost("p1", "Spam content", now);
+            ForumOwnerPort.FlagResult result = forumOwnerPort.flagPost("p1", "Spam content", now);
 
-            assertThat(userId).isEqualTo("u1");
+            assertThat(result.authorUserId()).isEqualTo("u1");
+            assertThat(result.previousIsFlagged()).isFalse();
+            assertThat(result.previousFlaggedReason()).isEmpty();
+
             ArgumentCaptor<ForumPost> captor = ArgumentCaptor.forClass(ForumPost.class);
             verify(forumPostMapper).updateById(captor.capture());
 
@@ -83,7 +86,7 @@ class DefaultForumOwnerPortTest {
     class UnflagPostTests {
 
         @Test
-        @DisplayName("unflagPost resets flag fields")
+        @DisplayName("unflagPost resets flag fields and returns previous values in FlagResult")
         void unflagPostSuccess() {
             ForumPost post = createPost("p1", "u1");
             post.setIsFlagged(true);
@@ -91,9 +94,12 @@ class DefaultForumOwnerPortTest {
             post.setFlaggedAt(LocalDateTime.now());
             when(forumPostMapper.selectById("p1")).thenReturn(post);
 
-            String userId = forumOwnerPort.unflagPost("p1");
+            ForumOwnerPort.FlagResult result = forumOwnerPort.unflagPost("p1");
 
-            assertThat(userId).isEqualTo("u1");
+            assertThat(result.authorUserId()).isEqualTo("u1");
+            assertThat(result.previousIsFlagged()).isTrue();
+            assertThat(result.previousFlaggedReason()).isEqualTo("old reason");
+
             ArgumentCaptor<ForumPost> captor = ArgumentCaptor.forClass(ForumPost.class);
             verify(forumPostMapper).updateById(captor.capture());
 

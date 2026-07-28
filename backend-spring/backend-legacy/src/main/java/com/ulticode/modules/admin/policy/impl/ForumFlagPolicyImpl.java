@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.policy.impl;
 import com.ulticode.common.audit.AuditRecorder;
 import com.ulticode.modules.admin.policy.ForumFlagPolicy;
 import com.ulticode.modules.forum.port.ForumOwnerPort;
+import com.ulticode.modules.forum.port.ForumOwnerPort.FlagResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -42,16 +43,16 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
         String normalisedReason = reason != null ? reason : "";
         LocalDateTime now = LocalDateTime.now(clock);
 
-        String userId = forumOwnerPort.flagPost(postId, reason, now);
+        FlagResult result = forumOwnerPort.flagPost(postId, reason, now);
 
         auditRecorder.recordForUser(
             ACTION_FLAG_POST,
             ENTITY_FORUM_POST,
             postId,
-            userId,
+            result.authorUserId(),
             Map.of(
-                "isFlagged", false,
-                "flaggedReason", ""
+                "isFlagged", result.previousIsFlagged(),
+                "flaggedReason", result.previousFlaggedReason()
             ),
             Map.of(
                 "isFlagged", true,
@@ -64,16 +65,16 @@ public class ForumFlagPolicyImpl implements ForumFlagPolicy {
 
     @Override
     public void unflag(String postId) {
-        String userId = forumOwnerPort.unflagPost(postId);
+        FlagResult result = forumOwnerPort.unflagPost(postId);
 
         auditRecorder.recordForUser(
             ACTION_UNFLAG_POST,
             ENTITY_FORUM_POST,
             postId,
-            userId,
+            result.authorUserId(),
             Map.of(
-                "isFlagged", true,
-                "flaggedReason", ""
+                "isFlagged", result.previousIsFlagged(),
+                "flaggedReason", result.previousFlaggedReason()
             ),
             Map.of(
                 "isFlagged", false,

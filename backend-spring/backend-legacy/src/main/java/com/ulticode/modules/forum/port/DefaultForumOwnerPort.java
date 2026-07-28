@@ -27,26 +27,36 @@ public class DefaultForumOwnerPort implements ForumOwnerPort {
 
     @Override
     @Transactional
-    public String flagPost(String postId, String reason, LocalDateTime flaggedAt) {
+    public FlagResult flagPost(String postId, String reason, LocalDateTime flaggedAt) {
         ForumPost post = loadOrThrow(postId);
+
+        boolean previousIsFlagged = Boolean.TRUE.equals(post.getIsFlagged());
+        String previousReason = post.getFlaggedReason() != null ? post.getFlaggedReason() : "";
+
         post.setIsFlagged(true);
         post.setFlaggedReason(reason != null ? reason : "");
         post.setFlaggedAt(flaggedAt);
         forumPostMapper.updateById(post);
         log.info("Flagged post {}", postId);
-        return post.getUserId();
+
+        return new FlagResult(post.getUserId(), previousIsFlagged, previousReason);
     }
 
     @Override
     @Transactional
-    public String unflagPost(String postId) {
+    public FlagResult unflagPost(String postId) {
         ForumPost post = loadOrThrow(postId);
+
+        boolean previousIsFlagged = Boolean.TRUE.equals(post.getIsFlagged());
+        String previousReason = post.getFlaggedReason() != null ? post.getFlaggedReason() : "";
+
         post.setIsFlagged(false);
         post.setFlaggedReason(null);
         post.setFlaggedAt(null);
         forumPostMapper.updateById(post);
         log.info("Unflagged post {}", postId);
-        return post.getUserId();
+
+        return new FlagResult(post.getUserId(), previousIsFlagged, previousReason);
     }
 
     @Override

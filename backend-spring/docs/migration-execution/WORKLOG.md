@@ -669,3 +669,14 @@ this session.
   - DubboBootstrapConfigTest extended with consumer timeout/retry binding assertions.
   - Commit: 5c4d1e3. Full reactor: 1865 tests, 0 failures.
 - **Next**: P4-CUTOVER-001 (Problem family cutover) is ready.
+
+## 2026-07-28 P4-CUTOVER-001 — Problem Dubbo provider + feature-flagged routing
+
+- **P4-CUTOVER-001**: implemented Problem Dubbo Provider and feature-flagged Consumer routing.
+  - `ProblemAdministrationProvider` (@DubboService group=backend-app): implements ProblemAdministrationService contract — create/update/publish/unpublish; delegates to ProblemService; maps BusinessException → AppErrorCode.
+  - `ProblemCutoverService`: dual-path routing adapter. flag=off (default): local ProblemService (Phase 3). flag=on: Dubbo write + local read-back (ProblemVO shape unchanged).
+  - `AdminProblemController`: create/update/publish/unpublish/delete routed through ProblemCutoverService.
+  - Feature flag: `app.features.problem-dubbo-cutover=false` (env: `PROBLEM_DUBBO_CUTOVER`).
+  - **Deferred to P4-CUTOVER-002**: bulkAction (publish/unpublish/delete/restore/edit), flagProblem, moderateProblem, batchModerateProblems — these contain multi-id batch semantics and moderation state transitions not on the current ProblemAdministrationService contract.
+  - Commit: 3db1fcc. Full reactor: 1879 tests, 0 failures.
+- **Next**: P4-CUTOVER-002 (Contest/Submission family cutover) is ready.

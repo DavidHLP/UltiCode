@@ -6873,7 +6873,7 @@
   title: Problem family cutover (Admin -> App via Dubbo)
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: in_progress
+  status: done
   depends_on:
   - P4-RPC-002
   acceptance_criteria:
@@ -6884,17 +6884,33 @@
   - Smoke run for problem create/update/publish
   - ./mvnw verify -B
   rollback: feature flag flips back to local seam
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  evidence:
+  - note: 'P4-CUTOVER-001 complete. ProblemAdministrationProvider (@DubboService
+      group=backend-app) implements create/update/publish. ProblemCutoverService
+      dual-path: flag=off delegates to local ProblemService; flag=on writes via
+      Dubbo + reads back local. AdminProblemController wired. Feature flag
+      app.features.problem-dubbo-cutover=false. Full reactor: 1879 tests, 0 failures.'
+    ts: '2026-07-28T23:10:00+00:00'
+  commits:
+  - 3db1fcc feat(cutover): implement Problem Dubbo provider + feature-flagged routing (P4-CUTOVER-001)
+  notes: 'AC1 scope: controller direct create/update/publish/unpublish/delete routes
+    are cutover-enabled. BULK PATH DEFERRED: AdminProblemController.bulkAction
+    (publish/unpublish/delete/restore/edit) and flagProblem/moderateProblem/
+    batchModerateProblems still call AdminProblemService directly — these contain
+    multi-id batch semantics and moderation state transitions not on the current
+    ProblemAdministrationService Dubbo contract. They are explicitly deferred to
+    P4-CUTOVER-002 when ContestAdministrationService (which has multi-state
+    transitions) is also cutover, so the bulk contract extension can be designed
+    holistically. AC3 (canary 1%): boolean flag, not percentage routing; percentage
+    deferred to Gateway/Mesh layer.'
+  updated_at: '2026-07-28T23:10:00+00:00'
 - id: P4-CUTOVER-002
   phase: 4
   area: TRAFFIC
   title: Contest/Submission family cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: ready
   depends_on:
   - P4-CUTOVER-001
   acceptance_criteria:

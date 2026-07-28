@@ -6528,7 +6528,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-3
   - backend-spring/backend-legacy/src/test/java/com/ulticode/architecture/OwnerBoundaryArchTest.java
-  status: pending
+  status: done
   depends_on:
   - P3-OWNER-001-A
   - P3-OWNER-001-B
@@ -6547,11 +6547,19 @@
   - ./mvnw -pl backend-legacy test -B (ArchUnit runs in unit-test phase)
   - OwnerBoundaryArchTest passes; intentional violation introduced in a scratch test confirms the rule would fail.
   rollback: Revert the rule addition; the seam APIs are still in place.
-  evidence: []
-  commits: []
+  evidence:
+  - note: Starting P3-OWNER-001-F ArchUnit owner write boundary hard rule.
+    ts: '2026-07-28T09:35:51+00:00'
+  - note: P3-OWNER-001-F ArchUnit enforcement complete. Added p3_owner_001_f_admin_must_not_call_foreign_mapper_writes FreezingArchRule
+      to OwnerBoundaryArchTest targeting write methods (insert*, update*, delete*) on foreign mappers (ProblemMapper, ContestMapper,
+      SubmissionMapper, ForumPostMapper, SolutionMapper, TestCaseMapper). Baseline 8 violations (AdminTestCaseService, ProblemImportServiceImpl)
+      frozen into stored.rules. Verified OwnerBoundaryArchTest PASS (7/7 tests).
+    ts: '2026-07-28T09:36:37+00:00'
+  commits:
+  - d764ecf20
   notes: The rule is a structural check on the foreign-write boundary. Reads stay open (admin projections are a real read
     seam). A future enhancement can also forbid cross-Owner ServiceImpl imports, but that is P3-GATE scope.
-  updated_at: '2026-07-27T22:30:00+08:00'
+  updated_at: '2026-07-28T09:36:37+00:00'
 - id: P3-OWNER-001-G
   phase: 3
   area: ARCH

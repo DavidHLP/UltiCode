@@ -1,11 +1,12 @@
 # Migration Resume
 
-Current Phase: Phase 3
-Current Task: P3-DBPERM-001 Complete! All Phase 3 core tasks done. Next ready task: P3-GATE (Phase 3 gate validation).
+Current Phase: Phase 4 (P3-GATE closed)
+Current Task: P4-RPC-001 (ready) — implement provider-owned Contracts (Auth/App)
 
 Last Verified Commit:
+- b9c66db fix(audit): move AuditOutboxMapper to admin.outbox.mapper for scan coverage (P3-AUDIT-001 follow-up)
+- 51af2a0 refactor(problem): burn down frozen admin foreign-mapper write violations (P3-BURNDOWN-001)
 - 72e6a40 feat(arch): implement per-owner DB user shadow grants and violation logging (P3-DBPERM-001)
-- (HEAD: docs(migration) Phase 3 closure commit recording TASKS/RESUME/WORKLOG/COVERAGE evidence)
 - 23b2ece feat(audit): implement intra-JVM audit outbox seam and async fan-out dispatcher (P3-AUDIT-001)
 - 3421fde test(admin): add dashboard stats projection coverage (P3-SEARCH-001)
 - 9378ec1 refactor(user): enforce account/profile owner port writes for users table (P3-OWNER-002)
@@ -17,25 +18,25 @@ Completed:
 - P3-SEARCH-001 (Batch projection seam for Search / Dashboard) landed, verified, and closed.
 - P3-AUDIT-001 (Audit outbox seam - intra-JVM) landed, verified, and closed.
 - P3-DBPERM-001 (Per-Owner DB user shadow + violation logging) landed, verified, and closed.
-- Total tasks completed in TASKS.yaml: 88 / 112.
+- P3-BURNDOWN-001: burned down the 8 frozen admin foreign-mapper write violations (AdminTestCaseService x5 TestCaseMapper, ProblemImportServiceImpl x3 ProblemMapper) via new TestCaseOwnerPort + ProblemOwnerPort import methods; refroze p3_owner_001_f with an empty store (da138919).
+- P3-GATE: Phase 3 gate CLOSED. verify 1863/0, ArchUnit 8/8, zero write violations. Found+fixed one production-startup regression (AuditOutboxMapper placed outside @MapperScan path → full-context NoSuchBeanDefinitionException; b9c66db). IT report: 65 pass / 13 fail, all 13 environment-only (Testcontainers Redis AUTH mismatch, sandbox namespace/seccomp fixtures).
+- Total tasks completed in TASKS.yaml: Phase 3 fully done; P4-RPC-001 now ready.
 
 Blocked:
-- None.
+- None (code-health). Two environment/test-fixture follow-ups recorded (not gate blockers): (1) Testcontainers Redis AUTH config mismatch; (2) sandbox ITs need seccomp-profile.json fixture + privileged runtime.
 
 Current Work:
-- P3-DBPERM-001 fully completed with full reactor verify PASS (1852 tests run, 0 failures, 0 errors, 4 skipped in 48.3s).
-- Flyway V20260728213000 creates shadow DB users auth_rw / admin_rw / app_rw with per-owner table grants; zero hardcoded credentials, `${flyway:defaultSchema}` placeholder.
-- DbOwnerWebHandlerInterceptor routes DbOwnerContext by table ownership (not endpoint audience): /auth|/users|/admin/users|/admin/account -> AUTH; /admin/settings|audit|dashboard|analytics|/moderation -> ADMIN; admin business endpoints -> APP (writes flow through P3-OWNER-001 App owner ports).
-- audit_outbox treated as owner-neutral cross-domain integration seam (P3-AUDIT-001): append-only INSERT grants for auth_rw/app_rw, full grant for admin_rw dispatcher.
-- DbOwnerViolationInterceptor logs WARN [DB_OWNER_VIOLATION] on cross-owner INSERT/UPDATE/DELETE; verified via Logback ListAppender capture and Testcontainers physical grant enforcement (MySQL error 1142).
+- Phase 3 complete. P3-GATE closed with code-health PASS and an honest IT report.
+- P3-BURNDOWN-001 established a sibling TestCaseOwnerPort (problem-domain) rather than overloading ProblemOwnerPort for test_cases rows (separate table → sibling port preserves module cohesion); import row defaults + PartialUpdate null-skip semantics moved into DefaultProblemOwnerPort.
+- Next: P4-RPC-001 (provider-owned Contracts for Auth/App) is ready.
 
 Last Validation:
-- ./mvnw verify -B full backend-spring reactor: PASS (1852 tests run, 0 failures, 0 errors, 4 skipped in 48.3s).
-- ./mvnw -pl backend-legacy test -Dtest='DbOwnerWebHandlerInterceptorTest,DbOwnerViolationInterceptorTest' -B: PASS (42 tests run, 0 failures, 0 errors).
-- ./mvnw -pl backend-legacy test -Dtest='DbOwnerPermissionIT,OwnerBoundaryArchTest' -B: PASS (12 tests run, 0 failures, 0 errors).
+- ./mvnw verify -B full backend-spring reactor: PASS (1863 tests run, 0 failures, 0 errors, 4 skipped).
+- ./mvnw -pl backend-legacy test -Dtest=OwnerBoundaryArchTest -B: 8/8 green, freeze store refrozen empty (da138919).
+- ./mvnw -Dtest='*IT' test -B: 65 pass / 13 fail (all environment/infrastructure-only, not code regressions).
 
 Dirty Worktree:
-- No. Docs updates (TASKS.yaml / RESUME.md / WORKLOG.md / COVERAGE.md) committed in the Phase 3 closure docs commit; code committed per task (9378ec1 / 3421fde / 23b2ece / 72e6a40).
+- No. Code committed per task (51af2a0 / b9c66db); docs updates pending this commit.
 
 PUSH: NOT pushed. Per AGENTS.md GitHub Write Gate, push requires explicit user approval.
 

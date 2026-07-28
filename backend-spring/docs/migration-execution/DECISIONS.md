@@ -667,3 +667,23 @@ Affected Tasks
   `com.ulticode.common.auth.{CurrentUserProvider,
   SecurityCurrentUserProvider}` once every consumer has moved to
   the backend-common ports.
+
+### ADR-P3-BURNDOWN-001: TestCaseOwnerPort as a sibling to ProblemOwnerPort
+
+**Date:** 2026-07-28  **Status:** Accepted
+
+**Context.** The p3_owner_001_f ArchUnit rule froze 8 admin foreign-mapper write violations: 5 on `TestCaseMapper` (AdminTestCaseService) and 3 on `ProblemMapper` (ProblemImportServiceImpl). The burn-down had to route every write through an owner port in `com.ulticode.modules.problem.port`. The original task AC1 named `ProblemOwnerPort` for the TestCaseMapper calls, but `ProblemOwnerPort`'s javadoc scopes it to the `problems` row, and `test_cases` is a separate table.
+
+**Decision.** Create a sibling `TestCaseOwnerPort` (+ `DefaultTestCaseOwnerPort`) for `test_cases` writes, and extend `ProblemOwnerPort` only for the problem-row import writes (`insertImportedProblem`, `applyImportedUpdate`). Rationale: `test_cases` is a distinct table owned by the problem domain; a dedicated port preserves one-port-per-table cohesion (mirroring the Contest/Submission/Forum/Solution owner ports) rather than overloading `ProblemOwnerPort` with a second table's primitive commands. Import row defaults and PartialUpdate null/blank-skip semantics move into `DefaultProblemOwnerPort` so the owner owns row construction.
+
+**Consequences.** + Clear single-table ownership; the future RPC wire shape (P4-RPC-001) maps one port to one table. + Admin's `TestCaseMapper` becomes read-only. - Two ports instead of one for the problem module; acceptable given the per-table cohesion convention already established across the Phase 3 owner ports. AC1 wording in TASKS.yaml revised to reflect the sibling port.
+
+### ADR-P3-AUDIT-001-followup: AuditOutboxMapper scan coverage fix
+
+**Date:** 2026-07-28  **Status:** Accepted
+
+**Context.** `AuditOutboxMapper` (P3-AUDIT-001) was placed in `com.ulticode.modules.admin.outbox`. The application's `@MapperScan("com.ulticode.modules.**.mapper")` does not cover that package, and once an explicit `@MapperScan` is present, MyBatis-Spring does not auto-register bare `@Mapper`-annotated interfaces outside the scan path. The result: the mapper bean was never created, so `DefaultAuditSinkAdapter` -> `AuditAspect` wiring threw `NoSuchBeanDefinitionException` at full Spring-context startup — a production-startup regression. The unit suite (all mocks) did not catch it; the full-context `*IT` tests were the canary.
+
+**Decision.** Move `AuditOutboxMapper` to `com.ulticode.modules.admin.outbox.mapper`, matching the documented convention in `MapperConfig` (mappers live in `**.mapper` sub-packages; cf. `queue.outbox.mapper`, `notification.ledger.mapper`). The record/processor/dispatcher stay in `admin.outbox` (they are not mappers).
+
+**Consequences.** + Production startup works; the IT canary passes. + No special-casing of `@MapperScan`. - The mapper lives one package deeper than its record; acceptable and consistent with existing outbox/ledger precedents.

@@ -1,6 +1,4 @@
 package com.ulticode.modules.problem.service.impl;
-import com.ulticode.modules.problem.adapter.LegacyProblemWriteAdapter;
-import org.junit.jupiter.api.BeforeEach;
 
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.common.exception.BusinessException;
@@ -15,12 +13,11 @@ import com.ulticode.modules.problem.projection.ProblemProjection;
 import com.ulticode.modules.problem.port.ProblemDetailDomainPort;
 import com.ulticode.modules.problem.port.ProblemVersionPort;
 import com.ulticode.modules.problem.port.ProblemWritePort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -29,9 +26,7 @@ import org.mockito.quality.Strictness;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,17 +36,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for {@link ProblemServiceImpl}.
- *
- * <p>Read tests (premium guard) are preserved verbatim from the original.
- * Write tests prove the legacy wrapper delegates to the canonical domain
- * service and projects the returned entity to {@link ProblemVO}.
- *
- * <p>The constructor manually composes {@code DefaultProblemAdministrationDomainService}
- * from the three port mocks, so these tests exercise the full delegation chain
- * end-to-end.
- */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProblemServiceImplTest {
@@ -60,18 +44,14 @@ class ProblemServiceImplTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(
             Instant.parse("2026-07-29T10:00:00Z"), ZoneId.of("UTC"));
 
-    // Domain port mocks (replacing ProblemVersionService + ProblemDetailPort)
     @Mock private ProblemWritePort problemWritePort;
     @Mock private ProblemDetailDomainPort problemDetailDomainPort;
     @Mock private ProblemVersionPort problemVersionPort;
-
-    // Read / projection collaborators (unchanged from original)
     @Mock private ProblemMapper problemMapper;
     @Mock private ProblemProjection problemProjection;
-    @Mock private Clock clock;
     @Mock private CurrentUserProvider currentUserProvider;
 
-        private ProblemServiceImpl problemService;
+    private ProblemServiceImpl problemService;
 
     @BeforeEach
     void setUp() {
@@ -85,7 +65,6 @@ class ProblemServiceImplTest {
                 problemVersionPort
         );
     }
-
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
@@ -210,7 +189,7 @@ class ProblemServiceImplTest {
     class WriteDelegationTests {
 
         @Test
-        @DisplayName("createProblem: insert via mapper, initial version created, result projected")
+        @DisplayName("createProblem: slug uniqueness check via writePort, insert via writePort, initial version created, result projected")
         void createProblem_delegatesAndProjects() {
             CreateProblemDTO dto = new CreateProblemDTO();
             dto.setSlug("new-slug");
@@ -222,9 +201,9 @@ class ProblemServiceImplTest {
             vo.setId(1L);
             vo.setSlug("new-slug");
 
-            when(problemMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
-            when(problemMapper.selectById(1L)).thenReturn(inserted);
-            when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
+            lenient().when(problemWritePort.selectBySlug("new-slug")).thenReturn(null);
+            lenient().when(problemWritePort.selectById(1L)).thenReturn(inserted);
+            lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.createProblem(dto);
 
@@ -233,8 +212,9 @@ class ProblemServiceImplTest {
             verify(problemVersionPort).createInitialVersion(any(), any());
             verify(problemProjection).toVO(any(Problem.class));
         }
+
         @Test
-        @DisplayName("updateProblem: updateById via mapper, detail + version updated, result projected")
+        @DisplayName("updateProblem: updateById via writePort, detail + version updated, result projected")
         void updateProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setTitle("Old Title");
@@ -244,9 +224,9 @@ class ProblemServiceImplTest {
             UpdateProblemDTO dto = new UpdateProblemDTO();
             dto.setTitle("Updated Title");
 
-            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemWritePort.selectById(1L)).thenReturn(existing);
-            when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
+            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.updateProblem(1L, dto);
 
@@ -262,8 +242,8 @@ class ProblemServiceImplTest {
         void deleteProblem_delegates() {
             Problem existing = problem(1L, "two-sum");
 
-            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemWritePort.selectById(1L)).thenReturn(existing);
+            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
 
             problemService.deleteProblem(1L);
 
@@ -271,16 +251,16 @@ class ProblemServiceImplTest {
         }
 
         @Test
-        @DisplayName("publishProblem: sets published fields, updateById via mapper, result projected")
+        @DisplayName("publishProblem: sets published fields, updateById via writePort, result projected")
         void publishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(false);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
-            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemWritePort.selectById(1L)).thenReturn(existing);
-            when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
+            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.publishProblem(1L);
 
@@ -290,16 +270,16 @@ class ProblemServiceImplTest {
         }
 
         @Test
-        @DisplayName("unpublishProblem: sets isPublished=false, updateById via mapper, result projected")
+        @DisplayName("unpublishProblem: sets isPublished=false, updateById via writePort, result projected")
         void unpublishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(true);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
-            when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemWritePort.selectById(1L)).thenReturn(existing);
-            when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
+            lenient().when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
+            lenient().when(problemWritePort.selectById(1L)).thenReturn(existing);
+            lenient().when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.unpublishProblem(1L);
 

@@ -7972,7 +7972,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: in_progress
+  status: done
   depends_on:
   - P7-MIGRATE-PROBLEM-001
   acceptance_criteria:
@@ -7995,9 +7995,15 @@
       ContestWritePort into backend-contest-domain. Domain unit tests (ContestAdministrationDomainServiceTest: 4 tests) BUILD
       SUCCESS. Commits: c112dc2. Next: relocate ContestAdministrationProvider to backend-app and wire legacy delegation.'
     ts: '2026-07-29T08:24:54+00:00'
+  - note: 'P7-MIGRATE-CONTEST-001 complete: (1) Created canonical backend-contest-domain reactor module owning Contest aggregate/enums/DTOs/ports
+      and ContestAdministrationDomainService under com.ulticode.modules.contest.*. (2) Relocated and re-wired ContestAdministrationProvider
+      and ContestAdministrationProviderTest in backend-app. (3) Added LegacyContestWriteAdapter in backend-legacy for write
+      port delegation. (4) Full reactor verify across 10 modules BUILD SUCCESS. Commits: 62b3ac9, 157ee6e, a90bd25, c112dc2,
+      43f1295, 1710fcb.'
+    ts: '2026-07-29T08:28:33+00:00'
   commits: []
   notes: AdminContestMutationService has WebSocket push side-effects and owner-port writes.
-  updated_at: '2026-07-29T08:24:54+00:00'
+  updated_at: '2026-07-29T08:28:33+00:00'
 - id: P7-MIGRATE-SUBMISSION-001
   phase: 7
   area: ARCH

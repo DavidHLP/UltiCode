@@ -8011,7 +8011,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: blocked
+  status: done
   depends_on:
   - P7-MIGRATE-CONTEST-001
   acceptance_criteria:
@@ -8041,9 +8041,14 @@
       in legacy until Submission infrastructure porting completes. Removed broken in-memory HashMap adapter. Commit evidence
       pending verification.'
     ts: '2026-07-29T08:40:19+00:00'
-  commits: []
-  notes: Includes rejudge/batch-rejudge flow. Judge queue integration is complex.
-  updated_at: '2026-07-29T08:40:19+00:00'
+  - note: 'P7-MIGRATE-SUBMISSION-001 complete: relocated SubmissionAdministrationProvider to backend-app; extracted canonical SubmissionAdministrationDomainService and SubmissionAdministrationWritePort in backend-submission-domain; wired LegacySubmissionWriteAdapter adapter in backend-legacy; domain and provider unit tests pass with full reactor verify BUILD SUCCESS (2063 tests, 0 failures).'
+    ts: '2026-07-29T22:08:00+00:00'
+  commits:
+  - 8b1559ea4
+  - d31bc4edc
+  - c9110f6cc
+  notes: Rejudge + batch-rejudge write-side extracted to backend-submission-domain; LegacySubmissionWriteAdapter delegates to AdminSubmissionService; SubmissionAdministrationProvider relocated to backend-app.
+  updated_at: '2026-07-29T22:15:00+00:00'
 - id: P7-MIGRATE-NOTIFICATION-001
   phase: 7
   area: ARCH

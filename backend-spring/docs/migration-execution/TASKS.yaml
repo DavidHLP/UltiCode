@@ -7938,10 +7938,15 @@
       8 modules. Commit: 0a1eda9. Next: extract aggregate/detail/version administration write chain into this module, then
       relocate Provider.'
     ts: '2026-07-29T06:39:31+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 step 3b: moved canonical Problem aggregate plus CreateProblemDTO, UpdateProblemDTO, and
+      LanguageConfigDTO from backend-legacy into backend-problem-domain without FQN duplication. Both backend-app and backend-legacy
+      consume the shared classes through the reactor module. Focused compile BUILD SUCCESS; ProblemServiceImplTest + ProblemAdministrationProviderTest:
+      13 tests, 0 failures/errors. Commit: cc1b642. Next: extract canonical administration mapper/service ports and implementation.'
+    ts: '2026-07-29T07:33:49+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T06:39:31+00:00'
+  updated_at: '2026-07-29T07:33:49+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

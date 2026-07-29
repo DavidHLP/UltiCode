@@ -8071,7 +8071,8 @@
     ts: '2026-07-29T22:20:00+00:00'
   - note: 'P7-MIGRATE-NOTIFICATION-001 complete: established canonical backend-notification-domain reactor module owning NotificationAdministrationDomainService and NotificationAdministrationWritePort; relocated NotificationAdministrationProvider and provider tests to backend-app; wired LegacyNotificationWriteAdapter in backend-legacy; full reactor verify across 13 modules BUILD SUCCESS with 0 failures.'
     ts: '2026-07-30T00:32:00+00:00'
-  commits: []
+  commits:
+  - e828ed72d
   notes: Notification write-side domain extracted to backend-notification-domain; LegacyNotificationWriteAdapter delegates to AdminNotificationService; NotificationAdministrationProvider relocated to backend-app.
   updated_at: '2026-07-30T00:32:00+00:00'
 - id: P7-MIGRATE-MODERATION-001

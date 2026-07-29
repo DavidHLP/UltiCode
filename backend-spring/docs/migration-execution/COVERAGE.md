@@ -124,13 +124,13 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 - [x] Prometheus scrape — Phase 1 wiring (micrometer-registry-prometheus already in backend-legacy pom)
 - [ ] Outbox/inbox/lease metrics — P6-OUTBOX-001, P6-INBOX-001
 - [ ] Redis prefix/credential/eviction — Phase 4/5
-- [ ] WS sticky/broadcast/relay — P4-CUTOVER-003
+- [ ] WS sticky/broadcast/relay — P4-CUTOVER-005
 - [ ] Scheduled jobs owner/flag/lease — Phase 3/4
 - [x] Compose base/prod no public infra ports — P1-INFRA-004 (Gateway), P7-DOCS-001 (runbook)
 - [ ] Backup recovery drill — P5-RECONCILE-001, P7-DOCS-001
 
 §13.6 切流、验证与回滚:
-- [ ] Per-route canary — P4-CUTOVER-001..003
+- [ ] Per-route canary — P4-CUTOVER-001..005
 - [x] ./mvnw verify -B per phase gate — P0-GATE PASS (1804 tests); P1-GATE PASS (full reactor verify, 0 failures)
 - [ ] Login/OAuth/refresh/Admin/Problem/Submission/Judge/Contest/WS E2E — Phase 2/4
 - [ ] Inject Auth/App/Admin/Nacos/Redis/SMTP/net failures — Phase 4
@@ -153,7 +153,7 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | R7 RPC retry double-write | P4-RPC-002 |
 | R8 Contract incompatibility | P4-RPC-001, P1-API-001 |
 | R9 Schema split reconciliation | P5-USERPROFILE-001, P5-RECONCILE-001 |
-| R10 WS multi-instance / ban propagation | P0-SEC-003, P4-CUTOVER-003 |
+| R10 WS multi-instance / ban propagation | P0-SEC-003, P4-CUTOVER-005 |
 | R11 Judge duplicate/lost | P0-JUDGE-001, P6-RESULT-001 |
 | R12 Audit actor lost | P3-AUDIT-001 |
 | R13 Schema drift | P0-SCHEMA-001, P0-SCHEMA-002 |

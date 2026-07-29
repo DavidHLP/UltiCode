@@ -6,15 +6,12 @@ import com.ulticode.app.api.command.DeleteNotificationCommand;
 import com.ulticode.app.api.command.UpdateNotificationCommand;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.error.AppErrorCode;
+import com.ulticode.common.error.BaseErrorCode;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.admin.dto.AdminNotificationVO;
-import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
-import com.ulticode.modules.admin.service.AdminNotificationService;
+import com.ulticode.modules.notification.service.NotificationAdministrationDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,12 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,27 +34,30 @@ import static org.mockito.Mockito.when;
 @DisplayName("NotificationAdministrationProvider")
 class NotificationAdministrationProviderTest {
 
-    @Mock private AdminNotificationService notificationService;
+    @Mock
+    private NotificationAdministrationDomainService domainService;
+
     private NotificationAdministrationProvider provider;
 
     @BeforeEach
-    void setUp() { provider = new NotificationAdministrationProvider(notificationService); }
+    void setUp() {
+        provider = new NotificationAdministrationProvider(domainService);
+    }
 
     private static ActorDelegation actor() {
         return new ActorDelegation("ADMIN", "admin-1", "admin-1", "test");
     }
 
-    @Nested @DisplayName("createNotification()")
+    @Nested
+    @DisplayName("createNotification()")
     class Create {
-        @Test @DisplayName("maps command to request and returns admin view")
+
+        @Test
+        @DisplayName("delegates to domainService and returns admin view DTO")
         void createsNotification() {
-            AdminNotificationVO vo = new AdminNotificationVO();
-            vo.setId("notif-1");
-            vo.setTitle("System Maintenance");
-            vo.setType("SYSTEM");
-            vo.setCategory("SYSTEM");
-            vo.setCreatedAt(LocalDateTime.now());
-            when(notificationService.createSystemNotification(any(CreateSystemNotificationRequest.class))).thenReturn(vo);
+            NotificationAdminViewDTO expectedDto = new NotificationAdminViewDTO(
+                    "notif-1", "ann-1", "System Maintenance", "SYSTEM", "SYSTEM", 1000L);
+            when(domainService.createNotification(any())).thenReturn(expectedDto);
 
             var cmd = new CreateNotificationCommand(
                     UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
@@ -70,12 +68,14 @@ class NotificationAdministrationProviderTest {
             assertThat(result.success()).isTrue();
             assertThat(result.data().notificationId()).isEqualTo("notif-1");
             assertThat(result.data().title()).isEqualTo("System Maintenance");
+            verify(domainService).createNotification(cmd);
         }
 
-        @Test @DisplayName("maps BusinessException(NOT_FOUND) to CONTENT_NOT_FOUND")
+        @Test
+        @DisplayName("maps BusinessException(NOT_FOUND) to CONTENT_NOT_FOUND")
         void mapsNotFound() {
-            when(notificationService.createSystemNotification(any()))
-                    .thenThrow(new BusinessException(ErrorCode.NOT_FOUND, "not found"));
+            when(domainService.createNotification(any()))
+                    .thenThrow(new BusinessException(BaseErrorCode.NOT_FOUND, "not found"));
             var cmd = new CreateNotificationCommand(
                     UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
                     "admin-1", "T", "C", "SYSTEM", "SYSTEM", "ALL", null);
@@ -85,36 +85,40 @@ class NotificationAdministrationProviderTest {
         }
     }
 
-    @Nested @DisplayName("deleteNotification()")
+    @Nested
+    @DisplayName("deleteNotification()")
     class Delete {
-        @Test @DisplayName("delegates and returns success")
+
+        @Test
+        @DisplayName("delegates to domainService and returns success")
         void deletes() {
             var cmd = new DeleteNotificationCommand(
                     UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
                     "notif-1");
             RpcResult<Void> result = provider.deleteNotification(cmd);
             assertThat(result.success()).isTrue();
-            verify(notificationService).deleteNotification("notif-1");
+            verify(domainService).deleteNotification(cmd);
         }
     }
 
-    @Nested @DisplayName("updateNotification()")
+    @Nested
+    @DisplayName("updateNotification()")
     class Update {
-        @Test @DisplayName("maps command to request and returns updated view")
+
+        @Test
+        @DisplayName("delegates to domainService and returns updated view DTO")
         void updatesNotification() {
-            AdminNotificationVO vo = new AdminNotificationVO();
-            vo.setId("notif-1");
-            vo.setTitle("Updated Title");
-            vo.setType("SYSTEM");
-            vo.setCreatedAt(LocalDateTime.now());
-            when(notificationService.updateSystemNotification(anyString(), any(UpdateSystemNotificationRequest.class))).thenReturn(vo);
+            NotificationAdminViewDTO expectedDto = new NotificationAdminViewDTO(
+                    "notif-1", "ann-1", "Updated Title", "SYSTEM", "SYSTEM", 2000L);
+            when(domainService.updateNotification(any())).thenReturn(expectedDto);
 
             var cmd = new UpdateNotificationCommand(
                     UUID.randomUUID().toString(), IdMetadata.mint(), actor(), TraceMetadata.EMPTY,
-                    "notif-1", "Updated Title", "Updated content", null, null);
+                    "notif-1", "Updated Title", "Updated content", "SYSTEM", "SYSTEM");
             RpcResult<NotificationAdminViewDTO> result = provider.updateNotification(cmd);
             assertThat(result.success()).isTrue();
             assertThat(result.data().title()).isEqualTo("Updated Title");
+            verify(domainService).updateNotification(cmd);
         }
     }
 }

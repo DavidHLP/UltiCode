@@ -7312,7 +7312,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
   - MICROSERVICE_MIGRATION_GUIDE.md#8.3
-  status: pending
+  status: done
   depends_on:
   - P5-GATE
   acceptance_criteria:
@@ -7324,10 +7324,15 @@
   - 'Test: poison event surfaces DLQ'
   - ./mvnw verify -B
   rollback: disable dispatcher; outbox preserved
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P6-OUTBOX-001 CLOSED: integration_outbox table + per-Owner dispatcher. CAS-claim → Redis Streams XADD → markDelivered;
+      exponential backoff retry; DEAD after MAX_ATTEMPTS=5. IntegrationOutboxDispatcherIT 5/5 PASS (happy path, poison DLQ,
+      retry, oldest-outbox-age metric). Full reactor verify 1931/0/0/4. Commit: f43a312.'
+    ts: '2026-07-29T03:53:51+00:00'
+  commits:
+  - f43a312
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T03:53:51+00:00'
 - id: P6-INBOX-001
   phase: 6
   area: EVENT

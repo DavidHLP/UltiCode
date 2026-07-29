@@ -7147,7 +7147,8 @@
       with feature-flagged dual-path routing.'
     note: 'Phase 4 Gate closed: all 7 cutover subtasks complete, single-hop RPC enforced, contract shape tests verified, 1921
       reactor tests passing.'
-  commits: []
+  commits:
+  - c8f40b6ca2079de65e9718174812e6181e18aeb3
   notes: ''
   updated_at: '2026-07-29T02:38:46+00:00'
 - id: P5-SCHEMA-001

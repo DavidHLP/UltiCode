@@ -958,3 +958,36 @@ AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any
 **Consequences.** Phase 7 cannot close until the Provider + service migration is executed. This ADR serves as the scope anchor for planning that work. The recommended decomposition is one domain family at a time (Problem → Contest → Submission → Notification → ContentModeration), each with full test parity before the next.
 
 **Affected Tasks:** P7-LEGACY-001 (pending, in-scope), P7-LEGACY-002 (pending, depends on P7-LEGACY-001), P7-DB-001 (blocked, ops-level).
+
+### ADR-P7-PROBLEM-MIGRATION-STRATEGY: Problem domain physical relocation approach
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** P7-MIGRATE-PROBLEM-001 requires relocating the Problem domain (63 Java files) from `backend-legacy` to `backend-app`. Investigation revealed:
+
+1. **Port extraction complete** (commit d4e7a12): ProblemProjection no longer imports concrete classes from solution/edgeoperations/vote modules. Two new ports: `ProblemSolutionQueryPort`, `ProblemInteractionQueryPort`.
+
+2. **Cross-module coupling**: 28 files outside the problem module import problem classes directly. Top consumers: `entity.Problem` (25 imports), `mapper.ProblemMapper` (17), `dto.ProblemVO` (13), `service.ProblemService` (6). These are direct imports, not port-mediated.
+
+3. **backend-app data layer ready** (commit dc35632): MyBatis-Plus, MySQL connector, Redis added. Test profile excludes datasource for smoke tests. `./mvnw verify -B` passes across all 7 modules.
+
+4. **ProblemService is not a shared API**: lives in `com.ulticode.modules.problem.service` inside legacy. No Dubbo contract exists for the full service — only `ProblemAdministrationService` (3 methods) in `backend-app-api`.
+
+**Decision.** Physical relocation requires a **shared Maven module** approach:
+1. Extract `backend-problem-domain` as a reactor module containing entity/mapper/dto/service (the 63 files).
+2. Both `backend-legacy` and `backend-app` depend on `backend-problem-domain`.
+3. `backend-app` hosts the `@DubboService` Provider using the shared domain classes.
+4. Legacy controllers continue to reference shared domain classes.
+5. Phase 7 legacy removal happens when all controllers have been relocated to their target service modules.
+
+**Why not Dubbo delegation (Provider in backend-app calling ProblemService via RPC in legacy):** this would create a circular dependency — backend-app's Provider depends on legacy's ProblemService, but legacy's CutoverService already consumes backend-app's Provider. Shared module avoids this.
+
+**Why not copy-paste to backend-app:** 28 cross-module imports in legacy would need simultaneous rewrite, violating surgical-change principle and risking regression.
+
+**Consequences.**
+- New reactor module `backend-problem-domain` needed before file relocation.
+- Port adapters (`DefaultProblemSolutionQueryAdapter`, `DefaultProblemInteractionQueryAdapter`) stay in legacy until their domains migrate.
+- `ProblemSubmissionStatsPort` and `JudgingLanguageSupport` remain in `submission.port` — consumed via existing port interface.
+- This pattern repeats for each domain family (Contest, Submission, Notification, Moderation).
+
+**Affected Tasks:** P7-MIGRATE-PROBLEM-001 (in_progress, port extraction + infra done, shared module pending).

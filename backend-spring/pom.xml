@@ -22,6 +22,7 @@
 		<module>backend-contest-domain</module>
 		<module>backend-submission-domain</module>
 		<module>backend-notification-domain</module>
+		<module>backend-moderation-domain</module>
 		<module>backend-auth</module>
 		<module>backend-admin</module>
 		<module>backend-app</module>
@@ -71,6 +72,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-notification-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-moderation-domain</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

@@ -7903,7 +7903,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: pending
+  status: in_progress
   depends_on:
   - P6-GATE
   acceptance_criteria:
@@ -7916,11 +7916,16 @@
   - ./mvnw verify -B
   - 'Dubbo RPC smoke test: create/update/publish problem via backend-app'
   rollback: Feature flag remains off; legacy ProblemService still serves requests
-  evidence: []
+  evidence:
+  - note: 'P7-MIGRATE-PROBLEM-001 step 1 done: Port extraction from ProblemProjection. Extracted ProblemSolutionQueryPort
+      + ProblemInteractionQueryPort to decouple from solution/edgeoperations/vote concrete classes. Problem module now has
+      ZERO cross-domain concrete imports. ProblemServiceImpl deps are all in-module or port interfaces. Full reactor verify
+      BUILD SUCCESS. Commit: d4e7a12.'
+    ts: '2026-07-29T06:07:27+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T05:39:25+00:00'
+  updated_at: '2026-07-29T06:07:27+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

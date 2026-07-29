@@ -7025,7 +7025,9 @@
 
       - All 6 push adapters + flusher updated to route through WebSocketBroadcastBridge'
     note: WS multi-instance broadcast bridge implemented and verified with 52/52 WebSocket tests + 1919/1919 reactor verify.
-  commits: []
+  commits:
+  - f3bbebf2c6b5da0013e090cc0a427c1612c88bec
+  - 3c1246b9a8cfdbbcbc717f9185a767f404dc7ffb
   notes: 'Split from P4-CUTOVER-003 audit (2026-07-29): WS multi-instance broadcast requires Redis Pub/Sub infrastructure.
     Guide line 145 explicitly defers: "App 初期单实例 或粘性会话；多实例前需外部广播/relay". Current SimpleBroker is single-instance only. WS
     push adapters (6 ports) already exist as interfaces but push to in-process SimpMessagingTemplate. This task introduces

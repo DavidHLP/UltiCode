@@ -99,6 +99,13 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
+    /**
+     * P6-RESULT-001: result outbox writer for durable verdict events.
+     * Field-injected (not constructor) to avoid changing the constructor signature
+     * that ArchUnit's freeze baseline has captured — see ADR-MIG-ARCH-BOUNDARY.
+     */
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ulticode.modules.submission.result.SubmissionResultOutboxWriter submissionResultOutboxWriter;
 
     /**
      * Supported languages for submission.
@@ -214,6 +221,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     }
 
     @Override
+    @Transactional
     public void updateSubmissionResult(String submissionId, SubmissionStatus status, int runtime,
                                        Double memory, List<Submission.TestCaseDetail> testDetails) {
         String wire = SubmissionStatusCodec.toWire(status);
@@ -233,6 +241,16 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
+
+        // P6-RESULT-001: write result outbox only for terminal verdicts
+        if (status.isTerminal()) {
+            long gen = submission.getGeneration() != null ? submission.getGeneration() : 1L;
+            submissionResultOutboxWriter.recordVerdictResult(
+                    submissionId, gen, submission.getUserId(),
+                    String.valueOf(submission.getProblemId()),
+                    wire, runtime, memory != null ? memory : 0,
+                    contestSubmissionPort.findContestId(submissionId));
+        }
 
         // Trigger achievement checks for accepted submissions
         if (status == SubmissionStatus.ACCEPTED) {
@@ -320,6 +338,7 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      * actually lands (affected = 1).
      */
     @Override
+    @Transactional
     public boolean updateSubmissionResultFenced(String submissionId, long generation, String attemptId,
                                                 SubmissionStatus status, int runtime, Double memory,
                                                 List<Submission.TestCaseDetail> testDetails) {
@@ -374,6 +393,13 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         }
         log.info("Updated submission {} (fenced) status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
+
+        // P6-RESULT-001: write result outbox in same transaction (after CAS success)
+        submissionResultOutboxWriter.recordVerdictResult(
+                submissionId, generation, submission.getUserId(),
+                String.valueOf(submission.getProblemId()),
+                wire, runtime, memory != null ? memory : 0,
+                contestSubmissionPort.findContestId(submissionId));
 
         // Achievements + notifications. F4: the fenced path no longer persists
         // performance stats here — they were written in the CAS above. The

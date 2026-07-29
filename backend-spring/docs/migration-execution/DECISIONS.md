@@ -803,7 +803,7 @@ AdminForumService/AdminSolutionService, then extend Provider dispatch. The contr
 Per project database migration invariants (AGENTS.md + guide §15), applied Flyway migration files are immutable, and application rollback strategy relies on additive schema preservation rather than manual SQL down-migrations.
 
 **Decision.**
-1. Adopt Option A: Migration comments and documentation must use plain MySQL 9.1 DDL syntax (`ALTER TABLE ... DROP COLUMN ...`) without non-standard `IF EXISTS` clauses on `ALTER TABLE`.
+1. Adopt Option A: Migration comments and documentation must use plain MySQL 9.1 DDL syntax (`ALTER TABLE ... DROP COLUMN ...`) without non-standard `IF EXISTS` clauses on `ALTER TABLE`. Option A applies to future migrations only; V20260727021915 is left untouched per AGENTS.md migration-immutability.
 2. Rollback strategy remains application-rollback + additive-schema preservation (guide §15).
 3. The `disposable-verify/` scaffold is disposed as completed validation tooling.
 

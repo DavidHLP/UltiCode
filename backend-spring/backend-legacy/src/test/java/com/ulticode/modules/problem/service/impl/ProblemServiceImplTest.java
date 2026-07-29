@@ -75,13 +75,12 @@ class ProblemServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        LegacyProblemWriteAdapter writeAdapter = new LegacyProblemWriteAdapter(problemMapper);
         problemService = new ProblemServiceImpl(
                 problemMapper,
                 problemProjection,
                 currentUserProvider,
                 FIXED_CLOCK,
-                writeAdapter,
+                problemWritePort,
                 problemDetailDomainPort,
                 problemVersionPort
         );
@@ -211,7 +210,7 @@ class ProblemServiceImplTest {
     class WriteDelegationTests {
 
         @Test
-        @DisplayName("createProblem: actorId from provider, insert called, returns projected VO")
+        @DisplayName("createProblem: insert via mapper, initial version created, result projected")
         void createProblem_delegatesAndProjects() {
             CreateProblemDTO dto = new CreateProblemDTO();
             dto.setSlug("new-slug");
@@ -223,24 +222,22 @@ class ProblemServiceImplTest {
             vo.setId(1L);
             vo.setSlug("new-slug");
 
-            // Domain service: slug check via writePort, then insert
-            when(problemWritePort.selectBySlug("new-slug")).thenReturn(null);
-            when(problemWritePort.selectById(1L)).thenReturn(inserted);
+            when(problemMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            when(problemMapper.selectById(1L)).thenReturn(inserted);
             when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.createProblem(dto);
 
             assertThat(result.getSlug()).isEqualTo("new-slug");
             verify(problemWritePort).insert(any(Problem.class));
+            verify(problemVersionPort).createInitialVersion(any(), any());
             verify(problemProjection).toVO(any(Problem.class));
         }
-
         @Test
-        @DisplayName("updateProblem: delegates to writePort + detailPort + versionPort, projects VO")
+        @DisplayName("updateProblem: updateById via mapper, detail + version updated, result projected")
         void updateProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
-            Problem updated = problem(1L, "two-sum");
-            updated.setTitle("Updated Title");
+            existing.setTitle("Old Title");
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
@@ -248,13 +245,13 @@ class ProblemServiceImplTest {
             dto.setTitle("Updated Title");
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(problemWritePort.selectById(1L)).thenReturn(existing);
             when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.updateProblem(1L, dto);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemMapper).updateById(any(Problem.class));
+            verify(problemWritePort).updateById(any(Problem.class));
             verify(problemDetailDomainPort).applyDetailUpdate(any(), any(), any());
             verify(problemVersionPort).createVersion(any(), any(), any(), any());
             verify(problemProjection).toVO(any(Problem.class));
@@ -266,56 +263,48 @@ class ProblemServiceImplTest {
             Problem existing = problem(1L, "two-sum");
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(problemWritePort.selectById(1L)).thenReturn(existing);
 
             problemService.deleteProblem(1L);
 
-            // domainService.deleteProblem(1L, ACTOR_ID) was called internally;
-            // the real implementation calls writePort.deleteById(1L)
-            verify(problemMapper).deleteById(1L); // legacy mapper not called directly
+            verify(problemWritePort).deleteById(1L);
         }
 
         @Test
-        @DisplayName("publishProblem: sets published fields, calls updateById, returns projected VO")
+        @DisplayName("publishProblem: sets published fields, updateById via mapper, result projected")
         void publishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(false);
-            Problem published = problem(1L, "two-sum");
-            published.setIsPublished(true);
-            published.setPublishedAt(LocalDateTime.now(FIXED_CLOCK));
-            published.setPublishedBy(ACTOR_ID);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(problemWritePort.selectById(1L)).thenReturn(existing);
             when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.publishProblem(1L);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemMapper).updateById(any(Problem.class));
+            verify(problemWritePort).updateById(any(Problem.class));
             verify(problemProjection).toVO(any(Problem.class));
         }
 
         @Test
-        @DisplayName("unpublishProblem: sets isPublished=false, calls updateById, returns projected VO")
+        @DisplayName("unpublishProblem: sets isPublished=false, updateById via mapper, result projected")
         void unpublishProblem_delegatesAndProjects() {
             Problem existing = problem(1L, "two-sum");
             existing.setIsPublished(true);
-            Problem unpublished = problem(1L, "two-sum");
-            unpublished.setIsPublished(false);
             ProblemVO vo = new ProblemVO();
             vo.setId(1L);
 
             when(currentUserProvider.getCurrentUserId()).thenReturn(ACTOR_ID);
-            when(problemMapper.selectById(1L)).thenReturn(existing);
+            when(problemWritePort.selectById(1L)).thenReturn(existing);
             when(problemProjection.toVO(any(Problem.class))).thenReturn(vo);
 
             ProblemVO result = problemService.unpublishProblem(1L);
 
             assertThat(result.getId()).isEqualTo(1L);
-            verify(problemMapper).updateById(any(Problem.class));
+            verify(problemWritePort).updateById(any(Problem.class));
             verify(problemProjection).toVO(any(Problem.class));
         }
     }

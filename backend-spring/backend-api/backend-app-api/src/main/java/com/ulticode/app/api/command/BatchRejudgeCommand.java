@@ -1,0 +1,50 @@
+package com.ulticode.app.api.command;
+
+import com.ulticode.common.tracing.IdMetadata;
+import com.ulticode.common.tracing.TraceMetadata;
+
+import java.util.List;
+
+/**
+ * Command to batch-rejudge multiple submissions. Issued by the Admin
+ * BFF against {@code backend-app}
+ * {@code SubmissionAdministrationService.batchRejudge}.
+ *
+ * <p>Mirrors {@code BatchRejudgeRequest}: up to 50 submission IDs per
+ * batch. The provider loops over per-submission
+ * {@code RejudgePolicy.rejudgeFenced} CAS — there is no batch-level
+ * fence; each submission is independently generation-fenced.
+ *
+ * @param submissionIds list of submission IDs (non-empty, max 50)
+ * @param notifyUsers   whether to notify affected users after rejudge
+ */
+public record BatchRejudgeCommand(
+        String commandId,
+        IdMetadata idempotency,
+        ActorDelegation actor,
+        TraceMetadata trace,
+        List<String> submissionIds,
+        boolean notifyUsers) implements WriteCommand {
+
+    public BatchRejudgeCommand {
+        if (commandId == null || commandId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "commandId is required and must be a UUID String");
+        }
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "submissionIds must not be empty");
+        }
+        if (submissionIds.size() > 50) {
+            throw new IllegalArgumentException(
+                    "submissionIds size must not exceed 50");
+        }
+        if (idempotency == null) {
+            throw new IllegalArgumentException(
+                    "idempotency is required (use IdMetadata.mint())");
+        }
+        if (actor == null) {
+            throw new IllegalArgumentException("actor is required");
+        }
+    }
+}

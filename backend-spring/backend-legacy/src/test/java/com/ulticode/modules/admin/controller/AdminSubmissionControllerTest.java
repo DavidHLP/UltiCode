@@ -317,7 +317,7 @@ class AdminSubmissionControllerTest {
             resp.setSuccessful(1);
             resp.setFailed(0);
             resp.setResults(List.of());
-            when(adminSubmissionService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
+            when(submissionCutoverService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
 
             mockMvc.perform(post("/admin/submissions/batch-rejudge")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -342,7 +342,7 @@ class AdminSubmissionControllerTest {
             resp.setSuccessful(1);
             resp.setFailed(0);
             resp.setResults(List.of(r));
-            when(adminSubmissionService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
+            when(submissionCutoverService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
 
             mockMvc.perform(post("/admin/submissions/batch-rejudge")
                     .contentType(MediaType.APPLICATION_JSON)

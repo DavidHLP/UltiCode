@@ -1,12 +1,15 @@
 package com.ulticode.app.dubbo.provider;
 
+import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.command.RejudgeCommand;
+import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * P4-CUTOVER-002: Dubbo Provider implementation of
@@ -63,6 +68,40 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
         } catch (Exception e) {
             log.error("SubmissionAdministrationProvider.rejudge unexpected error id={}",
                     command.submissionId(), e);
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
+        }
+    }
+
+    @Override
+    public RpcResult<BatchRejudgeResultDTO> batchRejudge(BatchRejudgeCommand command) {
+        log.info("SubmissionAdministrationProvider.batchRejudge count={} notifyUser={} commandId={} actor={}",
+                command.submissionIds().size(), command.notifyUsers(),
+                command.commandId(), command.actor().actorId());
+        try {
+            BatchRejudgeResponse response = submissionService.batchRejudge(
+                    command.submissionIds(), command.notifyUsers());
+
+            List<RejudgeResultDTO> dtos = new ArrayList<>(response.getResults().size());
+            for (RejudgeResult rr : response.getResults()) {
+                long epochMs = rr.getRejudgedAt() != null
+                        ? rr.getRejudgedAt().toEpochMilli() : Instant.now().toEpochMilli();
+                int retryCount = rr.getRetryCount() != null ? rr.getRetryCount() : 0;
+                dtos.add(new RejudgeResultDTO(
+                        rr.getSubmissionId(),
+                        rr.getNewStatus() != null ? rr.getNewStatus() : "unknown",
+                        epochMs,
+                        retryCount));
+            }
+            BatchRejudgeResultDTO dto = new BatchRejudgeResultDTO(
+                    response.getTotal() != null ? response.getTotal() : 0,
+                    response.getSuccessful() != null ? response.getSuccessful() : 0,
+                    response.getFailed() != null ? response.getFailed() : 0,
+                    dtos);
+            return RpcResult.success(dto, command.trace().traceId());
+        } catch (BusinessException e) {
+            return toFailure(e, command.trace().traceId());
+        } catch (Exception e) {
+            log.error("SubmissionAdministrationProvider.batchRejudge unexpected error", e);
             return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, command.trace().traceId());
         }
     }

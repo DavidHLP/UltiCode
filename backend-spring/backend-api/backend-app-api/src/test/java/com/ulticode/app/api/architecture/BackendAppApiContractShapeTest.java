@@ -3,24 +3,31 @@ package com.ulticode.app.api.architecture;
 import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.ApplyModerationCommand;
 import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
+import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.command.CreateContestCommand;
+import com.ulticode.app.api.command.CreateNotificationCommand;
 import com.ulticode.app.api.command.CreateProblemCommand;
 import com.ulticode.app.api.command.DeleteContestCommand;
+import com.ulticode.app.api.command.DeleteNotificationCommand;
 import com.ulticode.app.api.command.EndContestCommand;
 import com.ulticode.app.api.command.PublishProblemCommand;
 import com.ulticode.app.api.command.RejudgeCommand;
 import com.ulticode.app.api.command.StartContestCommand;
 import com.ulticode.app.api.command.UpdateContestCommand;
+import com.ulticode.app.api.command.UpdateNotificationCommand;
 import com.ulticode.app.api.command.UpdateProblemCommand;
 import com.ulticode.app.api.command.WriteCommand;
+import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.dto.ContentLifecycleState;
 import com.ulticode.app.api.dto.ModerationApplyResultDTO;
 import com.ulticode.app.api.dto.ContestAdminViewDTO;
+import com.ulticode.app.api.dto.NotificationAdminViewDTO;
 import com.ulticode.app.api.dto.ProblemAdminViewDTO;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.ContestAdministrationService;
 import com.ulticode.app.api.service.ContentModerationService;
+import com.ulticode.app.api.service.NotificationAdministrationService;
 import com.ulticode.app.api.service.ProblemAdministrationService;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.error.NamespacedErrorCode;
@@ -90,10 +97,17 @@ class BackendAppApiContractShapeTest {
                 "com.ulticode.app.api.command.StartContestCommand",
                 "com.ulticode.app.api.command.EndContestCommand",
                 "com.ulticode.app.api.command.RejudgeCommand",
+                "com.ulticode.app.api.command.BatchRejudgeCommand",
+                "com.ulticode.app.api.command.CreateNotificationCommand",
+                "com.ulticode.app.api.command.UpdateNotificationCommand",
+                "com.ulticode.app.api.command.DeleteNotificationCommand",
                 "com.ulticode.app.api.dto.ContestAdminViewDTO",
                 "com.ulticode.app.api.dto.RejudgeResultDTO",
+                "com.ulticode.app.api.dto.BatchRejudgeResultDTO",
+                "com.ulticode.app.api.dto.NotificationAdminViewDTO",
                 "com.ulticode.app.api.service.ContestAdministrationService",
                 "com.ulticode.app.api.service.SubmissionAdministrationService",
+                "com.ulticode.app.api.service.NotificationAdministrationService",
                 "com.ulticode.app.api.error.AppErrorCode");
         Set<String> missing = new HashSet<>();
         ClassLoader cl = getClass().getClassLoader();
@@ -128,6 +142,8 @@ class BackendAppApiContractShapeTest {
                 ProblemAdminViewDTO.class,
                 ContestAdminViewDTO.class,
                 RejudgeResultDTO.class,
+                BatchRejudgeResultDTO.class,
+                NotificationAdminViewDTO.class,
                 ModerationApplyResultDTO.class,
                 ActorDelegation.class,
                 CreateProblemCommand.class,
@@ -139,7 +155,11 @@ class BackendAppApiContractShapeTest {
                 DeleteContestCommand.class,
                 StartContestCommand.class,
                 EndContestCommand.class,
-                RejudgeCommand.class);
+                RejudgeCommand.class,
+                BatchRejudgeCommand.class,
+                CreateNotificationCommand.class,
+                UpdateNotificationCommand.class,
+                DeleteNotificationCommand.class);
         Set<String> violations = new HashSet<>();
         for (Class<?> type : scanned) {
             for (Field field : type.getDeclaredFields()) {
@@ -171,6 +191,7 @@ class BackendAppApiContractShapeTest {
                 || name.equals("creatorAccountId")
                 || name.equals("scoringRuleId")
                 || name.equals("submissionId")
+                || name.equals("notificationId")
                 || name.endsWith("Id");
     }
 
@@ -273,7 +294,42 @@ class BackendAppApiContractShapeTest {
                         adminActor,
                         TraceMetadata.EMPTY,
                         uuid,
-                        true));
+                        true),
+                new BatchRejudgeCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        List.of(uuid, UUID.randomUUID().toString()),
+                        false),
+                new CreateNotificationCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        "System Maintenance",
+                        "Scheduled downtime this Sunday 2-4 AM",
+                        "SYSTEM",
+                        "SYSTEM",
+                        "ALL",
+                        null),
+                new UpdateNotificationCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid,
+                        "Updated Title",
+                        "Updated content",
+                        null,
+                        null),
+                new DeleteNotificationCommand(
+                        UUID.randomUUID().toString(),
+                        IdMetadata.mint(),
+                        adminActor,
+                        TraceMetadata.EMPTY,
+                        uuid));
         for (WriteCommand cmd : samples) {
             assertThat(cmd.commandId())
                     .as("commandId must be a non-blank UUID String")
@@ -323,7 +379,8 @@ class BackendAppApiContractShapeTest {
                 ProblemAdministrationService.class,
                 ContentModerationService.class,
                 ContestAdministrationService.class,
-                SubmissionAdministrationService.class)) {
+                SubmissionAdministrationService.class,
+                NotificationAdministrationService.class)) {
             for (Method method : serviceClass.getDeclaredMethods()) {
                 assertThat(method.getReturnType())
                         .as(serviceClass.getSimpleName() + "#"

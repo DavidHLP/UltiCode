@@ -84,7 +84,7 @@ public class AdminSubmissionController {
     @PostMapping("/batch-rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BatchRejudgeResponse> batchRejudge(@Valid @RequestBody BatchRejudgeRequest request) {
-        return Result.success(adminSubmissionService.batchRejudge(
+        return Result.success(submissionCutoverService.batchRejudge(
             request.getSubmissionIds(), request.getNotifyUsers()));
     }
 }

@@ -1,6 +1,8 @@
 package com.ulticode.app.api.service;
 
+import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.command.RejudgeCommand;
+import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.common.rpc.RpcResult;
 
@@ -39,4 +41,18 @@ public interface SubmissionAdministrationService {
      *         unknown
      */
     RpcResult<RejudgeResultDTO> rejudge(RejudgeCommand command);
+
+    /**
+     * Batch-rejudge multiple submissions (up to 50). The provider loops
+     * over per-submission {@code RejudgePolicy.rejudgeFenced} CAS — there
+     * is no batch-level fence; each submission is independently
+     * generation-fenced.
+     *
+     * @param command carries commandId, idempotency, actor, trace,
+     *                submission ids and the notifyUser flag
+     * @return success with per-submission {@link BatchRejudgeResultDTO};
+     *         never fails at the batch level (individual failures are
+     *         captured per-submission in the result list)
+     */
+    RpcResult<BatchRejudgeResultDTO> batchRejudge(BatchRejudgeCommand command);
 }

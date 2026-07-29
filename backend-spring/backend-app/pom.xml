@@ -12,6 +12,11 @@
 	<description>Phase 1 placeholder shell for the app service. P1-INFRA-005 populates it.</description>
 
 	<dependencies>
+		<!-- P7-MIGRATE-PROBLEM-001: canonical Problem administration write domain. -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>backend-problem-domain</artifactId>
+		</dependency>
 		<!-- P1-INFRA-002: dependency-free shared atoms. -->
 		<dependency>
 			<groupId>com.ulticode</groupId>

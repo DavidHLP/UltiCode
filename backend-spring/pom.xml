@@ -18,6 +18,7 @@
 	<modules>
 		<module>backend-common</module>
 		<module>backend-api</module>
+		<module>backend-problem-domain</module>
 		<module>backend-auth</module>
 		<module>backend-admin</module>
 		<module>backend-app</module>
@@ -57,6 +58,11 @@
 			<dependency>
 				<groupId>com.ulticode</groupId>
 				<artifactId>backend-app-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.ulticode</groupId>
+				<artifactId>backend-problem-domain</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

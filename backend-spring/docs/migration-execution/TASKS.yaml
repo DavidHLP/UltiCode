@@ -7922,10 +7922,15 @@
       ZERO cross-domain concrete imports. ProblemServiceImpl deps are all in-module or port interfaces. Full reactor verify
       BUILD SUCCESS. Commit: d4e7a12.'
     ts: '2026-07-29T06:07:27+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 step 2 done: backend-app data layer infrastructure added (MyBatis-Plus, MySQL connector,
+      Redis). pom.xml + application.yml updated. Test profile excludes datasource for smoke tests. Full reactor verify BUILD
+      SUCCESS. Commit: dc35632. Next: physical file relocation of problem module (63 files) — blocked by 28 cross-module imports
+      in legacy that need dual-write or Dubbo consumer adaptation.'
+    ts: '2026-07-29T06:17:23+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T06:07:27+00:00'
+  updated_at: '2026-07-29T06:17:23+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

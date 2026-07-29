@@ -1,4 +1,13 @@
 # P1-INFRA-005: test profile for service shell context-load tests.
+# P7-MIGRATE-PROBLEM-001: exclude datasource/redis autoconfig in unit tests
+# (context-load and shell smoke tests don't need real DB connections).
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+
 dubbo:
   registry:
     register: false

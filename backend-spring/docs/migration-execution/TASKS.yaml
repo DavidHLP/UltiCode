@@ -7393,7 +7393,7 @@
   title: Event replay / DLQ tooling
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
-  status: pending
+  status: done
   depends_on:
   - P6-INBOX-001
   acceptance_criteria:
@@ -7402,10 +7402,14 @@
   validation:
   - Manual replay run succeeds against seeded events
   rollback: tooling optional, no impact on hot path
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P6-REPLAY-001 CLOSED: Replay + DLQ tooling. EventReplayServiceTest 8/8 PASS. Full reactor verify BUILD SUCCESS.
+      Commit: 899ebbb.'
+    ts: '2026-07-29T05:02:06+00:00'
+  commits:
+  - 899ebbb
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T05:02:06+00:00'
 - id: P6-GATE
   phase: 6
   area: GATE

@@ -99,13 +99,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final Clock clock;
     private final UuidGenerator uuidGenerator;
-    /**
-     * P6-RESULT-001: result outbox writer for durable verdict events.
-     * Field-injected (not constructor) to avoid changing the constructor signature
-     * that ArchUnit's freeze baseline has captured — see ADR-MIG-ARCH-BOUNDARY.
-     */
-    @org.springframework.beans.factory.annotation.Autowired
-    private com.ulticode.modules.submission.result.SubmissionResultOutboxWriter submissionResultOutboxWriter;
 
     /**
      * Supported languages for submission.
@@ -242,16 +235,6 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
 
-        // P6-RESULT-001: write result outbox only for terminal verdicts
-        if (status.isTerminal()) {
-            long gen = submission.getGeneration() != null ? submission.getGeneration() : 1L;
-            submissionResultOutboxWriter.recordVerdictResult(
-                    submissionId, gen, submission.getUserId(),
-                    String.valueOf(submission.getProblemId()),
-                    wire, runtime, memory != null ? memory : 0,
-                    contestSubmissionPort.findContestId(submissionId));
-        }
-
         // Trigger achievement checks for accepted submissions
         if (status == SubmissionStatus.ACCEPTED) {
             // R6.3 / F-08: skip achievement triggers for virtual-contest
@@ -275,7 +258,10 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         // apply the verdict to contest_submissions + contest_participants aggregates.
         // Decoupled from the contest module so a scoring failure cannot break the
         // judge pipeline (the listener catches and logs its own exceptions).
-        publishContestScoringEvent(submission, status);
+        publishContestScoringEvent(submission, status,
+                submission.getGeneration() != null ? submission.getGeneration() : 1L,
+                runtime, memory != null ? memory : 0,
+                contestSubmissionPort.findContestId(submissionId));
     }
 
     /**
@@ -285,6 +271,20 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
      * want a publisher hiccup to surface as a 500 to the judge worker).
      */
     private void publishContestScoringEvent(Submission submission, SubmissionStatus status) {
+        publishContestScoringEvent(submission, status,
+                submission.getGeneration() != null ? submission.getGeneration() : 1L,
+                submission.getRuntime() != null ? submission.getRuntime() : 0,
+                submission.getMemory() != null ? submission.getMemory() : 0,
+                null);
+    }
+
+    /**
+     * P6-RESULT-001: enriched publish with generation/runtime/memory/contestId.
+     * The BEFORE_COMMIT listener writes the result outbox row in the same tx.
+     */
+    private void publishContestScoringEvent(Submission submission, SubmissionStatus status,
+                                             long generation, int runtimeMs, double memoryMb,
+                                             String contestId) {
         if (applicationEventPublisher == null) {
             return;
         }
@@ -297,7 +297,11 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
                     SubmissionStatusCodec.toWire(status),
                     status == SubmissionStatus.ACCEPTED,
                     submission.getRuntime(),
-                    java.time.LocalDateTime.now(clock)
+                    java.time.LocalDateTime.now(clock),
+                    generation,
+                    runtimeMs,
+                    memoryMb,
+                    contestId
             );
             applicationEventPublisher.publishEvent(event);
         } catch (Exception e) {
@@ -394,19 +398,17 @@ public class DefaultSubmissionWritePort implements SubmissionWritePort {
         log.info("Updated submission {} (fenced) status={}, runtime={}ms, memory={}",
                 submissionId, wire, runtime, memory != null ? memory + "MB" : "N/A");
 
-        // P6-RESULT-001: write result outbox in same transaction (after CAS success)
-        submissionResultOutboxWriter.recordVerdictResult(
-                submissionId, generation, submission.getUserId(),
-                String.valueOf(submission.getProblemId()),
-                wire, runtime, memory != null ? memory : 0,
-                contestSubmissionPort.findContestId(submissionId));
-
         // Achievements + notifications. F4: the fenced path no longer persists
         // performance stats here — they were written in the CAS above. The
         // side-effects (achievements / notifications) are not DB verdict
         // writes, so they are safe to run post-CAS without weakening the
         // fence.
         triggerPostVerdictSideEffects(submission, status);
+
+        // P6-RESULT-001: publish enriched event for BEFORE_COMMIT outbox listener
+        publishContestScoringEvent(submission, status,
+                generation, runtime, memory != null ? memory : 0,
+                contestSubmissionPort.findContestId(submissionId));
         return true;
     }
 

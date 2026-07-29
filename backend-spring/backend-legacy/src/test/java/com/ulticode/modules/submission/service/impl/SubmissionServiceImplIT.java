@@ -273,14 +273,6 @@ class SubmissionServiceImplIT {
                                 notificationDispatcher, problemFacts),
                         null, flags, null, null, java.time.Clock.systemDefaultZone(),
                         new com.ulticode.common.uuid.FixedUuidGenerator());
-        // P6-RESULT-001: inject outbox writer via reflection
-        try {
-            java.lang.reflect.Field f = writePort.getClass().getDeclaredField("submissionResultOutboxWriter");
-            f.setAccessible(true);
-            f.set(writePort, org.mockito.Mockito.mock(com.ulticode.modules.submission.result.SubmissionResultOutboxWriter.class));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, submissionProjection, performanceStats, writePort);
     }

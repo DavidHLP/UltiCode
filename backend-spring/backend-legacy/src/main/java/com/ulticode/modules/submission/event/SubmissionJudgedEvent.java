@@ -6,15 +6,14 @@ import java.time.LocalDateTime;
 
 /**
  * Event published when a submission's verdict has been finalized by the judge worker.
- * Consumed by {@link com.ulticode.modules.contest.listener.ContestScoringListener} after the
- * source transaction commits, so contest scoring/aggregation can react to AC/RE without
- * coupling SubmissionServiceImpl to the contest module.
  *
- * <p>Per the contest scoring design (see docs/contest-design-analysis-2026-06-16.md, P0-1):
- * the listener applies the verdict to {@code contest_submissions.is_accepted} and
- * aggregates {@code total_score / total_penalty / attempt_count} on
- * {@code contest_participants}, plus writes a {@code contest_problem_results} row and
- * (if first) a {@code first_solve_records} row.
+ * <p>Consumed by multiple listeners at different transaction phases:
+ * <ul>
+ *   <li>{@code BEFORE_COMMIT}: {@code SubmissionResultOutboxListener} writes the result
+ *       outbox row in the same transaction (P6-RESULT-001).</li>
+ *   <li>{@code AFTER_COMMIT}: {@code ContestAdjudicationListener} applies contest scoring
+ *       (D-04), and achievement listeners check for new badges.</li>
+ * </ul>
  */
 public class SubmissionJudgedEvent extends ApplicationEvent {
 
@@ -25,6 +24,14 @@ public class SubmissionJudgedEvent extends ApplicationEvent {
     private final boolean accepted;
     private final Integer penaltySeconds;
     private final LocalDateTime judgedAt;
+    /** P6-RESULT-001: fence generation for result outbox idempotency key */
+    private final long generation;
+    /** P6-RESULT-001: runtime in ms for result outbox */
+    private final int runtimeMs;
+    /** P6-RESULT-001: memory in MB for result outbox */
+    private final double memoryMb;
+    /** P6-RESULT-001: contest id if applicable, null otherwise */
+    private final String contestId;
 
     public SubmissionJudgedEvent(Object source,
                                   String submissionId,
@@ -34,6 +41,22 @@ public class SubmissionJudgedEvent extends ApplicationEvent {
                                   boolean accepted,
                                   Integer penaltySeconds,
                                   LocalDateTime judgedAt) {
+        this(source, submissionId, userId, problemId, verdict, accepted, penaltySeconds,
+             judgedAt, 0, 0, 0, null);
+    }
+
+    public SubmissionJudgedEvent(Object source,
+                                  String submissionId,
+                                  String userId,
+                                  Long problemId,
+                                  String verdict,
+                                  boolean accepted,
+                                  Integer penaltySeconds,
+                                  LocalDateTime judgedAt,
+                                  long generation,
+                                  int runtimeMs,
+                                  double memoryMb,
+                                  String contestId) {
         super(source);
         this.submissionId = submissionId;
         this.userId = userId;
@@ -42,6 +65,10 @@ public class SubmissionJudgedEvent extends ApplicationEvent {
         this.accepted = accepted;
         this.penaltySeconds = penaltySeconds;
         this.judgedAt = judgedAt;
+        this.generation = generation;
+        this.runtimeMs = runtimeMs;
+        this.memoryMb = memoryMb;
+        this.contestId = contestId;
     }
 
     public String getSubmissionId() { return submissionId; }
@@ -51,4 +78,8 @@ public class SubmissionJudgedEvent extends ApplicationEvent {
     public boolean isAccepted() { return accepted; }
     public Integer getPenaltySeconds() { return penaltySeconds; }
     public LocalDateTime getJudgedAt() { return judgedAt; }
+    public long getGeneration() { return generation; }
+    public int getRuntimeMs() { return runtimeMs; }
+    public double getMemoryMb() { return memoryMb; }
+    public String getContestId() { return contestId; }
 }

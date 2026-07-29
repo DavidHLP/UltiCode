@@ -12,6 +12,8 @@ import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.dto.FlagPostRequest;
 import com.ulticode.modules.admin.projection.AdminForumProjection;
 import com.ulticode.modules.admin.service.AdminForumService;
+import com.ulticode.modules.admin.service.ContentModerationCutoverService;
+import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -42,6 +44,7 @@ import java.util.List;
 public class AdminForumController {
 
     private final AdminForumService adminForumService;
+    private final ContentModerationCutoverService contentModerationCutoverService;
     private final AdminForumProjection adminForumProjection;
 
     @Operation(summary = "Get forum posts", description = "Get paginated list of forum posts with filters")
@@ -120,7 +123,7 @@ public class AdminForumController {
     public Result<Void> deletePost(
             @Parameter(description = "Post ID")
             @PathVariable String id) {
-        adminForumService.deletePost(id);
+        contentModerationCutoverService.moderateForumPost(id, ModerationAction.DELETE);
         return Result.success();
     }
 

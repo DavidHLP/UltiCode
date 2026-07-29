@@ -6981,7 +6981,7 @@
   title: Forum/Solution/ContentModeration cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: pending
+  status: ready
   depends_on:
   - P4-CUTOVER-002
   acceptance_criteria:

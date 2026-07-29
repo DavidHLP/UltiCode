@@ -10,6 +10,8 @@ import com.ulticode.modules.admin.dto.BulkSolutionActionDto;
 import com.ulticode.modules.admin.dto.FlagSolutionDto;
 import com.ulticode.modules.admin.projection.AdminSolutionProjection;
 import com.ulticode.modules.admin.service.AdminSolutionService;
+import com.ulticode.modules.admin.service.ContentModerationCutoverService;
+import com.ulticode.app.api.command.ApplyModerationCommand.ModerationAction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,6 +39,7 @@ import java.util.List;
 public class AdminSolutionController {
 
     private final AdminSolutionService adminSolutionService;
+    private final ContentModerationCutoverService contentModerationCutoverService;
     private final AdminSolutionProjection adminSolutionProjection;
 
     @Operation(summary = "Get solutions", description = "Get paginated list of solutions with filters")
@@ -87,7 +90,7 @@ public class AdminSolutionController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteSolution(@PathVariable String id) {
-        adminSolutionService.deleteSolution(id);
+        contentModerationCutoverService.moderateSolution(id, ModerationAction.DELETE);
         return Result.success();
     }
 

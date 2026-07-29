@@ -11,8 +11,8 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
-import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
-import com.ulticode.modules.admin.dto.RejudgeResult;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -31,10 +31,6 @@ import java.util.UUID;
  * delegates directly to {@link AdminSubmissionService#rejudge}. When the
  * flag is {@code true}, the rejudge goes through the Dubbo
  * {@link SubmissionAdministrationService} Provider.
- *
- * <p>Batch rejudge is intentionally <b>not</b> on the current Dubbo contract
- * (only single rejudge exists); batch stays local until a batch contract
- * method is designed.
  */
 @Slf4j
 @Service

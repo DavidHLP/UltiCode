@@ -7,11 +7,10 @@ import com.ulticode.app.api.dto.RejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.app.api.service.SubmissionAdministrationService;
 import com.ulticode.common.exception.BusinessException;
-import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
-import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
-import com.ulticode.modules.admin.dto.RejudgeResult;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.modules.submission.service.SubmissionAdministrationDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -21,23 +20,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * P4-CUTOVER-002: Dubbo Provider implementation of
- * {@link SubmissionAdministrationService}.
+ * Dubbo Provider implementation of {@link SubmissionAdministrationService} in {@code backend-app}.
  *
- * <p>Delegates to {@link AdminSubmissionService#rejudge} which routes through
- * the P3-OWNER-001-C {@code RejudgePolicy} (generation-fenced CAS). The
- * Provider maps the RPC contract to the internal domain call.
- *
- * <p>Fence enforcement is server-side via
- * {@code RejudgePolicy.rejudgeFenced}'s atomic {@code bumpGeneration} CAS;
- * the command carries no caller-supplied generation (see ADR-P4-RPC-001).
+ * <p>Delegates to {@link SubmissionAdministrationDomainService} for canonical write-side domain logic.
  */
 @Slf4j
 @DubboService(group = "backend-app", version = "1.0.0")
 @RequiredArgsConstructor
 public class SubmissionAdministrationProvider implements SubmissionAdministrationService {
 
-    private final AdminSubmissionService submissionService;
+    private final SubmissionAdministrationDomainService domainService;
 
     @Override
     public RpcResult<RejudgeResultDTO> rejudge(RejudgeCommand command) {
@@ -45,10 +37,10 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
                 command.submissionId(), command.notifyUser(),
                 command.commandId(), command.actor().actorId());
         try {
-            RejudgeResult result = submissionService.rejudge(
+            RejudgeResult result = domainService.rejudge(
                     command.submissionId(), command.notifyUser());
 
-            if (Boolean.FALSE.equals(result.getSuccess())) {
+            if (result == null || Boolean.FALSE.equals(result.getSuccess())) {
                 // AdminSubmissionService returns success=false for not-found
                 // rather than throwing; map to CONTENT_NOT_FOUND
                 return RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, command.trace().traceId());
@@ -78,7 +70,7 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
                 command.submissionIds().size(), command.notifyUsers(),
                 command.commandId(), command.actor().actorId());
         try {
-            BatchRejudgeResponse response = submissionService.batchRejudge(
+            BatchRejudgeResponse response = domainService.batchRejudge(
                     command.submissionIds(), command.notifyUsers());
 
             List<RejudgeResultDTO> dtos = new ArrayList<>(response.getResults().size());
@@ -107,8 +99,11 @@ public class SubmissionAdministrationProvider implements SubmissionAdministratio
     }
 
     private static <T> RpcResult<T> toFailure(BusinessException e, String traceId) {
+        if (e.getErrorCode() == null) {
+            return RpcResult.failure(AppErrorCode.UNEXPECTED_APP_STATE, traceId);
+        }
         return switch (e.getErrorCode().code()) {
-            case 30001, 30002 -> // PROBLEM_NOT_FOUND, SUBMISSION_NOT_FOUND family
+            case 40400, 30001, 30002 -> // NOT_FOUND, PROBLEM_NOT_FOUND, SUBMISSION_NOT_FOUND family
                     RpcResult.failure(AppErrorCode.CONTENT_NOT_FOUND, traceId);
             case 40900 -> // CONFLICT
                     RpcResult.failure(AppErrorCode.CONTENT_STATE_CONFLICT, traceId);

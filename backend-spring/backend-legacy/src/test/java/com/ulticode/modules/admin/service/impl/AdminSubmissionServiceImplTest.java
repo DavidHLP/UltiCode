@@ -1,7 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
-import com.ulticode.modules.admin.dto.RejudgeResult;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
 import com.ulticode.modules.submission.port.RejudgePolicy;
@@ -27,10 +27,6 @@ import static org.mockito.Mockito.when;
  *
  * <p>The service is now a 3-line dispatch: load submission, build the
  * result DTO with the old status, delegate to {@link RejudgePolicy#rejudge}.
- * The fenced and legacy state machines live in {@code DefaultRejudgePolicy}
- * / {@code LegacyRejudgeStrategy} and are covered by their own tests. These
- * tests pin the service's own contract: the not-found short-circuit, the
- * old-status capture, and per-id delegation through {@code batchRejudge}.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AdminSubmissionServiceImpl")
@@ -46,22 +42,14 @@ class AdminSubmissionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // After #3: constructor keeps only the write-path deps the service
-        // actually touches — submissionMapper (lookup) + rejudgePolicy
-        // (strategy dispatch). QueueService / FeatureFlags moved into the
-        // policy's strategies.
         adminSubmissionService = new AdminSubmissionServiceImpl(submissionReadPort, rejudgePolicy);
     }
 
     private Submission createValidSubmission() {
         Submission submission = new Submission();
         submission.setId("sub-123");
-        submission.setProblemId(1L);
-        submission.setUserId("user-456");
-        submission.setLanguage("java");
-        submission.setCode("public class Main {}");
         submission.setStatus("Accepted");
-        submission.setRetryCount(0);
+        submission.setLanguage("cpp");
         return submission;
     }
 
@@ -87,21 +75,23 @@ class AdminSubmissionServiceImplTest {
         void rejudge_existingSubmission_delegatesToPolicy() {
             Submission submission = createValidSubmission();
             when(submissionReadPort.findById("sub-123")).thenReturn(submission);
-            RejudgeResult policyResult = new RejudgeResult();
+            com.ulticode.modules.admin.dto.RejudgeResult policyResult = new com.ulticode.modules.admin.dto.RejudgeResult();
             policyResult.setSubmissionId("sub-123");
             policyResult.setSuccess(true);
             policyResult.setNewStatus("Pending");
-            when(rejudgePolicy.rejudge(eq(submission), any(RejudgeResult.class)))
+            when(rejudgePolicy.rejudge(eq(submission), any(com.ulticode.modules.admin.dto.RejudgeResult.class)))
                 .thenAnswer(inv -> {
-                    RejudgeResult passed = inv.getArgument(1);
+                    com.ulticode.modules.admin.dto.RejudgeResult passed = inv.getArgument(1);
                     assertThat(passed.getOldStatus()).isEqualTo("Accepted");
                     return policyResult;
                 });
 
             RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
 
-            assertThat(result).isSameAs(policyResult);
-            verify(rejudgePolicy).rejudge(eq(submission), any(RejudgeResult.class));
+            assertThat(result.getSubmissionId()).isEqualTo("sub-123");
+            assertThat(result.getSuccess()).isTrue();
+            assertThat(result.getNewStatus()).isEqualTo("Pending");
+            verify(rejudgePolicy).rejudge(eq(submission), any(com.ulticode.modules.admin.dto.RejudgeResult.class));
         }
     }
 
@@ -132,9 +122,9 @@ class AdminSubmissionServiceImplTest {
 
             when(submissionReadPort.findById("sub-1")).thenReturn(sub1);
             when(submissionReadPort.findById("sub-2")).thenReturn(sub2);
-            when(rejudgePolicy.rejudge(any(Submission.class), any(RejudgeResult.class)))
+            when(rejudgePolicy.rejudge(any(Submission.class), any(com.ulticode.modules.admin.dto.RejudgeResult.class)))
                 .thenAnswer(inv -> {
-                    RejudgeResult r = inv.getArgument(1);
+                    com.ulticode.modules.admin.dto.RejudgeResult r = inv.getArgument(1);
                     r.setSuccess(true);
                     return r;
                 });
@@ -151,35 +141,40 @@ class AdminSubmissionServiceImplTest {
         @Test
         @DisplayName("empty list returns total=0, successful=0, failed=0")
         void batchRejudge_emptyList_returnsZeroCounts() {
-            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(List.of(), false);
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(
+                List.of(), false);
 
             assertThat(response.getTotal()).isEqualTo(0);
             assertThat(response.getSuccessful()).isEqualTo(0);
             assertThat(response.getFailed()).isEqualTo(0);
             assertThat(response.getResults()).isEmpty();
+            verify(rejudgePolicy, never()).rejudge(any(), any());
         }
 
         @Test
-        @DisplayName("batch with 50 IDs is accepted (boundary)")
-        void batchRejudge_exactly50_isAccepted() {
-            List<String> ids = java.util.Collections.nCopies(50, "sub-id");
-            when(submissionReadPort.findById("sub-id")).thenReturn(null);
+        @DisplayName("mixed success and failure accumulates counts correctly")
+        void batchRejudge_mixedOutcome_accumulatesCorrectly() {
+            Submission sub1 = createValidSubmission();
+            sub1.setId("sub-1");
 
-            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(ids, false);
+            when(submissionReadPort.findById("sub-1")).thenReturn(sub1);
+            when(submissionReadPort.findById("sub-2")).thenReturn(null);
+            when(rejudgePolicy.rejudge(eq(sub1), any(com.ulticode.modules.admin.dto.RejudgeResult.class)))
+                .thenAnswer(inv -> {
+                    com.ulticode.modules.admin.dto.RejudgeResult r = inv.getArgument(1);
+                    r.setSuccess(true);
+                    return r;
+                });
 
-            assertThat(response.getTotal()).isEqualTo(50);
-            assertThat(response.getFailed()).isEqualTo(50);
-            assertThat(response.getSuccessful()).isEqualTo(0);
-        }
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(
+                List.of("sub-1", "sub-2"), false);
 
-        @Test
-        @DisplayName("no longer silently returns total=0 for null/empty (now 400 upstream)")
-        void nullList_doesNotSilentlyReturn_zeroCounts() {
-            when(submissionReadPort.findById("a")).thenReturn(null);
-            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(List.of("a"), false);
-
-            assertThat(response.getTotal()).isEqualTo(1);
+            assertThat(response.getTotal()).isEqualTo(2);
+            assertThat(response.getSuccessful()).isEqualTo(1);
             assertThat(response.getFailed()).isEqualTo(1);
+            assertThat(response.getResults()).hasSize(2);
+            assertThat(response.getResults().get(0).getSuccess()).isTrue();
+            assertThat(response.getResults().get(1).getSuccess()).isFalse();
         }
     }
 }

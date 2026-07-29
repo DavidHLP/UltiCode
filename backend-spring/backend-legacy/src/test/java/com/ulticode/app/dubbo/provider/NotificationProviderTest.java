@@ -4,9 +4,7 @@ import com.ulticode.app.api.command.ActorDelegation;
 import com.ulticode.app.api.command.CreateNotificationCommand;
 import com.ulticode.app.api.command.DeleteNotificationCommand;
 import com.ulticode.app.api.command.UpdateNotificationCommand;
-import com.ulticode.app.api.command.BatchRejudgeCommand;
 import com.ulticode.app.api.dto.NotificationAdminViewDTO;
-import com.ulticode.app.api.dto.BatchRejudgeResultDTO;
 import com.ulticode.app.api.error.AppErrorCode;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
@@ -14,12 +12,9 @@ import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.tracing.IdMetadata;
 import com.ulticode.common.tracing.TraceMetadata;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
-import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
-import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,15 +25,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -125,50 +116,5 @@ class NotificationAdministrationProviderTest {
             assertThat(result.success()).isTrue();
             assertThat(result.data().title()).isEqualTo("Updated Title");
         }
-    }
-}
-
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("SubmissionAdministrationProvider.batchRejudge")
-class SubmissionBatchRejudgeProviderTest {
-
-    @Mock private AdminSubmissionService submissionService;
-    private SubmissionAdministrationProvider provider;
-
-    @BeforeEach
-    void setUp() { provider = new SubmissionAdministrationProvider(submissionService); }
-
-    @Test @DisplayName("maps batch rejudge result to BatchRejudgeResultDTO")
-    void batchRejudges() {
-        RejudgeResult rr1 = new RejudgeResult();
-        rr1.setSubmissionId("s1");
-        rr1.setSuccess(true);
-        rr1.setNewStatus("Pending");
-        rr1.setRejudgedAt(Instant.now());
-        rr1.setRetryCount(1);
-        RejudgeResult rr2 = new RejudgeResult();
-        rr2.setSubmissionId("s2");
-        rr2.setSuccess(false);
-        rr2.setError("not found");
-
-        BatchRejudgeResponse resp = new BatchRejudgeResponse();
-        resp.setTotal(2);
-        resp.setSuccessful(1);
-        resp.setFailed(1);
-        resp.setResults(List.of(rr1, rr2));
-        when(submissionService.batchRejudge(anyList(), anyBoolean())).thenReturn(resp);
-
-        var cmd = new BatchRejudgeCommand(
-                UUID.randomUUID().toString(), IdMetadata.mint(),
-                new ActorDelegation("ADMIN", "admin", "admin", "test"),
-                TraceMetadata.EMPTY, List.of("s1", "s2"), false);
-        RpcResult<BatchRejudgeResultDTO> result = provider.batchRejudge(cmd);
-
-        assertThat(result.success()).isTrue();
-        assertThat(result.data().total()).isEqualTo(2);
-        assertThat(result.data().successful()).isEqualTo(1);
-        assertThat(result.data().failed()).isEqualTo(1);
-        assertThat(result.data().results()).hasSize(2);
     }
 }

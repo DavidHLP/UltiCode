@@ -1,26 +1,22 @@
 package com.ulticode.modules.submission.service.impl;
 
-import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.common.exception.BusinessException;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.modules.submission.port.SubmissionAdministrationWritePort;
 import com.ulticode.modules.submission.service.SubmissionAdministrationDomainService;
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Clock;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 public class SubmissionAdministrationDomainServiceImpl implements SubmissionAdministrationDomainService {
 
-    private final SubmissionWritePort writePort;
-    private final Clock clock;
+    private final SubmissionAdministrationWritePort writePort;
 
-    public SubmissionAdministrationDomainServiceImpl(SubmissionWritePort writePort, Clock clock) {
+    public SubmissionAdministrationDomainServiceImpl(SubmissionAdministrationWritePort writePort) {
         this.writePort = writePort;
-        this.clock = clock;
     }
 
     @Override
@@ -32,32 +28,15 @@ public class SubmissionAdministrationDomainServiceImpl implements SubmissionAdmi
     }
 
     @Override
-    public Submission rejudge(String submissionId, boolean notifyUser, String actorId) {
-        Submission submission = findById(submissionId)
-                .orElseThrow(() -> new BusinessException(BaseErrorCode.NOT_FOUND, "Submission not found"));
-
-        submission.setStatus("PENDING");
-        writePort.updateById(submission);
-        log.info("Submission rejudged: {} notifyUser={} by actor {}", submissionId, notifyUser, actorId);
-        return submission;
+    public RejudgeResult rejudge(String submissionId, boolean notifyUser) {
+        log.info("SubmissionAdministrationDomainServiceImpl.rejudge submissionId={} notifyUser={}", submissionId, notifyUser);
+        return writePort.rejudgeSubmission(submissionId, notifyUser);
     }
 
     @Override
-    public List<Submission> batchRejudge(List<String> submissionIds, boolean notifyUsers, String actorId) {
-        if (submissionIds == null || submissionIds.isEmpty()) {
-            return List.of();
-        }
-        List<Submission> rejudgedList = new ArrayList<>();
-        for (String id : submissionIds) {
-            Optional<Submission> opt = findById(id);
-            if (opt.isPresent()) {
-                Submission sub = opt.get();
-                sub.setStatus("PENDING");
-                writePort.updateById(sub);
-                rejudgedList.add(sub);
-            }
-        }
-        log.info("Batch rejudge completed count={} notifyUsers={} by actor {}", rejudgedList.size(), notifyUsers, actorId);
-        return rejudgedList;
+    public BatchRejudgeResponse batchRejudge(List<String> submissionIds, boolean notifyUsers) {
+        log.info("SubmissionAdministrationDomainServiceImpl.batchRejudge count={} notifyUsers={}",
+                submissionIds != null ? submissionIds.size() : 0, notifyUsers);
+        return writePort.batchRejudgeSubmissions(submissionIds, notifyUsers);
     }
 }

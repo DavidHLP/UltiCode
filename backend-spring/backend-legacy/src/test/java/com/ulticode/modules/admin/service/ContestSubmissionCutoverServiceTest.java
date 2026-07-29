@@ -9,7 +9,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.rpc.RpcResult;
 import com.ulticode.common.auth.CurrentUserProvider;
 import com.ulticode.modules.admin.dto.AdminContestVO;
-import com.ulticode.modules.admin.dto.RejudgeResult;
+import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.admin.projection.AdminContestProjection;
 import com.ulticode.modules.admin.service.AdminContestMutationService;
 import com.ulticode.modules.contest.dto.CreateContestDTO;

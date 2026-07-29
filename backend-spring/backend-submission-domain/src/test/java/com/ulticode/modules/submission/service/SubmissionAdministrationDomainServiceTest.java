@@ -1,9 +1,8 @@
 package com.ulticode.modules.submission.service;
 
-import com.ulticode.common.error.BaseErrorCode;
-import com.ulticode.common.exception.BusinessException;
-import com.ulticode.modules.submission.entity.Submission;
-import com.ulticode.modules.submission.port.SubmissionWritePort;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
+import com.ulticode.modules.submission.port.SubmissionAdministrationWritePort;
 import com.ulticode.modules.submission.service.impl.SubmissionAdministrationDomainServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,29 +12,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionAdministrationDomainServiceTest {
 
-    @Mock
-    private SubmissionWritePort writePort;
+    private static final Instant FIXED_NOW = Instant.parse("2026-07-29T10:00:00Z");
 
-    private Clock fixedClock;
+    @Mock
+    private SubmissionAdministrationWritePort writePort;
+
     private SubmissionAdministrationDomainServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        fixedClock = Clock.fixed(Instant.parse("2026-07-29T10:00:00Z"), ZoneId.of("UTC"));
-        service = new SubmissionAdministrationDomainServiceImpl(writePort, fixedClock);
+        service = new SubmissionAdministrationDomainServiceImpl(writePort);
     }
 
     @Nested
@@ -43,29 +38,22 @@ class SubmissionAdministrationDomainServiceTest {
     class Rejudge {
 
         @Test
-        @DisplayName("successful rejudge resets status to PENDING and updates entity")
+        @DisplayName("successful rejudge delegates to writePort.rejudgeSubmission")
         void success() {
-            Submission submission = new Submission();
-            submission.setId("sub-1");
-            submission.setStatus("ACCEPTED");
+            RejudgeResult expected = new RejudgeResult();
+            expected.setSubmissionId("sub-1");
+            expected.setSuccess(true);
+            expected.setOldStatus("ACCEPTED");
+            expected.setNewStatus("PENDING");
+            expected.setRejudgedAt(FIXED_NOW);
+            expected.setRetryCount(1);
 
-            when(writePort.selectById("sub-1")).thenReturn(submission);
+            when(writePort.rejudgeSubmission("sub-1", true)).thenReturn(expected);
 
-            Submission rejudged = service.rejudge("sub-1", true, "admin-1");
+            RejudgeResult actual = service.rejudge("sub-1", true);
 
-            assertThat(rejudged.getStatus()).isEqualTo("PENDING");
-            verify(writePort).updateById(submission);
-        }
-
-        @Test
-        @DisplayName("missing submission throws NOT_FOUND BusinessException")
-        void notFound() {
-            when(writePort.selectById("missing")).thenReturn(null);
-
-            assertThatThrownBy(() -> service.rejudge("missing", false, "admin-1"))
-                    .isInstanceOf(BusinessException.class)
-                    .extracting("errorCode")
-                    .isEqualTo(BaseErrorCode.NOT_FOUND);
+            assertThat(actual).isSameAs(expected);
+            verify(writePort).rejudgeSubmission("sub-1", true);
         }
     }
 
@@ -74,20 +62,29 @@ class SubmissionAdministrationDomainServiceTest {
     class BatchRejudge {
 
         @Test
-        @DisplayName("batchRejudge updates existing submissions")
-        void success() {
-            Submission sub1 = new Submission();
-            sub1.setId("sub-1");
-            Submission sub2 = new Submission();
-            sub2.setId("sub-2");
+        @DisplayName("batchRejudge delegates to writePort.batchRejudgeSubmissions including partial failure")
+        void partialFailure() {
+            RejudgeResult r1 = new RejudgeResult();
+            r1.setSubmissionId("sub-1");
+            r1.setSuccess(true);
 
-            when(writePort.selectById("sub-1")).thenReturn(sub1);
-            when(writePort.selectById("sub-2")).thenReturn(sub2);
+            RejudgeResult r2 = new RejudgeResult();
+            r2.setSubmissionId("sub-2");
+            r2.setSuccess(false);
+            r2.setError("Submission not found");
 
-            List<Submission> rejudged = service.batchRejudge(List.of("sub-1", "sub-2"), true, "admin-1");
+            BatchRejudgeResponse expected = new BatchRejudgeResponse();
+            expected.setTotal(2);
+            expected.setSuccessful(1);
+            expected.setFailed(1);
+            expected.setResults(List.of(r1, r2));
 
-            assertThat(rejudged).hasSize(2);
-            verify(writePort, times(2)).updateById(any());
+            when(writePort.batchRejudgeSubmissions(List.of("sub-1", "sub-2"), true)).thenReturn(expected);
+
+            BatchRejudgeResponse actual = service.batchRejudge(List.of("sub-1", "sub-2"), true);
+
+            assertThat(actual).isSameAs(expected);
+            verify(writePort).batchRejudgeSubmissions(List.of("sub-1", "sub-2"), true);
         }
     }
 }

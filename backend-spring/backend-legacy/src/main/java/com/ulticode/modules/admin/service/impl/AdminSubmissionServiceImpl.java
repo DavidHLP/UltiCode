@@ -2,10 +2,10 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.audit.AuditVocabulary;
-import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
-import com.ulticode.modules.admin.dto.RejudgeResult;
-import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.admin.port.AdminSubmissionReadPort;
+import com.ulticode.modules.admin.service.AdminSubmissionService;
+import com.ulticode.modules.submission.dto.BatchRejudgeResponse;
+import com.ulticode.modules.submission.dto.RejudgeResult;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.port.RejudgePolicy;
 import lombok.RequiredArgsConstructor;
@@ -55,10 +55,12 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             return result;
         }
 
-        RejudgeResult result = new RejudgeResult();
-        result.setSubmissionId(id);
-        result.setOldStatus(submission.getStatus());
-        return rejudgePolicy.rejudge(submission, result);
+        com.ulticode.modules.admin.dto.RejudgeResult legacyResult = new com.ulticode.modules.admin.dto.RejudgeResult();
+        legacyResult.setSubmissionId(id);
+        legacyResult.setOldStatus(submission.getStatus());
+        legacyResult = rejudgePolicy.rejudge(submission, legacyResult);
+
+        return toDomain(legacyResult);
     }
 
     /**
@@ -94,7 +96,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         for (String id : submissionIds) {
             RejudgeResult result = rejudge(id, notifyUsers);
             response.getResults().add(result);
-            if (result.getSuccess()) {
+            if (Boolean.TRUE.equals(result.getSuccess())) {
                 successful++;
             } else {
                 failed++;
@@ -106,4 +108,18 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         return response;
     }
 
+    private RejudgeResult toDomain(com.ulticode.modules.admin.dto.RejudgeResult legacy) {
+        if (legacy == null) {
+            return null;
+        }
+        RejudgeResult domain = new RejudgeResult();
+        domain.setSubmissionId(legacy.getSubmissionId());
+        domain.setSuccess(legacy.getSuccess());
+        domain.setOldStatus(legacy.getOldStatus());
+        domain.setNewStatus(legacy.getNewStatus());
+        domain.setError(legacy.getError());
+        domain.setRejudgedAt(legacy.getRejudgedAt());
+        domain.setRetryCount(legacy.getRetryCount());
+        return domain;
+    }
 }

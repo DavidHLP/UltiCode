@@ -10,6 +10,9 @@
 	<artifactId>backend-problem-domain</artifactId>
 	<name>UltiCode Backend (Problem administration domain)</name>
 	<description>Canonical Problem administration write-side domain shared during Phase 7 cutover.</description>
+	<properties>
+		<argLine></argLine>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.ulticode</groupId>
@@ -41,6 +44,12 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+		<!-- Test dependencies for domain service unit tests -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 </project>

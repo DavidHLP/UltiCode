@@ -1007,3 +1007,13 @@ AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any
 - Final removal rewires remaining legacy write callers to the canonical service before deleting the broad legacy implementation.
 
 **Affected Tasks:** P7-MIGRATE-PROBLEM-001 (in_progress). First implementation slice: create `backend-problem-domain`, extract the write chain, and prove both consumer modules compile before relocating the Provider.
+
+**Package layout convention.** All canonical Problem administration domain types reside under `com.ulticode.modules.problem.*` root:
+- Entities: `com.ulticode.modules.problem.entity.Problem`
+- DTOs: `com.ulticode.modules.problem.dto.{CreateProblemDTO,UpdateProblemDTO,LanguageConfigDTO}`
+- Ports: `com.ulticode.modules.problem.port.{ProblemWritePort,ProblemDetailDomainPort,ProblemVersionPort}`
+- Service: `com.ulticode.modules.problem.service.ProblemAdministrationDomainService`
+- Service Impl: `com.ulticode.modules.problem.service.impl.ProblemAdministrationDomainServiceImpl`
+- Legacy Adapters: `com.ulticode.modules.problem.adapter.{LegacyProblemWriteAdapter,LegacyProblemDetailAdapter,LegacyProblemVersionAdapter}`
+
+This ensures a single, unified package hierarchy across `backend-problem-domain`, `backend-legacy`, and `backend-app`.

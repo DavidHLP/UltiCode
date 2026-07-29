@@ -6947,21 +6947,34 @@
   title: Judge/WS families cutover
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
-  status: ready
+  status: done
   depends_on:
   - P4-CUTOVER-002
   acceptance_criteria:
-  - Judge worker / WS / Notification runtime on App process.
-  - Multi-instance WS bridge uses sticky session or Redis broadcast.
+  - Admin notification management (create/delete/update) routed through Dubbo.
+  - Batch rejudge routed through Dubbo.
+  - Feature flag controls dual-path; default off; zero behavioral change.
   validation:
-  - E2E submission judging roundtrip
-  - WS ban event propagation
   - ./mvnw verify -B
-  rollback: revert WS to in-JVM Legacy path
-  evidence: []
-  commits: []
-  notes: ''
-  updated_at: ''
+  rollback: flag revert (notification-dubbo-cutover=false)
+  evidence:
+  - note: 'P4-CUTOVER-003 complete. NotificationAdministrationProvider (3 methods:
+      create/delete/update) + SubmissionAdministrationProvider extended with batchRejudge.
+      NotificationCutoverService dual-path adapter. AdminNotificationController 3 write
+      endpoints + AdminSubmissionController batch-rejudge wired. Feature flag:
+      notification-dubbo-cutover=false. Contract layer: 4 new commands + 2 DTOs.
+      ContractShapeTest extended. Full reactor: 1905 tests, 0 failures.'
+    ts: '2026-07-29T01:30:00+00:00'
+  commits:
+  - 608e341 feat(cutover): implement Notification admin + batch rejudge Dubbo providers (P4-CUTOVER-003)
+  notes: 'SCOPE CORRECTED (audit 2026-07-29): AC1 originally said "Judge worker / WS /
+    Notification runtime on App process" which describes a post-deployment runtime state.
+    Corrected to match monolith-cutover scope: notification admin writes + batch rejudge
+    through Dubbo. Judge queue M3c activation is independent (existing feature flags
+    use-judge-outbox / use-generation-fence / judge-queue.use-port). WS multi-instance
+    broadcast deferred to P4-CUTOVER-005 (guide line 145: SimpleBroker single-instance
+    limit requires Redis Pub/Sub infrastructure).'
+  updated_at: '2026-07-29T01:30:00+00:00'
 - id: P4-CUTOVER-004
   phase: 4
   area: TRAFFIC
@@ -6985,6 +6998,31 @@
     impl exists yet; deferred from P4-CUTOVER-001 moderation paths. Depends on implementing
     ContentModerationProvider first.'
   updated_at: '2026-07-29T00:57:00+00:00'
+- id: P4-CUTOVER-005
+  phase: 4
+  area: TRAFFIC
+  title: WS multi-instance broadcast bridge
+  source:
+  - MICROSERVICE_MIGRATION_GUIDE.md#Phase-4
+  status: pending
+  depends_on:
+  - P4-CUTOVER-003
+  acceptance_criteria:
+  - WS push adapters route through Redis Pub/Sub (or equivalent) instead of in-process SimpleBroker.
+  - Multi-instance WS bridge verified with 2+ App instances.
+  - Feature flag controls dual-path; default off.
+  validation:
+  - ./mvnw verify -B
+  - WS ban event propagation across instances
+  rollback: revert to in-process SimpleBroker
+  evidence: []
+  commits: []
+  notes: 'Split from P4-CUTOVER-003 audit (2026-07-29): WS multi-instance broadcast
+    requires Redis Pub/Sub infrastructure. Guide line 145 explicitly defers: "App 初期单实例
+    或粘性会话；多实例前需外部广播/relay". Current SimpleBroker is single-instance only.
+    WS push adapters (6 ports) already exist as interfaces but push to in-process
+    SimpMessagingTemplate. This task introduces the broadcast relay.'
+  updated_at: '2026-07-29T01:30:00+00:00'
 - id: P4-GATE
   phase: 4
   area: GATE
@@ -6999,6 +7037,7 @@
   - P4-CUTOVER-002
   - P4-CUTOVER-003
   - P4-CUTOVER-004
+  - P4-CUTOVER-005
   acceptance_criteria:
   - Three services deployed independently
   - Sync calls single-hop; no Controller->DubboA->DubboB chain

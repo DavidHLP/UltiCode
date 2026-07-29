@@ -704,3 +704,19 @@ this session.
 - **Re-verified**: ./mvnw verify -B → 1893 tests, 0 failures, 0 errors, 4 skipped.
   BUILD SUCCESS.
 - **P4-CUTOVER-002 remains done** for its titled scope (Contest/Submission).
+
+## 2026-07-29 P4-CUTOVER-003 — Notification admin + batch rejudge Dubbo providers
+
+- **P4-CUTOVER-003**: implemented Notification administration Dubbo Provider and
+  batch rejudge extension, following the CUTOVER-001/002 pattern.
+  - `NotificationAdministrationProvider` (@DubboService): create/delete/update, delegates to AdminNotificationService.
+  - `SubmissionAdministrationProvider` extended with batchRejudge (per-submission CAS fence loop).
+  - `NotificationCutoverService` + `SubmissionCutoverService.batchRejudge`: dual-path adapters.
+  - `AdminNotificationController` 3 write endpoints + `AdminSubmissionController` batch-rejudge wired.
+  - Feature flag: notification-dubbo-cutover=false.
+  - Contract layer: 4 new commands + 2 DTOs. ContractShapeTest extended.
+  - AC corrected: original AC1 "Judge worker / WS / Notification runtime on App process"
+    described post-deployment state. Corrected to notification admin writes + batch rejudge
+    through Dubbo. WS multi-instance deferred to P4-CUTOVER-005.
+  - Commit: 608e341. Full reactor: 1905 tests, 0 failures.
+- **Next**: P4-CUTOVER-004 (Forum/Solution/ContentModeration cutover) is ready.

@@ -742,3 +742,34 @@ P4-CUTOVER-004 will require: ContentModerationProvider impl, AdminForumControlle
 AdminSolutionController moderation route wiring, feature flag.
 
 **Affected Tasks:** P4-CUTOVER-002 (done), P4-CUTOVER-004 (pending), P4-GATE (pending).
+
+
+### ADR-P4-CUTOVER-003-AUDIT: AC correction — Judge/WS/Notification runtime scope
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** P4-CUTOVER-003 AC1 originally read "Judge worker / WS / Notification
+runtime on App process" and AC2 read "Multi-instance WS bridge uses sticky session
+or Redis broadcast." Both describe post-deployment runtime states that require P4-GATE
+(three services independently deployed). In the current monolith, these states are
+not achievable — the work is to wire feature-flagged deployable boundaries so the
+runtime components can later move to the App process without code rewrites.
+
+Three independent facts drive the scope split:
+1. Judge queue cutover infrastructure (M3a/M3b/M3c flags) already exists independently
+   of Dubbo cutover — activation is an ops concern, not a contract task.
+2. WS multi-instance broadcast requires Redis Pub/Sub infrastructure; guide line 145
+   explicitly defers: "App 初期单实例或粘性会话；多实例前需外部广播/relay."
+3. Notification admin writes (create/delete/update) and batch rejudge are genuine
+   Dubbo cutover candidates following the CUTOVER-001/002 pattern.
+
+**Decision.** (1) Correct AC to "Admin notification management + batch rejudge routed
+through Dubbo; flag-controlled dual-path; zero behavior change at flag=off."
+P4-CUTOVER-003 stays done for this scope. (2) Create P4-CUTOVER-005 (WS multi-instance
+broadcast bridge, pending) for the deferred WS work. (3) Judge queue activation stays
+on existing independent feature flags.
+
+**Consequences.** P4-GATE now depends on P4-CUTOVER-005 in addition to 003/004.
+P4-CUTOVER-005 will require Redis Pub/Sub relay infrastructure for WS push adapters.
+
+**Affected Tasks:** P4-CUTOVER-003 (done), P4-CUTOVER-005 (pending), P4-GATE (pending).

@@ -48,7 +48,8 @@ Truth: `backend-spring/docs/migration-execution/TASKS.yaml`
 | §6.4 / §6.5 RPC policy | P4-RPC-002 | done |
 | §Phase-4 Problem cutover | P4-CUTOVER-001 | done |
 | §Phase-4 Contest/Submission cutover | P4-CUTOVER-002 | done |
-| §Phase-4 Judge/WS cutover | P4-CUTOVER-003 | ready |
+| §Phase-4 Judge/WS cutover | P4-CUTOVER-003 | done |
+| §Phase-4 WS multi-instance broadcast | P4-CUTOVER-005 | pending |
 | §Phase-4 Forum/Solution/ContentModeration cutover | P4-CUTOVER-004 | pending |
 | Phase-4 gate | P4-GATE | pending |
 | §5.2 Per-Owner schema/DB grants | P5-SCHEMA-001 | pending |

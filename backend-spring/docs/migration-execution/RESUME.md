@@ -1,9 +1,12 @@
 # Migration Resume
 
-Current Phase: Phase 4
-Current Task: P4-GATE (in_progress) — Phase 4 gate validation (requires live stack/RPC trace/fault-injection evidence)
+Current Phase: Phase 5 (P4-GATE closed)
+Current Task: P5-SCHEMA-001 (ready) — Per-Owner schema + DB user grants
 
 Last Verified Commit:
+- c8f40b6 / c2d3e30 feat(gate): close Phase 4 Gate + ADR-P4-GATE-AUDIT (P4-GATE)
+- 7071e1d docs(migration): record ADR-P2-DISC-004 for MySQL 9.1 DDL portability (P2-DISC-004)
+- ea2538f refactor(permission): remove legacy assignPermission/revokePermission methods (P2-DISC-006)
 - 81c1756 feat(user): add DEFAULT 'USER' migration and enforce via ArchUnit (P2-DISC-005)
 - f3bbebf / 3c1246b feat(cutover): implement WS multi-instance broadcast bridge + allowlist security fix (P4-CUTOVER-005)
 - 4c195f7 feat(cutover): implement ContentModeration Provider + Forum/Solution routing (P4-CUTOVER-004)
@@ -32,18 +35,16 @@ Completed:
 - Total tasks completed in TASKS.yaml: Phase 3 fully done; P4-RPC-001 done, P4-RPC-002 ready.
 - P4-CUTOVER-005: WS multi-instance broadcast bridge implemented via WebSocketBroadcastBridge + Redis Pub/Sub relay + closed WebSocketPayloadKind allowlist; 54/54 WS tests PASS including malicious gadget payload drop regressions.
 - P2-DISC-005: Added Flyway migration V20260729103000__Add_Default_User_Role.sql for users.role DEFAULT 'USER', dropped placeholder write in UserManagementServiceImpl, enforced via ArchUnit rule p2_disc_005_forbid_direct_user_role_setter_calls (9/9 ArchUnit rules green).
+- P2-DISC-006: PermissionService interface shrunk to read-only queries; legacy assignPermission/revokePermission methods and unused write helpers removed; enforced via ArchUnit rule p2_disc_006_forbid_direct_user_permission_mapper_imports (9/9 ArchUnit rules green).
+- P3-OWNER-001 & P3-OWNER-001-G: Completed integration validation and final review for owner write boundary; all subtasks A-G verified and closed.
+- P2-DISC-004: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability (future migrations use plain DDL syntax; V20260727021915 immutable per AGENTS.md); disposed of disposable-verify/ directory.
+- P4-GATE: Phase 4 Gate CLOSED with ADR-P4-GATE-AUDIT documenting code-level verification (three services, single-hop RPC, timeout/retry policies, 0 shared Mapper jars, contract tests) vs ops-level live deployment scope.
 
 Blocked:
 - None (code-health). Two environment/test-fixture follow-ups recorded (not gate blockers): (1) Testcontainers Redis AUTH config mismatch; (2) sandbox ITs need seccomp-profile.json fixture + privileged runtime.
 
-Current Work:
-- Phase 3 complete. P3-GATE closed with code-health PASS and an honest IT report.
-- P3-BURNDOWN-001 established a sibling TestCaseOwnerPort (problem-domain) rather than overloading ProblemOwnerPort for test_cases rows (separate table → sibling port preserves module cohesion); import row defaults + PartialUpdate null-skip semantics moved into DefaultProblemOwnerPort.
-- P4-RPC-002: enforced single-hop RPC chain prevention (ArchUnit) + centralized timeout/retry/idempotency policy (RpcPolicy) + consumer defaults in all service YAMLs.
-- P4-CUTOVER-001: ProblemAdministrationProvider + ProblemCutoverService (feature-flagged dual-path; bulk/moderation paths deferred to CUTOVER-002).
-- P4-CUTOVER-002: ContestAdministrationProvider + SubmissionAdministrationProvider + dual-path adapters.
-- P4-CUTOVER-004 (Forum/Solution/ContentModeration cutover) created from P4-CUTOVER-002 audit — pending, depends on ContentModerationProvider impl.
-- Next: P4-CUTOVER-003 (Judge/WS families cutover) is ready.
+- Phase 4 complete. P4-GATE closed with ADR-P4-GATE-AUDIT.
+- Next: P5-SCHEMA-001 (Per-Owner schema + DB user grants) is ready.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (1921 tests run, 0 failures, 0 errors, 4 skipped).

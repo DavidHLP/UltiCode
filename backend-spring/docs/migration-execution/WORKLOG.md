@@ -754,3 +754,35 @@ this session.
   - Added ArchUnit rule `p2_disc_005_forbid_direct_user_role_setter_calls` in `OwnerBoundaryArchTest` to forbid direct `User::setRole` calls outside `com.ulticode.modules.auth..` and `com.ulticode.modules.user..`.
   - Updated `archunit_store/stored.rules` (9/9 ArchUnit rules green).
   - Commit: 81c1756.
+
+## 2026-07-29 P2-DISC-006 — Remove legacy PermissionService.assignPermission / revokePermission
+
+- **P2-DISC-006**: shrunk `PermissionService` interface to read-only queries.
+  - Removed `assignPermission` and `revokePermission` declarations from `PermissionService`.
+  - Removed directive-throw method implementations and unused write helpers from `PermissionServiceImpl`.
+  - Removed `WriteMethodsClosed` nested class from `PermissionServiceTest`.
+  - Added ArchUnit rule `p2_disc_006_forbid_direct_user_permission_mapper_imports` in `OwnerBoundaryArchTest` to forbid direct `UserPermissionMapper` imports outside `com.ulticode.modules.permission..`.
+  - Commit: ea2538f.
+
+## 2026-07-29 P3-OWNER-001-G — Owner write boundary integration validation & final review
+
+- **P3-OWNER-001-G**: completed final integration validation for Phase 3 owner write boundaries.
+  - All subtasks A-F verified: Problem, Contest, Submission, Forum, Solution owner ports + ArchUnit enforcement.
+  - Verified zero foreign-mapper write violations across Admin services.
+  - Full reactor verify: 1921 tests, 0 failures.
+  - Marked both `P3-OWNER-001-G` and parent `P3-OWNER-001` as `done`.
+
+## 2026-07-29 P2-DISC-004 — MySQL 9.1 portable DDL policy
+
+- **P2-DISC-004**: recorded `ADR-P2-DISC-004` in `DECISIONS.md`.
+  - Adopted Option A: future DDL migrations use standard MySQL 9.1 syntax without non-standard `IF EXISTS` on `ALTER TABLE`.
+  - Migration immutability preserved per AGENTS.md (`V20260727021915` left untouched).
+  - Disposed of `disposable-verify/` scaffold.
+  - Commit: 7071e1d.
+
+## 2026-07-29 P4-GATE — Phase 4 Gate
+
+- **P4-GATE**: Phase 4 Gate CLOSED with `ADR-P4-GATE-AUDIT`.
+  - Code-level verification closed: three services (`backend-auth`, `backend-admin`, `backend-app`), single-hop Dubbo RPC enforced via `SingleHopArchTest`, timeout=3000ms retry=0 `RpcPolicy`, 0 shared Mapper jars across contract modules, `ContractShapeTest` backward/forward compatibility.
+  - Ops-level live deployment validation (multi-container startup, failure injection matrix, N-1 live runtime compatibility) explicitly deferred to Phase 7 operations validation per `ADR-P4-GATE-AUDIT`.
+  - Commit: c8f40b6.

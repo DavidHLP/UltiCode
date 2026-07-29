@@ -140,4 +140,18 @@ public interface NotificationDeliveryLedgerMapper extends BaseMapper<Notificatio
             + "WHERE delivery_state = 'CLAIMED' "
             + "  AND delivered_at < (NOW() - INTERVAL 10 MINUTE)")
     int reapStaleClaimed();
+    /**
+     * Reclaim FAILED rows for retry (P6-INBOX-001).
+     * Resets delivery_state to CLAIMED so the dispatcher can re-attempt.
+     * Bounded: only reclaims rows with fewer than MAX_RECLAIM_ATTEMPTS (5)
+     * prior transitions to FAILED, to prevent infinite retry loops on
+     * permanently-failing deliveries (e.g., deleted user target).
+     */
+    @Update("UPDATE notification_delivery_ledger "
+            + "SET delivery_state = 'CLAIMED', failure_reason = NULL, "
+            + "    reclaim_attempts = reclaim_attempts + 1 "
+            + "WHERE delivery_state = 'FAILED'"
+            + "  AND reclaim_attempts < 5"
+            + "  AND updated_at < (NOW() - INTERVAL 5 MINUTE)")
+    int reclaimFailed();
 }

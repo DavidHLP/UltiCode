@@ -60,10 +60,14 @@ public class NotificationLedgerReaper {
                         reaped);
                 meterRegistry.counter("notification.ledger.reaper.reaped").increment(reaped);
             }
+
+            // P6-INBOX-001: reclaim FAILED rows for bounded retry
+            int reclaimed = ledgerMapper.reclaimFailed();
+            if (reclaimed > 0) {
+                log.info("Reaper reclaimed {} FAILED rows for retry (bounded at 5 attempts)", reclaimed);
+                meterRegistry.counter("notification.ledger.reaper.reclaimed").increment(reclaimed);
+            }
         } catch (Exception e) {
-            // Reaper failures must not propagate — the scheduled task would
-            // log the exception anyway, but a noisy log every 5 minutes
-            // is worse than a single warn.
             log.warn("NotificationLedgerReaper.reap failed: {}", e.getMessage());
         }
     }

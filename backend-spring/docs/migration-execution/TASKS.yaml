@@ -7991,9 +7991,13 @@
       AddContestProblemDTO into backend-contest-domain under com.ulticode.modules.contest.*. Compile BUILD SUCCESS. Commit:
       157ee6e. Next: extract ContestAdministrationDomainService and ports.'
     ts: '2026-07-29T08:23:41+00:00'
+  - note: 'P7-MIGRATE-CONTEST-001 step 2: extracted ContestAdministrationDomainService, ContestAdministrationDomainServiceImpl,
+      ContestWritePort into backend-contest-domain. Domain unit tests (ContestAdministrationDomainServiceTest: 4 tests) BUILD
+      SUCCESS. Commits: c112dc2. Next: relocate ContestAdministrationProvider to backend-app and wire legacy delegation.'
+    ts: '2026-07-29T08:24:54+00:00'
   commits: []
   notes: AdminContestMutationService has WebSocket push side-effects and owner-port writes.
-  updated_at: '2026-07-29T08:23:41+00:00'
+  updated_at: '2026-07-29T08:24:54+00:00'
 - id: P7-MIGRATE-SUBMISSION-001
   phase: 7
   area: ARCH

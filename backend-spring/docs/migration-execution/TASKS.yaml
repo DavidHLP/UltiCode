@@ -7949,10 +7949,15 @@
       actorId. Unit tests (ProblemAdministrationDomainServiceTest + ProblemServiceImplTest: 18 tests) and full reactor verify
       (10 modules) BUILD SUCCESS. Commit: 9cca739. Next: relocate ProblemAdministrationProvider to backend-app.'
     ts: '2026-07-29T08:03:30+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 step 3c test clean-up: aligned ProblemServiceImplTest with canonical domain service delegation.
+      Focused tests (ProblemAdministrationDomainServiceTest + ProblemServiceImplTest: 18 tests) and full reactor verify across
+      10 modules all BUILD SUCCESS. Commits: 9cca739, 2f4c9c4. Working tree clean. Next: relocate ProblemAdministrationProvider
+      to backend-app.'
+    ts: '2026-07-29T08:18:34+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T08:03:30+00:00'
+  updated_at: '2026-07-29T08:18:34+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

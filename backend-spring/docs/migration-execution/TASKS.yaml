@@ -7903,7 +7903,7 @@
   source:
   - ADR-P7-MIGRATION-SCOPE
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: in_progress
+  status: done
   depends_on:
   - P6-GATE
   acceptance_criteria:
@@ -7954,10 +7954,17 @@
       10 modules all BUILD SUCCESS. Commits: 9cca739, 2f4c9c4. Working tree clean. Next: relocate ProblemAdministrationProvider
       to backend-app.'
     ts: '2026-07-29T08:18:34+00:00'
+  - note: 'P7-MIGRATE-PROBLEM-001 complete: (1) Established canonical reactor module backend-problem-domain owning Problem
+      aggregate/DTOs/ports and ProblemAdministrationDomainService/ServiceImpl under com.ulticode.modules.problem.service.*.
+      (2) Re-wired backend-legacy ProblemServiceImpl write methods to delegate to canonical domain service with explicit actorId.
+      (3) Relocated ProblemAdministrationProvider and ProblemAdministrationProviderTest to backend-app. (4) All 10 reactor
+      modules and tests pass cleanly with full ./mvnw verify -B (BUILD SUCCESS). Commits: 74dcb08, 0a1eda9, a027e73, cc1b642,
+      14cfb6e, 9cca739, df81d37, 2f4c9c4, d58c432, c5ea3e6.'
+    ts: '2026-07-29T08:22:26+00:00'
   commits: []
   notes: 'Scope: 58 files (problem module) + cross-domain deps via ProblemProjection (submission stats, solution mapper, edge
     ops, judging language). ProblemProjection coupling is the hardest part — consider port extraction before full migration.'
-  updated_at: '2026-07-29T08:18:34+00:00'
+  updated_at: '2026-07-29T08:22:26+00:00'
 - id: P7-MIGRATE-CONTEST-001
   phase: 7
   area: ARCH

@@ -7444,7 +7444,7 @@
   title: Remove `backend-legacy` module
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: pending
+  status: blocked
   depends_on:
   - P6-GATE
   acceptance_criteria:
@@ -7456,10 +7456,14 @@
   - Gateway routes inventory shows no Legacy references
   - ./scripts/dev/test.sh full + integration PASS
   rollback: re-add backend-legacy branch and pin last version
-  evidence: []
+  evidence:
+  - note: 'P7-LEGACY-001 BLOCKED: backend-legacy contains all business logic (1931 tests). Service shells (backend-auth/admin/app)
+      only have Dubbo Provider implementations — not full business code. Removing backend-legacy requires complete business
+      logic migration to service modules first. This is a real scope dependency, not a code fix.'
+    ts: '2026-07-29T05:03:12+00:00'
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T05:03:12+00:00'
 - id: P7-LEGACY-002
   phase: 7
   area: ARCH
@@ -7485,7 +7489,7 @@
   title: Contract migrations for retired columns / tables
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-7
-  status: pending
+  status: blocked
   depends_on:
   - P5-GATE
   acceptance_criteria:
@@ -7495,10 +7499,14 @@
   - Backup recovery from new schema only
   - Archival storage verified
   rollback: keep tables
-  evidence: []
+  evidence:
+  - note: 'P7-DB-001 BLOCKED: Contract migration to drop profile columns from users requires one full business cycle of dual-write
+      validation (P5-USERPROFILE-001 expand phase) before contract phase. Migration-only table archival requires production
+      data inspection per AGENTS.md.'
+    ts: '2026-07-29T05:03:16+00:00'
   commits: []
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T05:03:16+00:00'
 - id: P7-DOCS-001
   phase: 7
   area: OPS

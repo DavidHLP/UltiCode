@@ -7186,7 +7186,7 @@
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-5
   - MICROSERVICE_MIGRATION_GUIDE.md#5.2
-  status: in_progress
+  status: done
   depends_on:
   - P4-GATE
   acceptance_criteria:
@@ -7204,10 +7204,16 @@
       table-specific audit_outbox grant corrected, flyway-*.conf per-schema configs created, 13/13 tests green.'
     result: Placed per-owner migrations under canonical init-db/migrations/{auth,admin,app}; table-specific GRANT INSERT ON
       admin.audit_outbox enforced; flyway-*.conf files created; PerOwnerSchemaGrantTest 10/10 PASS.
+  - note: 'P5-SCHEMA-001 CLOSED: Real MySQL Testcontainers IT (19/19 PASS) proving per-owner schema isolation. auth_rw/admin_rw/app_rw
+      connect as real DB users, owned-schema DML succeeds, cross-schema DML returns error 1142/1044, audit_outbox append-only
+      seam verified, information_schema SCHEMA_PRIVILEGES + TABLE_PRIVILEGES verify exact grant sets. V20260729140000 migration
+      updated with GRANT USAGE ON *.* for production shadow user connection.'
+    ts: '2026-07-29T03:28:24+00:00'
   commits:
-  - 9c8f2b2b6cd4ec24c19629f8909da9fd36c02c43
+  - 438f150
+  - b1b2fdb37f5ff924102df9d53123c2e9709e6076
   notes: ''
-  updated_at: '2026-07-29T03:12:13+00:00'
+  updated_at: '2026-07-29T03:28:24+00:00'
 - id: P5-USERPROFILE-001
   phase: 5
   area: SCHEMA

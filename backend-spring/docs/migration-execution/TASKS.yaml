@@ -8095,6 +8095,7 @@
   evidence:
   - note: 'P7-MIGRATE-MODERATION-001 complete: established canonical backend-moderation-domain reactor module owning ContentModerationDomainService and ContentModerationWritePort; relocated ContentModerationProvider and provider tests to backend-app; wired LegacyContentModerationWriteAdapter in backend-legacy with LegacyContentModerationWriteAdapterTest; full reactor verify across 14 modules BUILD SUCCESS with 0 failures.'
     ts: '2026-07-30T00:45:00+00:00'
-  commits: []
+  commits:
+  - e6e5b6576
   notes: ContentModeration write-side domain extracted to backend-moderation-domain; LegacyContentModerationWriteAdapter delegates to AdminForumService/AdminSolutionService; ContentModerationProvider relocated to backend-app.
   updated_at: '2026-07-30T00:45:00+00:00'

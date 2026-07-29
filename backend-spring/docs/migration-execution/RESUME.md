@@ -1,9 +1,10 @@
 # Migration Resume
 
 Current Phase: Phase 5 (P4-GATE closed)
-Current Task: P5-SCHEMA-001 (ready) — Per-Owner schema + DB user grants
+Current Task: P5-USERPROFILE-001 (ready) — Vertical split of `users` into account + profile
 
 Last Verified Commit:
+- 9c8f2b2 / 99283c2 feat(schema): create per-owner schemas auth/admin/app and restrict DB user grants (P5-SCHEMA-001)
 - c8f40b6 / c2d3e30 feat(gate): close Phase 4 Gate + ADR-P4-GATE-AUDIT (P4-GATE)
 - 7071e1d docs(migration): record ADR-P2-DISC-004 for MySQL 9.1 DDL portability (P2-DISC-004)
 - ea2538f refactor(permission): remove legacy assignPermission/revokePermission methods (P2-DISC-006)
@@ -39,12 +40,13 @@ Completed:
 - P3-OWNER-001 & P3-OWNER-001-G: Completed integration validation and final review for owner write boundary; all subtasks A-G verified and closed.
 - P2-DISC-004: Recorded ADR-P2-DISC-004 in DECISIONS.md choosing Option A for MySQL 9.1 DDL portability (future migrations use plain DDL syntax; V20260727021915 immutable per AGENTS.md); retained disposable-verify/ as documented regression test fixture per AC2 option (b).
 - P4-GATE: Phase 4 Gate CLOSED with ADR-P4-GATE-AUDIT documenting code-level verification (three services, single-hop RPC, timeout/retry policies, 0 shared Mapper jars, contract tests) vs ops-level live deployment scope.
+- P5-SCHEMA-001: Created `auth`, `admin`, `app` per-owner schemas via Flyway migration V20260729140000; revoked legacy default-schema grants; enforced DB user grants (auth_rw -> auth.*, admin_rw -> admin.*, app_rw -> app.*); verified with PerOwnerSchemaGrantTest (15/15 PASS, 1936 reactor tests PASS).
 
 Blocked:
 - None (code-health). Two environment/test-fixture follow-ups recorded (not gate blockers): (1) Testcontainers Redis AUTH config mismatch; (2) sandbox ITs need seccomp-profile.json fixture + privileged runtime.
 
-- Phase 4 complete. P4-GATE closed with ADR-P4-GATE-AUDIT.
-- Next: P5-SCHEMA-001 (Per-Owner schema + DB user grants) is ready.
+- Phase 5 in progress. P5-SCHEMA-001 completed.
+- Next: P5-USERPROFILE-001 (Vertical split of `users` into account + profile) is ready.
 
 Last Validation:
 - ./mvnw verify -B full backend-spring reactor: PASS (1921 tests run, 0 failures, 0 errors, 4 skipped).

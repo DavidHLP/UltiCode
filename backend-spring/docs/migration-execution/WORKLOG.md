@@ -786,3 +786,13 @@ this session.
   - Code-level verification closed: three services (`backend-auth`, `backend-admin`, `backend-app`), single-hop Dubbo RPC enforced via `SingleHopArchTest`, timeout=3000ms retry=0 `RpcPolicy`, 0 shared Mapper jars across contract modules, `ContractShapeTest` backward/forward compatibility.
   - Ops-level live deployment validation (multi-container startup, failure injection matrix, N-1 live runtime compatibility) explicitly deferred to Phase 7 operations validation per `ADR-P4-GATE-AUDIT`.
   - Commit: c8f40b6.
+
+## 2026-07-29 P5-SCHEMA-001 — Per-Owner schema + DB user grants
+
+- **P5-SCHEMA-001**: created per-owner schemas and enforced DB user grant isolation.
+  - Added Flyway migration `V20260729140000__Create_Per_Owner_Schemas_And_Revoke_Cross_Grants.sql`: created `auth`, `admin`, `app` schemas.
+  - Revoked legacy default-schema grants from per-owner shadow users.
+  - Issued strict per-schema grants: `auth_rw` -> `auth`.*, `admin_rw` -> `admin`.*, `app_rw` -> `app`.* (plus append-only INSERT on `admin.audit_outbox` for integration outbox seam).
+  - Created `PerOwnerSchemaGrantTest` verifying table-to-schema mappings and cross-schema access rejection rules (15/15 PASS).
+  - Full reactor verify: 1936 tests, 0 failures.
+  - Commit: 9c8f2b2.

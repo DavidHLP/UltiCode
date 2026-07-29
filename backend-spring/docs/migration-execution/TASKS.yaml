@@ -7339,7 +7339,7 @@
   title: '`consumer_inbox` dedup + reclaimable notification ledger'
   source:
   - MICROSERVICE_MIGRATION_GUIDE.md#Phase-6
-  status: pending
+  status: done
   depends_on:
   - P6-OUTBOX-001
   acceptance_criteria:
@@ -7350,10 +7350,15 @@
   - Stale claim reclaimed by next lease holder
   - ./mvnw verify -B
   rollback: revert inbox claim logic
-  evidence: []
-  commits: []
+  evidence:
+  - note: 'P6-INBOX-001 CLOSED: consumer_inbox dedup + reclaimable notification ledger. (consumer, event_id) unique constraint
+      blocks duplicates. Lease-claim with stale PROCESSING reclaim. Bounded FAILED retry (reclaim_attempts < 5). InboxConsumerIT
+      4/4 PASS. Full reactor verify 1931/0/0/4. Commit: 58f6a71.'
+    ts: '2026-07-29T03:57:54+00:00'
+  commits:
+  - 58f6a71
   notes: ''
-  updated_at: ''
+  updated_at: '2026-07-29T03:57:54+00:00'
 - id: P6-RESULT-001
   phase: 6
   area: EVENT

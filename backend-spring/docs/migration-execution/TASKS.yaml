@@ -6237,7 +6237,7 @@
       green)'
     note: Removed legacy assignPermission / revokePermission methods from interface and service, and enforced via ArchUnit.
   commits:
-  - 533a40e81
+  - ea2538f129778e4be4223c64d9c9320af75525d9
   notes: 'Discovered during the P2-GATE verification: the legacy PermissionService still exposed assignPermission / revokePermission
     that wrote to user_permissions via the legacy UserPermissionMapper. No production caller invokes them after the P2-RBAC-001
     refactor (UserPermissionServiceImpl routes through BackendAuthRoleAdminClient), but the foreign-writer method bodies remained

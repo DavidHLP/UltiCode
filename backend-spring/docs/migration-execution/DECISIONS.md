@@ -833,5 +833,25 @@ In the current development environment (monolith transitional execution), all 7 
 
 **Consequences.** `P4-GATE` is marked `done` for the code-level cutover and architecture boundaries scope. Live container deployment validation remains tracked under Phase 7 operations verification.
 
-**Affected Tasks:** P4-GATE (done), P5-SCHEMA-001 (ready).
+**Affected Tasks:** P4-GATE (done), P5-SCHEMA-001 (done).
 
+### ADR-P5-SCHEMA-001: GRANT USAGE ordering and audit_outbox table-scoped grant
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** Per-owner DB user schema isolation requires shadow users (`auth_rw`, `admin_rw`, `app_rw`) to connect to MySQL via JDBC and then be restricted to their owned schemas only. Two non-obvious MySQL behaviors were discovered during real Testcontainers integration testing:
+
+1. **`GRANT USAGE ON *.*` must come AFTER `REVOKE ALL PRIVILEGES`.** MySQL requires a server-level USAGE privilege for a user to establish any JDBC connection to the catalog (no-database JDBC URL). `REVOKE ALL PRIVILEGES, GRANT OPTION` strips USAGE too; if USAGE is granted before the REVOKE, the shadow user gets MySQL error 1044 on connect. Ordering REVOKE first then GRANT USAGE ensures the user can connect while having zero table access.
+
+2. **Table-scoped grants (e.g., `GRANT INSERT ON admin.audit_outbox`) appear in `TABLE_PRIVILEGES`, not `SCHEMA_PRIVILEGES`.** The cross-domain audit outbox seam gives `auth_rw` and `app_rw` an append-only INSERT on `admin.audit_outbox` only — not broad `admin.*` access. When auditing grant sets via `information_schema`, both views must be queried and summed to capture the full picture.
+
+3. **No-database JDBC URL + `GRANT USAGE ON *.*` avoids MySQL 1044 catalog denial.** Shadow users connect without a `/dbname` path in the JDBC URL, combined with USAGE on the catalog. Schema isolation is then enforced purely by per-schema DML grants (`GRANT SELECT, INSERT, UPDATE, DELETE ON auth.*`).
+
+**Decision.**
+1. Migration DDL ordering: `REVOKE ALL` → `GRANT USAGE ON *.*` → per-schema DML grants → table-scoped cross-domain grants.
+2. `audit_outbox` is always a table-scoped grant (`GRANT INSERT ON admin.audit_outbox`), never a schema-scoped `admin.*` grant.
+3. Shadow users connect via no-database JDBC URLs.
+
+**Consequences.** Any future per-owner schema migration or DB user provisioning script must follow this ordering. `information_schema` audits must query both `SCHEMA_PRIVILEGES` and `TABLE_PRIVILEGES`.
+
+**Affected Tasks:** P5-SCHEMA-001 (done).

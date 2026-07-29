@@ -793,6 +793,6 @@ this session.
   - Added Flyway migration `V20260729140000__Create_Per_Owner_Schemas_And_Revoke_Cross_Grants.sql`: created `auth`, `admin`, `app` schemas.
   - Revoked legacy default-schema grants from per-owner shadow users.
   - Issued strict per-schema grants: `auth_rw` -> `auth`.*, `admin_rw` -> `admin`.*, `app_rw` -> `app`.* (plus append-only INSERT on `admin.audit_outbox` for integration outbox seam).
-  - Created `PerOwnerSchemaGrantTest` verifying table-to-schema mappings and cross-schema access rejection rules (15/15 PASS).
-  - Full reactor verify: 1936 tests, 0 failures.
-  - Commit: 9c8f2b2.
+  - Created `PerOwnerSchemaIsolationIT` proving per-owner grant isolation against real MySQL 8.0 Testcontainers (19/19 PASS): owned-schema DML succeeds, cross-schema DML returns MySQL error 1142/1044, `audit_outbox` append-only INSERT verified for auth_rw and app_rw, `information_schema` SCHEMA_PRIVILEGES + TABLE_PRIVILEGES verify exact grant sets.
+  - Migration `V20260729140000` updated with `GRANT USAGE ON *.*` (after `REVOKE ALL`) so shadow users can establish JDBC connections.
+  - Commit: 438f150 (schema framework + migration), b1b2fdb (IT + GRANT USAGE fix), 525d2a0 (TASKS.yaml closure).

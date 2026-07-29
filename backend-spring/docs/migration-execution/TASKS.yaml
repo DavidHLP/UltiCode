@@ -6204,7 +6204,7 @@
   - MICROSERVICE_MIGRATION_GUIDE.md#15
   - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/permission/service/impl/PermissionServiceImpl.java
   - backend-spring/backend-legacy/src/main/java/com/ulticode/modules/permission/service/PermissionService.java
-  status: pending
+  status: done
   depends_on:
   - P2-RBAC-001
   - P2-GATE
@@ -6219,7 +6219,23 @@
   - ./mvnw verify -B
   - OwnerBoundaryArchTest no longer needs the closed-method test class.
   rollback: Restore the closed methods (revert commit).
-  evidence: []
+  evidence:
+  - note: 'Starting P2-DISC-006: Remove legacy assignPermission / revokePermission'
+    ts: '2026-07-29T02:32:14+00:00'
+  - command: /tmp/p2-disc-006_evidence.txt
+    result: 'command: ./mvnw test -pl backend-legacy -Dtest=PermissionServiceTest,OwnerBoundaryArchTest -B
+
+      result: BUILD SUCCESS (14/14 tests green)
+
+      - PermissionService interface shrunk to read-only queries (assignPermission/revokePermission removed)
+
+      - PermissionServiceImpl directive-throw bodies and unused write helpers removed
+
+      - PermissionServiceTest updated (WriteMethodsClosed nested class removed)
+
+      - OwnerBoundaryArchTest extended with p2_disc_006_forbid_direct_user_permission_mapper_imports rule (9/9 ArchUnit rules
+      green)'
+    note: Removed legacy assignPermission / revokePermission methods from interface and service, and enforced via ArchUnit.
   commits:
   - 533a40e81
   notes: 'Discovered during the P2-GATE verification: the legacy PermissionService still exposed assignPermission / revokePermission
@@ -6228,7 +6244,7 @@
     in the binary. To close the writer-segregation invariant decisively, the methods now throw UnsupportedOperationException
     pointing at BackendAuthRoleAdminClient. P2-DISC-006 removes them and the interface declarations entirely once the WriteMethodsClosed
     tests confirm the closure is no longer needed as a regression guard.'
-  updated_at: '2026-07-27T22:00:00+08:00'
+  updated_at: '2026-07-29T02:35:23+00:00'
 - id: P2-GATE
   phase: 2
   area: GATE

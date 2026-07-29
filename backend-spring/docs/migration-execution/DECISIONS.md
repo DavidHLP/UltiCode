@@ -878,3 +878,27 @@ In the current monolith transitional environment, all Phase 5 data tasks (`P5-SC
 **Consequences.** `P5-GATE` is marked `done` for the code-level data ownership, schema isolation, and reconciliation scope. Live backup recovery and one-business-cycle reconciliation monitoring remain tracked under Phase 7 operations verification.
 
 **Affected Tasks:** P5-GATE (done), P6-OUTBOX-001 (ready).
+### ADR-MIG-LESSONS-PHASE5-6: Reusable lessons from Phase 5–6 execution
+
+**Date:** 2026-07-29  **Status:** Accepted
+
+**Context.** Three durable lessons emerged during Phase 5–6 migration execution that are worth pinning at the documentation level to prevent regression.
+
+**Lesson 1: Orphan = parent physically absent.**
+
+The canonical definition of "orphan" in `OwnerReconciler` is: a child row whose foreign key references a parent id that does not exist **at all** in the parent table. A soft-deleted parent (`is_deleted=1`) still physically exists and is NOT an orphan — the child retains a valid logical reference until the parent is physically purged. Adding `AND p.is_deleted=0` to the orphan scan LEFT JOIN would introduce a false-positive factory on every cross-owner child row referencing a soft-deleted account.
+
+**Lesson 2: Per-owner DDL triple pattern.**
+
+Every cross-Owner table created during migration follows a three-part pattern:
+1. Canonical root migration in `init-db/migrations/V{timestamp}__*.sql`
+2. Parallel per-owner schema DDL in `init-db/migrations/{auth,admin,app}/V{timestamp}__*.sql`
+3. Grant reference in `V20260729140000` (or a later migration) giving the appropriate shadow user access
+
+Skipping part 3 means the per-owner deployment cannot access the table. This applies to `integration_outbox`, `consumer_inbox`, and any future cross-Owner table.
+
+**Lesson 3: Reactor verify before close.**
+
+AGENTS.md requires `./mvnw verify -B` to pass with 0 failures before marking any task `done`. The P5-USERPROFILE-001 incident (marked done with "verify pending" evidence) is a recent regression. The correct sequence is: targeted test PASS → `./mvnw verify -B` PASS → `update_task.py ... done` with actual test counts in the evidence note. Never close with "verify pending."
+
+**Affected Tasks:** P5-SCHEMA-001 through P6-INBOX-001 (all done).

@@ -100,9 +100,9 @@ public class WebSocketBroadcastBridge {
       WebSocketBroadcastMessage.Type type, String destination, String userId, Object payload) {
     try {
       String payloadJson = objectMapper.writeValueAsString(payload);
-      String payloadClass = payload.getClass().getName();
+      String kindWire = WebSocketPayloadKind.fromClass(payload.getClass()).wire();
       WebSocketBroadcastMessage message =
-          new WebSocketBroadcastMessage(type, destination, userId, payloadJson, payloadClass);
+          new WebSocketBroadcastMessage(type, destination, userId, payloadJson, kindWire);
       String messageJson = objectMapper.writeValueAsString(message);
       String channel = properties.getBroadcast().getChannel();
       redisTemplateProvider.getIfAvailable().convertAndSend(channel, messageJson);

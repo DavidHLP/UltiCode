@@ -14,6 +14,12 @@ import java.nio.charset.StandardCharsets;
  * Redis Pub/Sub listener that receives WebSocket broadcast messages and relays them
  * to the local STOMP {@link SimpMessagingTemplate}.
  *
+ * <p><strong>Security.</strong> The payload target class is resolved <em>only</em> through the
+ * closed {@link WebSocketPayloadKind} allowlist. A message carrying a {@code kind} outside the
+ * allowlist is dropped without any reflection or deserialization of the payload body, so a
+ * publisher that gains write access to the broadcast channel cannot instantiate arbitrary
+ * classpath classes via attacker-supplied JSON.
+ *
  * @author ulticode
  */
 @Component
@@ -33,11 +39,25 @@ public class WebSocketBroadcastListener implements MessageListener {
 
   @Override
   public void onMessage(Message message, byte[] pattern) {
+    String destination = null;
     try {
       String json = new String(message.getBody(), StandardCharsets.UTF_8);
       WebSocketBroadcastMessage broadcastMsg = objectMapper.readValue(json, WebSocketBroadcastMessage.class);
-      Class<?> payloadClass = Class.forName(broadcastMsg.getPayloadClass());
-      Object payload = objectMapper.readValue(broadcastMsg.getPayloadJson(), payloadClass);
+      destination = broadcastMsg.getDestination();
+      String kindWire = broadcastMsg.getKind();
+
+      // Allowlist gate: never reflect on attacker-controlled strings. An unknown kind is a
+      // poisoned/gadget message — drop it without deserializing the payload body.
+      WebSocketPayloadKind kind = WebSocketPayloadKind.fromWire(kindWire);
+      if (kind == null) {
+        log.warn(
+            "Dropping WS broadcast message with unknown payload kind '{}' (destination={}); "
+                + "not in WebSocketPayloadKind allowlist.",
+            kindWire, destination);
+        return;
+      }
+
+      Object payload = objectMapper.readValue(broadcastMsg.getPayloadJson(), kind.payloadClass());
 
       if (broadcastMsg.getType() == WebSocketBroadcastMessage.Type.BROADCAST) {
         messagingTemplate.convertAndSend(broadcastMsg.getDestination(), payload);
@@ -47,7 +67,7 @@ public class WebSocketBroadcastListener implements MessageListener {
       }
       log.debug("Relayed broadcast WS message to local STOMP: {}", broadcastMsg.getDestination());
     } catch (Exception e) {
-      log.error("Error processing Redis WS broadcast message", e);
+      log.error("Error processing Redis WS broadcast message (destination={})", destination, e);
     }
   }
 }

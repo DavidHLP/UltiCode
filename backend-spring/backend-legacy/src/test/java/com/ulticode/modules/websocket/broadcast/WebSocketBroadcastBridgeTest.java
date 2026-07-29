@@ -2,6 +2,7 @@ package com.ulticode.modules.websocket.broadcast;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.websocket.config.WebSocketProperties;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -70,10 +71,11 @@ class WebSocketBroadcastBridgeTest {
     properties.getBroadcast().setEnabled(true);
     when(redisTemplateProvider.getIfAvailable()).thenReturn(redisTemplate);
 
-    bridge.sendToUser("u-1", "/queue/notification", "Hello");
+    NotificationPayload payload = NotificationPayload.system("n-1", "Title", "Body");
+    bridge.sendToUser("u-1", "/queue/notification", payload);
 
     verify(redisTemplate).convertAndSend(eq("ulticode:ws:broadcast"), anyString());
-    verify(messagingTemplate, never()).convertAndSendToUser(anyString(), anyString(), anyString());
+    verify(messagingTemplate, never()).convertAndSendToUser(anyString(), anyString(), eq(payload));
   }
 
   @Test

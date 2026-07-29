@@ -5,6 +5,9 @@ import java.io.Serializable;
 /**
  * Message envelope serialized over Redis Pub/Sub for multi-instance STOMP WebSocket broadcasting.
  *
+ * <p>{@code kind} is a closed-string discriminator resolved through {@link WebSocketPayloadKind};
+ * the listener never reflects on an attacker-controlled class name.
+ *
  * @author ulticode
  */
 public class WebSocketBroadcastMessage implements Serializable {
@@ -18,17 +21,17 @@ public class WebSocketBroadcastMessage implements Serializable {
   private String destination;
   private String userId;
   private String payloadJson;
-  private String payloadClass;
+  private String kind;
 
   public WebSocketBroadcastMessage() {}
 
   public WebSocketBroadcastMessage(
-      Type type, String destination, String userId, String payloadJson, String payloadClass) {
+      Type type, String destination, String userId, String payloadJson, String kind) {
     this.type = type;
     this.destination = destination;
     this.userId = userId;
     this.payloadJson = payloadJson;
-    this.payloadClass = payloadClass;
+    this.kind = kind;
   }
 
   public Type getType() {
@@ -63,11 +66,11 @@ public class WebSocketBroadcastMessage implements Serializable {
     this.payloadJson = payloadJson;
   }
 
-  public String getPayloadClass() {
-    return payloadClass;
+  public String getKind() {
+    return kind;
   }
 
-  public void setPayloadClass(String payloadClass) {
-    this.payloadClass = payloadClass;
+  public void setKind(String kind) {
+    this.kind = kind;
   }
 }
